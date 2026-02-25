@@ -1,6 +1,6 @@
 {
     "name": "M3D",
-    "version": "1.0.0",
+    "version": "02.03.02.40",
     "force_update": "0",
     "description": "Configuration for M3D printers",
     "machine_model_list": [

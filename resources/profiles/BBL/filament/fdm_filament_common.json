@@ -102,6 +102,21 @@
     "filament_minimal_purge_on_wipe_tower": [
         "15"
     ],
+    "filament_tower_interface_pre_extrusion_dist": [
+        "10"
+    ],
+    "filament_tower_interface_pre_extrusion_length": [
+        "0"
+    ],
+    "filament_tower_ironing_area": [
+        "4"
+    ],
+    "filament_tower_interface_purge_volume": [
+        "20"
+    ],
+    "filament_tower_interface_print_temp": [
+        "-1"
+    ],
     "filament_printable": [
         "3"
     ],

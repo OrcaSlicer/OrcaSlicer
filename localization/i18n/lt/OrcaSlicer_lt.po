@@ -921,7 +921,7 @@ msgstr "Grąžinti šriftą į pradinę būseną."
 
 #, boost-format
 msgid "Font \"%1%\" can't be selected."
-msgstr "Nepavyksta pasirinkti \"%1%\" šrifto ."
+msgstr "Nepavyksta pasirinkti \"%1%\" šrifto."
 
 msgid "Operation"
 msgstr "Operacija"
@@ -2865,7 +2865,7 @@ msgstr "Viršutinis"
 
 msgid ""
 "The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
+"quality. The system automatically adjusts the fan's switch and speed "
 "according to different printing materials."
 msgstr ""
 
@@ -3716,7 +3716,7 @@ msgid "Please unload all filament before switching."
 msgstr ""
 
 msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+"AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -4913,8 +4913,8 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "Ventiliatoriaus greitis (%)"
 
-msgid "Temperature (°C)"
-msgstr "Temperatūra (°C)"
+msgid "Temperature (℃)"
+msgstr "Temperatūra (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tūrinis srautas (mm³/s)"
@@ -6442,7 +6442,7 @@ msgstr "Sluoksnis: %d/%d"
 
 #, fuzzy
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "Prašome prieš įtraukiant ar išstumiant giją įkaitinti purkštuką virš 170 "
 "laipsnių."
@@ -7569,7 +7569,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -8954,7 +8954,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9386,7 +9386,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 "Užpildymo modeliai paprastai yra suprojektuoti taip, kad automatiškai "
 "tvarkytų sukimąsi, siekiant užtikrinti tinkamą spausdinimą ir pasiekti "
@@ -20020,7 +20020,7 @@ msgstr ""
 "Uždarykite jį ir bandykite dar kartą."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Spausdintuvo ir visų spausdintuvui priklausančių gijų ir procesų išankstinės "
@@ -21742,8 +21742,8 @@ msgstr ""
 
 #, fuzzy
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
 #~ "Rekomenduojama minimali temperatūra yra žemesnė nei 190 laipsnių arba "
 #~ "maksimali temperatūra aukštesnė nei 300 laipsnių.\n"

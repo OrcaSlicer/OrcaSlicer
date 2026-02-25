@@ -1,7 +1,7 @@
 {
     "name": "Bambulab",
     "url": "http://www.bambulab.com/Parameters/vendor/BBL.json",
-    "version": "02.00.00.56",
+    "version": "02.01.00.00",
     "force_update": "0",
     "description": "the initial version of BBL configurations",
     "machine_model_list": [

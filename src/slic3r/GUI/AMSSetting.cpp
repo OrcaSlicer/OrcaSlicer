@@ -721,7 +721,7 @@ void AMSSettingTypePanel::OnAmsTypeChanged(wxCommandEvent& event)
             return;
         }
 
-        MessageDialog dlg(this, _L("AMS type switching needs firmware update, taking about 30s. Switch now ?"), SLIC3R_APP_NAME + _L("Info"), wxOK | wxCANCEL | wxICON_INFORMATION);
+        MessageDialog dlg(this, _L("AMS type switching needs firmware update, taking about 30s. Switch now?"), SLIC3R_APP_NAME + _L("Info"), wxOK | wxCANCEL | wxICON_INFORMATION);
         dlg.SetButtonLabel(wxID_OK, _L("Confirm"));
         int rtn = dlg.ShowModal();
         if (rtn != wxID_OK) {

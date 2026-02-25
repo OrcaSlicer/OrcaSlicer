@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-12 08:42+0800\n"
-"PO-Revision-Date: 2025-11-15 17:50-0300\n"
+"PO-Revision-Date: 2026-02-21 18:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -24,7 +24,7 @@ msgid ""
 "Generic filament presets will be used."
 msgstr ""
 "O filamento pode não ser compatível com as configurações atuais da máquina. "
-"Serão usadas predefinições genéricas predefinidas de filamento."
+"Serão usadas predefinições genéricas de filamento."
 
 msgid ""
 "The filament model is unknown. Still using the previous filament preset."
@@ -35,7 +35,7 @@ msgstr ""
 msgid "The filament model is unknown. Generic filament presets will be used."
 msgstr ""
 "O modelo do filamento é desconhecido. Serão usadas predefinições genéricas "
-"predefinidas de filamento."
+"de filamento."
 
 msgid ""
 "The filament may not be compatible with the current machine settings. A "
@@ -68,7 +68,7 @@ msgid "TPU is not supported by AMS."
 msgstr "TPU não é suportado pelo AMS."
 
 msgid "AMS does not support 'Bambu Lab PET-CF'."
-msgstr ""
+msgstr "AMS não suporta 'Bambu Lab PET-CF'."
 
 msgid ""
 "Please cold pull before printing TPU to avoid clogging. You may use cold "
@@ -351,9 +351,11 @@ msgstr "Redefinir seleção"
 msgid ""
 "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 msgstr ""
+"Aviso: Textura difusa está desativada, textura difusa pintada não terá "
+"efeito!"
 
 msgid "Enable painted fuzzy skin for this object"
-msgstr ""
+msgstr "Ativar textura difusa pintada para este objeto"
 
 msgid "Move"
 msgstr "Mover"
@@ -1175,7 +1177,7 @@ msgid "Undo rotation"
 msgstr "Desfazer rotação"
 
 msgid "Rotate text Clockwise."
-msgstr ""
+msgstr "Rotacionar texto no sentido Horário."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
 msgstr ""
@@ -1677,10 +1679,10 @@ msgid "Untitled"
 msgstr "Sem título"
 
 msgid "Reloading network plugin..."
-msgstr ""
+msgstr "Recarregando o plug-in de rede..."
 
 msgid "Downloading Network Plugin"
-msgstr ""
+msgstr "Baixando o Plug-in de Rede"
 
 msgid "Downloading Bambu Network Plug-in"
 msgstr "Baixando o Plug-in de Rede Bambu"
@@ -1803,25 +1805,31 @@ msgstr ""
 "versão mais recente antes de poder ser usada normalmente."
 
 msgid "Retrieving printer information, please try again later."
-msgstr ""
+msgstr "Obtendo informações da impressora, tente novamente mais tarde."
 
 msgid "Please try updating OrcaSlicer and then try again."
-msgstr ""
+msgstr "Tente atualizar o OrcaSlicer e então tente novamente."
 
 msgid ""
 "The certificate has expired. Please check the time settings or update "
 "OrcaSlicer and try again."
 msgstr ""
+"O certificado expirou. Verifique as configurações de horário ou atualize o "
+"OrcaSlicer e tente novamente."
 
 msgid ""
 "The certificate is no longer valid and the printing functions are "
 "unavailable."
 msgstr ""
+"O certificado não é mais válido e as funções de impressão não estão "
+"disponíveis."
 
 msgid ""
 "Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
 "the issue persists, contact support."
 msgstr ""
+"Erro interno. Tente atualizar o firmware e a versão do OrcaSlicer. Se o "
+"problema persistir, entre em contato com o suporte."
 
 msgid ""
 "To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
@@ -1834,9 +1842,18 @@ msgid ""
 "Developer mode allows the printer to work exclusively through local network "
 "access, enabling full functionality with OrcaSlicer."
 msgstr ""
+"Para usar o OrcaSlicer com impressoras Bambu Lab, você precisa ativar o modo "
+"LAN e o modo Desenvolvedor na sua impressora.\n"
+"\n"
+"Acesse as configurações da sua impressora e:\n"
+"1. Ative o modo LAN.\n"
+"2. Ative o modo Desenvolvedor.\n"
+"O modo Desenvolvedor permite que a impressora funcione exclusivamente por "
+"meio de acesso à rede local, possibilitando a funcionalidade completa do "
+"OrcaSlicer."
 
 msgid "Network Plugin Restriction"
-msgstr ""
+msgstr "Restrição de Plugin de Rede"
 
 msgid "Privacy Policy Update"
 msgstr "Atualização da Política de Privacidade"
@@ -2109,10 +2126,10 @@ msgid "Export as STLs"
 msgstr "Exportar como STLs"
 
 msgid "Export as one DRC"
-msgstr ""
+msgstr "Exportar como um DRC"
 
 msgid "Export as DRCs"
-msgstr ""
+msgstr "Exportar como DRCs"
 
 msgid "Reload from disk"
 msgstr "Recarregar do disco"
@@ -2121,16 +2138,16 @@ msgid "Reload the selected parts from disk"
 msgstr "Recarregar as peças selecionadas do disco"
 
 msgid "Replace 3D file"
-msgstr ""
+msgstr "Substituir por arquivo 3D"
 
 msgid "Replace the selected part with a new 3D file"
-msgstr ""
+msgstr "Substituir a peça selecionada por novo arquivo 3D"
 
 msgid "Replace all with 3D files"
-msgstr ""
+msgstr "Substituir tudo por arquivos 3D"
 
 msgid "Replace all selected parts with 3D files from folder"
-msgstr ""
+msgstr "Substituir todas peças selecionadas com arquivos 3D da pasta"
 
 msgid "Change filament"
 msgstr "Alterar filamento"
@@ -2346,10 +2363,10 @@ msgid "Simplify Model"
 msgstr "Simplificar Modelo"
 
 msgid "Subdivision mesh"
-msgstr ""
+msgstr "Malha de sub-divisão"
 
 msgid "(Lost color)"
-msgstr ""
+msgstr "(Cor perdida)"
 
 msgid "Center"
 msgstr "Centralizar"
@@ -2598,13 +2615,15 @@ msgid ""
 "\"%s\" will exceed 1 million faces after this subdivision, which may "
 "increase slicing time. Do you want to continue?"
 msgstr ""
+"\"%s\" ultrapassará 1 milhão de faces após esta subdivisão, o que pode "
+"aumentar o tempo de fatiamento. Deseja continuar?"
 
 msgid "BambuStudio warning"
-msgstr ""
+msgstr "Aviso do Bambu Studio"
 
 #, c-format, boost-format
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
-msgstr ""
+msgstr "A malha da peça \"%s\" contém erros. Por favor, corrija-a primeiro."
 
 msgid "Additional process preset"
 msgstr "Predefinição de processo adicional"
@@ -2889,7 +2908,7 @@ msgstr "Topo"
 
 msgid ""
 "The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
+"quality. The system automatically adjusts the fan's switch and speed "
 "according to different printing materials."
 msgstr ""
 "O ventilador controla a temperatura durante a impressão para melhorar a "
@@ -3202,7 +3221,7 @@ msgstr ""
 
 msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
-"Ocorreu um erro desconhecido no estadu do Armazenamento. Tente novamente."
+"Ocorreu um erro desconhecido no estado do Armazenamento. Tente novamente."
 
 msgid "Sending G-code file over LAN"
 msgstr "Enviando arquivo de G-code via LAN"
@@ -3242,16 +3261,19 @@ msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Pré-condicionamento térmico para otimização da primeira camada"
 
 msgid "Remaining time: Calculating..."
-msgstr ""
+msgstr "Tempo restante: Calculando..."
 
 msgid ""
 "The heated bed's thermal preconditioning helps optimize the first layer "
 "print quality. Printing will start once preconditioning is complete."
 msgstr ""
+"O pré-condicionamento térmico da mesa aquecida ajuda a otimizar a "
+"qualidade de impressão da primeira camada. A impressão começará assim que "
+"o pré-condicionamento estiver concluído."
 
 #, c-format, boost-format
 msgid "Remaining time: %dmin%ds"
-msgstr ""
+msgstr "Tempo restante: %dmin%ds"
 
 msgid "Importing SLA archive"
 msgstr "Importando arquivo SLA"
@@ -3470,13 +3492,13 @@ msgid "Max volumetric speed"
 msgstr "Fluxo volumétrico máximo"
 
 msgid "℃"
-msgstr ""
+msgstr "℃"
 
 msgid "Bed temperature"
 msgstr "Temperatura da mesa"
 
 msgid "mm³"
-msgstr ""
+msgstr "mm³"
 
 msgid "Start calibration"
 msgstr "Iniciar calibração"
@@ -3790,28 +3812,33 @@ msgstr ""
 "imediatamente para conservar tempo e filamento."
 
 msgid "AMS Type"
-msgstr ""
+msgstr "Tipo de AMS"
 
 msgid "Switching"
-msgstr ""
+msgstr "Alternando"
 
 msgid "The printer is busy and cannot switch AMS type."
-msgstr ""
+msgstr "A impressora está ocupada e não pode alternar o tipo de AMS."
 
 msgid "Please unload all filament before switching."
-msgstr ""
+msgstr "Descarregue todos os filamentos antes de alternar."
 
 msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+"AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
+"A troca de tipo de AMS requer uma atualização de firmware, que levará cerca "
+"de 30s. Alternar agora?"
 
 msgid "Arrange AMS Order"
-msgstr ""
+msgstr "Organizar Ordem do AMS"
 
 msgid ""
 "AMS ID will be reset. If you want a specific ID sequence, disconnect all AMS "
 "before resetting and connect them in the desired order after resetting."
 msgstr ""
+"O ID do AMS será redefinido. Se você deseja uma sequência de ID específica, "
+"desconecte todos os AMS antes de redefinir e conecte-os na ordem desejada "
+"após a redefinição."
 
 msgid "File"
 msgstr "Arquivo"
@@ -3840,9 +3867,11 @@ msgid ""
 "The network plugin was installed but could not be loaded. Please restart the "
 "application."
 msgstr ""
+"O plugin de rede foi instalado, mas não pôde ser carregado. Reinicie o "
+"aplicativo."
 
 msgid "Restart Required"
-msgstr ""
+msgstr "Reinicialização Necessária"
 
 msgid "Please home all axes (click "
 msgstr "Por favor, mandar a origem todos os eixos (clique "
@@ -4361,7 +4390,7 @@ msgid "Motor noise showoff"
 msgstr "Demonstração de barulho do motor"
 
 msgid "Pause (nozzle clumping)"
-msgstr "Pausa (aglomeração do bico)"
+msgstr "Pausa (aglomeração no bico)"
 
 msgid "Pause (cutter error)"
 msgstr "Pausa (erro no cortador)"
@@ -4373,10 +4402,10 @@ msgid "Pause (nozzle clog)"
 msgstr "Pausa (bico entupido)"
 
 msgid "Measuring motion precision"
-msgstr ""
+msgstr "Medindo precisão de movimento"
 
 msgid "Enhancing motion precision"
-msgstr ""
+msgstr "Aprimorando precisão do movimento"
 
 msgid "Measure motion accuracy"
 msgstr "Medir a precisão do movimento"
@@ -4385,7 +4414,7 @@ msgid "Nozzle offset calibration"
 msgstr "Calibração do deslocamento do bico"
 
 msgid "high temperature auto bed leveling"
-msgstr ""
+msgstr "nivelamento automático da mesa em alta temperatura"
 
 msgid "Auto Check: Quick Release Lever"
 msgstr "Verificação Automática: Alavanca de Liberação Rápida"
@@ -4439,7 +4468,7 @@ msgid "Measuring Surface"
 msgstr "Medindo Superfície"
 
 msgid "Calibrating the detection position of nozzle clumping"
-msgstr ""
+msgstr "Calibrando a posição de detecção de aglomeração no bico"
 
 msgid "Unknown"
 msgstr "Desconhecido"
@@ -4500,7 +4529,7 @@ msgid ""
 "45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/"
 "TPU) is not allowed to be loaded."
 msgstr ""
-"A temperatura atual da câmara ou a temperatura alvo da câmara excede 45°C. "
+"A temperatura atual da câmara ou a temperatura alvo da câmara excede 45℃. "
 "Para evitar o entupimento da extrusora, não é permitido o carregamento de "
 "filamentos de baixa temperatura (PLA/PETG/TPU)."
 
@@ -4595,7 +4624,7 @@ msgid "Stop Drying"
 msgstr "Parar de Secar"
 
 msgid "Proceed"
-msgstr ""
+msgstr "Prosseguir"
 
 msgid "Done"
 msgstr "Concluído"
@@ -4751,7 +4780,7 @@ msgid "Line Width"
 msgstr "Largura da Linha"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Velocidade Real"
 
 msgid "Fan Speed"
 msgstr "Velocidade do Ventilador"
@@ -4760,7 +4789,7 @@ msgid "Flow"
 msgstr "Fluxo"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Fluxo Real"
 
 msgid "Tool"
 msgstr "Ferramenta"
@@ -4787,10 +4816,10 @@ msgid "Tool Change"
 msgstr "Mudança de Ferramenta"
 
 msgid "Color Change"
-msgstr ""
+msgstr "Mudança de Cor"
 
 msgid "Pause Print"
-msgstr ""
+msgstr "Pausar Impressão"
 
 msgid "Travel"
 msgstr "Deslocamento"
@@ -4799,7 +4828,7 @@ msgid "Wipe"
 msgstr "Limpeza"
 
 msgid "Extrude"
-msgstr ""
+msgstr "Extrusar"
 
 msgid "Inner wall"
 msgstr "Parede interna"
@@ -4838,22 +4867,22 @@ msgid "Bottom surface"
 msgstr "Superfície inferior"
 
 msgid "Internal bridge"
-msgstr ""
+msgstr "Ponte interna"
 
 msgid "Support transition"
 msgstr "Transição de suporte"
 
 msgid "Mixed"
-msgstr ""
+msgstr "Misturado"
 
 msgid "mm/s"
-msgstr ""
+msgstr "mm/s"
 
 msgid "Flow rate"
 msgstr "Fluxo"
 
 msgid "mm³/s"
-msgstr ""
+msgstr "mm³/s"
 
 msgid "Fan speed"
 msgstr "Velocidade do ventilador"
@@ -4865,7 +4894,7 @@ msgid "Time"
 msgstr "Tempo"
 
 msgid "Actual speed profile"
-msgstr ""
+msgstr "Perfil de velocidade real"
 
 msgid "Speed: "
 msgstr "Velocidade: "
@@ -4889,13 +4918,13 @@ msgid "Layer Time: "
 msgstr "Tempo de Camada: "
 
 msgid "Tool: "
-msgstr ""
+msgstr "Ferramenta: "
 
 msgid "Color: "
-msgstr ""
+msgstr "Cor: "
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Velocidade Real: "
 
 msgid "Statistics of All Plates"
 msgstr "Estatísticas de Todas as Placas"
@@ -5029,14 +5058,14 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "Velocidade do Ventilador (%)"
 
-msgid "Temperature (°C)"
-msgstr "Temperatura (°C)"
+msgid "Temperature (℃)"
+msgstr "Temperatura (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
-msgstr "Fluxo Volumétrico (mm³/s)"
+msgstr "Fluxo volumétrico (mm³/s)"
 
 msgid "Actual volumetric flow rate (mm³/s)"
-msgstr ""
+msgstr "Fluxo volumétrico real (mm³/s)"
 
 msgid "Seams"
 msgstr "Costuras"
@@ -5060,7 +5089,7 @@ msgid "Filament change times"
 msgstr "Quantidade de trocas de filamento"
 
 msgid "Color change"
-msgstr "Mudança de Cor"
+msgstr "Mudança de cor"
 
 msgid "Print"
 msgstr "Imprimir"
@@ -5087,10 +5116,10 @@ msgid "Model printing time"
 msgstr "Tempo de impressão do modelo"
 
 msgid "Show stealth mode"
-msgstr ""
+msgstr "Mostrar modo furtivo"
 
 msgid "Show normal mode"
-msgstr ""
+msgstr "Mostrar modo normal"
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
@@ -5366,14 +5395,14 @@ msgstr "Não suporta a impressão de 2 ou mais filamentos de TPU."
 
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr ""
+msgstr "Ferramenta %d"
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
-"O filamento %s foi colocado em %s, mas o caminho do G-code gerado excede a "
+"O filamento %s está colocado em %s, mas o caminho do G-code gerado excede a "
 "área imprimível de %s."
 
 #, c-format, boost-format
@@ -5381,13 +5410,15 @@ msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
+"Os filamentos %s estão colocados em %s, mas o caminho do G-code gerado "
+"excede a área imprimível de %s."
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
-"O filamento %s foi colocado em %s, mas o caminho do G-code gerado excede a "
+"O filamento %s está colocado em %s, mas o caminho do G-code gerado excede a "
 "altura imprimível de %s."
 
 #, c-format, boost-format
@@ -5395,6 +5426,8 @@ msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
+"Os filamentos %s estão colocados em %s, mas o caminho do G-code gerado "
+"excede a altura imprimível de %s."
 
 msgid "Open wiki for more information."
 msgstr "Abra a wiki para obter mais informações."
@@ -5422,11 +5455,16 @@ msgid ""
 "Prime tower position exceeded build plate boundaries and was repositioned to "
 "the nearest valid edge."
 msgstr ""
+"A posição da torre de preparo ultrapassou os limites da placa de impressão e "
+"foi reposicionada para a borda válida mais próxima."
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
 "mixing in models. Please redjust flushing settings."
 msgstr ""
+"Volume de purga parcial definido como 0. A impressão multicolorida pode "
+"causar mistura de cores nos modelos. Por favor, ajuste novamente as "
+"configurações de purga."
 
 msgid "Click Wiki for help."
 msgstr "Clique em Wiki para obter ajuda."
@@ -5435,7 +5473,7 @@ msgid "Click here to regroup"
 msgstr "Clique aqui para reagrupar"
 
 msgid "Flushing Volume"
-msgstr ""
+msgstr "Volume de Purga"
 
 msgid "Calibration step selection"
 msgstr "Seleção de etapa de calibração"
@@ -5450,7 +5488,7 @@ msgid "High-temperature Heatbed Calibration"
 msgstr "Calibração de Mesa Aquecida de Alta Temperatura"
 
 msgid "Nozzle clumping detection Calibration"
-msgstr ""
+msgstr "Calibração para detecção de aglomeração no bico"
 
 msgid "Calibration program"
 msgstr "Programa de calibração"
@@ -5709,10 +5747,10 @@ msgid "Export all objects as STLs"
 msgstr "Exportar todos os objetos como STLs"
 
 msgid "Export all objects as one DRC"
-msgstr ""
+msgstr "Exportar todos os objetos como um único DRC"
 
 msgid "Export all objects as DRCs"
-msgstr ""
+msgstr "Exportar todos os objetos como DRCs"
 
 msgid "Export Generic 3MF"
 msgstr "Exportar 3MF Genérico"
@@ -6524,7 +6562,7 @@ msgid "Print Options"
 msgstr "Opções de Impressão"
 
 msgid "Safety Options"
-msgstr ""
+msgstr "Opções de Segurança"
 
 msgid "Lamp"
 msgstr "Lâmpada"
@@ -6557,6 +6595,8 @@ msgid ""
 "When printing is paused, filament loading and unloading are only supported "
 "for external slots."
 msgstr ""
+"Quando a impressão está pausada, o carregamento e descarregamento do "
+"filamento são suportados apenas para espaços externos."
 
 msgid "Current extruder is busy changing filament."
 msgstr "A extrusora atual está ocupada trocando o filamento."
@@ -6568,7 +6608,7 @@ msgid "The selected slot is empty."
 msgstr "O espaço selecionado está vazio."
 
 msgid "Printer 2D mode does not support 3D calibration"
-msgstr ""
+msgstr "O modo 2D da impressora não suporta calibração 3D"
 
 msgid "Downloading..."
 msgstr "Baixando…"
@@ -6589,12 +6629,14 @@ msgid "Layer: %d/%d"
 msgstr "Camada: %d/%d"
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "Aqueça o bico a mais de 170℃ antes de carregar ou descarregar o filamento."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr ""
+"A temperatura da câmara não pode ser alterada no modo de resfriamento "
+"durante a impressão."
 
 msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
@@ -6885,7 +6927,7 @@ msgid "New printer config available."
 msgstr "Nova configuração de impressora disponível."
 
 msgid "Wiki Guide"
-msgstr ""
+msgstr "Guia Wiki"
 
 msgid "Undo integration failed."
 msgstr "A desintegração falhou."
@@ -6993,6 +7035,8 @@ msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
 msgstr ""
+"A aplicação não pode ser executada normalmente porque a versão do OpenGL "
+"é inferior a 3.2.\n"
 
 msgid "Please upgrade your graphics card driver."
 msgstr "Por favor, atualize o driver da sua placa de vídeo."
@@ -7148,16 +7192,19 @@ msgid "No wiki link available for this printer."
 msgstr "Não há link wiki disponível para esta impressora."
 
 msgid "Refreshing"
-msgstr ""
+msgstr "Refrescando"
 
 msgid "Unavailable while heating maintenance function is on."
 msgstr ""
+"Indisponível enquanto a função de manutenção do aquecimento estiver ativada."
 
 msgid "Idel Heating Protection"
 msgstr ""
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr ""
+"Interrompe o aquecimento automaticamente após 5 minutos de inatividade para "
+"garantir a segurança."
 
 msgid "Global"
 msgstr "Global"
@@ -7166,7 +7213,7 @@ msgid "Objects"
 msgstr "Objetos"
 
 msgid "Show/Hide advanced parameters"
-msgstr ""
+msgstr "Mostrar/Ocultar parâmetros avançados"
 
 msgid "Compare presets"
 msgstr "Comparar predefinições"
@@ -7369,9 +7416,14 @@ msgid ""
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
+"Existem alguns filamentos desconhecidos ou incompatíveis mapeados para "
+"predefinições genéricas.\n"
+"Atualize ou reinicie o OrcaSlicer para verificar se há alguma atualização "
+"para as predefinições do sistema."
 
 msgid "Only filament color information has been synchronized from printer."
 msgstr ""
+"Apenas as informações de cor do filamento foram sincronizadas da impressora."
 
 msgid ""
 "Filament type and color information have been synchronized, but slot "
@@ -7680,7 +7732,7 @@ msgid "Directory for the replace wasn't selected"
 msgstr "Diretório para substituição não foi selecionado"
 
 msgid "Replaced with 3D files from directory:\n"
-msgstr ""
+msgstr "Substituído por arquivos 3D do diretório:\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: same file.\n"
@@ -7757,7 +7809,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 "As informações sobre o tipo de bico e a quantidade de AMS não foram "
 "sincronizadas com a impressora conectada.\n"
@@ -7826,7 +7878,7 @@ msgstr ""
 "padrão "
 
 msgid "mm/s²"
-msgstr ""
+msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr ""
@@ -8002,6 +8054,8 @@ msgid ""
 "OrcaSlicer can't connect to %s. Please check if the printer is powered on "
 "and connected to the network."
 msgstr ""
+"O OrcaSlicer não consegue se conectar a %s. Verifique se a impressora está "
+"ligada e conectada à rede."
 
 #, c-format, boost-format
 msgid ""
@@ -8325,19 +8379,20 @@ msgstr ""
 "para cada impressora automaticamente."
 
 msgid "Group user filament presets"
-msgstr ""
+msgstr "Agrupar predefinições de filamento do usuário"
 
 msgid "Group user filament presets based on selection"
 msgstr ""
+"Agrupar predefinições de filamento do usuário com base na seleção"
 
 msgid "All"
 msgstr "Todos"
 
 msgid "By type"
-msgstr ""
+msgstr "Por tipo"
 
 msgid "By vendor"
-msgstr ""
+msgstr "Por fornecedor"
 
 msgid "Features"
 msgstr "Recursos"
@@ -8388,17 +8443,21 @@ msgid "Auto arrange plate after cloning"
 msgstr "Organizar automaticamente a placa após a clonagem"
 
 msgid "Auto slice after changes"
-msgstr ""
+msgstr "Fatiar automaticamente após mudanças"
 
 msgid ""
 "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
 "settings change."
 msgstr ""
+"Se ativado, o OrcaSlicer irá re-fatiar automaticamente sempre que as "
+"configurações relacionadas ao fatiamento forem alteradas."
 
 msgid ""
 "Delay in seconds before auto slicing starts, allowing multiple edits to be "
 "grouped. Use 0 to slice immediately."
 msgstr ""
+"Atraso em segundos antes do início do fatiamento automático, permitindo "
+"que várias edições sejam agrupadas. Use 0 para fatiar imediatamente."
 
 msgid "Remove mixed temperature restriction"
 msgstr "Remover restrição de temperatura mista"
@@ -8531,20 +8590,22 @@ msgid ""
 msgstr ""
 
 msgid "Filament Sync Options"
-msgstr ""
+msgstr "Opções de Sincronização de Filamento"
 
 msgid "Filament sync mode"
-msgstr ""
+msgstr "Modo de sincronização de filamento"
 
 msgid ""
 "Choose whether sync updates both filament preset and color, or only color."
 msgstr ""
+"Escolha se a sincronização atualiza tanto a predefinição do filamento quanto "
+"a cor, ou apenas a cor."
 
 msgid "Filament & Color"
-msgstr ""
+msgstr "Filamento e Cor"
 
 msgid "Color only"
-msgstr ""
+msgstr "Apenas Cor"
 
 msgid "Network plugin"
 msgstr "Plugin de rede"
@@ -8553,22 +8614,22 @@ msgid "Enable network plugin"
 msgstr "Ativar plugin de rede"
 
 msgid "Network plugin version"
-msgstr ""
+msgstr "Versão do plugin de rede"
 
 msgid "Select the network plugin version to use"
-msgstr ""
+msgstr "Selecione a versão do plugin de rede a ser usado"
 
 msgid "(Latest)"
-msgstr ""
+msgstr "(Mais recente)"
 
 msgid "Network plugin switched successfully."
-msgstr ""
+msgstr "Plugin de rede alterado com sucesso."
 
 msgid "Success"
-msgstr ""
+msgstr "Sucesso"
 
 msgid "Failed to load network plugin. Please restart the application."
-msgstr ""
+msgstr "Falha ao carregar o plugin de rede. Reinicie o aplicativo."
 
 #, c-format, boost-format
 msgid ""
@@ -8578,9 +8639,14 @@ msgid ""
 "\n"
 "Note: The application may need to restart after installation."
 msgstr ""
+"Você selecionou a versão %s do plugin de rede.\n"
+"\n"
+"Deseja baixar e instalar esta versão agora?\n"
+"\n"
+"Observação: o aplicativo pode precisar ser reiniciado após a instalação."
 
 msgid "Download Network Plugin"
-msgstr ""
+msgstr "Baixar Plugin de Rede"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Associar arquivos ao OrcaSlicer"
@@ -8593,10 +8659,11 @@ msgstr ""
 "Se ativado, define OrcaSlicer como aplicativo padrão para abrir arquivos 3MF."
 
 msgid "Associate DRC files to OrcaSlicer"
-msgstr ""
+msgstr "Associar arquivos DRC ao OrcaSlicer"
 
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
 msgstr ""
+"Se ativado, define OrcaSlicer como aplicativo padrão para abrir arquivos DRC."
 
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Associar arquivos STL ao OrcaSlicer"
@@ -9214,7 +9281,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9364,6 +9431,8 @@ msgstr "Consulte o Wiki antes de usar->"
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr ""
+"O firmware atual não suporta a transferência de arquivos para o armazenamento "
+"interno."
 
 msgid "Send to Printer storage"
 msgstr "Enviar para armazenamento da Impressora"
@@ -9372,10 +9441,10 @@ msgid "Try to connect"
 msgstr "Tentar conexão"
 
 msgid "Internal Storage"
-msgstr ""
+msgstr "Armazenamento Interno"
 
 msgid "External Storage"
-msgstr ""
+msgstr "Armazenamento Externo"
 
 msgid "Upload file timeout, please check if the firmware version supports it."
 msgstr ""
@@ -9383,7 +9452,7 @@ msgstr ""
 "firmware tem suporte."
 
 msgid "Connection timed out, please check your network."
-msgstr ""
+msgstr "Tempo limite de conexão excedido. Verifique sua rede."
 
 msgid "Connection failed. Click the icon to retry"
 msgstr "Falha na coexão.  Clique no icon para tentar novamente"
@@ -9681,7 +9750,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 "Padrões de preenchimento são projetados para lidar com a rotação "
 "automaticamente para garantir a impressão adequada e atingir os efeitos "
@@ -10811,7 +10880,7 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "Para uma taxa de fluxo constante, segure %1% enquanto arrasta."
 
 msgid "ms"
-msgstr ""
+msgstr "ms"
 
 msgid "Total ramming"
 msgstr "Moldeamento total"
@@ -13931,7 +14000,7 @@ msgstr ""
 "impressão da camada."
 
 msgid "s"
-msgstr ""
+msgstr "s"
 
 msgid "Default color"
 msgstr "Cor padrão"
@@ -15937,7 +16006,7 @@ msgstr ""
 "Nota: este parâmetro desativa o ajuste de arco."
 
 msgid "mm³/s²"
-msgstr ""
+msgstr "mm³/s²"
 
 msgid "Smoothing segment length"
 msgstr "Comprimento do segmento de suavização"
@@ -16157,7 +16226,7 @@ msgstr ""
 "uma forma cônica. Um valor 0 irá preencher todos os furos do modelo."
 
 msgid "mm²"
-msgstr ""
+msgstr "mm²"
 
 msgid "Detect overhang wall"
 msgstr "Detectar paredes salientes"
@@ -16978,7 +17047,7 @@ msgstr ""
 "filamento é definido como valor diferente de zero."
 
 msgid "∆℃"
-msgstr ""
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "Tempo de pré-aquecimento"
@@ -18742,51 +18811,59 @@ msgid "Number of layers in the entire print."
 msgstr "Número de camadas em toda a impressão."
 
 msgid "Print time (normal mode)"
-msgstr ""
+msgstr "Tempo de impressão (modo normal)"
 
 msgid ""
 "Estimated print time when printed in normal mode (i.e. not in silent mode). "
 "Same as print_time."
 msgstr ""
+"Tempo estimado de impressão quando impresso no modo normal (ou seja, não no "
+"modo silencioso). Igual a print_time."
 
 msgid ""
 "Estimated print time when printed in normal mode (i.e. not in silent mode). "
 "Same as normal_print_time."
 msgstr ""
+"Tempo estimado de impressão quando impresso no modo normal (ou seja, não no "
+"modo silencioso). Igual a normal_print_time."
 
 msgid "Print time (silent mode)"
-msgstr ""
+msgstr "Tempo de impressão (modo silencioso)"
 
 msgid "Estimated print time when printed in silent mode."
-msgstr ""
+msgstr "Tempo estimado de impressão quando impresso no modo silencioso)"
 
 msgid ""
 "Total cost of all material used in the print. Calculated from filament_cost "
 "value in Filament Settings."
 msgstr ""
+"Custo total de todo o material usado na impressão. Calculado a partir do "
+"valor filament_cost nas Configurações de Filamento."
 
 msgid "Total wipe tower cost"
-msgstr ""
+msgstr "Custo total da torre de limpeza"
 
 msgid ""
 "Total cost of the material wasted on the wipe tower. Calculated from "
 "filament_cost value in Filament Settings."
 msgstr ""
+"Custo total do material desperdiçado na torre de limpeza. Calculado a partir "
+"do valor filament_cost nas Configurações de Filamento."
 
 msgid "Wipe tower volume"
-msgstr ""
+msgstr "Volume da torre de limpeza"
 
 msgid "Total filament volume extruded on the wipe tower."
-msgstr ""
+msgstr "Volume total de filamento extrudado na torre de limpeza."
 
 msgid "Used filament"
 msgstr "Fil. usado"
 
 msgid "Total length of filament used in the print."
-msgstr ""
+msgstr "Comprimento total de filamento usado na impressão."
 
 msgid "Print time (seconds)"
-msgstr ""
+msgstr "Tempo de impressão (segundos)"
 
 msgid ""
 "Total estimated print time in seconds. Replaced with actual value during "
@@ -18794,7 +18871,7 @@ msgid ""
 msgstr ""
 
 msgid "Filament length (meters)"
-msgstr ""
+msgstr "Comprimento do filamento (metros)"
 
 msgid ""
 "Total filament length used in meters. Replaced with actual value during post-"
@@ -19526,7 +19603,7 @@ msgid "Printing Parameters"
 msgstr "Parâmetros de Impressão"
 
 msgid "- ℃"
-msgstr ""
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
 msgstr "Sincronizar informações de bico e AMS"
@@ -19872,7 +19949,7 @@ msgid "Frequency settings"
 msgstr "Configurações de frequência"
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "O firmware RepRap usa a mesma faixa de frequência para ambos os eixos."
@@ -20533,7 +20610,7 @@ msgstr ""
 "Por favor feche e tente novamente."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Predefinições de impressora e todos os filamentos e processos que pertencem "
@@ -22160,9 +22237,6 @@ msgstr ""
 #~ msgid "Filament remapping finished."
 #~ msgstr "Remapeamento de filamentos concluído."
 
-#~ msgid "Rotate text Clock-wise."
-#~ msgstr "Rotacionar texto no sentido Horário."
-
 #~ msgid "Replace with STL"
 #~ msgstr "Substituir por STL"
 
@@ -22174,12 +22248,6 @@ msgstr ""
 
 #~ msgid "Replace all selected parts with STL from folder"
 #~ msgstr "Substituir todas peças selecionadas com STL da pasta"
-
-#~ msgid "Measuring motion percision"
-#~ msgstr "Medindo precisão de movimento"
-
-#~ msgid "Enhancing motion percision"
-#~ msgstr "Aprimorando a precisão do movimento"
 
 #~ msgid "high temperature auto bed levelling"
 #~ msgstr "nivelamento automático da mesa em alta temperatura"
@@ -22237,19 +22305,8 @@ msgstr ""
 #~ msgid "Sync info"
 #~ msgstr "Sincronizar informações"
 
-#~ msgid ""
-#~ "There are some unknown or uncompatible filaments mapped to generic "
-#~ "preset.\n"
-#~ "Please update Orca Slicer or restart Orca Slicer to check if there is an "
-#~ "update to system presets."
-#~ msgstr ""
-#~ "Existem alguns filamentos desconhecidos ou incompatíveis mapeados para "
-#~ "predefinições genéricas.\n"
-#~ "Atualize ou reinicie o OrcaSlicer para verificar se há alguma atualização "
-#~ "para as predefinições do sistema."
-
 #~ msgid "Replaced with STLs from directory:\n"
-#~ msgstr "Substituído com STLs do diretório:\n"
+#~ msgstr "Substituído por STLs do diretório:\n"
 
 #~ msgid "Use legacy network plugin"
 #~ msgstr "Usar o plugin de rede legado"
@@ -22271,9 +22328,6 @@ msgstr ""
 
 #~ msgid "High Temp"
 #~ msgstr "Alta Temperatura"
-
-#~ msgid "Cool(Supertack)"
-#~ msgstr "Fria(Supertack)"
 
 #~ msgid "High chamber temperature is required. Please close the door."
 #~ msgstr "É necessária uma temperatura elevada na câmara. Feche a porta."
@@ -22494,11 +22548,11 @@ msgstr ""
 #~ "capacidade restante será atualizada automaticamente."
 
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
-#~ "A temperatura mínima recomendada é inferior a 190°C ou a temperatura "
-#~ "máxima recomendada é superior a 300°C.\n"
+#~ "A temperatura mínima recomendada é inferior a 190℃ ou a temperatura "
+#~ "máxima recomendada é superior a 300℃.\n"
 
 #~ msgid "Sweeping XY mech mode"
 #~ msgstr "Modo mecânico de varredura XY"
