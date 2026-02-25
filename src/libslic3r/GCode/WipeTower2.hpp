@@ -61,12 +61,13 @@ public:
 	float get_wipe_tower_height() const { return m_wipe_tower_height; }
     // ORCA: Match WipeTower API used by Print skirt/brim planning.
     // Returned bounding box is in WIPE-TOWER-LOCAL coordinates (before placement on the bed).
-    // Keep this as the nominal tower footprint (including brim), without dynamic y_shift.
+    // Computed from the actual first-layer polygon (including brim), like WipeTower::get_bbx().
     BoundingBoxf get_bbx() const {
+        if (m_first_layer_bbx.defined)
+            return m_first_layer_bbx;
+        // Fallback: nominal rectangle (used if generate() hasn't run yet)
         const float brim = m_wipe_tower_brim_width_real;
-        const Vec2d min(-brim, -brim);
-        const Vec2d max(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim);
-        return BoundingBoxf(min, max);
+        return BoundingBoxf(Vec2d(-brim, -brim), Vec2d(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim));
     }
     // WT2 doesn't currently compute a rib-origin compensation like WipeTower (m_rib_offset),
     // so expose a zero offset for consistency purposes (to maintain API parity).
@@ -203,6 +204,7 @@ private:
 	float  m_wipe_tower_cone_angle = 0.f;
     float  m_wipe_tower_brim_width      = 0.f; 	// Width of brim (mm) from config
     float  m_wipe_tower_brim_width_real = 0.f; 	// Width of brim (mm) after generation
+    BoundingBoxf m_first_layer_bbx;              // Actual first-layer bounding box (incl. brim/ribs)
 	float  m_wipe_tower_rotation_angle = 0.f; // Wipe tower rotation angle in degrees (with respect to x axis)
     float  m_internal_rotation  = 0.f;
 	float  m_y_shift			= 0.f;  // y shift passed to writer
