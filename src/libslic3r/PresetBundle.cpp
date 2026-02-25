@@ -2185,8 +2185,6 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
     }
     ConfigOptionStrings* filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     //ORCA: Resize additional arrays to prevent out-of-bounds access
-    //filament_color->resize(n);
-    //ams_multi_color_filment.resize(n);
     ConfigOptionStrings* filament_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
     ConfigOptionStrings* filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts* filament_map = project_config.option<ConfigOptionInts>("filament_map");
@@ -2201,7 +2199,6 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
         if (!new_colors.empty()) {
             for (int i = old_filament_count; i < n; i++) {
                 //ORCA: Update additional arrays with new colors
-                //filament_color->values[i] = new_colors[i - old_filament_count];
                 filament_color->values[i] = new_colors[i - old_filament_count];
                 filament_multi_color->values[i] = new_colors[i - old_filament_count];
                 filament_color_type->values[i] = "1"; // default color type
