@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-12 08:42+0800\n"
-"PO-Revision-Date: 2026-02-21 01:25+0300\n"
+"PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
 "Language: ru_RU\n"
@@ -34,6 +34,7 @@ msgstr "Материал может быть несовместим с теку�
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
 
+# В большинстве мест подставляется в "%s экструдер", но также тянется и в списке выбора видов при импорте цвета из OBJ
 msgid "right"
 msgstr "правый"
 
@@ -2757,10 +2758,7 @@ msgstr "Рециркуляция"
 msgid "Top"
 msgstr "Сверху"
 
-msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+msgid "The fan controls the temperature during printing to improve print quality. The system automatically adjusts the fan's switch and speed according to different printing materials."
 msgstr "В процессе печати вентилятор управляет температурой внутри камеры для улучшения качества печати. Система автоматически регулирует положение заслонки и скорость вентилятора для создания нужных условий печати разными материалами."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."
@@ -3487,8 +3485,7 @@ msgstr "Принтер занят и пока не может изменить �
 msgid "Please unload all filament before switching."
 msgstr "Перед сменой необходимо извлечь все материалы."
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr "Смена типа AMS требует обновления прошивки (займёт около 30 секунд). Продолжить?"
 
 msgid "Arrange AMS Order"
@@ -7364,22 +7361,22 @@ msgid "Not available"
 msgstr "Недоступно"
 
 msgid "isometric"
-msgstr ""
+msgstr "изометрия"
 
 msgid "top_front"
-msgstr ""
+msgstr "сверху спереди"
 
 msgid "top"
-msgstr ""
+msgstr "сверху"
 
 msgid "bottom"
-msgstr ""
+msgstr "снизу"
 
 msgid "front"
-msgstr ""
+msgstr "спереди"
 
 msgid "rear"
-msgstr ""
+msgstr "сзади"
 
 msgid "Switching the language requires application restart.\n"
 msgstr "Для смены языка требуется перезапуск программы.\n"
@@ -8318,9 +8315,7 @@ msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Ple
 msgstr "Требования к твёрдости у выбранного материала (%s) превышают возможности %s(%s). Проверьте настройки профиля принтера или материала и попробуйте ещё раз."
 
 #, c-format, boost-format
-msgid ""
-"[ %s ] requires printing in a high-temperature environment. Please close the "
-"door."
+msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
 msgstr "[%s] требует прогретой среды для печати: необходимо закрыть дверцу."
 
 #, c-format, boost-format
@@ -8560,12 +8555,10 @@ msgid "Statement about User Experience Improvement Program"
 msgstr "Заявление о программе улучшения пользовательского опыта"
 
 #, c-format, boost-format
-msgid ""
-"In the 3D Printing community, we learn from each other's successes and failures to adjust our own slicing parameters and settings. %s follows the same principle and uses machine learning to improve its performance from the successes and failures of the vast number of prints by our users. We are training %s to be smarter by feeding them the real-world data. If you are willing, this service will access information from your error logs and usage logs, which may include information described in Privacy Policy. We will not collect any Personal Data by which an individual can be identified "
-"directly or indirectly, including without limitation names, addresses, payment information, or phone numbers. By enabling this service, you agree to these terms and the statement about Privacy Policy."
+msgid "In the 3D Printing community, we learn from each other's successes and failures to adjust our own slicing parameters and settings. %s follows the same principle and uses machine learning to improve its performance from the successes and failures of the vast number of prints by our users. We are training %s to be smarter by feeding them the real-world data. If you are willing, this service will access information from your error logs and usage logs, which may include information described in Privacy Policy. We will not collect any Personal Data by which an individual can be identified directly or indirectly, including without limitation names, addresses, payment information, or phone numbers. By enabling this service, you agree to these terms and the statement about Privacy Policy."
 msgstr ""
-"В сообществе 3D-печати мы учимся на успехах и неудачах друг друга, корректируя собственные параметры и настройки слайсинга. %s следует тому же принципу и использует машинное обучение для повышения производительности, анализируя успехи и неудачи огромного количества отпечатков наших пользователей. Мы обучаем %s быть умнее, предоставляя ему реальные данные. При вашем согласии этот сервис получит доступ к информации из ваших журналов ошибок и журналов использования, которая может включать информацию, описанную в Политике конфиденциальности. Мы не собираем никаких персональных данных, по "
-"которым можно прямо или косвенно идентифицировать человека, включая, помимо прочего, имена, адреса, платежную информацию или номера телефонов. Включая этот сервис, вы соглашаетесь с настоящими условиями и заявлением о Политике конфиденциальности."
+"В сообществе 3D-печати мы учимся на успехах и неудачах друг друга, корректируя собственные параметры и настройки слайсинга. %s следует тому же принципу и использует машинное обучение для повышения производительности, анализируя успехи и неудачи огромного количества отпечатков наших пользователей. Мы обучаем %s быть умнее, предоставляя ему реальные данные. При вашем согласии этот сервис получит доступ к информации из ваших журналов ошибок и журналов использования, которая может включать информацию, описанную в Политике конфиденциальности. Мы не собираем никаких персональных данных, по которым можно прямо или косвенно идентифицировать человека, включая, помимо прочего, имена, адреса, платёжную информацию или номера телефонов. Включая этот сервис, вы соглашаетесь с настоящими условиями и заявлением о "
+"Политике конфиденциальности."
 
 msgid "Statement on User Experience Improvement Plan"
 msgstr "Заявление о плане улучшения взаимодействия с пользователем"
@@ -8940,13 +8933,21 @@ msgid "Min fan speed threshold"
 msgstr "Минимальный обдув слоя"
 
 msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
-msgstr "Настройка зависимости охлаждения от времени печати слоя.\n\nЕсли слой печатается быстрее указанного времени, обдув активируется с заданной скоростью и автоматически усиливается при дальнейшем снижении времени слоя (вплоть до максимального значения, заданного ниже).\n\nПримечание: указанный здесь процент скорости берётся за основу при включении «Постоянного обдува»."
+msgstr ""
+"Настройка зависимости охлаждения от времени печати слоя.\n"
+"\n"
+"Если слой печатается быстрее указанного времени, обдув активируется с заданной скоростью и автоматически усиливается при дальнейшем снижении времени слоя (вплоть до максимального значения, заданного ниже).\n"
+"\n"
+"Примечание: указанный здесь процент скорости берётся за основу при включении «Постоянного обдува»."
 
 msgid "Max fan speed threshold"
 msgstr "Максимальный обдув слоя"
 
 msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
-msgstr "Настройка зависимости охлаждения от времени печати слоя.\n\nВремя печати слоя, при котором интенсивность обдува становится максимальной. Печать при более низком времени слоя может привести к перегреву детали и вызвать дефекты, поэтому его рекомендуется ограничить настройкой «Замедлять печать для охлаждения слоёв»."
+msgstr ""
+"Настройка зависимости охлаждения от времени печати слоя.\n"
+"\n"
+"Время печати слоя, при котором интенсивность обдува становится максимальной. Печать при более низком времени слоя может привести к перегреву детали и вызвать дефекты, поэтому его рекомендуется ограничить настройкой «Замедлять печать для охлаждения слоёв»."
 
 msgid "Auxiliary part cooling fan"
 msgstr "Вспомогательный вентилятор"
@@ -8954,7 +8955,7 @@ msgstr "Вспомогательный вентилятор"
 msgid "Exhaust fan"
 msgstr "Вытяжной вентилятор"
 
-# Тут речь именно про скорость вентилятора, т.к. вытяжка напрямую не охлаждает модель 
+# Тут речь именно про скорость вентилятора, т.к. вытяжка напрямую не охлаждает модель
 msgid "During print"
 msgstr "Скорость вентилятора во время печати"
 
@@ -9393,11 +9394,12 @@ msgstr "Обновления отсутствуют."
 msgid "The configuration is up to date."
 msgstr "Обновление профилей отсутствует."
 
+# "Импорт цветного obj-файла" вводит в заблуждение, это именно импорт цветов из файла. При нажатии "отмены" импорт не прерывается, просто цвета не подхватываются.
 msgid "OBJ file import color"
-msgstr "Импорт цветного obj-файла"
+msgstr "Импорт цвета из файла OBJ"
 
 msgid "Some faces don't have color defined."
-msgstr "Некоторым фрагментам не назначен цвет."
+msgstr "Некоторым граням не назначен цвет."
 
 msgid "MTL file exist error, could not find the material:"
 msgstr ""
@@ -9408,23 +9410,26 @@ msgstr ""
 msgid "Specify number of colors:"
 msgstr "Количество цветов:"
 
+# Чрезвычайно техничная подсказка. Очевидно, что там обычное поле ввода со стрелочками.
 msgid "Enter or click the adjustment button to modify number again"
-msgstr ""
+msgstr "Укажите количество цветов"
 
+# Перед этим выводится количество цветов, после пробела круглая скобка (т.е. пробел лишний)
 msgid "Recommended "
-msgstr "рекомендуется "
+msgstr "рекомендуется"
 
+# Импорт OBJ с цветами
 msgid "view"
-msgstr ""
+msgstr "Вид"
 
 msgid "Current filament colors"
 msgstr "Текущие цвета прутков:"
 
 msgid "Matching"
-msgstr ""
+msgstr "Сопоставление"
 
 msgid "Quick set"
-msgstr ""
+msgstr "Действия"
 
 # ??? Цветовая схема
 msgid "Color match"
@@ -9433,26 +9438,24 @@ msgstr "Подбор цвета"
 msgid "Approximate color matching."
 msgstr "Приблизительный подбор по цвету ваших прутков."
 
-# ???
 msgid "Append"
 msgstr "Добавить"
 
 msgid "Append to existing filaments"
-msgstr "Добавить к существующим"
+msgstr "Добавить цвет к существующим"
 
-# ???
+# Без понятия, зачем там "экструдеры", настраиваются цвета. И точка
 msgid "Reset mapped extruders."
-msgstr "Сброс сопоставленных экструдеров."
+msgstr "Сброс сопоставленных цветов"
 
 msgid "Note"
 msgstr "Примечание"
 
+# Тут вторая строка срезается при изменении количества цветов.
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-"цвета уже выбраны, вы можете нажать «OK» \n"
-"для продолжения или подобрать их вручную."
+msgstr "выбор цветов можно изменить вручную."
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
@@ -10756,7 +10759,9 @@ msgid ""
 "Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs and bridges can improve the overall print quality of these features.\n"
 "\n"
 "Please note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met."
-msgstr "Интенсивность охлаждения мостов и нависаний. Усиленное охлаждение помогает улучшить качество печати этих элементов.\n\n"
+msgstr ""
+"Интенсивность охлаждения мостов и нависаний. Усиленное охлаждение помогает улучшить качество печати этих элементов.\n"
+"\n"
 "Внимание: охлаждение будет автоматически усиливаться в случае необходимости повысить интенсивность обдува всего слоя (зависимость охлаждения от времени слоя настраивается выше)."
 
 msgid "Overhang cooling activation threshold"
@@ -10765,7 +10770,10 @@ msgstr "Мин. вынос нависающей линии для обдува"
 # ??? скорость вентилятора для нависающих элементов
 #, no-c-format, no-boost-format
 msgid "When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree."
-msgstr "Принудительно включать вентилятор для обдува линий, выступающих относительно опоры на заданный процент своей ширины (и более). 0% – охлаждать все внешние периметры независимо от степени их нависания.\n\nПримечание: интенсивность охлаждения задаётся в настройке «Обдув нависаний и внешних мостов»."
+msgstr ""
+"Принудительно включать вентилятор для обдува линий, выступающих относительно опоры на заданный процент своей ширины (и более). 0% – охлаждать все внешние периметры независимо от степени их нависания.\n"
+"\n"
+"Примечание: интенсивность охлаждения задаётся в настройке «Обдув нависаний и внешних мостов»."
 
 msgid "External bridge infill direction"
 msgstr "Угол внешних мостов"
@@ -12515,8 +12523,7 @@ msgid ""
 "Extrusion: The mode when the pattern formed by the amount of extruded plastic. This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. But it is more useful for forming loose walls in the entire they array.\n"
 "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n"
 "\n"
-"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this "
-"error is repeated."
+"Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
 "Выбор способа создания нечёткой оболочки. Работает только с генератором периметров Arachne!\n"
 "\n"
@@ -13044,7 +13051,9 @@ msgid "The distance between the lines of ironing."
 msgstr "Интервал линий разглаживания."
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
-msgstr "Сужение области разглаживания (в мм).\n0 – смещать на радиус сопла (∅/2)."
+msgstr ""
+"Сужение области разглаживания (в мм).\n"
+"0 – смещать на радиус сопла (∅/2)."
 
 msgid "Print speed of ironing lines."
 msgstr "Скорость разглаживания."
@@ -13610,7 +13619,19 @@ msgstr "Область применения"
 
 # Нигде нет пояснений, что это за подъём, и за что отвечают его режимы.
 msgid "Enforce Z-Hop behavior. This setting is impacted by the above settings (Only lift Z above/below)."
-msgstr "Выбор поверхностей, при печати которых следует приподнимать голову перед совершением холостого перемещения. Этот приём позволяет избежать случайных столкновений и следов подтёков на печатаемом слое.\n\n• Везде: приподнимать на всех слоях; помогает избежать столкновений\n  при переэкструзии и печати материалами, склонными к деформации.\n• Поверхности: приподнимать только при печати лицевых\n  горизонтальных поверхностей, помогает улучшить внешний вид.\n• Первый слой: приподнимать только у стола, помогает избежать\n  столкновений с локальной переэкструзией на первом слое.\n• Первый слой и поверхности: приподнимать и у стола, и на\n  горизонтальных поверхностях.\n\nВнимание: работа этой функции может быть ограничена определённой высотой в настройках «Приподнимать не ниже» и «Приподнимать не выше»."
+msgstr ""
+"Выбор поверхностей, при печати которых следует приподнимать голову перед совершением холостого перемещения. Этот приём позволяет избежать случайных столкновений и следов подтёков на печатаемом слое.\n"
+"\n"
+"• Везде: приподнимать на всех слоях; помогает избежать столкновений\n"
+"  при переэкструзии и печати материалами, склонными к деформации.\n"
+"• Поверхности: приподнимать только при печати лицевых\n"
+"  горизонтальных поверхностей, помогает улучшить внешний вид.\n"
+"• Первый слой: приподнимать только у стола, помогает избежать\n"
+"  столкновений с локальной переэкструзией на первом слое.\n"
+"• Первый слой и поверхности: приподнимать и у стола, и на\n"
+"  горизонтальных поверхностях.\n"
+"\n"
+"Внимание: работа этой функции может быть ограничена определённой высотой в настройках «Приподнимать не ниже» и «Приподнимать не выше»."
 
 msgid "All Surfaces"
 msgstr "Везде"
@@ -14592,7 +14613,10 @@ msgid "Skip points"
 msgstr "Защитные окна"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
-msgstr "Создавать небольшие вырезы в местах потенциальных столкновений сопла со стенкой башни.\n\nВнимание: настройка может не работать с профилями принтеров от производителей, отличных от Bambu Lab."
+msgstr ""
+"Создавать небольшие вырезы в местах потенциальных столкновений сопла со стенкой башни.\n"
+"\n"
+"Внимание: настройка может не работать с профилями принтеров от производителей, отличных от Bambu Lab."
 
 msgid "Infill gap"
 msgstr "Отступ между линиями"
@@ -17776,7 +17800,10 @@ msgid "Interface layer print temperature"
 msgstr "Температура при прочистке"
 
 msgid "Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature."
-msgstr "Целевая температура при печати слоёв прочистки в черновой башне (место контакта разных материалов).\n\nПри значении -1 используется максимальная рекомендуемая температура."
+msgstr ""
+"Целевая температура при печати слоёв прочистки в черновой башне (место контакта разных материалов).\n"
+"\n"
+"При значении -1 используется максимальная рекомендуемая температура."
 
 msgid "Enable tower interface features"
 msgstr "Улучшенная адгезия"
