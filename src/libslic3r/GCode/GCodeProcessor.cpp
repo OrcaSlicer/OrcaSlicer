@@ -124,7 +124,7 @@ static void set_option_value(ConfigOptionFloats& option, size_t id, float value)
 static float get_option_value(const ConfigOptionFloats& option, size_t id)
 {
     return option.values.empty() ? 0.0f :
-        ((id < option.values.size()) ? static_cast<float>(option.values[id]) : static_cast<float>(option.values.back()));
+        ((id < option.values.size()) ? static_cast<float>(option.values[id]) : static_cast<float>(option.values.front()));
 }
 
 static float estimated_acceleration_distance(float initial_rate, float target_rate, float acceleration)
@@ -760,23 +760,11 @@ public:
         }
     }
 
-    const std::string& line_at(size_t idx) const
-    {
-        return m_lines[idx].line;
-    }
-
-    size_t lines_size() const
-    {
-        return m_lines.size();
-    }
-
     // Insert the gcode lines required by the command cmd by backtracing into the cache
-    bool insert_lines(const Backtrace&                                                    backtrace,
+    void insert_lines(const Backtrace&                                                    backtrace,
                       const std::string&                                                  cmd,
                       std::function<std::string(unsigned int, const std::vector<float>&)> line_inserter,
-                      std::function<std::string(const std::string&)>                      line_replacer,
-                      std::function<bool(size_t)>                                         allow_insert = nullptr,
-                      bool                                                               force_insert_last = false)
+                      std::function<std::string(const std::string&)>                      line_replacer)
     {
         // Orca: find start pos by seaching G28/G29/PRINT_START/START_PRINT commands
         auto is_start_pos = [](const std::string& curr_cmd) {
@@ -787,21 +775,6 @@ public:
         const float time_step           = backtrace.time_step();
         size_t      rev_it_dist         = 0;    // distance from the end of the cache of the starting point of the backtrace
         float       last_time_insertion = 0.0f; // used to avoid inserting two lines at the same time
-        auto inside_toolchange_block = [this](size_t idx) -> bool {
-            if (m_lines.empty() || idx >= m_lines.size())
-                return false;
-            // Find last START/END marker before or at idx; inside if last marker is START.
-            for (size_t i = idx + 1; i-- > 0;) {
-                const std::string &line = m_lines[i].line;
-                if (line.find("CP TOOLCHANGE START") != std::string::npos)
-                    return true;
-                if (line.find("CP TOOLCHANGE END") != std::string::npos)
-                    return false;
-            }
-            return false;
-        };
-
-        bool inserted = false;
         for (int i = 0; i < backtrace.steps; ++i) {
             const float backtrace_time_i = (i + 1) * time_step;
             const float time_threshold_i = m_times[Normal] - backtrace_time_i;
@@ -823,23 +796,6 @@ public:
 
             // insert the line for the current step
             if (rev_it != m_lines.rend() && rev_it != start_rev_it && rev_it->times[Normal] != last_time_insertion) {
-                // Avoid inserting inside wipe-tower toolchange blocks.
-                // If the selected point is inside a block, move to the nearest
-                // earlier line outside the block instead of dropping preheat.
-                size_t idx = m_lines.size() - 1 - size_t(std::distance(m_lines.rbegin(), rev_it));
-                if (inside_toolchange_block(idx)) {
-                    size_t adjusted_idx = idx;
-                    while (adjusted_idx > 0 && inside_toolchange_block(adjusted_idx))
-                        --adjusted_idx;
-                    if (inside_toolchange_block(adjusted_idx))
-                        continue;
-                    const size_t adjusted_rev_dist = m_lines.size() - 1 - adjusted_idx;
-                    rev_it = m_lines.rbegin() + adjusted_rev_dist;
-                    idx = adjusted_idx;
-                }
-                if (allow_insert && !allow_insert(idx)) {
-                    continue;
-                }
                 last_time_insertion = rev_it->times[Normal];
                 std::vector<float> time_diffs;
                 time_diffs.push_back(m_times[Normal] - last_time_insertion);
@@ -858,39 +814,8 @@ public:
                 }
 
                 ++m_added_lines_counter;
-                inserted = true;
             }
         }
-
-        if (!inserted && force_insert_last) {
-            for (size_t idx = 0; idx < m_lines.size(); ++idx) {
-                if (inside_toolchange_block(idx))
-                    continue;
-                if (allow_insert && !allow_insert(idx))
-                    continue;
-
-                const LineData &data = m_lines[idx];
-                std::vector<float> time_diffs;
-                time_diffs.push_back(m_times[Normal] - data.times[Normal]);
-                if (!m_machines[Stealth].g1_times_cache.empty())
-                    time_diffs.push_back(m_times[Stealth] - data.times[Stealth]);
-                const std::string out_line = line_inserter(1, time_diffs);
-                const size_t rev_it_dist = m_lines.size() - idx;
-                m_lines.insert(m_lines.begin() + idx, {out_line, data.times});
-#ifndef NDEBUG
-                m_statistics.add_line(out_line.length());
-#endif // NDEBUG
-                m_size += out_line.length();
-                for (auto map_it = m_gcode_lines_map.rbegin(); map_it != m_gcode_lines_map.rbegin() + rev_it_dist - 1; ++map_it) {
-                    ++map_it->second;
-                }
-                ++m_added_lines_counter;
-                inserted = true;
-                break;
-            }
-        }
-
-        return inserted;
     }
 
     // write to file:
@@ -1329,169 +1254,12 @@ void GCodeProcessor::run_post_process()
                     if (m_print != nullptr)
                         m_print->active_step_add_warning(PrintStateBase::WarningLevel::CRITICAL, warning);
                 }
-                int override_temp = -1;
-                {
-                    const size_t line_count = export_line.lines_size();
-                    if (line_count > 0) {
-                        size_t start_idx = 0;
-                        bool in_block = false;
-                        for (size_t i = line_count; i-- > 0;) {
-                            const std::string &line = export_line.line_at(i);
-                            if (line.find("CP TOOLCHANGE END") != std::string::npos)
-                                break;
-                            if (line.find("CP TOOLCHANGE START") != std::string::npos) {
-                                start_idx = i;
-                                in_block = true;
-                                break;
-                            }
-                        }
-                        if (in_block) {
-                            int base_temp = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
-                                                             m_filament_nozzle_temp_first_layer[tool_number]);
-                            for (size_t i = start_idx; i < line_count; ++i) {
-                                const std::string &line = export_line.line_at(i);
-                                if (GCodeReader::GCodeLine::cmd_is(line, "M109")) {
-                                    GCodeReader::GCodeLine gline;
-                                    GCodeReader reader;
-                                    reader.parse_line(line, [&gline](GCodeReader& reader, const GCodeReader::GCodeLine& l) { gline = l; });
-                                    float s_val = 0.f;
-                                    if (gline.has_value('S', s_val)) {
-                                        float t_val = -1.f;
-                                        if (gline.has_value('T', t_val)) {
-                                            if (int(t_val) != tool_number)
-                                                continue;
-                                        }
-                                        int temp = int(std::round(s_val));
-                                        if (temp != base_temp)
-                                            override_temp = temp;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                // Disallow inserting preheat before the last switch away from this tool.
-                size_t min_insert_idx = 0;
-                {
-                    const size_t line_count = export_line.lines_size();
-                    if (line_count > 0) {
-                        for (size_t i = line_count; i-- > 0;) {
-                            const std::string &line = export_line.line_at(i);
-                            std::string cmd = GCodeReader::GCodeLine::extract_cmd(line);
-                            if (cmd.empty())
-                                continue;
-                            if (cmd[0] == 'T') {
-                                unsigned int id = 0;
-                                auto ret = std::from_chars(cmd.data() + 1, cmd.data() + cmd.size(), id);
-                                if (ret.ec == std::errc()) {
-                                    if (static_cast<int>(id) != tool_number) {
-                                        min_insert_idx = i;
-                                        break;
-                                    }
-                                }
-                            } else if (cmd == "M1020") {
-                                size_t pos = line.find("S");
-                                if (pos != std::string::npos) {
-                                    size_t start = pos + 1;
-                                    size_t end = line.find_first_not_of("0123456789", start);
-                                    const std::string val = line.substr(start, end == std::string::npos ? std::string::npos : end - start);
-                                    if (!val.empty()) {
-                                        try {
-                                            if (std::stoi(val) != tool_number) {
-                                                min_insert_idx = i;
-                                                break;
-                                            }
-                                        } catch (...) {
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                auto allow_insert = [&export_line, tool_number, min_insert_idx](size_t idx) -> bool {
-                    if (idx <= min_insert_idx)
-                        return false;
-                    // Do not insert preheat for a tool that is already active at the insertion point.
-                    const size_t line_count = export_line.lines_size();
-                    if (idx >= line_count)
-                        return true;
-                    for (size_t i = idx + 1; i-- > 0;) {
-                        const std::string &line = export_line.line_at(i);
-                        std::string cmd = GCodeReader::GCodeLine::extract_cmd(line);
-                        if (cmd.empty())
-                            continue;
-                        if (cmd[0] == 'T') {
-                            unsigned int id = 0;
-                            auto ret = std::from_chars(cmd.data() + 1, cmd.data() + cmd.size(), id);
-                            if (ret.ec == std::errc()) {
-                                return static_cast<int>(id) != tool_number;
-                            }
-                        } else if (cmd == "M1020") {
-                            size_t pos = line.find("S");
-                            if (pos != std::string::npos) {
-                                size_t start = pos + 1;
-                                size_t end = line.find_first_not_of("0123456789", start);
-                                const std::string val = line.substr(start, end == std::string::npos ? std::string::npos : end - start);
-                                if (!val.empty()) {
-                                    try {
-                                        return std::stoi(val) != tool_number;
-                                    } catch (...) {
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    return true;
-                };
-
-                // Skip preheat insertion if this T command doesn't change the active tool.
-                {
-                    const size_t line_count = export_line.lines_size();
-                    if (line_count > 0) {
-                        int last_tool = -1;
-                        for (size_t i = line_count; i-- > 0;) {
-                            const std::string &line = export_line.line_at(i);
-                            std::string cmd = GCodeReader::GCodeLine::extract_cmd(line);
-                            if (cmd.empty())
-                                continue;
-                            if (cmd[0] == 'T') {
-                                unsigned int id = 0;
-                                auto ret = std::from_chars(cmd.data() + 1, cmd.data() + cmd.size(), id);
-                                if (ret.ec == std::errc()) {
-                                    last_tool = static_cast<int>(id);
-                                    break;
-                                }
-                            } else if (cmd == "M1020") {
-                                size_t pos = line.find("S");
-                                if (pos != std::string::npos) {
-                                    size_t start = pos + 1;
-                                    size_t end = line.find_first_not_of("0123456789", start);
-                                    const std::string val = line.substr(start, end == std::string::npos ? std::string::npos : end - start);
-                                    if (!val.empty()) {
-                                        try {
-                                            last_tool = std::stoi(val);
-                                            break;
-                                        } catch (...) {
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (last_tool != -1 && last_tool == tool_number)
-                            return;
-                    }
-                }
-
                 export_line.insert_lines(
                     backtrace, cmd,
                     // line inserter
-                    [tool_number, override_temp, this](unsigned int id, const std::vector<float>& time_diffs) {
-                        const int base_temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
+                    [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
+                        const int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
                                                                          m_filament_nozzle_temp_first_layer[tool_number]);
-                        const int temperature = override_temp > 0 ? override_temp : base_temperature;
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
                         /**
@@ -1534,11 +1302,7 @@ void GCodeProcessor::run_post_process()
                             }
                         }
                         return line;
-                    },
-                    allow_insert,
-                    // If backtracing can't find a valid insertion point (e.g. dense recurring toolchanges),
-                    // still force one at the earliest allowed line after the last switch-away point.
-                    true
+                    }
                 );
             }
         }
@@ -1966,6 +1730,10 @@ void GCodeProcessor::register_commands()
         {"M566", [this](const GCodeReader::GCodeLine& line) { process_M566(line); }}, // Set allowable instantaneous speed change
         {"M702", [this](const GCodeReader::GCodeLine& line) { process_M702(line); }}, // Unload the current filament into the MK3 MMU2 unit at the end of print.
         {"M1020", [this](const GCodeReader::GCodeLine& line) { process_M1020(line); }}, // Select Tool
+
+// ORCA: Add Pressure Advance visualization support
+        {"M900", [this](const GCodeReader::GCodeLine& line) { process_M900(line); }}, // Marlin: Set pressure advance
+        {"M572", [this](const GCodeReader::GCodeLine& line) { process_M572(line); }}, // RepRapFirmware/Duet: Set pressure advance
 
         {"T", [this](const GCodeReader::GCodeLine& line) { process_T(line); }}, // Select Tool
         {"SYNC", [this](const GCodeReader::GCodeLine& line) { process_SYNC(line); }}, // SYNC TIME
@@ -3026,6 +2794,12 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         if (boost::iequals(cmd, "SET_VELOCITY_LIMIT"))
         {
             process_SET_VELOCITY_LIMIT(line);
+            return;
+        }
+// ORCA: Add Pressure Advance visualization support
+        if (boost::iequals(cmd, "SET_PRESSURE_ADVANCE"))
+        {
+            process_SET_PRESSURE_ADVANCE(line);
             return;
         }
     }
@@ -4167,7 +3941,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
             curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
             if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
@@ -4191,7 +3965,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS
         for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
             if (acceleration * std::abs(delta_pos[a]) * inv_distance > axis_max_acceleration)
                 acceleration = axis_max_acceleration / (std::abs(delta_pos[a]) * inv_distance);
         }
@@ -4525,7 +4299,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
             curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
             if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
@@ -4549,7 +4323,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
         //BBS
         for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
             if (acceleration * std::abs(delta_pos[a]) * inv_distance > axis_max_acceleration)
                 acceleration = axis_max_acceleration / (std::abs(delta_pos[a]) * inv_distance);
         }
@@ -5150,6 +4924,37 @@ void GCodeProcessor::process_M106(const GCodeReader::GCodeLine& line)
     }
 }
 
+// ORCA: Add Pressure Advance visualization support
+void GCodeProcessor::process_M900(const GCodeReader::GCodeLine &line)
+{
+    float pa_value = m_pressure_advance;
+    line.has_value('K', pa_value);
+    m_pressure_advance = std::max(0.0f, pa_value);
+    // BOOST_LOG_TRIVIAL(debug) << "M900 command: PA set to " << m_pressure_advance;
+}
+
+void GCodeProcessor::process_M572(const GCodeReader::GCodeLine &line)
+{
+    float pa_value = m_pressure_advance;
+    line.has_value('S', pa_value);
+    m_pressure_advance = std::max(0.0f, pa_value);
+    // BOOST_LOG_TRIVIAL(debug) << "M572 command: PA set to " << m_pressure_advance;
+}
+
+void GCodeProcessor::process_SET_PRESSURE_ADVANCE(const GCodeReader::GCodeLine& line)
+{
+    std::regex regex(R"(SET_PRESSURE_ADVANCE\s+(?:.*\s+)?ADVANCE\s*=\s*([\d.]+))");
+    std::smatch matches;
+
+    if (std::regex_search(line.raw(), matches, regex) && matches.size() > 1) {
+        float pa_value = 0;
+        try {
+            pa_value = std::stof(matches[1].str());
+        } catch (...) {}
+        m_pressure_advance = std::max(0.0f, pa_value);
+    }
+}
+
 void GCodeProcessor::process_M107(const GCodeReader::GCodeLine& line)
 {
     m_fan_speed = 0.0f;
@@ -5252,18 +5057,17 @@ void GCodeProcessor::process_M201(const GCodeReader::GCodeLine& line)
 {
     // see http://reprap.org/wiki/G-code#M201:_Set_max_printing_acceleration
     float factor = ((m_flavor != gcfRepRapSprinter && m_flavor != gcfRepRapFirmware) && m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
-    int indx_limit = m_time_processor.machine_limits.machine_max_acceleration_x.size() / 2;
-    for (size_t index = 0; index < indx_limit; index += 2) {
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-            if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
-                if (line.has_x()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, index + i, line.x() * factor);
 
-                if (line.has_y()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, index + i, line.y() * factor);
+    // Write to index i (0=Normal, 1=Stealth) — matches get_axis_max_acceleration's read pattern.
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
+            if (line.has_x()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, i, line.x() * factor);
 
-                if (line.has_z()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, index + i, line.z() * factor);
+            if (line.has_y()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, i, line.y() * factor);
 
-                if (line.has_e()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, index + i, line.e() * factor);
-            }
+            if (line.has_z()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, i, line.z() * factor);
+
+            if (line.has_e()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, i, line.e() * factor);
         }
     }
 }
@@ -5278,23 +5082,20 @@ void GCodeProcessor::process_M203(const GCodeReader::GCodeLine& line)
     // http://smoothieware.org/supported-g-codes
     float factor = (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfSmoothie || m_flavor == gcfKlipper) ? 1.0f : MMMIN_TO_MMSEC;
 
-    //BBS:
-    int indx_limit = m_time_processor.machine_limits.machine_max_speed_x.size() / 2;
-    for (size_t index = 0; index < indx_limit; index += 2) {
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-            if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
-                if (line.has_x())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_x, index + i, line.x() * factor);
+    // Write to index i (0=Normal, 1=Stealth) — matches get_axis_max_feedrate's read pattern.
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
+            if (line.has_x())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_x, i, line.x() * factor);
 
-                if (line.has_y())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_y, index + i, line.y() * factor);
+            if (line.has_y())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_y, i, line.y() * factor);
 
-                if (line.has_z())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_z, index + i, line.z() * factor);
+            if (line.has_z())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_z, i, line.z() * factor);
 
-                if (line.has_e())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_e, index + i, line.e() * factor);
-            }
+            if (line.has_e())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_e, i, line.e() * factor);
         }
     }
 }
@@ -5354,6 +5155,9 @@ void GCodeProcessor::process_M205(const GCodeReader::GCodeLine& line)
 
             if (line.has_value('T', value))
                 set_option_value(m_time_processor.machine_limits.machine_min_travel_rate, i, value);
+
+            if (line.has_value('J', value))
+                set_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, i, value);
         }
     }
 }
@@ -5689,6 +5493,8 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_travel_dist,
         m_fan_speed,
         m_extruder_temps[filament_id],
+// ORCA: Add Pressure Advance visualization support
+        m_pressure_advance,
         { 0.0f, 0.0f }, // time
         static_cast<float>(m_layer_id), //layer_duration: set later
         std::max<unsigned int>(1, m_layer_id) - 1,
@@ -5735,49 +5541,94 @@ float GCodeProcessor::minimum_travel_feedrate(PrintEstimatedStatistics::ETimeMod
     return std::max(feedrate, get_option_value(m_time_processor.machine_limits.machine_min_travel_rate, static_cast<size_t>(mode)));
 }
 
-float GCodeProcessor::get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int extruder_id) const
+// Machine limit arrays hold 2 values: [0]=Normal, [1]=Stealth. Index by mode only.
+// BambuStudio used extruder_id*2+mode to support per-nozzle limits, but OrcaSlicer
+// never ported that system (filament_map_2 / get_config_idx_for_filament), so the
+// extruder_id offset was always wrong: uninitialized extruder (255) or extruder > 0
+// would overshoot the array and fall back to values.back() (stealth limits).
+float GCodeProcessor::get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
-    int matched_pos = extruder_id * 2;
     switch (axis)
     {
-    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_x, matched_pos + static_cast<size_t>(mode)); }
-    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_y, matched_pos + static_cast<size_t>(mode)); }
-    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_z, matched_pos + static_cast<size_t>(mode)); }
-    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_e, matched_pos + static_cast<size_t>(mode)); }
+    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_x, static_cast<size_t>(mode)); }
+    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_y, static_cast<size_t>(mode)); }
+    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_z, static_cast<size_t>(mode)); }
+    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_e, static_cast<size_t>(mode)); }
     default: { return 0.0f; }
     }
 }
 
-float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int extruder_id) const
+float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
-    int matched_pos = extruder_id * 2;
     switch (axis)
     {
-    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, matched_pos + static_cast<size_t>(mode)); }
-    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, matched_pos + static_cast<size_t>(mode)); }
-    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, matched_pos + static_cast<size_t>(mode)); }
-    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, matched_pos + static_cast<size_t>(mode)); }
+    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, static_cast<size_t>(mode)); }
+    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, static_cast<size_t>(mode)); }
+    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, static_cast<size_t>(mode)); }
+    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, static_cast<size_t>(mode)); }
     default: { return 0.0f; }
     }
+}
+
+float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
+{
+    if (axis != X && axis != Y && axis != Z && axis != E)
+        return 0.0f;
+
+    const size_t id = static_cast<size_t>(mode);
+    const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+    if (jd <= 0.0f)
+        return 0.0f;
+
+    const float axis_max_acc = get_axis_max_acceleration(mode, axis);
+    const float generic_acc = get_acceleration(mode);
+    const float effective_acc = axis_max_acc > 0.0f ? axis_max_acc : generic_acc;
+
+    return std::sqrt(jd * effective_acc * 2.5f);
 }
 
 float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
+    const size_t id = static_cast<size_t>(mode);
+    const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+    if (m_flavor == gcfMarlinFirmware && jd > 0.0f) {
+        return get_axis_max_jerk_with_jd(mode, axis);
+    }
+
     switch (axis)
     {
-    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, static_cast<size_t>(mode)); }
-    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, static_cast<size_t>(mode)); }
-    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, static_cast<size_t>(mode)); }
-    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_e, static_cast<size_t>(mode)); }
+    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id); }
+    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, id); }
+    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id); }
+    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_e, id); }
     default: { return 0.0f; }
     }
 }
 
 Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const
 {
-    return Vec3f(get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, static_cast<size_t>(mode)),
-        get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, static_cast<size_t>(mode)),
-        get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, static_cast<size_t>(mode)));
+    // Default values from config
+    const size_t id = static_cast<size_t>(mode);
+    float jx = 0.0f;
+    float jy = 0.0f;
+    float jz = 0.0f;
+    const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+
+    // Classic Jerk: Junction Deviation is only supported by Marlin firmware when using a JD value grater than 0.
+    if (m_flavor != gcfMarlinFirmware || jd <= 0.0f)
+    {
+        jx = get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id);
+        jy = get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, id);
+        jz = get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id);
+    }
+    else
+    {
+        jx = get_axis_max_jerk_with_jd(mode, X);
+        jy = get_axis_max_jerk_with_jd(mode, Y);
+        jz = get_axis_max_jerk_with_jd(mode, Z);
+    }
+
+    return Vec3f(jx, jy, jz);
 }
 
 float GCodeProcessor::get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const

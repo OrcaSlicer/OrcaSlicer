@@ -19065,6 +19065,7 @@ msgstr ""
 #~ "For a high speed, high flow direct drive printer (like the Bambu lab or Voron) this value is usually not needed. However it can provide some marginal benefit in certain cases where feature speeds vary greatly. For example, when there are aggressive slowdowns due to overhangs. In these cases a high value of around 300-350mm³/s² is recommended as this allows for just enough smoothing to assist pressure advance achieve a smoother flow transition.\n"
 #~ "\n"
 #~ "For slower printers without pressure advance, the value should be set much lower. A value of 10-15mm³/s² is a good starting point for direct drive extruders and 5-10mm³/s² for Bowden style.\n"
+
 #~ "\n"
 #~ "This feature is known as Pressure Equalizer in Prusa slicer.\n"
 #~ "\n"

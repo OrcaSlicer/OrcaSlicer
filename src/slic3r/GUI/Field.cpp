@@ -101,6 +101,45 @@ ThumbnailErrors validate_thumbnails_string(wxString& str, const wxString& def_ex
     return errors;
 }
 
+wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_option_key& id)
+{
+    wxString tooltip = _(opt.tooltip);
+
+    if (tooltip.length() > 0) {
+        edit_tooltip(tooltip);
+
+        std::string opt_id = id;
+        auto hash_pos = opt_id.find("#");
+        if (hash_pos != std::string::npos) {
+            opt_id.replace(hash_pos, 1,"[");
+            opt_id += "]";
+        }
+
+        tooltip += "\n\n" + _(L("parameter name")) + ": " + opt_id;
+
+        if (opt.type == coFloat || opt.type == coInt) {
+            double default_value = 0.;
+
+            if (opt.type == coFloat)
+                default_value = opt.get_default_value<ConfigOptionFloat>()->value;
+            else if (opt.type == coInt)
+                default_value = opt.get_default_value<ConfigOptionInt>()->value;
+
+            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value));
+
+            if (opt.min > -FLT_MAX && opt.max < FLT_MAX) {
+                tooltip += "\n" + _(L("Range")) + ": [" + 
+                    _(double_to_string(opt.min)) + ", " + 
+                    _(double_to_string(opt.max)) + "]";
+            }
+        }
+
+        return tooltip;
+    }
+
+    return "";
+}
+
 Field::~Field()
 {
 	if (m_on_kill_focus)
@@ -223,23 +262,9 @@ void Field::toggle(bool en) { en && !m_opt.readonly ? enable() : disable(); }
 
 wxString Field::get_tooltip_text(const wxString &default_string)
 {
-	wxString tooltip_text("");
-#ifdef NDEBUG
-	wxString tooltip = _(m_opt.tooltip);
-    ::edit_tooltip(tooltip);
+    wxString tooltip_text = get_formatted_tooltip_text(m_opt, m_opt_id);
 
-    std::string opt_id = m_opt_id;
-    auto hash_pos = opt_id.find("#");
-    if (hash_pos != std::string::npos) {
-        opt_id.replace(hash_pos, 1,"[");
-        opt_id += "]";
-    }
-
-	if (tooltip.length() > 0)
-        tooltip_text = tooltip + "\n" +
-        _(L("parameter name")) + "\t: " + opt_id;
- #endif
-	return tooltip_text;
+    return tooltip_text.length() > 0 ? tooltip_text : default_string;
 }
 
 bool Field::is_matched(const std::string& string, const std::string& pattern)
@@ -251,9 +276,15 @@ bool Field::is_matched(const std::string& string, const std::string& pattern)
 void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true*/)
 {
 	switch (m_opt.type) {
+    case coInts:
     case coInt: {
         long val = 0;
-        if (!str.ToLong(&val)) {
+
+        bool is_na_value = m_opt.nullable && str == m_na_value;
+
+        if (is_na_value)
+            val = ConfigOptionIntsNullable::nil_value();
+        else if (!str.ToLong(&val)) {
             if (!check_value) {
                 m_value.clear();
                 break;
@@ -261,6 +292,27 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             show_error(m_parent, _(L("Invalid numeric.")));
             set_value(int(val), true);
         }
+
+        if (!m_opt.is_value_valid(double(val))) {
+            if (!check_value) {
+                m_value.clear();
+                break;
+            }
+
+            if (!is_na_value) {
+                // Orca: no need to check ranges for the nil value
+                show_error(m_parent, _L("Value is out of range."));
+
+                int min = static_cast<int>(m_opt.min);
+                int max = static_cast<int>(m_opt.max);
+
+                if (min > val) val = min;
+                if (val > max) val = max;
+
+                set_value(int(val), true);
+            }
+        }
+
         m_value = int(val);
         break;
     }
@@ -309,7 +361,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 show_error(m_parent, _(L("Invalid numeric.")));
                 set_value(double_to_string(val), true);
             }
-            if (m_opt.min > val || val > m_opt.max)
+            if (!m_opt.is_value_valid(val))
             {
                 if (!check_value) {
                     m_value.clear();
@@ -347,7 +399,8 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                         }
                     }
                 }
-                else {
+                else if (!is_na_value) {
+                    // Orca: no need to check ranges for the nil value
                     show_error(m_parent, _L("Value is out of range."));
                     if (m_opt.min > val) val = m_opt.min;
                     if (val > m_opt.max) val = m_opt.max;
@@ -1088,8 +1141,8 @@ void SpinCtrl::BUILD() {
 		break;
 	}
 
-    const int min_val = m_opt.min == INT_MIN ? 0 : m_opt.min;
-	const int max_val = m_opt.max < 2147483647 ? m_opt.max : 2147483647;
+    const int min_val = m_opt.min == -FLT_MAX ? 0 : (int)m_opt.min;
+	const int max_val = m_opt.max < FLT_MAX ? (int)m_opt.max : INT_MAX;
 
     static Builder<SpinInput> builder;
 	auto temp = builder.build(m_parent, "", "", wxDefaultPosition, size,
@@ -1145,7 +1198,7 @@ void SpinCtrl::BUILD() {
         if (!parsed || value < INT_MIN || value > INT_MAX)
             tmp_value = UNDEF_VALUE;
         else {
-            tmp_value = std::min(std::max((int)value, m_opt.min), m_opt.max);
+            tmp_value = std::min(std::max((int)value, temp->GetMin()), temp->GetMax());
 #ifdef __WXOSX__
 #ifdef UNDEFINED__WXOSX__ // BBS
             // Forcibly set the input value for SpinControl, since the value
@@ -1198,7 +1251,7 @@ void SpinCtrl::set_value(const boost::any& value, bool change_event) {
     m_disable_change_event = !change_event;
     m_value = value;
     if (value.empty()) { // BBS: null value
-        dynamic_cast<SpinInput*>(window)->SetValue(m_opt.min);
+        dynamic_cast<SpinInput*>(window)->SetValue(dynamic_cast<SpinInput*>(window)->GetMin());
         dynamic_cast<SpinInput*>(window)->GetTextCtrl()->SetValue("");
     }
     else {
@@ -2139,8 +2192,8 @@ boost::any& PointCtrl::get_value()
         show_error(m_parent, _L("Invalid numeric."));
 	}
 	else
-	if (m_opt.min > x || x > m_opt.max ||
-		m_opt.min > y || y > m_opt.max)
+	if (!m_opt.is_value_valid(x) ||
+		!m_opt.is_value_valid(y))
 	{
 		if (m_opt.min > x) x = m_opt.min;
 		if (x > m_opt.max) x = m_opt.max;
@@ -2199,8 +2252,8 @@ void SliderCtrl::BUILD()
 	auto temp = new wxBoxSizer(wxHORIZONTAL);
 
 	auto def_val = m_opt.get_default_value<ConfigOptionInt>()->value;
-	auto min = m_opt.min == INT_MIN ? 0 : m_opt.min;
-	auto max = m_opt.max == INT_MAX ? 100 : m_opt.max;
+	auto min = m_opt.min == -FLT_MAX ? 0   : (int)m_opt.min;
+	auto max = m_opt.max ==  FLT_MAX ? 100 : INT_MAX;
 
 	m_slider = new wxSlider(m_parent, wxID_ANY, def_val * m_scale,
 							min * m_scale, max * m_scale,

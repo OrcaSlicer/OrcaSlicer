@@ -2816,7 +2816,7 @@ msgstr "위"
 
 msgid ""
 "The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
+"quality. The system automatically adjusts the fan's switch and speed "
 "according to different printing materials."
 msgstr ""
 
@@ -3649,7 +3649,7 @@ msgid "Please unload all filament before switching."
 msgstr ""
 
 msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+"AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -4804,8 +4804,8 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "팬 속도 (%)"
 
-msgid "Temperature (°C)"
-msgstr "온도 (°C)"
+msgid "Temperature (℃)"
+msgstr "온도 (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "압출 압출량 (mm³/s)"
@@ -6309,7 +6309,7 @@ msgstr "레이어: %d/%d"
 
 #, fuzzy
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "필라멘트를 로드하거나 언로드하기 전에 노즐을 170도 이상으로 가열하세요."
 
@@ -7414,7 +7414,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -8766,7 +8766,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9177,7 +9177,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
@@ -19203,7 +19203,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "프린터와 프린터에 속한 모든 필라멘트 및 프로세스 사전 설정.\n"
@@ -20826,8 +20826,8 @@ msgstr ""
 
 #, fuzzy
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
 #~ "권장 최저 온도는 190도 미만 또는 권장 최고 온도는 300도 이상입니다.\n"
 
@@ -22882,7 +22882,7 @@ msgstr ""
 #~ "예   - 자동으로 직선 패턴으로 전환합니다\n"
 #~ "아니요 - 밀도를 기본값(100%가 아닌 값)으로 자동 재설정합니다"
 
-#~ msgid "Please heat the nozzle to above 170°C before loading filament."
+#~ msgid "Please heat the nozzle to above 170℃ before loading filament."
 #~ msgstr "필라멘트를 로드하기 전에 노즐을 170도 이상으로 가열하십시오."
 
 #~ msgid "Show G-code window"

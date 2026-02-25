@@ -1758,7 +1758,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             wxString msg_text = _(
                 L("Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their "
                   "intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. "
-                  "Please proceed with caution and thoroughly check for any potential printing issues."
+                  "Please proceed with caution and thoroughly check for any potential printing issues. "
                   "Are you sure you want to enable this option?"));
             msg_text += "\n\n" + _(L("Are you sure you want to enable this option?"));
             MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);

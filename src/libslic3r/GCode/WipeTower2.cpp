@@ -2134,6 +2134,11 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         // Save actual brim width to be later passed to the Print object, which will use it
         // for skirt calculation and pass it to GLCanvas for precise preview box
         m_wipe_tower_brim_width_real = loops_num * spacing;
+
+        // Compute actual first-layer bounding box from the outermost brim polygon,
+        // matching how WipeTower::get_bbx() uses m_outer_wall extents.
+        BoundingBox first_layer_box = get_extents(poly);
+        m_first_layer_bbx = BoundingBoxf(unscale(first_layer_box.min), unscale(first_layer_box.max));
     }
 
     // Now prepare future wipe.
