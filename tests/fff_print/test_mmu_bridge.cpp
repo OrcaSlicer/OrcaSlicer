@@ -417,3 +417,59 @@ TEST_CASE("MMU face-painted bridge full pipeline", "[MMUBridge]") {
     CHECK_FALSE(found_overhang_perimeter);
 }
 
+// ============================================================================
+// Test 7: Face-painted bridge does not extend beyond model boundary (void)
+// ============================================================================
+TEST_CASE("MMU face-painted bridge does not extend into void", "[MMUBridge]") {
+    // Same face-painted pillars+slab geometry as Test 6.
+    // Bridge surfaces may expand anchors into supported pillar material - that is
+    // normal and acceptable.  What must NOT happen is extension beyond the model
+    // boundary (into void / outside the mesh entirely).
+    Print print;
+    Model model;
+    const PrintObject &obj = init_face_painted_bridge_print(print, model);
+    REQUIRE(obj.num_printing_regions() > 1);
+
+    // Find the bridge layer.
+    const Layer *bridge_layer = nullptr;
+    for (const Layer *layer : obj.layers()) {
+        if (bridge_layer)
+            break;
+        for (const LayerRegion *lr : layer->regions()) {
+            if (bridge_layer)
+                break;
+            for (const Surface &s : lr->fill_surfaces.surfaces)
+                if (s.surface_type == stBottomBridge) {
+                    bridge_layer = layer;
+                    break;
+                }
+        }
+    }
+    REQUIRE(bridge_layer != nullptr);
+
+    // Bridge surfaces must not extend beyond the model boundary (void).
+    for (const LayerRegion *lr : bridge_layer->regions()) {
+        for (const Surface &s : lr->fill_surfaces.surfaces) {
+            if (s.surface_type != stBottomBridge)
+                continue;
+            ExPolygons void_overflow = diff_ex(ExPolygons{s.expolygon}, bridge_layer->lslices);
+            double overflow_mm2 = std::abs(unscale<double>(unscale<double>(area(void_overflow))));
+            CHECK(overflow_mm2 < 0.1);  // less than 0.1mm² overflow into void
+        }
+    }
+
+    // Bridge extrusion paths must stay within the model boundary.
+    BoundingBox model_bb = get_extents(bridge_layer->lslices);
+    for (const LayerRegion *lr : bridge_layer->regions()) {
+        for (const ExtrusionEntity *ee : lr->fills.flatten().entities) {
+            if (ee->role() != erBridgeInfill)
+                continue;
+            BoundingBox extr_bb = get_extents(ee->as_polyline());
+            CHECK(extr_bb.min.x() >= model_bb.min.x());
+            CHECK(extr_bb.max.x() <= model_bb.max.x());
+            CHECK(extr_bb.min.y() >= model_bb.min.y());
+            CHECK(extr_bb.max.y() <= model_bb.max.y());
+        }
+    }
+}
+
