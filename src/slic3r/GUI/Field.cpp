@@ -883,13 +883,18 @@ bool TextCtrl::value_was_changed()
     case coInt:
         return boost::any_cast<int>(m_value) != boost::any_cast<int>(val);
     case coPercent:
-    case coPercents:
+    case coPercents: {
+        if (m_opt.nullable && std::isnan(boost::any_cast<double>(m_value)) &&
+                              std::isnan(boost::any_cast<double>(val)))
+            return false;
+        return boost::any_cast<double>(m_value) != boost::any_cast<double>(val);
+    }
     case coFloats:
     case coFloat: {
         if (m_opt.nullable && std::isnan(boost::any_cast<double>(m_value)) &&
                               std::isnan(boost::any_cast<double>(val)))
             return false;
-        return boost::any_cast<double>(m_value) != boost::any_cast<double>(val);
+        return !is_approx(boost::any_cast<double>(m_value), boost::any_cast<double>(val));
     }
     case coString:
     case coStrings:
