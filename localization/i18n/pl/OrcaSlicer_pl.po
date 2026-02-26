@@ -14332,8 +14332,8 @@ msgstr ""
 "Losowe wibracje podczas drukowania ścian, aby nadać powierzchni chropowaty "
 "wygląd. To ustawienie reguluje „chropowatość”"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Tylko malowane"
 
 msgid "Contour"
 msgstr "Kontur"

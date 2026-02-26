@@ -13436,8 +13436,8 @@ msgstr ""
 "väggar så att ytan får ett strävt utseende. Denna inställning styr fuzzy "
 "position"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Endast målad"
 
 msgid "Contour"
 msgstr "Kontur"

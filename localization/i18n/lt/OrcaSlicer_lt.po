@@ -14387,8 +14387,8 @@ msgstr ""
 "todėl paviršius atrodo grublėtas. Šiuo nustatymu kontroliuojama grublėtumo "
 "padėtis."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Tik dažytas"
 
 msgid "Contour"
 msgstr "Kontūras"

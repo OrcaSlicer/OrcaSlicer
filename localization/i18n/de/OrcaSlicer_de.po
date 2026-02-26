@@ -15111,8 +15111,8 @@ msgstr ""
 "zufällig zittert, so dass die Oberfläche ein raues, strukturiertes Aussehen "
 "erhält. Diese Einstellung steuert die Fuzzy-Position."
 
-msgid "None (allow paint)"
-msgstr "keine (Erlaubt das Bemalen)"
+msgid "Painted only"
+msgstr "Nur lackiert"
 
 msgid "Contour"
 msgstr "Kontur"

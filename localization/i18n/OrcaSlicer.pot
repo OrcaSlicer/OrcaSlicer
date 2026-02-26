@@ -12894,7 +12894,7 @@ msgid ""
 "look. This setting controls the fuzzy position."
 msgstr ""
 
-msgid "None (allow paint)"
+msgid "Painted only"
 msgstr ""
 
 msgid "Contour"

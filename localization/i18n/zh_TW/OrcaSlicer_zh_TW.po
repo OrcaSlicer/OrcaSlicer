@@ -13783,8 +13783,8 @@ msgid ""
 "look. This setting controls the fuzzy position."
 msgstr "列印外牆時隨機抖動，使外表面產生絨毛效果。這個設定決定適用的位置"
 
-msgid "None (allow paint)"
-msgstr "無（允許油漆）"
+msgid "Painted only"
+msgstr "僅塗漆"
 
 msgid "Contour"
 msgstr "輪廓"

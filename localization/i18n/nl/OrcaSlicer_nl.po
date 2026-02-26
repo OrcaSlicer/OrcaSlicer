@@ -13644,14 +13644,14 @@ msgstr ""
 "printen van muren, zodat het oppervlak er ruw uitziet. Deze instelling "
 "regelt de \"fuzzy\" positie."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Alleen geverfd"
 
 msgid "Contour"
 msgstr ""
 
 msgid "Contour and hole"
-msgstr ""
+msgstr "Contour en gat"
 
 msgid "All walls"
 msgstr "Alle wanden"

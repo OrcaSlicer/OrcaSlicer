@@ -12480,8 +12480,8 @@ msgstr "Замещение общего ограничения скорости 
 msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgstr "Нечёткая оболочка используется для придания поверхностям шершавой фактуры. Доступны несколько вариантов применения."
 
-msgid "None (allow paint)"
-msgstr "Вручную"
+msgid "Painted only"
+msgstr "Только покрашенное"
 
 msgid "Contour"
 msgstr "Контур"

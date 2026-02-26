@@ -14402,8 +14402,8 @@ msgstr ""
 "superfície tingui un aspecte rugós. Aquest ajustament controla la posició "
 "difusa"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Només pintat"
 
 msgid "Contour"
 msgstr "Contorn"

@@ -13182,7 +13182,7 @@ msgstr ""
 "the surface has a rough textured look. This setting controls the fuzzy "
 "position."
 
-msgid "None (allow paint)"
+msgid "Painted only"
 msgstr ""
 
 msgid "Contour"

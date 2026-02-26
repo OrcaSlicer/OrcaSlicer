@@ -13908,8 +13908,8 @@ msgstr ""
 "벽을 출력하는 동안 무작위로 지터가 발생하여 표면이 거칠게 보입니다. 이 설정"
 "은 퍼지 위치를 제어합니다"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "도색만"
 
 msgid "Contour"
 msgstr "윤곽"

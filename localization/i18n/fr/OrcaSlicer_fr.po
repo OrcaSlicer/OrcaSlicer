@@ -14525,8 +14525,8 @@ msgstr ""
 "Gigue aléatoire lors de l'impression de la paroi, de sorte que la surface "
 "ait un aspect rugueux. Ce réglage contrôle la position irrégulière"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Peint uniquement"
 
 msgid "Contour"
 msgstr "Contour"

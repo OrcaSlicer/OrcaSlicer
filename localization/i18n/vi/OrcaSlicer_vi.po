@@ -14075,8 +14075,8 @@ msgstr ""
 "Rung ngẫu nhiên trong khi in thành, để bề mặt có vẻ thô. Cài đặt này điều "
 "khiển vị trí fuzzy."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Chỉ được sơn"
 
 msgid "Contour"
 msgstr "Đường viền"
