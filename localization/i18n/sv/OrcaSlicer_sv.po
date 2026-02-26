@@ -13585,6 +13585,9 @@ msgstr "Endast målad"
 msgid "Contour"
 msgstr "Kontur"
 
+msgid "Hole"
+msgstr "Hål"
+
 msgid "Contour and hole"
 msgstr "Kontur och hål"
 
