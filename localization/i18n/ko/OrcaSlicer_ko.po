@@ -4542,7 +4542,7 @@ msgid "Line Width"
 msgstr "선 너비"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "실제 속도"
 
 msgid "Fan Speed"
 msgstr "팬 속도"
@@ -4551,7 +4551,7 @@ msgid "Flow"
 msgstr "압출량"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "실제 흐름"
 
 msgid "Tool"
 msgstr "툴"
@@ -4686,7 +4686,7 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "실제 속도: "
 
 msgid "Statistics of All Plates"
 msgstr "모든 플레이트 통계"
@@ -4800,7 +4800,7 @@ msgid "Speed (mm/s)"
 msgstr "속도 (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "실제 속도 (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "팬 속도 (%)"

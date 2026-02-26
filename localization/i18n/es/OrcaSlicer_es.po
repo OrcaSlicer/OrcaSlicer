@@ -4920,7 +4920,7 @@ msgid "Time"
 msgstr "Tiempo"
 
 msgid "Actual speed profile"
-msgstr "Perfil de velocidad actual"
+msgstr "Perfil de velocidad real"
 
 msgid "Speed: "
 msgstr "Velocidad: "

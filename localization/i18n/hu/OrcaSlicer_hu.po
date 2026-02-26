@@ -4518,7 +4518,7 @@ msgid "Line Width"
 msgstr "Vonalszélesség"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Tényleges sebesség"
 
 msgid "Fan Speed"
 msgstr "Ventilátor fordulatszám"
@@ -4527,7 +4527,7 @@ msgid "Flow"
 msgstr "Anyagáramlás"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Tényleges áramlás"
 
 msgid "Tool"
 msgstr "Szerszám"
@@ -4662,7 +4662,7 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Tényleges sebesség: "
 
 msgid "Statistics of All Plates"
 msgstr ""
@@ -4776,7 +4776,7 @@ msgid "Speed (mm/s)"
 msgstr "Sebesség (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Tényleges sebesség (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Ventilátor fordulatszám (%)"

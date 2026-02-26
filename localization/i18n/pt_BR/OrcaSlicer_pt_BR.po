@@ -5053,7 +5053,7 @@ msgid "Speed (mm/s)"
 msgstr "Velocidade (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Velocidade Real (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Velocidade do Ventilador (%)"

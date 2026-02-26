@@ -4456,7 +4456,7 @@ msgid "Line Width"
 msgstr "押出線幅"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "実速度"
 
 msgid "Fan Speed"
 msgstr "ファン回転速度"
@@ -4465,7 +4465,7 @@ msgid "Flow"
 msgstr "流量"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "実際の流れ"
 
 msgid "Tool"
 msgstr "ツール"
@@ -4600,7 +4600,7 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "実速度: "
 
 msgid "Statistics of All Plates"
 msgstr ""
@@ -4714,7 +4714,7 @@ msgid "Speed (mm/s)"
 msgstr "速度 (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "実速度 (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "ファン回転速度 (%)"
