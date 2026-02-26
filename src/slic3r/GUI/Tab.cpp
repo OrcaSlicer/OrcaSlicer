@@ -974,7 +974,8 @@ void Tab::init_options_list()
             m_options_list.emplace(opt_key, m_opt_status_value);
             continue;
         }
-        if (m_config->option(opt_key)->is_vector())
+        const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
+        if (m_config->option(opt_key)->is_vector() && !(opt_def && opt_def->gui_flags == "serialized"))
             m_options_list.emplace(opt_key + "#0", m_opt_status_value);
         else
             m_options_list.emplace(opt_key, m_opt_status_value);
