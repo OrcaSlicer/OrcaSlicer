@@ -14093,6 +14093,9 @@ msgstr "塗装のみ"
 msgid "Contour"
 msgstr "輪郭"
 
+msgid "Hole"
+msgstr "穴"
+
 msgid "Contour and hole"
 msgstr "輪郭と穴"
 

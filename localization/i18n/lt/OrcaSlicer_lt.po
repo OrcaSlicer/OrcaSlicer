@@ -15043,6 +15043,9 @@ msgstr "Tik dažytas"
 msgid "Contour"
 msgstr "Kontūras"
 
+msgid "Hole"
+msgstr "Skylė"
+
 msgid "Contour and hole"
 msgstr "Kontūras ir skylė"
 
