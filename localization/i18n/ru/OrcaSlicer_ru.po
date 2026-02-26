@@ -12481,7 +12481,7 @@ msgid "Randomly jitter while printing the wall, so that the surface has a rough 
 msgstr "Нечёткая оболочка используется для придания поверхностям шершавой фактуры. Доступны несколько вариантов применения."
 
 msgid "Painted only"
-msgstr "Только покрашенные"
+msgstr "Только покрашенное"
 
 msgid "Contour"
 msgstr "Контур"
