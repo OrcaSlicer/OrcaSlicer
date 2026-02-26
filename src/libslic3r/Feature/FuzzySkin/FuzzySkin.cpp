@@ -263,6 +263,28 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         return polygon;
     }
 
+    // Deduplicate: when a "style" region (specific type like External/Hole) coexists with
+    // broader "painted" regions for the same loop type, prioritize the style.
+    // Applying both would cause double-fuzz artifacts at the boundary between painted and
+    // non-painted areas. Instead, apply the style config uniformly to the entire polygon.
+    {
+        const FuzzySkinConfig* style_config = nullptr;
+        bool has_broad = false;
+        for (const auto& fr : fuzzified_regions) {
+            if (fr.first.type == FuzzySkinType::All || fr.first.type == FuzzySkinType::AllWalls) {
+                has_broad = true;
+            } else {
+                style_config = &fr.first;
+            }
+        }
+        if (style_config && has_broad) {
+            // Style region already covers this loop type; apply it uniformly to avoid artifacts
+            fuzzified = polygon;
+            fuzzy_polyline(fuzzified.points, true, slice_z, *style_config);
+            return fuzzified;
+        }
+    }
+
 #ifdef DEBUG_FUZZY
     {
         int i = 0;
@@ -352,7 +374,27 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             }
         }
         if (!fuzzified_regions.empty()) {
- 
+            // Deduplicate: when a "style" region (specific type like External/Hole) coexists with
+            // broader "painted" regions for the same loop type, prioritize the style.
+            // Applying both would cause double-fuzz artifacts at the boundary between painted and
+            // non-painted areas. Instead, apply the style config uniformly to the entire extrusion.
+            {
+                const FuzzySkinConfig* style_config = nullptr;
+                bool has_broad = false;
+                for (const auto& fr : fuzzified_regions) {
+                    if (fr.first.type == FuzzySkinType::All || fr.first.type == FuzzySkinType::AllWalls) {
+                        has_broad = true;
+                    } else {
+                        style_config = &fr.first;
+                    }
+                }
+                if (style_config && has_broad) {
+                    // Style region already covers this loop type; apply it uniformly to avoid artifacts
+                    fuzzy_extrusion_line(extrusion->junctions, slice_z, *style_config);
+                    return;
+                }
+            }
+
 #ifdef DEBUG_FUZZY
             {
                 int i = 0;
