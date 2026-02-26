@@ -14901,8 +14901,8 @@ msgstr ""
 "Movimento aleatório durante a impressão da parede, de modo que a superfície "
 "tenha uma aparência áspera. Essa configuração controla a posição difusa."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Somente pintado"
 
 msgid "Contour"
 msgstr "Contorno"

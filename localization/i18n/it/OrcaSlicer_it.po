@@ -14472,8 +14472,8 @@ msgstr ""
 "la superficie abbia un aspetto ruvido. Con questa impostazione è possibile "
 "controllare le zone in cui si vuole avere una superficie ruvida e irregolare."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Solo verniciato"
 
 msgid "Contour"
 msgstr "Contorno"

@@ -13484,14 +13484,14 @@ msgstr ""
 "A nyomtató véletlenszerűen vibrál a fal nyomtatása közben, így a felület "
 "durva megjelenésű lesz"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Csak festett"
 
 msgid "Contour"
-msgstr ""
+msgstr "Kontúr"
 
 msgid "Contour and hole"
-msgstr ""
+msgstr "Kontúr és lyuk"
 
 msgid "All walls"
 msgstr "Összes fal"

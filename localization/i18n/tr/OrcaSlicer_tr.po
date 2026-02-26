@@ -14285,8 +14285,8 @@ msgstr ""
 "Duvara baskı yaparken rastgele titreme, böylece yüzeyin pürüzlü bir görünüme "
 "sahip olması. Bu ayar pütürlü konumu kontrol eder."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Sadece boyalı"
 
 msgid "Contour"
 msgstr "Kontur"

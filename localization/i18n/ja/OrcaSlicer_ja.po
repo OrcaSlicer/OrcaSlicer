@@ -13245,14 +13245,14 @@ msgstr ""
 "この設定により、壁面を造形時にノズルがランダムで軽微な振動を加えます。これに"
 "より、表面にザラザラ感が出来上がります。"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "塗装のみ"
 
 msgid "Contour"
-msgstr ""
+msgstr "輪郭"
 
 msgid "Contour and hole"
-msgstr ""
+msgstr "輪郭と穴"
 
 msgid "All walls"
 msgstr "すべての壁"

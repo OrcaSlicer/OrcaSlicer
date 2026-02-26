@@ -15233,8 +15233,8 @@ msgstr ""
 "nastavení ovládá polohu členitého povrchu.Náhodné chvění při tisku na stěnu, "
 "takže povrch má hrubý vzhled. Toto nastavení řídí neostrou polohu"
 
-msgid "None (allow paint)"
-msgstr "Žádné (povolit barvení)"
+msgid "Painted only"
+msgstr "Pouze natřeno"
 
 msgid "Contour"
 msgstr "Obrys"

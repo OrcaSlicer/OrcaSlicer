@@ -15003,8 +15003,8 @@ msgstr ""
 "perímetro externo, de modo que la superficie tenga un aspecto rugoso. Este "
 "ajuste controla la posición difusa"
 
-msgid "None (allow paint)"
-msgstr "Ninguno (permitir pintado)"
+msgid "Painted only"
+msgstr "Solo pintado"
 
 msgid "Contour"
 msgstr "Contorno"
