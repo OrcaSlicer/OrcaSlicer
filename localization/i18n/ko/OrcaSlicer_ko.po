@@ -435,7 +435,7 @@ msgstr ""
 msgid "Size"
 msgstr "크기"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "균일 배율"
 
 msgid "Planar"
@@ -693,7 +693,7 @@ msgstr "커넥터"
 msgid "Cut by Plane"
 msgstr "평면으로 자르기"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "절단 도구로 인해 메인폴드가 아닌 가장자리가 발생했는데 지금 수정하시겠습니까?"
 
@@ -2232,31 +2232,31 @@ msgstr ""
 msgid "Select All"
 msgstr "모두 선택"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "현재 플레이트의 모든 객체 선택"
 
 msgid "Delete All"
 msgstr "모두 삭제"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "현재 플레이트의 모든 객체 삭제"
 
 msgid "Arrange"
 msgstr "정렬"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "현재 플레이트 정렬"
 
 msgid "Reload All"
 msgstr "모두 다시 불러오기"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "디스크에서 모두 다시 로드"
 
 msgid "Auto Rotate"
 msgstr "자동 회전"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "현재 플레이트 자동 정렬"
 
 msgid "Delete Plate"
@@ -2562,7 +2562,8 @@ msgstr "높이 범위 추가"
 msgid "Invalid numeric."
 msgstr "잘못된 숫자입니다."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "하나의 셀은 동일한 열에 있는 하나 이상의 셀에만 복사할 수 있습니다"
 
 msgid "Copying multiple cells is not supported."
@@ -3680,7 +3681,7 @@ msgstr ""
 "플러그인을 설치하지 못했습니다. 안티바이러스 소프트웨어에 의해 차단 또는 삭제"
 "되었는지 확인하세요."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "자세한 내용을 보려면 여기를 클릭하세요"
 
 msgid ""
@@ -4195,7 +4196,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4919,7 +4920,7 @@ msgstr "편집 영역 증가/감소"
 msgid "Sequence"
 msgstr "순서"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "part selection"
@@ -4928,7 +4929,7 @@ msgstr ""
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5160,7 +5161,7 @@ msgid "Only the object being edited is visible."
 msgstr "편집 중인 객체만 표시됩니다."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6419,7 +6420,7 @@ msgstr "출력 결과를 동기화하는 중입니다. 몇 초 후에 다시 시
 msgid "Upload failed\n"
 msgstr "업로드 실패\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "instance_id를 가져오지 못했습니다.\n"
 
 msgid ""
@@ -7444,13 +7445,14 @@ msgstr "프로젝트 저장"
 msgid "Importing Model"
 msgstr "모델 가져오는 중"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "3mf 파일 준비..."
 
 msgid "Download failed, unknown file format."
 msgstr "다운로드에 실패했습니다. 파일 형식을 알 수 없습니다."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "프로젝트 다운로드 중 ..."
 
 msgid "Download failed, File size exception."
@@ -8332,10 +8334,10 @@ msgstr "PRE host: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "제품 호스트"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "디버그 저장 버튼"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "디버그 설정 저장"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8625,7 +8627,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "전송 완료"
 
 msgid "Error code"
@@ -10417,7 +10419,7 @@ msgstr "선택 항목을 +X 방향으로 10mm 이동"
 msgid "Movement step set to 1 mm"
 msgstr "1mm로 이동"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "키보드 1-9: 객체/부품에 필라멘트 할당"
 
 msgid "Camera view - Default"
@@ -18270,7 +18272,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "플레이트 타입"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "필라멘트 위치"
 
 msgid "Filament For Calibration"
@@ -20052,7 +20054,7 @@ msgstr "작업 내역이 없습니다!"
 msgid "Upgrading"
 msgstr "업그레이드 하기"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "동기화"
 
 msgid "Printing Finish"

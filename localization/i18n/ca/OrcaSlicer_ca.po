@@ -436,7 +436,7 @@ msgstr ""
 msgid "Size"
 msgstr "Mida"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "escala uniforme"
 
 msgid "Planar"
@@ -696,7 +696,7 @@ msgstr "Connector"
 msgid "Cut by Plane"
 msgstr "Tallar pel pla"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "les vores amb plecs poden ser causades per l'eina de tall, voleu solucionar-"
 "ho ara?"
@@ -2266,31 +2266,31 @@ msgstr ""
 msgid "Select All"
 msgstr "Seleccionar-ho tot"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "seleccionar tots els objectes de la placa actual"
 
 msgid "Delete All"
 msgstr "Suprimir-les totes"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "eliminar tots els objectes de la placa actual"
 
 msgid "Arrange"
 msgstr "Ordenar"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "organitza la placa actual"
 
 msgid "Reload All"
 msgstr "Torna-ho a carregar Tot"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "torna a carregar-ho tot des del disc"
 
 msgid "Auto Rotate"
 msgstr "Rota automàticament"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "rotar automàticament la placa actual"
 
 msgid "Delete Plate"
@@ -2609,7 +2609,8 @@ msgstr "Afegir un interval d'alçada"
 msgid "Invalid numeric."
 msgstr "Entrada numèrica no vàlida."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "una cel·la només es pot copiar a una o diverses cel·les de la mateixa columna"
 
@@ -3755,7 +3756,7 @@ msgstr ""
 "No s'ha pogut instal·lar el connector. Comproveu si el programari antivirus "
 "l'ha bloquejat o suprimit."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "feu clic aquí per veure més informació"
 
 msgid ""
@@ -4297,7 +4298,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -5025,7 +5026,7 @@ msgstr "Incrementar/reduir àrea edició"
 msgid "Sequence"
 msgstr "Seqüència"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "part selection"
@@ -5034,7 +5035,7 @@ msgstr ""
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5266,7 +5267,7 @@ msgid "Only the object being edited is visible."
 msgstr "Només és visible l'objecte que s'està editant."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6556,7 +6557,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "S'ha produït un error en la pujada\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "error en obtenir instance_id \n"
 
 msgid ""
@@ -7604,13 +7605,14 @@ msgstr "Desar projecte"
 msgid "Importing Model"
 msgstr "Important Model"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "preparar el fitxer 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "S'ha produït un error en la baixada, format de fitxer desconegut."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "descarregant projecte ..."
 
 msgid "Download failed, File size exception."
@@ -8520,10 +8522,10 @@ msgstr "Amfitrió PRE: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Amfitrió del producte"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "botó de desar depuració"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "desar la configuració de depuració"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8814,7 +8816,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "enviament completat"
 
 msgid "Error code"
@@ -10663,7 +10665,7 @@ msgstr "Moure la selecció 10 mm en direcció X positiva"
 msgid "Movement step set to 1 mm"
 msgstr "Pas de moviment configurat a 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "teclat 1-9: establir filament per a objecte/peça"
 
 msgid "Camera view - Default"
@@ -19026,7 +19028,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Tipus de placa"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "posició del filament"
 
 msgid "Filament For Calibration"
@@ -20886,7 +20888,7 @@ msgstr "Sense tasques històriques!"
 msgid "Upgrading"
 msgstr "Actualitzant"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "sincronitzant"
 
 msgid "Printing Finish"

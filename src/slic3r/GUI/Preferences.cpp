@@ -1859,12 +1859,12 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
         radio_group->SetSelection(3);
     }
 
-    Button* debug_button = new Button(m_parent, _L("debug save button"));
+    Button* debug_button = new Button(m_parent, _L("Debug save button"));
     debug_button->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     debug_button->Bind(wxEVT_LEFT_DOWN, [this, radio_group](wxMouseEvent &e) {
         // success message box
-        MessageDialog dialog(this, _L("save debug settings"), _L("DEBUG settings have been saved successfully!"), wxNO_DEFAULT | wxYES_NO | wxICON_INFORMATION);
+        MessageDialog dialog(this, _L("Save debug settings"), _L("DEBUG settings have been saved successfully!"), wxNO_DEFAULT | wxYES_NO | wxICON_INFORMATION);
         dialog.SetSize(400,-1);
         switch (dialog.ShowModal()) {
         case wxID_NO: {

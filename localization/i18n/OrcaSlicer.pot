@@ -429,7 +429,7 @@ msgstr ""
 msgid "Size"
 msgstr ""
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr ""
 
 msgid "Planar"
@@ -684,7 +684,7 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr ""
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 
 msgid "Repairing model object"
@@ -2173,31 +2173,31 @@ msgstr ""
 msgid "Select All"
 msgstr ""
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr ""
 
 msgid "Delete All"
 msgstr ""
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr ""
 
 msgid "Arrange"
 msgstr ""
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr ""
 
 msgid "Reload All"
 msgstr ""
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr ""
 
 msgid "Auto Rotate"
 msgstr ""
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr ""
 
 msgid "Delete Plate"
@@ -2499,7 +2499,7 @@ msgstr ""
 msgid "Invalid numeric."
 msgstr ""
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 
 msgid "Copying multiple cells is not supported."
@@ -3562,7 +3562,7 @@ msgid ""
 "by anti-virus software."
 msgstr ""
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr ""
 
 msgid ""
@@ -4014,7 +4014,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4732,7 +4732,7 @@ msgstr ""
 msgid "Sequence"
 msgstr ""
 
-msgid "object selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "part selection"
@@ -4741,7 +4741,7 @@ msgstr ""
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -4971,7 +4971,7 @@ msgid "Only the object being edited is visible."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6198,7 +6198,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr ""
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr ""
 
 msgid ""
@@ -7168,13 +7168,13 @@ msgstr ""
 msgid "Importing Model"
 msgstr ""
 
-msgid "prepare 3MF file..."
+msgid "Preparing 3MF file..."
 msgstr ""
 
 msgid "Download failed, unknown file format."
 msgstr ""
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr ""
 
 msgid "Download failed, File size exception."
@@ -8015,10 +8015,10 @@ msgstr ""
 msgid "Product host"
 msgstr ""
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr ""
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr ""
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8307,7 +8307,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr ""
 
 msgid "Error code"
@@ -9962,7 +9962,7 @@ msgstr ""
 msgid "Movement step set to 1 mm"
 msgstr ""
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr ""
 
 msgid "Camera view - Default"
@@ -16657,7 +16657,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr ""
 
-msgid "filament position"
+msgid "Filament position"
 msgstr ""
 
 msgid "Filament For Calibration"
@@ -18291,7 +18291,7 @@ msgstr ""
 msgid "Upgrading"
 msgstr ""
 
-msgid "syncing"
+msgid "Syncing"
 msgstr ""
 
 msgid "Printing Finish"
