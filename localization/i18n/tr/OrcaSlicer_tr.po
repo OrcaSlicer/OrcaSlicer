@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -2250,6 +2250,12 @@ msgstr "Hepsini seç"
 msgid "Select all objects on the current plate"
 msgstr "geçerli plakadaki tüm nesneleri seç"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "Hepsini sil"
 
@@ -2839,9 +2845,9 @@ msgid "Top"
 msgstr "Üst"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3694,8 +3700,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3720,11 +3725,10 @@ msgstr ""
 "yazılımınızı kontrol edin, kontrol edip yeniden deneyin."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"Eklenti yüklenemedi. Lütfen anti-virüs yazılımı tarafından engellenip "
-"engellenmediğini veya silinip silinmediğini kontrol edin."
 
 msgid "Click here to see more info"
 msgstr "daha fazla bilgi görmek için burayı tıklayın"
@@ -4543,6 +4547,12 @@ msgstr "Yazıcı Ayarları"
 msgid "parameter name"
 msgstr "parametre adı"
 
+msgid "Range"
+msgstr "Aralık"
+
+msgid "Value is out of range."
+msgstr "Değer aralık dışında."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s yüzde olamaz"
@@ -4557,9 +4567,6 @@ msgstr "Parametre doğrulama"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Değer %s aralık dışında. Geçerli aralık %d ile %d arasındadır."
-
-msgid "Value is out of range."
-msgstr "Değer aralık dışında."
 
 #, c-format, boost-format
 msgid ""
@@ -4632,6 +4639,9 @@ msgstr "Katman Süresi"
 
 msgid "Layer Time (log)"
 msgstr "Katman Süresi (günlük)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4720,9 +4730,6 @@ msgstr "mm³/s"
 msgid "Fan speed"
 msgstr "Fan hızı"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "Zaman"
 
@@ -4758,6 +4765,9 @@ msgstr ""
 
 msgid "Actual Speed: "
 msgstr "Gerçek Hız: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "Tüm Plakaların İstatistikleri"
@@ -4894,9 +4904,6 @@ msgstr "Filament Değişiklikleri"
 msgid "Options"
 msgstr "Seçenekler"
 
-msgid "travel"
-msgstr "seyahat"
-
 msgid "Extruder"
 msgstr "Ekstruder"
 
@@ -4997,9 +5004,6 @@ msgstr "Sekans"
 
 msgid "Object selection"
 msgstr "nesne seçimi"
-
-msgid "part selection"
-msgstr "parça seçimi"
 
 msgid "number keys"
 msgstr "sayı tuşları"
@@ -6799,9 +6803,6 @@ msgstr "Konektörleri kes"
 msgid "Layers"
 msgstr "Katmanlar"
 
-msgid "Range"
-msgstr "Aralık"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -8087,6 +8088,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr "(Yeniden başlatma gerektirir)"
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -8099,9 +8112,6 @@ msgid ""
 msgstr ""
 "Bu seçenek etkinleştirildiğinde, aynı anda birden fazla cihaza bir görev "
 "gönderebilir ve birden fazla cihazı yönetebilirsiniz."
-
-msgid "(Requires restart)"
-msgstr "(Yeniden başlatma gerektirir)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -13705,6 +13715,49 @@ msgstr ""
 "şekilde üretmek için her zaman bu miktardaki malzemeyi silme kulesine "
 "hazırlayacaktır."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Son soğutma hareketi hızı"
 
@@ -15590,9 +15643,6 @@ msgstr ""
 "Modelin tabanındaki bir deliğin, konik malzemeyle doldurulmadan önce "
 "maksimum alanı. 0 değeri, model tabanındaki tüm delikleri dolduracaktır."
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "Çıkıntılı duvarı algıla"
 
@@ -17329,6 +17379,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -19923,7 +19990,8 @@ msgstr ""
 "Lütfen kapatıp tekrar deneyin."
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "Yazıcı ve yazıcıya ait tüm filament ve işlem ön ayarları.\n"
@@ -21445,6 +21513,22 @@ msgstr ""
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı "
 "sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını "
 "azaltabileceğini biliyor muydunuz?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "Eklenti yüklenemedi. Lütfen anti-virüs yazılımı tarafından engellenip "
+#~ "engellenmediğini veya silinip silinmediğini kontrol edin."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "seyahat"
+
+#~ msgid "part selection"
+#~ msgstr "parça seçimi"
 
 #~ msgid "Filament remapping finished."
 #~ msgstr "Filament yeniden eşleşme işlemi tamamlandı."

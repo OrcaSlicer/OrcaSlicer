@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-05-18 09:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -2176,6 +2176,12 @@ msgstr ""
 msgid "Select all objects on the current plate"
 msgstr ""
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr ""
 
@@ -2757,9 +2763,9 @@ msgid "Top"
 msgstr ""
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3559,8 +3565,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3585,11 +3590,10 @@ msgstr ""
 "software and retry."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"Failed to install the plug-in. Please check whether it is blocked or has "
-"been deleted by anti-virus software."
 
 msgid "Click here to see more info"
 msgstr ""
@@ -4350,6 +4354,12 @@ msgstr ""
 msgid "parameter name"
 msgstr ""
 
+msgid "Range"
+msgstr ""
+
+msgid "Value is out of range."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s can’t be a percentage"
@@ -4363,9 +4373,6 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
-msgstr ""
-
-msgid "Value is out of range."
 msgstr ""
 
 #, c-format, boost-format
@@ -4433,6 +4440,9 @@ msgid "Layer Time"
 msgstr ""
 
 msgid "Layer Time (log)"
+msgstr ""
+
+msgid "Pressure Advance"
 msgstr ""
 
 msgid "Noop"
@@ -4522,9 +4532,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr ""
 
-msgid "°C"
-msgstr ""
-
 msgid "Time"
 msgstr ""
 
@@ -4559,6 +4566,9 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
+msgstr ""
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4696,9 +4706,6 @@ msgstr "Filament changes"
 msgid "Options"
 msgstr ""
 
-msgid "travel"
-msgstr ""
-
 msgid "Extruder"
 msgstr ""
 
@@ -4794,9 +4801,6 @@ msgid "Sequence"
 msgstr ""
 
 msgid "Object selection"
-msgstr ""
-
-msgid "part selection"
 msgstr ""
 
 msgid "number keys"
@@ -6527,9 +6531,6 @@ msgstr ""
 msgid "Layers"
 msgstr ""
 
-msgid "Range"
-msgstr ""
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -7755,6 +7756,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7764,9 +7777,6 @@ msgstr ""
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
-msgstr ""
-
-msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -12676,6 +12686,49 @@ msgid ""
 "tower to produce successive infill or sacrificial object extrusions reliably."
 msgstr ""
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr ""
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr ""
 
@@ -14244,9 +14297,6 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "mm²"
-msgstr ""
-
 msgid "Detect overhang wall"
 msgstr "Detect overhang walls"
 
@@ -15674,6 +15724,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -17988,7 +18055,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 
@@ -19270,6 +19338,13 @@ msgstr ""
 "Did you know that when printing materials that are prone to warping such as "
 "ABS, appropriately increasing the heatbed temperature can reduce the "
 "probability of warping?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or has "
+#~ "been deleted by anti-virus software."
 
 #~ msgid ""
 #~ "The application cannot run normally because OpenGL version is lower than "

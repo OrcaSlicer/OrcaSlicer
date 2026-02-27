@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2220,6 +2220,12 @@ msgstr "Alles selecteren"
 msgid "Select all objects on the current plate"
 msgstr "Selecteer alle objecten op het huidige printbed"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "Alles verwijderen"
 
@@ -2819,9 +2825,9 @@ msgid "Top"
 msgstr "Bovenste"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3654,8 +3660,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3680,11 +3685,10 @@ msgstr ""
 "instellingen en VPN-software en probeer het opnieuw."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"De installatie van de plug-in is mislukt. Controleer of deze is geblokkeerd "
-"of verwijderd door anti-virussoftware."
 
 msgid "Click here to see more info"
 msgstr "klik hier voor meer informatie"
@@ -4490,6 +4494,12 @@ msgstr "Printer instellingen"
 msgid "parameter name"
 msgstr "parameternaam"
 
+msgid "Range"
+msgstr "Bereik"
+
+msgid "Value is out of range."
+msgstr "Waarde is buiten het bereik."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s kan geen percentage zijn"
@@ -4504,9 +4514,6 @@ msgstr "Parametervalidatie"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr ""
-
-msgid "Value is out of range."
-msgstr "Waarde is buiten het bereik."
 
 #, c-format, boost-format
 msgid ""
@@ -4578,6 +4585,9 @@ msgstr "Laag tijd"
 
 msgid "Layer Time (log)"
 msgstr "Laagtijd (logboek)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4666,9 +4676,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "Ventilator snelheid"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "Tijd"
 
@@ -4704,6 +4711,9 @@ msgstr ""
 
 msgid "Actual Speed: "
 msgstr "Werkelijke snelheid: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr ""
@@ -4840,9 +4850,6 @@ msgstr "Filament wisselingen"
 msgid "Options"
 msgstr "Opties"
 
-msgid "travel"
-msgstr "verplaatsen"
-
 msgid "Extruder"
 msgstr "Extruder"
 
@@ -4938,9 +4945,6 @@ msgid "Sequence"
 msgstr "Reeks"
 
 msgid "Object selection"
-msgstr ""
-
-msgid "part selection"
 msgstr ""
 
 msgid "number keys"
@@ -6706,9 +6710,6 @@ msgstr ""
 msgid "Layers"
 msgstr "Lagen"
 
-msgid "Range"
-msgstr "Bereik"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -7986,6 +7987,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7995,9 +8008,6 @@ msgstr "Beheer van meerdere apparaten"
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
-msgstr ""
-
-msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -13131,6 +13141,49 @@ msgid ""
 "tower to produce successive infill or sacrificial object extrusions reliably."
 msgstr ""
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Snelheid voor de laatste koelbeweging"
 
@@ -14743,9 +14796,6 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "Overhange wand detecteren"
 
@@ -16260,6 +16310,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -18673,7 +18740,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 
@@ -20089,6 +20157,19 @@ msgstr ""
 "Wist je dat bij het printen van materialen die gevoelig zijn voor "
 "kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het "
 "warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "De installatie van de plug-in is mislukt. Controleer of deze is "
+#~ "geblokkeerd of verwijderd door anti-virussoftware."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "verplaatsen"
 
 #~ msgid "Replace with STL"
 #~ msgstr "Vervangen door STL"

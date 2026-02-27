@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2026-02-11 20:30+0100\n"
 "Last-Translator: Jakub Hencl <jakub.hencl@seznam.cz> René Mošner "
 "<Renemosner@seznam.cz>\n"
@@ -2333,6 +2333,12 @@ msgstr "Vybrat vše"
 msgid "Select all objects on the current plate"
 msgstr "Vybrat všechny objekty na aktuální podložce"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "Smazat vše"
 
@@ -2952,9 +2958,9 @@ msgid "Top"
 msgstr "Shora"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 "Ventilátor během tisku reguluje teplotu pro zlepšení kvality tisku. Systém "
 "automaticky upravuje zapínání a rychlost ventilátoru podle různých tiskových "
@@ -3889,8 +3895,7 @@ msgstr "Tiskárna je zaneprázdněná a nelze přepnout typ AMS."
 msgid "Please unload all filament before switching."
 msgstr "Před přepnutím vyložte všechny filamenty."
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 "Přepnutí typu AMS vyžaduje aktualizaci firmwaru, která trvá přibližně 30 s. "
 "Přepnout nyní?"
@@ -3921,12 +3926,10 @@ msgstr ""
 "zkuste to znovu."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"Nepodařilo se nainstalovat zásuvný modul. Zkontrolujte, zda nebyl zablokován "
-"nebo smazán antivirovým softwarem.Nepodařilo se nainstalovat plugin. "
-"Zkontrolujte, zda není blokován nebo odstraněn antivirovým softwarem."
 
 msgid "Click here to see more info"
 msgstr "Kliknutím sem zobrazíte více informací"
@@ -4822,6 +4825,12 @@ msgstr "Nastavení tiskárny"
 msgid "parameter name"
 msgstr "Název parametru"
 
+msgid "Range"
+msgstr "Rozsah"
+
+msgid "Value is out of range."
+msgstr "Hodnota je mimo rozsah."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s nemůže být procento"
@@ -4836,9 +4845,6 @@ msgstr "Validace parametru"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Hodnota %s je mimo rozsah. Platný rozsah je od %d do %d."
-
-msgid "Value is out of range."
-msgstr "Hodnota je mimo rozsah."
 
 #, c-format, boost-format
 msgid ""
@@ -4914,6 +4920,9 @@ msgstr "Čas vrstvy"
 
 msgid "Layer Time (log)"
 msgstr "Čas vrstvy (protokol)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr "Noop"
@@ -5002,9 +5011,6 @@ msgstr "mm³/s"
 msgid "Fan speed"
 msgstr "Rychlost ventilátoru"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "Čas"
 
@@ -5040,6 +5046,9 @@ msgstr "Barva: "
 
 msgid "Actual Speed: "
 msgstr "Aktuální rychlost: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "Statistiky všech podložek"
@@ -5182,9 +5191,6 @@ msgstr "Výměna filamentu"
 msgid "Options"
 msgstr "Možnosti"
 
-msgid "travel"
-msgstr "Cestování"
-
 msgid "Extruder"
 msgstr "Extruder"
 
@@ -5288,9 +5294,6 @@ msgstr "Sekvence"
 
 msgid "Object selection"
 msgstr "Výběr objektu"
-
-msgid "part selection"
-msgstr "Výběr části"
 
 msgid "number keys"
 msgstr "Číselné klávesy"
@@ -7151,9 +7154,6 @@ msgstr "Říznout spojky"
 msgid "Layers"
 msgstr "Vrstvy"
 
-msgid "Range"
-msgstr "Rozsah"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -8535,6 +8535,18 @@ msgstr "Podle typu"
 msgid "By vendor"
 msgstr "Podle výrobce"
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr "(Vyžaduje restart)"
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr "Funkce"
 
@@ -8547,9 +8559,6 @@ msgid ""
 msgstr ""
 "Pokud je tato možnost povolena, můžete odesílat úlohy na více zařízení "
 "zároveň a spravovat více zařízení."
-
-msgid "(Requires restart)"
-msgstr "(Vyžaduje restart)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Zobrazit okno pro výběr režimu seskupení filamentů"
@@ -14601,6 +14610,49 @@ msgstr ""
 "materiálu vždy vytlačovat do čistící věže, aby se spolehlivě vytvořily "
 "následné výplně nebo objekty."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Rychlost posledního pohybu chlazení"
 
@@ -16638,9 +16690,6 @@ msgstr ""
 "modelu.Maximální plocha otvoru v základně modelu před tím, než bude vyplněna "
 "kuželovým materiálem. Hodnota 0 vyplní všechny díry v základně modelu."
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "Detekovat převisy stěn"
 
@@ -18493,6 +18542,23 @@ msgstr "Přeskočit body"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
 msgstr "Stěna prime tower přeskočí počáteční body dráhy čištění."
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
+msgstr ""
 
 msgid "Infill gap"
 msgstr "Vzdálenost výplně"
@@ -21230,7 +21296,8 @@ msgstr ""
 "Zavřete jej prosím a zkuste to znovu."
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "Tiskárna a všechny filamentové a procesní předvolby, které patří k "
@@ -22879,6 +22946,24 @@ msgstr ""
 "Věděli jste, že při tisku materiálů náchylných ke kroucení, jako je ABS, "
 "může zvýšení teploty vyhřívané podložky snížit pravděpodobnost vzniku "
 "deformace?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "Nepodařilo se nainstalovat zásuvný modul. Zkontrolujte, zda nebyl "
+#~ "zablokován nebo smazán antivirovým softwarem.Nepodařilo se nainstalovat "
+#~ "plugin. Zkontrolujte, zda není blokován nebo odstraněn antivirovým "
+#~ "softwarem."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "Cestování"
+
+#~ msgid "part selection"
+#~ msgstr "Výběr části"
 
 #~ msgid "Filament remapping finished."
 #~ msgstr "Přemapování filamentů dokončeno."

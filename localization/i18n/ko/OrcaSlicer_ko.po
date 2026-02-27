@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2235,6 +2235,12 @@ msgstr "모두 선택"
 msgid "Select all objects on the current plate"
 msgstr "현재 플레이트의 모든 객체 선택"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "모두 삭제"
 
@@ -2816,9 +2822,9 @@ msgid "Top"
 msgstr "위"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3649,8 +3655,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3675,11 +3680,10 @@ msgstr ""
 "확인한 후 다시 시도하세요."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"플러그인을 설치하지 못했습니다. 안티바이러스 소프트웨어에 의해 차단 또는 삭제"
-"되었는지 확인하세요."
 
 msgid "Click here to see more info"
 msgstr "자세한 내용을 보려면 여기를 클릭하세요"
@@ -4474,6 +4478,12 @@ msgstr "프린터 설정"
 msgid "parameter name"
 msgstr "매개변수 이름"
 
+msgid "Range"
+msgstr "범위"
+
+msgid "Value is out of range."
+msgstr "값이 범위를 벗어났습니다."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s 는 백분율일 수 없습니다"
@@ -4488,9 +4498,6 @@ msgstr "매개변수 유효성 검사"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "값 %s이 범위를 벗어났습니다. 유효한 범위는 %d에서 %d까지입니다."
-
-msgid "Value is out of range."
-msgstr "값이 범위를 벗어났습니다."
 
 #, c-format, boost-format
 msgid ""
@@ -4561,6 +4568,9 @@ msgstr "레이어 시간"
 
 msgid "Layer Time (log)"
 msgstr "레이어 시간 (log)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4649,9 +4659,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "팬 속도"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "시간"
 
@@ -4687,6 +4694,9 @@ msgstr ""
 
 msgid "Actual Speed: "
 msgstr "실제 속도: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "모든 플레이트 통계"
@@ -4823,9 +4833,6 @@ msgstr "필라멘트 변경"
 msgid "Options"
 msgstr "옵션"
 
-msgid "travel"
-msgstr "이동"
-
 msgid "Extruder"
 msgstr "압출기"
 
@@ -4921,9 +4928,6 @@ msgid "Sequence"
 msgstr "순서"
 
 msgid "Object selection"
-msgstr ""
-
-msgid "part selection"
 msgstr ""
 
 msgid "number keys"
@@ -6694,9 +6698,6 @@ msgstr "잘라내기 커넥터"
 msgid "Layers"
 msgstr "레이어"
 
-msgid "Range"
-msgstr "범위"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -7954,6 +7955,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7965,9 +7978,6 @@ msgid ""
 "same time and manage multiple devices."
 msgstr ""
 "활성화하면 여러 장치에 동시에 작업을 보내고 여러 장치를 관리할 수 있습니다."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -13362,6 +13372,49 @@ msgstr ""
 "생 객체로 청소하기 전에 Orca Slicer은 항상 이 양의 재료를 프라임 타워로 프라"
 "이밍하여 연속적인 채우기 또는 희생 물체 압출을 안정적으로 생성합니다."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "마지막 냉각 이동 속도"
 
@@ -15104,9 +15157,6 @@ msgstr ""
 "원뿔형 재료로 채워지기 전에 모델 베이스에 있는 구멍의 최대 면적입니다. 값이 0"
 "이면 모델 베이스의 모든 구멍이 채워집니다."
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "오버행 벽 감지"
 
@@ -16729,6 +16779,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -19205,7 +19272,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "프린터와 프린터에 속한 모든 필라멘트 및 프로세스 사전 설정.\n"
@@ -20659,6 +20727,19 @@ msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 "
 "높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "플러그인을 설치하지 못했습니다. 안티바이러스 소프트웨어에 의해 차단 또는 "
+#~ "삭제되었는지 확인하세요."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "이동"
 
 #~ msgid "Replace with STL"
 #~ msgstr "STL 파일로 교체"

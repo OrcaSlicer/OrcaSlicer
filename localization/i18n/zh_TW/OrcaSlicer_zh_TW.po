@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -2224,6 +2224,12 @@ msgstr "全選"
 msgid "Select all objects on the current plate"
 msgstr "全選此列印板上所有物件"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "刪除所有"
 
@@ -2802,9 +2808,9 @@ msgid "Top"
 msgstr "頂部"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 "風扇在列印過程中控制溫度以提高列印品質。系統會根據不同的列印線材自動調整風扇"
 "的開關和速度。"
@@ -3643,8 +3649,7 @@ msgstr "列印設備忙碌中，無法切換 AMS 類型。"
 msgid "Please unload all filament before switching."
 msgstr "請在切換前退出所有線材。"
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr "AMS 類型切換需要韌體更新，大約需要 30 秒。現在切換？"
 
 msgid "Arrange AMS Order"
@@ -3669,9 +3674,10 @@ msgid ""
 msgstr "外掛程式下載失敗。請檢查您的防火牆設定和 VPN 軟體，檢查後重試。"
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
-msgstr "外掛程式安裝失敗。請檢查是否被防毒軟體阻擋或刪除。"
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
+msgstr ""
 
 msgid "Click here to see more info"
 msgstr "點擊這裡查看更多資訊"
@@ -4505,6 +4511,12 @@ msgstr "列印設備設定"
 msgid "parameter name"
 msgstr "參數名稱"
 
+msgid "Range"
+msgstr "範圍"
+
+msgid "Value is out of range."
+msgstr "數值超出範圍。"
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s 不可以是百分比"
@@ -4519,9 +4531,6 @@ msgstr "參數驗證"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "數值 %s 超出範圍。有效範圍是從 %d 到 %d。"
-
-msgid "Value is out of range."
-msgstr "數值超出範圍。"
 
 #, c-format, boost-format
 msgid ""
@@ -4594,6 +4603,9 @@ msgstr "層時間"
 
 msgid "Layer Time (log)"
 msgstr "層時間（對數）"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr "無操作"
@@ -4682,9 +4694,6 @@ msgstr "mm³/s"
 msgid "Fan speed"
 msgstr "風扇速度"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "時間"
 
@@ -4720,6 +4729,9 @@ msgstr "顏色："
 
 msgid "Actual Speed: "
 msgstr "實際速度："
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "所有列印板統計資料"
@@ -4856,9 +4868,6 @@ msgstr "線材更換"
 msgid "Options"
 msgstr "選項"
 
-msgid "travel"
-msgstr "空駛"
-
 msgid "Extruder"
 msgstr "擠出機"
 
@@ -4959,9 +4968,6 @@ msgstr "順序"
 
 msgid "Object selection"
 msgstr "物件選擇"
-
-msgid "part selection"
-msgstr "零件選擇"
 
 msgid "number keys"
 msgstr "數字鍵"
@@ -6722,9 +6728,6 @@ msgstr "切割連接件"
 msgid "Layers"
 msgstr "層"
 
-msgid "Range"
-msgstr "範圍"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -7970,6 +7973,18 @@ msgstr "按類型"
 msgid "By vendor"
 msgstr "按廠商"
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr "（需要重啟程式）"
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr "功能"
 
@@ -7980,9 +7995,6 @@ msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
 msgstr "啟用時可以同時傳送到並管理多個機臺。"
-
-msgid "(Requires restart)"
-msgstr "（需要重啟程式）"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "彈出視窗選擇線材分組模式"
@@ -13247,6 +13259,49 @@ msgstr ""
 "列印頭到填充或作為擠出廢料之前，將始終將這些的線材沖刷到換料塔中以產生連續的"
 "填充或穩定的擠出廢料。"
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "最後一次冷卻移動的速度"
 
@@ -14970,9 +15025,6 @@ msgstr ""
 "模型底部的孔洞在被圓錐形材料填充前所允許的最大面積。值為 0 將填充模型底部的所"
 "有孔洞。"
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "檢測懸空外牆"
 
@@ -16530,6 +16582,23 @@ msgstr "跳過起始點"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
 msgstr "換料塔的牆體將跳過擦拭路徑的起始點"
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
+msgstr ""
 
 msgid "Infill gap"
 msgstr "填充間隙"
@@ -18959,7 +19028,8 @@ msgstr ""
 "請關閉它並重試。"
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "列印設備及所有屬於該列印設備的線材和處理預設設定。 \n"
@@ -20415,6 +20485,20 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr "外掛程式安裝失敗。請檢查是否被防毒軟體阻擋或刪除。"
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "空駛"
+
+#~ msgid "part selection"
+#~ msgstr "零件選擇"
 
 #~ msgid "Replace with STL"
 #~ msgstr "替換為 STL"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2026-02-21 18:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -2301,6 +2301,12 @@ msgstr "Selecionar Tudo"
 msgid "Select all objects on the current plate"
 msgstr "Selecionar todos os objetos na placa atual"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "Apagar Tudo"
 
@@ -2907,9 +2913,9 @@ msgid "Top"
 msgstr "Topo"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 "O ventilador controla a temperatura durante a impressão para melhorar a "
 "qualidade da impressão. O sistema ajusta automaticamente a ativação e a "
@@ -3267,9 +3273,9 @@ msgid ""
 "The heated bed's thermal preconditioning helps optimize the first layer "
 "print quality. Printing will start once preconditioning is complete."
 msgstr ""
-"O pré-condicionamento térmico da mesa aquecida ajuda a otimizar a "
-"qualidade de impressão da primeira camada. A impressão começará assim que "
-"o pré-condicionamento estiver concluído."
+"O pré-condicionamento térmico da mesa aquecida ajuda a otimizar a qualidade "
+"de impressão da primeira camada. A impressão começará assim que o pré-"
+"condicionamento estiver concluído."
 
 #, c-format, boost-format
 msgid "Remaining time: %dmin%ds"
@@ -3823,8 +3829,7 @@ msgstr "A impressora está ocupada e não pode alternar o tipo de AMS."
 msgid "Please unload all filament before switching."
 msgstr "Descarregue todos os filamentos antes de alternar."
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 "A troca de tipo de AMS requer uma atualização de firmware, que levará cerca "
 "de 30s. Alternar agora?"
@@ -3854,11 +3859,10 @@ msgstr ""
 "software vpn, verifique e tente novamente."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"Falha ao instalar o plug-in. Verifique se ele está bloqueado ou excluído "
-"pelo software antivírus."
 
 msgid "Click here to see more info"
 msgstr "Clique aqui para ver mais informações"
@@ -4708,6 +4712,12 @@ msgstr "Configurações da Impressora"
 msgid "parameter name"
 msgstr "nome do parâmetro"
 
+msgid "Range"
+msgstr "Intervalo"
+
+msgid "Value is out of range."
+msgstr "O valor está fora do intervalo."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s não pode ser uma percentagem"
@@ -4722,9 +4732,6 @@ msgstr "Validação de Parâmetros"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Valor %s está fora do intervalo. O intervalo válido é de %d para %d."
-
-msgid "Value is out of range."
-msgstr "O valor está fora do intervalo."
 
 #, c-format, boost-format
 msgid ""
@@ -4799,6 +4806,9 @@ msgstr "Tempo da Camada"
 
 msgid "Layer Time (log)"
 msgstr "Tempo da Camada (log)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4887,9 +4897,6 @@ msgstr "mm³/s"
 msgid "Fan speed"
 msgstr "Velocidade do ventilador"
 
-msgid "°C"
-msgstr ""
-
 msgid "Time"
 msgstr "Tempo"
 
@@ -4925,6 +4932,9 @@ msgstr "Cor: "
 
 msgid "Actual Speed: "
 msgstr "Velocidade Real: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "Estatísticas de Todas as Placas"
@@ -5076,9 +5086,6 @@ msgstr "Mudanças de Filamento"
 msgid "Options"
 msgstr "Opções"
 
-msgid "travel"
-msgstr "deslocamento"
-
 msgid "Extruder"
 msgstr "Extrusora"
 
@@ -5182,9 +5189,6 @@ msgstr "Sequência"
 
 msgid "Object selection"
 msgstr "Seleção de objeto"
-
-msgid "part selection"
-msgstr "seleção de peça"
 
 msgid "number keys"
 msgstr "teclas numéricas"
@@ -7028,15 +7032,12 @@ msgstr "Conectores de corte"
 msgid "Layers"
 msgstr "Camadas"
 
-msgid "Range"
-msgstr "Intervalo"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
 msgstr ""
-"A aplicação não pode ser executada normalmente porque a versão do OpenGL "
-"é inferior a 3.2.\n"
+"A aplicação não pode ser executada normalmente porque a versão do OpenGL é "
+"inferior a 3.2.\n"
 
 msgid "Please upgrade your graphics card driver."
 msgstr "Por favor, atualize o driver da sua placa de vídeo."
@@ -8382,8 +8383,7 @@ msgid "Group user filament presets"
 msgstr "Agrupar predefinições de filamento do usuário"
 
 msgid "Group user filament presets based on selection"
-msgstr ""
-"Agrupar predefinições de filamento do usuário com base na seleção"
+msgstr "Agrupar predefinições de filamento do usuário com base na seleção"
 
 msgid "All"
 msgstr "Todos"
@@ -8393,6 +8393,18 @@ msgstr "Por tipo"
 
 msgid "By vendor"
 msgstr "Por fornecedor"
+
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr "(Requer reinício)"
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
 
 msgid "Features"
 msgstr "Recursos"
@@ -8406,9 +8418,6 @@ msgid ""
 msgstr ""
 "Com esta opção habilitada, você pode enviar uma tarefa para vários "
 "dispositivos ao mesmo tempo e gerenciar vários dispositivos."
-
-msgid "(Requires restart)"
-msgstr "(Requer reinício)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -8456,8 +8465,8 @@ msgid ""
 "Delay in seconds before auto slicing starts, allowing multiple edits to be "
 "grouped. Use 0 to slice immediately."
 msgstr ""
-"Atraso em segundos antes do início do fatiamento automático, permitindo "
-"que várias edições sejam agrupadas. Use 0 para fatiar imediatamente."
+"Atraso em segundos antes do início do fatiamento automático, permitindo que "
+"várias edições sejam agrupadas. Use 0 para fatiar imediatamente."
 
 msgid "Remove mixed temperature restriction"
 msgstr "Remover restrição de temperatura mista"
@@ -9431,8 +9440,8 @@ msgstr "Consulte o Wiki antes de usar->"
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr ""
-"O firmware atual não suporta a transferência de arquivos para o armazenamento "
-"interno."
+"O firmware atual não suporta a transferência de arquivos para o "
+"armazenamento interno."
 
 msgid "Send to Printer storage"
 msgstr "Enviar para armazenamento da Impressora"
@@ -14298,6 +14307,49 @@ msgstr ""
 "extrusões sucessivas de preenchimento ou de objeto de sacrifício de forma "
 "confiável."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Velocidade do último movimento de resfriamento"
 
@@ -16225,9 +16277,6 @@ msgstr ""
 "Área maxima de um furo na base do modelo antes que ele seja preenchido por "
 "uma forma cônica. Um valor 0 irá preencher todos os furos do modelo."
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "Detectar paredes salientes"
 
@@ -17988,6 +18037,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -20610,7 +20676,8 @@ msgstr ""
 "Por favor feche e tente novamente."
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "Predefinições de impressora e todos os filamentos e processos que pertencem "
@@ -22218,6 +22285,19 @@ msgstr ""
 "Você sabia que ao imprimir materiais propensos ao empenamento, como ABS, "
 "aumentar adequadamente a temperatura da mesa aquecida pode reduzir a "
 "probabilidade de empenamento?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "Falha ao instalar o plug-in. Verifique se ele está bloqueado ou excluído "
+#~ "pelo software antivírus."
+
+#~ msgid "travel"
+#~ msgstr "deslocamento"
+
+#~ msgid "part selection"
+#~ msgstr "seleção de peça"
 
 #~ msgid ""
 #~ "Please input valid values:\n"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2269,6 +2269,12 @@ msgstr "Seleccionar-ho tot"
 msgid "Select all objects on the current plate"
 msgstr "seleccionar tots els objectes de la placa actual"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "Suprimir-les totes"
 
@@ -2866,9 +2872,9 @@ msgid "Top"
 msgstr "Superior"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3724,8 +3730,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3750,11 +3755,10 @@ msgstr ""
 "tallafoc i el programari VPN, comproveu-ho i torneu-ho a provar."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"No s'ha pogut instal·lar el connector. Comproveu si el programari antivirus "
-"l'ha bloquejat o suprimit."
 
 msgid "Click here to see more info"
 msgstr "feu clic aquí per veure més informació"
@@ -4578,6 +4582,12 @@ msgstr "Configuració de la Impressora"
 msgid "parameter name"
 msgstr "nom del paràmetre"
 
+msgid "Range"
+msgstr "Rang"
+
+msgid "Value is out of range."
+msgstr "El valor introduït és fora de rang."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s no pot ser un percentatge"
@@ -4592,9 +4602,6 @@ msgstr "Validació de paràmetres"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "El valor %s està fora de rang. El rang vàlid és de %d a %d."
-
-msgid "Value is out of range."
-msgstr "El valor introduït és fora de rang."
 
 #, c-format, boost-format
 msgid ""
@@ -4667,6 +4674,9 @@ msgstr "Temps de capa"
 
 msgid "Layer Time (log)"
 msgstr "Temps de capa ( log )"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4755,9 +4765,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "Velocitat del ventilador"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "Temps"
 
@@ -4793,6 +4800,9 @@ msgstr ""
 
 msgid "Actual Speed: "
 msgstr "Velocitat Real: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "Estadístiques de totes les plaques"
@@ -4929,9 +4939,6 @@ msgstr "Canvis de filament"
 msgid "Options"
 msgstr "Opcions"
 
-msgid "travel"
-msgstr "recorregut"
-
 msgid "Extruder"
 msgstr "Extrusor"
 
@@ -5027,9 +5034,6 @@ msgid "Sequence"
 msgstr "Seqüència"
 
 msgid "Object selection"
-msgstr ""
-
-msgid "part selection"
 msgstr ""
 
 msgid "number keys"
@@ -6837,9 +6841,6 @@ msgstr "Connectors de tall"
 msgid "Layers"
 msgstr "Capes"
 
-msgid "Range"
-msgstr "Rang"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -8132,6 +8133,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -8144,9 +8157,6 @@ msgid ""
 msgstr ""
 "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius "
 "alhora i gestionar múltiples dispositius."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -13822,6 +13832,49 @@ msgstr ""
 "quantitat de material a la Torre de Purga per produir successives extrusions "
 "d'objectes de farciment o sacrifici de manera fiable."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Velocitat de l'últim moviment de refredament"
 
@@ -15664,9 +15717,6 @@ msgstr ""
 "Àrea màxima d'un forat a la base del model abans que s'ompli amb material "
 "cònic. Un valor de 0 omplirà tots els forats de la base del model."
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "Detectar voladís de perímetre"
 
@@ -17401,6 +17451,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -19994,7 +20061,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "Impressora i tots els perfils de filament i de procés que pertanyen a la "
@@ -21507,6 +21575,19 @@ msgstr ""
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, "
 "augmentar adequadament la temperatura del llit pot reduir la probabilitat de "
 "deformació?"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "No s'ha pogut instal·lar el connector. Comproveu si el programari "
+#~ "antivirus l'ha bloquejat o suprimit."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "recorregut"
 
 #~ msgid "Replace with STL"
 #~ msgstr "Substitueix per STL"

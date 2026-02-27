@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2207,6 +2207,12 @@ msgstr "全てを選択"
 msgid "Select all objects on the current plate"
 msgstr "現在のプレート上のすべてのオブジェクトを選択"
 
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
+
 msgid "Delete All"
 msgstr "全てを削除"
 
@@ -2783,9 +2789,9 @@ msgid "Top"
 msgstr "トップ"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality. The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3586,8 +3592,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3612,9 +3617,10 @@ msgstr ""
 "ださい。"
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
-msgstr "プラグインをインストールできませんでした。ご確認ください。"
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
+msgstr ""
 
 msgid "Click here to see more info"
 msgstr "詳しくはこちら"
@@ -4389,6 +4395,12 @@ msgstr "プリンター設定"
 msgid "parameter name"
 msgstr "パラメータ名"
 
+msgid "Range"
+msgstr "範囲"
+
+msgid "Value is out of range."
+msgstr "値が範囲外です。"
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s をパーセンテージにすることはできません"
@@ -4403,9 +4415,6 @@ msgstr "パラメータ検証"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr ""
-
-msgid "Value is out of range."
-msgstr "値が範囲外です。"
 
 #, c-format, boost-format
 msgid ""
@@ -4475,6 +4484,9 @@ msgstr "積層時間"
 
 msgid "Layer Time (log)"
 msgstr "積層時間 (Log)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4563,9 +4575,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "回転速度"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "時間"
 
@@ -4601,6 +4610,9 @@ msgstr ""
 
 msgid "Actual Speed: "
 msgstr "実速度: "
+
+msgid "PA: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr ""
@@ -4737,9 +4749,6 @@ msgstr "フィラメント交換"
 msgid "Options"
 msgstr "オプション"
 
-msgid "travel"
-msgstr "移動"
-
 msgid "Extruder"
 msgstr "押出機"
 
@@ -4835,9 +4844,6 @@ msgid "Sequence"
 msgstr "順番"
 
 msgid "Object selection"
-msgstr ""
-
-msgid "part selection"
 msgstr ""
 
 msgid "number keys"
@@ -6564,9 +6570,6 @@ msgstr ""
 msgid "Layers"
 msgstr "積層"
 
-msgid "Range"
-msgstr "範囲"
-
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
@@ -7796,6 +7799,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7805,9 +7820,6 @@ msgstr ""
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
-msgstr ""
-
-msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -12745,6 +12757,49 @@ msgid ""
 "tower to produce successive infill or sacrificial object extrusions reliably."
 msgstr ""
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "最後の冷却移動の速度"
 
@@ -14324,9 +14379,6 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "オーバーハングを検出"
 
@@ -15775,6 +15827,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -18092,7 +18161,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament and process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 
@@ -19402,6 +19472,17 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げること"
 "で、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr "プラグインをインストールできませんでした。ご確認ください。"
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "移動"
 
 #~ msgid "Replace with STL"
 #~ msgstr "STLに置き換え"
