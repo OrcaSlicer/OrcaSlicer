@@ -4647,7 +4647,7 @@ msgid "Actual Speed"
 msgstr "Фактична швидкість"
 
 msgid "Fan Speed"
-msgstr "Скорость охлаждения"
+msgstr "Швидкість вентилятора"
 
 msgid "Flow"
 msgstr "Потік"
