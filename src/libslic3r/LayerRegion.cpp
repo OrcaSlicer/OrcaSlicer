@@ -590,6 +590,20 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             }
         }
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges - done";
+        // Clip bridge surfaces to the model boundary to prevent void extension
+        // from the closing_ex operation in merge_bridges/expand_merge_surfaces.
+        // Only cross-region (MMU) bridges can grow past the model outline, so leave
+        // single-region prints untouched: clipping ordinary bridges to lslices eats
+        // their legitimate anchor area.
+        if (this->layer()->object()->num_printing_regions() > 1) {
+            Surfaces clipped;
+            for (const Surface &s : bridges.surfaces) {
+                ExPolygons trimmed = intersection_ex(ExPolygons{s.expolygon}, this->layer()->lslices);
+                for (ExPolygon &ep : trimmed)
+                    clipped.emplace_back(s, std::move(ep));
+            }
+            bridges.surfaces = std::move(clipped);
+        }
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
         {
             static int iRun = 0;
