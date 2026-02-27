@@ -3266,10 +3266,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
     multiline_fill(polylines, params, spacing);
 
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
-    const ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
+    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
 
     // if contraction results in empty polygon, use original surface
-    const ExPolygons &intersection_surface = contracted.empty() ? ExPolygons{expolygon} : contracted;
+    const ExPolygon &intersection_surface = contracted.empty() ? expolygon : contracted.front();
 
     // Intersect polylines with offset expolygon
     polylines = intersection_pl(std::move(polylines), intersection_surface);
@@ -3285,13 +3285,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     // Connect infill lines using offset expolygon
     int infill_start_idx = polylines_out.size();
     if (!polylines.empty()) {
-        if (params.dont_connect()) {
-            if (polylines.size() > 1)
-                polylines = chain_polylines(std::move(polylines));
-            append(polylines_out, std::move(polylines));
-        } else
-            connect_infill(std::move(polylines), to_polygons(intersection_surface), get_extents(surface->expolygon.contour), polylines_out,
-                           this->spacing, params);
+        Slic3r::Fill::chain_or_connect_infill(std::move(polylines), intersection_surface, polylines_out, this->spacing, params);
 
         // Rotate back the infill lines to original orientation
         if (std::abs(base_angle) >= EPSILON) {
