@@ -3023,11 +3023,8 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
     const ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
 
-    // if contraction results in empty ExPolygons, use original surface
-    const ExPolygons intersection_surface = contracted.empty() ? ExPolygons{surface->expolygon} : contracted;
-
     // Intersect polylines with perimeter
-    fill_lines = intersection_pl(std::move(fill_lines), intersection_surface);
+    fill_lines = intersection_pl(std::move(fill_lines), contracted);
 
     if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb) && params.multiline > 1)
         remove_overlapped(fill_lines, line_width);
@@ -3038,7 +3035,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
                 fill_lines = chain_polylines(std::move(fill_lines));
             append(polylines_out, std::move(fill_lines));
         } else
-            connect_infill(std::move(fill_lines), to_polygons(intersection_surface), get_extents(surface->expolygon.contour), polylines_out,
+            connect_infill(std::move(fill_lines), to_polygons(contracted), get_extents(surface->expolygon.contour), polylines_out,
                            this->spacing, params);
     }
 
@@ -3268,11 +3265,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
     const ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
 
-    // if contraction results in empty polygon, use original surface
-    const ExPolygons &intersection_surface = contracted.empty() ? ExPolygons{expolygon} : contracted;
-
     // Intersect polylines with offset expolygon
-    polylines = intersection_pl(std::move(polylines), intersection_surface);
+    polylines = intersection_pl(std::move(polylines), contracted);
 
     // Remove very short segments that may cause connection issues
     const double minlength = scale_(0.8 * this->spacing);
@@ -3290,7 +3284,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
                 polylines = chain_polylines(std::move(polylines));
             append(polylines_out, std::move(polylines));
         } else
-            connect_infill(std::move(polylines), to_polygons(intersection_surface), get_extents(surface->expolygon.contour), polylines_out,
+            connect_infill(std::move(polylines), to_polygons(contracted), get_extents(surface->expolygon.contour), polylines_out,
                            this->spacing, params);
 
         // Rotate back the infill lines to original orientation
