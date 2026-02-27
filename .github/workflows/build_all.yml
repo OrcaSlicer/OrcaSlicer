@@ -159,12 +159,26 @@ jobs:
         echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
       shell: bash
+    # Manage flatpak-builder cache externally so PRs restore but never upload
+    - name: Restore flatpak-builder cache
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v4
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
+        restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
+    - name: Save/restore flatpak-builder cache
+      if: github.event_name != 'pull_request'
+      uses: actions/cache@v4
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}
+        restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
       with:
         bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         manifest-path: scripts/flatpak/io.github.softfever.OrcaSlicer.yml
-        cache: true
-        cache-key: flatpak-builder-${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
+        cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
