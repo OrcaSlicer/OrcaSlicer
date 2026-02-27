@@ -436,7 +436,7 @@ msgstr ""
 msgid "Size"
 msgstr "Taille"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "échelle uniforme"
 
 msgid "Planar"
@@ -696,7 +696,7 @@ msgstr "Connecteur"
 msgid "Cut by Plane"
 msgstr "Coupe par plan"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "les bords non pliables sont dus à l’outil de coupe, voulez-vous les corriger "
 "maintenant ?"
@@ -2283,31 +2283,31 @@ msgstr ""
 msgid "Select All"
 msgstr "Tout sélectionner"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "sélectionner tous les objets sur la plaque actuelle"
 
 msgid "Delete All"
 msgstr "Tout Supprimer"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "supprimer tous les objets sur la plaque actuelle"
 
 msgid "Arrange"
 msgstr "Organiser"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "organiser la plaque actuelle"
 
 msgid "Reload All"
 msgstr "Tout recharger"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "tout recharger à partir du disque"
 
 msgid "Auto Rotate"
 msgstr "Rotation automatique"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "rotation automatique de la plaque actuelle"
 
 msgid "Delete Plate"
@@ -2629,7 +2629,8 @@ msgstr "Ajouter une plage de hauteur"
 msgid "Invalid numeric."
 msgstr "Chiffre non valide."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "une cellule ne peut être copiée que dans une ou plusieurs cellules de la "
 "même colonne"
@@ -3782,7 +3783,7 @@ msgstr ""
 "Échec de l'installation du plug-in. Veuillez vérifier s'il est bloqué ou "
 "s'il a été supprimé par un logiciel anti-virus."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "cliquez ici pour voir plus d'informations"
 
 msgid ""
@@ -4320,7 +4321,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -5048,7 +5049,7 @@ msgstr "Augmenter/diminuer la zone d'édition"
 msgid "Sequence"
 msgstr "Séquence"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "part selection"
@@ -5057,7 +5058,7 @@ msgstr ""
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5289,7 +5290,7 @@ msgid "Only the object being edited is visible."
 msgstr "Seul l'objet en cours d'édition est visible."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6586,7 +6587,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Échec de l’envoi\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "échec de l’obtention de l’instance_id\n"
 
 msgid ""
@@ -7623,13 +7624,14 @@ msgstr "Sauvegarder le projet"
 msgid "Importing Model"
 msgstr "Importation du modèle"
 
-msgid "prepare 3MF file..."
-msgstr ""
+#, fuzzy
+msgid "Preparing 3MF file..."
+msgstr "préparation du fichier 3mf..."
 
 msgid "Download failed, unknown file format."
 msgstr "Échec du téléchargement, format de fichier inconnu."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "téléchargement du projet..."
 
 msgid "Download failed, File size exception."
@@ -8543,10 +8545,10 @@ msgstr "Hébergeur PRE : api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Hôte du produit"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "bouton d'enregistrement de débogage"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "enregistrer les paramètres de débogage"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8843,7 +8845,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "envoi terminé"
 
 msgid "Error code"
@@ -10737,7 +10739,7 @@ msgstr "Déplacer la sélection de 10 mm dans la direction positive X"
 msgid "Movement step set to 1 mm"
 msgstr "Pas du mouvement réglé sur 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "clavier 1-9 : définir le filament pour l'objet/la pièce"
 
 msgid "Camera view - Default"
@@ -19207,7 +19209,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Type de plaque"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "position du filament"
 
 msgid "Filament For Calibration"
@@ -21086,7 +21088,7 @@ msgstr "Aucune tâche historique !"
 msgid "Upgrading"
 msgstr "Mise à jour"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "synchronisation"
 
 msgid "Printing Finish"
@@ -21821,9 +21823,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Le nom des composants à l'intérieur du fichier .step n'est pas au format "
 #~ "UTF8 !"
-
-#~ msgid "prepare 3mf file..."
-#~ msgstr "préparation du fichier 3mf..."
 
 #~ msgid ""
 #~ "Should printer/filament/process settings be loaded when opening a .3mf?"

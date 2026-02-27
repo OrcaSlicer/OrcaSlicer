@@ -428,7 +428,7 @@ msgstr ""
 msgid "Size"
 msgstr "Méret"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "egységes méretarány"
 
 msgid "Planar"
@@ -683,7 +683,7 @@ msgstr "Connector"
 msgid "Cut by Plane"
 msgstr "Vágás Síkkal"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr "A vágás után hibás élek keletkeztek, szeretnéd most javítani őket?"
 
 msgid "Repairing model object"
@@ -2195,31 +2195,31 @@ msgstr ""
 msgid "Select All"
 msgstr "Összes kijelölése"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "az aktuális tálca összes objektumának kijelölése"
 
 msgid "Delete All"
 msgstr "Összes törlése"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "az aktuális tálca összes objektumának törlése"
 
 msgid "Arrange"
 msgstr "Elrendezés"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "aktuális tálca elrendezése"
 
 msgid "Reload All"
 msgstr ""
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr ""
 
 msgid "Auto Rotate"
 msgstr "Automatikus forgatás"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "aktuális tálca automatikus forgatása"
 
 msgid "Delete Plate"
@@ -2532,7 +2532,8 @@ msgstr ""
 msgid "Invalid numeric."
 msgstr "Érvénytelen számjegy."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "egy cellát csak az ugyanabban az oszlopban lévő egy vagy több cellába lehet "
 "másolni"
@@ -3654,7 +3655,7 @@ msgstr ""
 "Nem sikerült telepíteni a bővítményt. Kérjük, ellenőrizd, hogy a vírusirtó "
 "szoftver nem blokkolta vagy törölte-e."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "kattints ide további információkért"
 
 msgid ""
@@ -4172,7 +4173,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4895,7 +4896,7 @@ msgstr "Szerkesztési terület növelése/csökkentése"
 msgid "Sequence"
 msgstr "Sorrend"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "part selection"
@@ -4904,7 +4905,7 @@ msgstr ""
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5134,7 +5135,7 @@ msgid "Only the object being edited is visible."
 msgstr "Csak az éppen szerkesztett objektum látható."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6391,7 +6392,7 @@ msgstr "Nyomtatási eredmények szinkronizálása. Kérjük, próbáld újra ké
 msgid "Upload failed\n"
 msgstr "Feltöltés sikertelen\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "Az instance_id beszerzése sikertelen\n"
 
 msgid ""
@@ -7408,13 +7409,14 @@ msgstr "Projekt mentése"
 msgid "Importing Model"
 msgstr "Modell importálása"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "3mf fájl előkészítése..."
 
 msgid "Download failed, unknown file format."
 msgstr ""
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "projekt letöltése ..."
 
 msgid "Download failed, File size exception."
@@ -8283,10 +8285,10 @@ msgstr "PRE host: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Product host"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "debug mentés gomb"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "hibakeresési beállítások mentése"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8576,7 +8578,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "küldés befejezve"
 
 msgid "Error code"
@@ -10337,7 +10339,7 @@ msgstr "Kijelölés mozgatása 10 mm-rel pozitív X irányban"
 msgid "Movement step set to 1 mm"
 msgstr "Mozgatás lépéstávolsága 1mm-re állítva"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "filament hozzárendelése az objektumhoz/tárgyhoz"
 
 msgid "Camera view - Default"
@@ -17517,7 +17519,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr ""
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "filamentpozíció"
 
 msgid "Filament For Calibration"
@@ -19233,7 +19235,7 @@ msgstr ""
 msgid "Upgrading"
 msgstr ""
 
-msgid "syncing"
+msgid "Syncing"
 msgstr ""
 
 msgid "Printing Finish"

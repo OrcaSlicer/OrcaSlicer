@@ -457,7 +457,7 @@ msgstr "Souřadnice součásti"
 msgid "Size"
 msgstr "Rozměr"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "Jednotné měřítko"
 
 msgid "Planar"
@@ -723,7 +723,7 @@ msgstr "Spojka"
 msgid "Cut by Plane"
 msgstr "Řez rovinou"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr "Řezací nástroj způsobil ne-manifoldní hrany, chcete je nyní opravit?"
 
 msgid "Repairing model object"
@@ -2330,31 +2330,31 @@ msgstr "Sloučit s"
 msgid "Select All"
 msgstr "Vybrat vše"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "Vybrat všechny objekty na aktuální podložce"
 
 msgid "Delete All"
 msgstr "Smazat vše"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "Smazat všechny objekty na aktuální podložce"
 
 msgid "Arrange"
 msgstr "Uspořádat"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "Uspořádat aktuální podložku"
 
 msgid "Reload All"
 msgstr "Přenačíst vše"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "Přenačíst vše z disku"
 
 msgid "Auto Rotate"
 msgstr "Automatické otáčení"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "Automatické otáčení aktuální podložky"
 
 msgid "Delete Plate"
@@ -2685,7 +2685,8 @@ msgstr "Přidat rozsah výšky"
 msgid "Invalid numeric."
 msgstr "Neplatné číslo."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "Jednu buňku lze kopírovat pouze do jedné nebo více buněk ve stejném "
 "sloupcijednu buňku lze zkopírovat pouze do jedné nebo více buněk ve stejném "
@@ -3927,7 +3928,7 @@ msgstr ""
 "nebo smazán antivirovým softwarem.Nepodařilo se nainstalovat plugin. "
 "Zkontrolujte, zda není blokován nebo odstraněn antivirovým softwarem."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "Kliknutím sem zobrazíte více informací"
 
 msgid ""
@@ -4528,7 +4529,7 @@ msgstr "Měření přesnosti pohybu"
 msgid "Nozzle offset calibration"
 msgstr "Kalibrace offsetu trysky"
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr "Automatické vyrovnání podložky při vysoké teplotě"
 
 msgid "Auto Check: Quick Release Lever"
@@ -5285,7 +5286,7 @@ msgstr "Zvětšit/Zmenšit oblast úprav"
 msgid "Sequence"
 msgstr "Sekvence"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "Výběr objektu"
 
 msgid "part selection"
@@ -5294,7 +5295,7 @@ msgstr "Výběr části"
 msgid "number keys"
 msgstr "Číselné klávesy"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "Číselné klávesy mohou rychle změnit barvu objektů"
 
 msgid ""
@@ -5540,7 +5541,7 @@ msgid "Only the object being edited is visible."
 msgstr "Viditelný je pouze objekt, který právě upravujete."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr "Filamenty %s nelze tisknout přímo na povrch této podložky."
 
 msgid ""
@@ -6862,7 +6863,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Nahrávání selhalo\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "Získání instance_id selhalo\n"
 
 msgid ""
@@ -7984,13 +7985,14 @@ msgstr "Uložit projekt"
 msgid "Importing Model"
 msgstr "Importovat model"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "Připravte soubor 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Stažení selhalo, neznámý formát souboru."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "Stahuji projekt..."
 
 msgid "Download failed, File size exception."
@@ -8953,10 +8955,10 @@ msgstr "Hostitel PRE: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Produktový hostitel"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "Tlačítko pro uložení ladění"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "Uložit nastavení ladění"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -9260,7 +9262,7 @@ msgstr ""
 "*Automatický režim: Zkontrolujte kalibraci před tiskem. Přeskočte, pokud "
 "není nutné."
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "Odeslání dokončeno"
 
 msgid "Error code"
@@ -11259,7 +11261,7 @@ msgstr "Posunout výběr o 10 mm v kladném směru osy X"
 msgid "Movement step set to 1 mm"
 msgstr "Krok posunu výběru: 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Klávesy 1-9: nastavení filamentu pro objekt/díl"
 
 msgid "Camera view - Default"
@@ -20238,7 +20240,7 @@ msgstr "Informace o trysce"
 msgid "Plate Type"
 msgstr "Typ podložky"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "Pozice filamentu"
 
 msgid "Filament For Calibration"
@@ -22191,7 +22193,7 @@ msgstr "Žádné historické úlohy!"
 msgid "Upgrading"
 msgstr "Aktualizace"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "Synchronizace"
 
 msgid "Printing Finish"

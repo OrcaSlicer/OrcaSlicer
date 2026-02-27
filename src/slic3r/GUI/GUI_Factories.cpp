@@ -1572,7 +1572,7 @@ void MenuFactory::create_plate_menu()
 {
     wxMenu* menu = &m_plate_menu;
     // select objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Select All"), _L("select all objects on current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Select All"), _L("Select all objects on the current plate"),
         [](wxCommandEvent&) {
             plater()->select_curr_plate_all();
         }, "", nullptr, []() {
@@ -1582,7 +1582,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // select objects on all plates
-    append_menu_item(menu, wxID_ANY, _L("Select All Plates"), _L("select all objects on all plates"),
+    append_menu_item(menu, wxID_ANY, _L("Select All Plates"), _L("Select all objects on all plates"),
         [](wxCommandEvent&) {
             plater()->select_all();
         }, "", nullptr, []() {
@@ -1590,7 +1590,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // delete objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("delete all objects on current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("Delete all objects on the current plate"),
         [](wxCommandEvent&) {
             plater()->remove_curr_plate_all();
         }, "", nullptr, []() {
@@ -1600,7 +1600,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // arrange objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Arrange"), _L("arrange current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Arrange"), _L("Arrange current plate"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1614,7 +1614,7 @@ void MenuFactory::create_plate_menu()
 
     // reload all objects on current plate
     append_menu_item(
-        menu, wxID_ANY, _L("Reload All"), _L("reload all from disk"),
+        menu, wxID_ANY, _L("Reload All"), _L("Reload all from disk"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1624,7 +1624,7 @@ void MenuFactory::create_plate_menu()
         "", nullptr, []() { return !plater()->get_partplate_list().get_selected_plate()->get_objects().empty(); }, m_parent);
 
     // orient objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Auto Rotate"), _L("auto rotate current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Auto Rotate"), _L("Auto rotate current plate"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);

@@ -1070,7 +1070,7 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
     if ((src_row_cnt == 1) && (src_col_cnt == 1))
     {
         if ((dst_col_cnt != 1) || (dst_left_col != src_left_col)) {
-            wxLogWarning(_L("one cell can only be copied to one or multiple cells in the same column"));
+            wxLogWarning(_L("One cell can only be copied to one or more cells in the same column."));
         }
         else {
 			split(buf, string_array);

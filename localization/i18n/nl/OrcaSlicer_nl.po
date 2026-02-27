@@ -432,7 +432,7 @@ msgstr ""
 msgid "Size"
 msgstr "Maat"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "uniform schalen"
 
 msgid "Planar"
@@ -687,7 +687,7 @@ msgstr "Verbinding"
 msgid "Cut by Plane"
 msgstr "Snij met behulp van vlak"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "hiet-gevormde randen worden veroorzaakt door snijgereedschap: wil je dit nu "
 "herstellen?"
@@ -2217,31 +2217,31 @@ msgstr ""
 msgid "Select All"
 msgstr "Alles selecteren"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "Selecteer alle objecten op het huidige printbed"
 
 msgid "Delete All"
 msgstr "Alles verwijderen"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "Verwijder alle objecten op het huidige printbed"
 
 msgid "Arrange"
 msgstr "Rangschikken"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "Huidig printbed rangschikken"
 
 msgid "Reload All"
 msgstr ""
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr ""
 
 msgid "Auto Rotate"
 msgstr "Automatisch roteren"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "Huidig printbed automatisch roteren"
 
 msgid "Delete Plate"
@@ -2563,7 +2563,8 @@ msgstr ""
 msgid "Invalid numeric."
 msgstr "Onjuist getal."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "één cel kan alleen naar één of meerdere cellen in dezelfde kolom worden "
 "gekopieerd"
@@ -3685,7 +3686,7 @@ msgstr ""
 "De installatie van de plug-in is mislukt. Controleer of deze is geblokkeerd "
 "of verwijderd door anti-virussoftware."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "klik hier voor meer informatie"
 
 msgid ""
@@ -4213,7 +4214,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4936,7 +4937,7 @@ msgstr "Bewerkingsgebied vergroten/verkleinen"
 msgid "Sequence"
 msgstr "Reeks"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "part selection"
@@ -4945,7 +4946,7 @@ msgstr ""
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5175,7 +5176,7 @@ msgid "Only the object being edited is visible."
 msgstr "Alleen het object waaraan gewerkt wordt is zichtbaar."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6433,7 +6434,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Uploaden mislukt\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "het verkrijgen van instance_id is mislukt\n"
 
 msgid ""
@@ -7473,13 +7474,14 @@ msgstr "Project opslaan"
 msgid "Importing Model"
 msgstr "Model importeren"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "voorbereiden van 3MF bestand..."
 
 msgid "Download failed, unknown file format."
 msgstr ""
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "project downloaden..."
 
 msgid "Download failed, File size exception."
@@ -8372,10 +8374,10 @@ msgstr "PRE-host: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Producthost"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "debug opslaan knop"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "bewaar debug instellingen"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8673,7 +8675,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "versturen gelukt"
 
 msgid "Error code"
@@ -10466,7 +10468,7 @@ msgstr "Verplaats de selectie 10mm in een positieve X richting"
 msgid "Movement step set to 1 mm"
 msgstr "Bewegingsinterval ingesteld op 1mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Toets 1-9: kies filament voor het object/onderdeel"
 
 msgid "Camera view - Default"
@@ -17735,7 +17737,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr ""
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "filament positie"
 
 msgid "Filament For Calibration"
@@ -19477,7 +19479,7 @@ msgstr ""
 msgid "Upgrading"
 msgstr ""
 
-msgid "syncing"
+msgid "Syncing"
 msgstr ""
 
 msgid "Printing Finish"

@@ -429,7 +429,7 @@ msgstr "零件坐标"
 msgid "Size"
 msgstr "大小"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "等比例缩放"
 
 msgid "Planar"
@@ -687,7 +687,7 @@ msgstr "连接件"
 msgid "Cut by Plane"
 msgstr "按平面切割"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr "因切割产生了非流形边，您是否想现在修复？"
 
 msgid "Repairing model object"
@@ -2214,31 +2214,31 @@ msgstr "与其合并"
 msgid "Select All"
 msgstr "全选"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "全选当前盘对象"
 
 msgid "Delete All"
 msgstr "删除所有"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "删除当前盘所有对象"
 
 msgid "Arrange"
 msgstr "自动摆放"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "自动摆放当前盘"
 
 msgid "Reload All"
 msgstr "重新加载全部"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "从磁盘重新加载全部"
 
 msgid "Auto Rotate"
 msgstr "自动朝向"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "在当前盘执行自动朝向"
 
 msgid "Delete Plate"
@@ -2538,7 +2538,8 @@ msgstr "添加高度范围"
 msgid "Invalid numeric."
 msgstr "数值错误。"
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "一个单元格仅能被复制到同一列的一个或多个单元格"
 
 msgid "Copying multiple cells is not supported."
@@ -3643,7 +3644,7 @@ msgid ""
 "by anti-virus software."
 msgstr "安装插件失败。请检查是否被杀毒软件屏蔽或删除。"
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "点击这里查看更多信息"
 
 msgid ""
@@ -4154,7 +4155,7 @@ msgstr "测量运动精度"
 msgid "Nozzle offset calibration"
 msgstr "喷嘴偏移校准"
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr "高温自动床身调平"
 
 msgid "Auto Check: Quick Release Lever"
@@ -4888,7 +4889,7 @@ msgstr "增加/减小编辑区域"
 msgid "Sequence"
 msgstr "顺序"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "对象选择"
 
 msgid "part selection"
@@ -4897,7 +4898,7 @@ msgstr "零件选择"
 msgid "number keys"
 msgstr "数字键"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "数字键可以快速更改对象颜色"
 
 msgid ""
@@ -5130,7 +5131,7 @@ msgid "Only the object being edited is visible."
 msgstr "只有正在编辑的对象是可见的。"
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr "细丝 %s 不能直接打印在该板的表面上。"
 
 msgid ""
@@ -6376,7 +6377,7 @@ msgstr "正在同步打印结果。请稍后重试。"
 msgid "Upload failed\n"
 msgstr "上传失败\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "获取instance_id失败\n"
 
 msgid ""
@@ -7378,13 +7379,14 @@ msgstr "保存项目"
 msgid "Importing Model"
 msgstr "正在导入模型"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "正在准备3mf文件..."
 
 msgid "Download failed, unknown file format."
 msgstr "下载失败，未知文件格式。"
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "项目下载中..."
 
 msgid "Download failed, File size exception."
@@ -8253,10 +8255,10 @@ msgstr "预发布主机：api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "正式环境"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "保存"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "保存调试设置"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8551,7 +8553,7 @@ msgstr ""
 "校准喷嘴偏移以提高打印质量。\n"
 "*自动模式：打印前检查校准情况。如果不需要，请跳过。"
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "发送完成"
 
 msgid "Error code"
@@ -10329,7 +10331,7 @@ msgstr "X方向移动 10mm"
 msgid "Movement step set to 1 mm"
 msgstr "沿X、Y轴以1mm为步进移动对象"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "按键1-9：设置对象/零件的耗材丝"
 
 msgid "Camera view - Default"
@@ -17878,7 +17880,7 @@ msgstr "喷嘴信息"
 msgid "Plate Type"
 msgstr "热床类型"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "耗材丝位置"
 
 msgid "Filament For Calibration"
@@ -19677,7 +19679,7 @@ msgstr "没有历史任务！"
 msgid "Upgrading"
 msgstr "升级中"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "同步中"
 
 msgid "Printing Finish"

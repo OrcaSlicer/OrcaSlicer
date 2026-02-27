@@ -432,7 +432,7 @@ msgstr "Parça koordinatları"
 msgid "Size"
 msgstr "Boyut"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "düzgün ölçek"
 
 msgid "Planar"
@@ -692,7 +692,7 @@ msgstr "Bağlayıcı"
 msgid "Cut by Plane"
 msgstr "Düzlemsel Kes"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "Ana kat olmayan kenarlar kesme aletinden kaynaklanıyor, şimdi düzeltmek "
 "istiyor musunuz?"
@@ -2247,31 +2247,31 @@ msgstr ""
 msgid "Select All"
 msgstr "Hepsini seç"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "geçerli plakadaki tüm nesneleri seç"
 
 msgid "Delete All"
 msgstr "Hepsini sil"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "geçerli plakadaki tüm nesneleri sil"
 
 msgid "Arrange"
 msgstr "Hizala"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "Mevcut plakayı hizala"
 
 msgid "Reload All"
 msgstr "Tümünü yeniden yükle"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "Hepsini diskten yeniden yükle"
 
 msgid "Auto Rotate"
 msgstr "Otomatik döndürme"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "Geçerli plakayı otomatik döndürme"
 
 msgid "Delete Plate"
@@ -2583,7 +2583,8 @@ msgstr "Yükseklik aralığı ekle"
 msgid "Invalid numeric."
 msgstr "Geçersiz sayı."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "bir hücre aynı sütundaki yalnızca bir veya daha fazla hücreye kopyalanabilir"
 
@@ -3725,7 +3726,7 @@ msgstr ""
 "Eklenti yüklenemedi. Lütfen anti-virüs yazılımı tarafından engellenip "
 "engellenmediğini veya silinip silinmediğini kontrol edin."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "daha fazla bilgi görmek için burayı tıklayın"
 
 msgid ""
@@ -4264,7 +4265,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4994,7 +4995,7 @@ msgstr "Düzenleme alanını artır/azalt"
 msgid "Sequence"
 msgstr "Sekans"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "nesne seçimi"
 
 msgid "part selection"
@@ -5003,7 +5004,7 @@ msgstr "parça seçimi"
 msgid "number keys"
 msgstr "sayı tuşları"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "Sayı tuşları nesnelerin rengini hızla değiştirebilir"
 
 msgid ""
@@ -5235,7 +5236,7 @@ msgid "Only the object being edited is visible."
 msgstr "Yalnızca düzenlenen nesne görünür."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6517,7 +6518,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Yükleme başarısız\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "instance_id alınamadı\n"
 
 msgid ""
@@ -7566,13 +7567,14 @@ msgstr "Projeyi kaydet"
 msgid "Importing Model"
 msgstr "Model İçe aktarılıyor"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "3mf dosyasını hazırla..."
 
 msgid "Download failed, unknown file format."
 msgstr "İndirme başarısız oldu, dosya türü bilinmiyor."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "proje indiriliyor..."
 
 msgid "Download failed, File size exception."
@@ -8473,10 +8475,10 @@ msgstr "ÖN ana bilgisayar: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Ürün ana bilgisayarı"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "hata ayıklama kaydet düğmesi"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "hata ayıklama ayarlarını kaydet"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8765,7 +8767,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "gönderme tamamlandı"
 
 msgid "Error code"
@@ -10606,7 +10608,7 @@ msgstr "Seçimi pozitif X yönünde 10 mm taşı"
 msgid "Movement step set to 1 mm"
 msgstr "Hareket adımı 1 mm'ye ayarlandı"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "klavye 1-9: nesne/parça için filamenti ayarlayın"
 
 msgid "Camera view - Default"
@@ -18967,7 +18969,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Plaka Tipi"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "filament konumu"
 
 msgid "Filament For Calibration"
@@ -20828,7 +20830,7 @@ msgstr "Tarihi görevler yok!"
 msgid "Upgrading"
 msgstr "Yükseltiliyor"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "Senkronize ediliyor"
 
 msgid "Printing Finish"

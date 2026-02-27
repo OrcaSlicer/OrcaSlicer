@@ -460,8 +460,8 @@ msgstr "Coordenadas de peça"
 msgid "Size"
 msgstr "Tamanho"
 
-msgid "uniform scale"
-msgstr "escala uniforme"
+msgid "Uniform scale"
+msgstr "Escala uniforme"
 
 msgid "Planar"
 msgstr "Plano"
@@ -720,9 +720,9 @@ msgstr "Conector"
 msgid "Cut by Plane"
 msgstr "Cortar por Plano"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
-"as arestas abertas podem ser causadas pela ferramenta de corte, você quer "
+"As arestas abertas podem ser causadas pela ferramenta de corte, você quer "
 "corrigí-las agora?"
 
 msgid "Repairing model object"
@@ -2298,32 +2298,32 @@ msgstr "Mesclar com"
 msgid "Select All"
 msgstr "Selecionar Tudo"
 
-msgid "select all objects on current plate"
-msgstr "selecionar todos os objetos na placa atual"
+msgid "Select all objects on the current plate"
+msgstr "Selecionar todos os objetos na placa atual"
 
 msgid "Delete All"
 msgstr "Apagar Tudo"
 
-msgid "delete all objects on current plate"
-msgstr "apagar todos os objetos na placa atual"
+msgid "Delete all objects on the current plate"
+msgstr "Apagar todos os objetos na placa atual"
 
 msgid "Arrange"
 msgstr "Organizar"
 
-msgid "arrange current plate"
-msgstr "organizar placa atual"
+msgid "Arrange current plate"
+msgstr "Organizar placa atual"
 
 msgid "Reload All"
 msgstr "Recarregar Tudo"
 
-msgid "reload all from disk"
-msgstr "recarregar tudo do disco"
+msgid "Reload all from disk"
+msgstr "Recarregar tudo do disco"
 
 msgid "Auto Rotate"
 msgstr "Auto Rotação"
 
-msgid "auto rotate current plate"
-msgstr "rotacionar automaticamente a placa atual"
+msgid "Auto rotate current plate"
+msgstr "Rotacionar automaticamente a placa atual"
 
 msgid "Delete Plate"
 msgstr "Apagar Placa"
@@ -2643,9 +2643,9 @@ msgstr "Adicionar intervalo de altura"
 msgid "Invalid numeric."
 msgstr "Número inválido."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
-"uma célula só pode ser copiada para uma ou várias células na mesma coluna"
+"Uma célula só pode ser copiada para uma ou mais células na mesma coluna."
 
 msgid "Copying multiple cells is not supported."
 msgstr "A cópia de múltiplas células não é suportada."
@@ -3860,8 +3860,8 @@ msgstr ""
 "Falha ao instalar o plug-in. Verifique se ele está bloqueado ou excluído "
 "pelo software antivírus."
 
-msgid "click here to see more info"
-msgstr "clique aqui para ver mais informações"
+msgid "Click here to see more info"
+msgstr "Clique aqui para ver mais informações"
 
 msgid ""
 "The network plugin was installed but could not be loaded. Please restart the "
@@ -4413,8 +4413,8 @@ msgstr "Medir a precisão do movimento"
 msgid "Nozzle offset calibration"
 msgstr "Calibração do deslocamento do bico"
 
-msgid "high temperature auto bed leveling"
-msgstr "nivelamento automático da mesa em alta temperatura"
+msgid "High temperature auto bed leveling"
+msgstr "Nivelamento automático da mesa em alta temperatura"
 
 msgid "Auto Check: Quick Release Lever"
 msgstr "Verificação Automática: Alavanca de Liberação Rápida"
@@ -5180,8 +5180,8 @@ msgstr "Aumentar/diminuir área de edição"
 msgid "Sequence"
 msgstr "Sequência"
 
-msgid "object selection"
-msgstr "seleção de objeto"
+msgid "Object selection"
+msgstr "Seleção de objeto"
 
 msgid "part selection"
 msgstr "seleção de peça"
@@ -5189,8 +5189,8 @@ msgstr "seleção de peça"
 msgid "number keys"
 msgstr "teclas numéricas"
 
-msgid "number keys can quickly change the color of objects"
-msgstr "teclas numéricas podem mudar a cor dos objetos rapidamente"
+msgid "Number keys can quickly change the color of objects"
+msgstr "Teclas numéricas podem mudar a cor dos objetos rapidamente"
 
 msgid ""
 "Following objects are laid over the boundary of plate or exceeds the height "
@@ -5436,9 +5436,9 @@ msgid "Only the object being edited is visible."
 msgstr "Apenas o objeto em edição está visível."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
-"os filamentos %s não podem ser impressos diretamente na superfície desta "
+"Os filamentos %s não podem ser impressos diretamente na superfície desta "
 "placa."
 
 msgid ""
@@ -6748,8 +6748,8 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Falha no envio\n"
 
-msgid "obtaining instance_id failed\n"
-msgstr "falha ao obter o instance_id\n"
+msgid "Obtaining instance_id failed\n"
+msgstr "Falha ao obter o instance_id\n"
 
 msgid ""
 "Your comment result cannot be uploaded due to the following reasons:\n"
@@ -7845,14 +7845,14 @@ msgstr "Salvar Projeto"
 msgid "Importing Model"
 msgstr "Importando Modelo"
 
-msgid "prepare 3MF file..."
-msgstr "preparar o arquivo 3MF…"
+msgid "Preparing 3MF file..."
+msgstr "Preparando o arquivo 3MF…"
 
 msgid "Download failed, unknown file format."
 msgstr "Baixar falhou, formato de arquivo desconhecido."
 
-msgid "downloading project..."
-msgstr "baixando projeto…"
+msgid "Downloading project..."
+msgstr "Baixando projeto…"
 
 msgid "Download failed, File size exception."
 msgstr "Baixar falhou, erro no tamanho do arquivo."
@@ -8795,11 +8795,11 @@ msgstr "Host PRE: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Host de Produto"
 
-msgid "debug save button"
-msgstr "botão de salvar depuração"
+msgid "Debug save button"
+msgstr "Botão de salvar depuração"
 
-msgid "save debug settings"
-msgstr "salvar configurações de depuração"
+msgid "Save debug settings"
+msgstr "Salvar configurações de depuração"
 
 msgid "DEBUG settings have been saved successfully!"
 msgstr "As configurações de depuração foram salvas com sucesso!"
@@ -9103,8 +9103,8 @@ msgstr ""
 "*Modo automático: Verifique a calibração antes de imprimir. Pule se for "
 "desnecessário."
 
-msgid "send completed"
-msgstr "enviado completo"
+msgid "Send complete"
+msgstr "Envio completo"
 
 msgid "Error code"
 msgstr "Código de erro"
@@ -11071,8 +11071,8 @@ msgstr "Mover seleção 10 mm na direção X positiva"
 msgid "Movement step set to 1 mm"
 msgstr "Passo de movimento configurado para 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
-msgstr "teclado 1-9: ajustar filamento para objeto/peça"
+msgid "Keyboard 1-9: set filament for object/part"
+msgstr "Teclado 1-9: ajustar filamento para objeto/peça"
 
 msgid "Camera view - Default"
 msgstr "Vista da câmera - Padrão"
@@ -19631,8 +19631,8 @@ msgstr "Informações de Bico"
 msgid "Plate Type"
 msgstr "Tipo de Placa"
 
-msgid "filament position"
-msgstr "posição do filamento"
+msgid "Filament position"
+msgstr "Posição do filamento"
 
 msgid "Filament For Calibration"
 msgstr "Filamento Para Calibração"
@@ -21592,8 +21592,8 @@ msgstr "Nenhuma tarefa no histórico!"
 msgid "Upgrading"
 msgstr "Atualizando"
 
-msgid "syncing"
-msgstr "sincronizando"
+msgid "Syncing"
+msgstr "Sincronizando"
 
 msgid "Printing Finish"
 msgstr "Impressão finalizada"
