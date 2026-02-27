@@ -1,0 +1,283 @@
+{
+    "adaptive_bed_mesh_margin": "5",
+    "auxiliary_fan": "0",
+    "bbl_use_printhost": "0",
+    "bed_custom_model": "D:/3D_Prints/PEi Sheet Anycubic Kobra Neo.stl",
+    "bed_custom_texture": "D:/3D_Prints/PEi Sheet Anycubic Kobra Neo.png",
+    "bed_exclude_area": [],
+    "bed_mesh_max": "210,205",
+    "bed_mesh_min": "32,5",
+    "bed_mesh_probe_distance": "0,0",
+    "bed_temperature_formula": "by_first_filament",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0  ;zero out extruded length for accurecy",
+    "best_object_pos": "0.5,0.5",
+    "change_extrusion_role_gcode": "",
+    "change_filament_gcode": "_M600",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "default_bed_type": "",
+    "default_filament_profile": [
+        "SUNLU PLA @Anycubic Kobra Neo 0.6 nozzle"
+    ],
+    "default_nozzle_volume_type": [
+        "Standard"
+    ],
+    "default_print_profile": "0.4 Layer @Anycubic Kobra Neo 0.6 nozzle",
+    "deretraction_speed": [
+        "30"
+    ],
+    "disable_m73": "0",
+    "emit_machine_limits_to_gcode": "1",
+    "enable_filament_ramming": "0",
+    "enable_long_retraction_when_cut": "0",
+    "enable_power_loss_recovery": "printer_configuration",
+    "extra_loading_move": "0",
+    "extruder_clearance_height_to_lid": "250",
+    "extruder_clearance_height_to_rod": "35",
+    "extruder_clearance_radius": "55",
+    "extruder_colour": [
+        "#FF4D4F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "extruder_printable_area": [],
+    "extruder_printable_height": [
+        "0"
+    ],
+    "extruder_type": [
+        "Direct Drive"
+    ],
+    "extruder_variant_list": [
+        "Direct Drive Standard"
+    ],
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "0",
+    "fan_speedup_time": "2",
+    "file_start_gcode": "",
+    "from": "User",
+    "gcode_flavor": "klipper",
+    "grab_length": [
+        "0"
+    ],
+    "head_wrap_detect_zone": [],
+    "high_current_on_filament_swap": "0",
+    "host_type": "octoprint",
+    "inherits": "",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;Layer {layer_num + 1} @ [layer_z]mm\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\nM117 Layer {layer_num+1}/[total_layer_count] @ [layer_z]mm\nPLR_SAVE_PRINT_STATE_WITH_LAYER LAYER={layer_num + 1} LAYER_HEIGHT={layer_z}\n",
+    "long_retractions_when_cut": [
+        "0"
+    ],
+    "machine_end_gcode": "_END_PRINT\n;total layers count = [total_layer_count]",
+    "machine_load_filament_time": "42",
+    "machine_max_acceleration_e": [
+        "2500",
+        "20000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "2500",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2500",
+        "20000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "2500",
+        "15000"
+    ],
+    "machine_max_acceleration_y": [
+        "2500",
+        "15000"
+    ],
+    "machine_max_acceleration_z": [
+        "20",
+        "5000"
+    ],
+    "machine_max_jerk_e": [
+        "4",
+        "10"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "20"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "20"
+    ],
+    "machine_max_jerk_z": [
+        "4",
+        "5"
+    ],
+    "machine_max_junction_deviation": [
+        "0",
+        "0"
+    ],
+    "machine_max_speed_e": [
+        "100",
+        "80"
+    ],
+    "machine_max_speed_x": [
+        "250",
+        "600"
+    ],
+    "machine_max_speed_y": [
+        "250",
+        "600"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "10"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": "SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\n;;;;; PLR_RESUME - INITIAL PRINTER SETUP STARTS ;;;;;\nPLR_DISABLE\n_START_PRINT BED_TEMP=[first_layer_bed_temperature] EXTRUDER_TEMP=[first_layer_temperature]\nPLR_ENABLE\n;;;;; PLR_RESUME - PRINT GCODE STARTS ;;;;;",
+    "machine_tool_change_time": "0",
+    "machine_unload_filament_time": "0",
+    "manual_filament_change": "0",
+    "master_extruder_id": "1",
+    "max_layer_height": [
+        "0.48"
+    ],
+    "max_resonance_avoidance_speed": "120",
+    "min_layer_height": [
+        "0.15"
+    ],
+    "min_resonance_avoidance_speed": "70",
+    "name": "Anycubic Kobra Neo 0.6 nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "nozzle_flush_dataset": [
+        "0"
+    ],
+    "nozzle_height": "4",
+    "nozzle_hrc": "0",
+    "nozzle_type": [
+        "undefine"
+    ],
+    "nozzle_volume": [
+        "0"
+    ],
+    "parking_pos_retraction": "0",
+    "pellet_modded_printer": "0",
+    "physical_extruder_map": [
+        "0"
+    ],
+    "preferred_orientation": "0",
+    "print_host": "yazan-minipc.local:5555",
+    "print_host_webui": "",
+    "printable_area": [
+        "0x0",
+        "222x0",
+        "222x222",
+        "0x222"
+    ],
+    "printable_height": "250",
+    "printer_agent": "moonraker",
+    "printer_extruder_id": [
+        "1"
+    ],
+    "printer_extruder_variant": [
+        "Direct Drive Standard"
+    ],
+    "printer_model": "Anycubic Kobra Neo",
+    "printer_notes": "",
+    "printer_settings_id": "Anycubic Kobra Neo 0.6 nozzle",
+    "printer_structure": "undefine",
+    "printer_technology": "FFF",
+    "printer_variant": "0.6",
+    "printhost_apikey": "",
+    "printhost_authorization_type": "key",
+    "printhost_cafile": "",
+    "printhost_password": "",
+    "printhost_port": "",
+    "printhost_ssl_ignore_revoke": "0",
+    "printhost_user": "",
+    "printing_by_object_gcode": "",
+    "purge_in_prime_tower": "0",
+    "resonance_avoidance": "0",
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_length_toolchange": [
+        "0"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "259"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_distances_when_cut": [
+        "18"
+    ],
+    "retraction_length": [
+        "1"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "scan_first_layer": "0",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "support_multi_bed_types": "0",
+    "support_object_skip_flush": "0",
+    "template_custom_gcode": "",
+    "thumbnails": "32x32/PNG, 300x300/PNG",
+    "thumbnails_format": "PNG",
+    "time_cost": "0",
+    "time_lapse_gcode": "",
+    "travel_slope": [
+        "3"
+    ],
+    "upward_compatible_machine": [],
+    "use_firmware_retraction": "1",
+    "use_relative_e_distances": "1",
+    "version": "2.2.0.4",
+    "wipe": [
+        "0"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "wrapping_detection_gcode": "",
+    "wrapping_detection_layers": "20",
+    "wrapping_exclude_area": [],
+    "z_hop": [
+        "0"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ],
+    "z_offset": "0"
+}
