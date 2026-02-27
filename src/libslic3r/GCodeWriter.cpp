@@ -49,6 +49,9 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
 {
     std::sort(extruder_ids.begin(), extruder_ids.end());
     m_filament_extruders.clear();
+    //ORCA: Reset current extruder ID and clear pointers to prevent dangling pointers when extruders are recreated.
+    m_curr_extruder_id = -1;
+    std::fill(m_curr_filament_extruder.begin(), m_curr_filament_extruder.end(), nullptr);
     m_filament_extruders.reserve(extruder_ids.size());
     for (unsigned int extruder_id : extruder_ids)
         m_filament_extruders.emplace_back(Extruder(extruder_id, &this->config, config.single_extruder_multi_material.value));
@@ -56,7 +59,8 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
     /*  we enable support for multiple extruder if any extruder greater than 0 is used
         (even if prints only uses that one) since we need to output Tx commands
         first extruder has index 0 */
-    this->multiple_extruders = (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
+    //ORCA: Fix undefined behavior by checking if the vector is empty before taking max_element.
+    this->multiple_extruders = !extruder_ids.empty() && (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
 }
 
 std::string GCodeWriter::preamble()
