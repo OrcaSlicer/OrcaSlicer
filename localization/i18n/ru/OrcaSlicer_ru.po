@@ -4309,16 +4309,16 @@ msgid "Line Width"
 msgstr "Ширина линии"
 
 msgid "Actual Speed"
-msgstr "Действительная скорость"
+msgstr "Фактическая скорость"
 
 msgid "Fan Speed"
-msgstr "Охлаждение"
+msgstr "Скорость охлаждения"
 
 msgid "Flow"
-msgstr "Объёмный расход"
+msgstr "Поток"
 
 msgid "Actual Flow"
-msgstr "Действительный расход"
+msgstr "Фактический поток"
 
 msgid "Tool"
 msgstr "Инструмент"
@@ -4459,7 +4459,7 @@ msgid "Color: "
 msgstr "Материал: "
 
 msgid "Actual Speed: "
-msgstr "Скорость в точке: "
+msgstr "Фактическая скорость: "
 
 msgid "Statistics of All Plates"
 msgstr "Статистика по всем столам"
@@ -4579,7 +4579,7 @@ msgid "Speed (mm/s)"
 msgstr "Скорость (мм/с)"
 
 msgid "Actual Speed (mm/s)"
-msgstr "Действительная скорость (мм/с)"
+msgstr "Фактическая скорость (мм/с)"
 
 msgid "Fan Speed (%)"
 msgstr "Скорость вентилятора (%)"
@@ -5387,7 +5387,7 @@ msgid "Max flowrate"
 msgstr "Макс. объёмный расход"
 
 msgid "Pressure advance"
-msgstr "Коэффициент PA"
+msgstr "Опережение давления (PA)"
 
 msgid "Pass 1"
 msgstr "Проход 1"
@@ -8880,7 +8880,7 @@ msgid "Recommended nozzle temperature range of this filament. 0 means no set"
 msgstr "Рекомендуемый диапазон температур прогрева этого материала при печати. 0 – не задано."
 
 msgid "Flow ratio and Pressure Advance"
-msgstr "Поток и коррекция давления"
+msgstr "Коэффициент потока и Опережение давления (PA)"
 
 msgid "Print chamber temperature"
 msgstr "Температура в термокамере при печати"
@@ -11695,16 +11695,16 @@ msgstr ""
 "Фактический поток модели рассчитывается путём умножения введённого здесь значения на коэффициент потока материала."
 
 msgid "Enable pressure advance"
-msgstr "Включить Pressure Advance"
+msgstr "Включить Опережение давления (PA)"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "Включить Pressure advance (коррекцию давления в сопле). Результат автокалибровки будет перезаписан после включения."
+msgstr "Включить Опережение давления (PA) (коррекцию давления в сопле). Результат автокалибровки будет перезаписан после включения."
 
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "Pressure Advance в прошивке Klipper – то же самое,  что и Linear Advance в прошивке Marlin."
+msgstr "Опережение давления (PA) в прошивке Klipper – то же самое,  что и Linear Advance в прошивке Marlin."
 
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Адаптивный PA (beta)"
+msgstr "Адаптивное опережение давления (PA) (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -11722,7 +11722,7 @@ msgstr ""
 "Если включено, указанное выше значение Pressure Advance переопределяется. Однако оно всё ещё может использоваться при смене инструмента и в качестве резервного значения.\n"
 
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "Диапазон значений Pressure Advance (beta)"
+msgstr "Диапазон значений опережения давления (PA) (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -11765,20 +11765,20 @@ msgstr ""
 " "
 
 msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Адаптивный PA на нависаниях (beta)"
+msgstr "Адаптивное опережение давления (PA) на нависаниях (beta)"
 
 msgid "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-msgstr "Включить адаптивный Pressure Advance на нависаниях, а также при изменении потока в пределах одного и того же элемента. Это экспериментальная опция, так как неточно заданное значение PA может привести к проблемам с однородностью на внешних поверхностях до и после нависаний.\n"
+msgstr "Включить адаптивное опережение давления (PA) на нависаниях, а также при изменении потока в пределах одного и того же элемента. Это экспериментальная опция, так как неточно заданное значение PA может привести к проблемам с однородностью на внешних поверхностях до и после нависаний.\n"
 
 msgid "Pressure advance for bridges"
-msgstr "Коэффициент PA на мостах"
+msgstr "Опережение давления (PA) на мостах"
 
 msgid ""
 "Pressure advance value for bridges. Set to 0 to disable.\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Коэффициент Pressure Advance для мостов. Установите значение 0, если хотите отключить функцию.\n"
+"Коэффициент опережения давления (PA) для мостов. Установите значение 0, если хотите отключить функцию.\n"
 "\n"
 "Более низкое значение PA при печати мостов помогает уменьшить появление небольшой недоэкструзии сразу после мостов. Это вызвано падением давления в сопле при печати в воздухе, и более низкое значение PA помогает предотвратить это."
 
@@ -13284,7 +13284,7 @@ msgstr ""
 "Параметр задаёт максимальную скорость, с которой расход материала может измениться за единицу времени. Чем выше лимит, тем быстрее может меняться расход материала. \n"
 "Установите 0 для отключения.\n"
 "\n"
-"Для скоростных принтеров с прямой системой подачи и производительным экструдером (например, Bambu lab или Voron) сглаживание подачи обычно не требуется.Однако в некоторых случаях, когда скорость печати сильно различается, это может принести дополнительную пользу. Например, когда происходят резкие замедления из-за нависаний. В этих случаях рекомендуется использовать высокое значение, составляющее около 300-350 мм³/с²,при оптимально настроенном Pressure Advance (коррекции давления) это поможетдостичь более плавного перехода.\n"
+"Для скоростных принтеров с прямой системой подачи и производительным экструдером (например, Bambu lab или Voron) сглаживание подачи обычно не требуется.Однако в некоторых случаях, когда скорость печати сильно различается, это может принести дополнительную пользу. Например, когда происходят резкие замедления из-за нависаний. В этих случаях рекомендуется использовать высокое значение, составляющее около 300-350 мм³/с², при оптимально настроенном Pressure Advance (Опережение давления) это поможетдостичь более плавного перехода.\n"
 "\n"
 "У более медленных принтеров с внешней системой подачи или прошивкой без коррекции давления значение должно быть значительно ниже. 10-15 мм³/с² является хорошей отправной точкой для экструдеров с прямой подачей и 5-10 мм³/с² для внешней.\n"
 "\n"

@@ -4648,7 +4648,7 @@ msgid "Line Width"
 msgstr "Amplada de la línia"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Velocitat Real"
 
 msgid "Fan Speed"
 msgstr "Velocitat del ventilador"
@@ -4657,7 +4657,7 @@ msgid "Flow"
 msgstr "Fluxe"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Flux real"
 
 msgid "Tool"
 msgstr "Eina"
@@ -4792,7 +4792,7 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Velocitat Real: "
 
 msgid "Statistics of All Plates"
 msgstr "Estadístiques de totes les plaques"
@@ -4906,7 +4906,7 @@ msgid "Speed (mm/s)"
 msgstr "Velocitat ( mm/s )"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Velocitat Real (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Velocitat Ventilador ( % )"
@@ -5728,7 +5728,7 @@ msgid "Max flowrate"
 msgstr "Cabal màxim"
 
 msgid "Pressure advance"
-msgstr "Avanç de Pressió Lineal( Pressure advance )"
+msgstr "Avanç de Pressió Lineal (Pressure advance)"
 
 msgid "Pass 1"
 msgstr "Pas 1"

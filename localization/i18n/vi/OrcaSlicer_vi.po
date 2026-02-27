@@ -4564,16 +4564,16 @@ msgid "Line Width"
 msgstr "Độ rộng đường"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Tốc độ thực tế"
 
 msgid "Fan Speed"
 msgstr "Tốc độ quạt"
 
 msgid "Flow"
-msgstr "Flow"
+msgstr "Lưu lượng"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Lưu lượng thực tế"
 
 msgid "Tool"
 msgstr "Công cụ"
@@ -4705,10 +4705,10 @@ msgid "Tool: "
 msgstr ""
 
 msgid "Color: "
-msgstr ""
+msgstr "Màu:"
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Tốc độ thực tế: "
 
 msgid "Statistics of All Plates"
 msgstr "Thống kê tất cả các plate"
@@ -4822,7 +4822,7 @@ msgid "Speed (mm/s)"
 msgstr "Tốc độ (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Tốc độ thực tế (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Tốc độ quạt (%)"
@@ -4834,10 +4834,10 @@ msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tốc độ flow thể tích (mm³/s)"
 
 msgid "Actual volumetric flow rate (mm³/s)"
-msgstr ""
+msgstr "Lưu lượng thể tích thực tế (mm³/s)"
 
 msgid "Seams"
-msgstr "Seam"
+msgstr "Đường nối"
 
 msgid "Filament Changes"
 msgstr "Đổi filament"
@@ -8191,10 +8191,10 @@ msgid ""
 msgstr ""
 
 msgid "Filament & Color"
-msgstr ""
+msgstr "Sợi và Màu sắc"
 
 msgid "Color only"
-msgstr ""
+msgstr "Chỉ màu"
 
 msgid "Network plugin"
 msgstr ""

@@ -4651,7 +4651,7 @@ msgid "Line Width"
 msgstr "Linijos plotis"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Faktinis greitis"
 
 msgid "Fan Speed"
 msgstr "Ventiliatoriaus greitis"
@@ -4660,7 +4660,7 @@ msgid "Flow"
 msgstr "Srautas"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Faktinis srautas"
 
 msgid "Tool"
 msgstr "Įrankis"
@@ -4795,7 +4795,7 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Faktinis greitis: "
 
 msgid "Statistics of All Plates"
 msgstr "Visų plokščių statistika"
@@ -4909,7 +4909,7 @@ msgid "Speed (mm/s)"
 msgstr "Greitis (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Faktinis greitis (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Ventiliatoriaus greitis (%)"
