@@ -1332,7 +1332,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         is_avoid_one_update = true;
     }
 
-    auto uniform_scale_size =imgui_wrapper->calc_text_size(_L("uniform scale")).x;
+    auto uniform_scale_size =imgui_wrapper->calc_text_size(_L("Uniform scale")).x;
     ImGui::PushItemWidth(uniform_scale_size);
     int size_sel{-1};
     if (!is_avoid_one_update) {
@@ -1348,10 +1348,10 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
 
     //if (uniform_scale_only) {
     //    imgui_wrapper->disabled_begin(true);
-    //    imgui_wrapper->bbl_checkbox(_L("uniform scale"), uniform_scale_only);
+    //    imgui_wrapper->bbl_checkbox(_L("Uniform scale"), uniform_scale_only);
     //    imgui_wrapper->disabled_end();
     //} else {
-        imgui_wrapper->bbl_checkbox(_L("uniform scale"), uniform_scale);
+        imgui_wrapper->bbl_checkbox(_L("Uniform scale"), uniform_scale);
     //}
     if (uniform_scale != this->m_uniform_scale) { this->set_uniform_scaling(uniform_scale); }
 

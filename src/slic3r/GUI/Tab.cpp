@@ -974,7 +974,8 @@ void Tab::init_options_list()
             m_options_list.emplace(opt_key, m_opt_status_value);
             continue;
         }
-        if (m_config->option(opt_key)->is_vector())
+        const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
+        if (m_config->option(opt_key)->is_vector() && !(opt_def && opt_def->gui_flags == "serialized"))
             m_options_list.emplace(opt_key + "#0", m_opt_status_value);
         else
             m_options_list.emplace(opt_key, m_opt_status_value);
@@ -1758,7 +1759,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             wxString msg_text = _(
                 L("Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their "
                   "intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. "
-                  "Please proceed with caution and thoroughly check for any potential printing issues."
+                  "Please proceed with caution and thoroughly check for any potential printing issues. "
                   "Are you sure you want to enable this option?"));
             msg_text += "\n\n" + _(L("Are you sure you want to enable this option?"));
             MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
@@ -4406,7 +4407,6 @@ void TabPrinter::build_fff()
 
         optgroup->append_single_option_line("use_relative_e_distances", "printer_basic_information_advanced#use-relative-e-distances");
         optgroup->append_single_option_line("use_firmware_retraction", "printer_basic_information_advanced#use-firmware-retraction");
-        optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
         // optgroup->append_single_option_line("spaghetti_detector");
         optgroup->append_single_option_line("time_cost", "printer_basic_information_advanced#time-cost");
 
@@ -4891,6 +4891,7 @@ if (is_marlin_flavor)
             });
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
+        optgroup->append_single_option_line("bed_temperature_formula", "printer_multimaterial_setup#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
         optgroup->append_single_option_line("purge_in_prime_tower", "printer_multimaterial_wipe_tower#purge-in-prime-tower");

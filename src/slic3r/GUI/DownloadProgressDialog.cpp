@@ -40,7 +40,7 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     wxString install_failed_url = wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-get-network-plugin");
 
     wxString download_failed_msg = _L("Failed to download the plug-in. Please check your firewall settings and vpn software, check and retry.");
-    wxString install_failed_msg = _L("Failed to install the plug-in. Please check whether it is blocked or deleted by anti-virus software.");
+    wxString install_failed_msg = _L("Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software.");
 
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer *m_sizer_main = new wxBoxSizer(wxVERTICAL);
@@ -76,7 +76,7 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     sizer_download_failed->Add(m_statictext_download_failed, 0, wxALIGN_CENTER | wxALL, 5);
 
     // ORCA standardized HyperLink
-    auto m_download_hyperlink = new HyperLink(m_panel_download_failed, _L("click here to see more info"), download_failed_url);
+    auto m_download_hyperlink = new HyperLink(m_panel_download_failed, _L("Click here to see more info"), download_failed_url);
     sizer_download_failed->Add(m_download_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 
@@ -98,7 +98,7 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
     sizer_install_failed->Add(m_statictext_install_failed, 0, wxALIGN_CENTER | wxALL, 5);
 
     // ORCA standardized HyperLink
-    auto m_install_hyperlink = new HyperLink(m_panel_install_failed, _L("click here to see more info"), install_failed_url);
+    auto m_install_hyperlink = new HyperLink(m_panel_install_failed, _L("Click here to see more info"), install_failed_url);
     sizer_install_failed->Add(m_install_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 

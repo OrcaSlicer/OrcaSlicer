@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -436,7 +436,7 @@ msgstr ""
 msgid "Size"
 msgstr "Taille"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "échelle uniforme"
 
 msgid "Planar"
@@ -696,7 +696,7 @@ msgstr "Connecteur"
 msgid "Cut by Plane"
 msgstr "Coupe par plan"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "les bords non pliables sont dus à l’outil de coupe, voulez-vous les corriger "
 "maintenant ?"
@@ -2283,31 +2283,37 @@ msgstr ""
 msgid "Select All"
 msgstr "Tout sélectionner"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "sélectionner tous les objets sur la plaque actuelle"
+
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
 
 msgid "Delete All"
 msgstr "Tout Supprimer"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "supprimer tous les objets sur la plaque actuelle"
 
 msgid "Arrange"
 msgstr "Organiser"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "organiser la plaque actuelle"
 
 msgid "Reload All"
 msgstr "Tout recharger"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "tout recharger à partir du disque"
 
 msgid "Auto Rotate"
 msgstr "Rotation automatique"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "rotation automatique de la plaque actuelle"
 
 msgid "Delete Plate"
@@ -2629,7 +2635,8 @@ msgstr "Ajouter une plage de hauteur"
 msgid "Invalid numeric."
 msgstr "Chiffre non valide."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "une cellule ne peut être copiée que dans une ou plusieurs cellules de la "
 "même colonne"
@@ -2884,9 +2891,9 @@ msgid "Top"
 msgstr "Haut"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3750,8 +3757,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3776,13 +3782,12 @@ msgstr ""
 "votre pare-feu et votre logiciel VPN puis réessayer."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"Échec de l'installation du plug-in. Veuillez vérifier s'il est bloqué ou "
-"s'il a été supprimé par un logiciel anti-virus."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "cliquez ici pour voir plus d'informations"
 
 msgid ""
@@ -4320,7 +4325,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4602,6 +4607,12 @@ msgstr "Paramètres de l'imprimante"
 msgid "parameter name"
 msgstr "nom du paramètre"
 
+msgid "Range"
+msgstr "Zone"
+
+msgid "Value is out of range."
+msgstr "La valeur est hors plage."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s ne peut pas être un pourcentage"
@@ -4617,9 +4628,6 @@ msgstr "Validation du paramètre"
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr ""
 "La valeur %s est hors plage. La plage valide est comprise entre %d et %d."
-
-msgid "Value is out of range."
-msgstr "La valeur est hors plage."
 
 #, c-format, boost-format
 msgid ""
@@ -4670,7 +4678,7 @@ msgid "Line Width"
 msgstr "Largeur de ligne"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Vitesse réelle"
 
 msgid "Fan Speed"
 msgstr "Vitesse du ventilateur"
@@ -4679,7 +4687,7 @@ msgid "Flow"
 msgstr "Débit"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Débit réel"
 
 msgid "Tool"
 msgstr "Outil"
@@ -4689,6 +4697,9 @@ msgstr "Temps de couche"
 
 msgid "Layer Time (log)"
 msgstr "Temps de couche (journal)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4777,9 +4788,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "Vitesse du ventilateur"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "Durée"
 
@@ -4814,6 +4822,9 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
+msgstr "Vitesse réelle: "
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4928,13 +4939,13 @@ msgid "Speed (mm/s)"
 msgstr "Vitesse (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Vitesse réelle (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Vitesse du ventilateur (%)"
 
-msgid "Temperature (°C)"
-msgstr "Température (°C)"
+msgid "Temperature (℃)"
+msgstr "Température (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Débit volumétrique (mm³/s)"
@@ -4950,9 +4961,6 @@ msgstr "Changements de filaments"
 
 msgid "Options"
 msgstr "Choix"
-
-msgid "travel"
-msgstr "déplacement"
 
 msgid "Extruder"
 msgstr "Extrudeur"
@@ -5048,16 +5056,13 @@ msgstr "Augmenter/diminuer la zone d'édition"
 msgid "Sequence"
 msgstr "Séquence"
 
-msgid "object selection"
-msgstr ""
-
-msgid "part selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5289,7 +5294,7 @@ msgid "Only the object being edited is visible."
 msgstr "Seul l'objet en cours d'édition est visible."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -5753,7 +5758,7 @@ msgid "Max flowrate"
 msgstr "Débit maximal"
 
 msgid "Pressure advance"
-msgstr ""
+msgstr "Avance de pression"
 
 msgid "Pass 1"
 msgstr "Passe 1"
@@ -6472,10 +6477,10 @@ msgid "Layer: %d/%d"
 msgstr "Couche : %d/%d"
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
-"Veuillez chauffer la buse à plus de 170°C avant de charger ou de décharger "
-"le filament."
+"Veuillez chauffer la buse à plus de 170℃ avant de charger ou de décharger le "
+"filament."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr ""
@@ -6586,7 +6591,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Échec de l’envoi\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "échec de l’obtention de l’instance_id\n"
 
 msgid ""
@@ -6860,9 +6865,6 @@ msgstr "Connecteurs de découpe"
 
 msgid "Layers"
 msgstr "Couches"
-
-msgid "Range"
-msgstr "Zone"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
@@ -7591,7 +7593,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -7623,13 +7625,14 @@ msgstr "Sauvegarder le projet"
 msgid "Importing Model"
 msgstr "Importation du modèle"
 
-msgid "prepare 3MF file..."
-msgstr ""
+#, fuzzy
+msgid "Preparing 3MF file..."
+msgstr "préparation du fichier 3mf..."
 
 msgid "Download failed, unknown file format."
 msgstr "Échec du téléchargement, format de fichier inconnu."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "téléchargement du projet..."
 
 msgid "Download failed, File size exception."
@@ -8161,6 +8164,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -8173,9 +8188,6 @@ msgid ""
 msgstr ""
 "Si cette option est activée, vous pouvez envoyer une tâche à plusieurs "
 "appareils en même temps et gérer plusieurs appareils."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -8543,10 +8555,10 @@ msgstr "Hébergeur PRE : api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Hôte du produit"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "bouton d'enregistrement de débogage"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "enregistrer les paramètres de débogage"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8843,7 +8855,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "envoi terminé"
 
 msgid "Error code"
@@ -8991,7 +9003,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9434,7 +9446,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
@@ -10737,7 +10749,7 @@ msgstr "Déplacer la sélection de 10 mm dans la direction positive X"
 msgid "Movement step set to 1 mm"
 msgstr "Pas du mouvement réglé sur 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "clavier 1-9 : définir le filament pour l'objet/la pièce"
 
 msgid "Camera view - Default"
@@ -13938,6 +13950,49 @@ msgstr ""
 "cette quantité de matériau dans la tour d’essuyage pour purger dans les "
 "remplissages ou objets de manière fiable."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Vitesse du dernier mouvement de refroidissement"
 
@@ -14525,8 +14580,8 @@ msgstr ""
 "Gigue aléatoire lors de l'impression de la paroi, de sorte que la surface "
 "ait un aspect rugueux. Ce réglage contrôle la position irrégulière"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Peint uniquement"
 
 msgid "Contour"
 msgstr "Contour"
@@ -15799,9 +15854,6 @@ msgstr ""
 "Aire maximale d’un trou dans la base du modèle avant qu’il ne soit rempli "
 "par un matériau conique. Une valeur de 0 remplira tous les trous dans la "
 "base du modèle."
-
-msgid "mm²"
-msgstr "mm²"
 
 msgid "Detect overhang wall"
 msgstr "Détecter une paroi en surplomb"
@@ -17555,6 +17607,23 @@ msgstr ""
 msgid "The wall of prime tower will skip the start points of wipe path."
 msgstr ""
 
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
+msgstr ""
+
 msgid "Infill gap"
 msgstr ""
 
@@ -19207,7 +19276,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Type de plaque"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "position du filament"
 
 msgid "Filament For Calibration"
@@ -20181,7 +20250,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "Imprimante et tous les préréglages de filament et de traitement qui "
@@ -21086,7 +21156,7 @@ msgstr "Aucune tâche historique !"
 msgid "Upgrading"
 msgstr "Mise à jour"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "synchronisation"
 
 msgid "Printing Finish"
@@ -21715,6 +21785,19 @@ msgstr ""
 "déformer, tels que l’ABS, une augmentation appropriée de la température du "
 "plateau chauffant peut réduire la probabilité de déformation?"
 
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "Échec de l'installation du plug-in. Veuillez vérifier s'il est bloqué ou "
+#~ "s'il a été supprimé par un logiciel anti-virus."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "déplacement"
+
 #~ msgid "Change to another .svg file"
 #~ msgstr "Changer pour un autre fichier .svg"
 
@@ -21821,9 +21904,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Le nom des composants à l'intérieur du fichier .step n'est pas au format "
 #~ "UTF8 !"
-
-#~ msgid "prepare 3mf file..."
-#~ msgstr "préparation du fichier 3mf..."
 
 #~ msgid ""
 #~ "Should printer/filament/process settings be loaded when opening a .3mf?"
@@ -22038,11 +22118,11 @@ msgstr ""
 #~ "sera automatiquement mise à jour."
 
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
-#~ "La température minimale recommandée est inférieure à 190°C ou la "
-#~ "température maximale recommandée est supérieure à 300°C.\n"
+#~ "La température minimale recommandée est inférieure à 190℃ ou la "
+#~ "température maximale recommandée est supérieure à 300℃.\n"
 
 #~ msgid ""
 #~ "Spiral mode only works when wall loops is 1, support is disabled, top "
@@ -24447,9 +24527,9 @@ msgstr ""
 #~ "Oui - Passez automatiquement au modèle rectiligne\n"
 #~ "Non - Réinitialise automatiquement la densité à la valeur par défaut"
 
-#~ msgid "Please heat the nozzle to above 170°C before loading filament."
+#~ msgid "Please heat the nozzle to above 170℃ before loading filament."
 #~ msgstr ""
-#~ "Veuillez chauffer la buse à plus de 170°C avant de charger le filament."
+#~ "Veuillez chauffer la buse à plus de 170℃ avant de charger le filament."
 
 #~ msgid "Show G-code window"
 #~ msgstr "Afficher la fenêtre G-code"

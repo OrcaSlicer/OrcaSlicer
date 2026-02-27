@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -431,7 +431,7 @@ msgstr "Tọa độ phần"
 msgid "Size"
 msgstr "Kích thước"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "tỷ lệ đồng đều"
 
 msgid "Planar"
@@ -689,7 +689,7 @@ msgstr "Connector"
 msgid "Cut by Plane"
 msgstr "Cắt bằng mặt phẳng"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "cạnh non-manifold được tạo bởi công cụ cắt, bạn có muốn sửa ngay không?"
 
@@ -2226,31 +2226,37 @@ msgstr ""
 msgid "Select All"
 msgstr "Chọn tất cả"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "chọn tất cả vật thể trên plate hiện tại"
+
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
 
 msgid "Delete All"
 msgstr "Xóa tất cả"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "xóa tất cả vật thể trên plate hiện tại"
 
 msgid "Arrange"
 msgstr "Sắp xếp"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "sắp xếp plate hiện tại"
 
 msgid "Reload All"
 msgstr "Tải lại tất cả"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "tải lại tất cả từ ổ đĩa"
 
 msgid "Auto Rotate"
 msgstr "Tự động xoay"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "tự động xoay plate hiện tại"
 
 msgid "Delete Plate"
@@ -2559,7 +2565,8 @@ msgstr "Thêm phạm vi chiều cao"
 msgid "Invalid numeric."
 msgstr "Số không hợp lệ."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "một ô chỉ có thể sao chép vào một hoặc nhiều ô trong cùng cột"
 
 msgid "Copying multiple cells is not supported."
@@ -2812,9 +2819,9 @@ msgid "Top"
 msgstr "Trên"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3649,8 +3656,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3675,13 +3681,12 @@ msgstr ""
 "kiểm tra và thử lại."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"Cài đặt plug-in thất bại. Vui lòng kiểm tra xem nó có bị chặn hoặc xóa bởi "
-"phần mềm diệt virus không."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "nhấn vào đây để xem thêm thông tin"
 
 msgid ""
@@ -4214,7 +4219,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4491,6 +4496,12 @@ msgstr "Cài đặt máy in"
 msgid "parameter name"
 msgstr "tên tham số"
 
+msgid "Range"
+msgstr "Phạm vi"
+
+msgid "Value is out of range."
+msgstr "Giá trị nằm ngoài phạm vi."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s không thể là phần trăm"
@@ -4505,9 +4516,6 @@ msgstr "Xác thực tham số"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "Giá trị %s nằm ngoài phạm vi. Phạm vi hợp lệ từ %d đến %d."
-
-msgid "Value is out of range."
-msgstr "Giá trị nằm ngoài phạm vi."
 
 #, c-format, boost-format
 msgid ""
@@ -4563,16 +4571,16 @@ msgid "Line Width"
 msgstr "Độ rộng đường"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Tốc độ thực tế"
 
 msgid "Fan Speed"
 msgstr "Tốc độ quạt"
 
 msgid "Flow"
-msgstr "Flow"
+msgstr "Lưu lượng"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Lưu lượng thực tế"
 
 msgid "Tool"
 msgstr "Công cụ"
@@ -4582,6 +4590,9 @@ msgstr "Thời gian lớp"
 
 msgid "Layer Time (log)"
 msgstr "Thời gian lớp (log)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4670,9 +4681,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "Tốc độ quạt"
 
-msgid "°C"
-msgstr ""
-
 msgid "Time"
 msgstr "Thời gian"
 
@@ -4704,9 +4712,12 @@ msgid "Tool: "
 msgstr ""
 
 msgid "Color: "
-msgstr ""
+msgstr "Màu:"
 
 msgid "Actual Speed: "
+msgstr "Tốc độ thực tế: "
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4821,31 +4832,28 @@ msgid "Speed (mm/s)"
 msgstr "Tốc độ (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Tốc độ thực tế (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Tốc độ quạt (%)"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "Nhiệt độ (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tốc độ flow thể tích (mm³/s)"
 
 msgid "Actual volumetric flow rate (mm³/s)"
-msgstr ""
+msgstr "Lưu lượng thể tích thực tế (mm³/s)"
 
 msgid "Seams"
-msgstr "Seam"
+msgstr "Đường nối"
 
 msgid "Filament Changes"
 msgstr "Đổi filament"
 
 msgid "Options"
 msgstr "Tùy chọn"
-
-msgid "travel"
-msgstr "di chuyển"
 
 msgid "Extruder"
 msgstr "Extruder"
@@ -4944,16 +4952,13 @@ msgstr "Tăng/giảm vùng chỉnh sửa"
 msgid "Sequence"
 msgstr "Trình tự"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "chọn vật thể"
-
-msgid "part selection"
-msgstr "chọn phần"
 
 msgid "number keys"
 msgstr "phím số"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "phím số có thể nhanh chóng đổi màu của vật thể"
 
 msgid ""
@@ -5185,7 +5190,7 @@ msgid "Only the object being edited is visible."
 msgstr "Chỉ vật thể đang được chỉnh sửa là hiển thị."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6336,9 +6341,9 @@ msgid "Layer: %d/%d"
 msgstr "Lớp: %d/%d"
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
-"Vui lòng làm nóng đầu phun lên trên 170°C trước khi nạp hoặc tháo filament."
+"Vui lòng làm nóng đầu phun lên trên 170℃ trước khi nạp hoặc tháo filament."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr ""
@@ -6447,7 +6452,7 @@ msgstr "Đang đồng bộ kết quả in. Vui lòng thử lại sau vài giây.
 msgid "Upload failed\n"
 msgstr "Tải lên thất bại\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "lấy instance_id thất bại\n"
 
 msgid ""
@@ -6723,9 +6728,6 @@ msgstr "Cắt connector"
 
 msgid "Layers"
 msgstr "Lớp"
-
-msgid "Range"
-msgstr "Phạm vi"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
@@ -7452,7 +7454,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -7483,13 +7485,14 @@ msgstr "Lưu dự án"
 msgid "Importing Model"
 msgstr "Đang nhập model"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "chuẩn bị file 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Tải xuống thất bại, định dạng file không xác định."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "đang tải dự án xuống..."
 
 msgid "Download failed, File size exception."
@@ -7996,6 +7999,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -8008,9 +8023,6 @@ msgid ""
 msgstr ""
 "Với tùy chọn này được bật, bạn có thể gửi tác vụ đến nhiều thiết bị cùng lúc "
 "và quản lý nhiều thiết bị."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -8189,10 +8201,10 @@ msgid ""
 msgstr ""
 
 msgid "Filament & Color"
-msgstr ""
+msgstr "Sợi và Màu sắc"
 
 msgid "Color only"
-msgstr ""
+msgstr "Chỉ màu"
 
 msgid "Network plugin"
 msgstr ""
@@ -8371,10 +8383,10 @@ msgstr "Máy chủ PRE: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Máy chủ sản phẩm"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "nút lưu gỡ lỗi"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "lưu cài đặt gỡ lỗi"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8663,7 +8675,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "gửi hoàn tất"
 
 msgid "Error code"
@@ -8804,7 +8816,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9220,7 +9232,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 "Mẫu infill thường được thiết kế để xử lý xoay tự động nhằm đảm bảo in đúng "
 "cách và đạt được hiệu quả dự kiến (ví dụ: Gyroid, Cubic). Xoay mẫu infill "
@@ -10476,7 +10488,7 @@ msgstr "Di chuyển lựa chọn 10 mm theo hướng X dương"
 msgid "Movement step set to 1 mm"
 msgstr "Bước di chuyển được đặt thành 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "bàn phím 1-9: đặt filament cho đối tượng/phần"
 
 msgid "Camera view - Default"
@@ -13504,6 +13516,49 @@ msgstr ""
 "nạp lượng vật liệu này vào wipe tower để tạo ra các đùn infill hoặc đối "
 "tượng hy sinh liên tiếp một cách đáng tin cậy."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr ""
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Tốc độ của động tác làm mát cuối cùng"
 
@@ -14075,8 +14130,8 @@ msgstr ""
 "Rung ngẫu nhiên trong khi in thành, để bề mặt có vẻ thô. Cài đặt này điều "
 "khiển vị trí fuzzy."
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Chỉ được sơn"
 
 msgid "Contour"
 msgstr "Đường viền"
@@ -15342,9 +15397,6 @@ msgstr ""
 "Diện tích tối đa của lỗ ở đáy model trước khi nó được lấp bởi vật liệu hình "
 "nón. Giá trị 0 sẽ lấp tất cả các lỗ ở đáy model."
 
-msgid "mm²"
-msgstr ""
-
 msgid "Detect overhang wall"
 msgstr "Phát hiện thành nhô"
 
@@ -16580,7 +16632,7 @@ msgstr ""
 "Điều chỉnh mật độ của cấu trúc support được sử dụng để tạo đầu các nhánh. "
 "Giá trị cao hơn dẫn đến phần nhô tốt hơn nhưng support khó loại bỏ hơn, do "
 "đó khuyến nghị bật giao diện support trên thay vì giá trị mật độ nhánh cao "
-"nếu cần giao diện dày đặc ."
+"nếu cần giao diện dày đặc."
 
 msgid "Auto brim width"
 msgstr "Độ rộng vành tự động"
@@ -17029,6 +17081,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -18629,7 +18698,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Loại bàn"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "vị trí filament"
 
 msgid "Filament For Calibration"
@@ -19580,10 +19649,12 @@ msgstr ""
 "Vui lòng đóng nó và thử lại."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
-"Máy in và tất cả cài đặt sẵn filament&&quy trình thuộc về máy in.\n"
+"Máy in và tất cả các loại sợi in 3D cùng các cài đặt quy trình đi kèm với "
+"máy in.\n"
 "Có thể chia sẻ với người khác."
 
 msgid ""
@@ -19598,7 +19669,7 @@ msgid ""
 "presets."
 msgstr ""
 "Chỉ hiển thị tên máy in có thay đổi đối với cài đặt sẵn máy in, filament và "
-"quy trình ."
+"quy trình."
 
 msgid "Only display the filament names with changes to filament presets."
 msgstr "Chỉ hiển thị tên filament có thay đổi đối với cài đặt sẵn filament."
@@ -20460,7 +20531,7 @@ msgstr "Không có tác vụ lịch sử!"
 msgid "Upgrading"
 msgstr "Đang nâng cấp"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "đang đồng bộ"
 
 msgid "Printing Finish"
@@ -21073,6 +21144,19 @@ msgstr ""
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn "
 "nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
 
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "Cài đặt plug-in thất bại. Vui lòng kiểm tra xem nó có bị chặn hoặc xóa "
+#~ "bởi phần mềm diệt virus không."
+
+#~ msgid "travel"
+#~ msgstr "di chuyển"
+
+#~ msgid "part selection"
+#~ msgstr "chọn phần"
+
 #~ msgid "Filament remapping finished."
 #~ msgstr "Ánh xạ lại filament hoàn tất."
 
@@ -21261,11 +21345,11 @@ msgstr ""
 #~ "tự động."
 
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
-#~ "Nhiệt độ tối thiểu khuyến nghị nhỏ hơn 190°C hoặc nhiệt độ tối đa khuyến "
-#~ "nghị lớn hơn 300°C.\n"
+#~ "Nhiệt độ tối thiểu khuyến nghị nhỏ hơn 190℃ hoặc nhiệt độ tối đa khuyến "
+#~ "nghị lớn hơn 300℃.\n"
 
 #~ msgid ""
 #~ "Spiral mode only works when wall loops is 1, support is disabled, top "

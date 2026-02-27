@@ -1,0 +1,74 @@
+{
+    "type": "filament",
+    "name": "Elegoo PETG Pro @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "OGFE02",
+    "instantiation": "false",
+    "filament_cost": [
+        "12.49"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_retraction_speed": [
+        "45"
+    ],
+    "filament_deretraction_speed": [
+        "45"
+    ],
+    "filament_vendor": [
+        "Elegoo"
+    ],
+    "nozzle_temperature": [
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "260"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "textured_plate_temp": [
+        "75"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "75"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "fan_cooling_layer_time": [
+        "20"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ]
+}
