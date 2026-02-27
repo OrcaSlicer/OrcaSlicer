@@ -4638,16 +4638,16 @@ msgid "Line Width"
 msgstr "Ширина лінії"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Фактична швидкість"
 
 msgid "Fan Speed"
-msgstr "Швидкість Вентилятора"
+msgstr "Скорость охлаждения"
 
 msgid "Flow"
 msgstr "Потік"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Фактичний потік"
 
 msgid "Tool"
 msgstr "Інструмент"
@@ -4782,7 +4782,7 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Фактична швидкість: "
 
 msgid "Statistics of All Plates"
 msgstr "Статистика всіх пластин"
@@ -4896,7 +4896,7 @@ msgid "Speed (mm/s)"
 msgstr "Швидкість (мм/с)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Фактична швидкість (мм/с)"
 
 msgid "Fan Speed (%)"
 msgstr "Швидкість Вентилятора (%)"
