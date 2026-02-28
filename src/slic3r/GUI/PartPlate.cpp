@@ -3241,7 +3241,7 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
         shader->stop_using();
     }
 
-    if (show_grid)
+    if (wxGetApp().show_plate_gridlines() && show_grid)
         render_grid(bottom);
 
     if (!bottom && m_selected && !force_background_color) {
