@@ -185,5 +185,6 @@
     "scan_first_layer": "0",
     "nozzle_type": "undefine",
     "auxiliary_fan": "0",
-    "default_bed_type": "Textured PEI Plate"
+    "default_bed_type": "Textured PEI Plate",
+    "printer_agent": "snapmaker"
 }

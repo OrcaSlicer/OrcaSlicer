@@ -69,5 +69,6 @@
     "thumbnails_format": "PNG",
     "thumbnail_size": [
         "50x50"
-    ]
+    ],
+    "printer_agent": "qidi"
 }

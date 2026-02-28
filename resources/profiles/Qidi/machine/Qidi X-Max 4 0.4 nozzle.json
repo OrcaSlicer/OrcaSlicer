@@ -40,5 +40,6 @@
     "retract_lift_below": ["339"],
     "support_box_temp_control": "1",
     "thumbnail_size": ["50x50"],
-    "fan_direction": "left"
+    "fan_direction": "left",
+    "printer_agent": "qidi"
 }
