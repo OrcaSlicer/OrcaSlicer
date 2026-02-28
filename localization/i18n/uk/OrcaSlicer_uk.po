@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -5678,6 +5678,12 @@ msgstr "Показати 3D-навігатор"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Показати 3D-навігатор у сцені підготовки та попереднього перегляду"
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Glidlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Скинути розташування вікон"

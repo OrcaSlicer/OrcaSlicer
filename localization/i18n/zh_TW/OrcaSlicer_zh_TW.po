@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -5629,6 +5629,12 @@ msgstr "顯示 3D 導覽器"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "在準備與預覽分頁中顯示 3D 導覽器"
+
+msgid "Show Gridlines"
+msgstr "顯示網格線"
+
+msgid "Show Glidlines on plate"
+msgstr "顯示列印板上的網格線"
 
 msgid "Reset Window Layout"
 msgstr "重設視窗配置"

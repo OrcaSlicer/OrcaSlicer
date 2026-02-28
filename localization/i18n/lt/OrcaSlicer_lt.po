@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -5697,6 +5697,12 @@ msgstr "Rodyti 3D navigatorių"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Rodyti 3D navigatorių paruošimo ir peržiūros scenose."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Glidlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Atstatyti lango išdėstymą"

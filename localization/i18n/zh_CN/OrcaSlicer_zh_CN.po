@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2026-02-28 00:59\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -5559,6 +5559,12 @@ msgstr "显示3D导航器"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "显示3D导航器"
+
+msgid "Show Gridlines"
+msgstr "显示网格线"
+
+msgid "Show Glidlines on plate"
+msgstr "在盘上显示网格线"
 
 msgid "Reset Window Layout"
 msgstr "重置窗口布局"

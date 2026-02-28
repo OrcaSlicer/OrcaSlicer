@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5691,6 +5691,12 @@ msgstr "Mostrar el navegador 3D"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Mostrar el navegador 3D en Preparació i Previsualització"
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Glidlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Restableix el disseny de la finestra"

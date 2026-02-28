@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -5661,6 +5661,12 @@ msgstr "3D Gezgini Göster"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Hazırlama ve Önizleme sahnesinde 3D gezgini göster."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Glidlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Pencere Düzenini Sıfırla"

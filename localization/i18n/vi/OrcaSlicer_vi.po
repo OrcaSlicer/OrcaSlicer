@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 18:25+0800\n"
+"POT-Creation-Date: 2026-03-01 00:19+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -5610,6 +5610,12 @@ msgstr "Hiện điều hướng 3D"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Hiện điều hướng 3D trong cảnh chuẩn bị và xem trước."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Glidlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Đặt lại bố cục cửa sổ"
