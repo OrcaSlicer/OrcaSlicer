@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 00:19+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -5373,6 +5373,31 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr "Показать текущий объект"
 
+# ??? Отсюда и далее – несорт (ещё не добавлены разработчиками в файл en-локализации). Закомментированные – подвержены багу кодировки (#4042)
+msgid "3D Navigator"
+msgstr "Навигатор видов"
+
+msgid "Zoom button"
+msgstr "Кнопка поиска объекта"
+
+msgid "Overhangs"
+msgstr "Нависания"
+
+msgid "Outline"
+msgstr "Подсветка выбранного"
+
+msgid "Perspective"
+msgstr "Перспектива"
+
+msgid "Axes"
+msgstr "Оси координат"
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr "Имена моделей"
+
 msgid "Paint Toolbar"
 msgstr "Панель рисования"
 
@@ -9883,9 +9908,6 @@ msgstr "Периметры и поверхности"
 
 msgid "Bridging"
 msgstr "Мосты"
-
-msgid "Overhangs"
-msgstr "Нависания"
 
 msgid "Walls"
 msgstr "Периметры"
@@ -22598,25 +22620,6 @@ msgstr ""
 
 #~ msgid "part selection"
 #~ msgstr "Выбрать часть"
-
-# ??? Отсюда и далее – несорт (ещё не добавлены разработчиками в файл en-локализации). Закомментированные – подвержены багу кодировки (#4042)
-#~ msgid "3D Navigator"
-#~ msgstr "Навигатор видов"
-
-#~ msgid "Zoom button"
-#~ msgstr "Кнопка поиска объекта"
-
-#~ msgid "Outline"
-#~ msgstr "Подсветка выбранного"
-
-#~ msgid "Perspective"
-#~ msgstr "Перспектива"
-
-#~ msgid "Labels"
-#~ msgstr "Имена моделей"
-
-#~ msgid "Axes"
-#~ msgstr "Оси координат"
 
 #~ msgid "Feature type"
 #~ msgstr "Тип линии"

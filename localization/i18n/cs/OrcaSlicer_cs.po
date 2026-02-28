@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 00:19+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2026-02-11 20:30+0100\n"
 "Last-Translator: Jakub Hencl <jakub.hencl@seznam.cz> René Mošner "
 "<Renemosner@seznam.cz>\n"
@@ -5454,6 +5454,30 @@ msgstr "Nástrojová lišta plátna"
 msgid "Fit camera to scene or selected object."
 msgstr "Přizpůsobit kameru scéně nebo vybranému objektu."
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Převisy"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Panel nástrojů malování"
 
@@ -10083,9 +10107,6 @@ msgstr "Stěny a povrchy"
 
 msgid "Bridging"
 msgstr "Přemostění"
-
-msgid "Overhangs"
-msgstr "Převisy"
 
 msgid "Walls"
 msgstr "Stěny"

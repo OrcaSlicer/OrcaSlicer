@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 00:19+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -5125,6 +5125,30 @@ msgstr "畫布工具列"
 msgid "Fit camera to scene or selected object."
 msgstr "將攝影機對齊場景或選取的物件"
 
+msgid "3D Navigator"
+msgstr "3D 導覽器"
+
+msgid "Zoom button"
+msgstr "縮放按鈕"
+
+msgid "Overhangs"
+msgstr "懸空"
+
+msgid "Outline"
+msgstr "輪廓線"
+
+msgid "Perspective"
+msgstr "透視"
+
+msgid "Axes"
+msgstr "座標軸"
+
+msgid "Gridlines"
+msgstr "網格線"
+
+msgid "Labels"
+msgstr "標籤"
+
 msgid "Paint Toolbar"
 msgstr "上色工具列"
 
@@ -9374,9 +9398,6 @@ msgstr "牆與表面"
 
 msgid "Bridging"
 msgstr "橋接"
-
-msgid "Overhangs"
-msgstr "懸空"
 
 msgid "Walls"
 msgstr "牆"

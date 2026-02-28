@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 00:19+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2026-02-28 00:59\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -5056,6 +5056,30 @@ msgstr "画布工具栏"
 msgid "Fit camera to scene or selected object."
 msgstr "让相机适合场景或选定的对象。"
 
+msgid "3D Navigator"
+msgstr "3D 导航器"
+
+msgid "Zoom button"
+msgstr "缩放按钮"
+
+msgid "Overhangs"
+msgstr "悬垂"
+
+msgid "Outline"
+msgstr "轮廓线"
+
+msgid "Perspective"
+msgstr "透视"
+
+msgid "Axes"
+msgstr "坐标轴"
+
+msgid "Gridlines"
+msgstr "网格线"
+
+msgid "Labels"
+msgstr "标签"
+
 msgid "Paint Toolbar"
 msgstr "上色工具条"
 
@@ -9272,9 +9296,6 @@ msgstr "墙壁和表面"
 
 msgid "Bridging"
 msgstr "搭桥"
-
-msgid "Overhangs"
-msgstr "悬垂"
 
 msgid "Walls"
 msgstr "墙"
