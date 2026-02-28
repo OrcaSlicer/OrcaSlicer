@@ -20,7 +20,7 @@
     "inner_wall_acceleration": "500",
     "outer_wall_acceleration": "500",
     "bridge_no_support": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0.2",
     "outer_wall_line_width": "0.42",
     "wall_infill_order": "inner wall/outer wall/infill",

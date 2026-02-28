@@ -24,7 +24,7 @@
     "outer_wall_acceleration": "3000",
     "top_surface_acceleration": "3000",
     "bridge_no_support": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0.05",
     "enable_arc_fitting": "0",
     "precise_outer_wall": "1",

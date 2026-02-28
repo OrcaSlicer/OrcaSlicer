@@ -2515,6 +2515,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_threshold_overlap", "support_settings_support#threshold-overlap");
         optgroup->append_single_option_line("raft_first_layer_density", "support_settings_support#initial-layer-density");
         optgroup->append_single_option_line("raft_first_layer_expansion", "support_settings_support#initial-layer-expansion");
+        optgroup->append_single_option_line("additional_base_layers", "support_settings_support");
         optgroup->append_single_option_line("support_on_build_plate_only", "support_settings_support#on-build-plate-only");
         optgroup->append_single_option_line("support_critical_regions_only", "support_settings_support#support-critical-regions-only");
         optgroup->append_single_option_line("support_remove_small_overhang", "support_settings_support#ignore-small-overhangs");

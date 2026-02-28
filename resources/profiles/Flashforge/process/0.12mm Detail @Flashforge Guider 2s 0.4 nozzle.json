@@ -16,7 +16,7 @@
     "brim_object_gap": "0.1",
     "default_acceleration": "200",
     "detect_overhang_wall": "1",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0.15",
     "enable_support": "1",
     "filename_format": "{input_filename_base}_{filament_type[0]}_{print_time}.gcode",

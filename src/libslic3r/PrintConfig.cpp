@@ -413,11 +413,6 @@ static const t_config_enum_values s_keys_map_SkirtType = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SkirtType)
 
-static const t_config_enum_values s_keys_map_DraftShield = {
-    { "disabled", dsDisabled },
-    { "enabled",  dsEnabled  }
-};
-CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(DraftShield)
 
 static const t_config_enum_values s_keys_map_ForwardCompatibilitySubstitutionRule = {
     { "disable",        ForwardCompatibilitySubstitutionRule::Disable },
@@ -4702,6 +4697,22 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(INITIAL_RAFT_LAYERS));
 
+    def = this->add("additional_base_layers", coInt);
+    def->label = L("Additional base layers");
+    def->category = L("Support");
+    def->tooltip = L("Extra foundation layers added at the bottom of support and raft "
+                     "structures on the build plate. These layers use the initial layer "
+                     "density but do not expand horizontally.");
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->enum_values.push_back("0");
+    def->enum_values.push_back("1");
+    def->enum_values.push_back("2");
+    def->enum_values.push_back("3");
+    def->min = 0;
+    def->max = 3;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("resolution", coFloat);
     def->label = L("Resolution");
     def->tooltip = L("The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. "
@@ -5235,20 +5246,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("draft_shield", coEnum);
+    def = this->add("draft_shield", coBool);
     def->label = L("Draft shield");
     def->tooltip = L("A draft shield is useful to protect an ABS or ASA print from warping and detaching from print bed due to wind draft. "
                      "It is usually needed only with open frame printers, i.e. without an enclosure.\n\n"
                      "Enabled = skirt is as tall as the highest printed object. Otherwise 'Skirt height' is used.\n"
                      "Note: With the draft shield active, the skirt will be printed at skirt distance from the object. "
                      "Therefore, if brims are active it may intersect with them. To avoid this, increase the skirt distance value.\n");
-    def->enum_keys_map = &ConfigOptionEnum<DraftShield>::get_enum_values();
-    def->enum_values.push_back("disabled");
-    def->enum_values.push_back("enabled");
-    def->enum_labels.push_back(L("Disabled"));
-    def->enum_labels.push_back(L("Enabled"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<DraftShield>(dsDisabled));
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("skirt_type", coEnum);
     def->label = L("Skirt type");
@@ -7612,8 +7618,11 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "0";
     } else if (opt_key == "counterbole_hole_bridging") {
         opt_key = "counterbore_hole_bridging";
-    } else if (opt_key == "draft_shield" && value == "limited") {
-        value = "disabled";
+    } else if (opt_key == "draft_shield") {
+        if (value == "disabled" || value == "limited")
+            value = "0";
+        else if (value == "enabled")
+            value = "1";
     } else if ((opt_key == "sparse_infill_pattern"         ||
                 opt_key == "top_surface_pattern"           ||
                 opt_key == "bottom_surface_pattern"        ||
@@ -10808,7 +10817,7 @@ bool has_skirt(const DynamicPrintConfig& cfg)
     auto opt_skirt_loops = cfg.option("skirt_loops");
     auto opt_draft_shield = cfg.option("draft_shield");
     return (opt_skirt_height && opt_skirt_height->getInt() > 0 && opt_skirt_loops && opt_skirt_loops->getInt() > 0)
-        || (opt_draft_shield && opt_draft_shield->getInt() != dsDisabled);
+        || (opt_draft_shield && opt_draft_shield->getBool());
 }
 float get_real_skirt_dist(const DynamicPrintConfig& cfg) {
     return has_skirt(cfg) ? cfg.opt_float("skirt_distance") : 0;

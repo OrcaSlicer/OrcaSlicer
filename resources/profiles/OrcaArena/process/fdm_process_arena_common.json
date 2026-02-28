@@ -19,7 +19,7 @@
     "print_sequence": "by layer",
     "default_acceleration": "10000",
     "bridge_no_support": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0",
     "enable_arc_fitting": "1",
     "outer_wall_line_width": "0.42",

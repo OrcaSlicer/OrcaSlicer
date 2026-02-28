@@ -30,7 +30,7 @@
     "default_jerk": "0",
     "detect_overhang_wall": "1",
     "detect_thin_wall": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0.12",
     "elefant_foot_compensation_layers": "1",
     "enable_arc_fitting": "1",

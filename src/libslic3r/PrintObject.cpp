@@ -1149,6 +1149,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "raft_expansion"
             || opt_key == "raft_first_layer_density"
             || opt_key == "raft_first_layer_expansion"
+            || opt_key == "additional_base_layers"
             || opt_key == "bridge_no_support"
             || opt_key == "max_bridge_length"
             || opt_key == "initial_layer_line_width"

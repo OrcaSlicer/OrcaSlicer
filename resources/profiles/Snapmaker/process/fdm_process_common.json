@@ -50,7 +50,7 @@
     "max_travel_detour_distance": "0",
     "wipe_tower_no_sparse_layers": "0",
     "wipe_tower_max_purge_speed": "55",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "independent_support_layer_height": "1",
     "interface_shells": "0",
     "max_bridge_length": "10",

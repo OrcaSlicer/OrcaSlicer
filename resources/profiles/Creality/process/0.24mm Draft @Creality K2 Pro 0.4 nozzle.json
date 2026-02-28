@@ -19,7 +19,7 @@
     ],
     "default_acceleration": "12000",
     "bridge_no_support": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0.15",
     "outer_wall_line_width": "0.42",
     "outer_wall_speed": "200",

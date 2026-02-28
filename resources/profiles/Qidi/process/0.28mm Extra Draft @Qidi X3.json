@@ -16,7 +16,7 @@
     "compatible_printers_condition": "",
     "print_sequence": "by layer",
     "bridge_no_support": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "wall_infill_order": "inner wall/outer wall/infill",
     "line_width": "0.42",
     "infill_direction": "45",

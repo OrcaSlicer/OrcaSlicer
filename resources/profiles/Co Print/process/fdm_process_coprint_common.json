@@ -95,7 +95,7 @@
     "extra_perimeters_on_overhangs": "0",
     "bottom_solid_infill_flow_ratio": "1",
     "top_solid_infill_flow_ratio": "1",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "brim_type": "no_brim",
     "exclude_object": "1",
     "inner_wall_acceleration": "3000",

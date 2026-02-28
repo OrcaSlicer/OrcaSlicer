@@ -49,7 +49,7 @@
     "compatible_printers_condition": "",
     "print_sequence": "by layer",
     "bridge_no_support": "0",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "elefant_foot_compensation": "0",
     "enable_arc_fitting": "0",
     "wall_infill_order": "inner wall/outer wall/infill",

@@ -82,7 +82,7 @@
     "gap_fill_target": "nowhere",
     "skirt_loops": "3",
     "skirt_speed": "50",
-    "draft_shield": "disabled",
+    "draft_shield": "0",
     "brim_type": "no_brim",
     "exclude_object": "1",
     "inner_wall_acceleration": "3000",

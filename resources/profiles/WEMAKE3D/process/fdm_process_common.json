@@ -26,7 +26,7 @@
   "outer_wall_acceleration": "2500",
   "slow_down_layers": "2",
   "bridge_no_support": "0",
-  "draft_shield": "disabled",
+  "draft_shield": "0",
   "elefant_foot_compensation": "1",
   "enable_arc_fitting": "1",
   "wall_infill_order": "inner wall/outer wall/infill",

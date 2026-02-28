@@ -1523,17 +1523,19 @@ void TreeSupport::generate_toolpaths()
                     }
                     else {
                         // base_areas
+                        bool is_additional_base = (m_raft_layers == 0 && m_object_config->additional_base_layers.value > 0 &&
+                                                   layer_id > 0 && layer_id <= (size_t)m_object_config->additional_base_layers.value);
                         Flow flow               = (layer_id == 0 && m_raft_layers == 0) ? m_object->print()->brim_flow() : support_flow;
                         bool need_infill = with_infill;
                         if(m_object_config->support_base_pattern==smpDefault)
                             need_infill &= area_group.need_infill;
-                        std::shared_ptr<Fill> filler_support = std::shared_ptr<Fill>(Fill::new_from_type(layer_id == 0 ? ipConcentric : m_support_params.base_fill_pattern));
+                        std::shared_ptr<Fill> filler_support = std::shared_ptr<Fill>(Fill::new_from_type((layer_id == 0 || is_additional_base) ? ipConcentric : m_support_params.base_fill_pattern));
                         filler_support->set_bounding_box(bbox_object);
                         filler_support->spacing = support_spacing * support_density; // constant spacing to align support infill lines
                         filler_support->angle = Geometry::deg2rad(object_config.support_angle.value);
 
                         Polygons loops = to_polygons(poly);
-                        if (layer_id == 0) {
+                        if (layer_id == 0 || is_additional_base) {
                             float density = float(m_object_config->raft_first_layer_density.value * 0.01);
                             fill_expolygons_with_sheath_generate_paths(ts_layer->support_fills.entities, loops, filler_support.get(), density, erSupportMaterial, flow,
                                                                        m_support_params, true, false);

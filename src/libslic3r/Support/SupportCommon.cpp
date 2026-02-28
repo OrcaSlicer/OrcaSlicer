@@ -361,6 +361,11 @@ SupportGeneratorLayersPtr generate_raft_base(
             new_layer.contact_polygons = std::make_unique<Polygons>(columns);
         }
     } else {
+        // Save original support column footprint before first-layer expansion
+        Polygons columns_original;
+        if (columns_base != nullptr)
+            columns_original = columns_base->polygons;
+
         if (columns_base != nullptr) {
             // Expand the bases of the support columns in the 1st layer.
             Polygons &raft     = columns_base->polygons;
@@ -391,6 +396,20 @@ SupportGeneratorLayersPtr generate_raft_base(
                 interfaces->polygons = diff(interfaces->polygons, brim);
             if (base_interfaces)
                 base_interfaces->polygons = diff(base_interfaces->polygons, brim);
+        }
+        // Add additional base layers for non-raft support (raft_layers == 0)
+        size_t additional = object.config().additional_base_layers.value;
+        if (additional > 0 && ! columns_original.empty()) {
+            coordf_t previous_z = columns_base ? columns_base->print_z : slicing_params.first_print_layer_height;
+            for (size_t i = 0; i < additional; ++ i) {
+                SupportGeneratorLayer &new_layer = layer_storage.allocate(SupporLayerType::Base);
+                new_layer.print_z  = previous_z + slicing_params.layer_height;
+                new_layer.height   = slicing_params.layer_height;
+                new_layer.bottom_z = previous_z;
+                new_layer.polygons = columns_original;
+                raft_layers.push_back(&new_layer);
+                previous_z = new_layer.print_z;
+            }
         }
     }
 
@@ -1732,8 +1751,11 @@ void generate_support_toolpaths(
                 bool  sheath  = support_params.with_sheath;
                 bool  no_sort = false;
                 bool  done    = false;
-                if (base_layer.layer->bottom_z < EPSILON) {
-                    // Base flange (the 1st layer).
+                if (base_layer.layer->bottom_z < EPSILON ||
+                    (! slicing_params.has_raft() && config.additional_base_layers.value > 0 &&
+                     base_layer.layer->print_z < slicing_params.first_print_layer_height +
+                         config.additional_base_layers.value * slicing_params.layer_height + EPSILON)) {
+                    // Base flange (the 1st layer or additional base layers).
                     filler = filler_first_layer;
                     filler->angle = Geometry::deg2rad(float(config.support_angle.value + 90.));
                     density = float(config.raft_first_layer_density.value * 0.01);
