@@ -6,9 +6,10 @@ orcaslicer_add_cmake_project(
   GLEW
   URL https://sourceforge.net/projects/glew/files/glew/2.3.1/glew-2.3.1.zip
   URL_HASH SHA256=09E0083AE46930ABA9B53E72C92EE1A557E24ED393526FEC26CB0EBABD834720
+  SOURCE_SUBDIR build/cmake
   CMAKE_ARGS
     -DBUILD_UTILS=OFF
-    -DGLEW_USE_EGL=OFF
+    -DGLEW_EGL=OFF
 )
 
 if (MSVC)
