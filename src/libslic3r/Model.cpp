@@ -382,7 +382,7 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
     Model model;
 
     bool result = false;
-    bool is_bbl_3mf;
+    bool is_bbl_3mf = false;
     bool is_orca_3mf = false;
     if (boost::algorithm::iends_with(input_file, ".3mf")) {
         PrusaFileParser prusa_file_parser;
