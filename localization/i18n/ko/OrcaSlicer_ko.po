@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -435,7 +435,7 @@ msgstr ""
 msgid "Size"
 msgstr "크기"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "균일 배율"
 
 msgid "Planar"
@@ -693,7 +693,7 @@ msgstr "커넥터"
 msgid "Cut by Plane"
 msgstr "평면으로 자르기"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "절단 도구로 인해 메인폴드가 아닌 가장자리가 발생했는데 지금 수정하시겠습니까?"
 
@@ -2232,31 +2232,37 @@ msgstr ""
 msgid "Select All"
 msgstr "모두 선택"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "현재 플레이트의 모든 객체 선택"
+
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
 
 msgid "Delete All"
 msgstr "모두 삭제"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "현재 플레이트의 모든 객체 삭제"
 
 msgid "Arrange"
 msgstr "정렬"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "현재 플레이트 정렬"
 
 msgid "Reload All"
 msgstr "모두 다시 불러오기"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "디스크에서 모두 다시 로드"
 
 msgid "Auto Rotate"
 msgstr "자동 회전"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "현재 플레이트 자동 정렬"
 
 msgid "Delete Plate"
@@ -2562,7 +2568,8 @@ msgstr "높이 범위 추가"
 msgid "Invalid numeric."
 msgstr "잘못된 숫자입니다."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "하나의 셀은 동일한 열에 있는 하나 이상의 셀에만 복사할 수 있습니다"
 
 msgid "Copying multiple cells is not supported."
@@ -2815,9 +2822,9 @@ msgid "Top"
 msgstr "위"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3648,8 +3655,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3674,13 +3680,12 @@ msgstr ""
 "확인한 후 다시 시도하세요."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"플러그인을 설치하지 못했습니다. 안티바이러스 소프트웨어에 의해 차단 또는 삭제"
-"되었는지 확인하세요."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "자세한 내용을 보려면 여기를 클릭하세요"
 
 msgid ""
@@ -4195,7 +4200,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4473,6 +4478,12 @@ msgstr "프린터 설정"
 msgid "parameter name"
 msgstr "매개변수 이름"
 
+msgid "Range"
+msgstr "범위"
+
+msgid "Value is out of range."
+msgstr "값이 범위를 벗어났습니다."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s 는 백분율일 수 없습니다"
@@ -4487,9 +4498,6 @@ msgstr "매개변수 유효성 검사"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "값 %s이 범위를 벗어났습니다. 유효한 범위는 %d에서 %d까지입니다."
-
-msgid "Value is out of range."
-msgstr "값이 범위를 벗어났습니다."
 
 #, c-format, boost-format
 msgid ""
@@ -4541,7 +4549,7 @@ msgid "Line Width"
 msgstr "선 너비"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "실제 속도"
 
 msgid "Fan Speed"
 msgstr "팬 속도"
@@ -4550,7 +4558,7 @@ msgid "Flow"
 msgstr "압출량"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "실제 흐름"
 
 msgid "Tool"
 msgstr "툴"
@@ -4560,6 +4568,9 @@ msgstr "레이어 시간"
 
 msgid "Layer Time (log)"
 msgstr "레이어 시간 (log)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4648,9 +4659,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "팬 속도"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "시간"
 
@@ -4685,6 +4693,9 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
+msgstr "실제 속도: "
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4799,13 +4810,13 @@ msgid "Speed (mm/s)"
 msgstr "속도 (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "실제 속도 (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "팬 속도 (%)"
 
-msgid "Temperature (°C)"
-msgstr "온도 (°C)"
+msgid "Temperature (℃)"
+msgstr "온도 (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "압출 압출량 (mm³/s)"
@@ -4821,9 +4832,6 @@ msgstr "필라멘트 변경"
 
 msgid "Options"
 msgstr "옵션"
-
-msgid "travel"
-msgstr "이동"
 
 msgid "Extruder"
 msgstr "압출기"
@@ -4919,16 +4927,13 @@ msgstr "편집 영역 증가/감소"
 msgid "Sequence"
 msgstr "순서"
 
-msgid "object selection"
-msgstr ""
-
-msgid "part selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5160,7 +5165,7 @@ msgid "Only the object being edited is visible."
 msgstr "편집 중인 객체만 표시됩니다."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6309,7 +6314,7 @@ msgstr "레이어: %d/%d"
 
 #, fuzzy
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "필라멘트를 로드하거나 언로드하기 전에 노즐을 170도 이상으로 가열하세요."
 
@@ -6419,7 +6424,7 @@ msgstr "출력 결과를 동기화하는 중입니다. 몇 초 후에 다시 시
 msgid "Upload failed\n"
 msgstr "업로드 실패\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "instance_id를 가져오지 못했습니다.\n"
 
 msgid ""
@@ -6692,9 +6697,6 @@ msgstr "잘라내기 커넥터"
 
 msgid "Layers"
 msgstr "레이어"
-
-msgid "Range"
-msgstr "범위"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
@@ -7414,7 +7416,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -7444,13 +7446,14 @@ msgstr "프로젝트 저장"
 msgid "Importing Model"
 msgstr "모델 가져오는 중"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "3mf 파일 준비..."
 
 msgid "Download failed, unknown file format."
 msgstr "다운로드에 실패했습니다. 파일 형식을 알 수 없습니다."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "프로젝트 다운로드 중 ..."
 
 msgid "Download failed, File size exception."
@@ -7952,6 +7955,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7963,9 +7978,6 @@ msgid ""
 "same time and manage multiple devices."
 msgstr ""
 "활성화하면 여러 장치에 동시에 작업을 보내고 여러 장치를 관리할 수 있습니다."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -8332,10 +8344,10 @@ msgstr "PRE host: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "제품 호스트"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "디버그 저장 버튼"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "디버그 설정 저장"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8625,7 +8637,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "전송 완료"
 
 msgid "Error code"
@@ -8766,7 +8778,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9177,7 +9189,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
@@ -10417,7 +10429,7 @@ msgstr "선택 항목을 +X 방향으로 10mm 이동"
 msgid "Movement step set to 1 mm"
 msgstr "1mm로 이동"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "키보드 1-9: 객체/부품에 필라멘트 할당"
 
 msgid "Camera view - Default"
@@ -13360,6 +13372,49 @@ msgstr ""
 "생 객체로 청소하기 전에 Orca Slicer은 항상 이 양의 재료를 프라임 타워로 프라"
 "이밍하여 연속적인 채우기 또는 희생 물체 압출을 안정적으로 생성합니다."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "마지막 냉각 이동 속도"
 
@@ -13908,8 +13963,8 @@ msgstr ""
 "벽을 출력하는 동안 무작위로 지터가 발생하여 표면이 거칠게 보입니다. 이 설정"
 "은 퍼지 위치를 제어합니다"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "도색만"
 
 msgid "Contour"
 msgstr "윤곽"
@@ -15101,9 +15156,6 @@ msgid ""
 msgstr ""
 "원뿔형 재료로 채워지기 전에 모델 베이스에 있는 구멍의 최대 면적입니다. 값이 0"
 "이면 모델 베이스의 모든 구멍이 채워집니다."
-
-msgid "mm²"
-msgstr "mm²"
 
 msgid "Detect overhang wall"
 msgstr "오버행 벽 감지"
@@ -16729,6 +16781,23 @@ msgstr ""
 msgid "The wall of prime tower will skip the start points of wipe path."
 msgstr ""
 
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
+msgstr ""
+
 msgid "Infill gap"
 msgstr ""
 
@@ -18270,7 +18339,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "플레이트 타입"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "필라멘트 위치"
 
 msgid "Filament For Calibration"
@@ -19203,7 +19272,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 "프린터와 프린터에 속한 모든 필라멘트 및 프로세스 사전 설정.\n"
@@ -20052,7 +20122,7 @@ msgstr "작업 내역이 없습니다!"
 msgid "Upgrading"
 msgstr "업그레이드 하기"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "동기화"
 
 msgid "Printing Finish"
@@ -20658,6 +20728,19 @@ msgstr ""
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 "
 "높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "플러그인을 설치하지 못했습니다. 안티바이러스 소프트웨어에 의해 차단 또는 "
+#~ "삭제되었는지 확인하세요."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "이동"
+
 #~ msgid "Replace with STL"
 #~ msgstr "STL 파일로 교체"
 
@@ -20826,8 +20909,8 @@ msgstr ""
 
 #, fuzzy
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
 #~ "권장 최저 온도는 190도 미만 또는 권장 최고 온도는 300도 이상입니다.\n"
 
@@ -22882,7 +22965,7 @@ msgstr ""
 #~ "예   - 자동으로 직선 패턴으로 전환합니다\n"
 #~ "아니요 - 밀도를 기본값(100%가 아닌 값)으로 자동 재설정합니다"
 
-#~ msgid "Please heat the nozzle to above 170°C before loading filament."
+#~ msgid "Please heat the nozzle to above 170℃ before loading filament."
 #~ msgstr "필라멘트를 로드하기 전에 노즐을 170도 이상으로 가열하십시오."
 
 #~ msgid "Show G-code window"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-02-28 00:02+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -429,7 +429,7 @@ msgstr ""
 msgid "Size"
 msgstr ""
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr ""
 
 msgid "Planar"
@@ -684,7 +684,7 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr ""
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 
 msgid "Repairing model object"
@@ -2173,31 +2173,37 @@ msgstr ""
 msgid "Select All"
 msgstr ""
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
+msgstr ""
+
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
 msgstr ""
 
 msgid "Delete All"
 msgstr ""
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr ""
 
 msgid "Arrange"
 msgstr ""
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr ""
 
 msgid "Reload All"
 msgstr ""
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr ""
 
 msgid "Auto Rotate"
 msgstr ""
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr ""
 
 msgid "Delete Plate"
@@ -2499,7 +2505,7 @@ msgstr ""
 msgid "Invalid numeric."
 msgstr ""
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 
 msgid "Copying multiple cells is not supported."
@@ -2750,9 +2756,9 @@ msgid "Top"
 msgstr ""
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3534,8 +3540,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3558,11 +3563,12 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr ""
 
 msgid ""
@@ -4014,7 +4020,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4289,6 +4295,12 @@ msgstr ""
 msgid "parameter name"
 msgstr ""
 
+msgid "Range"
+msgstr ""
+
+msgid "Value is out of range."
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid "%s can't be a percentage"
 msgstr ""
@@ -4302,9 +4314,6 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
-msgstr ""
-
-msgid "Value is out of range."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -4372,6 +4381,9 @@ msgid "Layer Time"
 msgstr ""
 
 msgid "Layer Time (log)"
+msgstr ""
+
+msgid "Pressure Advance"
 msgstr ""
 
 msgid "Noop"
@@ -4461,9 +4473,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr ""
 
-msgid "°C"
-msgstr ""
-
 msgid "Time"
 msgstr ""
 
@@ -4498,6 +4507,9 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
+msgstr ""
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4617,7 +4629,7 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr ""
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr ""
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -4633,9 +4645,6 @@ msgid "Filament Changes"
 msgstr ""
 
 msgid "Options"
-msgstr ""
-
-msgid "travel"
 msgstr ""
 
 msgid "Extruder"
@@ -4732,16 +4741,13 @@ msgstr ""
 msgid "Sequence"
 msgstr ""
 
-msgid "object selection"
-msgstr ""
-
-msgid "part selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -4971,7 +4977,7 @@ msgid "Only the object being edited is visible."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6093,7 +6099,7 @@ msgid "Layer: %d/%d"
 msgstr ""
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
@@ -6198,7 +6204,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr ""
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr ""
 
 msgid ""
@@ -6455,9 +6461,6 @@ msgid "Cut connectors"
 msgstr ""
 
 msgid "Layers"
-msgstr ""
-
-msgid "Range"
 msgstr ""
 
 msgid ""
@@ -7141,7 +7144,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -7168,13 +7171,13 @@ msgstr ""
 msgid "Importing Model"
 msgstr ""
 
-msgid "prepare 3MF file..."
+msgid "Preparing 3MF file..."
 msgstr ""
 
 msgid "Download failed, unknown file format."
 msgstr ""
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr ""
 
 msgid "Download failed, File size exception."
@@ -7654,6 +7657,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7663,9 +7678,6 @@ msgstr ""
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
-msgstr ""
-
-msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -8015,10 +8027,10 @@ msgstr ""
 msgid "Product host"
 msgstr ""
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr ""
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr ""
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8307,7 +8319,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr ""
 
 msgid "Error code"
@@ -8438,7 +8450,7 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -8818,7 +8830,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
@@ -9962,7 +9974,7 @@ msgstr ""
 msgid "Movement step set to 1 mm"
 msgstr ""
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr ""
 
 msgid "Camera view - Default"
@@ -12404,6 +12416,49 @@ msgid ""
 "tower to produce successive infill or sacrificial object extrusions reliably."
 msgstr ""
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr ""
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr ""
 
@@ -12894,7 +12949,7 @@ msgid ""
 "look. This setting controls the fuzzy position."
 msgstr ""
 
-msgid "None (allow paint)"
+msgid "Painted only"
 msgstr ""
 
 msgid "Contour"
@@ -13923,9 +13978,6 @@ msgstr ""
 msgid ""
 "Maximum area of a hole in the base of the model before it's filled by "
 "conical material. A value of 0 will fill all the holes in the model base."
-msgstr ""
-
-msgid "mm²"
 msgstr ""
 
 msgid "Detect overhang wall"
@@ -15297,6 +15349,23 @@ msgstr ""
 msgid "The wall of prime tower will skip the start points of wipe path."
 msgstr ""
 
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
+msgstr ""
+
 msgid "Infill gap"
 msgstr ""
 
@@ -16657,7 +16726,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr ""
 
-msgid "filament position"
+msgid "Filament position"
 msgstr ""
 
 msgid "Filament For Calibration"
@@ -17533,7 +17602,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 
@@ -18291,7 +18361,7 @@ msgstr ""
 msgid "Upgrading"
 msgstr ""
 
-msgid "syncing"
+msgid "Syncing"
 msgstr ""
 
 msgid "Printing Finish"
