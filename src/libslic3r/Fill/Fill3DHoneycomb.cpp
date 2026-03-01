@@ -125,6 +125,76 @@ static inline Pointfs zip(const std::vector<coordf_t> &x, const std::vector<coor
     return out;
 }
 
+// Add additional dense fill in line with the pattern direction to
+// cover the top squares of the pattern
+
+static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing)
+{
+  float pointsPerSquare = 10;
+  coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
+  coordf_t zHalfCycle = fmod(zCycle, 0.5) * 2.;
+  bool printVert = zCycle < 0.5;
+  coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
+  Polylines lines;
+  size_t pointCount = 0;
+  // top cover extents in the direction of travel
+  coordf_t gridStartL = gridSize * 0.25 - spacing / 2.0;
+  coordf_t gridEndL = gridSize * 0.75 + spacing / 2.0;
+  // top cover extents perpendicular to the direction of travel
+  coordf_t gridStartP = gridSize * 0.25 + spacing / 2.0;
+  coordf_t gridEndP = gridSize * 0.75 - spacing / 2.0;
+  coordf_t x, y;
+  int xm, ym;
+  if(printVert){
+    for (x = 0, xm = 0; x <= (boundsX); x+= gridSize, xm = xm ^ 1) {
+      for (y = 0, ym = 0; y <= (boundsY); y += gridSize, ym = ym ^ 1) {
+        if((xm ^ ym) == 1){
+          continue;
+        }
+        Polyline newPoints;
+        int dirMod = xm ^ ym;
+        if(y < boundsY){
+          for(coordf_t xi = gridStartP; xi < gridEndP; xi += spacing, dirMod = dirMod ^ 1){
+            if(dirMod == 0){
+              newPoints.points.push_back(Point(x + xi, y + gridStartL));
+              newPoints.points.push_back(Point(x + xi, y + gridEndL));
+            } else {
+              newPoints.points.push_back(Point(x + xi, y + gridEndL));
+              newPoints.points.push_back(Point(x + xi, y + gridStartL));
+            }
+            pointCount += 2;
+          }
+        }
+        lines.push_back(newPoints);
+      }
+    }
+  } else {
+    for (y = 0, ym = 0; y <= (boundsY); y += gridSize, ym = ym ^ 1) {
+      for (x = 0, xm = 0; x <= (boundsX); x+= gridSize, xm = xm ^ 1) {
+        if((xm ^ ym) == 0){
+          continue;
+        }
+        Polyline newPoints;
+        int dirMod = xm ^ ym;
+        if(x < boundsX){
+          for(coordf_t yi = gridStartP; yi < gridEndP; yi += spacing, dirMod = dirMod ^ 1){
+            if(dirMod == 0){
+              newPoints.points.push_back(Point(x + gridStartL, y + yi));
+              newPoints.points.push_back(Point(x + gridEndL, y + yi));
+            } else {
+              newPoints.points.push_back(Point(x + gridEndL, y + yi));
+              newPoints.points.push_back(Point(x + gridStartL, y + yi));
+            }
+            pointCount += 2;
+          }
+        }
+        lines.push_back(newPoints);
+      }
+    }
+  }
+  return lines;
+}
+
 // Generate a set of curves (array of array of 2d points) that describe a
 // horizontal slice of a truncated regular octahedron.
 static std::vector<Pointfs> makeActualGrid(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY)
@@ -139,10 +209,10 @@ static std::vector<Pointfs> makeActualGrid(coordf_t Zpos, coordf_t gridSize, siz
       points.push_back(Pointfs());
       Pointfs &newPoints = points.back();
       newPoints = zip(
-		      perpendPoints(Zpos, gridSize, critPoints, 0, boundsY, x, perpDir),
-		      colinearPoints(Zpos, gridSize, critPoints, 0, boundsY));
+                      perpendPoints(Zpos, gridSize, critPoints, 0, boundsY, x, perpDir),
+                      colinearPoints(Zpos, gridSize, critPoints, 0, boundsY));
       if (perpDir == 1)
-	std::reverse(newPoints.begin(), newPoints.end());
+        std::reverse(newPoints.begin(), newPoints.end());
     }
   } else {
     int perpDir = 1;
@@ -150,10 +220,10 @@ static std::vector<Pointfs> makeActualGrid(coordf_t Zpos, coordf_t gridSize, siz
       points.push_back(Pointfs());
       Pointfs &newPoints = points.back();
       newPoints = zip(
-		      colinearPoints(Zpos, gridSize, critPoints, 0, boundsX),
-		      perpendPoints(Zpos, gridSize, critPoints, 0, boundsX, y, perpDir));
+                      colinearPoints(Zpos, gridSize, critPoints, 0, boundsX),
+                      perpendPoints(Zpos, gridSize, critPoints, 0, boundsX, y, perpDir));
       if (perpDir == -1)
-	std::reverse(newPoints.begin(), newPoints.end());
+        std::reverse(newPoints.begin(), newPoints.end());
     }
   }
   return points;
@@ -163,8 +233,16 @@ static std::vector<Pointfs> makeActualGrid(coordf_t Zpos, coordf_t gridSize, siz
 // horizontal slice of a truncated regular octahedron with a specified
 // grid square size.
 // gridWidth and gridHeight define the width and height of the bounding box respectively
-static Polylines makeGrid(coordf_t z, coordf_t gridSize, coordf_t boundWidth, coordf_t boundHeight, bool fillEvenly)
+// Note: this uses the 'complete' infill parameter to determine if the
+//       square tops should be enclosed (true) or open (false). Alternatively,
+//       a rotation angle of 180 degrees or greater can be used.
+static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize, coordf_t boundWidth, coordf_t boundHeight,
+                            bool completeTops, coordf_t spacing)
 {
+  coordf_t zCycle = fmod(z + gridSize/2, gridSize * 2.) / (gridSize * 2.);
+  bool printVert = zCycle < 0.5;
+  coordf_t zCycleLast = fmod(zLast + gridSize/2, gridSize * 2.) / (gridSize * 2.);
+  bool printVertLast = zCycleLast < 0.5;
   std::vector<Pointfs> polylines = makeActualGrid(z, gridSize, boundWidth, boundHeight);
   Polylines result;
   result.reserve(polylines.size());
@@ -174,6 +252,11 @@ static Polylines makeGrid(coordf_t z, coordf_t gridSize, coordf_t boundWidth, co
     Polyline &polyline = result.back();
     for (Pointfs::const_iterator it = it_polylines->begin(); it != it_polylines->end(); ++ it)
       polyline.points.push_back(Point(coord_t((*it)(0)), coord_t((*it)(1))));
+  }
+  if(completeTops && (printVert != printVertLast)){
+    // only print tops for the first layer in each cycle
+    Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing);
+    result.insert(result.end(), polytops.begin(), polytops.end());
   }
   return result;
 }
@@ -194,7 +277,6 @@ void Fill3DHoneycomb::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    // no rotation is supported for this infill pattern
     // Support infill angle 
     auto infill_angle   = float(this->angle);
     if (std::abs(infill_angle) >= EPSILON) expolygon.rotate(-infill_angle);
@@ -262,10 +344,12 @@ void Fill3DHoneycomb::_fill_surface_single(
     Polylines polylines =
       makeGrid(
 	       scale_(this->z) * zScale,
+	       scale_(this->z - params.layer_height) * zScale,
 	       gridSize,
 	       bb.size()(0),
 	       bb.size()(1),
-	       !params.dont_adjust);
+	       (params.complete || infill_angle >= (M_PI - EPSILON)),
+               scale_(this->spacing));
 
     // move pattern in place
     for (Polyline &pl : polylines){
