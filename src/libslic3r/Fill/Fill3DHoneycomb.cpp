@@ -297,7 +297,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     //       lines
     // = 4 * integrate(func=4*x(sqrt(2) - 1) + 1, from=0, to=0.25)
     // = (sqrt(2) + 1) / 2 [... I think]
-    // make a first guess at the preferred grid Size
+    // make a first guess at the preferred grid Size (in unscaled units)
     coordf_t gridSize = (scale_(this->spacing) * ((zScale + 1.) / 2.) * params.multiline  / params.density);
 
     // This density calculation is incorrect for many values > 25%, possibly
@@ -306,10 +306,8 @@ void Fill3DHoneycomb::_fill_surface_single(
     // This means that the resultant infill won't be an ideal truncated octahedron,
     // but it should look better than the equivalent quantised version
 
-    //Orca: uses a fixed layer height to avoid inconsistent bridges and variable layer height artifacts.
-    //coordf_t layerHeight = scale_(thickness_layers);
-    coordf_t layerHeight = scale_(1.0);
-    // ceiling to an integer value of layers per Z
+    coordf_t layerHeight = scale_(params.layer_height);
+    // adjust the layer height to an integer value of layers per Z
     // (with a little nudge in case it's close to perfect)
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
     if(params.density > 0.42){ // exact layer pattern for >42% density
