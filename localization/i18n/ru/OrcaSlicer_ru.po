@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -5373,6 +5373,31 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr "Показать текущий объект"
 
+# ??? Отсюда и далее – несорт (ещё не добавлены разработчиками в файл en-локализации). Закомментированные – подвержены багу кодировки (#4042)
+msgid "3D Navigator"
+msgstr "Навигатор видов"
+
+msgid "Zoom button"
+msgstr "Кнопка поиска объекта"
+
+msgid "Overhangs"
+msgstr "Нависания"
+
+msgid "Outline"
+msgstr "Подсветка выбранного"
+
+msgid "Perspective"
+msgstr "Перспектива"
+
+msgid "Axes"
+msgstr "Оси координат"
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr "Имена моделей"
+
 msgid "Paint Toolbar"
 msgstr "Панель рисования"
 
@@ -5889,6 +5914,12 @@ msgstr "Показать навигационный куб"
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr ""
 "Показать навигационный куб в режиме подготовки и предварительного просмотра."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Сбросить настройки окон"
@@ -9878,9 +9909,6 @@ msgstr "Периметры и поверхности"
 msgid "Bridging"
 msgstr "Мосты"
 
-msgid "Overhangs"
-msgstr "Нависания"
-
 msgid "Walls"
 msgstr "Периметры"
 
@@ -11840,6 +11868,16 @@ msgid ""
 msgstr ""
 "Для черновой башни требуется, чтобы поддержка и модель имели одинаковую "
 "высоту слоя."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -17580,8 +17618,17 @@ msgstr "Ограничение скорости при печати связую
 msgid "Base pattern"
 msgstr "Шаблон поддержки"
 
-msgid "Line pattern of support."
-msgstr "Шаблон печати поддержки."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Чередующийся зигзаг"
@@ -22555,6 +22602,9 @@ msgstr ""
 "ABS, повышение температуры подогреваемого стола может снизить эту "
 "вероятность?"
 
+#~ msgid "Line pattern of support."
+#~ msgstr "Шаблон печати поддержки."
+
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "
 #~ "deleted by anti-virus software."
@@ -22570,25 +22620,6 @@ msgstr ""
 
 #~ msgid "part selection"
 #~ msgstr "Выбрать часть"
-
-# ??? Отсюда и далее – несорт (ещё не добавлены разработчиками в файл en-локализации). Закомментированные – подвержены багу кодировки (#4042)
-#~ msgid "3D Navigator"
-#~ msgstr "Навигатор видов"
-
-#~ msgid "Zoom button"
-#~ msgstr "Кнопка поиска объекта"
-
-#~ msgid "Outline"
-#~ msgstr "Подсветка выбранного"
-
-#~ msgid "Perspective"
-#~ msgstr "Перспектива"
-
-#~ msgid "Labels"
-#~ msgstr "Имена моделей"
-
-#~ msgid "Axes"
-#~ msgstr "Оси координат"
 
 #~ msgid "Feature type"
 #~ msgstr "Тип линии"

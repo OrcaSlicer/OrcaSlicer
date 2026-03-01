@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5059,6 +5059,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Festés eszköztár"
 
@@ -5556,6 +5580,12 @@ msgid "Show 3D Navigator"
 msgstr ""
 
 msgid "Show 3D navigator in Prepare and Preview scene."
+msgstr ""
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"
@@ -9266,9 +9296,6 @@ msgstr ""
 msgid "Bridging"
 msgstr ""
 
-msgid "Overhangs"
-msgstr ""
-
 msgid "Walls"
 msgstr "Falak"
 
@@ -11106,6 +11133,16 @@ msgid ""
 msgstr ""
 "The prime tower requires that support has the same layer height as the "
 "object."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -15613,8 +15650,17 @@ msgstr "Támasz érintkező felületek sebessége"
 msgid "Base pattern"
 msgstr "Alap mintázata"
 
-msgid "Line pattern of support."
-msgstr "A támasz mintázata."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Vonalrács"
@@ -19868,6 +19914,9 @@ msgstr ""
 "Vetemedés elkerülése\n"
 "Tudtad, hogy a vetemedésre hajlamos anyagok (például ABS) nyomtatásakor a "
 "tárgyasztal hőmérsékletének növelése csökkentheti a vetemedés valószínűségét?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "A támasz mintázata."
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

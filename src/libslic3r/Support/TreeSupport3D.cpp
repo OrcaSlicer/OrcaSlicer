@@ -3549,7 +3549,6 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
             if (layer) layer->polygons = intersection(layer->polygons, volumes.m_bed_area);
         });
 
-        // Don't fill in the tree supports, make them hollow with just a single sheath line.
         print.set_status(69, _L("Generating support"));
         generate_support_toolpaths(print_object.support_layers(), print_object.config(), support_params, print_object.slicing_parameters(),
             raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);

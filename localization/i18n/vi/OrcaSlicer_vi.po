@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -5108,6 +5108,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Phần nhô"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Thanh công cụ vẽ"
 
@@ -5610,6 +5634,12 @@ msgstr "Hiện điều hướng 3D"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Hiện điều hướng 3D trong cảnh chuẩn bị và xem trước."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Đặt lại bố cục cửa sổ"
@@ -9384,9 +9414,6 @@ msgstr "Thành và bề mặt"
 msgid "Bridging"
 msgstr "Bắc cầu"
 
-msgid "Overhangs"
-msgstr "Phần nhô"
-
 msgid "Walls"
 msgstr "Thành"
 
@@ -11244,6 +11271,16 @@ msgstr ""
 msgid ""
 "The prime tower requires that support has the same layer height with object."
 msgstr "Prime tower yêu cầu support có cùng chiều cao lớp với đối tượng."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -16481,8 +16518,17 @@ msgstr "Tốc độ của giao diện support."
 msgid "Base pattern"
 msgstr "Mẫu đế"
 
-msgid "Line pattern of support."
-msgstr "Mẫu đường của support."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Lưới thẳng"
@@ -21143,6 +21189,9 @@ msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn "
 "nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Mẫu đường của support."
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

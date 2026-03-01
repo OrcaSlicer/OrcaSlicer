@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5100,6 +5100,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Overhangen"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Kleur instellingen"
 
@@ -5597,6 +5621,12 @@ msgid "Show 3D Navigator"
 msgstr ""
 
 msgid "Show 3D navigator in Prepare and Preview scene."
+msgstr ""
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"
@@ -9381,9 +9411,6 @@ msgstr "Wanden en oppervlakten"
 msgid "Bridging"
 msgstr "Overbruggen"
 
-msgid "Overhangs"
-msgstr "Overhangen"
-
 msgid "Walls"
 msgstr "Wanden"
 
@@ -11240,6 +11267,16 @@ msgid ""
 "The prime tower requires that support has the same layer height with object."
 msgstr ""
 "Een prime toren vereist dat support dezelfde laaghoogte heeft als het object."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -15797,8 +15834,17 @@ msgstr "Dit is de snelheid voor het printen van de support interfaces."
 msgid "Base pattern"
 msgstr "Basis patroon"
 
-msgid "Line pattern of support."
-msgstr "Dit is het lijnpatroon voor support."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Rechtlijnig raster"
@@ -20157,6 +20203,9 @@ msgstr ""
 "Wist je dat bij het printen van materialen die gevoelig zijn voor "
 "kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het "
 "warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Dit is het lijnpatroon voor support."
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "
