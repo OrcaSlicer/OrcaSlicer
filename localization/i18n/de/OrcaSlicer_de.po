@@ -2378,7 +2378,7 @@ msgid "Simplify Model"
 msgstr "Modell vereinfachen"
 
 msgid "Subdivision mesh"
-msgstr "Unterteilungsgitter"
+msgstr "Netzunterteilung"
 
 msgid "(Lost color)"
 msgstr "(Farbe verloren)"
