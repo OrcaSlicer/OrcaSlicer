@@ -21078,7 +21078,7 @@ msgid ""
 "printer.\n"
 "Can be shared with others."
 msgstr ""
-"Drucker und alle Filament- und ProzessProfile, die zum Drucker "
+"Drucker und alle Filament- und Prozessprofile, die zum Drucker "
 "gehören.\n"
 "Kann mit anderen geteilt werden."
 
