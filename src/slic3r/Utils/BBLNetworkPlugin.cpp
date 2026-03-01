@@ -77,7 +77,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     }
 
     // Auto-migration: If loading legacy version and versioned library doesn't exist,
-    // but unversioned legacy library does exist, rename it to versioned format
+    // but unversioned legacy library does exist, copy it to versioned format
     if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
         boost::filesystem::path versioned_path;
         boost::filesystem::path legacy_path;
@@ -93,9 +93,9 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
 #endif
         if (!boost::filesystem::exists(versioned_path) && boost::filesystem::exists(legacy_path)) {
             try {
-                boost::filesystem::rename(legacy_path, versioned_path);
+                boost::filesystem::copy(legacy_path, versioned_path);
             } catch (const std::exception& e) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to rename legacy library: " << e.what();
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to copy legacy library: " << e.what();
             }
         }
     }
