@@ -567,7 +567,7 @@ bool Print::has_infinite_skirt() const
     // Orca: unclear why (m_config.ooze_prevention && this->extruders().size() > 1) logic is here, removed.
     // return (m_config.draft_shield == dsEnabled && m_config.skirt_loops > 0) || (m_config.ooze_prevention && this->extruders().size() > 1);
 
-    return (m_config.draft_shield == dsEnabled && m_config.skirt_loops > 0);
+    return (m_config.draft_shield.value && m_config.skirt_loops > 0);
 }
 
 bool Print::has_skirt() const
@@ -2293,7 +2293,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
 
-        const bool draft_shield = config().draft_shield != dsDisabled;
+        const bool draft_shield = config().draft_shield.value;
 
         if (this->has_skirt() && draft_shield) {
             // In case that draft shield is active, generate skirt first so brim
@@ -2541,7 +2541,7 @@ void Print::_make_skirt()
     append(points, this->first_layer_wipe_tower_corners());
 
     // Unless draft shield is enabled, include all brims as well.
-    if (config().draft_shield == dsDisabled)
+    if (!config().draft_shield.value)
         append(points, m_first_layer_convex_hull.points);
 
     if (points.size() < 3)
@@ -3488,7 +3488,7 @@ std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
 
     if (is_all_objects_are_short())
         object_skirt_offset = config().skirt_distance + object_skirt_witdh;
-    else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height - margin_height)
+    else if (config().draft_shield.value || config().skirt_height * max_layer_height > config().nozzle_height - margin_height)
         object_skirt_offset = config().skirt_distance + line_width;
     else if (config().skirt_distance + object_skirt_witdh > config().extruder_clearance_radius/2)
         object_skirt_offset = (config().skirt_distance + object_skirt_witdh - config().extruder_clearance_radius/2);
