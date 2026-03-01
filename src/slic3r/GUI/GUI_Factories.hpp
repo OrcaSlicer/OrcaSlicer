@@ -141,6 +141,7 @@ private:
     wxMenuItem* append_menu_item_fix_through_netfabb(wxMenu* menu);
     //wxMenuItem* append_menu_item_simplify(wxMenu* menu);
     void        append_menu_item_export_stl(wxMenu* menu, bool is_mulity_menu = false);
+    void        append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu = false);
     void        append_menu_item_reload_from_disk(wxMenu* menu);
     void        append_menu_item_replace_with_stl(wxMenu* menu);
     void        append_menu_item_replace_all_with_stl(wxMenu* menu);
@@ -163,6 +164,7 @@ private:
     //BBS add bbl menu item
     void        append_menu_item_clone(wxMenu* menu);
     void        append_menu_item_simplify(wxMenu* menu);
+    void        append_menu_item_smooth_mesh(wxMenu *menu);
     void        append_menu_item_center(wxMenu* menu);
     void        append_menu_item_drop(wxMenu* menu);
     void        append_menu_item_per_object_process(wxMenu* menu);

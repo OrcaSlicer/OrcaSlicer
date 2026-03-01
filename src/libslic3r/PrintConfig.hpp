@@ -160,7 +160,7 @@ enum SupportMaterialPattern {
 };
 
 enum SupportMaterialStyle {
-    smsDefault, smsGrid, smsSnug, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic,
+    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
 enum LongRectrationLevel
@@ -1321,6 +1321,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,              retract_restart_extra))
     ((ConfigOptionFloats,              retract_restart_extra_toolchange))
     ((ConfigOptionFloats,              retraction_speed))
+    ((ConfigOptionString,              file_start_gcode))
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
@@ -1375,6 +1376,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_cooling_moves))
     ((ConfigOptionFloats,              filament_cooling_initial_speed))
     ((ConfigOptionFloats,              filament_minimal_purge_on_wipe_tower))
+    ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_dist))
+    ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_length))
+    ((ConfigOptionFloats,              filament_tower_ironing_area))
+    ((ConfigOptionFloats,              filament_tower_interface_purge_volume))
+    ((ConfigOptionInts,                filament_tower_interface_print_temp))
     ((ConfigOptionFloats,              filament_cooling_final_speed))
     ((ConfigOptionStrings,             filament_ramming_parameters))
     ((ConfigOptionBools,               filament_multitool_ramming))
@@ -1504,6 +1510,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercent,            prime_tower_infill_gap))
     ((ConfigOptionBool,               prime_tower_skip_points))
     ((ConfigOptionBool,               prime_tower_flat_ironing))
+    ((ConfigOptionBool,               enable_tower_interface_features))
+    ((ConfigOptionBool,               enable_tower_interface_cooldown_during_tower))
     ((ConfigOptionFloat,              wipe_tower_bridging))
     ((ConfigOptionPercent,            wipe_tower_extra_flow))
     ((ConfigOptionFloats,             flush_volumes_matrix))

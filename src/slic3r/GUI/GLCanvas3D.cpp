@@ -38,6 +38,7 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <libslic3r/BoundingBox.hpp>
 #include <slic3r/GUI/GUI_Utils.hpp>
 
 #if ENABLE_RETINA_GL
@@ -1215,12 +1216,12 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     m_selection.set_volumes(&m_volumes.volumes);
 
     m_assembly_view_desc["object_selection_caption"] = _L("Left mouse button");
-    m_assembly_view_desc["object_selection"]         = _L("object selection");
+    m_assembly_view_desc["object_selection"]         = _L("Object selection");
     // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
     m_assembly_view_desc["part_selection_caption"]   = _L("Alt+") + _L("Left mouse button");
-    m_assembly_view_desc["part_selection"]           = _L("part selection");
+    m_assembly_view_desc["part_selection"]           = _L("Part selection");
     m_assembly_view_desc["number_key_caption"]       = "1~16 " + _L("number keys");
-    m_assembly_view_desc["number_key"]       = _L("number keys can quickly change the color of objects");
+    m_assembly_view_desc["number_key"]       = _L("Number keys can quickly change the color of objects");
 }
 
 GLCanvas3D::~GLCanvas3D()
@@ -1249,6 +1250,11 @@ bool GLCanvas3D::init()
     on_change_color_mode(wxGetApp().app_config->get("dark_color_mode") == "1", false);
 
     m_show_world_axes = wxGetApp().app_config->get("show_axes") == "true";
+    
+    // Controls the display of object names directly over the object
+    m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
+    // Controls the color coding of overhang surfaces
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_overhang"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
@@ -2172,7 +2178,7 @@ void GLCanvas3D::render(bool only_init)
     if (m_canvas_type != ECanvasType::CanvasAssembleView) {
         float right_margin = SLIDER_DEFAULT_RIGHT_MARGIN;
         float bottom_margin = SLIDER_DEFAULT_BOTTOM_MARGIN;
-        if (m_canvas_type == ECanvasType::CanvasPreview) {
+        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data()) { // ORCA only shift position of notifiations when sliders / gcode_viewer exist
             float scale_factor = get_scale();
 #ifdef WIN32
             int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
@@ -2837,6 +2843,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
                 float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
+
                 // BBS
                 float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
@@ -2863,8 +2870,28 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     }
 
                     coordf_t plate_bbox_x_min_local_coord = plate_bbox_2d.min(0) - plate_origin(0);
+                    coordf_t plate_bbox_y_min_local_coord = plate_bbox_2d.min(1) - plate_origin(1);
                     coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
                     coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
+
+                    const float tower_w = (float) wipe_tower_size(0);    
+                    const float tower_h = (float) wipe_tower_size(1);
+                    const float min_x   = (float) plate_bbox_x_min_local_coord + margin;
+                    const float max_x   = (float) plate_bbox_x_max_local_coord - margin;
+                    const float min_y   = (float) plate_bbox_y_min_local_coord + margin;
+                    const float max_y   = (float) plate_bbox_y_max_local_coord - margin;
+
+                    // snap wipe tower back to nearest edge if it was initially loaded outside the plate boundary
+                    float new_x = (x < min_x) ? min_x : ((x + tower_w > max_x) ? (max_x - tower_w) : x);
+                    float new_y = (y < min_y) ? min_y : ((y + tower_h > max_y) ? (max_y - tower_h) : y);
+
+                    if (new_x != x || new_y != y) {
+                        // do notification
+                        _set_warning_notification(EWarning::PreviewPrimeTowerOutside, true);
+                        x = new_x;
+                        y = new_y;
+                    }
+
 
                     if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                         // update for wipe tower position
@@ -3251,8 +3278,12 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
 #else /* __APPLE__ */
         case WXK_CONTROL_A:
 #endif /* __APPLE__ */
-            if (!is_in_painting_mode && !m_layers_editing.is_enabled())
-                post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+            if (!is_in_painting_mode && !m_layers_editing.is_enabled()) {
+                if (evt.ShiftDown())
+                    post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+                else
+                    post_event(SimpleEvent(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL));
+            }
         break;
 #ifdef __APPLE__
         case 'c':
@@ -4538,7 +4569,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 Vec3d orig = _mouse_to_3d(m_mouse.drag.start_position_2D, &z);
                 Camera& camera = wxGetApp().plater()->get_camera();
                 if (this->m_canvas_type != ECanvasType::CanvasAssembleView) {
-                    if (wxGetApp().app_config->get_bool("use_free_camera"))
+                    // Orca: Use a constrained camera when navigating the 3D scene with a regular mouse, if the free camera is not selected
+                    if (!wxGetApp().app_config->get_bool("use_free_camera"))
                         // Forces camera right vector to be parallel to XY plane in case it has been misaligned using the 3D mouse free rotation.
                         // It is cheaper to call this function right away instead of testing wxGetApp().plater()->get_mouse3d_controller().connected(),
                         // which checks an atomics (flushes CPU caches).
@@ -7303,6 +7335,7 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                 rect_near_top = rect_near_bottom + ratio_y;
 
             framebuffer_camera.look_at(camera->get_position(), camera->get_target(), camera->get_dir_up());
+            framebuffer_camera.set_type(camera->get_type());
             framebuffer_camera.apply_projection(rect_near_left, rect_near_right, rect_near_bottom, rect_near_top, camera->get_near_z(), camera->get_far_z());
             framebuffer_camera.set_viewport(0, 0, width, height);
             framebuffer_camera.apply_viewport();
@@ -8585,7 +8618,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
 
-        create_menu_item( "3D Navigator",
+        create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_3d_navigator(),
             [this]{
@@ -8594,7 +8627,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             }
         );
 
-        create_menu_item( "Zoom button",
+        create_menu_item( _utf8(L("Zoom button")),
             true, // work on all
             wxGetApp().show_canvas_zoom_button(),
             [this]{
@@ -8605,13 +8638,13 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Overhangs",
+        create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
             [this, p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
         );
 
-        create_menu_item( "Outline",
+        create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
             [this]{wxGetApp().toggle_show_outline();}
@@ -8619,7 +8652,7 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Perspective",
+        create_menu_item( _utf8(L("Perspective")),
             true, // work on all
             cfg->get_bool("use_perspective_camera"),
             [this, &cfg]{
@@ -8630,15 +8663,21 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Axes",
+        create_menu_item( _utf8(L("Axes")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             m_show_world_axes,
             [this]{toggle_world_axes_visibility(false);}
         );
 
-        // will add an option for gridlines in here
+        create_menu_item( _utf8(L("Gridlines")),
+            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
+            wxGetApp().show_plate_gridlines(),
+            [this]{wxGetApp().toggle_show_plate_gridlines();}
+        );
 
-        create_menu_item( "Labels",
+        ImGui::Separator();
+
+        create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
             [this, p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
@@ -8925,7 +8964,7 @@ void GLCanvas3D::_render_assemble_control()
             caption_max = std::max(caption_max, imgui->calc_text_size(m_assembly_view_desc.at(t + "_caption")).x);
         }
         const ImVec2 pos = ImGui::GetCursorScreenPos();
-        const float text_y =imgui->calc_text_size(_L("part selection")).y;
+        const float text_y = imgui->calc_text_size(_L("Part selection")).y;
         float get_cur_x = pos.x;
         float get_cur_y = pos.y - ImGui::GetFrameHeight() - 4 * text_y;
         tip_icon_size =_show_assembly_tooltip_information(caption_max, get_cur_x, get_cur_y);
@@ -9554,7 +9593,14 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                     }
                 }
             }
-            std::string extruder_name = extruder_name_list[extruder_id-1];
+            std::string extruder_name;
+            if(wxGetApp().preset_bundle->is_bbl_vendor()){
+                extruder_name = extruder_name_list[extruder_id-1];
+            }
+            else{
+                extruder_name += (boost::format(_u8L("Tool %d"))%extruder_id).str();
+            }
+
             if (error_iter->second.size() == 1) {
                 text += (boost::format(_u8L("Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s.")) %filaments %extruder_name %extruder_name).str();
             }
@@ -9639,7 +9685,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             warning += std::to_string(filament + 1);
             warning += " ";
         }
-        text  = (boost::format(_u8L("filaments %s cannot be printed directly on the surface of this plate.")) % warning).str();
+        text  = (boost::format(_u8L("Filaments %s cannot be printed directly on the surface of this plate.")) % warning).str();
         error = ErrorType::SLICING_ERROR;
         break;
     }
@@ -9648,6 +9694,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         break;
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
+        break;
+    case EWarning::PreviewPrimeTowerOutside:
+        text = _u8L("Prime tower position exceeded build plate boundaries and was repositioned to the nearest valid edge."); 
         break;
     case EWarning::NozzleFilamentIncompatible: {
         text = _u8L(get_nozzle_filament_incompatible_text());

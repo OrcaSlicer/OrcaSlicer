@@ -367,7 +367,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("send completed"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -958,10 +958,10 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 
 #if !BBL_RELEASE_TO_PUBLIC
         m_send_job->m_local_use_ssl_for_ftp  = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-        m_send_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+        m_send_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
         m_send_job->m_local_use_ssl_for_ftp  = obj_->local_use_ssl_for_ftp;
-        m_send_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+        m_send_job->m_local_use_ssl = obj_->local_use_ssl;
 
 #endif
         m_send_job->connection_type     = obj_->connection_type();
