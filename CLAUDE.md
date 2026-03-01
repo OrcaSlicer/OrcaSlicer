@@ -8,42 +8,67 @@ OrcaSlicer is an open-source 3D slicer application forked from Bambu Studio, bui
 
 ## Build Commands
 
-### Building on Windows
-**Always use this command to build the project when testing build issues on Windows.**
+Builds and tests run in CI on every push to GitHub. For local builds, use the
+platform build scripts (`build_release_macos.sh`, `build_release.bat`,
+`build_linux.sh`). They handle deps and slicer in the correct order.
+
+### macOS (local)
+
+**Prerequisites** (see [wiki](https://www.orcaslicer.com/wiki/developer-reference/How-to-build#macos-tools-required)):
+- Xcode (open once after install/upgrade to get macOS build support)
+- **CMake 3.31.x** — Homebrew versions won't work; download from https://cmake.org/download/ and add `/Applications/CMake.app/Contents/bin` to `$PATH`
+- `brew install gettext libtool automake autoconf texinfo`
+
+```bash
+# 1. Build dependencies (first time only, or after deps change)
+./build_release_macos.sh -d
+
+# 2. Build slicer only
+./build_release_macos.sh -s
+
+# 3. Build slicer + run tests
+./build_release_macos.sh -s -T
+
+# Full build (deps + slicer + tests)
+./build_release_macos.sh -T
+
+# Use Ninja instead of Xcode (faster incremental builds)
+./build_release_macos.sh -x -s -T
+```
+
+Key flags: `-d` deps only, `-s` slicer only, `-T` enable tests, `-x` Ninja
+generator, `-b` build-only (skip cmake configure), `-c <config>` set build
+config (default Release).
+
+The build output goes to `build/<arch>/` (e.g. `build/arm64/`).
+Run the app: `open build/arm64/OrcaSlicer/OrcaSlicer.app`
+Debug in Xcode: `open build/arm64/OrcaSlicer.xcodeproj` (set scheme to OrcaSlicer, config to RelWithDebInfo).
+
+Once configured, you can also build specific targets directly:
+```bash
+# Rebuild just the slicer after code changes
+cmake --build build/arm64 --config Release --target all
+
+# Build only the fff_print tests
+cmake --build build/arm64 --config Release --target fff_print_tests
+
+# Run tests
+cd build/arm64 && ctest --build-config Release --output-on-failure
+
+# Run a specific test suite
+cd build/arm64 && ctest --build-config Release -R "AdditionalBaseLayers" --output-on-failure
+```
+
+### Windows
+
 ```bash
 cmake --build . --config %build_type% --target ALL_BUILD -- -m
 ```
 
-### Building on macOS
-**Always use this command to build the project when testing build issues on macOS.**
+### Linux
+
 ```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
-```
-
-### Building on Linux
- **Always use this command to build the project when testing build issues on Linux.**
-```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
-
-```
-### Build test:
-
-**Always use this command to build the project when testing build issues on Windows.**
-```bash
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
-```
-
-### Building on macOS
-**Always use this command to build the project when testing build issues on macOS.**
-```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
-```
-
-### Building on Linux
- **Always use this command to build the project when testing build issues on Linux.**
-```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
-
+cmake --build build/arm64 --config RelWithDebInfo --target all
 ```
 
 
