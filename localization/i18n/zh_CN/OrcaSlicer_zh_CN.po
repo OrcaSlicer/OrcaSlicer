@@ -5587,7 +5587,7 @@ msgstr "显示3D导航器"
 msgid "Show Gridlines"
 msgstr "显示网格线"
 
-msgid "Show Glidlines on plate"
+msgid "Show Gridlines on plate"
 msgstr "在盘上显示网格线"
 
 msgid "Reset Window Layout"

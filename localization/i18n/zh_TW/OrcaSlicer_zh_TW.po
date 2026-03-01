@@ -5657,7 +5657,7 @@ msgstr "在準備與預覽分頁中顯示 3D 導覽器"
 msgid "Show Gridlines"
 msgstr "顯示網格線"
 
-msgid "Show Glidlines on plate"
+msgid "Show Gridlines on plate"
 msgstr "顯示列印板上的網格線"
 
 msgid "Reset Window Layout"
