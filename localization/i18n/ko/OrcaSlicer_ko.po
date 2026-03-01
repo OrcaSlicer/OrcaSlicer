@@ -5611,7 +5611,7 @@ msgstr "준비 및 미리보기 장면에서 3D 내비게이터 표시"
 msgid "Show Gridlines"
 msgstr ""
 
-msgid "Show Glidlines on plate"
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"

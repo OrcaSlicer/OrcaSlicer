@@ -6005,7 +6005,7 @@ msgstr "Zobrazit 3D navigátor ve scénách Příprava a Náhled."
 msgid "Show Gridlines"
 msgstr ""
 
-msgid "Show Glidlines on plate"
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"

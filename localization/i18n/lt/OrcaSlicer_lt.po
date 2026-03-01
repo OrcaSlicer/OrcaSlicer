@@ -5725,7 +5725,7 @@ msgstr "Rodyti 3D navigatorių paruošimo ir peržiūros scenose."
 msgid "Show Gridlines"
 msgstr ""
 
-msgid "Show Glidlines on plate"
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"

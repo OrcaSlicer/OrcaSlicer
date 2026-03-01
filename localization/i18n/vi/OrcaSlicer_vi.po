@@ -5638,7 +5638,7 @@ msgstr "Hiện điều hướng 3D trong cảnh chuẩn bị và xem trước."
 msgid "Show Gridlines"
 msgstr ""
 
-msgid "Show Glidlines on plate"
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"
