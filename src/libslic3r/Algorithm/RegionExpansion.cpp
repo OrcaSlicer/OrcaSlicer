@@ -278,7 +278,7 @@ std::vector<WaveSeed> wave_seeds(
             // this is common because source and boundary contours share many
             // vertices.  Determine src_id / boundary_id from Z coordinates
             // (and fall back to an AABB-tree point-in-polygon test when a
-            // boundary or source ID is not directly available).
+            // boundary ID is not directly available).
             coord_t src_z = -1, boundary_z = -1;
             // Scan all path points for the information we need.
             for (const ClipperLib_Z::IntPoint &point : path) {
