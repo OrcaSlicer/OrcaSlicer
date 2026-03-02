@@ -266,13 +266,12 @@ std::vector<WaveSeed> wave_seeds(
             //(front.z() < 0 && back.z() < 0));
             // Hope that at least one end of an open polyline is clipped by the boundary, thus an intersection point is created.
             (front.z() < 0 || back.z() < 0));
-        // Thus as long as the seed contour is not closed, it should be open at a boundary point.
         // However, with complex geometry, both endpoints may coincide with existing polygon
         // vertices (z >= 0), which is handled below.
 
         if (front != back && front.z() >= 0 && back.z() >= 0) {
-            //// Very rare case when both endpoints intersect boundary ExPolygons in existing points.
-            //// So the ZFillFunction callback hasn't been called.
+            // Very rare case when both endpoints intersect boundary ExPolygons in existing points.
+            // So the ZFillFunction callback hasn't been called.
             // Both endpoints coincide with existing polygon vertices, so the
             // ZFillFunction callback was never called.  With complex geometry
             // this is common because source and boundary contours share many
