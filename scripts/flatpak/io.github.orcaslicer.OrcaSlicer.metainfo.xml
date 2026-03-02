@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-    <id>io.github.softfever.OrcaSlicer</id>
-    <launchable type="desktop-id">io.github.softfever.OrcaSlicer.desktop</launchable>
+    <id>io.github.orcaslicer.OrcaSlicer</id>
+    <launchable type="desktop-id">io.github.orcaslicer.OrcaSlicer.desktop</launchable>
     <provides>
-        <id>io.github.softfever.OrcaSlicer.desktop</id>
+        <id>io.github.orcaslicer.OrcaSlicer.desktop</id>
     </provides>
     <name>OrcaSlicer</name>
-    <!-- hehe hadess @ppd 
-    ... seriously though, thanks -->
     <summary>Get even more perfect prints!</summary>
-    <developer_name>SoftFever</developer_name>
+    <developer id="io.github.orcaslicer">
+        <name>SoftFever</name>
+    </developer>
     <url type="homepage">https://github.com/OrcaSlicer/OrcaSlicer</url>
     <url type="help">https://www.orcaslicer.com/wiki</url>
     <url type="bugtracker">https://github.com/OrcaSlicer/OrcaSlicer/issues/</url>
@@ -35,15 +35,26 @@
         </screenshot>
     </screenshots>
     <description>
-        <p>A powerful, free and open-source 3D printer slicer that features cutting-edge technology.</p>
+        <p>OrcaSlicer is a powerful, free and open-source 3D printer slicer with cutting-edge
+            features for FDM printing. It supports a wide range of printers from manufacturers
+            including Bambu Lab, Prusa, Voron, Creality, and many more.</p>
+        <p>Key features include advanced calibration tools, adaptive layer heights, tree supports,
+            multi-material support, and an intuitive interface for both beginners and experts.
+            OrcaSlicer also provides built-in network printing capabilities for compatible printers.</p>
+        <p>Originally forked from Bambu Studio and PrusaSlicer, OrcaSlicer builds on a strong
+            foundation with community-driven improvements and optimizations for print quality
+            and reliability.</p>
     </description>
     <branding>
         <color type="primary" scheme_preference="light">#009688</color>
+        <color type="primary" scheme_preference="dark">#00695C</color>
     </branding>
     <releases>
-        <release version="official"> <url>https://github.com/OrcaSlicer/OrcaSlicer/releases</url>
+        <!-- TODO: Update version and date when v2.3.2 is released -->
+        <release version="2.3.2" date="2026-03-15">
+            <url type="details">https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/v2.3.2</url>
             <description>
-                <p>Official release: See Help > About Orca Slicer dialog for exact version information.</p>
+                <p>See the release page for detailed changelog.</p>
             </description>
         </release>
     </releases>
