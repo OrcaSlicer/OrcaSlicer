@@ -596,6 +596,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
+                     "infill_complete_top",
         "minimum_sparse_infill_area", "sparse_infill_filament", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
 
@@ -638,6 +639,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool is_zig_zag = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipZigZag;
 
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig);
+
+    bool is_3Dhoneycomb = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ip3DHoneycomb;
+    toggle_line("infill_complete_top", is_3Dhoneycomb);
 
     bool has_spiral_vase         = config->opt_bool("spiral_mode");
     toggle_line("spiral_mode_smooth", has_spiral_vase);

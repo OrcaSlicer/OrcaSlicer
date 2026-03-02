@@ -313,7 +313,7 @@ void Fill3DHoneycomb::_fill_surface_single(
 	       gridSize,
 	       bb.size()(0),
 	       bb.size()(1),
-	       (params.complete || infill_angle >= (M_PI - EPSILON)),
+	       params.infill_complete_top,
                scale_(this->spacing),
                params.multiline);
 
