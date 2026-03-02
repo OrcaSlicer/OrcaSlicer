@@ -41,10 +41,7 @@ RegionExpansionParameters RegionExpansionParameters::build(
     // The expansion should not be too tiny, but also small enough, so the following expansion will
     // compensate for tiny_expansion and bring the wave back to the boundary without producing
     // ugly cusps where it touches the boundary.
-    // Increase the cap to 0.1 mm so that micro-gaps between adjacent
-    // surface types (bridge vs. shell) produced by earlier clipping
-    // operations on complex geometry are reliably bridged.
-    out.tiny_expansion = std::min(0.25f * full_expansion, scaled<float>(0.1f));
+    out.tiny_expansion = std::min(0.25f * full_expansion, scaled<float>(0.05f));
     size_t nsteps = size_t(ceil((full_expansion - out.tiny_expansion) / expansion_step));
     if (max_nr_expansion_steps > 0)
         nsteps = std::min(nsteps, max_nr_expansion_steps);
