@@ -7357,7 +7357,7 @@ msgid "Please select a file"
 msgstr "Kérjük, válassz egy fájlt"
 
 msgid "Do you want to replace it"
-msgstr "Do you want to replace it?"
+msgstr "Cserélni szeretné"
 
 msgid "Message"
 msgstr "Üzenet"

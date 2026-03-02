@@ -7924,7 +7924,7 @@ msgid "Please select a file"
 msgstr "Vyberte prosím soubor"
 
 msgid "Do you want to replace it"
-msgstr "Chcete provést náhradu?"
+msgstr "Chcete provést náhradu"
 
 msgid "Message"
 msgstr "Zpráva"

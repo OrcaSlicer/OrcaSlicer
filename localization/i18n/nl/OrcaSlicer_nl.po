@@ -7421,7 +7421,7 @@ msgid "Please select a file"
 msgstr "Selecteer een bestand"
 
 msgid "Do you want to replace it"
-msgstr "Wilt u deze vervangen?"
+msgstr "Wilt u deze vervangen"
 
 msgid "Message"
 msgstr "Bericht"

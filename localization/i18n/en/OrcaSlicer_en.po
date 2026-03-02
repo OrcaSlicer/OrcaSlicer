@@ -7215,7 +7215,7 @@ msgid "Please select a file"
 msgstr ""
 
 msgid "Do you want to replace it"
-msgstr "Do you want to replace it?"
+msgstr ""
 
 msgid "Message"
 msgstr ""

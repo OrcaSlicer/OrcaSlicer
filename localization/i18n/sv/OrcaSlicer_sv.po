@@ -7351,7 +7351,7 @@ msgid "Please select a file"
 msgstr "Välj en fil"
 
 msgid "Do you want to replace it"
-msgstr "Do you want to replace it?"
+msgstr "Vill du byta ut den"
 
 msgid "Message"
 msgstr "Meddelande"
