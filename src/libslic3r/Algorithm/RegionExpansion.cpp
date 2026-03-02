@@ -261,10 +261,11 @@ std::vector<WaveSeed> wave_seeds(
         ClipperLib_Z::IntPoint front = path.front();
         ClipperLib_Z::IntPoint back  = path.back();
         // Both ends of a seed segment are supposed to be inside a single boundary expolygon.
-        //assert((front == back && front.z() >= idx_boundary_end && front.z() < idx_src_end) || 
+        // Thus as long as the seed contour is not closed, it should be open at a boundary point.
+        assert((front == back && front.z() >= idx_boundary_end && front.z() < idx_src_end) || 
             //(front.z() < 0 && back.z() < 0));
             // Hope that at least one end of an open polyline is clipped by the boundary, thus an intersection point is created.
-        //    (front.z() < 0 || back.z() < 0));
+            (front.z() < 0 || back.z() < 0));
         // Thus as long as the seed contour is not closed, it should be open at a boundary point.
         // However, with complex geometry, both endpoints may coincide with existing polygon
         // vertices (z >= 0), which is handled below.
