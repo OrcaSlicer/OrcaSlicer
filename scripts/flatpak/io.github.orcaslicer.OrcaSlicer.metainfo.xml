@@ -50,9 +50,8 @@
         <color type="primary" scheme_preference="dark">#00695C</color>
     </branding>
     <releases>
-        <!-- TODO: Update version and date when v2.3.2 is released -->
-        <release version="2.3.2" date="2026-03-15">
-            <url type="details">https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/v2.3.2</url>
+        <release version="2.3.2-rc" date="2025-03-01">
+            <url type="details">https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/v2.3.2-rc</url>
             <description>
                 <p>See the release page for detailed changelog.</p>
             </description>

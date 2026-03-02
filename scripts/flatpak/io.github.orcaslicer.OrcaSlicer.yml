@@ -55,8 +55,7 @@ modules:
       - type: git
         url: https://github.com/KDE/extra-cmake-modules
         tag: v5.249.0
-        # TODO: Pin exact commit hash before Flathub submission
-        commit: PLACEHOLDER_KDE_ECM_COMMIT
+        commit: 008ae77d0cd2a97c346228ab30b99279643e5022
     cleanup:
       - /
 
@@ -102,8 +101,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/SoftFever/Orca-deps-wxWidgets
-        # TODO: Pin exact commit hash before Flathub submission
-        commit: PLACEHOLDER_WXWIDGETS_COMMIT
+        commit: acdc6db5064274405c323c3823eedf559bbe0474
       - type: patch
         path: patches/0001-Enable-using-a-dark-theme-when-Gnome-dark-style-is-s.patch
 
@@ -133,9 +131,8 @@ modules:
       # OrcaSlicer source tree (provides deps/ cmake files, patches, bundled sources)
       - type: git
         url: https://github.com/OrcaSlicer/OrcaSlicer.git
-        tag: v2.3.2
-        # TODO: Pin exact commit hash before Flathub submission
-        commit: PLACEHOLDER_ORCASLICER_COMMIT
+        tag: v2.3.2-rc
+        commit: ca1f360b83f989b85c18a63230dec6e19e3063db
 
       # ---------------------------------------------------------------
       # Pre-downloaded dependency archives
@@ -318,9 +315,8 @@ modules:
       # OrcaSlicer source tree
       - type: git
         url: https://github.com/OrcaSlicer/OrcaSlicer.git
-        tag: v2.3.2
-        # TODO: Pin exact commit hash before Flathub submission
-        commit: PLACEHOLDER_ORCASLICER_COMMIT
+        tag: v2.3.2-rc
+        commit: ca1f360b83f989b85c18a63230dec6e19e3063db
 
       # AppData metainfo for GNOME Software & Co.
       - type: file
