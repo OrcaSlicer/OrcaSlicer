@@ -112,7 +112,7 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 
 // Add additional dense fill in line with the pattern direction to
 // cover the top squares of the pattern
-static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing)
+static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing, size_t multiline_count)
 {
   float pointsPerSquare = 10;
   coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
@@ -122,15 +122,15 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_
   Polylines lines;
   size_t pointCount = 0;
   // top cover extents in the direction of travel (a bit longer, to help fuse the cover)
-  coordf_t gridStartL = gridSize * 0.25 - spacing / 2.0;
-  coordf_t gridEndL = gridSize * 0.75 + spacing / 2.0;
+  coordf_t gridStartL = gridSize * 0.25 - (spacing * multiline_count) / 2.0;
+  coordf_t gridEndL = gridSize * 0.75 + (spacing * multiline_count) / 2.0;
   // top cover extents perpendicular to the direction of travel
-  coordf_t gridStartP = gridSize * 0.25 + spacing / 2.0;
-  coordf_t gridEndP = gridSize * 0.75 - spacing / 2.0;
+  coordf_t gridStartP = gridSize * 0.25 + (spacing * multiline_count) / 2.0;
+  coordf_t gridEndP = gridSize * 0.75 - (spacing * multiline_count) / 2.0;
   coordf_t x, y;
   int xm, ym;
   // adjust spacing so that it starts and ends on exactly the right place
-  coordf_t region_count = floor((gridEndL - gridStartL) / spacing);
+  coordf_t region_count = floor((gridEndL - gridStartL) / (spacing * multiline_count));
   spacing = (gridEndL - gridStartL) / region_count;
   for (x = 0, xm = 0; x <= (boundsX); x+= gridSize, xm = xm ^ 1) {
     for (y = 0, ym = 0; y <= (boundsY); y += gridSize, ym = ym ^ 1) {
@@ -209,8 +209,9 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, size_t boundsX, si
 // Note: this uses the 'complete' infill parameter to determine if the
 //       square tops should be enclosed (true) or open (false). Alternatively,
 //       a rotation angle of 180 degrees or greater can be used.
-static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize, coordf_t boundWidth, coordf_t boundHeight,
-                            bool completeTops, coordf_t spacing)
+static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
+                          coordf_t boundWidth, coordf_t boundHeight,
+                          bool completeTops, coordf_t spacing, size_t multiline_count)
 {
   coordf_t zCycle = fmod(z + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   bool printVert = zCycle < 0.5;
@@ -219,7 +220,7 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize, coordf_
   Polylines result = makeZigZag(z, gridSize, boundWidth, boundHeight);
   if(completeTops && (printVert != printVertLast)){
     // only print tops for the first layer in each cycle
-    Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing);
+    Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing, multiline_count);
     result.insert(result.end(), polytops.begin(), polytops.end());
   }
   return result;
@@ -308,12 +309,13 @@ void Fill3DHoneycomb::_fill_surface_single(
     Polylines polylines =
       makeGrid(
 	       scale_(this->z) * zScale,
-	       scale_(this->z - params.layer_height) * zScale,
+	       scale_(this->z - (params.layer_height * params.multiline)) * zScale,
 	       gridSize,
 	       bb.size()(0),
 	       bb.size()(1),
 	       (params.complete || infill_angle >= (M_PI - EPSILON)),
-               scale_(this->spacing));
+               scale_(this->spacing),
+               params.multiline);
 
     // move pattern in place
     for (Polyline &pl : polylines){
