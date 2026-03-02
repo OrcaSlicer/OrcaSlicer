@@ -284,7 +284,7 @@ std::vector<WaveSeed> wave_seeds(
             for (const ClipperLib_Z::IntPoint &point : path) {
                 if (point.z() >= idx_boundary_end && point.z() < idx_src_end && src_z < 0)
                     src_z = point.z();
-                else if (point.z() >= 1 && point.z() < idx_boundary_end && boundary_z < 0)
+                else if (point.z() >= idx_boundary_begin && point.z() < idx_boundary_end && boundary_z < 0)
                     boundary_z = point.z();
                 if (src_z >= 0 && boundary_z >= 0)
                     break;
