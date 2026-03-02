@@ -114,6 +114,7 @@ private:
     void close();
     void draw_window();
     void draw_text_input();
+    void open_text_editor(); // Open wxDialog for IME-friendly text editing
     void draw_model_type();
     void draw_style_list();
     void draw_delete_style_button();

@@ -1235,6 +1235,81 @@ ExPolygons letter2shapes(
     return expolygons;
 }
 
+// letter2shapes with backup font support
+ExPolygons letter2shapes_with_backup(
+    wchar_t letter, 
+    Point &cursor, 
+    FontFileWithCache &font_with_cache, 
+    const FontProp &font_prop, 
+    fontinfo_opt& font_info_cache,
+    Emboss::BackFontCacheFn backup_font_fn)
+{
+    assert(font_with_cache.has_value());
+    if (!font_with_cache.has_value())
+        return {};
+
+    Glyphs &cache = *font_with_cache.cache;
+    const FontFile &font  = *font_with_cache.font_file;
+
+    if (letter == '\n') {
+        cursor.x() = 0;
+        cursor.y() -= get_line_height(font, font_prop);
+        return {};
+    }
+    if (letter == '\t') {
+        const int count_spaces = 4;
+        const Glyph *space = get_glyph(int(' '), font, font_prop, cache, font_info_cache);
+        if (space == nullptr)
+            return {};
+        cursor.x() += count_spaces * space->advance_width;
+        return {};
+    }
+    if (letter == '\r')
+        return {};
+
+    int unicode = static_cast<int>(letter);
+    auto it = cache.find(unicode);
+
+    // Create glyph from font file and cache it
+    const Glyph *glyph_ptr = (it != cache.end()) ? &it->second : get_glyph(unicode, font, font_prop, cache, font_info_cache);
+    
+    // If glyph not found in primary font, try backup fonts
+    if ((glyph_ptr == nullptr || glyph_ptr->shape.empty()) && backup_font_fn) {
+        auto backup_fonts = backup_font_fn();
+        for (auto &backup_font : backup_fonts) {
+            if (!backup_font.has_value()) 
+                continue;
+            
+            Glyphs &backup_cache = *backup_font.cache;
+            const FontFile &backup_ff = *backup_font.font_file;
+            
+            // Clear backup font cache to ensure glyph is regenerated with current font_prop
+            // This is necessary because skew/boldness transformations are applied during glyph generation
+            backup_cache.clear();
+            
+            // Try to get glyph from backup font with current font_prop
+            fontinfo_opt backup_font_info_cache;
+            const Glyph *backup_glyph = get_glyph(unicode, backup_ff, font_prop, backup_cache, backup_font_info_cache);
+            
+            if (backup_glyph != nullptr && !backup_glyph->shape.empty()) {
+                glyph_ptr = backup_glyph;
+                break;
+            }
+        }
+    }
+    
+    if (glyph_ptr == nullptr || glyph_ptr->shape.empty())
+        return {};
+
+    // move glyph to cursor position
+    ExPolygons expolygons = glyph_ptr->shape; // copy
+    for (ExPolygon &expolygon : expolygons)
+        expolygon.translate(cursor);
+
+    cursor.x() += glyph_ptr->advance_width;
+    return expolygons;
+}
+
 // Check cancel every X letters in text
 // Lower number - too much checks(slows down)
 // Higher number - slows down response on cancelation
@@ -1330,12 +1405,87 @@ ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const
             if (was_canceled())
                 return {};
         }
+        wchar_t process_letter = letter;
+        if (letter == wchar_t(' ')) {
+            // Use 'i' character temporarily to calculate space width
+            process_letter = 'i';
+        }
         unsigned id = static_cast<unsigned>(letter);
-        result.push_back({id, letter2shapes(letter, cursor, font_with_cache, font_prop, font_info_cache)});
+        result.push_back({id, letter2shapes(process_letter, cursor, font_with_cache, font_prop, font_info_cache)});
     }
 
     align_shape(result, text, font_prop, font);
+    
+    // Clear shape data for space characters, but keep their position info
+    for (size_t i = 0; i < result.size() && i < text.size(); i++) {
+        if (text[i] == wchar_t(' ')) {
+            result[i].expoly.clear();
+        }
+    }
+    
     return result;
+}
+
+// Text to vector shapes with backup font support
+ExPolygonsWithIds Emboss::text2vshapes_with_backup(
+    FontFileWithCache &font_with_cache, 
+    const std::wstring& text, 
+    const FontProp &font_prop, 
+    const std::function<bool()>& was_canceled,
+    BackFontCacheFn backup_font_fn)
+{
+    assert(font_with_cache.has_value());
+    const FontFile &font = *font_with_cache.font_file;
+    unsigned int font_index = font_prop.collection_number.value_or(0);
+    if (!is_valid(font, font_index))
+        return {};
+
+    unsigned counter = 0;
+    Point cursor(0, 0);
+
+    fontinfo_opt font_info_cache;  
+    ExPolygonsWithIds result;
+    result.reserve(text.size());
+    for (wchar_t letter : text) {
+        if (++counter == CANCEL_CHECK) {
+            counter = 0;
+            if (was_canceled())
+                return {};
+        }
+        wchar_t process_letter = letter;
+        if (letter == wchar_t(' ')) {
+            // Use 'i' character temporarily to calculate space width
+            process_letter = 'i';
+        }
+        unsigned id = static_cast<unsigned>(letter);
+        result.push_back({id, letter2shapes_with_backup(process_letter, cursor, font_with_cache, font_prop, font_info_cache, backup_font_fn)});
+    }
+
+    align_shape(result, text, font_prop, font);
+    
+    // Clear shape data for space characters, but keep their position info
+    for (size_t i = 0; i < result.size() && i < text.size(); i++) {
+        if (text[i] == wchar_t(' ')) {
+            result[i].expoly.clear();
+        }
+    }
+    
+    return result;
+}
+
+// Text to shapes with backup font support  
+HealedExPolygons Emboss::text2shapes_with_backup(
+    FontFileWithCache &font_with_cache, 
+    const char *text, 
+    const FontProp &font_prop, 
+    const std::function<bool()>& was_canceled,
+    BackFontCacheFn backup_font_fn)
+{
+    std::wstring text_w = boost::nowide::widen(text);
+    ExPolygonsWithIds vshapes = text2vshapes_with_backup(font_with_cache, text_w, font_prop, was_canceled, backup_font_fn);
+
+    float delta = static_cast<float>(1. / SHAPE_SCALE);
+    return ::union_with_delta(vshapes, delta, MAX_HEAL_ITERATION_OF_TEXT);
 }
 
 #include <boost/range/adaptor/reversed.hpp>
