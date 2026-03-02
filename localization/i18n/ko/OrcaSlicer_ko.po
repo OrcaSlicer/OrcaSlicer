@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -5083,6 +5083,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "오버행"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "칠하기 도구 모음"
 
@@ -5583,6 +5607,12 @@ msgstr "3D 내비게이터 표시"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "준비 및 미리보기 장면에서 3D 내비게이터 표시"
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "창 레이아웃 재설정"
@@ -9335,9 +9365,6 @@ msgstr "벽과 표면"
 msgid "Bridging"
 msgstr "브릿지"
 
-msgid "Overhangs"
-msgstr "오버행"
-
 msgid "Walls"
 msgstr "벽"
 
@@ -11182,6 +11209,16 @@ msgstr ""
 msgid ""
 "The prime tower requires that support has the same layer height with object."
 msgstr "프라임 타워는 서포트가 객체와 동일한 레이어 높이를 갖도록 요구합니다."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -16218,8 +16255,17 @@ msgstr "서포트 접점 속도"
 msgid "Base pattern"
 msgstr "기본 패턴"
 
-msgid "Line pattern of support."
-msgstr "서포트 기본 패턴"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "직선 격자"
@@ -20727,6 +20773,9 @@ msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 "
 "높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "서포트 기본 패턴"
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4897,6 +4897,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr ""
 
@@ -5391,6 +5415,12 @@ msgid "Show 3D Navigator"
 msgstr ""
 
 msgid "Show 3D navigator in Prepare and Preview scene."
+msgstr ""
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"
@@ -8957,9 +8987,6 @@ msgstr ""
 msgid "Bridging"
 msgstr ""
 
-msgid "Overhangs"
-msgstr ""
-
 msgid "Walls"
 msgstr ""
 
@@ -10676,6 +10703,16 @@ msgstr ""
 
 msgid ""
 "The prime tower requires that support has the same layer height with object."
+msgstr ""
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
 msgstr ""
 
 msgid ""
@@ -14877,7 +14914,16 @@ msgstr ""
 msgid "Base pattern"
 msgstr ""
 
-msgid "Line pattern of support."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
 msgstr ""
 
 msgid "Rectilinear grid"

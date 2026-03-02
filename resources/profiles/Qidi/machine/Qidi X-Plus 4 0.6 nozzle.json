@@ -25,5 +25,6 @@
     ],
     "retraction_minimum_travel": [
         "3"
-    ]
+    ],
+    "printer_agent": "qidi"
 }

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -5403,6 +5403,30 @@ msgstr "Leinwand-Werkzeugleiste"
 msgid "Fit camera to scene or selected object."
 msgstr "Kamera an Szene oder ausgewähltes Objekt anpassen."
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Überhänge"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Malwerkzeuge"
 
@@ -5929,6 +5953,12 @@ msgstr "3D-Navigator anzeigen"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "3D-Navigator in Vorbereitungs- und Vorschauansicht anzeigen."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Window-Layout zurücksetzen"
@@ -10045,9 +10075,6 @@ msgstr "Wände und Oberflächen"
 msgid "Bridging"
 msgstr "Brücken"
 
-msgid "Overhangs"
-msgstr "Überhänge"
-
 msgid "Walls"
 msgstr "Wände"
 
@@ -12042,6 +12069,16 @@ msgid ""
 msgstr ""
 "Der Reinigungsturm erfordert, dass die Stützstrukturen die gleiche "
 "Schichthöhe wie das Objekt haben."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -17666,8 +17703,17 @@ msgstr "Geschwindigkeit der Stützstruktur-Schnittstellen."
 msgid "Base pattern"
 msgstr "Basismuster"
 
-msgid "Line pattern of support."
-msgstr "Linienmuster der Stützstrukturen"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Rechtwinkliges Gitter"
@@ -22634,6 +22680,9 @@ msgstr ""
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, "
 "wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die "
 "Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Linienmuster der Stützstrukturen"
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

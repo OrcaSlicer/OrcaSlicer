@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -5195,6 +5195,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Iškyšos"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Piešimo įrankių juosta"
 
@@ -5697,6 +5721,12 @@ msgstr "Rodyti 3D navigatorių"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Rodyti 3D navigatorių paruošimo ir peržiūros scenose."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Atstatyti lango išdėstymą"
@@ -9560,9 +9590,6 @@ msgstr "Sienos ir paviršiai"
 msgid "Bridging"
 msgstr "Tiltai"
 
-msgid "Overhangs"
-msgstr "Iškyšos"
-
 msgid "Walls"
 msgstr "Sienos"
 
@@ -11465,6 +11492,16 @@ msgid ""
 msgstr ""
 "Pagrindinis bokštas reikalauja, kad atramos ir objekto sluoksnio aukštis "
 "būtų toks pat."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -16867,8 +16904,17 @@ msgstr "Atramų sąsajų greitis."
 msgid "Base pattern"
 msgstr "Pagrindinis raštas"
 
-msgid "Line pattern of support."
-msgstr "Linijinis atramų raštas."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Tiesus tinklelis"
@@ -21608,6 +21654,9 @@ msgstr ""
 "Ar žinojote, kad spausdinant medžiagas, kurios linkusios deformuotis, "
 "pavyzdžiui, ABS, tinkamai padidinus kaitinimo pagrindo temperatūrą galima "
 "sumažinti deformavimosi tikimybę."
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Linijinis atramų raštas."
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "
