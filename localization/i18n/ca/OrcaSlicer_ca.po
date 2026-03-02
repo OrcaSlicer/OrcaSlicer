@@ -4921,7 +4921,7 @@ msgstr "Velocitat Real (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Velocitat Ventilador ( % )"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "Temperatura ( °C )"
 
 msgid "Volumetric flow rate (mm³/s)"

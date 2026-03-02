@@ -4688,7 +4688,7 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "Fan speed (%)"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr ""
 
 msgid "Volumetric flow rate (mm³/s)"

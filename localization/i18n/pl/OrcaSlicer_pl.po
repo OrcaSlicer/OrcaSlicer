@@ -4910,8 +4910,8 @@ msgstr "Rzeczywista prędkość (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Prędkość wentylatora (%)"
 
-msgid "Temperature (℃)"
-msgstr "Temperatura (℃)"
+msgid "Temperature (°C)"
+msgstr "Temperatura (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Natężenie przepływu (mm³/s)"
