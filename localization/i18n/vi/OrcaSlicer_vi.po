@@ -4837,7 +4837,7 @@ msgstr "Tốc độ thực tế (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Tốc độ quạt (%)"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "Nhiệt độ (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"

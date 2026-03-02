@@ -5173,7 +5173,7 @@ msgstr "Skutečná rychlost (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Rychlost ventilátoru (%)"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "Teplota (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"

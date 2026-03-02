@@ -5086,8 +5086,8 @@ msgstr "Фактическая скорость (мм/с)"
 msgid "Fan Speed (%)"
 msgstr "Скорость вентилятора (%)"
 
-msgid "Temperature (℃)"
-msgstr "Температура (℃)"
+msgid "Temperature (°C)"
+msgstr "Температура (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Объёмный расход (мм³/с)"

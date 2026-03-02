@@ -4886,7 +4886,7 @@ msgstr "Gerçek Hız (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Fan hızı (%)"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "Sıcaklık (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
