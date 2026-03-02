@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2026-02-11 20:30+0100\n"
 "Last-Translator: Jakub Hencl <jakub.hencl@seznam.cz> René Mošner "
 "<Renemosner@seznam.cz>\n"
@@ -5454,6 +5454,30 @@ msgstr "Nástrojová lišta plátna"
 msgid "Fit camera to scene or selected object."
 msgstr "Přizpůsobit kameru scéně nebo vybranému objektu."
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Převisy"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Panel nástrojů malování"
 
@@ -5977,6 +6001,12 @@ msgstr "Zobrazit 3D navigátor"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Zobrazit 3D navigátor ve scénách Příprava a Náhled."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Obnovit rozvržení oken"
@@ -10078,9 +10108,6 @@ msgstr "Stěny a povrchy"
 msgid "Bridging"
 msgstr "Přemostění"
 
-msgid "Overhangs"
-msgstr "Převisy"
-
 msgid "Walls"
 msgstr "Stěny"
 
@@ -12095,6 +12122,16 @@ msgstr ""
 "Věž pro přečišťování vyžaduje, aby měla podpora stejnou výšku vrstvy jako "
 "objekt.Čistící věž vyžaduje, aby podpěry měly stejnou výšku vrstvy jako "
 "objekt."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -17881,8 +17918,17 @@ msgstr "Rychlost pro kontaktní vrstvy podpěr"
 msgid "Base pattern"
 msgstr "Základní vzor"
 
-msgid "Line pattern of support."
-msgstr "Čárový vzor podpěry"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Přímočará mřížka"
@@ -22946,6 +22992,9 @@ msgstr ""
 "Věděli jste, že při tisku materiálů náchylných ke kroucení, jako je ABS, "
 "může zvýšení teploty vyhřívané podložky snížit pravděpodobnost vzniku "
 "deformace?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Čárový vzor podpěry"
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

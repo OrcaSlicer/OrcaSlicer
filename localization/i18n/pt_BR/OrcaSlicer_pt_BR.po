@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2026-02-21 18:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -5350,6 +5350,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Saliências"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Barra de Ferramentas de Pintura"
 
@@ -5873,6 +5897,12 @@ msgstr "Mostrar Navegador 3D"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Mostrar navegador 3D nas cenas de Preparo e Pré-visualização."
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Redefinir Layout da Janela"
@@ -9920,9 +9950,6 @@ msgstr "Paredes e superfícies"
 msgid "Bridging"
 msgstr "Ponte"
 
-msgid "Overhangs"
-msgstr "Saliências"
-
 msgid "Walls"
 msgstr "Paredes"
 
@@ -11885,6 +11912,16 @@ msgid ""
 msgstr ""
 "A torre de preparo requer que o suporte tenha a mesma altura de camada do "
 "objeto."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -17406,8 +17443,17 @@ msgstr "Velocidade da interface de suporte."
 msgid "Base pattern"
 msgstr "Padrão da base"
 
-msgid "Line pattern of support."
-msgstr "Padrão de linha de suporte."
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Grade reticulada"
@@ -22285,6 +22331,9 @@ msgstr ""
 "Você sabia que ao imprimir materiais propensos ao empenamento, como ABS, "
 "aumentar adequadamente a temperatura da mesa aquecida pode reduzir a "
 "probabilidade de empenamento?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Padrão de linha de suporte."
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

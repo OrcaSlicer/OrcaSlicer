@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -5178,6 +5178,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Нависання"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Панель інструментів малювання"
 
@@ -5678,6 +5702,12 @@ msgstr "Показати 3D-навігатор"
 
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Показати 3D-навігатор у сцені підготовки та попереднього перегляду"
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Скинути розташування вікон"
@@ -9540,9 +9570,6 @@ msgstr "Стінки та поверхні"
 msgid "Bridging"
 msgstr "Створення мостів"
 
-msgid "Overhangs"
-msgstr "Нависання"
-
 msgid "Walls"
 msgstr "Стінки"
 
@@ -11427,6 +11454,16 @@ msgid ""
 "The prime tower requires that support has the same layer height with object."
 msgstr ""
 "Підготовча вежа вимагає, щоб підтримка мала однакову з об'єктом висоту шару."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -16746,8 +16783,17 @@ msgstr "Швидкість друку підтримки"
 msgid "Base pattern"
 msgstr "Основний шаблон"
 
-msgid "Line pattern of support."
-msgstr "Лінія підтримки"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Прямолінійна сітка"
@@ -21413,6 +21459,9 @@ msgstr ""
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як "
 "ABS, відповідне підвищення температури гарячого ліжка може зменшити "
 "ймовірність деформації?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Лінія підтримки"
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

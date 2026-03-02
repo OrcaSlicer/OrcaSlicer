@@ -8586,7 +8586,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
 
-        create_menu_item( "3D Navigator",
+        create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_3d_navigator(),
             [this]{
@@ -8595,7 +8595,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             }
         );
 
-        create_menu_item( "Zoom button",
+        create_menu_item( _utf8(L("Zoom button")),
             true, // work on all
             wxGetApp().show_canvas_zoom_button(),
             [this]{
@@ -8606,13 +8606,13 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Overhangs",
+        create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
             [this, p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
         );
 
-        create_menu_item( "Outline",
+        create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
             [this]{wxGetApp().toggle_show_outline();}
@@ -8620,7 +8620,7 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Perspective",
+        create_menu_item( _utf8(L("Perspective")),
             true, // work on all
             cfg->get_bool("use_perspective_camera"),
             [this, &cfg]{
@@ -8631,15 +8631,21 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Axes",
+        create_menu_item( _utf8(L("Axes")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             m_show_world_axes,
             [this]{toggle_world_axes_visibility(false);}
         );
 
-        // will add an option for gridlines in here
+        create_menu_item( _utf8(L("Gridlines")),
+            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
+            wxGetApp().show_plate_gridlines(),
+            [this]{wxGetApp().toggle_show_plate_gridlines();}
+        );
 
-        create_menu_item( "Labels",
+        ImGui::Separator();
+
+        create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
             [this, p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}

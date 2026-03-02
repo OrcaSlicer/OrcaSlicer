@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-28 00:02+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -5178,6 +5178,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Nawisy"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Pasek narzędzi do malowania"
 
@@ -5681,6 +5705,12 @@ msgstr "Wyświetlanie nawigatora 3D"
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr ""
 "Przełącza wyświetlanie nawidgatora 3D w scenie przygotowania i podglądu"
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
 
 msgid "Reset Window Layout"
 msgstr "Przywróć układ okna"
@@ -9512,9 +9542,6 @@ msgstr "Ściany i powierzchnie"
 msgid "Bridging"
 msgstr "Mosty"
 
-msgid "Overhangs"
-msgstr "Nawisy"
-
 msgid "Walls"
 msgstr "Ściany"
 
@@ -11413,6 +11440,16 @@ msgid ""
 msgstr ""
 "Wieża czyszcząca wymaga, aby podpory miały tę samą wysokość warstwy co "
 "obiekt."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -16767,8 +16804,17 @@ msgstr "Prędkość dla warstw łączących"
 msgid "Base pattern"
 msgstr "Wzór podstawowy"
 
-msgid "Line pattern of support."
-msgstr "Liniowy wzór podpór"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Siatka prostoliniowa"
@@ -21451,6 +21497,9 @@ msgstr ""
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, "
 "takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może "
 "zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "Liniowy wzór podpór"
 
 #~ msgid ""
 #~ "Failed to install the plug-in. Please check whether it is blocked or "

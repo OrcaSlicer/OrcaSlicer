@@ -1745,8 +1745,10 @@ void generate_support_toolpaths(
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
                     sheath  = true;
                     no_sort = true;
-                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic) {
-                    // if the tree supports are too tall, use double wall to make it stronger
+                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic &&
+                           (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault)) {
+                    // Orca: A special case for the hollow Organic supports
+                    // Orca: If the tree supports are too tall, use a double wall to make it stronger
                     SupportParameters support_params2 = support_params;
                     if (support_layer.print_z > 100.0)
                         support_params2.tree_branch_diameter_double_wall_area_scaled = 0.1;
