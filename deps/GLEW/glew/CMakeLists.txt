@@ -3,9 +3,17 @@ project(GLEW)
 
 find_package(OpenGL REQUIRED)
 
-if(OpenGL_EGL_FOUND)
-    message(STATUS "building GLEW for EGL (hope that wxWidgets agrees, otherwise you won't have any output!)")
+# Allow parent project to control EGL usage.
+# Default to OFF since OrcaSlicer forces GDK_BACKEND=x11 (using GLX contexts).
+# GLEW must use glXGetProcAddressARB (GLX) to match wxWidgets GL canvas.
+# Using EGL function loading with GLX contexts causes rendering failures.
+option(GLEW_USE_EGL "Use EGL instead of GLX for OpenGL function loading" OFF)
+
+if(GLEW_USE_EGL)
+    message(STATUS "Building GLEW with EGL support")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGLEW_EGL")
+else()
+    message(STATUS "Building GLEW with GLX support")
 endif()
 
 add_library(GLEW src/glew.c)

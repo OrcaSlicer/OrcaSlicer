@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -426,7 +426,7 @@ msgstr ""
 msgid "Size"
 msgstr "サイズ"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "スケール"
 
 msgid "Planar"
@@ -684,8 +684,8 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr "面でカット"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
-msgstr "Non-manifold edges be caused by cut tool: do you want to fix now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgstr ""
 
 msgid "Repairing model object"
 msgstr "モデルオブジェクトを修復"
@@ -2204,31 +2204,37 @@ msgstr ""
 msgid "Select All"
 msgstr "全てを選択"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "現在のプレート上のすべてのオブジェクトを選択"
+
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
 
 msgid "Delete All"
 msgstr "全てを削除"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "現在のプレート上の全てのオブジェクトを削除"
 
 msgid "Arrange"
 msgstr "レイアウト"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "現在のプレートをレイアウト"
 
 msgid "Reload All"
 msgstr "全て再読み込み"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "全てディスクから再読み込み"
 
 msgid "Auto Rotate"
 msgstr "自動回転"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "現在のプレートを自動回転させる"
 
 msgid "Delete Plate"
@@ -2529,7 +2535,8 @@ msgstr ""
 msgid "Invalid numeric."
 msgstr "無効な数値"
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "一つのセルは、同じ列のセルにしかコピーできません"
 
 msgid "Copying multiple cells is not supported."
@@ -2782,9 +2789,9 @@ msgid "Top"
 msgstr "トップ"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3585,8 +3592,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3611,11 +3617,12 @@ msgstr ""
 "ださい。"
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
-msgstr "プラグインをインストールできませんでした。ご確認ください。"
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
+msgstr ""
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "詳しくはこちら"
 
 msgid ""
@@ -4113,7 +4120,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4388,6 +4395,12 @@ msgstr "プリンター設定"
 msgid "parameter name"
 msgstr "パラメータ名"
 
+msgid "Range"
+msgstr "範囲"
+
+msgid "Value is out of range."
+msgstr "値が範囲外です。"
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s をパーセンテージにすることはできません"
@@ -4402,9 +4415,6 @@ msgstr "パラメータ検証"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr ""
-
-msgid "Value is out of range."
-msgstr "値が範囲外です。"
 
 #, c-format, boost-format
 msgid ""
@@ -4455,7 +4465,7 @@ msgid "Line Width"
 msgstr "押出線幅"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "実速度"
 
 msgid "Fan Speed"
 msgstr "ファン回転速度"
@@ -4464,7 +4474,7 @@ msgid "Flow"
 msgstr "流量"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "実際の流れ"
 
 msgid "Tool"
 msgstr "ツール"
@@ -4474,6 +4484,9 @@ msgstr "積層時間"
 
 msgid "Layer Time (log)"
 msgstr "積層時間 (Log)"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4562,9 +4575,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "回転速度"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "時間"
 
@@ -4599,6 +4609,9 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
+msgstr "実速度: "
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4713,13 +4726,13 @@ msgid "Speed (mm/s)"
 msgstr "速度 (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "実速度 (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "ファン回転速度 (%)"
 
-msgid "Temperature (°C)"
-msgstr "温度 (°C)"
+msgid "Temperature (℃)"
+msgstr "温度 (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "流量 (mm³/s)"
@@ -4735,9 +4748,6 @@ msgstr "フィラメント交換"
 
 msgid "Options"
 msgstr "オプション"
-
-msgid "travel"
-msgstr "移動"
 
 msgid "Extruder"
 msgstr "押出機"
@@ -4833,16 +4843,13 @@ msgstr "編集領域を拡大/縮小"
 msgid "Sequence"
 msgstr "順番"
 
-msgid "object selection"
-msgstr ""
-
-msgid "part selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -4992,6 +4999,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "ペイント ツールバー"
 
@@ -5072,7 +5103,7 @@ msgid "Only the object being edited is visible."
 msgstr "編集中のオブジェクトのみ表示されます"
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -5488,6 +5519,12 @@ msgid "Show 3D Navigator"
 msgstr ""
 
 msgid "Show 3D navigator in Prepare and Preview scene."
+msgstr ""
+
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
 msgstr ""
 
 msgid "Reset Window Layout"
@@ -6199,7 +6236,7 @@ msgid "Layer: %d/%d"
 msgstr ""
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
@@ -6306,7 +6343,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr ""
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr ""
 
 msgid ""
@@ -6562,9 +6599,6 @@ msgstr ""
 
 msgid "Layers"
 msgstr "積層"
-
-msgid "Range"
-msgstr "範囲"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
@@ -7270,7 +7304,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -7299,13 +7333,14 @@ msgstr "プロジェクトを保存"
 msgid "Importing Model"
 msgstr "モデルをインポート"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "3mfファイルを準備"
 
 msgid "Download failed, unknown file format."
 msgstr ""
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "プロジェクトをダウンロード中"
 
 msgid "Download failed, File size exception."
@@ -7794,6 +7829,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7803,9 +7850,6 @@ msgstr ""
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
-msgstr ""
-
-msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -8164,10 +8208,10 @@ msgstr "PRE ホスト: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "PRODホスト"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "保存"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "デバッグ設定を保存"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8457,7 +8501,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "送信完了"
 
 msgid "Error code"
@@ -8590,7 +8634,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -8978,7 +9022,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
@@ -9111,9 +9155,6 @@ msgid "Walls and surfaces"
 msgstr ""
 
 msgid "Bridging"
-msgstr ""
-
-msgid "Overhangs"
 msgstr ""
 
 msgid "Walls"
@@ -10163,7 +10204,7 @@ msgstr "X方向 10mm"
 msgid "Movement step set to 1 mm"
 msgstr "移動ステップを1mmに設定"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "キー1-9: オブジェクト/パーツのフィラメントを設定"
 
 msgid "Camera view - Default"
@@ -10902,6 +10943,16 @@ msgid ""
 msgstr ""
 "プライムタワーを使用するには、オブジェクトとサポートが同じ積層ピッチを使う必"
 "要があります"
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -12743,6 +12794,49 @@ msgid ""
 "tower to produce successive infill or sacrificial object extrusions reliably."
 msgstr ""
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "最後の冷却移動の速度"
 
@@ -13245,14 +13339,14 @@ msgstr ""
 "この設定により、壁面を造形時にノズルがランダムで軽微な振動を加えます。これに"
 "より、表面にザラザラ感が出来上がります。"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "塗装のみ"
 
 msgid "Contour"
-msgstr ""
+msgstr "輪郭"
 
 msgid "Contour and hole"
-msgstr ""
+msgstr "輪郭と穴"
 
 msgid "All walls"
 msgstr "すべての壁"
@@ -14322,9 +14416,6 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "オーバーハングを検出"
 
@@ -15270,8 +15361,17 @@ msgstr "サポート接触面の造形速度です。"
 msgid "Base pattern"
 msgstr "基本パターン"
 
-msgid "Line pattern of support."
-msgstr "サポートのサターンです。"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "直線グリッド"
@@ -15773,6 +15873,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -17212,7 +17329,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr ""
 
-msgid "filament position"
+msgid "Filament position"
 msgstr ""
 
 msgid "Filament For Calibration"
@@ -18090,7 +18207,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
 
@@ -18851,7 +18969,7 @@ msgstr ""
 msgid "Upgrading"
 msgstr ""
 
-msgid "syncing"
+msgid "Syncing"
 msgstr ""
 
 msgid "Printing Finish"
@@ -19400,6 +19518,20 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げること"
 "で、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Line pattern of support."
+#~ msgstr "サポートのサターンです。"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr "プラグインをインストールできませんでした。ご確認ください。"
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "移動"
 
 #~ msgid "Replace with STL"
 #~ msgstr "STLに置き換え"
@@ -20291,7 +20423,7 @@ msgstr ""
 #~ "はい - 直線パターンに切り替えます\n"
 #~ "いいえ - 充填密度をリセットします"
 
-#~ msgid "Please heat the nozzle to above 170°C before loading filament."
+#~ msgid "Please heat the nozzle to above 170℃ before loading filament."
 #~ msgstr ""
 #~ "フィラメントをロードする前に、ノズル温度を170℃以上に加熱してください"
 

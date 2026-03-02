@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 08:42+0800\n"
+"POT-Creation-Date: 2026-03-01 01:03+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -436,7 +436,7 @@ msgstr ""
 msgid "Size"
 msgstr "Mida"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "escala uniforme"
 
 msgid "Planar"
@@ -696,7 +696,7 @@ msgstr "Connector"
 msgid "Cut by Plane"
 msgstr "Tallar pel pla"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "les vores amb plecs poden ser causades per l'eina de tall, voleu solucionar-"
 "ho ara?"
@@ -2266,31 +2266,37 @@ msgstr ""
 msgid "Select All"
 msgstr "Seleccionar-ho tot"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "seleccionar tots els objectes de la placa actual"
+
+msgid "Select All Plates"
+msgstr ""
+
+msgid "Select all objects on all plates"
+msgstr ""
 
 msgid "Delete All"
 msgstr "Suprimir-les totes"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "eliminar tots els objectes de la placa actual"
 
 msgid "Arrange"
 msgstr "Ordenar"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "organitza la placa actual"
 
 msgid "Reload All"
 msgstr "Torna-ho a carregar Tot"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "torna a carregar-ho tot des del disc"
 
 msgid "Auto Rotate"
 msgstr "Rota automàticament"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "rotar automàticament la placa actual"
 
 msgid "Delete Plate"
@@ -2609,7 +2615,8 @@ msgstr "Afegir un interval d'alçada"
 msgid "Invalid numeric."
 msgstr "Entrada numèrica no vàlida."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "una cel·la només es pot copiar a una o diverses cel·les de la mateixa columna"
 
@@ -2865,9 +2872,9 @@ msgid "Top"
 msgstr "Superior"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3723,8 +3730,7 @@ msgstr ""
 msgid "Please unload all filament before switching."
 msgstr ""
 
-msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -3749,13 +3755,12 @@ msgstr ""
 "tallafoc i el programari VPN, comproveu-ho i torneu-ho a provar."
 
 msgid ""
-"Failed to install the plug-in. Please check whether it is blocked or deleted "
-"by anti-virus software."
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 msgstr ""
-"No s'ha pogut instal·lar el connector. Comproveu si el programari antivirus "
-"l'ha bloquejat o suprimit."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "feu clic aquí per veure més informació"
 
 msgid ""
@@ -4297,7 +4302,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4577,6 +4582,12 @@ msgstr "Configuració de la Impressora"
 msgid "parameter name"
 msgstr "nom del paràmetre"
 
+msgid "Range"
+msgstr "Rang"
+
+msgid "Value is out of range."
+msgstr "El valor introduït és fora de rang."
+
 #, c-format, boost-format
 msgid "%s can't be a percentage"
 msgstr "%s no pot ser un percentatge"
@@ -4591,9 +4602,6 @@ msgstr "Validació de paràmetres"
 #, c-format, boost-format
 msgid "Value %s is out of range. The valid range is from %d to %d."
 msgstr "El valor %s està fora de rang. El rang vàlid és de %d a %d."
-
-msgid "Value is out of range."
-msgstr "El valor introduït és fora de rang."
 
 #, c-format, boost-format
 msgid ""
@@ -4647,7 +4655,7 @@ msgid "Line Width"
 msgstr "Amplada de la línia"
 
 msgid "Actual Speed"
-msgstr ""
+msgstr "Velocitat Real"
 
 msgid "Fan Speed"
 msgstr "Velocitat del ventilador"
@@ -4656,7 +4664,7 @@ msgid "Flow"
 msgstr "Fluxe"
 
 msgid "Actual Flow"
-msgstr ""
+msgstr "Flux real"
 
 msgid "Tool"
 msgstr "Eina"
@@ -4666,6 +4674,9 @@ msgstr "Temps de capa"
 
 msgid "Layer Time (log)"
 msgstr "Temps de capa ( log )"
+
+msgid "Pressure Advance"
+msgstr ""
 
 msgid "Noop"
 msgstr ""
@@ -4754,9 +4765,6 @@ msgstr ""
 msgid "Fan speed"
 msgstr "Velocitat del ventilador"
 
-msgid "°C"
-msgstr "°C"
-
 msgid "Time"
 msgstr "Temps"
 
@@ -4791,6 +4799,9 @@ msgid "Color: "
 msgstr ""
 
 msgid "Actual Speed: "
+msgstr "Velocitat Real: "
+
+msgid "PA: "
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -4905,12 +4916,12 @@ msgid "Speed (mm/s)"
 msgstr "Velocitat ( mm/s )"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Velocitat Real (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Velocitat Ventilador ( % )"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "Temperatura ( °C )"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -4927,9 +4938,6 @@ msgstr "Canvis de filament"
 
 msgid "Options"
 msgstr "Opcions"
-
-msgid "travel"
-msgstr "recorregut"
 
 msgid "Extruder"
 msgstr "Extrusor"
@@ -5025,16 +5033,13 @@ msgstr "Incrementar/reduir àrea edició"
 msgid "Sequence"
 msgstr "Seqüència"
 
-msgid "object selection"
-msgstr ""
-
-msgid "part selection"
+msgid "Object selection"
 msgstr ""
 
 msgid "number keys"
 msgstr ""
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr ""
 
 msgid ""
@@ -5184,6 +5189,30 @@ msgstr ""
 msgid "Fit camera to scene or selected object."
 msgstr ""
 
+msgid "3D Navigator"
+msgstr ""
+
+msgid "Zoom button"
+msgstr ""
+
+msgid "Overhangs"
+msgstr "Voladissos"
+
+msgid "Outline"
+msgstr ""
+
+msgid "Perspective"
+msgstr ""
+
+msgid "Axes"
+msgstr ""
+
+msgid "Gridlines"
+msgstr ""
+
+msgid "Labels"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Barra d'eines de pintura"
 
@@ -5266,7 +5295,7 @@ msgid "Only the object being edited is visible."
 msgstr "Només és visible l'objecte que s'està editant."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -5687,6 +5716,12 @@ msgstr "Mostrar el navegador 3D"
 msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Mostrar el navegador 3D en Preparació i Previsualització"
 
+msgid "Show Gridlines"
+msgstr ""
+
+msgid "Show Gridlines on plate"
+msgstr ""
+
 msgid "Reset Window Layout"
 msgstr "Restableix el disseny de la finestra"
 
@@ -5727,7 +5762,7 @@ msgid "Max flowrate"
 msgstr "Cabal màxim"
 
 msgid "Pressure advance"
-msgstr "Avanç de Pressió Lineal( Pressure advance )"
+msgstr "Avanç de Pressió Lineal (Pressure advance)"
 
 msgid "Pass 1"
 msgstr "Pas 1"
@@ -6443,7 +6478,7 @@ msgid "Layer: %d/%d"
 msgstr "Capa: %d/%d"
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "Escalfeu el broquet per sobre dels 170 °C abans de carregar o descarregar el "
 "filament."
@@ -6556,7 +6591,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "S'ha produït un error en la pujada\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "error en obtenir instance_id \n"
 
 msgid ""
@@ -6835,9 +6870,6 @@ msgstr "Connectors de tall"
 
 msgid "Layers"
 msgstr "Capes"
-
-msgid "Range"
-msgstr "Rang"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
@@ -7574,7 +7606,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -7604,13 +7636,14 @@ msgstr "Desar projecte"
 msgid "Importing Model"
 msgstr "Important Model"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "preparar el fitxer 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "S'ha produït un error en la baixada, format de fitxer desconegut."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "descarregant projecte ..."
 
 msgid "Download failed, File size exception."
@@ -8130,6 +8163,18 @@ msgstr ""
 msgid "By vendor"
 msgstr ""
 
+msgid "Optimize filaments area height for..."
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
+msgid "filaments"
+msgstr ""
+
+msgid "Optimizes filament area maximum height by chosen filament count"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -8142,9 +8187,6 @@ msgid ""
 msgstr ""
 "Amb aquesta opció habilitada, podeu enviar una tasca a diversos dispositius "
 "alhora i gestionar múltiples dispositius."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -8520,10 +8562,10 @@ msgstr "Amfitrió PRE: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Amfitrió del producte"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "botó de desar depuració"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "desar la configuració de depuració"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8814,7 +8856,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "enviament completat"
 
 msgid "Error code"
@@ -8960,7 +9002,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -9391,7 +9433,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
@@ -9542,9 +9584,6 @@ msgstr "Parets i superfícies"
 
 msgid "Bridging"
 msgstr "Ponts"
-
-msgid "Overhangs"
-msgstr "Voladissos"
 
 msgid "Walls"
 msgstr "Parets"
@@ -10663,7 +10702,7 @@ msgstr "Moure la selecció 10 mm en direcció X positiva"
 msgid "Movement step set to 1 mm"
 msgstr "Pas de moviment configurat a 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "teclat 1-9: establir filament per a objecte/peça"
 
 msgid "Camera view - Default"
@@ -11448,6 +11487,16 @@ msgid ""
 msgstr ""
 "La Torre de Purga requereix que el suport tingui la mateixa alçada de capa "
 "amb objecte."
+
+msgid ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
+msgstr ""
+
+msgid ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
+msgstr ""
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -13820,6 +13869,49 @@ msgstr ""
 "quantitat de material a la Torre de Purga per produir successives extrusions "
 "d'objectes de farciment o sacrifici de manera fiable."
 
+msgid "Interface layer pre-extrusion distance"
+msgstr ""
+
+msgid ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Interface layer pre-extrusion length"
+msgstr ""
+
+msgid ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
+msgstr ""
+
+msgid "Tower ironing area"
+msgstr ""
+
+msgid ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
+
+msgid "Interface layer purge length"
+msgstr ""
+
+msgid ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
+msgstr ""
+
+msgid "Interface layer print temperature"
+msgstr ""
+
+msgid ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
+msgstr ""
+
 msgid "Speed of the last cooling move"
 msgstr "Velocitat de l'últim moviment de refredament"
 
@@ -14402,8 +14494,8 @@ msgstr ""
 "superfície tingui un aspecte rugós. Aquest ajustament controla la posició "
 "difusa"
 
-msgid "None (allow paint)"
-msgstr ""
+msgid "Painted only"
+msgstr "Només pintat"
 
 msgid "Contour"
 msgstr "Contorn"
@@ -15662,9 +15754,6 @@ msgstr ""
 "Àrea màxima d'un forat a la base del model abans que s'ompli amb material "
 "cònic. Un valor de 0 omplirà tots els forats de la base del model."
 
-msgid "mm²"
-msgstr "mm²"
-
 msgid "Detect overhang wall"
 msgstr "Detectar voladís de perímetre"
 
@@ -16790,8 +16879,17 @@ msgstr "Velocitat de la interfície de suport"
 msgid "Base pattern"
 msgstr "Patró de la base"
 
-msgid "Line pattern of support."
-msgstr "Patró lineal del suport"
+msgid ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
+msgstr ""
 
 msgid "Rectilinear grid"
 msgstr "Quadrícula rectilínia"
@@ -17399,6 +17497,23 @@ msgid "Skip points"
 msgstr ""
 
 msgid "The wall of prime tower will skip the start points of wipe path."
+msgstr ""
+
+msgid "Enable tower interface features"
+msgstr ""
+
+msgid ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
+msgstr ""
+
+msgid "Cool down from interface boost during prime tower"
+msgstr ""
+
+msgid ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 msgstr ""
 
 msgid "Infill gap"
@@ -19026,7 +19141,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Tipus de placa"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "posició del filament"
 
 msgid "Filament For Calibration"
@@ -19992,10 +20107,11 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the "
+"printer.\n"
 "Can be shared with others."
 msgstr ""
-"La Impressora i tots els perfils de filament&processament que pertanyen a la "
+"Impressora i tots els perfils de filament i de procés que pertanyen a la "
 "impressora.\n"
 "Es pot compartir amb altres persones."
 
@@ -20886,7 +21002,7 @@ msgstr "Sense tasques històriques!"
 msgid "Upgrading"
 msgstr "Actualitzant"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "sincronitzant"
 
 msgid "Printing Finish"
@@ -21506,6 +21622,22 @@ msgstr ""
 "augmentar adequadament la temperatura del llit pot reduir la probabilitat de "
 "deformació?"
 
+#~ msgid "Line pattern of support."
+#~ msgstr "Patró lineal del suport"
+
+#~ msgid ""
+#~ "Failed to install the plug-in. Please check whether it is blocked or "
+#~ "deleted by anti-virus software."
+#~ msgstr ""
+#~ "No s'ha pogut instal·lar el connector. Comproveu si el programari "
+#~ "antivirus l'ha bloquejat o suprimit."
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "travel"
+#~ msgstr "recorregut"
+
 #~ msgid "Replace with STL"
 #~ msgstr "Substitueix per STL"
 
@@ -21650,8 +21782,8 @@ msgstr ""
 #~ "capacitat restant s'actualitzarà automàticament."
 
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
 #~ "La temperatura mínima recomanada és inferior a 190 °C o la màxima "
 #~ "recomanada és superior a 300 °C.\n"

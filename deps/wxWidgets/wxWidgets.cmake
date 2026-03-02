@@ -51,6 +51,7 @@ orcaslicer_add_cmake_project(
         -DwxUSE_UNICODE=ON
         -DwxUSE_PRIVATE_FONTS=ON
         -DwxUSE_OPENGL=ON
+        -DwxUSE_GLCANVAS_EGL=OFF
         -DwxUSE_WEBREQUEST=ON
         -DwxUSE_WEBVIEW=ON
         ${_wx_edge}
