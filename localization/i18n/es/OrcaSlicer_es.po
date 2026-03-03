@@ -2376,7 +2376,7 @@ msgstr "Llenar la cama con instancias"
 
 msgid "Fill the remaining area of bed with instances of the selected object"
 msgstr ""
-"Rellena el área restante de la cama con instancias del objeto seleccionado."
+"Rellena el área restante de la cama con instancias del objeto seleccionado"
 
 msgid "Clone"
 msgstr "Clonar"
@@ -2675,7 +2675,7 @@ msgstr ""
 "Una celda sólo puede copiarse en una o varias celdas de la misma columna."
 
 msgid "Copying multiple cells is not supported."
-msgstr "no se admite la copia de múltiples celdas."
+msgstr "No se admite la copia de múltiples celdas."
 
 msgid "Outside"
 msgstr "En el exterior"
@@ -5831,7 +5831,7 @@ msgid "Export Generic 3MF"
 msgstr "Exportar 3MF genérico"
 
 msgid "Export 3MF file without using some 3mf-extensions"
-msgstr "Exporte el archivo 3MF sin usar algunas de las extensiones."
+msgstr "Exporte el archivo 3MF sin usar algunas de las extensiones"
 
 msgid "Export current sliced file"
 msgstr "Exportar la bandeja activa laminada a un archivo"
@@ -20680,7 +20680,7 @@ msgid "Serial"
 msgstr "Serie"
 
 msgid "e.g. Basic, Matte, Silk, Marble"
-msgstr "Por ejemplo: Básico, Mate, Seda, Mármol"
+msgstr "por ejemplo: Básico, Mate, Seda, Mármol"
 
 msgid "Filament Preset"
 msgstr "Perfil de Filamento"
