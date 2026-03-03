@@ -17976,8 +17976,8 @@ msgstr ""
 "Jeśli włączone, sprawdza, czy bieżąca maszyna jest wstecznie kompatybilna z "
 "maszynami z listy."
 
-msgid "downward machines settings"
-msgstr ""
+msgid "Downward machines settings"
+msgstr "Ustawienia wstecznej kompatybilności maszyn"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr ""
@@ -22495,9 +22495,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Wczytaj najnowsze ustawienia filamentu podczas korzystania z aktualnej "
 #~ "wersji."
-
-#~ msgid "Downward machines settings"
-#~ msgstr "ustawienia wstecznej kompatybilności maszyn"
 
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "Wczytaj identyfikatory filamentu dla każdego obiektu"

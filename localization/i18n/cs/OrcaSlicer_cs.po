@@ -19207,7 +19207,7 @@ msgstr ""
 "Pokud je povoleno, ověřuje, zda je aktuální stroj zpětně kompatibilní se "
 "stroji v seznamu."
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "Nastavení strojů směrem dolů"
 
 msgid "The machine settings list needs to do downward checking."

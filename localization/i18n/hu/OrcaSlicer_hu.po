@@ -16679,7 +16679,7 @@ msgid ""
 "machines in the list."
 msgstr ""
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr ""
 
 msgid "The machine settings list needs to do downward checking."

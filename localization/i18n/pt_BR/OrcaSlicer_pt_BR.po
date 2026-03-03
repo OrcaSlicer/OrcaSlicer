@@ -18706,8 +18706,8 @@ msgstr ""
 "Se habilitado, verifica se a máquina atual é retrocompatível com as máquinas "
 "na lista."
 
-msgid "downward machines settings"
-msgstr "configurações de máquinas descendentes"
+msgid "Downward machines settings"
+msgstr "Configurações de máquinas descendentes"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr ""

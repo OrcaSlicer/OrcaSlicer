@@ -18930,7 +18930,7 @@ msgstr ""
 "Wenn aktiviert, wird überprüft, ob die aktuelle Maschine abwärtskompatibel "
 "mit den Maschinen in der Liste ist"
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "Abwärtskompatible Maschineneinstellungen"
 
 msgid "The machine settings list needs to do downward checking."
@@ -23941,9 +23941,6 @@ msgstr ""
 
 #~ msgid "Load uptodate filament settings when using uptodate."
 #~ msgstr "Aktuelle Filamenteinstellungen laden, wenn Aktuell verwendet wird"
-
-#~ msgid "Downward machines settings"
-#~ msgstr "Einstellungen für abwärtskompatible Maschinen"
 
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "Lade Filament-IDs für jedes Objekt"

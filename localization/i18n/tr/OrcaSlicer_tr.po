@@ -17997,7 +17997,7 @@ msgstr ""
 "Etkinleştirilirse mevcut makinenin listedeki makinelerle uyumlu olup "
 "olmadığını kontrol edin."
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "Aşağı doğru makine ayarları"
 
 msgid "The machine settings list needs to do downward checking."
@@ -22667,9 +22667,6 @@ msgstr ""
 
 #~ msgid "Load uptodate filament settings when using uptodate."
 #~ msgstr "güncellemeyi kullanırken güncelleme filament ayarlarını yükle"
-
-#~ msgid "Downward machines settings"
-#~ msgstr "Düşüşteki makinelerin ayarları"
 
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "Her nesne için filaman kimliklerini yükleyin"

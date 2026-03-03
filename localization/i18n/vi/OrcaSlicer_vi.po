@@ -17681,8 +17681,8 @@ msgstr ""
 "Nếu được bật, kiểm tra máy hiện tại có tương thích ngược với các máy trong "
 "danh sách hay không."
 
-msgid "downward machines settings"
-msgstr "cài đặt máy tương thích ngược"
+msgid "Downward machines settings"
+msgstr "Cài đặt máy tương thích ngược"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr "Danh sách cài đặt máy cần thực hiện kiểm tra tương thích ngược."

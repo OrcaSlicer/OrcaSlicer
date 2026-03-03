@@ -18914,7 +18914,7 @@ msgstr ""
 "Si está activado, comprobar si la máquina actual es compatible hacia atrás "
 "con las máquinas de la lista."
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "Ajustes de las máquinas descendentes"
 
 msgid "The machine settings list needs to do downward checking."

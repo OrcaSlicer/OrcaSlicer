@@ -18067,8 +18067,8 @@ msgstr ""
 "si està activat, comproveu si la màquina actual és compatible de manera "
 "descendent amb les màquines de la llista"
 
-msgid "downward machines settings"
-msgstr ""
+msgid "Downward machines settings"
+msgstr "Configuració descendent de les màquines"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr ""
@@ -22628,9 +22628,6 @@ msgstr ""
 #~ msgid "Load uptodate filament settings when using uptodate."
 #~ msgstr ""
 #~ "carregar la configuració del filament Uptodate quan s'utilitza UptoDate"
-
-#~ msgid "Downward machines settings"
-#~ msgstr "configuració descendent de les màquines"
 
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "Carregar els identificadors del filament per a cada objecte"

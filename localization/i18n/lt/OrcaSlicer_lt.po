@@ -18099,8 +18099,8 @@ msgstr ""
 "Jei įjungta, patikrinkite, ar dabartinė mašina yra suderinama su sąraše "
 "esančiomis mašinomis."
 
-msgid "downward machines settings"
-msgstr "tolimesnių mašinų nustatymas"
+msgid "Downward machines settings"
+msgstr "Tolimesnių mašinų nustatymas"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr "Mašinos nustatymų sąraše reikia atlikti žemyn einantį tikrinimą."
@@ -22915,9 +22915,6 @@ msgstr ""
 
 #~ msgid "Load uptodate filament settings when using uptodate."
 #~ msgstr "įkelti naujausius gijų nustatymus, kai naudojate \"naujausius“"
-
-#~ msgid "Downward machines settings"
-#~ msgstr "mašinų nustatymai žemyn"
 
 #~ msgid "Load custom G-code from json"
 #~ msgstr "Įkelti pasirinktinį G-kodą iš json"

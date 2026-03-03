@@ -18907,8 +18907,8 @@ msgstr ""
 "Если включено, будет проверяться совместимость текущего принтера с "
 "принтерами из списка."
 
-msgid "downward machines settings"
-msgstr "настройка текущих принтеров"
+msgid "Downward machines settings"
+msgstr "Настройка текущих принтеров"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr "Необходимо выполнить проверку списка настроек текущего принтера."

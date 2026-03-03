@@ -18168,8 +18168,8 @@ msgstr ""
 "Se abilitato, controlla se la macchina corrente è compatibile con le "
 "macchine presenti nell'elenco."
 
-msgid "downward machines settings"
-msgstr ""
+msgid "Downward machines settings"
+msgstr "Impostazioni macchine"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr "L'elenco delle impostazioni delle macchine deve essere controllato."
@@ -22771,9 +22771,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Carica le impostazioni del filamento aggiornate quando si utilizza "
 #~ "Aggiorna."
-
-#~ msgid "Downward machines settings"
-#~ msgstr "Impostazioni macchine"
 
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "Carica gli ID dei filamenti per ogni oggetto"

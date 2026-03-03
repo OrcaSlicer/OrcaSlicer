@@ -17155,7 +17155,7 @@ msgid ""
 "machines in the list."
 msgstr "若啟用，則檢查目前列印設備是否與列表中的列印設備向下相容"
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "向下相容列印設備設定"
 
 msgid "The machine settings list needs to do downward checking."

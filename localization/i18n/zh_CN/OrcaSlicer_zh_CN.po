@@ -17018,7 +17018,7 @@ msgid ""
 "machines in the list."
 msgstr "如果启用，检查当前的机器是否向下兼容列表中的机器。"
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "向下兼容机器设置"
 
 msgid "The machine settings list needs to do downward checking."

@@ -17364,8 +17364,8 @@ msgid ""
 msgstr ""
 "활성화된 경우 현재 컴퓨터가 목록에 있는 컴퓨터와 하위 호환되는지 확인합니다."
 
-msgid "downward machines settings"
-msgstr ""
+msgid "Downward machines settings"
+msgstr "하향 머신 설정"
 
 msgid "The machine settings list needs to do downward checking."
 msgstr "머신 설정 목록에서 아래쪽을 확인해야 합니다"
@@ -21808,9 +21808,6 @@ msgstr ""
 
 #~ msgid "Load uptodate filament settings when using uptodate."
 #~ msgstr "최신 필라멘트 설정 사용 시 최신 필라멘트 설정 로드"
-
-#~ msgid "Downward machines settings"
-#~ msgstr "하향 머신 설정"
 
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "각 객체에 대한 필라멘트 ID 로드"
