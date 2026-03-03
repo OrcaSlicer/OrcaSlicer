@@ -3963,7 +3963,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Ironing Type");
     def->category = L("Quality");
     def->tooltip = L("Ironing is using small flow to print on same height of surface again to make flat surface more smooth. "
-                     "This setting controls which layer being ironed");
+                     "This setting controls which layer being ironed.");
     def->enum_keys_map = &ConfigOptionEnum<IroningType>::get_enum_values();
     def->enum_values.push_back("no ironing");
     def->enum_values.push_back("top");

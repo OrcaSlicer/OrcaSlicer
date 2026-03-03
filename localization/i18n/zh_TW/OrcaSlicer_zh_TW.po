@@ -14571,7 +14571,7 @@ msgstr "熨燙類型"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "熨燙是指使用小流量在表面相同高度再次列印，以使平面更加光滑。此設定控制哪些層"
 "進行熨燙"

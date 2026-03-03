@@ -15139,11 +15139,11 @@ msgstr "Тип розгладжування"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "При розглажуванні використовується невеликий потік для повторного друку на "
 "тій самійвисота поверхні, щоб зробити плоску поверхню більш гладкою. Цей "
-"параметр визначає, який шар гладити"
+"параметр визначає, який шар гладити."
 
 msgid "No ironing"
 msgstr "Немає Розгладжування"

@@ -15341,11 +15341,11 @@ msgstr "Type de lissage"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Le lissage utilise un petit débit pour imprimer à nouveau sur la même "
 "hauteur de surface pour rendre la surface plane plus lisse. Ce paramètre "
-"contrôle quelle couche est repassée"
+"contrôle quelle couche est repassée."
 
 msgid "No ironing"
 msgstr "Pas de lissage"

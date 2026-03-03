@@ -15212,11 +15212,11 @@ msgstr "Tipus de planxat"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "El planxat consisteix a utilitzar un flux petit per imprimir a la mateixa "
 "alçada de superfície de nou per fer la superfície plana més llisa. Aquest "
-"ajustament controla quina capa s'està planxant"
+"ajustament controla quina capa s'està planxant."
 
 msgid "No ironing"
 msgstr "Sense planxat"

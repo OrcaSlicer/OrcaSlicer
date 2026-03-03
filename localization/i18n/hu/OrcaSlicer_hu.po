@@ -14192,7 +14192,7 @@ msgstr "Vasalás típusa"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "A vasalás kis anyagáramlás használatával kisimítja a sík felületeket. Ez a "
 "beállítás szabályozza, hogy mely rétegeknél történik meg a vasalás."

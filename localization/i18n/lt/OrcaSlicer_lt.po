@@ -15239,11 +15239,11 @@ msgstr "Lyginimo tipas"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Lyginant naudojamas nedidelis srautas, kuris spausdina tame pačiame "
 "paviršiaus aukštyje, kad plokšti paviršiai būtų lygesni. Šis nustatymas "
-"kontroliuoja, kurie sluoksniai lyginami"
+"kontroliuoja, kurie sluoksniai lyginami."
 
 msgid "No ironing"
 msgstr "Nėra lyginimo"

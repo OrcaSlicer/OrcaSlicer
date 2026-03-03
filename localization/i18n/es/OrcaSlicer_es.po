@@ -15952,7 +15952,7 @@ msgstr "Tipo de alisado"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "El alisado es el uso de un flujo muy bajo para realizar una segunda pasada "
 "de impresión a la misma altura de una superficie superior para obtener un "

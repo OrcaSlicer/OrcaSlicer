@@ -13959,7 +13959,7 @@ msgstr "アイロン面"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "アイロンでは、小さな流量で水平の表面をならします。ならす面を選択してくださ"
 "い。"

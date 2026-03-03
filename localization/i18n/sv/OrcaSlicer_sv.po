@@ -14139,11 +14139,11 @@ msgstr "Stryknings typ"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Strykning använder ett litet flöde för att skriva ut på samma höjd av en yta "
 "för att göra plana ytor jämnare. Inställningen kontrollerar vilket lager som "
-"ska strykas"
+"ska strykas."
 
 msgid "No ironing"
 msgstr "Ingen strykning"

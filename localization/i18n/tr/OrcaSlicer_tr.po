@@ -15137,11 +15137,11 @@ msgstr "Ütüleme tipi"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Ütüleme, düz yüzeyi daha pürüzsüz hale getirmek için aynı yükseklikteki "
 "yüzeye tekrar baskı yapmak için küçük akış kullanmaktır. Bu ayar hangi "
-"katmanın ütüleneceğini kontrol eder"
+"katmanın ütüleneceğini kontrol eder."
 
 msgid "No ironing"
 msgstr "Ütüleme yok"

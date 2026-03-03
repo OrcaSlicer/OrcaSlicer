@@ -14904,10 +14904,10 @@ msgstr "Loại ủi"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Ủi là sử dụng lưu lượng nhỏ để in lại trên cùng chiều cao của bề mặt để làm "
-"cho bề mặt phẳng mịn hơn. Cài đặt này điều khiển lớp nào được ủi"
+"cho bề mặt phẳng mịn hơn. Cài đặt này điều khiển lớp nào được ủi."
 
 msgid "No ironing"
 msgstr "Không ủi"

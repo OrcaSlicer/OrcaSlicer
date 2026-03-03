@@ -14355,7 +14355,7 @@ msgstr "Strijk type"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Strijken gebruikt een lage flow om op dezelfde hoogte van een oppervlak te "
 "printen om platte oppervlakken gladder te maken. Deze instelling bepaalt op "

@@ -15808,11 +15808,11 @@ msgstr "Tipo de Alisamento"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "O alisamento usa um pequeno fluxo para imprimir na mesma altura da "
 "superfície novamente para deixá-la mais lisa. Esta configuração controla "
-"qual camada está sendo alisada"
+"qual camada está sendo alisada."
 
 msgid "No ironing"
 msgstr "Sem alisamento"

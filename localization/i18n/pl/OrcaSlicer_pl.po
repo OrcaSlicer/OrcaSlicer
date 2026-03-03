@@ -15138,11 +15138,11 @@ msgstr "Rodzaj prasowania"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Prasowanie polega na używaniu małego przepływu, aby ponownie wydrukować na "
 "tej samej wysokości powierzchnię, w celu uzyskania bardziej gładkiej "
-"powierzchni. Ta opcja kontroluje, który poziom jest prasowany"
+"powierzchni. Ta opcja kontroluje, który poziom jest prasowany."
 
 msgid "No ironing"
 msgstr "Bez prasowania"

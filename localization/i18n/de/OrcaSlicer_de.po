@@ -16000,11 +16000,11 @@ msgstr "Glättungsmethode"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Beim Glätten wird ein kleiner Fluss verwendet, um die gleiche Höhe der "
 "Oberfläche erneut zu bedrucken und die Oberfläche glatter zu machen. Diese "
-"Einstellung steuert, welche Schicht geglättet wird"
+"Einstellung steuert, welche Schicht geglättet wird."
 
 msgid "No ironing"
 msgstr "Kein Glätten"

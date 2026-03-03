@@ -15287,11 +15287,11 @@ msgstr "Tipo di stiratura"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "La stiratura utilizza un flusso ridotto per stampare alla stessa altezza di "
 "una superficie, per rendere le superfici piane più lisce. Questa "
-"impostazione controlla quali strati vengono stirati"
+"impostazione controlla quali strati vengono stirati."
 
 msgid "No ironing"
 msgstr "Non stirare"

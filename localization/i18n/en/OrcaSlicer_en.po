@@ -13883,7 +13883,7 @@ msgstr "Ironing type"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Ironing uses a small flow to print at the same height of a surface to make "
 "flat surfaces smoother. This setting controls which layers are being ironed."

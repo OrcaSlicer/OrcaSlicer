@@ -14686,7 +14686,7 @@ msgstr "다림질 유형"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "다림질은 평평한 표면을 더 부드럽게 만들기 위해 같은 높이의 표면에 소량의 압출"
 "로 다시 출력하는 것입니다. 이 설정은 다림질 레이어를 제어합니다"
