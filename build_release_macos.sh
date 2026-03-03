@@ -255,12 +255,11 @@ function build_slicer() {
 
 function lipo_dir() {
     local universal_dir="$1"
-    local arm64_dir="$2"
-    local x86_64_dir="$3"
+    local x86_64_dir="$2"
 
     # Find all Mach-O files in the universal (arm64-based) copy and lipo them
     while IFS= read -r -d '' f; do
-        local rel="${f#$universal_dir/}"
+        local rel="${f#"$universal_dir"/}"
         local x86="$x86_64_dir/$rel"
         if [ -f "$x86" ]; then
             echo "  lipo: $rel"
@@ -289,7 +288,7 @@ function build_universal() {
     cp -R "$ARM64_APP" "$UNIVERSAL_APP"
 
     echo "Creating universal binaries for OrcaSlicer.app..."
-    lipo_dir "$UNIVERSAL_APP" "$ARM64_APP" "$X86_64_APP"
+    lipo_dir "$UNIVERSAL_APP" "$X86_64_APP"
     echo "Universal OrcaSlicer.app created at $UNIVERSAL_APP"
 
     # Create universal binary for profile validator if it exists
@@ -300,7 +299,7 @@ function build_universal() {
         UNIVERSAL_VALIDATOR_APP="$PROJECT_BUILD_DIR/OrcaSlicer/OrcaSlicer_profile_validator.app"
         rm -rf "$UNIVERSAL_VALIDATOR_APP"
         cp -R "$ARM64_VALIDATOR" "$UNIVERSAL_VALIDATOR_APP"
-        lipo_dir "$UNIVERSAL_VALIDATOR_APP" "$ARM64_VALIDATOR" "$X86_64_VALIDATOR"
+        lipo_dir "$UNIVERSAL_VALIDATOR_APP" "$X86_64_VALIDATOR"
         echo "Universal OrcaSlicer_profile_validator.app created at $UNIVERSAL_VALIDATOR_APP"
     fi
 }
