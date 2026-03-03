@@ -1829,7 +1829,7 @@ void PrintConfigDef::init_fff_params()
                      "unnecessary bridges. This works well for most difficult models\n"
                      "3. No filtering - creates internal bridges on every potential internal overhang. This option is "
                      "useful for heavily slanted top surface models; however, in most cases, it creates too many "
-                     "unnecessary bridges");
+                     "unnecessary bridges.");
     def->enum_keys_map = &ConfigOptionEnum<InternalBridgeFilter>::get_enum_values();
     def->enum_values.push_back("disabled");
     def->enum_values.push_back("limited");
