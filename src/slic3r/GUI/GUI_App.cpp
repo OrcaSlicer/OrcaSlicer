@@ -1717,7 +1717,7 @@ bool GUI_App::hot_reload_network_plugin()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": starting hot reload";
 
     wxBusyCursor busy;
-    wxBusyInfo info(_L("Reloading network plugin..."), mainframe);
+    wxBusyInfo info(_L("Reloading network plug-in..."), mainframe);
     wxYield();
     wxWindowDisabler disabler;
 
@@ -1860,7 +1860,7 @@ void GUI_App::show_network_plugin_download_dialog(bool is_update)
             app_config->set_network_plugin_version(selected);
             app_config->save();
 
-            DownloadProgressDialog download_dlg(_L("Downloading Network Plugin"));
+            DownloadProgressDialog download_dlg(_L("Downloading Network Plug-in"));
             download_dlg.ShowModal();
         }
         break;
@@ -5528,7 +5528,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                            "2. Enable Developer mode\n\n"
                            "Developer mode allows the printer to work exclusively through local network access, "
                            "enabling full functionality with OrcaSlicer."),
-                        _L("Network Plugin Restriction"), wxAPPLY | wxOK);
+                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
             m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
             m_show_error_msgdlg = false;

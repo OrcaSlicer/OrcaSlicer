@@ -5129,8 +5129,8 @@ void PrinterInfoBox::UpdatePlate(const std::string& plate_name)
             name = _L("Textured PEI Plate");
             m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 40));
         }
-        else if (plate_name == "Supertack Plate") {
-            name = _L("Cool Plate (Supertack)");
+        else if (plate_name == "SuperTack Plate") {
+            name = _L("Cool Plate (SuperTack)");
             m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 40));
         }
 

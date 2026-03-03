@@ -1237,7 +1237,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     } else {
         if (m_config.enable_wrapping_detection && warning!=nullptr) {
             StringObjectException warningtemp;
-            warningtemp.string     = L("Prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
+            warningtemp.string     = L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
             warningtemp.opt_key    = "enable_prime_tower";
             warningtemp.is_warning = true;
             *warning               = warningtemp;

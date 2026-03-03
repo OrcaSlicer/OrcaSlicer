@@ -439,7 +439,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangFanThreshold)
 // BBS
 static const t_config_enum_values s_keys_map_BedType = {
     { "Default Plate",      btDefault },
-    { "Supertack Plate",    btSuperTack },
+    { "SuperTack Plate",    btSuperTack },
     { "Cool Plate",         btPC },
     { "Engineering Plate",  btEP  },
     { "High Temp Plate",    btPEI  },
@@ -995,7 +995,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("High Temp Plate");
     def->enum_values.emplace_back("Textured PEI Plate");
     def->enum_values.emplace_back("Textured Cool Plate");
-    def->enum_values.emplace_back("Supertack Plate");
+    def->enum_values.emplace_back("SuperTack Plate");
     def->enum_labels.emplace_back(L("Smooth Cool Plate"));
     def->enum_labels.emplace_back(L("Engineering Plate"));
     def->enum_labels.emplace_back(L("Smooth High Temp Plate"));
@@ -3632,7 +3632,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
     def->tooltip = L("Enable this to add comments into the G-code labeling print moves with what object they belong to,"
-                   " which is useful for the Octoprint CancelObject plugin. This settings is NOT compatible with "
+                   " which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with "
                    "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(1));
@@ -5398,7 +5398,7 @@ void PrintConfigDef::init_fff_params()
                      "If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed "
                      "and then take a snapshot. "
                      "Since the melt filament may leak from the nozzle during the process of taking a snapshot, "
-                     "prime tower is required for smooth mode to wipe nozzle.");
+                     "a prime tower is required for smooth mode to wipe nozzle.");
     def->enum_keys_map = &ConfigOptionEnum<TimelapseType>::get_enum_values();
     def->enum_values.emplace_back("0");
     def->enum_values.emplace_back("1");
