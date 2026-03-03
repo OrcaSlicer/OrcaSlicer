@@ -96,6 +96,7 @@ src/slic3r/GUI/Jobs/RotoptimizeJob.cpp
 src/slic3r/GUI/Jobs/BindJob.cpp
 src/slic3r/GUI/Jobs/PrintJob.cpp
 src/slic3r/GUI/Jobs/SendJob.cpp
+src/slic3r/GUI/Jobs/EmbossJob.cpp
 src/slic3r/GUI/ThermalPreconditioningDialog.cpp
 src/slic3r/GUI/ThermalPreconditioningDialog.hpp
 src/slic3r/GUI/Jobs/SLAImportJob.cpp
