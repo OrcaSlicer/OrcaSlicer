@@ -1,0 +1,62 @@
+{
+    "type": "filament",
+    "filament_id": "GFN99",
+    "setting_id": "GFSN98",
+    "name": "PA6 CF20 (Performance)",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+	"filament_flow_ratio": [
+        "0.96"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "45"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+      "36"
+    ],
+    "filament_density": [
+        "1.14"
+    ],
+    "filament_type": [
+        "PA6-CF"
+    ],
+    "compatible_printers": [
+	  "EXO42 Performance (0.4 nozzle)",
+	  "EXO65 Performance (0.4 nozzle)",
+	  "EXO65 Performance (0.6 nozzle)",
+	  "EXO65 Performance (0.8 nozzle)",
+	  "SH65 Performance (0.4 nozzle)",
+	  "EXO42 IDRE (0.4 nozzle)",
+	  "EXO42 IDRE COPY MODE (0.4 nozzle)",
+	  "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+	  "EXO65 IDRE (0.4 nozzle)",
+	  "EXO65 IDRE COPY MODE (0.4 nozzle)",
+	  "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+	  "SH65 IDRE (0.4 nozzle)",
+	  "SH65 IDRE COPY MODE (0.4 nozzle)",
+	  "SH65 IDRE MIRROR MODE (0.4 nozzle)",
+	  "VS30SC2 Performance (0.4 nozzle)"
+    ]
+}
