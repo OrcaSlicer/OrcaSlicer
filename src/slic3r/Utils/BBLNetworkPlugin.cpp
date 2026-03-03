@@ -1,4 +1,5 @@
 #include "BBLNetworkPlugin.hpp"
+#include "NetworkAgent.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,9 +162,21 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     // Load all function pointers
     load_all_function_pointers();
 
+    // Sync legacy network flag from NetworkAgent (set during GUI_App initialization)
+    m_use_legacy_network = NetworkAgent::use_legacy_network;
+
+    std::string loaded_version;
     if (m_get_version) {
-        (void) m_get_version();
+        loaded_version = m_get_version();
     }
+
+    BOOST_LOG_TRIVIAL(info) << "BBLNetworkPlugin::initialize: legacy_mode="
+        << (m_use_legacy_network ? "true" : "false")
+        << ", library=" << library
+        << ", version=" << (loaded_version.empty() ? "unknown" : loaded_version)
+        << ", send_message=" << (m_send_message ? "loaded" : "null")
+        << ", start_print=" << (m_start_print ? "loaded" : "null")
+        << ", start_local_print=" << (m_start_local_print ? "loaded" : "null");
 
     return 0;
 }
