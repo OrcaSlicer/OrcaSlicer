@@ -112,7 +112,8 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 
 // Add additional dense fill in line with the pattern direction to
 // cover the top squares of the pattern
-static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing, size_t multiline_count)
+static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing,
+                         size_t multiline_count, size_t topDistance)
 {
   float pointsPerSquare = 10;
   coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
@@ -122,16 +123,21 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_
   Polylines lines;
   size_t pointCount = 0;
   // top cover extents in the direction of travel (a bit longer, to help fuse the cover)
-  coordf_t gridStartL = gridSize * 0.25 - (spacing * multiline_count) / 2.0;
-  coordf_t gridEndL = gridSize * 0.75 + (spacing * multiline_count) / 2.0;
+  coordf_t gridStartL = gridSize * 0.25 - spacing / 2.;
+  coordf_t gridEndL = gridSize * 0.75 + spacing / 2.;
   // top cover extents perpendicular to the direction of travel
-  coordf_t gridStartP = gridSize * 0.25 + (spacing * multiline_count) / 2.0;
-  coordf_t gridEndP = gridSize * 0.75 - (spacing * multiline_count) / 2.0;
+  coordf_t gridStartP = gridSize * 0.25 + spacing;
+  coordf_t gridEndP = gridSize * 0.75 - spacing;
   coordf_t x, y;
   int xm, ym;
+  // if the print direction needs to be rotated, then swap the extents
+  if((topDistance % 2) == 0){
+    std::swap(gridStartL, gridStartP);
+    std::swap(gridEndL, gridEndP);
+  }
   // adjust spacing so that it starts and ends on exactly the right place
-  coordf_t region_count = floor((gridEndL - gridStartL) / (spacing * multiline_count));
-  spacing = (gridEndL - gridStartL) / region_count;
+  coordf_t region_count = floor((gridEndP - gridStartP) / (spacing * multiline_count));
+  spacing = (gridEndP - gridStartP) / region_count;
   for (x = 0, xm = 0; x <= (boundsX); x+= gridSize, xm = xm ^ 1) {
     for (y = 0, ym = 0; y <= (boundsY); y += gridSize, ym = ym ^ 1) {
       if(((xm ^ ym) == 1) == printVert){
@@ -139,29 +145,19 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_
       }
       Polyline newPoints;
       int dirMod = xm ^ ym;
-      if(printVert){
+      if(printVert == (topDistance % 2)){
         if(y < boundsY){
           for(coordf_t xi = gridStartP; xi < (gridEndP + EPSILON); xi += spacing, dirMod = dirMod ^ 1){
-            if(dirMod == 0){
-              newPoints.points.push_back(Point(x + xi, y + gridStartL));
-              newPoints.points.push_back(Point(x + xi, y + gridEndL));
-            } else {
-              newPoints.points.push_back(Point(x + xi, y + gridEndL));
-              newPoints.points.push_back(Point(x + xi, y + gridStartL));
-            }
+            newPoints.points.push_back((dirMod == 0) ? Point(x + xi, y + gridStartL) : Point(x + xi, y + gridEndL));
+            newPoints.points.push_back((dirMod == 0) ? Point(x + xi, y + gridEndL) : Point(x + xi, y + gridStartL));
             pointCount += 2;
           }
         }
       } else {
         if(x < boundsX){
           for(coordf_t yi = gridStartP; yi < (gridEndP + EPSILON); yi += spacing, dirMod = dirMod ^ 1){
-            if(dirMod == 0){
-              newPoints.points.push_back(Point(x + gridStartL, y + yi));
-              newPoints.points.push_back(Point(x + gridEndL, y + yi));
-            } else {
-              newPoints.points.push_back(Point(x + gridEndL, y + yi));
-              newPoints.points.push_back(Point(x + gridStartL, y + yi));
-            }
+            newPoints.points.push_back((dirMod == 0) ? Point(x + gridStartL, y + yi) : Point(x + gridEndL, y + yi));
+            newPoints.points.push_back((dirMod == 0) ? Point(x + gridEndL, y + yi) : Point(x + gridStartL, y + yi));
             pointCount += 2;
           }
         }
@@ -219,8 +215,16 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
   bool printVertLast = zCycleLast < 0.5;
   Polylines result = makeZigZag(z, gridSize, boundWidth, boundHeight);
   if(completeTops && (printVert != printVertLast)){
+    coordf_t layer_height = (z - zLast) / multiline_count;
+    size_t top_distance = 0;
+    for(coordf_t zCheck = z; zCheck >= (zLast + EPSILON); zCheck -= layer_height, top_distance++){
+      coordf_t zCheckCycle = fmod(zCheck + gridSize/2, gridSize * 2.) / (gridSize * 2.);
+      if(printVert != (zCheckCycle < 0.5)){
+        break;
+      }
+    }
     // only print tops for the first layer in each cycle
-    Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing, multiline_count);
+    Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing, multiline_count, top_distance);
     result.insert(result.end(), polytops.begin(), polytops.end());
   }
   return result;
