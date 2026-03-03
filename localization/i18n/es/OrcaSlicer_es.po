@@ -4499,7 +4499,7 @@ msgid "Live View Camera Calibration"
 msgstr "Calibración de la cámara en vivo"
 
 msgid "Waiting for heatbed to reach target temperature"
-msgstr "Esperando a que la cama caliente alcance la temperatura deseada."
+msgstr "Esperando a que la cama caliente alcance la temperatura deseada"
 
 msgid "Auto Check: Material Position"
 msgstr "Comprobación automática: Posición del material"
