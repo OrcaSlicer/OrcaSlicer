@@ -4852,7 +4852,7 @@ msgstr "實際速度（mm/s）"
 msgid "Fan Speed (%)"
 msgstr "風扇速度（%）"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "溫度（℃）"
 
 msgid "Volumetric flow rate (mm³/s)"
