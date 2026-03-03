@@ -6555,7 +6555,7 @@ msgid "Modifying the device name"
 msgstr "Modificar el nombre del dispositivo"
 
 msgid "Name is invalid;"
-msgstr "El nombre es inválido"
+msgstr "El nombre es inválido;"
 
 msgid "illegal characters:"
 msgstr "caracteres no permitidos:"
@@ -18892,7 +18892,7 @@ msgid ""
 "Load uptodate process/machine settings from the specified file when using "
 "uptodate."
 msgstr ""
-"carga los ajustes actualizados de proceso/máquina desde el archivo "
+"Carga los ajustes actualizados de proceso/máquina desde el archivo "
 "especificado cuando se usa actualizar."
 
 msgid "Load uptodate filament settings when using uptodate"
@@ -21207,11 +21207,11 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "nozzle size in preset: %d"
-msgstr "Tamaño de la boquilla en el preajuste: %d"
+msgstr "tamaño de la boquilla en el preajuste: %d"
 
 #, c-format, boost-format
 msgid "nozzle size memorized: %d"
-msgstr "Tamaño de boquilla guardado: %d"
+msgstr "tamaño de boquilla guardado: %d"
 
 msgid ""
 "The size of nozzle type in preset is not consistent with memorized nozzle. "
