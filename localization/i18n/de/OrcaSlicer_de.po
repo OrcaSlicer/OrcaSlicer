@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:35-0300\n"
+"POT-Creation-Date: 2026-03-03 16:39-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -3296,7 +3296,22 @@ msgstr ""
 "Der Speicher im Drucker ist schreibgeschützt. Bitte ersetzen Sie ihn durch "
 "einen normalen Speicher, bevor Sie etwas an den Drucker senden."
 
+msgid "Bad input data for EmbossCreateObjectJob."
+msgstr ""
+
 msgid "Add Emboss text object"
+msgstr ""
+
+msgid "Bad input data for EmbossUpdateJob."
+msgstr ""
+
+msgid "Created text volume is empty. Change text or font."
+msgstr ""
+
+msgid "Bad input data for CreateSurfaceVolumeJob."
+msgstr ""
+
+msgid "Bad input data for UseSurfaceJob."
 msgstr ""
 
 #. TRN: This is the title of the action appearing in undo/redo stack.

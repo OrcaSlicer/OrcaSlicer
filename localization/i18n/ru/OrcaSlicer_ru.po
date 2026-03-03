@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:35-0300\n"
+"POT-Creation-Date: 2026-03-03 16:39-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -3283,7 +3283,22 @@ msgstr ""
 "Хранилище данных в принтере защищено от записи. Замените хранилище для "
 "отправки печати на принтер."
 
+msgid "Bad input data for EmbossCreateObjectJob."
+msgstr ""
+
 msgid "Add Emboss text object"
+msgstr ""
+
+msgid "Bad input data for EmbossUpdateJob."
+msgstr ""
+
+msgid "Created text volume is empty. Change text or font."
+msgstr ""
+
+msgid "Bad input data for CreateSurfaceVolumeJob."
+msgstr ""
+
+msgid "Bad input data for UseSurfaceJob."
 msgstr ""
 
 #. TRN: This is the title of the action appearing in undo/redo stack.
