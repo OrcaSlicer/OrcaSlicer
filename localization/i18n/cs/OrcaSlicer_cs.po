@@ -3759,8 +3759,8 @@ msgstr ""
 "následujícím pořadí.Když současný materiál dojde, tiskárna bude pokračovat v "
 "tisku v následujícím pořadí."
 
-msgid "Identical filament: same brand, type and color"
-msgstr "Identický filament: stejná značka, typ a barva"
+msgid "Identical filament: same brand, type and color."
+msgstr "Identický filament: stejná značka, typ a barva."
 
 msgid "Group"
 msgstr "Skupina"

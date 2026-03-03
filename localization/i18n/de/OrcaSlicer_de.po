@@ -3732,8 +3732,8 @@ msgstr ""
 "Wenn das aktuelle Material leer ist, druckt der Drucker in folgender "
 "Reihenfolge weiter."
 
-msgid "Identical filament: same brand, type and color"
-msgstr "Identisches Filament: gleiche Marke, Typ und Farbe"
+msgid "Identical filament: same brand, type and color."
+msgstr "Identisches Filament: gleiche Marke, Typ und Farbe."
 
 msgid "Group"
 msgstr "Gruppe"

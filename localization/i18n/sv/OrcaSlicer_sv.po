@@ -3522,7 +3522,7 @@ msgstr ""
 "När det aktuella materialet tar slut, fortsätter printern att skriva ut "
 "material i följande ordning."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

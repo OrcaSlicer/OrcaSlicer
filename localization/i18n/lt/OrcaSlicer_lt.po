@@ -3606,7 +3606,7 @@ msgid ""
 msgstr ""
 "Pasibaigus esamai medžiagai, spausdintuvas toliau spausdins šia tvarka."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

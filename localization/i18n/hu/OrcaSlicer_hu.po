@@ -3513,7 +3513,7 @@ msgstr ""
 "Amikor az aktuális filament elfogy, a nyomtató a következő sorrendben "
 "folytatja a nyomtatást."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

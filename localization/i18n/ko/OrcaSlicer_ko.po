@@ -3539,7 +3539,7 @@ msgid ""
 "following order."
 msgstr "현재 재료가 소진되면 프린터는 다음 순서로 계속 출력합니다."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

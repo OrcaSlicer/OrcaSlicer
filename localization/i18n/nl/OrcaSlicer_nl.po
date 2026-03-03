@@ -3544,7 +3544,7 @@ msgstr ""
 "Als het huidige materiaal op is, gaat de printer verder met afdrukken in de "
 "volgende volgorde."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

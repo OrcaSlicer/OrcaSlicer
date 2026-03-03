@@ -3610,7 +3610,7 @@ msgstr ""
 "Quan s'esgoti el material actual, la impressora continuarà imprimint en "
 "l'ordre següent."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

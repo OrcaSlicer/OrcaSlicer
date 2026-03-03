@@ -3632,7 +3632,7 @@ msgstr ""
 "Quando si esaurisce il materiale corrente, la stampante continuerà a "
 "stampare nel seguente ordine."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

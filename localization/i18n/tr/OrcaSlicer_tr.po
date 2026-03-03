@@ -3582,7 +3582,7 @@ msgstr ""
 "Mevcut malzeme bittiğinde yazıcı aşağıdaki sırayla yazdırmaya devam "
 "edecektir."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

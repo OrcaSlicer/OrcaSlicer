@@ -3540,7 +3540,7 @@ msgid ""
 "following order."
 msgstr "Khi vật liệu hiện tại hết, máy in sẽ tiếp tục in theo thứ tự sau."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

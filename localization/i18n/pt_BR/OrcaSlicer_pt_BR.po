@@ -3705,8 +3705,8 @@ msgstr ""
 "Quando o material atual acabar, a impressora continuará a imprimir na "
 "seguinte ordem."
 
-msgid "Identical filament: same brand, type and color"
-msgstr "Filamento idêntico: mesma marca, tipo e cor"
+msgid "Identical filament: same brand, type and color."
+msgstr "Filamento idêntico: mesma marca, tipo e cor."
 
 msgid "Group"
 msgstr "Grupo"

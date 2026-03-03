@@ -3507,7 +3507,7 @@ msgid ""
 "following order."
 msgstr "当前材料耗尽时，打印机将按照以下顺序继续打印。"
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr "相同耗材：同品牌、同型号、同色。"
 
 msgid "Group"

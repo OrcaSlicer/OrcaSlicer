@@ -3607,7 +3607,7 @@ msgstr ""
 "Коли поточний матеріал закінчується, принтер буде продовжувати друк у "
 "наступному порядку."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"

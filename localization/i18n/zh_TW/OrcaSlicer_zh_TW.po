@@ -3536,8 +3536,8 @@ msgid ""
 "following order."
 msgstr "當目前線材用完時，列印設備將按照以下順序繼續列印。"
 
-msgid "Identical filament: same brand, type and color"
-msgstr "相同線材：相同品牌、類型和顏色"
+msgid "Identical filament: same brand, type and color."
+msgstr "相同線材：相同品牌、類型和顏色。"
 
 msgid "Group"
 msgstr "組"
