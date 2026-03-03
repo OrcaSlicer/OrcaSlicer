@@ -6612,7 +6612,7 @@ msgid "Name is invalid;"
 msgstr "Jméno je neplatné;"
 
 msgid "illegal characters:"
-msgstr "Nepovolené znaky:"
+msgstr "nepovolené znaky:"
 
 msgid "illegal suffix:"
 msgstr "Neplatná přípona:"

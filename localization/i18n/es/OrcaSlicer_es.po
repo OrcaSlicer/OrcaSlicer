@@ -6558,7 +6558,7 @@ msgid "Name is invalid;"
 msgstr "El nombre es inválido"
 
 msgid "illegal characters:"
-msgstr "Caracteres no permitidos:"
+msgstr "caracteres no permitidos:"
 
 msgid "illegal suffix:"
 msgstr "sufijo no permitido:"

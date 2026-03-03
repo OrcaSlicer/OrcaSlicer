@@ -6151,10 +6151,10 @@ msgid "Name is invalid;"
 msgstr "Namnet är ogiltligt;"
 
 msgid "illegal characters:"
-msgstr "Ogiltliga tecken:"
+msgstr "ogiltliga tecken:"
 
 msgid "illegal suffix:"
-msgstr "Ogiltlig ändelse:"
+msgstr "ogiltlig ändelse:"
 
 msgid "The name is not allowed to be empty."
 msgstr "Namn fältet får inte vara tomt."
