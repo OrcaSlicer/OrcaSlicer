@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:40-0300\n"
+"POT-Creation-Date: 2026-03-03 16:43-0300\n"
 "PO-Revision-Date: 2026-02-11 20:30+0100\n"
 "Last-Translator: Jakub Hencl <jakub.hencl@seznam.cz> René Mošner "
 "<Renemosner@seznam.cz>\n"
@@ -11234,6 +11234,12 @@ msgstr "Klikněte zde pro stažení."
 
 msgid "Login"
 msgstr "Přihlášení"
+
+msgid "[Action Required] "
+msgstr ""
+
+msgid "[Action Required]"
+msgstr ""
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Konfigurační balíček byl změněn v předchozím průvodci konfigurací"

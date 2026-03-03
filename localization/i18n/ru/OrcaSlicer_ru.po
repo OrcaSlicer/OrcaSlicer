@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:40-0300\n"
+"POT-Creation-Date: 2026-03-03 16:43-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -11006,6 +11006,12 @@ msgstr "Нажмите здесь, чтобы загрузить его."
 
 msgid "Login"
 msgstr "Войти"
+
+msgid "[Action Required] "
+msgstr ""
+
+msgid "[Action Required]"
+msgstr ""
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Пакет профилей был изменён при предыдущем запуске мастера настройки"

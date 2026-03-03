@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:40-0300\n"
+"POT-Creation-Date: 2026-03-03 16:43-0300\n"
 "PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -10592,6 +10592,12 @@ msgstr "İndirmek için buraya tıklayın."
 
 msgid "Login"
 msgstr "Giriş yap"
+
+msgid "[Action Required] "
+msgstr ""
+
+msgid "[Action Required]"
+msgstr ""
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Yapılandırma paketi önceki Yapılandırma Kılavuzu'nda değiştirildi"

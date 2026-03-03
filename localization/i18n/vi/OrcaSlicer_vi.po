@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:40-0300\n"
+"POT-Creation-Date: 2026-03-03 16:43-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -10462,6 +10462,12 @@ msgstr "Nhấp vào đây để tải xuống."
 
 msgid "Login"
 msgstr "Đăng nhập"
+
+msgid "[Action Required] "
+msgstr ""
+
+msgid "[Action Required]"
+msgstr ""
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Gói cấu hình đã được thay đổi trong hướng dẫn cấu hình trước"
