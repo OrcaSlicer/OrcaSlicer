@@ -4791,7 +4791,7 @@ msgstr "Tényleges sebesség (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Ventilátor fordulatszám (%)"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "Hőmérséklet (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
