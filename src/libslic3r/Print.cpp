@@ -157,6 +157,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "eng_plate_temp_initial_layer",
         "hot_plate_temp_initial_layer",
         "textured_plate_temp_initial_layer",
+        "peo_plate_temp_initial_layer",
+        "pey_plate_temp_initial_layer",
+        "pet_plate_temp_initial_layer",
+        "h1h_plate_temp_initial_layer",
+        "phantom_plate_temp_initial_layer",
         "gcode_add_line_number",
         "layer_change_gcode",
         "time_lapse_gcode",
@@ -310,6 +315,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "eng_plate_temp"
             || opt_key == "hot_plate_temp"
             || opt_key == "textured_plate_temp"
+            || opt_key == "peo_plate_temp"
+            || opt_key == "pey_plate_temp"
+            || opt_key == "pet_plate_temp"
+            || opt_key == "h1h_plate_temp"
+            || opt_key == "phantom_plate_temp"
             || opt_key == "enable_prime_tower"
             || opt_key == "enable_wrapping_detection"
             || opt_key == "prime_tower_enable_framework"

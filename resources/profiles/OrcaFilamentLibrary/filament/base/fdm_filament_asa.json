@@ -85,6 +85,36 @@
     "textured_plate_temp_initial_layer": [
         "105"
     ],
+    "peo_plate_temp": [
+        "100"
+    ],
+    "peo_plate_temp_initial_layer": [
+        "105"
+    ],
+    "pet_plate_temp": [
+        "100"
+    ],
+    "pet_plate_temp_initial_layer": [
+        "105"
+    ],
+    "pey_plate_temp": [
+        "100"
+    ],
+    "pey_plate_temp_initial_layer": [
+        "105"
+    ],
+    "h1h_plate_temp": [
+        "100"
+    ],
+    "h1h_plate_temp_initial_layer": [
+        "105"
+    ],
+    "phantom_plate_temp": [
+        "100"
+    ],
+    "phantom_plate_temp_initial_layer": [
+        "105"
+    ],
     "filament_flow_ratio": [
         "0.926"
     ],

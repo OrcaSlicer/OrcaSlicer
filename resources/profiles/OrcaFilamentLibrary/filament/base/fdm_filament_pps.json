@@ -81,5 +81,35 @@
     ],
     "textured_plate_temp_initial_layer": [
         "110"
+    ],
+    "peo_plate_temp": [
+        "110"
+    ],
+    "peo_plate_temp_initial_layer": [
+        "110"
+    ],
+    "pet_plate_temp": [
+        "110"
+    ],
+    "pet_plate_temp_initial_layer": [
+        "110"
+    ],
+    "pey_plate_temp": [
+        "110"
+    ],
+    "pey_plate_temp_initial_layer": [
+        "110"
+    ],
+    "h1h_plate_temp": [
+        "110"
+    ],
+    "h1h_plate_temp_initial_layer": [
+        "110"
+    ],
+    "phantom_plate_temp": [
+        "110"
+    ],
+    "phantom_plate_temp_initial_layer": [
+        "110"
     ]
 }
