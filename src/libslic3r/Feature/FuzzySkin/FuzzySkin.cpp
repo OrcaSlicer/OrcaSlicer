@@ -69,6 +69,9 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
 // Thanks Cura developers for this function.
 void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
+    if (poly.size() < 2)
+        return;
+
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
@@ -119,6 +122,9 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
     const double range_random_point_dist = cfg.point_distance / 2.;
     const double min_extrusion_width = 0.01; // workaround for many print options. Need overwrite formula with the layer height parameter. The width must more than >>> layer_height * (1 - 0.25 * PI) * 1.05 <<< (last num is the coeff of overlay error case)
     double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+
+    if (ext_lines.size() < 2)
+        return;
 
     auto* p0 = &ext_lines.front();
     Arachne::ExtrusionJunctions out;
@@ -308,6 +314,8 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
     // Split the loops into lines with different config, and fuzzy them separately
     fuzzified = polygon;
     for (const auto& r : fuzzified_regions) {
+        if (fuzzified.points.size() < 3)
+            break;
         const auto splitted = Algorithm::split_line(fuzzified, r.second, true);
         if (splitted.empty()) {
             // No intersection, skip
@@ -425,6 +433,8 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 
             // Split the loops into lines with different config, and fuzzy them separately
             for (const auto& r : fuzzified_regions) {
+                if (extrusion->junctions.size() < 2)
+                    break;
                 const auto splitted = Algorithm::split_line(*extrusion, r.second, false);
                 if (splitted.empty()) {
                     // No intersection, skip
@@ -464,7 +474,10 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     };
 
                     const auto to_ex_junction = [&current_ext](const Algorithm::SplitLineJunction& j) -> Arachne::ExtrusionJunction {
-                        Arachne::ExtrusionJunction res = current_ext[j.get_src_index()];
+                        size_t idx = j.get_src_index();
+                        if (idx >= current_ext.size())
+                            idx = current_ext.size() - 1;
+                        Arachne::ExtrusionJunction res = current_ext[idx];
                         if (!j.is_src()) {
                             res.p = j.p;
                         }
