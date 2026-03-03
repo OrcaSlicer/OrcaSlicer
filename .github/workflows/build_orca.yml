@@ -156,6 +156,14 @@ jobs:
         run: |
           ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15
 
+      - name: Delete intermediate per-arch artifacts
+        if: contains(inputs.os, 'macos') && inputs.macos-combine-only
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            OrcaSlicer_Mac_bundle_arm64_${{ github.sha }}
+            OrcaSlicer_Mac_bundle_x86_64_${{ github.sha }}
+
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && contains(inputs.os, 'macos') && inputs.macos-combine-only
