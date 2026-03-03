@@ -10,10 +10,11 @@
     <developer id="io.github.orcaslicer">
         <name>SoftFever</name>
     </developer>
-    <url type="homepage">https://github.com/OrcaSlicer/OrcaSlicer</url>
+    <url type="homepage">https://www.orcaslicer.com</url>
     <url type="help">https://www.orcaslicer.com/wiki</url>
     <url type="bugtracker">https://github.com/OrcaSlicer/OrcaSlicer/issues/</url>
     <url type="donation">https://ko-fi.com/SoftFever</url>
+    <url type="vcs-browser">https://github.com/OrcaSlicer/OrcaSlicer</url>
     <metadata_license>0BSD</metadata_license>
     <project_license>AGPL-3.0-only</project_license>
     <content_rating type="oars-1.1" />

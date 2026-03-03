@@ -291,6 +291,7 @@ BUILDER_ARGS=(
     --verbose
     --state-dir="$CACHE_DIR"
     --jobs="$JOBS"
+    --mirror-screenshots-url=https://dl.flathub.org/media/
 )
 
 # Add force-clean only if explicitly requested (disables caching)

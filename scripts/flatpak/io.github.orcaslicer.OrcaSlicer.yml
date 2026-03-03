@@ -101,6 +101,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/SoftFever/Orca-deps-wxWidgets
+        tag: orca-3.1.5
         commit: acdc6db5064274405c323c3823eedf559bbe0474
       - type: patch
         path: patches/0001-Enable-using-a-dark-theme-when-Gnome-dark-style-is-s.patch
