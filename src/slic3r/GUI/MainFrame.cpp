@@ -14,6 +14,10 @@
 #include <wx/debug.h>
 #include <wx/utils.h>
 
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -160,10 +164,24 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 }
 
 // BBS
-#ifndef __APPLE__
-#define BORDERLESS_FRAME_STYLE (wxRESIZE_BORDER | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
-#else
+#ifdef __WXGTK__
+#define BORDERLESS_FRAME_STYLE (wxRESIZE_BORDER | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX | wxBORDER_NONE)
+#elif defined(__APPLE__)
 #define BORDERLESS_FRAME_STYLE (wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
+#else
+#define BORDERLESS_FRAME_STYLE (wxRESIZE_BORDER | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
+#endif
+
+#ifdef __WXGTK__
+// Strip window manager decorations so only OrcaSlicer's custom BBLTopbar is shown.
+static void gtk_remove_window_decorations(GtkWidget* widget)
+{
+    gtk_window_set_decorated(GTK_WINDOW(widget), FALSE);
+    GdkWindow* gdk_window = gtk_widget_get_window(widget);
+    if (gdk_window) {
+        gdk_window_set_decorations(gdk_window, (GdkWMDecoration)0);
+    }
+}
 #endif
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
@@ -189,6 +207,16 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 {
 #ifdef __WXOSX__
     set_miniaturizable(GetHandle());
+#endif
+
+#ifdef __WXGTK__
+    gtk_remove_window_decorations(m_widget);
+
+    // Defensive: strip decorations after GDK window creation, in case
+    // wxGTK's realization code re-applies them.
+    g_signal_connect_after(m_widget, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer) {
+        gtk_remove_window_decorations(widget);
+    }), nullptr);
 #endif
 
     if (!wxGetApp().app_config->has("user_mode")) {
@@ -606,6 +634,11 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     });
 
     Bind(wxEVT_SHOW, [this](wxShowEvent &evt) {
+#ifdef __WXGTK__
+        if (evt.IsShown()) {
+            gtk_remove_window_decorations(m_widget);
+        }
+#endif
         DeviceManager *manger = wxGetApp().getDeviceManager();
         if (manger) {
             evt.IsShown() ? manger->start_refresher() : manger->stop_refresher();
