@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-03 16:16-0300\n"
 "PO-Revision-Date: 2026-02-28 00:59\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -4626,6 +4626,9 @@ msgstr "毫米立方/秒"
 
 msgid "Fan speed"
 msgstr "风扇速度"
+
+msgid "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "时间"
@@ -18316,6 +18319,23 @@ msgstr "快速塔"
 msgid "Input shaper type"
 msgstr "输入整形器类型"
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr "频率（开始/结束）："
 
@@ -18353,6 +18373,9 @@ msgstr "请输入有效的阻尼因子（0 < 阻尼/ζ因子 <= 1）"
 
 msgid "Input shaping Damp test"
 msgstr "输入整形的阻尼测试"
+
+msgid "Check firmware compatibility."
+msgstr ""
 
 msgid "Frequency: "
 msgstr "频率："

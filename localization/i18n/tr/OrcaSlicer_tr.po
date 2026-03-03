@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-03 16:16-0300\n"
 "PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -4729,6 +4729,9 @@ msgstr "mm³/s"
 
 msgid "Fan speed"
 msgstr "Fan hızı"
+
+msgid "°C"
+msgstr "°C"
 
 msgid "Time"
 msgstr "Zaman"
@@ -19387,6 +19390,23 @@ msgstr "Hız Kulesi"
 msgid "Input shaper type"
 msgstr ""
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr ""
 
@@ -19424,6 +19444,9 @@ msgstr ""
 
 msgid "Input shaping Damp test"
 msgstr "Input shaping damp testi"
+
+msgid "Check firmware compatibility."
+msgstr ""
 
 msgid "Frequency: "
 msgstr ""
@@ -21569,9 +21592,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Eklenti yüklenemedi. Lütfen anti-virüs yazılımı tarafından engellenip "
 #~ "engellenmediğini veya silinip silinmediğini kontrol edin."
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "travel"
 #~ msgstr "seyahat"

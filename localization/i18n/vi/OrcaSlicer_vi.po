@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-03 16:16-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -4680,6 +4680,9 @@ msgstr ""
 
 msgid "Fan speed"
 msgstr "Tốc độ quạt"
+
+msgid "°C"
+msgstr ""
 
 msgid "Time"
 msgstr "Thời gian"
@@ -19047,6 +19050,23 @@ msgstr "Tháp nhanh"
 msgid "Input shaper type"
 msgstr ""
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr ""
 
@@ -19082,6 +19102,9 @@ msgstr "Vui lòng nhập hệ số giảm chấn hợp lệ (0 < Hệ số giả
 
 msgid "Input shaping Damp test"
 msgstr "Kiểm tra giảm chấn input shaping"
+
+msgid "Check firmware compatibility."
+msgstr ""
 
 msgid "Frequency: "
 msgstr ""

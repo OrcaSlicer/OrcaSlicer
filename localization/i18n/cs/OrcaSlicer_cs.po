@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-03 16:16-0300\n"
 "PO-Revision-Date: 2026-02-11 20:30+0100\n"
 "Last-Translator: Jakub Hencl <jakub.hencl@seznam.cz> René Mošner "
 "<Renemosner@seznam.cz>\n"
@@ -5010,6 +5010,9 @@ msgstr "mm³/s"
 
 msgid "Fan speed"
 msgstr "Rychlost ventilátoru"
+
+msgid "°C"
+msgstr "°C"
 
 msgid "Time"
 msgstr "Čas"
@@ -20682,6 +20685,23 @@ msgstr "Rychlá věž"
 msgid "Input shaper type"
 msgstr "Typ input shaperu"
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr "Frekvence (začátek / konec): "
 
@@ -20719,6 +20739,9 @@ msgstr "Zadejte prosím platný faktor útlumu (0 < Faktor útlumu/zeta <= 1)"
 
 msgid "Input shaping Damp test"
 msgstr "Test útlumu pro Input Shaping"
+
+msgid "Check firmware compatibility."
+msgstr ""
 
 msgid "Frequency: "
 msgstr "Frekvence: "
@@ -23004,9 +23027,6 @@ msgstr ""
 #~ "zablokován nebo smazán antivirovým softwarem.Nepodařilo se nainstalovat "
 #~ "plugin. Zkontrolujte, zda není blokován nebo odstraněn antivirovým "
 #~ "softwarem."
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "travel"
 #~ msgstr "Cestování"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-03 16:16-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -4910,6 +4910,9 @@ msgstr "мм³/с"
 # Костыль для обхода переноса одной буквы на строку – 0хлаждение, пока попробуем просто обдув. "Скорость вентилятора" тут не очень уместно, т.к. отображается в просмотре кода не в % (косяк орки) а в единицах, + длинная строка растягивает панель свойств линии.
 msgid "Fan speed"
 msgstr "Обдув"
+
+msgid "°C"
+msgstr "°C"
 
 msgid "Time"
 msgstr "Время"
@@ -20341,6 +20344,23 @@ msgstr "Быстрый тест (Fast Tower)"
 msgid "Input shaper type"
 msgstr "Тип шейпера"
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr "Частота (начало/конец)"
 
@@ -20381,6 +20401,9 @@ msgstr ""
 
 msgid "Input shaping Damp test"
 msgstr "Тест затухания Input shaping"
+
+msgid "Check firmware compatibility."
+msgstr ""
 
 msgid "Frequency: "
 msgstr "Частота: "
@@ -22611,9 +22634,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Не удалось установить плагин. Пожалуйста, проверьте, не заблокирован ли "
 #~ "он или не удалён антивирусом."
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "travel"
 #~ msgstr "Перемещения"
