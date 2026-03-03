@@ -3447,7 +3447,7 @@ msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factores de Calibración de Dinámicas de Flujo"
 
 msgid "PA Profile"
-msgstr "Perfil de Avance de Presión Lineal"
+msgstr "Perfil de Pressure advance"
 
 msgid "Factor K"
 msgstr "Factor K"
@@ -4851,7 +4851,7 @@ msgid "Layer Time (log)"
 msgstr "Tiempo de capa (log)"
 
 msgid "Pressure Advance"
-msgstr "Avance de Presión Lineal (PA)"
+msgstr "Pressure advance"
 
 msgid "Noop"
 msgstr "Sin operación"
@@ -5991,7 +5991,7 @@ msgid "Max flowrate"
 msgstr "Test de Flujo Máximo"
 
 msgid "Pressure advance"
-msgstr "Avance de presión Lineal (PA)"
+msgstr "Pressure advance"
 
 msgid "Pass 1"
 msgstr "Paso 1"
@@ -10169,7 +10169,7 @@ msgstr ""
 "significa sin especificar"
 
 msgid "Flow ratio and Pressure Advance"
-msgstr "Factor de flujo y Avance de Presión Lineal"
+msgstr "Factor de flujo y Pressure advance"
 
 msgid "Print chamber temperature"
 msgstr "Temperatura de la cámara"
@@ -13187,7 +13187,7 @@ msgstr ""
 "imprime con una velocidad de perímetro elevada, esta función puede resultar "
 "en artefactos o defectos, a causa de la gran variación de velocidad. Si nota "
 "la presencia de artefactos, asegúrese de que tiene correctamente calibrado "
-"el avance de presión lineal.\n"
+"el Pressure advance.\n"
 "\n"
 "Nota: Cuando esta opción está activada, los perímetros en voladizo se tratan "
 "como voladizos, lo que significa que la velocidad de voladizo se aplica "
@@ -13992,21 +13992,21 @@ msgstr ""
 "de flujo del filamento."
 
 msgid "Enable pressure advance"
-msgstr "Activar Avance de Presión Lineal"
+msgstr "Activar Pressure advance"
 
 msgid ""
 "Enable pressure advance, auto calibration result will be overwritten once "
 "enabled."
 msgstr ""
-"Al activar Avance de Presión Lineal, el resultado de auto calibración se "
+"Al activar Pressure advance, el resultado de auto calibración se "
 "sobrescribirá."
 
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
 msgstr ""
-"Avance de Presión Lineal (Klipper) o  Factor de avance lineal (Marlin)."
+"Pressure advance (Klipper) o  Factor de avance lineal (Marlin)."
 
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Activar Avance de Presión Lineal Adaptativo (beta)"
+msgstr "Activar Pressure advance Adaptativo (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -14126,7 +14126,7 @@ msgstr ""
 "uniformidad en las superficies externas antes y después de los voladizos.\n"
 
 msgid "Pressure advance for bridges"
-msgstr "Avance de Presión Lineal (PA) para puentes"
+msgstr "Pressure advance para puentes"
 
 msgid ""
 "Pressure advance value for bridges. Set to 0 to disable.\n"
