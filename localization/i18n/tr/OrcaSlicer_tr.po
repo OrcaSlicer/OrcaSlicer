@@ -1645,10 +1645,10 @@ msgstr "OrcaSlicer'da işlenmeyen bir istisna oluştu: %1%"
 msgid "Untitled"
 msgstr "İsimsiz"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr ""
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr ""
 
 msgid "Downloading Bambu Network Plug-in"
@@ -1803,7 +1803,7 @@ msgid ""
 "access, enabling full functionality with OrcaSlicer."
 msgstr ""
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr ""
 
 msgid "Privacy Policy Update"
@@ -3718,8 +3718,8 @@ msgid "Calibration"
 msgstr "Kalibrasyon"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr ""
 "Eklenti indirilemedi. Lütfen güvenlik duvarı ayarlarınızı ve vpn "
 "yazılımınızı kontrol edin, kontrol edip yeniden deneyin."
@@ -3734,7 +3734,7 @@ msgid "Click here to see more info"
 msgstr "daha fazla bilgi görmek için burayı tıklayın"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr ""
 
@@ -5282,7 +5282,7 @@ msgstr ""
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
-"mixing in models. Please redjust flushing settings."
+"mixing in models. Please readjust flushing settings."
 msgstr ""
 
 msgid "Click Wiki for help."
@@ -6989,7 +6989,7 @@ msgstr ""
 msgid "Unavailable while heating maintenance function is on."
 msgstr ""
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr ""
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
@@ -7553,7 +7553,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Lütfen dilimleme hatalarını giderip tekrar yayınlayın."
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr "Ağ Eklentisi algılanmadı. Ağla ilgili özellikler kullanılamıyor."
 
 msgid ""
@@ -8327,40 +8327,40 @@ msgstr ""
 msgid "Color only"
 msgstr ""
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "Ağ eklentisi"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "Ağ eklentisini etkinleştir"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr ""
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr ""
 
 msgid "(Latest)"
 msgstr ""
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr ""
 
 msgid "Success"
 msgstr ""
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
 "Note: The application may need to restart after installation."
 msgstr ""
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr ""
 
 msgid "Associate files to OrcaSlicer"
@@ -8440,19 +8440,19 @@ msgstr "hata ayıklama"
 msgid "trace"
 msgstr "iz"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr ""
 
 msgid "Reload"
 msgstr ""
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr ""
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr ""
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr ""
 
 msgid "Reload Failed"
@@ -9312,7 +9312,7 @@ msgstr ""
 "etkinleştirmek istiyor musunuz?"
 
 msgid ""
-"Prime tower is required for clumping detection. There may be flaws on the "
+"A prime tower is required for clumping detection. There may be flaws on the "
 "model without prime tower. Do you still want to enable clumping detection?"
 msgstr ""
 
@@ -11266,7 +11266,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Prime tower is required for clumping detection; otherwise, there may be "
+"A prime tower is required for clumping detection; otherwise, there may be "
 "flaws on the model."
 msgstr ""
 
@@ -14794,7 +14794,7 @@ msgstr "Nesneleri etiketle"
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 "G-Code etiketleme yazdırma hareketlerine ait oldukları nesneyle ilgili "
@@ -16463,7 +16463,7 @@ msgid ""
 "timelapse video when printing completes. If smooth mode is selected, the "
 "toolhead will move to the excess chute after each layer is printed and then "
 "take a snapshot. Since the melt filament may leak from the nozzle during the "
-"process of taking a snapshot, prime tower is required for smooth mode to "
+"process of taking a snapshot, a prime tower is required for smooth mode to "
 "wipe nozzle."
 msgstr ""
 "Düzgün veya geleneksel mod seçilirse her baskı için bir hızlandırılmış video "
@@ -20226,7 +20226,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
+"The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr ""
 
@@ -21616,11 +21616,11 @@ msgstr ""
 #~ msgid "Advance"
 #~ msgstr "Gelişmiş"
 
-#~ msgid "Use legacy network plugin"
+#~ msgid "Use legacy network plug-in"
 #~ msgstr "Eski ağ eklentisini kullan"
 
 #~ msgid ""
-#~ "Disable to use latest network plugin that supports new BambuLab firmwares."
+#~ "Disable to use latest network plug-in that supports new BambuLab firmwares."
 #~ msgstr ""
 #~ "Yeni BambuLab yazılımlarını destekleyen en son ağ eklentisini kullanmayı "
 #~ "devre dışı bırakın."
@@ -23831,10 +23831,10 @@ msgstr ""
 #~ msgid "Test Storage Download:"
 #~ msgstr "Test Depolama İndirme:"
 
-#~ msgid "Test plugin download"
+#~ msgid "Test plug-in download"
 #~ msgstr "Test eklentisi indirme"
 
-#~ msgid "Test Plugin Download:"
+#~ msgid "Test Plug-in Download:"
 #~ msgstr "Test Eklentisini İndirin:"
 
 #~ msgid "Test Storage Upload"
