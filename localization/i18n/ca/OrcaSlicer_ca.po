@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:39-0300\n"
+"POT-Creation-Date: 2026-03-03 16:40-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -10208,6 +10208,12 @@ msgstr "Mostra tots els perfils ( inclosos els incompatibles )"
 
 msgid "Select presets to compare"
 msgstr "Seleccioneu els perfils a comparar"
+
+msgid "Left Preset Value"
+msgstr ""
+
+msgid "Right Preset Value"
+msgstr ""
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."

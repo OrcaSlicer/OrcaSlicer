@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:39-0300\n"
+"POT-Creation-Date: 2026-03-03 16:40-0300\n"
 "PO-Revision-Date: 2026-02-21 18:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -10600,6 +10600,12 @@ msgstr "Mostrar todas as predefinições (incluindo as incompatíveis)"
 
 msgid "Select presets to compare"
 msgstr "Selecione as predefinições para comparar"
+
+msgid "Left Preset Value"
+msgstr ""
+
+msgid "Right Preset Value"
+msgstr ""
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."

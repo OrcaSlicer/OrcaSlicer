@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:39-0300\n"
+"POT-Creation-Date: 2026-03-03 16:40-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -9992,6 +9992,12 @@ msgstr "顯示所有預設（包括不相容的）"
 
 msgid "Select presets to compare"
 msgstr "選擇要比較的預設"
+
+msgid "Left Preset Value"
+msgstr ""
+
+msgid "Right Preset Value"
+msgstr ""
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."
