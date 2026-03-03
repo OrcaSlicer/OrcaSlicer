@@ -488,7 +488,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     }
 
                     //Orca: ensure the loop is closed after fuzzy
-                    if (extrusion->junctions.front().p != extrusion->junctions.back().p) {
+                    if (!extrusion->junctions.empty() && extrusion->junctions.front().p != extrusion->junctions.back().p) {
                         extrusion->junctions.back().p = extrusion->junctions.front().p;
                         extrusion->junctions.back().w = extrusion->junctions.front().w;
                     }
