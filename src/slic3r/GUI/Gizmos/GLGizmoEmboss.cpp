@@ -1553,14 +1553,10 @@ void GLGizmoEmboss::draw_text_input()
         // try create new imgui font
         double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
         double imgui_scale = scale * screen_scale;
-#ifdef __APPLE__
-        // On macOS, use original text to include all characters for backup fonts
+        // Use original text to include all characters for backup fonts
         // This ensures that characters unsupported by the primary font can still be displayed
         // using backup fonts, instead of being filtered out and showing as '?'
         m_style_manager.create_imgui_font(m_text, imgui_scale, true);
-#else
-        m_style_manager.create_imgui_font(create_range_text_prep(), imgui_scale);
-#endif
         imgui_font = m_style_manager.get_imgui_font();
     }
     bool exist_font = 
