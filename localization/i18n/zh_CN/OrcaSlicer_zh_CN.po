@@ -7923,7 +7923,7 @@ msgstr "（需要重启）"
 msgid "filaments"
 msgstr "耗材丝"
 
-msgid "Optimizes filament area maximum height by chosen filament count"
+msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "根据选定的耗材丝数量优化耗材区域最大高度"
 
 msgid "Features"

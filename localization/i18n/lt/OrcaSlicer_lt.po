@@ -8163,7 +8163,7 @@ msgstr "(Reikia paleisti iš naujo)"
 msgid "filaments"
 msgstr ""
 
-msgid "Optimizes filament area maximum height by chosen filament count"
+msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr ""
 
 msgid "Features"

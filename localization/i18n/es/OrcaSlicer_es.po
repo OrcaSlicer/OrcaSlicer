@@ -8504,7 +8504,7 @@ msgstr "(Requiere reinicio)"
 msgid "filaments"
 msgstr "filamentos"
 
-msgid "Optimizes filament area maximum height by chosen filament count"
+msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr ""
 "Optimiza la altura máxima del área del filamento según el número de "
 "filamentos seleccionado."

@@ -8014,7 +8014,7 @@ msgstr "（需要重啟程式）"
 msgid "filaments"
 msgstr "線材"
 
-msgid "Optimizes filament area maximum height by chosen filament count"
+msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "根據選擇的線材數量優化線材區域最大高度"
 
 msgid "Features"

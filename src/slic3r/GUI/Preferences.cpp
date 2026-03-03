@@ -1398,7 +1398,7 @@ void PreferencesDialog::create_items()
         "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
     g_sizer->Add(item_filament_preset_grouping);
 
-    auto item_filament_area_height = create_item_spinctrl(_L("Optimize filaments area height for..."), _L("(Requires restart)"), _L("filaments"), _L("Optimizes filament area maximum height by chosen filament count"), "filaments_area_preferred_count", 8, 99);
+    auto item_filament_area_height = create_item_spinctrl(_L("Optimize filaments area height for..."), _L("(Requires restart)"), _L("filaments"), _L("Optimizes filament area maximum height by chosen filament count."), "filaments_area_preferred_count", 8, 99);
     g_sizer->Add(item_filament_area_height); 
 
     //// GENERAL > Features
