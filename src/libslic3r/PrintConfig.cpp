@@ -2208,7 +2208,7 @@ void PrintConfigDef::init_fff_params()
                      "at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. "
                      "If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, "
                      "the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
-                     "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile");
+                     "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile.");
     def->mode = comAdvanced;
     //def->gui_flags = "serialized";
     def->multiline = true;
