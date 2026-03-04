@@ -4371,7 +4371,7 @@ msgid ""
 "Reset to 50% of skin depth."
 msgstr ""
 "La profundidad de bloqueo debe ser menor que la profundidad de la piel.\n"
-"Restablecer al 50% de la profundidad de la piel."
+"Restablecer al 50 % de la profundidad de la piel."
 
 msgid ""
 "Both [Extrusion] and [Combined] modes of Fuzzy Skin require the Arachne Wall "
