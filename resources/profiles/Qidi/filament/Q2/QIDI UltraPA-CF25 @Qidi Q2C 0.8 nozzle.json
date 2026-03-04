@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSN99",
+    "name": "QIDI UltraPA-CF25 @Qidi Q2C 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI UltraPA-CF25@Q2C-Series",
+    "pressure_advance": ["0.02"],
+	"compatible_printers": ["Qidi Q2C 0.8 nozzle"]
+}

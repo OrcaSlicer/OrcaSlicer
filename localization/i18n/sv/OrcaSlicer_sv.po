@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-03 16:43-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1600,14 +1600,14 @@ msgstr ""
 msgid "Untitled"
 msgstr "Ej namngiven"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr ""
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr ""
 
 msgid "Downloading Bambu Network Plug-in"
-msgstr "Nedladdning av Bambu Network Plug-in"
+msgstr "Nedladdning av Bambu Network Plugin"
 
 msgid "Login information expired. Please login again."
 msgstr "Inloggningsinformationen har löpt ut. Logga in igen."
@@ -1750,7 +1750,7 @@ msgid ""
 "access, enabling full functionality with OrcaSlicer."
 msgstr ""
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr ""
 
 msgid "Privacy Policy Update"
@@ -1976,6 +1976,9 @@ msgid ""
 "for the 'Only One Wall on Top Surfaces' to work best.\n"
 "Yes - Change these settings automatically\n"
 "No  - Do not change these settings for me"
+msgstr ""
+
+msgid "Suggestion"
 msgstr ""
 
 msgid "Text"
@@ -3115,6 +3118,38 @@ msgid ""
 "Storage before sending to printer."
 msgstr ""
 
+msgid "Bad input data for EmbossCreateObjectJob."
+msgstr ""
+
+msgid "Add Emboss text object"
+msgstr ""
+
+msgid "Bad input data for EmbossUpdateJob."
+msgstr ""
+
+msgid "Created text volume is empty. Change text or font."
+msgstr ""
+
+msgid "Bad input data for CreateSurfaceVolumeJob."
+msgstr ""
+
+msgid "Bad input data for UseSurfaceJob."
+msgstr ""
+
+#. TRN: This is the title of the action appearing in undo/redo stack.
+#. It is same for Text and SVG.
+msgid "Emboss attribute change"
+msgstr ""
+
+msgid "Add Emboss text Volume"
+msgstr ""
+
+msgid "Font doesn't have any shape for given text."
+msgstr ""
+
+msgid "There is no valid surface for text projection."
+msgstr ""
+
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr ""
 
@@ -3522,7 +3557,7 @@ msgstr ""
 "När det aktuella materialet tar slut, fortsätter printern att skriva ut "
 "material i följande ordning."
 
-msgid "Identical filament: same brand, type and color"
+msgid "Identical filament: same brand, type and color."
 msgstr ""
 
 msgid "Group"
@@ -3655,8 +3690,8 @@ msgid "Calibration"
 msgstr "Kalibrering"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr ""
 "Det gick inte att ladda ned plugin-programmet. Kontrollera dina "
 "brandväggsinställningar och vpn-programvara och försök igen."
@@ -3671,7 +3706,7 @@ msgid "Click here to see more info"
 msgstr "Klicka här för att se mer information"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr ""
 
@@ -4017,6 +4052,7 @@ msgid ""
 "Reset to 0."
 msgstr ""
 
+#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4629,6 +4665,9 @@ msgstr ""
 msgid "Fan speed"
 msgstr "Fläkt hastighet"
 
+msgid "°C"
+msgstr "° C"
+
 msgid "Time"
 msgstr "Tid"
 
@@ -5104,7 +5143,7 @@ msgstr "Volym:"
 msgid "Size:"
 msgstr "Storlek:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5175,7 +5214,7 @@ msgstr ""
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
-"mixing in models. Please redjust flushing settings."
+"mixing in models. Please readjust flushing settings."
 msgstr ""
 
 msgid "Click Wiki for help."
@@ -6151,10 +6190,10 @@ msgid "Name is invalid;"
 msgstr "Namnet är ogiltligt;"
 
 msgid "illegal characters:"
-msgstr "Ogiltliga tecken:"
+msgstr "ogiltliga tecken:"
 
 msgid "illegal suffix:"
-msgstr "Ogiltlig ändelse:"
+msgstr "ogiltlig ändelse:"
 
 msgid "The name is not allowed to be empty."
 msgstr "Namn fältet får inte vara tomt."
@@ -6835,7 +6874,7 @@ msgstr ""
 msgid "Unavailable while heating maintenance function is on."
 msgstr ""
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr ""
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
@@ -7351,7 +7390,7 @@ msgid "Please select a file"
 msgstr "Välj en fil"
 
 msgid "Do you want to replace it"
-msgstr "Do you want to replace it?"
+msgstr "Vill du byta ut den"
 
 msgid "Message"
 msgstr "Meddelande"
@@ -7385,7 +7424,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Lös berednings felen och publicera igen."
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr ""
 "Nätverks plugin programmet detekteras inte. Nätverksrelaterade funktioner är "
 "inte tillgängliga."
@@ -7944,7 +7983,7 @@ msgstr ""
 msgid "filaments"
 msgstr ""
 
-msgid "Optimizes filament area maximum height by chosen filament count"
+msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr ""
 
 msgid "Features"
@@ -8136,40 +8175,40 @@ msgstr ""
 msgid "Color only"
 msgstr ""
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr ""
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr ""
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr ""
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr ""
 
 msgid "(Latest)"
 msgstr ""
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr ""
 
 msgid "Success"
 msgstr ""
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
 "Note: The application may need to restart after installation."
 msgstr ""
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr ""
 
 msgid "Associate files to OrcaSlicer"
@@ -8239,19 +8278,19 @@ msgstr "felsök"
 msgid "trace"
 msgstr "spåra"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr ""
 
 msgid "Reload"
 msgstr ""
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr ""
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr ""
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr ""
 
 msgid "Reload Failed"
@@ -9109,7 +9148,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Prime tower is required for clumping detection. There may be flaws on the "
+"A prime tower is required for clumping detection. There may be flaws on the "
 "model without prime tower. Do you still want to enable clumping detection?"
 msgstr ""
 
@@ -9212,8 +9251,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "När du spelar in timelapse utan verktygshuvud rekommenderas att du lägger "
 "till ett \"Timelapse Wipe Tower\".\n"
@@ -9875,6 +9914,12 @@ msgstr "Visa alla inställningar (inklusive inkompatibla)"
 msgid "Select presets to compare"
 msgstr "Välj förinställningar att jämföra"
 
+msgid "Left Preset Value"
+msgstr ""
+
+msgid "Right Preset Value"
+msgstr ""
+
 msgid ""
 "You can only transfer to current active profile because it has been modified."
 msgstr ""
@@ -10146,8 +10191,8 @@ msgstr ""
 msgid ""
 "Timelapse is not supported because Print sequence is set to \"By object\"."
 msgstr ""
-"Timelapse stöds inte eftersom utskrifts sekvensen är inställd på \"Per "
-"objekt\"."
+"Timelapse stöds inte eftersom utskrifts sekvensen är inställd på \"Per objekt"
+"\"."
 
 msgid ""
 "You selected external and AMS filament at the same time in an extruder, you "
@@ -10277,6 +10322,12 @@ msgstr "Klicka här för att ladda ner den."
 
 msgid "Login"
 msgstr "Logga in"
+
+msgid "[Action Required] "
+msgstr ""
+
+msgid "[Action Required]"
+msgstr ""
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Konfigurations paketet är ändrat i föregående  Kofigurations Guide"
@@ -10986,7 +11037,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Prime tower is required for clumping detection; otherwise, there may be "
+"A prime tower is required for clumping detection; otherwise, there may be "
 "flaws on the model."
 msgstr ""
 
@@ -12124,9 +12175,9 @@ msgid ""
 "quality for needle and small details."
 msgstr ""
 "Aktivera detta val för att sänka utskifts hastigheten för att göra den sista "
-"lager tiden inte kortare än lager tidströskeln \"Max fläkthastighets "
-"tröskel\", detta så att lager kan kylas under en längre tid. Detta kan "
-"förbättra kylnings kvaliteten för små detaljer"
+"lager tiden inte kortare än lager tidströskeln \"Max fläkthastighets tröskel"
+"\", detta så att lager kan kylas under en längre tid. Detta kan förbättra "
+"kylnings kvaliteten för små detaljer"
 
 msgid "Normal printing"
 msgstr "Normal utskrift"
@@ -12281,7 +12332,7 @@ msgid ""
 "models\n"
 "3. No filtering - creates internal bridges on every potential internal "
 "overhang. This option is useful for heavily slanted top surface models; "
-"however, in most cases, it creates too many unnecessary bridges"
+"however, in most cases, it creates too many unnecessary bridges."
 msgstr ""
 
 msgid "Limited filtering"
@@ -12666,7 +12717,7 @@ msgid ""
 "less acceleration you print, the larger the range of acceptable PA values. "
 "If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box "
-"here and save your filament profile"
+"here and save your filament profile."
 msgstr ""
 
 msgid "Enable adaptive pressure advance for overhangs (beta)"
@@ -13332,8 +13383,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² eller %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Acceleration av gles utfyllnad. Om värdet uttrycks som en procentsats (t.ex. "
 "100%) kommer det att beräknas baserat på standard accelerationen."
@@ -13444,10 +13495,10 @@ msgstr "Full fläkthastighet vid lager"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 
 msgid "layer"
@@ -13875,7 +13926,7 @@ msgstr ""
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 
@@ -14139,11 +14190,11 @@ msgstr "Stryknings typ"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "Strykning använder ett litet flöde för att skriva ut på samma höjd av en yta "
 "för att göra plana ytor jämnare. Inställningen kontrollerar vilket lager som "
-"ska strykas"
+"ska strykas."
 
 msgid "No ironing"
 msgstr "Ingen strykning"
@@ -15036,8 +15087,8 @@ msgid "Role base wipe speed"
 msgstr ""
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15249,7 +15300,7 @@ msgid ""
 "timelapse video when printing completes. If smooth mode is selected, the "
 "toolhead will move to the excess chute after each layer is printed and then "
 "take a snapshot. Since the melt filament may leak from the nozzle during the "
-"process of taking a snapshot, prime tower is required for smooth mode to "
+"process of taking a snapshot, a prime tower is required for smooth mode to "
 "wipe nozzle."
 msgstr ""
 "Om Smooth eller Traditionellt läge väljs genereras en timelapse-video för "
@@ -15793,8 +15844,8 @@ msgstr ""
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16589,7 +16640,7 @@ msgid ""
 "machines in the list."
 msgstr ""
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr ""
 
 msgid "The machine settings list needs to do downward checking."
@@ -16620,11 +16671,11 @@ msgid "Debug level"
 msgstr "Felsökningsnivå"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
-"Välj felsöknings nivå. 0:allvarlig, 1:fel, 2:varning, 3:info, 4:felsök, "
-"5:spåra\n"
+"Välj felsöknings nivå. 0:allvarlig, 1:fel, 2:varning, 3:info, 4:felsök, 5:"
+"spåra\n"
 
 msgid "Enable timelapse for print"
 msgstr ""
@@ -17842,6 +17893,23 @@ msgstr ""
 msgid "Input shaper type"
 msgstr ""
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr ""
 
@@ -17874,6 +17942,9 @@ msgid "Please input a valid damping factor (0 < Damping/zeta factor <= 1)"
 msgstr ""
 
 msgid "Input shaping Damp test"
+msgstr ""
+
+msgid "Check firmware compatibility."
 msgstr ""
 
 msgid "Frequency: "
@@ -18202,8 +18273,8 @@ msgstr ""
 "Vill du skriva om det?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -18657,7 +18728,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
+"The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr ""
 
@@ -19843,9 +19914,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Det gick inte att installera plugin-programmet. Kontrollera om den är "
 #~ "blockerad eller har raderats av antivirusprogram."
-
-#~ msgid "°C"
-#~ msgstr "° C"
 
 #~ msgid "travel"
 #~ msgstr "flytta"
