@@ -57,7 +57,7 @@
     ],
     "single_extruder_multi_material": "1",
     "change_filament_gcode": "",
-    "machine_pause_gcode": "M0",
+    "machine_pause_gcode": "PAUSE",
     "thumbnails": [
         "160x160",
         "112x112"

@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "filament_id": "GFB99",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_settings_id": ["QIDI PEBA 95A @Qidi Q1 Pro 0.4 nozzle"],
+    "inherits": "QIDI PEBA 95A",
+    "name": "QIDI PEBA 95A @Qidi Q1 Pro 0.4 nozzle",
+    "compatible_printers": ["Qidi Q1 Pro 0.4 nozzle"]
+}
