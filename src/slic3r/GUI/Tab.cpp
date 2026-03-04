@@ -1707,7 +1707,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                                         "Yes - Change these settings automatically\n"
                                         "No  - Do not change these settings for me");
             }
-            MessageDialog      dialog(wxGetApp().plater(), msg_text, "Suggestion", wxICON_WARNING | wxYES | wxNO);
+            MessageDialog      dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_YES) {
                 auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;

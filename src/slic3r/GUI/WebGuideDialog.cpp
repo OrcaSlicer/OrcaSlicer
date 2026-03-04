@@ -83,7 +83,7 @@ static wxString update_custom_filaments()
         if (not_need_show) continue;
         if (!filament_name.empty()) {
             if (filament_with_base_id) {
-                need_sort.push_back(std::make_pair("[Action Required] " + filament_name, filament_id));
+                need_sort.push_back(std::make_pair(into_u8(_L("[Action Required] ")) + filament_name, filament_id));
             } else {
 
                 need_sort.push_back(std::make_pair(filament_name, filament_id));
@@ -92,7 +92,7 @@ static wxString update_custom_filaments()
     }
     std::sort(need_sort.begin(), need_sort.end(), [](const std::pair<std::string, std::string> &a, const std::pair<std::string, std::string> &b) { return a.first < b.first; });
     if (need_delete_some_filament) {
-        need_sort.push_back(std::make_pair("[Action Required]", "null"));
+        need_sort.push_back(std::make_pair(into_u8(_L("[Action Required]")), "null"));
     }
     json temp_j;
     for (std::pair<std::string, std::string> &filament_name_to_id : need_sort) {
