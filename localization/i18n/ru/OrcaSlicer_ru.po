@@ -8438,7 +8438,7 @@ msgstr "Ограничение последних файлов"
 msgid "Maximum count of recent files"
 msgstr "Максимальное количество последних файлов"
 
-# Тонкие пробелы для подгонки к ширине (переносится из-за одного лишнего символа)
+# Костыль с тонкими пробелами для подгонки к ширине (переносится из-за одного лишнего символа)
 msgid "Add STL/STEP files to recent files list"
 msgstr "Сохранять STL/STEP в списке последних"
 
@@ -13000,8 +13000,8 @@ msgid ""
 msgstr ""
 "Метод печати мостов с отверстиями в них. Позволяет обходиться без применения поддержек.\n"
 "• Нет (обычный режим)\n"
-"• Частичный мост (пропускать печать моста через отверстие)\n"
-"• Жертвенный слой (заполнить отверстие жертвенной мембраной)"
+"• Частичный мост (пропускать мосты с отверстиями)\n"
+"• Жертвенный слой (заполнять отверстия мембраной)"
 
 msgid "Partially bridged"
 msgstr "Частичный мост"
@@ -13139,7 +13139,7 @@ msgstr ""
 "паре с вертикальными стенками модели делает кайму бессмысленной."
 
 msgid "Brim follows compensated outline"
-msgstr "Учитывать компенсацию контура"
+msgstr "Учитывать сдвиг контура"
 
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry "
@@ -13165,19 +13165,18 @@ msgid "Only draw brim over the sharp edges of the model."
 msgstr "Генерировать кайму только на острых краях модели."
 
 msgid "Brim ear max angle"
-msgstr "Максимальный угол ушек каймы"
+msgstr "Максимальный угол ушек"
 
 msgid ""
 "Maximum angle to let a brim ear appear.\n"
 "If set to 0, no brim will be created.\n"
 "If set to ~180, brim will be created on everything but straight sections."
 msgstr ""
-"Максимальный угол, при котором печатается ушко каймы.\n"
-"При 0°, кайма не создаётся.\n"
-"При ~180°, кайма будет создаваться на всех участках, кроме прямых."
+"Максимальный угол выступа для размещения каймы.\n"
+"При ≈180° кайма будет создаваться на всех выступающих участках.\n 0 – отключение каймы."
 
 msgid "Brim ear detection radius"
-msgstr "Радиус обнаружения ушек каймы"
+msgstr "Радиус обнаружения ушек"
 
 msgid ""
 "The geometry will be decimated before detecting sharp angles. This parameter "
@@ -15316,7 +15315,7 @@ msgstr ""
 "значения приведут к сглаживанию шума."
 
 msgid "Filter out tiny gaps"
-msgstr "Минимальный размер щели"
+msgstr "Минимальная длина щели"
 
 msgid "Layers and Perimeters"
 msgstr "Слои и периметры"
@@ -15375,7 +15374,7 @@ msgstr ""
 "помощью слайсера, а затем снова в линейные сегменты с помощью прошивки."
 
 msgid "Add line number"
-msgstr "Добавить номер строки"
+msgstr "Нумеровать строки"
 
 msgid ""
 "Enable this to add line number(Nx) at the beginning of each G-code line."
@@ -15802,7 +15801,7 @@ msgid ""
 msgstr ""
 "Параметр указывает на сколько процентов заполнение будет перекрываться с "
 "периметром для лучшего соединения друг с другом. Установите значение равным "
-"~10-15%, чтобы свести к минимуму вероятность чрезмерной экструзии и "
+"≈10-15%, чтобы свести к минимуму вероятность чрезмерной экструзии и "
 "накопления материала приводящее к шероховатости поверхности."
 
 msgid "Top/Bottom solid infill/wall overlap"
@@ -17193,7 +17192,7 @@ msgid "Number of loops for the skirt. Zero means disabling skirt."
 msgstr "Количество контуров юбки вокруг модели. 0 - отключение юбки."
 
 msgid "Skirt speed"
-msgstr "Ограничение скорости юбки"
+msgstr "Скорость юбки"
 
 msgid "Speed of skirt, in mm/s. Zero means use default layer extrusion speed."
 msgstr ""
@@ -17201,7 +17200,7 @@ msgstr ""
 "(мм/с). 0 – соблюдать ограничение слоя."
 
 msgid "Skirt minimum extrusion length"
-msgstr "Мин. длина юбки"
+msgstr "Минимальная длина юбки"
 
 msgid ""
 "Minimum filament extrusion length in mm when printing the skirt. Zero means "
