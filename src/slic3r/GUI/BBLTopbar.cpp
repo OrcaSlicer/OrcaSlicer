@@ -13,6 +13,10 @@
 
 #include <boost/log/trivial.hpp>
 
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
+
 #define TOPBAR_ICON_SIZE  18
 #define TOPBAR_TITLE_WIDTH  300
 
@@ -621,17 +625,27 @@ void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
     wxPoint frame_pos = m_frame->GetScreenPosition();
     m_delta = mouse_pos - frame_pos;
 
-    if (FindToolByCurrentPosition() == NULL 
+    if (FindToolByCurrentPosition() == NULL
         || this->FindToolByCurrentPosition() == m_title_item)
     {
-        CaptureMouse();
 #ifdef __WXMSW__
+        CaptureMouse();
         ReleaseMouse();
         ::PostMessage((HWND) m_frame->GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(mouse_pos.x, mouse_pos.y));
         return;
-#endif //  __WXMSW__
+#elif defined(__WXGTK__)
+        // Use WM-integrated drag for smoother window movement on Linux.
+        gtk_window_begin_move_drag(
+            GTK_WINDOW(m_frame->m_widget),
+            1,  // left mouse button
+            mouse_pos.x, mouse_pos.y,
+            gtk_get_current_event_time());
+        return;
+#else
+        CaptureMouse();
+#endif
     }
-    
+
     event.Skip();
 }
 

@@ -14,10 +14,6 @@
 #include <wx/debug.h>
 #include <wx/utils.h>
 
-#ifdef __WXGTK__
-#include <gtk/gtk.h>
-#endif
-
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -75,6 +71,10 @@
 #include <shlobj.h>
 #include <shellapi.h>
 #endif // _WIN32
+
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif // __WXGTK__
 #include <slic3r/GUI/CreatePresetsDialog.hpp>
 
 
@@ -103,6 +103,115 @@ enum class ERescaleTarget
     Mainframe,
     SettingsDialog
 };
+
+#ifdef __WXGTK__
+// Intercepts mouse events globally to provide resize handles for the
+// borderless (CSD) window.  When the cursor is within BORDER_PX of a
+// window edge, a resize cursor is shown and left-click initiates a
+// WM-integrated resize via gtk_window_begin_resize_drag().
+class MainFrame::GtkResizeBorderHandler : public wxEventFilter
+{
+public:
+    static constexpr int BORDER_PX = 8;
+
+    explicit GtkResizeBorderHandler(MainFrame* frame)
+        : m_frame(frame)
+    {
+        wxEvtHandler::AddFilter(this);
+    }
+
+    ~GtkResizeBorderHandler() override
+    {
+        wxEvtHandler::RemoveFilter(this);
+    }
+
+    int FilterEvent(wxEvent& event) override
+    {
+        const wxEventType t = event.GetEventType();
+        if (t != wxEVT_MOTION && t != wxEVT_LEFT_DOWN)
+            return Event_Skip;
+
+        if (!m_frame || !m_frame->IsShown() || m_frame->IsMaximized() || m_frame->IsFullScreen())
+            return Event_Skip;
+
+        wxPoint mouse = ::wxGetMousePosition();
+        wxRect  rect  = m_frame->GetScreenRect();
+
+        GdkWindowEdge edge;
+        if (!hit_test(mouse, rect, edge)) {
+            // Cursor is not near any edge — restore default cursor if we changed it.
+            if (m_cursor_set) {
+                gdk_window_set_cursor(gtk_widget_get_window(m_frame->m_widget), NULL);
+                m_cursor_set = false;
+            }
+            return Event_Skip;
+        }
+
+        // Set the appropriate resize cursor.
+        set_cursor_for_edge(edge);
+
+        if (t == wxEVT_LEFT_DOWN) {
+            gtk_window_begin_resize_drag(
+                GTK_WINDOW(m_frame->m_widget),
+                edge,
+                1,                            // left mouse button
+                mouse.x, mouse.y,
+                gtk_get_current_event_time());
+            return Event_Processed;
+        }
+
+        // Motion near edge: consume so the app doesn't treat it as content interaction.
+        return Event_Processed;
+    }
+
+private:
+    bool hit_test(const wxPoint& mouse, const wxRect& rect, GdkWindowEdge& edge) const
+    {
+        bool left   = mouse.x >= rect.x && mouse.x < rect.x + BORDER_PX;
+        bool right  = mouse.x > rect.x + rect.width - BORDER_PX && mouse.x <= rect.x + rect.width;
+        bool top    = mouse.y >= rect.y && mouse.y < rect.y + BORDER_PX;
+        bool bottom = mouse.y > rect.y + rect.height - BORDER_PX && mouse.y <= rect.y + rect.height;
+
+        if (!left && !right && !top && !bottom)
+            return false;
+
+        if (top && left)        edge = GDK_WINDOW_EDGE_NORTH_WEST;
+        else if (top && right)  edge = GDK_WINDOW_EDGE_NORTH_EAST;
+        else if (bottom && left)  edge = GDK_WINDOW_EDGE_SOUTH_WEST;
+        else if (bottom && right) edge = GDK_WINDOW_EDGE_SOUTH_EAST;
+        else if (top)           edge = GDK_WINDOW_EDGE_NORTH;
+        else if (bottom)        edge = GDK_WINDOW_EDGE_SOUTH;
+        else if (left)          edge = GDK_WINDOW_EDGE_WEST;
+        else                    edge = GDK_WINDOW_EDGE_EAST;
+        return true;
+    }
+
+    void set_cursor_for_edge(GdkWindowEdge edge)
+    {
+        GdkCursorType cursor_type;
+        switch (edge) {
+        case GDK_WINDOW_EDGE_NORTH:       cursor_type = GDK_TOP_SIDE;           break;
+        case GDK_WINDOW_EDGE_SOUTH:       cursor_type = GDK_BOTTOM_SIDE;        break;
+        case GDK_WINDOW_EDGE_WEST:        cursor_type = GDK_LEFT_SIDE;          break;
+        case GDK_WINDOW_EDGE_EAST:        cursor_type = GDK_RIGHT_SIDE;         break;
+        case GDK_WINDOW_EDGE_NORTH_WEST:  cursor_type = GDK_TOP_LEFT_CORNER;    break;
+        case GDK_WINDOW_EDGE_NORTH_EAST:  cursor_type = GDK_TOP_RIGHT_CORNER;   break;
+        case GDK_WINDOW_EDGE_SOUTH_WEST:  cursor_type = GDK_BOTTOM_LEFT_CORNER; break;
+        case GDK_WINDOW_EDGE_SOUTH_EAST:  cursor_type = GDK_BOTTOM_RIGHT_CORNER;break;
+        default: return;
+        }
+
+        GdkDisplay* display = gtk_widget_get_display(m_frame->m_widget);
+        GdkCursor*  cursor  = gdk_cursor_new_for_display(display, cursor_type);
+        gdk_window_set_cursor(gtk_widget_get_window(m_frame->m_widget), cursor);
+        g_object_unref(cursor);
+        m_cursor_set = true;
+    }
+
+    MainFrame* m_frame;
+    bool       m_cursor_set{false};
+};
+#endif // __WXGTK__
 
 #ifdef __APPLE__
 class OrcaSlicerTaskBarIcon : public wxTaskBarIcon
@@ -164,24 +273,10 @@ static wxIcon main_frame_icon(GUI_App::EAppMode app_mode)
 }
 
 // BBS
-#ifdef __WXGTK__
-#define BORDERLESS_FRAME_STYLE (wxRESIZE_BORDER | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX | wxBORDER_NONE)
-#elif defined(__APPLE__)
-#define BORDERLESS_FRAME_STYLE (wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
-#else
+#ifndef __APPLE__
 #define BORDERLESS_FRAME_STYLE (wxRESIZE_BORDER | wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
-#endif
-
-#ifdef __WXGTK__
-// Strip window manager decorations so only OrcaSlicer's custom BBLTopbar is shown.
-static void gtk_remove_window_decorations(GtkWidget* widget)
-{
-    gtk_window_set_decorated(GTK_WINDOW(widget), FALSE);
-    GdkWindow* gdk_window = gtk_widget_get_window(widget);
-    if (gdk_window) {
-        gdk_window_set_decorations(gdk_window, (GdkWMDecoration)0);
-    }
-}
+#else
+#define BORDERLESS_FRAME_STYLE (wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxCLOSE_BOX)
 #endif
 
 wxDEFINE_EVENT(EVT_SYNC_CLOUD_PRESET,     SimpleEvent);
@@ -210,13 +305,35 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 #endif
 
 #ifdef __WXGTK__
-    gtk_remove_window_decorations(m_widget);
+    // Zero out the decoration hints that wxGTK computed from the window style.
+    // When GTKHandleRealized() later calls gdk_window_set_decorations(), it
+    // will apply zero decorations (no WM title bar).
+    m_gdkDecor = 0;
 
-    // Defensive: strip decorations after GDK window creation, in case
-    // wxGTK's realization code re-applies them.
-    g_signal_connect_after(m_widget, "realize", G_CALLBACK(+[](GtkWidget* widget, gpointer) {
-        gtk_remove_window_decorations(widget);
-    }), nullptr);
+    // Set an empty zero-height titlebar to enter GTK CSD mode.
+    // CSD provides invisible resize handles around the window edges,
+    // replacing the WM-provided resize handles that m_gdkDecor = 0 removes.
+    GtkWidget* empty_titlebar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_widget_set_size_request(empty_titlebar, -1, 0);
+    gtk_widget_show(empty_titlebar);
+    gtk_window_set_titlebar(GTK_WINDOW(m_widget), empty_titlebar);
+
+    // Remove CSD shadow/margin that GTK3 adds around CSD windows.
+    GtkCssProvider* provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider,
+        "window { box-shadow: none; border: none; margin: 0; }"
+        "window decoration { box-shadow: none; border: none; margin: 0; }",
+        -1, NULL);
+    gtk_style_context_add_provider(
+        gtk_widget_get_style_context(m_widget),
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(provider);
+
+    // Install app-level resize border handler as a fallback.
+    // Even though CSD should provide invisible resize handles, some
+    // WM/compositor combinations may not honor them fully.
+    m_resize_border_handler = new GtkResizeBorderHandler(this);
 #endif
 
     if (!wxGetApp().app_config->has("user_mode")) {
@@ -634,11 +751,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     });
 
     Bind(wxEVT_SHOW, [this](wxShowEvent &evt) {
-#ifdef __WXGTK__
-        if (evt.IsShown()) {
-            gtk_remove_window_decorations(m_widget);
-        }
-#endif
         DeviceManager *manger = wxGetApp().getDeviceManager();
         if (manger) {
             evt.IsShown() ? manger->start_refresher() : manger->stop_refresher();
@@ -970,6 +1082,10 @@ void MainFrame::update_layout()
 void MainFrame::shutdown()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "MainFrame::shutdown enter";
+#ifdef __WXGTK__
+    delete m_resize_border_handler;
+    m_resize_border_handler = nullptr;
+#endif
     // BBS: backup
     Slic3r::set_backup_callback(nullptr);
 #ifdef _WIN32
