@@ -95,10 +95,6 @@ modules:
         path: ../../deps
         dest: deps
 
-      - type: file
-        path: patches/0001-Enable-using-a-dark-theme-when-Gnome-dark-style-is-s.patch
-        dest: deps/wxWidgets
-        dest-filename: 0001-flatpak.patch
 
   - name: OrcaSlicer
     buildsystem: simple

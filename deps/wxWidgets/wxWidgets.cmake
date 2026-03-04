@@ -1,8 +1,6 @@
 set(_wx_toolkit "")
 set(_wx_debug_postfix "")
 set(_wx_shared -DwxBUILD_SHARED=OFF)
-set(_wx_flatpak_patch "")
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(_gtk_ver 2)
 
@@ -14,7 +12,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     if (FLATPAK)
         set(_wx_debug_postfix "d")
         set(_wx_shared -DwxBUILD_SHARED=ON -DBUILD_SHARED_LIBS:BOOL=ON)
-        set(_wx_flatpak_patch PATCH_COMMAND ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/0001-flatpak.patch)
     endif ()
 endif()
 
@@ -37,7 +34,6 @@ orcaslicer_add_cmake_project(
     GIT_REPOSITORY "https://github.com/SoftFever/Orca-deps-wxWidgets"
     GIT_SHALLOW ON
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
-    ${_wx_flatpak_patch}
     CMAKE_ARGS
         ${_wx_opengl_override}
         -DwxBUILD_PRECOMP=ON
