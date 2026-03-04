@@ -1,5 +1,3 @@
-src/libslic3r/PresetBundle.cpp
-src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/DeviceCore/DevBed.cpp
 src/slic3r/GUI/DeviceCore/DevBed.h
 src/slic3r/GUI/DeviceCore/DevConfig.h
@@ -83,6 +81,7 @@ src/slic3r/GUI/GUI_ObjectTable.hpp
 src/slic3r/GUI/GUI_ObjectTableSettings.cpp
 src/slic3r/GUI/GUI_ObjectTableSettings.hpp
 src/slic3r/GUI/GUI_Preview.cpp
+src/slic3r/GUI/2DBed.cpp
 src/slic3r/GUI/HintNotification.cpp
 src/slic3r/GUI/IMSlider.cpp
 src/slic3r/GUI/Widgets/SideTools.cpp
@@ -253,3 +252,4 @@ src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
+src/slic3r/PresetBundle.cpp
