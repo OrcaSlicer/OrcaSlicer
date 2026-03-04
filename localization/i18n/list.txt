@@ -167,7 +167,6 @@ src/slic3r/GUI/Tab.hpp
 src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/Auxiliary.cpp
 src/slic3r/GUI/UpdateDialogs.cpp
-src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/GUI/ObjColorDialog.cpp
 src/slic3r/GUI/SyncAmsInfoDialog.cpp
 src/slic3r/GUI/WipeTowerDialog.cpp
@@ -180,12 +179,10 @@ src/slic3r/GUI/KBShortcutsDialog.cpp
 src/slic3r/GUI/ReleaseNote.cpp
 src/slic3r/GUI/ReleaseNote.hpp
 src/slic3r/GUI/UpgradePanel.cpp
-src/slic3r/GUI/UnsavedChangesDialog.cpp
 src/slic3r/Utils/FixModelByWin10.cpp
 src/slic3r/Utils/PresetUpdater.cpp
 src/slic3r/Utils/Http.cpp
 src/slic3r/Utils/Process.cpp
-src/slic3r/GUI/Jobs/PrintJob.cpp
 src/libslic3r/GCode.cpp
 src/libslic3r/GCode/ToolOrdering.cpp
 src/libslic3r/ExtrusionEntity.cpp
@@ -239,7 +236,6 @@ src/slic3r/Utils/Obico.cpp
 src/slic3r/Utils/SimplyPrint.cpp
 src/slic3r/Utils/Flashforge.cpp
 src/slic3r/GUI/Jobs/OAuthJob.cpp
-src/slic3r/GUI/BackgroundSlicingProcess.cpp
 src/slic3r/GUI/Gizmos/GLGizmoBrimEars.cpp
 src/slic3r/GUI/PartSkipDialog.cpp
 src/slic3r/GUI/PartSkipDialog.hpp
@@ -252,4 +248,4 @@ src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
-src/slic3r/PresetBundle.cpp
+src/libslic3r/PresetBundle.cpp
