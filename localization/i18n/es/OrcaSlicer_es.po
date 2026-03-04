@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:58-0300\n"
+"POT-Creation-Date: 2026-03-04 17:25-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -1681,7 +1681,7 @@ msgid "Supported files"
 msgstr "Archivos compatibles"
 
 msgid "ZIP files"
-msgstr ""
+msgstr "Archivos ZIP"
 
 msgid "Project files"
 msgstr "Archivos de Proyecto"
@@ -3377,7 +3377,7 @@ msgid "Font doesn't have any shape for given text."
 msgstr "La fuente no tiene ninguna forma para el texto dado."
 
 msgid "There is no valid surface for text projection."
-msgstr ""
+msgstr "No hay ninguna superficie válida para la proyección de texto."
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Preacondicionamiento térmico para la optimización de la primera capa"
@@ -4365,13 +4365,13 @@ msgstr ""
 "seam_slope_start_height debe ser menor que layer_height.\n"
 "Restableciendo a 0."
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
 "La profundidad de bloqueo debe ser menor que la profundidad de la piel.\n"
-"Restablecer al 50 % de la profundidad de la piel."
+"Restablecer al 50% de la profundidad de la piel."
 
 msgid ""
 "Both [Extrusion] and [Combined] modes of Fuzzy Skin require the Arachne Wall "
@@ -9176,7 +9176,7 @@ msgid "Packing data to 3MF"
 msgstr "Empaquetando datos a 3mf"
 
 msgid "Uploading data"
-msgstr ""
+msgstr "Cargando datos"
 
 msgid "Jump to webpage"
 msgstr "Ir a la página web"
@@ -22418,11 +22418,15 @@ msgstr "Se requiere el plug-in Bambu Network"
 msgid ""
 "The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
 msgstr ""
+"El Plug-in de Bambu Network está dañado o es incompatible. Vuelva a "
+"instalarlo."
 
 msgid ""
-"The Bambu Network Plugin is required for cloud features, printer discovery, "
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
 "and remote printing."
 msgstr ""
+"El Plug-in de Bambu Network es necesario para las funciones en la nube, la "
+"detección de impresoras y la impresión remota."
 
 #, c-format, boost-format
 msgid "Error: %s"
@@ -22432,7 +22436,7 @@ msgid "Show details"
 msgstr "Mostrar detalles"
 
 msgid "Version to install:"
-msgstr ""
+msgstr "Versión a instalar:"
 
 msgid "Download and Install"
 msgstr "Descargar e instalar"
@@ -22448,10 +22452,10 @@ msgid "Current version: %s"
 msgstr "Versión actual: %s"
 
 msgid "Update to version:"
-msgstr ""
+msgstr "Actualización a la versión:"
 
 msgid "Update Now"
-msgstr ""
+msgstr "Actualizar ahora"
 
 msgid "Remind Later"
 msgstr "Recordar más tarde"
@@ -22463,7 +22467,7 @@ msgid "Don't Ask Again"
 msgstr "No volver a preguntar"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
-msgstr ""
+msgstr "El Plug-in de Bambu Network se ha instalado correctamente."
 
 msgid ""
 "A restart is required to load the new plug-in. Would you like to restart now?"
@@ -22481,7 +22485,7 @@ msgid "NO RAMMING AT ALL"
 msgstr "NO CHOCAR EN ABSOLUTO"
 
 msgid "Volumetric speed"
-msgstr ""
+msgstr "Velocidad volumétrica"
 
 msgid "Step file import parameters"
 msgstr "Parámetros de importación de archivos Step"
