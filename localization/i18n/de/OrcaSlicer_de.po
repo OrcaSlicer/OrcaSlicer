@@ -5115,8 +5115,8 @@ msgstr "Aktuelle Geschwindigkeit (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Lüftergeschwindigkeit (%)"
 
-msgid "Temperature (℃)"
-msgstr "Temperatur (℃)"
+msgid "Temperature (°C)"
+msgstr "Temperatur (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Volumetrische Flussrate (mm³/s)"

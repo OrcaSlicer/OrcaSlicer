@@ -4815,7 +4815,7 @@ msgstr "실제 속도 (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "팬 속도 (%)"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "온도 (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
