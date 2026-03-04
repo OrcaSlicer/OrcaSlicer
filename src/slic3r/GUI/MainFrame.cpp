@@ -134,8 +134,23 @@ public:
         if (!m_frame || !m_frame->IsShown() || m_frame->IsMaximized() || m_frame->IsFullScreen())
             return Event_Skip;
 
+        if (!gtk_widget_get_realized(m_frame->m_widget) || gtk_widget_get_window(m_frame->m_widget) == nullptr)
+            return Event_Skip;
+
         wxPoint mouse = ::wxGetMousePosition();
         wxRect  rect  = m_frame->GetScreenRect();
+
+        // Don't steal interactions from the custom top bar area.
+        // Keep corner resizing available by only excluding the pure top edge.
+        if (m_frame->topbar() != nullptr) {
+            const wxRect topbar_rect = m_frame->topbar()->GetScreenRect();
+            if (topbar_rect.Contains(mouse)) {
+                const bool near_left_corner  = mouse.x < rect.x + BORDER_PX;
+                const bool near_right_corner = mouse.x > rect.x + rect.width - BORDER_PX;
+                if (!near_left_corner && !near_right_corner)
+                    return Event_Skip;
+            }
+        }
 
         GdkWindowEdge edge;
         if (!hit_test(mouse, rect, edge)) {
@@ -160,8 +175,8 @@ public:
             return Event_Processed;
         }
 
-        // Motion near edge: consume so the app doesn't treat it as content interaction.
-        return Event_Processed;
+        // For motion, keep app interaction working (menus, hover, etc.).
+        return Event_Skip;
     }
 
 private:
@@ -310,29 +325,9 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     // will apply zero decorations (no WM title bar).
     m_gdkDecor = 0;
 
-    // Set an empty zero-height titlebar to enter GTK CSD mode.
-    // CSD provides invisible resize handles around the window edges,
-    // replacing the WM-provided resize handles that m_gdkDecor = 0 removes.
-    GtkWidget* empty_titlebar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_widget_set_size_request(empty_titlebar, -1, 0);
-    gtk_widget_show(empty_titlebar);
-    gtk_window_set_titlebar(GTK_WINDOW(m_widget), empty_titlebar);
-
-    // Remove CSD shadow/margin that GTK3 adds around CSD windows.
-    GtkCssProvider* provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider,
-        "window { box-shadow: none; border: none; margin: 0; }"
-        "window decoration { box-shadow: none; border: none; margin: 0; }",
-        -1, NULL);
-    gtk_style_context_add_provider(
-        gtk_widget_get_style_context(m_widget),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(provider);
-
     // Install app-level resize border handler as a fallback.
-    // Even though CSD should provide invisible resize handles, some
-    // WM/compositor combinations may not honor them fully.
+    // This keeps resize behavior for undecorated windows without using GTK CSD,
+    // avoiding CSD repaint/maximize artifacts on some WMs.
     m_resize_border_handler = new GtkResizeBorderHandler(this);
 #endif
 
