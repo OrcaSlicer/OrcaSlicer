@@ -68,6 +68,7 @@ src/slic3r/GUI/Gizmos/GLGizmoText.hpp
 src/slic3r/GUI/Gizmos/GLGizmoEmboss.cpp
 src/slic3r/GUI/Gizmos/GLGizmoSVG.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMeasure.cpp
+src/slic3r/GUI/Gizmos/GLGizmoAssembly.cpp
 src/slic3r/GUI/GUI.cpp
 src/slic3r/GUI/GUI_App.cpp
 src/slic3r/GUI/GUI_AuxiliaryList.cpp
