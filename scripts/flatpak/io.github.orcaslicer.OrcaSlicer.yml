@@ -129,11 +129,10 @@ modules:
       - "*.la"
 
     sources:
-      # OrcaSlicer source tree (provides deps/ cmake files, patches, bundled sources)
-      - type: git
-        url: https://github.com/OrcaSlicer/OrcaSlicer.git
-        tag: v2.3.2-rc
-        commit: ca1f360b83f989b85c18a63230dec6e19e3063db
+      # OrcaSlicer deps/ directory (avoids copying .git from worktree)
+      - type: dir
+        path: ../../deps
+        dest: deps
 
       # ---------------------------------------------------------------
       # Pre-downloaded dependency archives
@@ -313,11 +312,29 @@ modules:
       - install -Dm644 LICENSE.txt /app/share/licenses/${FLATPAK_ID}/LICENSE.txt
 
     sources:
-      # OrcaSlicer source tree
-      - type: git
-        url: https://github.com/OrcaSlicer/OrcaSlicer.git
-        tag: v2.3.2-rc
-        commit: ca1f360b83f989b85c18a63230dec6e19e3063db
+      # OrcaSlicer source tree (specific dirs to avoid copying .git from worktree)
+      - type: dir
+        path: ../../cmake
+        dest: cmake
+      - type: dir
+        path: ../../deps_src
+        dest: deps_src
+      - type: dir
+        path: ../../resources
+        dest: resources
+      - type: dir
+        path: ../../src
+        dest: src
+
+      - type: file
+        path: ../../CMakeLists.txt
+      - type: file
+        path: ../../LICENSE.txt
+      - type: file
+        path: ../../version.inc
+      - type: file
+        path: ../run_gettext.sh
+        dest: scripts
 
       # AppData metainfo for GNOME Software & Co.
       - type: file

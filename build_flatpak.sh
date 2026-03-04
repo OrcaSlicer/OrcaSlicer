@@ -22,7 +22,7 @@ JOBS=$(nproc)
 FORCE_CLEAN=false
 ENABLE_CCACHE=false
 DISABLE_ROFILES_FUSE=false
-NO_DEBUGINFO=false
+NO_DEBUGINFO=true
 CACHE_DIR=".flatpak-builder"
 
 # Help function
@@ -39,7 +39,7 @@ show_help() {
     echo "  -f, --force-clean      Force clean build (disables caching)"
     echo "  --ccache               Enable ccache for faster rebuilds (requires ccache in SDK)"
     echo "  --disable-rofiles-fuse Disable rofiles-fuse (workaround for FUSE issues)"
-    echo "  --no-debuginfo         Skip debug info (faster local builds, not for Flathub)"
+    echo "  --with-debuginfo       Include debug info (slower builds, needed for Flathub)"
     echo "  --cache-dir DIR        Flatpak builder cache directory [default: $CACHE_DIR]"
     echo "  -i, --install-runtime  Install required Flatpak runtime and SDK"
     echo "  -h, --help             Show this help message"
@@ -83,8 +83,8 @@ while [[ $# -gt 0 ]]; do
             DISABLE_ROFILES_FUSE=true
             shift
             ;;
-        --no-debuginfo)
-            NO_DEBUGINFO=true
+        --with-debuginfo)
+            NO_DEBUGINFO=false
             shift
             ;;
         --cache-dir)
