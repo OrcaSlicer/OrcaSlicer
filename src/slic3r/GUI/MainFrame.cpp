@@ -158,6 +158,7 @@ public:
             if (m_cursor_set) {
                 gdk_window_set_cursor(gtk_widget_get_window(m_frame->m_widget), NULL);
                 m_cursor_set = false;
+                m_last_edge_valid = false;
             }
             return Event_Skip;
         }
@@ -203,28 +204,39 @@ private:
 
     void set_cursor_for_edge(GdkWindowEdge edge)
     {
-        GdkCursorType cursor_type;
+        if (m_last_edge_valid && m_cursor_set && edge == m_last_edge)
+            return;
+
+        const char* cursor_name = nullptr;
         switch (edge) {
-        case GDK_WINDOW_EDGE_NORTH:       cursor_type = GDK_TOP_SIDE;           break;
-        case GDK_WINDOW_EDGE_SOUTH:       cursor_type = GDK_BOTTOM_SIDE;        break;
-        case GDK_WINDOW_EDGE_WEST:        cursor_type = GDK_LEFT_SIDE;          break;
-        case GDK_WINDOW_EDGE_EAST:        cursor_type = GDK_RIGHT_SIDE;         break;
-        case GDK_WINDOW_EDGE_NORTH_WEST:  cursor_type = GDK_TOP_LEFT_CORNER;    break;
-        case GDK_WINDOW_EDGE_NORTH_EAST:  cursor_type = GDK_TOP_RIGHT_CORNER;   break;
-        case GDK_WINDOW_EDGE_SOUTH_WEST:  cursor_type = GDK_BOTTOM_LEFT_CORNER; break;
-        case GDK_WINDOW_EDGE_SOUTH_EAST:  cursor_type = GDK_BOTTOM_RIGHT_CORNER;break;
+        case GDK_WINDOW_EDGE_NORTH:       cursor_name = "n-resize";  break;
+        case GDK_WINDOW_EDGE_SOUTH:       cursor_name = "s-resize";  break;
+        case GDK_WINDOW_EDGE_WEST:        cursor_name = "w-resize";  break;
+        case GDK_WINDOW_EDGE_EAST:        cursor_name = "e-resize";  break;
+        case GDK_WINDOW_EDGE_NORTH_WEST:  cursor_name = "nw-resize"; break;
+        case GDK_WINDOW_EDGE_NORTH_EAST:  cursor_name = "ne-resize"; break;
+        case GDK_WINDOW_EDGE_SOUTH_WEST:  cursor_name = "sw-resize"; break;
+        case GDK_WINDOW_EDGE_SOUTH_EAST:  cursor_name = "se-resize"; break;
         default: return;
         }
 
         GdkDisplay* display = gtk_widget_get_display(m_frame->m_widget);
-        GdkCursor*  cursor  = gdk_cursor_new_for_display(display, cursor_type);
+        GdkCursor*  cursor  = gdk_cursor_new_from_name(display, cursor_name);
+        if (!cursor)
+            return;
+
         gdk_window_set_cursor(gtk_widget_get_window(m_frame->m_widget), cursor);
         g_object_unref(cursor);
-        m_cursor_set = true;
+
+        m_cursor_set      = true;
+        m_last_edge       = edge;
+        m_last_edge_valid = true;
     }
 
-    MainFrame* m_frame;
-    bool       m_cursor_set{false};
+    MainFrame*    m_frame;
+    bool          m_cursor_set{false};
+    GdkWindowEdge m_last_edge{};
+    bool          m_last_edge_valid{false};
 };
 #endif // __WXGTK__
 
