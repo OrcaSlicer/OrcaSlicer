@@ -22643,14 +22643,14 @@ msgstr "Oficiální filament"
 msgid "More Colors"
 msgstr "Další barvy"
 
-msgid "Network Plugin Update Available"
+msgid "Network Plug-in Update Available"
 msgstr ""
 
-msgid "Bambu Network Plugin Required"
+msgid "Bambu Network Plug-in Required"
 msgstr ""
 
 msgid ""
-"The Bambu Network Plugin is corrupted or incompatible. Please reinstall it."
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
 msgstr ""
 
 msgid ""
@@ -22696,11 +22696,11 @@ msgstr ""
 msgid "Don't Ask Again"
 msgstr ""
 
-msgid "The Bambu Network Plugin has been installed successfully."
+msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr ""
 
 msgid ""
-"A restart is required to load the new plugin. Would you like to restart now?"
+"A restart is required to load the new plug-in. Would you like to restart now?"
 msgstr ""
 
 msgid "Restart Now"

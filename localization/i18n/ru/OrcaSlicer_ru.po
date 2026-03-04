@@ -22330,14 +22330,14 @@ msgstr "Каталог официальных цветов"
 msgid "More Colors"
 msgstr "Дополнительные цвета"
 
-msgid "Network Plugin Update Available"
+msgid "Network Plug-in Update Available"
 msgstr "Доступно обновление сетевого плагина"
 
-msgid "Bambu Network Plugin Required"
+msgid "Bambu Network Plug-in Required"
 msgstr "Требуется сетевой плагин Bambu"
 
 msgid ""
-"The Bambu Network Plugin is corrupted or incompatible. Please reinstall it."
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
 msgstr ""
 "Сетевой плагин Bambu повреждён или несовместим. Требуется переустановка."
 
@@ -22387,12 +22387,12 @@ msgstr "Пропустить версию"
 msgid "Don't Ask Again"
 msgstr "Не напоминать"
 
-msgid "The Bambu Network Plugin has been installed successfully."
+msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "Сетевой плагин Bambu успешно установлен."
 
 # Второе предложение избыточно и тупо повторяет содержание кнопки ниже
 msgid ""
-"A restart is required to load the new plugin. Would you like to restart now?"
+"A restart is required to load the new plug-in. Would you like to restart now?"
 msgstr "Для загрузки плагина требуется перезапуск."
 
 msgid "Restart Now"
