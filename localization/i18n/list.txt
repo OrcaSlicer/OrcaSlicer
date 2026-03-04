@@ -248,6 +248,7 @@ src/slic3r/GUI/SkipPartCanvas.hpp
 src/slic3r/GUI/FilamentBitmapUtils.cpp
 src/slic3r/GUI/FilamentBitmapUtils.hpp
 src/slic3r/GUI/FilamentPickerDialog.cpp
+src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/RammingChart.cpp
 src/slic3r/GUI/StepMeshDialog.cpp
 src/slic3r/GUI/FilamentPickerDialog.hpp
