@@ -75,7 +75,10 @@ void BBLTopbarArt::DrawLabel(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& it
 void BBLTopbarArt::DrawBackground(wxDC& dc, wxWindow* wnd, const wxRect& rect)
 {
     dc.SetBrush(wxBrush(wxColour(38, 46, 48)));
-    dc.SetClippingRegion(rect);
+    wxRect clipRect = rect;
+    clipRect.y -= 8;
+    clipRect.height += 8;
+    dc.SetClippingRegion(clipRect);
     dc.DrawRectangle(rect);
     dc.DestroyClippingRegion();
 }
