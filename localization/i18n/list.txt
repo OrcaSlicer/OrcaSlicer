@@ -1,4 +1,5 @@
 src/libslic3r/PresetBundle.cpp
+src/slic3r/GUI/NetworkPluginDialog.cpp
 src/slic3r/GUI/DeviceCore/DevBed.cpp
 src/slic3r/GUI/DeviceCore/DevBed.h
 src/slic3r/GUI/DeviceCore/DevConfig.h

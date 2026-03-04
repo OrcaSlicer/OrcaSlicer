@@ -134,7 +134,7 @@ void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& 
     wxBoxSizer* main_sizer = static_cast<wxBoxSizer*>(GetSizer());
 
     auto* desc = new wxStaticText(this, wxID_ANY,
-        _L("A new version of the Bambu Network Plugin is available."));
+        _L("A new version of the Bambu Network Plug-in is available."));
     desc->SetFont(::Label::Body_13);
     desc->Wrap(FromDIP(400));
     main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, FromDIP(25));
