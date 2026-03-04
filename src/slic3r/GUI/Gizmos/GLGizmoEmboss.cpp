@@ -3401,8 +3401,11 @@ bool load(Facenames &facenames) {
 
     facenames.hash = data.hash;
     facenames.faces.reserve(data.good.size());
-    for (const wxString &face : data.good)
+    facenames.faces_names.reserve(data.good.size());
+    for (const wxString &face : data.good) {
         facenames.faces.push_back({face});
+        facenames.faces_names.push_back(face.utf8_string());
+    }
     facenames.bad = data.bad;
     return true;
 }
