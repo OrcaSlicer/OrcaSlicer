@@ -474,10 +474,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     };
 
                     const auto to_ex_junction = [&current_ext](const Algorithm::SplitLineJunction& j) -> Arachne::ExtrusionJunction {
-                        size_t idx = j.get_src_index();
-                        if (idx >= current_ext.size())
-                            idx = current_ext.size() - 1;
-                        Arachne::ExtrusionJunction res = current_ext[idx];
+                        Arachne::ExtrusionJunction res = current_ext[j.get_src_index()];
                         if (!j.is_src()) {
                             res.p = j.p;
                         }
