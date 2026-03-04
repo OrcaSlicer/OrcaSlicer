@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 16:11-0300\n"
 "PO-Revision-Date: 2025-05-18 09:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -1533,6 +1533,30 @@ msgstr ""
 msgid "Flip by Face 2"
 msgstr ""
 
+msgid "Assemble"
+msgstr ""
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr ""
 
@@ -2076,9 +2100,6 @@ msgstr "Convert from Meters"
 
 msgid "Restore to meters"
 msgstr "Restore to Meter"
-
-msgid "Assemble"
-msgstr ""
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Assemble the selected objects into an object with multiple parts"
@@ -2690,7 +2711,7 @@ msgstr ""
 msgid "Connecting..."
 msgstr ""
 
-msgid "Auto-refill"
+msgid "Auto Refill"
 msgstr ""
 
 msgid "Load"
@@ -3478,9 +3499,6 @@ msgstr "Print with filament in AMS"
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Print with filament on external spool"
 
-msgid "Auto Refill"
-msgstr ""
-
 msgid "Left"
 msgstr ""
 
@@ -3628,15 +3646,15 @@ msgid ""
 "deleted by anti-virus software."
 msgstr ""
 "Failed to install the plug-in. The plug-in file may be in use. Please "
-"restart OrcaSlicer and try again. Also check whether it is blocked or "
-"has been deleted by anti-virus software."
+"restart OrcaSlicer and try again. Also check whether it is blocked or has "
+"been deleted by anti-virus software."
 
 msgid "Click here to see more info"
 msgstr ""
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 
 msgid "Restart Required"
@@ -7288,7 +7306,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr ""
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 
 msgid ""
@@ -8127,9 +8146,6 @@ msgstr ""
 msgid "trace"
 msgstr ""
 
-msgid "Network Plug-in"
-msgstr ""
-
 msgid "Reload"
 msgstr ""
 
@@ -8358,7 +8374,10 @@ msgstr ""
 msgid "Slicing Plate 1"
 msgstr ""
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
+msgstr ""
+
+msgid "Uploading data"
 msgstr ""
 
 msgid "Jump to webpage"
@@ -8666,7 +8685,7 @@ msgstr ""
 msgid "Textured PEI Plate"
 msgstr ""
 
-msgid "Cool Plate (Supertack)"
+msgid "Cool Plate (SuperTack)"
 msgstr ""
 
 msgid "Click here if you can't connect to the printer"
@@ -9260,9 +9279,6 @@ msgid "Print temperature"
 msgstr ""
 
 msgid "Nozzle temperature when printing"
-msgstr ""
-
-msgid "Cool Plate (SuperTack)"
 msgstr ""
 
 msgid ""
@@ -13665,9 +13681,9 @@ msgstr ""
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 
 msgid "Exclude objects"
@@ -15783,6 +15799,12 @@ msgid ""
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
 msgstr ""
 
+msgid "Rectangle"
+msgstr ""
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr ""
 
@@ -16929,10 +16951,6 @@ msgid "create new preset failed."
 msgstr ""
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr ""
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr ""
 
@@ -17954,9 +17972,6 @@ msgid "Input Custom Nozzle Diameter"
 msgstr ""
 
 msgid "Can't find my nozzle diameter"
-msgstr ""
-
-msgid "Rectangle"
 msgstr ""
 
 msgid "Printable Space"
@@ -19158,6 +19173,107 @@ msgid "Official Filament"
 msgstr ""
 
 msgid "More Colors"
+msgstr ""
+
+msgid "Network Plugin Update Available"
+msgstr ""
+
+msgid "Bambu Network Plugin Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plugin is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plugin is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plugin is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plugin has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plugin. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

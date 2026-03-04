@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 16:11-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -1615,6 +1615,30 @@ msgstr "Distancia paralela:"
 msgid "Flip by Face 2"
 msgstr "Voltear por la cara 2"
 
+msgid "Assemble"
+msgstr "Agrupar"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "Aviso"
 
@@ -2216,9 +2240,6 @@ msgstr "Convertir de metros"
 
 msgid "Restore to meters"
 msgstr "Restaurar a metros"
-
-msgid "Assemble"
-msgstr "Agrupar"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Ensamblar los objetos seleccionados en un objeto con múltiples piezas"
@@ -2853,8 +2874,8 @@ msgstr "Compruebe la conexión de red de la impresora y Orca."
 msgid "Connecting..."
 msgstr "Conectando..."
 
-msgid "Auto-refill"
-msgstr "Recarga automática"
+msgid "Auto Refill"
+msgstr "Auto Rellenado"
 
 msgid "Load"
 msgstr "Cargar"
@@ -3750,9 +3771,6 @@ msgstr "Imprimir usando filamentos en AMS"
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Imprimir con filamentos montados en la parte de atrás del chasis"
 
-msgid "Auto Refill"
-msgstr "Auto Rellenado"
-
 msgid "Left"
 msgstr "Izquierda"
 
@@ -3934,8 +3952,8 @@ msgid "Click here to see more info"
 msgstr "Presiona aquí para mostrar más información"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 "El complemento de red se instaló, pero no se pudo cargar. Reinicie la "
 "aplicación."
@@ -7926,7 +7944,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Por favor, resuelva los errores de laminado y publique de nuevo."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "Complemento de red no detectado. Características de red no disponibles."
 
@@ -8887,9 +8906,6 @@ msgstr "depurar"
 msgid "trace"
 msgstr "traza"
 
-msgid "Network Plug-in"
-msgstr "Plugin de red"
-
 msgid "Reload"
 msgstr "Recargar"
 
@@ -9121,8 +9137,11 @@ msgstr "La publicación fue cancelada"
 msgid "Slicing Plate 1"
 msgstr "Cama de Laminado 1"
 
-msgid "Packing data to 3mf"
-msgstr "Empaquetando datos en 3MF"
+msgid "Packing data to 3MF"
+msgstr "Empaquetando datos a 3mf"
+
+msgid "Uploading data"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "Ir a la página web"
@@ -9494,8 +9513,8 @@ msgstr "Cama Lisa de Alta Temperatura"
 msgid "Textured PEI Plate"
 msgstr "Cama PEI Texturizada"
 
-msgid "Cool Plate (Supertack)"
-msgstr "Cama fría (Supertack)"
+msgid "Cool Plate (SuperTack)"
+msgstr "Cama Fría (SuperTack)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Presione aquí si no puede conectar a la impresora"
@@ -10218,9 +10237,6 @@ msgstr "Temperatura de impresión"
 
 msgid "Nozzle temperature when printing"
 msgstr "Temperatura de la boquilla al imprimir"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "Cama Fría (SuperTack)"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -15647,9 +15663,9 @@ msgstr "Etiquetar objetos"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Habilite esta opción para añadir comentarios en el G-Code etiquetando los "
 "movimientos de impresión con el objeto al que pertenecen, lo cual es útil "
@@ -18325,6 +18341,12 @@ msgstr ""
 "3. Costilla: Añade cuatro refuerzos a la pared de la torre para mejorar la "
 "estabilidad."
 
+msgid "Rectangle"
+msgstr "Rectángulo"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr "Longitud extra del refuerzo"
 
@@ -19671,10 +19693,6 @@ msgid "create new preset failed."
 msgstr "la creación un nuevo perfil ha fallado."
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr "El perfil seleccionado: %s no ha sido encontrado."
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr "No se pudo encontrar el parámetro: %s."
 
@@ -20872,9 +20890,6 @@ msgstr "Introducir diámetro de boquilla personalizado"
 
 msgid "Can't find my nozzle diameter"
 msgstr "No encuentro mi diámetro de boquilla"
-
-msgid "Rectangle"
-msgstr "Rectángulo"
 
 msgid "Printable Space"
 msgstr "Espacio Imprimible"
@@ -22359,6 +22374,107 @@ msgstr "Filamento Oficial"
 msgid "More Colors"
 msgstr "Más Colores"
 
+msgid "Network Plugin Update Available"
+msgstr ""
+
+msgid "Bambu Network Plugin Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plugin is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plugin is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plugin is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plugin has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plugin. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -22747,6 +22863,22 @@ msgstr ""
 "aumentar adecuadamente la temperatura de la cama térmica puede reducir la "
 "probabilidad de deformaciones?"
 
+#~ msgid "Auto-refill"
+#~ msgstr "Recarga automática"
+
+#~ msgid "Network Plug-in"
+#~ msgstr "Plugin de red"
+
+#~ msgid "Packing data to 3mf"
+#~ msgstr "Empaquetando datos en 3MF"
+
+#~ msgid "Cool Plate (Supertack)"
+#~ msgstr "Cama fría (Supertack)"
+
+#, c-format, boost-format
+#~ msgid "The selected preset: %s is not found."
+#~ msgstr "El perfil seleccionado: %s no ha sido encontrado."
+
 #~ msgid "Line pattern of support."
 #~ msgstr "Patrón de líneas de soportes"
 
@@ -22796,9 +22928,6 @@ msgstr ""
 
 #~ msgid "Advance"
 #~ msgstr "Avanzado"
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Empaquetando datos a 3mf"
 
 #~ msgid "Acceleration of outer walls."
 #~ msgstr "Aceleración de los perímetros externos"
@@ -26489,7 +26618,8 @@ msgstr ""
 #~ msgstr "Modo de vista previa sólo para el archivo G-code."
 
 #~ msgid ""
-#~ "A prime tower is required by timelapse. Do you want to enable both of them?"
+#~ "A prime tower is required by timelapse. Do you want to enable both of "
+#~ "them?"
 #~ msgstr ""
 #~ "Se requiere una torre de purga para los time-lapses. ¿Quiere activarla?"
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 16:11-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -1605,6 +1605,31 @@ msgstr "Расстояние между параллельными граням�
 msgid "Flip by Face 2"
 msgstr "Перевернуть грань 2"
 
+# при выборе на столе
+msgid "Assemble"
+msgstr "Объединить в сборку"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr "Выберите хотя бы две модели."
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr "Сборка по точкам"
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr "Сборка по граням"
+
 msgid "Notice"
 msgstr "Примечание"
 
@@ -2191,10 +2216,6 @@ msgstr "Преобразовать миллиметры в дюймы"
 
 msgid "Restore to meters"
 msgstr "Восстановить в миллиметры"
-
-# при выборе на столе
-msgid "Assemble"
-msgstr "Объединить в сборку"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Объединение выбранных объектов в модель, состоящую из несколько частей"
@@ -2839,8 +2860,8 @@ msgstr "Убедитесь, что принтер и OrcaSlicer имеют до�
 msgid "Connecting..."
 msgstr "Подключение..."
 
-msgid "Auto-refill"
-msgstr ""
+msgid "Auto Refill"
+msgstr "Автодозаправка"
 
 # кнопка в интерфейсе? Extrude - Выдавить - Load
 msgid "Load"
@@ -3725,9 +3746,6 @@ msgstr "Печать материалами из AMS"
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Печать материалами, установленными на задней части корпуса"
 
-msgid "Auto Refill"
-msgstr "Автодозаправка"
-
 msgid "Left"
 msgstr "Слева"
 
@@ -3891,11 +3909,9 @@ msgid "Calibration"
 msgstr "Калибровка"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr ""
-"Не удалось загрузить плагин. Пожалуйста, проверьте настройки брандмауэра и "
-"VPN и повторите попытку."
 
 msgid ""
 "Failed to install the plug-in. The plug-in file may be in use. Please "
@@ -3907,8 +3923,8 @@ msgid "Click here to see more info"
 msgstr "Подробнее о проблеме"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 "Сетевой плагин установлен, для его загрузки требуется перезапуск приложения."
 
@@ -7876,7 +7892,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Пожалуйста, устраните ошибки нарезки и попробуйте опубликовать снова."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr "Сетевой плагин не обнаружен. Сетевые функции недоступны."
 
 msgid ""
@@ -8810,9 +8827,6 @@ msgstr "отладка"
 msgid "trace"
 msgstr "трассировка"
 
-msgid "Network Plug-in"
-msgstr "Сетевой плагин"
-
 msgid "Reload"
 msgstr "Перезагрузить"
 
@@ -9049,9 +9063,11 @@ msgstr "Публикация была отменена"
 msgid "Slicing Plate 1"
 msgstr "Нарезка стола 1"
 
-# без понятия, зачем они тут поменяли заглавные, но в коде сейчас 3mf маленькие
-msgid "Packing data to 3mf"
-msgstr "Упаковка данных в 3MF"
+msgid "Packing data to 3MF"
+msgstr "Упаковка данных в 3mf"
+
+msgid "Uploading data"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "Перейти на страницу"
@@ -9380,7 +9396,7 @@ msgstr "Гладкое (высокотемп.)"
 msgid "Textured PEI Plate"
 msgstr "Текстурный лист с PEI"
 
-msgid "Cool Plate (Supertack)"
+msgid "Cool Plate (SuperTack)"
 msgstr "SuperTack"
 
 msgid "Click here if you can't connect to the printer"
@@ -10075,9 +10091,6 @@ msgstr "Температура печати"
 
 msgid "Nozzle temperature when printing"
 msgstr "Температура сопла при печати"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "SuperTack"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -15548,9 +15561,9 @@ msgstr "Помечать модели"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Отвечает за присвоение уникальных меток или названий каждой модели или "
 "элементу, что позволяет отменять печать любого из них по вашему выбору.\n"
@@ -18291,6 +18304,12 @@ msgstr ""
 "3. Рёбра жёсткости, которые добавляются по четырём углам черновой башни для "
 "повышения устойчивости."
 
+msgid "Rectangle"
+msgstr "Прямоугольник"
+
+msgid "Rib"
+msgstr "Усиленная"
+
 msgid "Extra rib length"
 msgstr "Вынос основания ребра"
 
@@ -19688,10 +19707,6 @@ msgid "create new preset failed."
 msgstr "не удалось создать новый профиль."
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr "Выбранный профиль не найден (%s)"
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr "Не удалось найти параметр: %s."
 
@@ -20852,9 +20867,6 @@ msgstr "Введите диаметр..."
 
 msgid "Can't find my nozzle diameter"
 msgstr "Диаметр отсутствует в списке"
-
-msgid "Rectangle"
-msgstr "Прямоугольник"
 
 msgid "Printable Space"
 msgstr "Область печати"
@@ -22283,6 +22295,114 @@ msgstr "Каталог официальных цветов"
 msgid "More Colors"
 msgstr "Дополнительные цвета"
 
+msgid "Network Plugin Update Available"
+msgstr "Доступно обновление сетевого плагина"
+
+msgid "Bambu Network Plugin Required"
+msgstr "Требуется сетевой плагин Bambu"
+
+msgid ""
+"The Bambu Network Plugin is corrupted or incompatible. Please reinstall it."
+msgstr ""
+"Сетевой плагин Bambu повреждён или несовместим. Требуется переустановка."
+
+msgid ""
+"The Bambu Network Plugin is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+"Для удалённой печати, облачных функций и поиска принтеров требуется сетевой "
+"плагин Bambu."
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr "Ошибка: %s"
+
+msgid "Show details"
+msgstr "Подробнее"
+
+msgid "Version to install:"
+msgstr "Версия для установки:"
+
+msgid "Download and Install"
+msgstr "Загрузить и установить"
+
+# Делает то же самое, что и Remind Later, просто выводится при обнаружении повреждения, а не при обновлении
+msgid "Skip for Now"
+msgstr "Напомнить позже"
+
+msgid "A new version of the Bambu Network Plugin is available."
+msgstr "Доступна новая версия сетевого плагина Bambu."
+
+#, fuzzy, c-format, boost-format
+msgid "Current version: %s"
+msgstr "Текущая версия:"
+
+msgid "Update to version:"
+msgstr "Обновление до версии:"
+
+msgid "Update Now"
+msgstr "Установить обновление"
+
+msgid "Remind Later"
+msgstr "Напомнить позже"
+
+msgid "Skip Version"
+msgstr "Пропустить версию"
+
+msgid "Don't Ask Again"
+msgstr "Не напоминать"
+
+msgid "The Bambu Network Plugin has been installed successfully."
+msgstr "Сетевой плагин Bambu успешно установлен."
+
+# Второе предложение избыточно и тупо повторяет содержание кнопки ниже
+msgid ""
+"A restart is required to load the new plugin. Would you like to restart now?"
+msgstr "Для загрузки плагина требуется перезапуск."
+
+msgid "Restart Now"
+msgstr "Перезапустить сейчас"
+
+msgid "Restart Later"
+msgstr "Перезапустить позже"
+
+msgid "NO RAMMING AT ALL"
+msgstr "Рэмминг отключён"
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr "Параметры импорта STEP"
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+"Уменьшение линейного и углового отклонений повышает качество поверхности и "
+"время обработки."
+
+msgid "Linear Deflection"
+msgstr "Линейное отклонение"
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr "Укажите допустимое значение линейного отклонения (от 0.001 до 0.1)"
+
+msgid "Angle Deflection"
+msgstr "Угловое отклонение"
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr "Укажите допустимое значение углового отклонения (от 0.01 до 1.0)"
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr "Разделять модель из нескольких тел на части"
+
+msgid "Number of triangular facets"
+msgstr "Количество треугольников"
+
+msgid "Calculating, please wait..."
+msgstr "Расчёт, подождите..."
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -22671,6 +22791,27 @@ msgstr ""
 "ABS, повышение температуры подогреваемого стола может снизить эту "
 "вероятность?"
 
+#~ msgid ""
+#~ "Failed to download the plug-in. Please check your firewall settings and "
+#~ "vpn software, check and retry."
+#~ msgstr ""
+#~ "Не удалось загрузить плагин. Пожалуйста, проверьте настройки брандмауэра "
+#~ "и VPN и повторите попытку."
+
+#~ msgid "Network Plug-in"
+#~ msgstr "Сетевой плагин"
+
+# без понятия, зачем они тут поменяли заглавные, но в коде сейчас 3mf маленькие
+#~ msgid "Packing data to 3mf"
+#~ msgstr "Упаковка данных в 3MF"
+
+#~ msgid "Cool Plate (Supertack)"
+#~ msgstr "SuperTack"
+
+#, c-format, boost-format
+#~ msgid "The selected preset: %s is not found."
+#~ msgstr "Выбранный профиль не найден (%s)"
+
 #~ msgid "Line pattern of support."
 #~ msgstr "Шаблон печати поддержки."
 
@@ -22706,46 +22847,6 @@ msgstr ""
 #~ msgid "Volumetric flow rate"
 #~ msgstr "Объёмный расход"
 
-#~ msgid "Face and face assembly"
-#~ msgstr "Сборка по граням"
-
-#~ msgid "Point and point assembly"
-#~ msgstr "Сборка по точкам"
-
-#~ msgid "NO RAMMING AT ALL"
-#~ msgstr "Рэмминг отключён"
-
-#~ msgid "Step file import parameters"
-#~ msgstr "Параметры импорта STEP"
-
-#~ msgid ""
-#~ "Smaller linear and angular deflections result in higher-quality "
-#~ "transformations but increase the processing time."
-#~ msgstr ""
-#~ "Уменьшение линейного и углового отклонений повышает качество поверхности "
-#~ "и время обработки."
-
-#~ msgid "Linear Deflection"
-#~ msgstr "Линейное отклонение"
-
-#~ msgid "Angle Deflection"
-#~ msgstr "Угловое отклонение"
-
-#~ msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
-#~ msgstr "Укажите допустимое значение линейного отклонения (от 0.001 до 0.1)"
-
-#~ msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
-#~ msgstr "Укажите допустимое значение углового отклонения (от 0.01 до 1.0)"
-
-#~ msgid "Split compound and compsolid into multiple objects"
-#~ msgstr "Разделять модель из нескольких тел на части"
-
-#~ msgid "Number of triangular facets"
-#~ msgstr "Количество треугольников"
-
-#~ msgid "Calculating, please wait..."
-#~ msgstr "Расчёт, подождите..."
-
 #~ msgid ""
 #~ "Bambu Lab has implemented a signature verification check in their network "
 #~ "plugin that restricts third-party software from communicating with your "
@@ -22759,82 +22860,8 @@ msgstr ""
 #~ "\n"
 #~ "Из-за этого некоторые функции печати недоступны через OrcaSlicer."
 
-#~ msgid "Rib"
-#~ msgstr "Усиленная"
-
 #~ msgid "Check on Github"
 #~ msgstr "Открыть на GitHub"
-
-#~ msgid "Bambu Network Plugin Required"
-#~ msgstr "Требуется сетевой плагин Bambu"
-
-#~ msgid "Network Plugin Update Available"
-#~ msgstr "Доступно обновление сетевого плагина"
-
-#~ msgid ""
-#~ "The Bambu Network Plugin is corrupted or incompatible. Please reinstall "
-#~ "it."
-#~ msgstr ""
-#~ "Сетевой плагин Bambu повреждён или несовместим. Требуется переустановка."
-
-#~ msgid ""
-#~ "The Bambu Network Plugin is required for cloud features, printer "
-#~ "discovery, and remote printing."
-#~ msgstr ""
-#~ "Для удалённой печати, облачных функций и поиска принтеров требуется "
-#~ "сетевой плагин Bambu."
-
-#~ msgid "A new version of the Bambu Network Plugin is available."
-#~ msgstr "Доступна новая версия сетевого плагина Bambu."
-
-#~ msgid "Show details"
-#~ msgstr "Подробнее"
-
-#~ msgid "Version to install:"
-#~ msgstr "Версия для установки:"
-
-#~ msgid "Current version: %s"
-#~ msgstr "Текущая версия:"
-
-#~ msgid "Update to version:"
-#~ msgstr "Обновление до версии:"
-
-#~ msgid "Download and Install"
-#~ msgstr "Загрузить и установить"
-
-# Делает то же самое, что и Remind Later, просто выводится при обнаружении повреждения, а не при обновлении
-#~ msgid "Skip for Now"
-#~ msgstr "Напомнить позже"
-
-#~ msgid "Update Now"
-#~ msgstr "Установить обновление"
-
-#~ msgid "Remind Later"
-#~ msgstr "Напомнить позже"
-
-#~ msgid "Skip Version"
-#~ msgstr "Пропустить версию"
-
-#~ msgid "Don't Ask Again"
-#~ msgstr "Не напоминать"
-
-#~ msgid "The Bambu Network Plugin has been installed successfully."
-#~ msgstr "Сетевой плагин Bambu успешно установлен."
-
-# Второе предложение избыточно и тупо повторяет содержание кнопки ниже
-#~ msgid ""
-#~ "A restart is required to load the new plugin. Would you like to restart "
-#~ "now?"
-#~ msgstr "Для загрузки плагина требуется перезапуск."
-
-#~ msgid "Restart Now"
-#~ msgstr "Перезапустить сейчас"
-
-#~ msgid "Restart Later"
-#~ msgstr "Перезапустить позже"
-
-#~ msgid "Error: %s"
-#~ msgstr "Ошибка: %s"
 
 #~ msgid "Filament remapping finished."
 #~ msgstr "Перераспределение филамента завершено."
@@ -22867,13 +22894,11 @@ msgstr ""
 #~ msgstr "Расширенный"
 
 #~ msgid ""
-#~ "Disable to use latest network plug-in that supports new BambuLab firmwares."
+#~ "Disable to use latest network plug-in that supports new BambuLab "
+#~ "firmwares."
 #~ msgstr ""
 #~ "Отключите, чтобы использовать последний сетевой плагин, поддерживающий "
 #~ "новые прошивки BambuLab."
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Упаковка данных в 3mf"
 
 #~ msgid ""
 #~ "Controls the density (spacing) of external bridge lines. 100% means solid "
@@ -24194,9 +24219,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Отменить выбор"
-
-#~ msgid "Please select at least two volumes."
-#~ msgstr "Выберите хотя бы две модели."
 
 #~ msgid "Initialize failed (Device connection not ready)!"
 #~ msgstr "Ошибка инициализации (подключённое устройство не готово)!"
