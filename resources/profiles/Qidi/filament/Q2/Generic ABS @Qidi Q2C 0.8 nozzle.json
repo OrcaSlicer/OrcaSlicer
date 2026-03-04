@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "Generic ABS @Qidi Q2C 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Generic ABS@Q2C-Series",
+    "filament_max_volumetric_speed": ["24.5"],
+    "pressure_advance": ["0.011"],
+	"compatible_printers": ["Qidi Q2C 0.8 nozzle"]
+}
