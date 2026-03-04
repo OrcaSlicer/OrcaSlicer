@@ -1598,7 +1598,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         bool wipe_tower_enabled = m_config->option<ConfigOptionBool>("enable_prime_tower")->value;
         if (boost::any_cast<bool>(value) && !wipe_tower_enabled) {
             MessageDialog dlg(wxGetApp().plater(),
-                              _L("Prime tower is required for clumping detection. There may be flaws on the model without prime tower. Do you still want to enable clumping detection?"),
+                              _L("A prime tower is required for clumping detection. There may be flaws on the model without prime tower. Do you still want to enable clumping detection?"),
                               _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_NO) {
                 DynamicPrintConfig new_conf = *m_config;
@@ -1707,7 +1707,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                                         "Yes - Change these settings automatically\n"
                                         "No  - Do not change these settings for me");
             }
-            MessageDialog      dialog(wxGetApp().plater(), msg_text, "Suggestion", wxICON_WARNING | wxYES | wxNO);
+            MessageDialog      dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_YES) {
                 auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
@@ -4891,7 +4891,7 @@ if (is_marlin_flavor)
             });
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
-        optgroup->append_single_option_line("bed_temperature_formula", "printer_multimaterial_setup#bed-temperature-type");
+        optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
         optgroup->append_single_option_line("purge_in_prime_tower", "printer_multimaterial_wipe_tower#purge-in-prime-tower");

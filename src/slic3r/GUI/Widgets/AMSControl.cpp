@@ -134,7 +134,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_panel_option_right->SetMaxSize(wxSize(FromDIP(180), -1));
 
     /*option left*/
-    m_button_auto_refill = new Button(m_panel_option_left, _L("Auto-refill"));
+    m_button_auto_refill = new Button(m_panel_option_left, _L("Auto Refill"));
     m_button_auto_refill->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_button_ams_setting_normal = ScalableBitmap(this, "ams_setting_normal", 24);
