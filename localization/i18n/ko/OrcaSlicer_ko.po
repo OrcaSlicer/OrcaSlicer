@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -17,26 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.6\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1630,6 +1610,54 @@ msgstr "구성 파일 \"%1%\"가 로드되었지만 일부 값이 인식되지 �
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr ""
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "텍스처"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1752,6 +1780,9 @@ msgstr "ZIP 파일 선택"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "하나의 파일 선택 (GCODE/3MF):"
+
+msgid "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "일부 사전 설정이 수정 되었습니다."
@@ -2653,6 +2684,10 @@ msgstr "멀티컬러 출력"
 msgid "Line Type"
 msgstr "선 유형"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "더보기"
 
@@ -3515,9 +3550,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "노즐"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3905,9 +3937,6 @@ msgstr "STL에서 모양 불러오기..."
 
 msgid "Settings"
 msgstr "설정"
-
-msgid "Texture"
-msgstr "텍스처"
 
 msgid "Remove"
 msgstr "제거"
@@ -6552,6 +6581,9 @@ msgstr ""
 "긍정적인 평가(별4개 또는 5개)를 제공하려면\n"
 "이 출력 사전 설정의 성공적인 출력 기록이 하나 이상 필요합니다."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "상태"
 
@@ -6560,6 +6592,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -20513,7 +20553,7 @@ msgstr ""
 msgid "Skip for Now"
 msgstr ""
 
-msgid "A new version of the Bambu Network Plugin is available."
+msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
 #, c-format, boost-format
@@ -20581,6 +20621,26 @@ msgid "Number of triangular facets"
 msgstr ""
 
 msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

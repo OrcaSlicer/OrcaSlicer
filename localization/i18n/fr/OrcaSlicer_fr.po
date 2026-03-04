@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -16,26 +16,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==0 || n==1) ? 0 : 1;\n"
 "X-Generator: Poedit 3.6\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1669,6 +1649,54 @@ msgstr ""
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr ""
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Texture"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1795,6 +1823,9 @@ msgid "Choose ZIP file"
 msgstr "Choisissez un fichier ZIP"
 
 msgid "Choose one file (GCODE/3MF):"
+msgstr ""
+
+msgid "Ext"
 msgstr ""
 
 msgid "Some presets are modified."
@@ -2722,6 +2753,10 @@ msgstr "Impression multicolore"
 msgid "Line Type"
 msgstr "Type de ligne"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Plus"
 
@@ -3603,9 +3638,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "Buse"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -4018,9 +4050,6 @@ msgstr "Charger une forme depuis un STL …"
 
 msgid "Settings"
 msgstr "Réglages"
-
-msgid "Texture"
-msgstr "Texture"
 
 msgid "Remove"
 msgstr "Retirer"
@@ -6720,6 +6749,9 @@ msgstr ""
 "Au moins un enregistrement d’impression réussi de ce profil\n"
 "d’impression est requis pour donner une note positive (4 ou 5 étoiles)."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "État"
 
@@ -6728,6 +6760,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -21551,7 +21591,7 @@ msgstr ""
 msgid "Skip for Now"
 msgstr ""
 
-msgid "A new version of the Bambu Network Plugin is available."
+msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
 #, c-format, boost-format
@@ -21619,6 +21659,26 @@ msgid "Number of triangular facets"
 msgstr ""
 
 msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

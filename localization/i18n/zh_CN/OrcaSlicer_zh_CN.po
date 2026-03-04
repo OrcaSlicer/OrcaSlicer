@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: 2026-02-28 00:59\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -16,26 +16,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: OrcaSlicer Translation Helper\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr "此耗材可能于当前设备设置不兼容，将使用通用耗材预设。"
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr "此耗材型号未知，将使用先前的耗材预设。"
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr "此耗材型号未知，将使用通用耗材预设。"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr "此耗材可能与当前设备设置不兼容，将使用随机耗材预设。"
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr "此耗材可能于当前设备设置不兼容，将使用随机耗材预设。"
 
 msgid "right"
 msgstr "右"
@@ -1612,6 +1592,54 @@ msgstr "配置文件“%1%”已被加载，但部分数值未被识别。"
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "基于PrusaSlicer和BambuStudio"
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "纹理"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1731,6 +1759,9 @@ msgstr "选择ZIP文件"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "选择一个文件（GCODE/3MF）："
+
+msgid "Ext"
+msgstr "分机"
 
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
@@ -2628,6 +2659,10 @@ msgstr "多色打印"
 msgid "Line Type"
 msgstr "走线类型"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "详情"
 
@@ -3480,9 +3515,6 @@ msgstr "右喷嘴"
 msgid "Nozzle"
 msgstr "喷嘴"
 
-msgid "Ext"
-msgstr "分机"
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3867,9 +3899,6 @@ msgstr "从STL文件加载形状..."
 
 msgid "Settings"
 msgstr "设置"
-
-msgid "Texture"
-msgstr "纹理"
 
 msgid "Remove"
 msgstr "移除"
@@ -6510,6 +6539,9 @@ msgstr ""
 "此打印配置文件至少需要一个成功的打印记录 \n"
 "才能给出好评（4星或5星）。"
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "设备状态"
 
@@ -6519,6 +6551,14 @@ msgstr "更新"
 
 msgid "Assistant(HMS)"
 msgstr "助理（HMS）"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "不再显示"
@@ -20155,7 +20195,7 @@ msgstr ""
 msgid "Skip for Now"
 msgstr ""
 
-msgid "A new version of the Bambu Network Plugin is available."
+msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
 #, c-format, boost-format
@@ -20224,6 +20264,26 @@ msgstr ""
 
 msgid "Calculating, please wait..."
 msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr "此耗材可能于当前设备设置不兼容，将使用通用耗材预设。"
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr "此耗材型号未知，将使用先前的耗材预设。"
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr "此耗材型号未知，将使用通用耗材预设。"
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr "此耗材可能与当前设备设置不兼容，将使用随机耗材预设。"
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr "此耗材可能于当前设备设置不兼容，将使用随机耗材预设。"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -13,26 +13,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 "X-Generator: Poedit 3.7\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1642,6 +1622,54 @@ msgstr "\"%1%\" yapılandırma dosyası yüklendi ancak bazı değerler tanınam
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "PrusaSlicer ve BambuStudio'ya dayanmaktadır"
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Doku"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1766,6 +1794,9 @@ msgstr "ZIP dosyasını seçin"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "Bir dosya seçin (GCODE/3MF):"
+
+msgid "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "Bazı ön ayarlar değiştirildi."
@@ -2675,6 +2706,10 @@ msgstr "Çok Renkli Baskı"
 msgid "Line Type"
 msgstr "Çizgi Tipi"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Daha"
 
@@ -3553,9 +3588,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "Nozul"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3954,9 +3986,6 @@ msgstr "Şekli STL'den yükle..."
 
 msgid "Settings"
 msgstr "Ayarlar"
-
-msgid "Texture"
-msgstr "Doku"
 
 msgid "Remove"
 msgstr "Kaldır"
@@ -6649,6 +6678,9 @@ msgstr ""
 "Bu baskı profiline olumlu bir puan vermek için (4 veya 5 yıldız) en az bir "
 "başarılı baskı kaydı gereklidir."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Durum"
 
@@ -6657,6 +6689,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -21287,7 +21327,7 @@ msgstr ""
 msgid "Skip for Now"
 msgstr ""
 
-msgid "A new version of the Bambu Network Plugin is available."
+msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
 #, c-format, boost-format
@@ -21355,6 +21395,26 @@ msgid "Number of triangular facets"
 msgstr ""
 
 msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

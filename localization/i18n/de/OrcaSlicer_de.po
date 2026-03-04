@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -13,37 +13,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 "X-Generator: Poedit 3.4.2\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-"Das Filament ist möglicherweise nicht mit den aktuellen "
-"Maschineneinstellungen kompatibel. Es werden generische Filament-Profile "
-"verwendet."
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-"Das Filamentprofil ist unbekannt. Es wird weiterhin das vorherige "
-"Filamentprofil verwendet."
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-"Das Filamentprofil ist unbekannt. Es werden generische Filamentprofile "
-"verwendet."
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-"Das Filament ist möglicherweise nicht mit den aktuellen Geräteeinstellungen "
-"kompatibel. Es wird ein zufälliges Filamentprofil verwendet."
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
-"Das Filamentprofil ist unbekannt. Es wird ein zufälliges Filamentprofil "
-"verwendet."
 
 msgid "right"
 msgstr "rechts"
@@ -1681,6 +1650,54 @@ msgstr ""
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Basierend auf PrusaSlicer und BambuStudio"
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Textur"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1808,6 +1825,9 @@ msgstr "ZIP Datei wählen"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "Wählen sie eine Datei (GCODE/3MF):"
+
+msgid "Ext"
+msgstr "Ext"
 
 msgid "Some presets are modified."
 msgstr "Einige Profileinstellungen wurden geändert."
@@ -2761,6 +2781,10 @@ msgstr "Mehrfarbiger Druck"
 msgid "Line Type"
 msgstr "Linientyp"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Mehr"
 
@@ -3694,9 +3718,6 @@ msgstr "Rechte Düse"
 msgid "Nozzle"
 msgstr "Düse"
 
-msgid "Ext"
-msgstr "Ext"
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -4133,9 +4154,6 @@ msgstr "Lade Form von STL..."
 
 msgid "Settings"
 msgstr "Einstellungen"
-
-msgid "Texture"
-msgstr "Textur"
 
 msgid "Remove"
 msgstr "Entfernen"
@@ -6958,6 +6976,9 @@ msgstr ""
 "Um eine positive Bewertung (4 oder 5 Sterne) abzugeben, ist mindestens ein "
 "erfolgreicher Druck dieses Druckprofils erforderlich."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Status"
 
@@ -6967,6 +6988,14 @@ msgstr "Aktualisieren"
 
 msgid "Assistant(HMS)"
 msgstr "Assistent(HMS)"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "Nicht erneut anzeigen"
@@ -22421,7 +22450,7 @@ msgstr ""
 msgid "Skip for Now"
 msgstr ""
 
-msgid "A new version of the Bambu Network Plugin is available."
+msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
 #, c-format, boost-format
@@ -22490,6 +22519,37 @@ msgstr ""
 
 msgid "Calculating, please wait..."
 msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+"Das Filament ist möglicherweise nicht mit den aktuellen "
+"Maschineneinstellungen kompatibel. Es werden generische Filament-Profile "
+"verwendet."
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+"Das Filamentprofil ist unbekannt. Es wird weiterhin das vorherige "
+"Filamentprofil verwendet."
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+"Das Filamentprofil ist unbekannt. Es werden generische Filamentprofile "
+"verwendet."
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+"Das Filament ist möglicherweise nicht mit den aktuellen Geräteeinstellungen "
+"kompatibel. Es wird ein zufälliges Filamentprofil verwendet."
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+"Das Filamentprofil ist unbekannt. Es wird ein zufälliges Filamentprofil "
+"verwendet."
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

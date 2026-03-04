@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -19,26 +19,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.8\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr "線材可能與目前的列印設備設定不相容，將使用一般線材預設。"
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr "線材型號未知，將繼續使用先前的線材預設。"
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr "線材型號未知，將使用一般線材預設。"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr "線材可能與目前的列印設備設定不相容，將使用隨機線材預設。"
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr "線材型號未知，將使用隨機線材預設。"
 
 msgid "right"
 msgstr "右"
@@ -1615,6 +1595,54 @@ msgstr "設定檔「%1%」 已被載入，但部分數值無法識別。"
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "基於 PrusaSlicer 與 BambuStudio 開發"
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "紋理"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1736,6 +1764,9 @@ msgstr "選擇 ZIP 檔"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "選擇一個檔案（GCODE/3MF）："
+
+msgid "Ext"
+msgstr "擠出機"
 
 msgid "Some presets are modified."
 msgstr "部分預設已被修改。"
@@ -2641,6 +2672,10 @@ msgstr "多色列印"
 msgid "Line Type"
 msgstr "走線類型"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "詳情"
 
@@ -3507,9 +3542,6 @@ msgstr "右噴嘴"
 msgid "Nozzle"
 msgstr "噴嘴"
 
-msgid "Ext"
-msgstr "擠出機"
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3906,9 +3938,6 @@ msgstr "從 STL 檔案載入形狀..."
 
 msgid "Settings"
 msgstr "設定"
-
-msgid "Texture"
-msgstr "紋理"
 
 msgid "Remove"
 msgstr "移除"
@@ -6593,6 +6622,9 @@ msgstr ""
 "若要給予正面評價（4 或 5 星），\n"
 "必須至少有一個此列印設定檔的成功列印記錄。"
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "設備狀態"
 
@@ -6602,6 +6634,14 @@ msgstr "更新"
 
 msgid "Assistant(HMS)"
 msgstr "助手（HMS）"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "不再顯示"
@@ -20297,7 +20337,7 @@ msgstr ""
 msgid "Skip for Now"
 msgstr ""
 
-msgid "A new version of the Bambu Network Plugin is available."
+msgid "A new version of the Bambu Network Plug-in is available."
 msgstr ""
 
 #, c-format, boost-format
@@ -20366,6 +20406,26 @@ msgstr ""
 
 msgid "Calculating, please wait..."
 msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr "線材可能與目前的列印設備設定不相容，將使用一般線材預設。"
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr "線材型號未知，將繼續使用先前的線材預設。"
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr "線材型號未知，將使用一般線材預設。"
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr "線材可能與目前的列印設備設定不相容，將使用隨機線材預設。"
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr "線材型號未知，將使用隨機線材預設。"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.2 beta2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 16:11-0300\n"
+"POT-Creation-Date: 2026-03-04 16:58-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), "
@@ -19,31 +19,6 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 "X-Generator: Poedit 3.8\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-"Материал может быть несовместим с текущими настройками принтера. Будет "
-"использоваться базовый профиль материала."
-
-# Не знаю, что за "модель" материала, пропускаю. UPD: возможно, имеется ввиду модель коррекции объёмного расхода для функции адаптивного расхода у TPU (и подобных). Она задаётся вручную в файле профиля (производителем) и отсутствует у большинства системных профилей.
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-"Материал может быть несовместим с текущими настройками принтера. Будет "
-"использоваться случайный профиль материала."
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 # В большинстве мест подставляется в "%s экструдер", но также тянется и в списке выбора видов при импорте цвета из OBJ
 msgid "right"
@@ -1669,6 +1644,54 @@ msgstr ""
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Основан на PrusaSlicer и BambuStudio"
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Текстура"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1793,6 +1816,9 @@ msgstr "Выберите zip-файл"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "Выберите файл (GCODE/3MF):"
+
+msgid "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "В некоторых профилях имеются изменения."
@@ -2742,6 +2768,10 @@ msgstr "Многоцветная печать"
 msgid "Line Type"
 msgstr "Тип линии"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Подробнее"
 
@@ -3674,9 +3704,6 @@ msgstr "Правый экструдер"
 msgid "Nozzle"
 msgstr "Экструдер"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -4098,9 +4125,6 @@ msgstr "Загрузить из файла STL..."
 
 msgid "Settings"
 msgstr "Настройки"
-
-msgid "Texture"
-msgstr "Текстура"
 
 msgid "Remove"
 msgstr "Удалить"
@@ -6898,6 +6922,9 @@ msgstr ""
 "Для выставления положительной оценки (4 или 5 звезд) требуется хотя бы одна "
 "успешная запись о печати данным профилем печати."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Статус"
 
@@ -6906,6 +6933,14 @@ msgid "Update"
 msgstr "Обновление"
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -22330,8 +22365,8 @@ msgstr "Загрузить и установить"
 msgid "Skip for Now"
 msgstr "Напомнить позже"
 
-msgid "A new version of the Bambu Network Plugin is available."
-msgstr "Доступна новая версия сетевого плагина Bambu."
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
 
 #, fuzzy, c-format, boost-format
 msgid "Current version: %s"
@@ -22402,6 +22437,31 @@ msgstr "Количество треугольников"
 
 msgid "Calculating, please wait..."
 msgstr "Расчёт, подождите..."
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+"Материал может быть несовместим с текущими настройками принтера. Будет "
+"использоваться базовый профиль материала."
+
+# Не знаю, что за "модель" материала, пропускаю. UPD: возможно, имеется ввиду модель коррекции объёмного расхода для функции адаптивного расхода у TPU (и подобных). Она задаётся вручную в файле профиля (производителем) и отсутствует у большинства системных профилей.
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+"Материал может быть несовместим с текущими настройками принтера. Будет "
+"использоваться случайный профиль материала."
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -22790,6 +22850,9 @@ msgstr ""
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как "
 "ABS, повышение температуры подогреваемого стола может снизить эту "
 "вероятность?"
+
+#~ msgid "A new version of the Bambu Network Plugin is available."
+#~ msgstr "Доступна новая версия сетевого плагина Bambu."
 
 #~ msgid ""
 #~ "Failed to download the plug-in. Please check your firewall settings and "
