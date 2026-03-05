@@ -7626,6 +7626,7 @@ msgid ""
 "template settings?"
 msgstr "Сбросить настройки поворота шаблона заполнения?"
 
+# Подставляется номер версии файла, "Orca Slicer", установленная версия 
 #, fuzzy, c-format, boost-format
 msgid ""
 "The 3MF file version %s is newer than %s's version %s, found the following "
@@ -18414,11 +18415,12 @@ msgstr ""
 "башни. Поскольку температура нагревателя не может меняться мгновенно, это "
 "должно обеспечить время на её стабилизацию к началу основной печати."
 
+# Тут именно интервал, 100% – расположение вплотную (т.е. нулевой отступ)
 msgid "Infill gap"
-msgstr "Отступ между линиями"
+msgstr "Интервал между линиями"
 
 msgid "Infill gap."
-msgstr "Управление плотностью расположения линий сброса материала."
+msgstr "Управление отступом между линиями сброса материала."
 
 msgid ""
 "Purging after filament change will be done inside objects' infills. This may "
