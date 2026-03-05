@@ -263,32 +263,62 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         return polygon;
     }
 
-    // Deduplicate: when a "style" region (specific type like External/Hole) coexists with
-    // broader "painted" regions for the same loop type, prioritize the style.
-    // Applying both would cause double-fuzz artifacts at the boundary between painted and
-    // non-painted areas. Instead, apply the style config uniformly to the entire polygon.
-    {
-        const FuzzySkinConfig* style_config = nullptr;
-        bool has_broad = false;
-        for (const auto& fr : fuzzified_regions) {
-            if (fr.first.type == FuzzySkinType::All || fr.first.type == FuzzySkinType::AllWalls) {
-                has_broad = true;
-            } else {
-                style_config = &fr.first;
+    // Compare whether two configs produce the same fuzzy effect (ignoring type/first_layer
+    // which only control which loops get fuzzified, not the noise itself).
+    auto same_fuzzy_effect = [](const FuzzySkinConfig& a, const FuzzySkinConfig& b) {
+        return a.thickness       == b.thickness
+            && a.point_distance  == b.point_distance
+            && a.noise_type      == b.noise_type
+            && a.noise_scale     == b.noise_scale
+            && a.noise_octaves   == b.noise_octaves
+            && a.noise_persistence == b.noise_persistence
+            && a.mode            == b.mode;
+    };
+
+    // Merge regions that produce identical fuzzy effects (differ only in type).
+    // When the style (e.g. External) and a painted region (All) both fuzzify this loop
+    // with the same noise parameters, merging their ExPolygons avoids splitting the
+    // perimeter at the painted boundary — eliminating discontinuity artifacts.
+    struct MergedRegion { const FuzzySkinConfig *config; ExPolygons expolygons; };
+    std::vector<MergedRegion> merged_regions;
+    merged_regions.reserve(fuzzified_regions.size());
+    for (const auto& fr : fuzzified_regions) {
+        bool merged = false;
+        for (auto& mr : merged_regions) {
+            if (same_fuzzy_effect(*mr.config, fr.first)) {
+                if (mr.expolygons.empty()) {
+                    // Already full coverage, nothing to add
+                } else if (fr.second.empty()) {
+                    mr.expolygons.clear(); // Promote to full coverage
+                } else {
+                    append(mr.expolygons, fr.second);
+                }
+                merged = true;
+                break;
             }
         }
-        if (style_config && has_broad) {
-            // Style region already covers this loop type; apply it uniformly to avoid artifacts
+        if (!merged)
+            merged_regions.push_back({&fr.first, fr.second});
+    }
+    for (auto& mr : merged_regions)
+        if (!mr.expolygons.empty())
+            mr.expolygons = union_ex(mr.expolygons);
+
+    // Fast path: single merged region — apply directly without splitting
+    if (merged_regions.size() == 1) {
+        const auto& mr = merged_regions.front();
+        if (mr.expolygons.empty()) {
             fuzzified = polygon;
-            fuzzy_polyline(fuzzified.points, true, slice_z, *style_config);
+            fuzzy_polyline(fuzzified.points, true, slice_z, *mr.config);
             return fuzzified;
         }
+        // Fall through to split_line with a single region below
     }
 
 #ifdef DEBUG_FUZZY
     {
         int i = 0;
-        for (const auto& r : fuzzified_regions) {
+        for (const auto& r : merged_regions) {
             BoundingBox bbox = get_extents(perimeter_generator.slices->surfaces);
             bbox.offset(scale_(1.));
             ::Slic3r::SVG svg(debug_out_path("fuzzy_traverse_loops_%d_%d_%d_region_%d.svg", perimeter_generator.layer_id,
@@ -297,18 +327,26 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
                               bbox);
             svg.draw_outline(perimeter_generator.slices->surfaces);
             svg.draw_outline(polygon, "green");
-            svg.draw(r.second, "red", 0.5);
-            svg.draw_outline(r.second, "red");
+            svg.draw(r.expolygons, "red", 0.5);
+            svg.draw_outline(r.expolygons, "red");
             svg.Close();
             i++;
         }
     }
 #endif
 
+    // Make each region's ExPolygons exclusive so overlapping regions don't double-fuzz
+    // the same perimeter section. Later regions in the list take priority over earlier ones
+    // in overlapping areas (matching modifier precedence order).
+    for (size_t i = 0; i < merged_regions.size(); ++i)
+        for (size_t j = i + 1; j < merged_regions.size(); ++j)
+            if (!merged_regions[i].expolygons.empty() && !merged_regions[j].expolygons.empty())
+                merged_regions[i].expolygons = diff_ex(merged_regions[i].expolygons, merged_regions[j].expolygons);
+
     // Split the loops into lines with different config, and fuzzy them separately
     fuzzified = polygon;
-    for (const auto& r : fuzzified_regions) {
-        auto splitted = Algorithm::split_line(fuzzified, r.second, true);
+    for (const auto& r : merged_regions) {
+        auto splitted = Algorithm::split_line(fuzzified, r.expolygons, true);
         if (splitted.empty()) {
             // No intersection, skip
             continue;
@@ -317,7 +355,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         // Fuzzy splitted polygon
         if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
             // The entire polygon is fuzzified
-            fuzzy_polyline(fuzzified.points, true, slice_z, r.first);
+            fuzzy_polyline(fuzzified.points, true, slice_z, *r.config);
         } else {
             // Start from a non-clipped junction so wrapped clipped segments do
             // not need an artificial reconnection across the seam.
@@ -334,7 +372,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             const auto fuzzy_current_segment = [&segment, &fuzzified, &r, slice_z]() {
                 fuzzified.points.push_back(segment.front());
                 const auto back = segment.back();
-                fuzzy_polyline(segment, false, slice_z, r.first);
+                fuzzy_polyline(segment, false, slice_z, *r.config);
                 fuzzified.points.insert(fuzzified.points.end(), segment.begin(), segment.end());
                 fuzzified.points.push_back(back);
                 segment.clear();
@@ -382,31 +420,57 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             }
         }
         if (!fuzzified_regions.empty()) {
-            // Deduplicate: when a "style" region (specific type like External/Hole) coexists with
-            // broader "painted" regions for the same loop type, prioritize the style.
-            // Applying both would cause double-fuzz artifacts at the boundary between painted and
-            // non-painted areas. Instead, apply the style config uniformly to the entire extrusion.
-            {
-                const FuzzySkinConfig* style_config = nullptr;
-                bool has_broad = false;
-                for (const auto& fr : fuzzified_regions) {
-                    if (fr.first.type == FuzzySkinType::All || fr.first.type == FuzzySkinType::AllWalls) {
-                        has_broad = true;
-                    } else {
-                        style_config = &fr.first;
+            // Compare whether two configs produce the same fuzzy effect (ignoring type/first_layer
+            // which only control which loops get fuzzified, not the noise itself).
+            auto same_fuzzy_effect = [](const FuzzySkinConfig& a, const FuzzySkinConfig& b) {
+                return a.thickness       == b.thickness
+                    && a.point_distance  == b.point_distance
+                    && a.noise_type      == b.noise_type
+                    && a.noise_scale     == b.noise_scale
+                    && a.noise_octaves   == b.noise_octaves
+                    && a.noise_persistence == b.noise_persistence
+                    && a.mode            == b.mode;
+            };
+
+            // Merge regions that produce identical fuzzy effects (differ only in type).
+            // When the style (e.g. External) and a painted region (All) both fuzzify this loop
+            // with the same noise parameters, merging avoids splitting the perimeter at the
+            // painted boundary — eliminating discontinuity artifacts.
+            struct MergedRegion { const FuzzySkinConfig *config; ExPolygons expolygons; };
+            std::vector<MergedRegion> merged_regions;
+            merged_regions.reserve(fuzzified_regions.size());
+            for (const auto& fr : fuzzified_regions) {
+                bool merged = false;
+                for (auto& mr : merged_regions) {
+                    if (same_fuzzy_effect(*mr.config, fr.first)) {
+                        if (mr.expolygons.empty()) {
+                            // Already full coverage
+                        } else if (fr.second.empty()) {
+                            mr.expolygons.clear();
+                        } else {
+                            append(mr.expolygons, fr.second);
+                        }
+                        merged = true;
+                        break;
                     }
                 }
-                if (style_config && has_broad) {
-                    // Style region already covers this loop type; apply it uniformly to avoid artifacts
-                    fuzzy_extrusion_line(extrusion->junctions, slice_z, *style_config);
-                    return;
-                }
+                if (!merged)
+                    merged_regions.push_back({&fr.first, fr.second});
+            }
+            for (auto& mr : merged_regions)
+                if (!mr.expolygons.empty())
+                    mr.expolygons = union_ex(mr.expolygons);
+
+            // Fast path: single merged region — apply directly without splitting
+            if (merged_regions.size() == 1 && merged_regions.front().expolygons.empty()) {
+                fuzzy_extrusion_line(extrusion->junctions, slice_z, *merged_regions.front().config);
+                return;
             }
 
 #ifdef DEBUG_FUZZY
             {
                 int i = 0;
-                for (const auto& r : fuzzified_regions) {
+                for (const auto& r : merged_regions) {
                     BoundingBox bbox = get_extents(perimeter_generator.slices->surfaces);
                     bbox.offset(scale_(1.));
                     ::Slic3r::SVG svg(debug_out_path("fuzzy_traverse_loops_%d_%d_%d_region_%d.svg", perimeter_generator.layer_id,
@@ -423,17 +487,25 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 
                     svg.draw_outline(perimeter_generator.slices->surfaces);
                     svg.draw_outline(extrusion_polygon, "green");
-                    svg.draw(r.second, "red", 0.5);
-                    svg.draw_outline(r.second, "red");
+                    svg.draw(r.expolygons, "red", 0.5);
+                    svg.draw_outline(r.expolygons, "red");
                     svg.Close();
                     i++;
                 }
             }
 #endif
 
+            // Make each region's ExPolygons exclusive so overlapping regions don't double-fuzz
+            // the same perimeter section. Later regions in the list take priority over earlier ones
+            // in overlapping areas (matching modifier precedence order).
+            for (size_t i = 0; i < merged_regions.size(); ++i)
+                for (size_t j = i + 1; j < merged_regions.size(); ++j)
+                    if (!merged_regions[i].expolygons.empty() && !merged_regions[j].expolygons.empty())
+                        merged_regions[i].expolygons = diff_ex(merged_regions[i].expolygons, merged_regions[j].expolygons);
+
             // Split the loops into lines with different config, and fuzzy them separately
-            for (const auto& r : fuzzified_regions) {
-                const auto splitted = Algorithm::split_line(*extrusion, r.second, false);
+            for (const auto& r : merged_regions) {
+                const auto splitted = Algorithm::split_line(*extrusion, r.expolygons, false);
                 if (splitted.empty()) {
                     // No intersection, skip
                     continue;
@@ -442,7 +514,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 // Fuzzy splitted extrusion
                 if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
                     // The entire polygon is fuzzified
-                    fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
+                    fuzzy_extrusion_line(extrusion->junctions, slice_z, *r.config);
                     continue;
                 } else {
                     const auto                              current_ext = extrusion->junctions;
@@ -455,7 +527,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                         const auto front = segment.front();
                         const auto back  = segment.back();
 
-                        fuzzy_extrusion_line(segment, slice_z, r.first, false);
+                        fuzzy_extrusion_line(segment, slice_z, *r.config, false);
                         // Orca: only add non fuzzy point if it's not in the extrusion closing point.
                         if (!extrusion->junctions.empty() && extrusion->junctions.front().p != front.p) {
                             extrusion->junctions.push_back(front);
