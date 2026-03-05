@@ -65,11 +65,7 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
   coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
 
   coordf_t normalisedOffset = perpOffset / gridSize;
-  // // for debugging: just generate evenly-distributed points
-  // for(coordf_t i = 0; i < 2; i += 0.05){
-  //   res.push_back(gridSize * i);
-  // }
-  // note: 0 == straight line
+  // note: if the offset is zero, then it's a straight line
   if(normalisedOffset > 0){
     res.push_back(gridSize * (0. + normalisedOffset));
     res.push_back(gridSize * (1. - normalisedOffset));
@@ -115,19 +111,24 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing,
                          size_t multiline_count, size_t topDistance)
 {
-  float pointsPerSquare = 10;
   coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   coordf_t zHalfCycle = fmod(zCycle, 0.5) * 2.;
   bool printVert = zCycle < 0.5;
   coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
+  coordf_t gridPoint = gridSize * (0. + perpOffset / gridSize);
+  coordf_t topOffset = gridSize / 2.0 - abs(troctWave(gridPoint, gridSize, Zpos));
   Polylines lines;
   size_t pointCount = 0;
-  // top cover extents in the direction of travel (a bit longer, to help fuse the cover)
-  coordf_t gridStartL = gridSize * 0.25 - spacing / 2.;
-  coordf_t gridEndL = gridSize * 0.75 + spacing / 2.;
+  coordf_t gridStartL = gridSize * 0.5 - topOffset;
+  coordf_t gridEndL = gridSize * 0.5 + topOffset;
+  if(topDistance == 0){
+    // extend out a little bit on the first layer to help fuse the cover
+    gridStartL -= spacing;
+    gridEndL += spacing;
+ }
   // top cover extents perpendicular to the direction of travel
-  coordf_t gridStartP = gridSize * 0.25 + spacing;
-  coordf_t gridEndP = gridSize * 0.75 - spacing;
+  coordf_t gridStartP = gridSize * 0.5 - topOffset + spacing * multiline_count / 2. + spacing / 2.;
+  coordf_t gridEndP = gridSize * 0.5 + topOffset - spacing * multiline_count / 2. - spacing / 2.;
   coordf_t x, y;
   int xm, ym;
   // if the print direction needs to be rotated, then swap the extents
@@ -136,7 +137,7 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_
     std::swap(gridEndL, gridEndP);
   }
   // adjust spacing so that it starts and ends on exactly the right place
-  coordf_t region_count = floor((gridEndP - gridStartP) / (spacing * multiline_count));
+  coordf_t region_count = floor((gridEndP - gridStartP) / spacing);
   spacing = (gridEndP - gridStartP) / region_count;
   for (x = 0, xm = 0; x <= (boundsX); x+= gridSize, xm = xm ^ 1) {
     for (y = 0, ym = 0; y <= (boundsY); y += gridSize, ym = ym ^ 1) {
@@ -170,7 +171,7 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_
 
 // Generate a set of curves (array of array of 2d points) that describe a
 // horizontal slice of a truncated regular octahedron.
-static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY)
+static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY, coordf_t spacing, size_t multiline_count)
 {
   Polylines lines;
   std::vector<coordf_t> critPoints = getCriticalPoints(Zpos, gridSize);
@@ -178,21 +179,39 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, size_t boundsX, si
   bool printVert = zCycle < 0.5;
   if (printVert) {
     int perpDir = -1;
-    for (coordf_t x = 0; x <= (boundsX); x+= gridSize, perpDir *= -1) {
-      Polyline newPoints;
-      newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsY, x, perpDir, 1);
-      if (perpDir == 1)
-        std::reverse(newPoints.points.begin(), newPoints.points.end());
-      lines.push_back(newPoints);
+    int perpDirPattern = -1;
+    for (coordf_t x = 0; x <= (boundsX); x+= gridSize, perpDirPattern *= -1) {
+      coordf_t xAdj = - spacing * (multiline_count - 1) / 2.0;
+      for (size_t mci = 0; mci < multiline_count; mci++, xAdj += spacing){
+        Polyline newPoints;
+        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsY, x, perpDirPattern, 1);
+        if (perpDir == 1)
+          std::reverse(newPoints.points.begin(), newPoints.points.end());
+        newPoints.translate(Point(xAdj, 0.0));
+        lines.push_back(newPoints);
+        perpDir *= -1;
+      }
+      if(multiline_count % 2 == 0){
+        perpDir *= -1;
+      }
     }
   } else {
     int perpDir = 1;
-    for (coordf_t y = gridSize; y <= (boundsY); y+= gridSize, perpDir *= -1) {
-      Polyline newPoints;
-      newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsX, y, perpDir,0);
-      if (perpDir == -1)
-        std::reverse(newPoints.points.begin(), newPoints.points.end());
-      lines.push_back(newPoints);
+    int perpDirPattern = 1;
+    for (coordf_t y = gridSize; y <= (boundsY); y+= gridSize, perpDirPattern *= -1) {
+      coordf_t yAdj = - spacing * (multiline_count - 1) / 2.0;
+      for (size_t mci = 0; mci < multiline_count; mci++, yAdj += spacing){
+        Polyline newPoints;
+        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsX, y, perpDirPattern, 0);
+        if (perpDir == -1)
+          std::reverse(newPoints.points.begin(), newPoints.points.end());
+        newPoints.translate(Point(0.0, yAdj));
+        lines.push_back(newPoints);
+        perpDir *= -1;
+      }
+      if(multiline_count % 2 == 0){
+        perpDir *= -1;
+      }
     }
   }
   return lines;
@@ -213,7 +232,7 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
   bool printVert = zCycle < 0.5;
   coordf_t zCycleLast = fmod(zLast + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   bool printVertLast = zCycleLast < 0.5;
-  Polylines result = makeZigZag(z, gridSize, boundWidth, boundHeight);
+  Polylines result;
   if(completeTops && (printVert != printVertLast)){
     coordf_t layer_height = (z - zLast) / multiline_count;
     size_t top_distance = 0;
@@ -223,10 +242,12 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
         break;
       }
     }
-    // only print tops for the first layer in each cycle
+    // only print tops for the first <multiline_count> layers in each cycle
     Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing, multiline_count, top_distance);
     result.insert(result.end(), polytops.begin(), polytops.end());
   }
+  Polylines polyZag = makeZigZag(z, gridSize, boundWidth, boundHeight, spacing, multiline_count);
+  result.insert(result.end(), polyZag.begin(), polyZag.end());
   return result;
 }
 
@@ -259,48 +280,24 @@ void Fill3DHoneycomb::_fill_surface_single(
     // truncated octahedron; so Z is pre-adjusted first by scaling by sqrt(2)
     coordf_t zScale = sqrt(2);
 
-    // adjustment to account for the additional distance of octagram curves
-    // note: this only strictly applies for a rectangular area where the total
-    //       Z travel distance is a multiple of the spacing... but it should
-    //       be at least better than the prevous estimate which assumed straight
-    //       lines
+    // Density adjustment to account for the additional distance of
+    // octagram curves. [This only strictly applies for a rectangular
+    // area where the total Z travel distance is a multiple of the
+    // spacing]
     // = 4 * integrate(func=4*x(sqrt(2) - 1) + 1, from=0, to=0.25)
     // = (sqrt(2) + 1) / 2 [... I think]
     // make a first guess at the preferred grid Size (in unscaled units)
-    coordf_t gridSize = (scale_(this->spacing) * ((zScale + 1.) / 2.) * params.multiline  / params.density);
-
-    // This density calculation is incorrect for many values > 25%,
-    // possibly due to quantisation error, so this value is used as a
-    // first guess, then the Z scale is adjusted to make the layer
-    // patterns consistent / symmetric This means that the resultant
-    // infill won't be an ideal truncated octahedron, but the
-    // consistent repeating pattern should look better than the
-    // equivalent quantised version
-
+    coordf_t gridSize = (scale_(this->spacing) *
+                         ((zScale + 1.) / 2.) * params.multiline  / params.density);
     coordf_t layerHeight = scale_(params.layer_height);
-    // adjust the layer height to an integer value of layers per Z
-    // (with a little nudge in case it's close to perfect)
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
-    if(params.density > 0.42){ // exact layer pattern for >42% density
+    // If a density over 42% is requested, set an exact layer pattern
+    if((params.density > 0.42) || (layersPerModule < 2)){
       layersPerModule = 2;
       // re-adjust the grid size for a partial octahedral path
       // (scale of 1.1 guessed based on modeling)
       gridSize = (scale_(this->spacing) * 1.1 * params.multiline  / params.density);
       // re-adjust zScale to make layering consistent
-      zScale = (gridSize * 2) / (layersPerModule * layerHeight);
-    } else {
-      if(layersPerModule < 2){
-	layersPerModule = 2;
-      }
-      // re-adjust zScale to make layering consistent
-      zScale = (gridSize * 2) / (layersPerModule * layerHeight);
-      // re-adjust the grid size to account for the new zScale
-      gridSize = (scale_(this->spacing) * ((zScale + 1.) / 2.) * params.multiline  / params.density);
-      // re-calculate layersPerModule and zScale
-      layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
-      if(layersPerModule < 2){
-	layersPerModule = 2;
-      }
       zScale = (gridSize * 2) / (layersPerModule * layerHeight);
     }
 
@@ -327,8 +324,8 @@ void Fill3DHoneycomb::_fill_surface_single(
       pl.simplify(5 * spacing); // simplify to 5x line width
     }
 
-    // Apply multiline offset if needed
-    multiline_fill(polylines, params, spacing);
+    // Note: multiline fill adjustment is carried out in this code,
+    // rather than using the multiline_fill function
 
     // clip pattern to boundaries, chain the clipped polylines
     polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
