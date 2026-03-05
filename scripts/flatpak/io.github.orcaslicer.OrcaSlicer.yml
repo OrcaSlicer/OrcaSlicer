@@ -15,8 +15,9 @@ finish-args:
   - --filesystem=/run/media
   - --filesystem=/media
   - --filesystem=/run/spnav.sock:ro
-  # Allow OrcaSlicer to talk to other instances (D-Bus name from InstanceCheck.cpp)
+  # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
   - --talk-name=com.softfever3d.orca-slicer.InstanceCheck.*
+  - --own-name=com.softfever3d.orca-slicer.InstanceCheck.*
   - --system-talk-name=org.freedesktop.UDisks2
   - --env=SPNAV_SOCKET=/run/spnav.sock
 
