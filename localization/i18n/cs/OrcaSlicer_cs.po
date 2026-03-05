@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 18:04-0300\n"
 "PO-Revision-Date: 2026-02-11 20:30+0100\n"
 "Last-Translator: Jakub Hencl <jakub.hencl@seznam.cz> René Mošner "
 "<Renemosner@seznam.cz>\n"
@@ -18,34 +18,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);\n"
 "X-Generator: Poedit 3.8\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-"Filament nemusí být kompatibilní s aktuálním nastavením stroje. Budou "
-"použita obecná přednastavení filamentu."
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-"Model filamentu není znám. Stále se používá předchozí přednastavení "
-"filamentu."
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-"Model filamentu není znám. Budou použita obecná přednastavení filamentu."
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-"Filament nemusí být kompatibilní s aktuálním nastavením stroje. Bude použito "
-"náhodné přednastavení filamentu."
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
-"Model filamentu není znám. Bude použito náhodné přednastavení filamentu."
 
 msgid "right"
 msgstr "pravý"
@@ -1621,6 +1593,30 @@ msgstr "Rovnoběžná vzdálenost:"
 msgid "Flip by Face 2"
 msgstr "Překlopit podle plochy 2"
 
+msgid "Assemble"
+msgstr "Sestavit"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "Oznámení"
 
@@ -1661,6 +1657,54 @@ msgstr ""
 
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Založeno na PrusaSlicer a Bambu Studio"
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Textura"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -1797,6 +1841,9 @@ msgstr "Vyberte ZIP soubor"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "Vyberte jeden soubor (G-kód/3MF):"
+
+msgid "Ext"
+msgstr "Ext"
 
 msgid "Some presets are modified."
 msgstr "Některé předvolby byly upraveny."
@@ -2231,9 +2278,6 @@ msgstr "Převést z mm"
 
 msgid "Restore to meters"
 msgstr "Obnovit na mm"
-
-msgid "Assemble"
-msgstr "Sestavit"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Sestavte vybrané objekty do objektu s více částmi"
@@ -2756,6 +2800,10 @@ msgstr "Vícebarevný tisk"
 msgid "Line Type"
 msgstr "Typ linky"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Více"
 
@@ -2873,7 +2921,7 @@ msgstr "Zkontrolujte síťové připojení tiskárny a Studia."
 msgid "Connecting..."
 msgstr "Připojuji se..."
 
-msgid "Auto-refill"
+msgid "Auto Refill"
 msgstr "Automatické doplnění"
 
 msgid "Load"
@@ -3698,9 +3746,6 @@ msgstr "Pravá tryska"
 msgid "Nozzle"
 msgstr "Tryska"
 
-msgid "Ext"
-msgstr "Ext"
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3772,9 +3817,6 @@ msgstr "Tisk s filamenty v AMS"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Tisk s filamenty namontovanými na zadní straně šasi"
-
-msgid "Auto Refill"
-msgstr "Automatické doplnění"
 
 msgid "Left"
 msgstr "Zleva"
@@ -3966,8 +4008,8 @@ msgid "Click here to see more info"
 msgstr "Kliknutím sem zobrazíte více informací"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 "Síťový plugin byl nainstalován, ale nepodařilo se jej načíst. Restartujte "
 "prosím aplikaci."
@@ -4154,9 +4196,6 @@ msgstr "Načíst tvar ze souboru STL…"
 
 msgid "Settings"
 msgstr "Nastavení"
-
-msgid "Texture"
-msgstr "Textura"
 
 msgid "Remove"
 msgstr "Odebrat"
@@ -4397,7 +4436,7 @@ msgstr ""
 #, fuzzy, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
-"Reset to 50% of skin depth."
+"Reset to 50%% of skin depth."
 msgstr ""
 "Hloubka zámku musí být menší než hloubka povrchu.\n"
 "Resetováno na 50 % hloubky povrchu."
@@ -6979,6 +7018,9 @@ msgstr ""
 "úspěšný tiskový záznam tohoto tiskového profilu \n"
 "pro udělení pozitivního hodnocení (4 nebo 5 hvězdiček)."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Stav"
 
@@ -6988,6 +7030,14 @@ msgstr "Aktualizovat"
 
 msgid "Assistant(HMS)"
 msgstr "Asistent (HMS)"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "Znovu nezobrazovat"
@@ -7991,7 +8041,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Vyřešte prosím chyby slicování a publikujte znovu."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "Síťový plug-in nebyl detekován. Funkce související se sítí nejsou k "
 "dispozici.Nebyl detekován síťový modul plug-in. Funkce související se sítí "
@@ -8951,9 +9002,6 @@ msgstr "Ladit"
 msgid "trace"
 msgstr "Stopa"
 
-msgid "Network Plug-in"
-msgstr "Síťový plugin"
-
 msgid "Reload"
 msgstr "Obnovit"
 
@@ -9182,8 +9230,11 @@ msgstr "Publikování bylo zrušeno"
 msgid "Slicing Plate 1"
 msgstr "Slicovat Podložku 1"
 
-msgid "Packing data to 3mf"
-msgstr "Zabaluji data do 3mf"
+msgid "Packing data to 3MF"
+msgstr "Zabalení dat do 3mf"
+
+msgid "Uploading data"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "Přejít na webovou stránku"
@@ -9550,8 +9601,8 @@ msgstr "Hladká vysokoteplotní podložka"
 msgid "Textured PEI Plate"
 msgstr "Texturovaná PEI podložka"
 
-msgid "Cool Plate (Supertack)"
-msgstr "Cool podložka (Supertack)"
+msgid "Cool Plate (SuperTack)"
+msgstr "Chladicí podložka (SuperTack)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Klikněte sem, pokud se nemůžete připojit k tiskárně"
@@ -10268,9 +10319,6 @@ msgstr "Teplota tisku"
 
 msgid "Nozzle temperature when printing"
 msgstr "Teplota trysky při tisku"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "Chladicí podložka (SuperTack)"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -15809,9 +15857,9 @@ msgstr "Označování objektů"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Povolte tuto možnost pro přidání komentářů do G-kódu, které označí tiskové "
 "pohyby podle příslušnosti k objektu. To je užitečné pro plugin Octoprint "
@@ -18572,6 +18620,12 @@ msgstr ""
 "čištění.\n"
 "3. Žebro: Přidá čtyři žebra ke stěně věže pro lepší stabilitu."
 
+msgid "Rectangle"
+msgstr "Obdélník"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr "Dodatečná délka žebra"
 
@@ -19962,10 +20016,6 @@ msgid "create new preset failed."
 msgstr "Vytvoření nové předvolby selhalo."
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr "Vybraná předvolba: %s nebyla nalezena."
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr "Nepodařilo se najít parametr: %s."
 
@@ -21162,9 +21212,6 @@ msgstr "Zadat vlastní průměr trysky"
 
 msgid "Can't find my nozzle diameter"
 msgstr "Nemohu najít svůj průměr trysky"
-
-msgid "Rectangle"
-msgstr "Obdélník"
 
 msgid "Printable Space"
 msgstr "Tisknutelná plocha"
@@ -22596,6 +22643,135 @@ msgstr "Oficiální filament"
 msgid "More Colors"
 msgstr "Další barvy"
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+"Filament nemusí být kompatibilní s aktuálním nastavením stroje. Budou "
+"použita obecná přednastavení filamentu."
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+"Model filamentu není znám. Stále se používá předchozí přednastavení "
+"filamentu."
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+"Model filamentu není znám. Budou použita obecná přednastavení filamentu."
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+"Filament nemusí být kompatibilní s aktuálním nastavením stroje. Bude použito "
+"náhodné přednastavení filamentu."
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+"Model filamentu není znám. Bude použito náhodné přednastavení filamentu."
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -23045,6 +23221,22 @@ msgstr ""
 "může zvýšení teploty vyhřívané podložky snížit pravděpodobnost vzniku "
 "deformace?"
 
+#~ msgid "Auto-refill"
+#~ msgstr "Automatické doplnění"
+
+#~ msgid "Network Plug-in"
+#~ msgstr "Síťový plugin"
+
+#~ msgid "Packing data to 3mf"
+#~ msgstr "Zabaluji data do 3mf"
+
+#~ msgid "Cool Plate (Supertack)"
+#~ msgstr "Cool podložka (Supertack)"
+
+#, c-format, boost-format
+#~ msgid "The selected preset: %s is not found."
+#~ msgstr "Vybraná předvolba: %s nebyla nalezena."
+
 #~ msgid "Line pattern of support."
 #~ msgstr "Čárový vzor podpěry"
 
@@ -23095,9 +23287,6 @@ msgstr ""
 
 #~ msgid "Advance"
 #~ msgstr "Pokročilé"
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Zabalení dat do 3mf"
 
 #~ msgid "Acceleration of outer walls."
 #~ msgstr "Zrychlení vnějších stěny"

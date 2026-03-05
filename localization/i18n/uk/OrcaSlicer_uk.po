@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 18:04-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -19,26 +19,6 @@ msgstr ""
 "X-Crowdin-File: OrcaSlicer.pot\n"
 "X-Crowdin-File-ID: 13\n"
 "X-Generator: Poedit 3.5\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1589,6 +1569,30 @@ msgstr "Паралельна відстань:"
 msgid "Flip by Face 2"
 msgstr "Перевернути за Гранню 2"
 
+msgid "Assemble"
+msgstr "Об'єднати у збірку"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "Повідомлення"
 
@@ -1625,6 +1629,54 @@ msgstr ""
 "розпізнані."
 
 msgid "Based on PrusaSlicer and BambuStudio"
+msgstr ""
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Текстура"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
 msgstr ""
 
 msgid ""
@@ -1750,6 +1802,9 @@ msgstr "Виберіть ZIP файл"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "Виберіть один файл (GCODE/3MF):"
+
+msgid "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "Деякі налаштування змінено."
@@ -2158,9 +2213,6 @@ msgstr "Перетворити з метричної"
 
 msgid "Restore to meters"
 msgstr "Відновити в метричну"
-
-msgid "Assemble"
-msgstr "Об'єднати у збірку"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Зібрати вибрані об'єкти в об'єкт з кількома частинами"
@@ -2679,6 +2731,10 @@ msgstr "Багатоколірний друк"
 msgid "Line Type"
 msgstr "Тип лінії"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Більше"
 
@@ -2796,8 +2852,8 @@ msgstr "Перевірте мережеве з'єднання принтера �
 msgid "Connecting..."
 msgstr "Підключення..."
 
-msgid "Auto-refill"
-msgstr ""
+msgid "Auto Refill"
+msgstr "Автоматична заміна"
 
 msgid "Load"
 msgstr "Завантажити"
@@ -3556,9 +3612,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "Сопло"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3625,9 +3678,6 @@ msgstr "Друк філаментами в ams"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Друк із нитками, встановленими на задній частині корпусу"
-
-msgid "Auto Refill"
-msgstr "Автоматична заміна"
 
 msgid "Left"
 msgstr "Ліво"
@@ -3797,8 +3847,8 @@ msgid "Click here to see more info"
 msgstr "натисніть тут, щоб побачити більше інформації"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 
 msgid "Restart Required"
@@ -3966,9 +4016,6 @@ msgstr "Завантажити форму з STL..."
 
 msgid "Settings"
 msgstr "Налаштування"
-
-msgid "Texture"
-msgstr "Текстура"
 
 msgid "Remove"
 msgstr "Видалити"
@@ -4175,7 +4222,7 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
-"Reset to 50% of skin depth."
+"Reset to 50%% of skin depth."
 msgstr ""
 
 msgid ""
@@ -6671,6 +6718,9 @@ msgstr ""
 "Для того щоб поставити позитивний рейтинг (4 або 5 зірок), потрібно \n"
 "мати принаймні один успішний запис про друк з цим профілем друку."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Статус"
 
@@ -6679,6 +6729,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -7631,7 +7689,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Виправте помилки нарізки та опублікуйте знову."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "Мережевий плагін не виявлено. Функції, пов'язані з мережею, недоступні."
 
@@ -8520,9 +8579,6 @@ msgstr "налагодження"
 msgid "trace"
 msgstr "слід"
 
-msgid "Network Plug-in"
-msgstr ""
-
 msgid "Reload"
 msgstr ""
 
@@ -8752,7 +8808,10 @@ msgstr "Публікація скасована"
 msgid "Slicing Plate 1"
 msgstr "Пластина для нарізки 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
+msgstr "Упаковка даних у 3mf"
+
+msgid "Uploading data"
 msgstr ""
 
 msgid "Jump to webpage"
@@ -9068,8 +9127,8 @@ msgstr "Гладка Високотемпературна Пластина"
 msgid "Textured PEI Plate"
 msgstr "Текстурована PEI пластина"
 
-msgid "Cool Plate (Supertack)"
-msgstr ""
+msgid "Cool Plate (SuperTack)"
+msgstr "Холодна пластина (SuperTack)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Клацніть тут, якщо ви не можете підключитися до принтера"
@@ -9732,9 +9791,6 @@ msgstr "Температура друку"
 
 msgid "Nozzle temperature when printing"
 msgstr "Температура сопла під час друку"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "Холодна пластина (SuperTack)"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -14873,9 +14929,9 @@ msgstr "Маркувати об'єкти"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Увімкніть цей параметр, щоб додати коментарі до друку друку мітки G-Code із "
 "зазначенням об'єкта, якому вони належать, що корисно для модуля Octoprint "
@@ -17389,6 +17445,12 @@ msgid ""
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
 msgstr ""
 
+msgid "Rectangle"
+msgstr "Прямокутник"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr ""
 
@@ -18672,10 +18734,6 @@ msgid "create new preset failed."
 msgstr "не вдалося створити новий передвстановлений параметр."
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr ""
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr ""
 
@@ -19790,9 +19848,6 @@ msgstr ""
 
 msgid "Can't find my nozzle diameter"
 msgstr ""
-
-msgid "Rectangle"
-msgstr "Прямокутник"
 
 msgid "Printable Space"
 msgstr "Простір для друку"
@@ -21144,6 +21199,127 @@ msgstr ""
 msgid "More Colors"
 msgstr ""
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -21578,9 +21754,6 @@ msgstr ""
 
 #~ msgid "Advance"
 #~ msgstr "Профі"
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Упаковка даних у 3mf"
 
 #~ msgid ""
 #~ "Filament shrinkage will not be used because filament shrinkage for the "
