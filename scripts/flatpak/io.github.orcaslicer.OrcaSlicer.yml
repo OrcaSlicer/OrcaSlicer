@@ -1,0 +1,348 @@
+app-id: io.github.orcaslicer.OrcaSlicer
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+command: entrypoint
+separate-locales: true
+rename-icon: OrcaSlicer
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --share=network
+  - --device=all
+  - --filesystem=home
+  - --filesystem=xdg-run/gvfs
+  - --filesystem=/run/media
+  - --filesystem=/media
+  - --filesystem=/run/spnav.sock:ro
+  # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
+  - --talk-name=com.softfever3d.orca-slicer.InstanceCheck.*
+  - --own-name=com.softfever3d.orca-slicer.InstanceCheck.*
+  - --system-talk-name=org.freedesktop.UDisks2
+  - --env=SPNAV_SOCKET=/run/spnav.sock
+
+modules:
+
+  # JPEG codec for the liveview
+  - name: gst-plugins-good
+    buildsystem: meson
+    config-opts:
+      - -Dauto_features=disabled
+      - -Djpeg=enabled
+      - -Ddoc=disabled
+      - -Dexamples=disabled
+      - -Dtests=disabled
+    sources:
+      - type: archive
+        url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.22.8.tar.xz
+        sha256: e305b9f07f52743ca481da0a4e0c76c35efd60adaf1b0694eb3bb021e2137e39
+
+  - name: glu
+    config-opts:
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://ftp.osuosl.org/pub/blfs/conglomeration/glu/glu-9.0.2.tar.xz
+        sha256: 6e7280ff585c6a1d9dfcdf2fca489251634b3377bfc33c29e4002466a38d02d4
+    cleanup:
+      - /include
+      - /lib/*.a
+      - /lib/*.la
+      - /lib/pkgconfig
+
+  - name: kde-extra-cmake-modules
+    buildsystem: cmake-ninja
+    sources:
+      - type: git
+        url: https://github.com/KDE/extra-cmake-modules
+        tag: v5.249.0
+        commit: 008ae77d0cd2a97c346228ab30b99279643e5022
+    cleanup:
+      - /
+
+  - name: libspnav
+    sources:
+      - type: archive
+        url: https://github.com/FreeSpacenav/libspnav/releases/download/v1.2/libspnav-1.2.tar.gz
+        sha256: 093747e7e03b232e08ff77f1ad7f48552c06ac5236316a5012db4269951c39db
+
+  # wxWidgets built as a separate module for Flathub (no network at build time)
+  # Config-opts mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON, DEP_WX_GTK3=ON
+  - name: wxWidgets
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DwxBUILD_PRECOMP=ON
+      - -DwxBUILD_TOOLKIT=gtk3
+      - -DCMAKE_DEBUG_POSTFIX:STRING=d
+      - -DwxBUILD_DEBUG_LEVEL=0
+      - -DwxBUILD_SAMPLES=OFF
+      - -DwxBUILD_SHARED=ON
+      - -DBUILD_SHARED_LIBS=ON
+      - -DwxUSE_MEDIACTRL=ON
+      - -DwxUSE_DETECT_SM=OFF
+      - -DwxUSE_UNICODE=ON
+      - -DwxUSE_PRIVATE_FONTS=ON
+      - -DwxUSE_OPENGL=ON
+      - -DwxUSE_GLCANVAS_EGL=OFF
+      - -DwxUSE_WEBREQUEST=ON
+      - -DwxUSE_WEBVIEW=ON
+      - -DwxUSE_WEBVIEW_EDGE=OFF
+      - -DwxUSE_WEBVIEW_IE=OFF
+      - -DwxUSE_REGEX=builtin
+      - -DwxUSE_LIBSDL=OFF
+      - -DwxUSE_XTEST=OFF
+      - -DwxUSE_STC=OFF
+      - -DwxUSE_AUI=ON
+      - -DwxUSE_LIBPNG=sys
+      - -DwxUSE_ZLIB=sys
+      - -DwxUSE_LIBJPEG=sys
+      - -DwxUSE_LIBTIFF=OFF
+      - -DwxUSE_EXPAT=sys
+    sources:
+      - type: git
+        url: https://github.com/SoftFever/Orca-deps-wxWidgets
+        tag: orca-3.1.5-1
+        commit: 139e4f2a62a9d1c40bdcf36523d94a517b14ca79
+
+  # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
+  - name: orca_deps
+    buildsystem: simple
+    build-options:
+      env:
+        BUILD_DIR: deps/build_flatpak
+    build-commands:
+      - |
+        cmake -S deps -B $BUILD_DIR \
+          -DFLATPAK=ON \
+          -DDEP_DOWNLOAD_DIR=/run/build/orca_deps/external-packages \
+          -DCMAKE_PREFIX_PATH=/app \
+          -DDESTDIR=/app \
+          -DCMAKE_INSTALL_PREFIX=/app
+      - cmake --build $BUILD_DIR --parallel
+      - rm -rf /run/build/orca_deps/external-packages
+
+    cleanup:
+      - /include
+      - "*.a"
+      - "*.la"
+
+    sources:
+      # OrcaSlicer deps/ directory (avoids copying .git from worktree)
+      - type: dir
+        path: ../../deps
+        dest: deps
+
+      # ---------------------------------------------------------------
+      # Pre-downloaded dependency archives
+      # These are placed in external-packages/<Name>/ so CMake's
+      # ExternalProject_Add finds them and skips network downloads.
+      # ---------------------------------------------------------------
+
+      # Boost 1.84.0
+      - type: file
+        url: https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.gz
+        sha256: 4d27e9efed0f6f152dc28db6430b9d3dfb40c0345da7342eaa5a987dde57bd95
+        dest: external-packages/Boost
+
+      # TBB v2021.5.0
+      - type: file
+        url: https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.5.0.zip
+        sha256: 83ea786c964a384dd72534f9854b419716f412f9d43c0be88d41874763e7bb47
+        dest: external-packages/TBB
+
+      # Cereal v1.3.0
+      - type: file
+        url: https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.0.zip
+        sha256: 71642cb54658e98c8f07a0f0d08bf9766f1c3771496936f6014169d3726d9657
+        dest: external-packages/Cereal
+
+      # Qhull v8.0.2
+      - type: file
+        url: https://github.com/qhull/qhull/archive/v8.0.2.zip
+        sha256: a378e9a39e718e289102c20d45632f873bfdc58a7a5f924246ea4b176e185f1e
+        dest: external-packages/Qhull
+
+      # GLFW 3.3.7
+      - type: file
+        url: https://github.com/glfw/glfw/archive/refs/tags/3.3.7.zip
+        sha256: e02d956935e5b9fb4abf90e2c2e07c9a0526d7eacae8ee5353484c69a2a76cd0
+        dest: external-packages/GLFW
+
+      # OpenCSG 1.4.2
+      - type: file
+        url: https://github.com/floriankirsch/OpenCSG/archive/refs/tags/opencsg-1-4-2-release.zip
+        sha256: 51afe0db79af8386e2027d56d685177135581e0ee82ade9d7f2caff8deab5ec5
+        dest: external-packages/OpenCSG
+
+      # Blosc 1.17.0 (tamasmeszaros fork)
+      - type: file
+        url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
+        sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
+        dest: external-packages/Blosc
+
+      # OpenEXR v2.5.5
+      - type: file
+        url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
+        sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
+        dest: external-packages/OpenEXR
+
+      # OpenVDB (custom fork)
+      - type: file
+        url: https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip
+        sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
+        dest: external-packages/OpenVDB
+
+      # GMP 6.2.1
+      - type: file
+        url: https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.2.1/gmp-6.2.1.tar.bz2
+        sha256: eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c
+        dest: external-packages/GMP
+
+      # MPFR 4.2.2
+      - type: file
+        url: https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.bz2
+        sha256: 9ad62c7dc910303cd384ff8f1f4767a655124980bb6d8650fe62c815a231bb7b
+        dest: external-packages/MPFR
+
+      # CGAL 5.6.3
+      - type: file
+        url: https://github.com/CGAL/cgal/releases/download/v5.6.3/CGAL-5.6.3.zip
+        sha256: 5d577acb4a9918ccb960491482da7a3838f8d363aff47e14d703f19fd84733d4
+        dest: external-packages/CGAL
+
+      # NLopt v2.5.0
+      - type: file
+        url: https://github.com/stevengj/nlopt/archive/v2.5.0.tar.gz
+        sha256: c6dd7a5701fff8ad5ebb45a3dc8e757e61d52658de3918e38bab233e7fd3b4ae
+        dest: external-packages/NLopt
+
+      # libnoise 1.0
+      - type: file
+        url: https://github.com/SoftFever/Orca-deps-libnoise/archive/refs/tags/1.0.zip
+        sha256: 96ffd6cc47898dd8147aab53d7d1b1911b507d9dbaecd5613ca2649468afd8b6
+        dest: external-packages/libnoise
+
+      # Draco 1.5.7
+      - type: file
+        url: https://github.com/google/draco/archive/refs/tags/1.5.7.zip
+        sha256: 27b72ba2d5ff3d0a9814ad40d4cb88f8dc89a35491c0866d952473f8f9416b77
+        dest: external-packages/Draco
+
+      # OpenSSL 1.1.1w (GNOME SDK has 3.x; OrcaSlicer requires 1.1.x)
+      - type: file
+        url: https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
+        sha256: 2130e8c2fb3b79d1086186f78e59e8bc8d1a6aedf17ab3907f4cb9ae20918c41
+        dest: external-packages/OpenSSL
+
+      # CURL 7.75.0 (built from source to link against OpenSSL 1.1.x)
+      - type: file
+        url: https://github.com/curl/curl/archive/refs/tags/curl-7_75_0.zip
+        sha256: a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
+        dest: external-packages/CURL
+
+      # OCCT (OpenCASCADE) V7_6_0
+      - type: file
+        url: https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_6_0.zip
+        sha256: 28334f0e98f1b1629799783e9b4d21e05349d89e695809d7e6dfa45ea43e1dbc
+        dest: external-packages/OCCT
+
+      # OpenCV 4.6.0
+      - type: file
+        url: https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
+        sha256: 1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
+        dest: external-packages/OpenCV
+
+      # ---------------------------------------------------------------
+      # Fallback archives for deps normally provided by the GNOME SDK.
+      # These are only used if find_package() fails to locate them.
+      # ---------------------------------------------------------------
+
+      # ZLIB 1.2.13
+      - type: file
+        url: https://github.com/madler/zlib/archive/refs/tags/v1.2.13.zip
+        sha256: c2856951bbf30e30861ace3765595d86ba13f2cf01279d901f6c62258c57f4ff
+        dest: external-packages/ZLIB
+
+      # libpng 1.6.35
+      - type: file
+        url: https://github.com/glennrp/libpng/archive/refs/tags/v1.6.35.zip
+        sha256: 3d22d46c566b1761a0e15ea397589b3a5f36ac09b7c785382e6470156c04247f
+        dest: external-packages/PNG
+
+      # libjpeg-turbo 3.0.1
+      - type: file
+        url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.0.1.zip
+        sha256: d6d99e693366bc03897677650e8b2dfa76b5d6c54e2c9e70c03f0af821b0a52f
+        dest: external-packages/JPEG
+
+      # Freetype 2.12.1
+      - type: file
+        url: https://github.com/SoftFever/orca_deps/releases/download/freetype-2.12.1.tar.gz/freetype-2.12.1.tar.gz
+        sha256: efe71fd4b8246f1b0b1b9bfca13cfff1c9ad85930340c27df469733bbb620938
+        dest: external-packages/FREETYPE
+
+  - name: OrcaSlicer
+    buildsystem: simple
+    build-commands:
+      - |
+        cmake . -B build_flatpak \
+          -DFLATPAK=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_PREFIX_PATH=/app \
+          -DCMAKE_INSTALL_PREFIX=/app
+      - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
+      - ./scripts/run_gettext.sh
+      - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
+
+    cleanup:
+      - /include
+
+    post-install:
+
+      - | # Desktop integration files
+        install -Dm644 -t /app/share/icons/hicolor/scalable/apps/ resources/images/OrcaSlicer.svg
+        install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+        mv /app/share/applications/OrcaSlicer.desktop /app/share/applications/${FLATPAK_ID}.desktop
+        desktop-file-edit --set-key=Exec --set-value="entrypoint %U" /app/share/applications/${FLATPAK_ID}.desktop
+        install -Dm755 entrypoint /app/bin
+        install -Dm755 umount /app/bin
+
+      - install -Dm644 LICENSE.txt /app/share/licenses/${FLATPAK_ID}/LICENSE.txt
+
+    sources:
+      # OrcaSlicer source tree (specific dirs to avoid copying .git from worktree)
+      - type: dir
+        path: ../../cmake
+        dest: cmake
+      - type: dir
+        path: ../../deps_src
+        dest: deps_src
+      - type: dir
+        path: ../../resources
+        dest: resources
+      - type: dir
+        path: ../../src
+        dest: src
+
+      - type: file
+        path: ../../CMakeLists.txt
+      - type: file
+        path: ../../LICENSE.txt
+      - type: file
+        path: ../../version.inc
+      - type: file
+        path: ../run_gettext.sh
+        dest: scripts
+
+      # AppData metainfo for GNOME Software & Co.
+      - type: file
+        path: io.github.orcaslicer.OrcaSlicer.metainfo.xml
+
+      # Startup script
+      - type: file
+        path: entrypoint
+
+      # umount wrapper used to redirect umount calls to UDisks2
+      - type: file
+        path: umount
