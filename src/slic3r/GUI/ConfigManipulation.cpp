@@ -515,7 +515,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     // layer_height shouldn't be equal to zero
     float skin_depth = config->opt_float("skin_infill_depth");
     if (config->opt_float("infill_lock_depth") > skin_depth) {
-        const wxString     msg_text = _(L("Lock depth should smaller than skin depth.\nReset to 50%% of skin depth."));
+        const wxString     msg_text = _(L("Lock depth should smaller than skin depth.\nReset to 50% of skin depth."));
         MessageDialog      dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
         DynamicPrintConfig new_conf = *config;
         is_msg_dlg_already_exist    = true;
