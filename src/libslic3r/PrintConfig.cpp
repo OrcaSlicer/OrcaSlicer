@@ -6396,9 +6396,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("rectangle");
     def->enum_values.emplace_back("cone");
     def->enum_values.emplace_back("rib");
-    def->enum_labels.emplace_back("Rectangle");
-    def->enum_labels.emplace_back("Cone");
-    def->enum_labels.emplace_back("Rib");
+    def->enum_labels.emplace_back(L("Rectangle"));
+    def->enum_labels.emplace_back(L("Cone"));
+    def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
 

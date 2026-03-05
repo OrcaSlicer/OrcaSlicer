@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 18:04-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -19,26 +19,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.8\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr "線材可能與目前的列印設備設定不相容，將使用一般線材預設。"
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr "線材型號未知，將繼續使用先前的線材預設。"
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr "線材型號未知，將使用一般線材預設。"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr "線材可能與目前的列印設備設定不相容，將使用隨機線材預設。"
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr "線材型號未知，將使用隨機線材預設。"
 
 msgid "right"
 msgstr "右"
@@ -1555,6 +1535,30 @@ msgstr "平行距離："
 msgid "Flip by Face 2"
 msgstr "通過面 2 翻轉"
 
+msgid "Assemble"
+msgstr "組合"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "通知"
 
@@ -1590,6 +1594,54 @@ msgstr "設定檔「%1%」 已被載入，但部分數值無法識別。"
 
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "基於 PrusaSlicer 與 BambuStudio 開發"
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "紋理"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -1712,6 +1764,9 @@ msgstr "選擇 ZIP 檔"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "選擇一個檔案（GCODE/3MF）："
+
+msgid "Ext"
+msgstr "擠出機"
 
 msgid "Some presets are modified."
 msgstr "部分預設已被修改。"
@@ -2124,9 +2179,6 @@ msgstr "從公尺轉換"
 
 msgid "Restore to meters"
 msgstr "恢復到公尺"
-
-msgid "Assemble"
-msgstr "組合"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "組合所選物件為一個多零件物件"
@@ -2620,6 +2672,10 @@ msgstr "多色列印"
 msgid "Line Type"
 msgstr "走線類型"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "詳情"
 
@@ -2737,8 +2793,8 @@ msgstr "請檢查列印設備與 Orca Slicer 的網路連接。"
 msgid "Connecting..."
 msgstr "連接中..."
 
-msgid "Auto-refill"
-msgstr "自動補料"
+msgid "Auto Refill"
+msgstr "自動補充"
 
 msgid "Load"
 msgstr "匯入"
@@ -3486,9 +3542,6 @@ msgstr "右噴嘴"
 msgid "Nozzle"
 msgstr "噴嘴"
 
-msgid "Ext"
-msgstr "擠出機"
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3556,9 +3609,6 @@ msgstr "使用 AMS 裡的線材列印"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "使用掛在機箱背部的線材列印"
-
-msgid "Auto Refill"
-msgstr "自動補充"
 
 msgid "Left"
 msgstr "左面"
@@ -3720,8 +3770,8 @@ msgid "Click here to see more info"
 msgstr "點擊這裡查看更多資訊"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr "網路外掛程式已安裝但無法載入。請重新啟動應用程式。"
 
 msgid "Restart Required"
@@ -3888,9 +3938,6 @@ msgstr "從 STL 檔案載入形狀..."
 
 msgid "Settings"
 msgstr "設定"
-
-msgid "Texture"
-msgstr "紋理"
 
 msgid "Remove"
 msgstr "移除"
@@ -4106,7 +4153,7 @@ msgstr ""
 #, fuzzy, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
-"Reset to 50% of skin depth."
+"Reset to 50%% of skin depth."
 msgstr ""
 "鎖定深度必須小於表面深度。\n"
 "已重設為表面深度的 50%。"
@@ -6575,6 +6622,9 @@ msgstr ""
 "若要給予正面評價（4 或 5 星），\n"
 "必須至少有一個此列印設定檔的成功列印記錄。"
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "設備狀態"
 
@@ -6584,6 +6634,14 @@ msgstr "更新"
 
 msgid "Assistant(HMS)"
 msgstr "助手（HMS）"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "不再顯示"
@@ -7493,7 +7551,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "請解決切片錯誤後再重新發布。"
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr "未偵測到網路外掛程式。網路相關功能不可用。"
 
 msgid ""
@@ -8355,9 +8414,6 @@ msgstr "除錯"
 msgid "trace"
 msgstr "跟蹤"
 
-msgid "Network Plug-in"
-msgstr "網路外掛程式"
-
 msgid "Reload"
 msgstr "重新載入"
 
@@ -8586,8 +8642,11 @@ msgstr "發布已取消"
 msgid "Slicing Plate 1"
 msgstr "正在切片列印板 1"
 
-msgid "Packing data to 3mf"
-msgstr "正在將資料打包至 3mf"
+msgid "Packing data to 3MF"
+msgstr ""
+
+msgid "Uploading data"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "跳至網頁"
@@ -8915,8 +8974,8 @@ msgstr "高溫平滑列印板"
 msgid "Textured PEI Plate"
 msgstr "紋理 PEI 列印板"
 
-msgid "Cool Plate (Supertack)"
-msgstr "低溫列印板（超強黏性版）"
+msgid "Cool Plate (SuperTack)"
+msgstr "低溫增穩列印板"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "如果無法連接到列印設備，請按一下此處"
@@ -9551,9 +9610,6 @@ msgstr "列印溫度"
 
 msgid "Nozzle temperature when printing"
 msgstr "列印時的噴嘴溫度"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "低溫增穩列印板"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -14309,9 +14365,9 @@ msgstr "標註物件"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "啟用此選項可將註解新增至 G-code 中，標記列印移動及其所屬物件，這對於 "
 "Octoprint CancelObject 外掛程式非常有用。此設定與單擠出機多色設定和擦除到物"
@@ -16644,6 +16700,12 @@ msgstr ""
 "2. 圓錐：底部帶圓角的圓錐形，有助於穩定換料塔。\n"
 "3. 肋條：為換料塔牆體添加四條肋條以增強穩定性"
 
+msgid "Rectangle"
+msgstr "矩形"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr "額外肋條長度"
 
@@ -17853,10 +17915,6 @@ msgid "create new preset failed."
 msgstr "新增預設失敗。"
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr "找不到所選的預設：%s"
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr "找不到參數：%s"
 
@@ -18943,9 +19001,6 @@ msgstr "輸入自訂噴嘴直徑"
 
 msgid "Can't find my nozzle diameter"
 msgstr "找不到我的噴嘴直徑"
-
-msgid "Rectangle"
-msgstr "矩形"
 
 msgid "Printable Space"
 msgstr "可列印空間"
@@ -20251,6 +20306,127 @@ msgstr "官方線材"
 msgid "More Colors"
 msgstr "更多顏色"
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr "線材可能與目前的列印設備設定不相容，將使用一般線材預設。"
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr "線材型號未知，將繼續使用先前的線材預設。"
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr "線材型號未知，將使用一般線材預設。"
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr "線材可能與目前的列印設備設定不相容，將使用隨機線材預設。"
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr "線材型號未知，將使用隨機線材預設。"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -20614,3 +20790,19 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "Auto-refill"
+#~ msgstr "自動補料"
+
+#~ msgid "Network Plug-in"
+#~ msgstr "網路外掛程式"
+
+#~ msgid "Packing data to 3mf"
+#~ msgstr "正在將資料打包至 3mf"
+
+#~ msgid "Cool Plate (Supertack)"
+#~ msgstr "低溫列印板（超強黏性版）"
+
+#, c-format, boost-format
+#~ msgid "The selected preset: %s is not found."
+#~ msgstr "找不到所選的預設：%s"

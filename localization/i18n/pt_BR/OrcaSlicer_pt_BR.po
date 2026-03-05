@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-04 18:04-0300\n"
 "PO-Revision-Date: 2026-02-21 18:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -18,36 +18,6 @@ msgstr ""
 "X-Crowdin-Project: orcaslicer-pt-br\n"
 "X-Crowdin-Project-ID: 664934\n"
 "X-Generator: Poedit 3.8\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-"O filamento pode não ser compatível com as configurações atuais da máquina. "
-"Serão usadas predefinições genéricas de filamento."
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-"O modelo do filamento é desconhecido. Usando a predefinição de filamento "
-"anterior."
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-"O modelo do filamento é desconhecido. Serão usadas predefinições genéricas "
-"de filamento."
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-"O filamento pode não ser compatível com as configurações atuais da máquina. "
-"Uma predefinição de filamento aleatória será usada."
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
-"O modelo do filamento é desconhecido. Uma predefinição de filamento "
-"aleatória será usada."
 
 msgid "right"
 msgstr "direita"
@@ -1609,6 +1579,30 @@ msgstr "Distância paralela:"
 msgid "Flip by Face 2"
 msgstr "Virar pela Face 2"
 
+msgid "Assemble"
+msgstr "Montar"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "Aviso"
 
@@ -1650,6 +1644,54 @@ msgstr ""
 
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Baseado no PrusaSlicer e Bambu Studio"
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Textura"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -1775,6 +1817,9 @@ msgstr "Escolha o arquivo ZIP"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "Escolha um arquivo (GCODE/3MF):"
+
+msgid "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "Algumas predefinições foram modificadas."
@@ -2200,9 +2245,6 @@ msgstr "Converter de metros"
 
 msgid "Restore to meters"
 msgstr "Restaurar para metros"
-
-msgid "Assemble"
-msgstr "Montar"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Montar os objetos selecionados em um objeto com várias peças"
@@ -2713,6 +2755,10 @@ msgstr "Impressão Multicolorida"
 msgid "Line Type"
 msgstr "Tipo de Linha"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Mais"
 
@@ -2830,8 +2876,8 @@ msgstr "Por favor, verifique a conexão de rede da impressora e do Orca."
 msgid "Connecting..."
 msgstr "Conectando…"
 
-msgid "Auto-refill"
-msgstr ""
+msgid "Auto Refill"
+msgstr "Recarga Automática"
 
 msgid "Load"
 msgstr "Carregar"
@@ -3650,9 +3696,6 @@ msgstr "Bico Direito"
 msgid "Nozzle"
 msgstr "Bico"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3723,9 +3766,6 @@ msgstr "Imprimir com filamentos no AMS"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Imprimir com filamentos montados na parte de trás do chassi"
-
-msgid "Auto Refill"
-msgstr "Recarga Automática"
 
 msgid "Left"
 msgstr "Esquerda"
@@ -3907,8 +3947,8 @@ msgid "Click here to see more info"
 msgstr "Clique aqui para ver mais informações"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 "O plug-in de rede foi instalado, mas não pôde ser carregado. Reinicie o "
 "aplicativo."
@@ -4080,9 +4120,6 @@ msgstr "Carregar forma de STL …"
 
 msgid "Settings"
 msgstr "Configurações"
-
-msgid "Texture"
-msgstr "Textura"
 
 msgid "Remove"
 msgstr "Remover"
@@ -4292,7 +4329,7 @@ msgstr ""
 #, fuzzy, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
-"Reset to 50% of skin depth."
+"Reset to 50%% of skin depth."
 msgstr ""
 "A profundidade do travamento deve ser menor que a profundidade da textura.\n"
 "Redefinir para 50% da profundidade da textura."
@@ -6868,6 +6905,9 @@ msgstr ""
 "necessário \n"
 "para dar uma avaliação positiva (4 ou 5 estrelas)."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Estado"
 
@@ -6877,6 +6917,14 @@ msgstr "Atualizar"
 
 msgid "Assistant(HMS)"
 msgstr "Assistente(HMS)"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "Não mostrar novamente"
@@ -7865,7 +7913,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Por favor, resolva os erros de fatiamento e publique novamente."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "O Plug-in de Rede não foi detectado. Recursos relacionados à rede estão "
 "indisponíveis."
@@ -8813,9 +8862,6 @@ msgstr "depurar"
 msgid "trace"
 msgstr "traço"
 
-msgid "Network Plug-in"
-msgstr "Plug-in de Rede"
-
 msgid "Reload"
 msgstr "Recarregar"
 
@@ -9045,7 +9091,10 @@ msgstr "Publicação cancelada"
 msgid "Slicing Plate 1"
 msgstr "Fatiando Placa 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
+msgstr "Empacotando dados em 3MF"
+
+msgid "Uploading data"
 msgstr ""
 
 msgid "Jump to webpage"
@@ -9416,8 +9465,8 @@ msgstr "Placa de Alta Temp. Lisa"
 msgid "Textured PEI Plate"
 msgstr "Placa PEI Texturizada"
 
-msgid "Cool Plate (Supertack)"
-msgstr ""
+msgid "Cool Plate (SuperTack)"
+msgstr "Placa Fria (SuperTack)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Clique aqui se não conseguir conectar-se à impressora"
@@ -10128,9 +10177,6 @@ msgstr "Temperatura de impressão"
 
 msgid "Nozzle temperature when printing"
 msgstr "Temperatura do bico ao imprimir"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "Placa Fria (SuperTack)"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -15511,9 +15557,9 @@ msgstr "Etiquetar objetos"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Ative isso para adicionar comentários no G-code etiquetando movimentos de "
 "impressão com a qual objeto eles pertencem, o que é útil para o plug-in "
@@ -18137,6 +18183,12 @@ msgstr ""
 "3. Nervura: Adiciona quatro nervuras à parede da torre para maior "
 "estabilidade."
 
+msgid "Rectangle"
+msgstr "Retângulo"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr "Comprimento extra de nervura"
 
@@ -19464,10 +19516,6 @@ msgid "create new preset failed."
 msgstr "falha ao criar nova predefinição."
 
 #, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr "A predefinição selecionada: %s não foi encontrada."
-
-#, c-format, boost-format
 msgid "Could not find parameter: %s."
 msgstr "Parâmetro não encontrado: %s."
 
@@ -20623,9 +20671,6 @@ msgstr "Inserir Diâmetro de Bico Personalizado"
 
 msgid "Can't find my nozzle diameter"
 msgstr "Não consigo encontrar o diâmetro do meu bico"
-
-msgid "Rectangle"
-msgstr "Retângulo"
 
 msgid "Printable Space"
 msgstr "Espaço Imprimível"
@@ -22097,6 +22142,137 @@ msgstr "Filamento Oficial"
 msgid "More Colors"
 msgstr "Mais Cores"
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+"O filamento pode não ser compatível com as configurações atuais da máquina. "
+"Serão usadas predefinições genéricas de filamento."
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+"O modelo do filamento é desconhecido. Usando a predefinição de filamento "
+"anterior."
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+"O modelo do filamento é desconhecido. Serão usadas predefinições genéricas "
+"de filamento."
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+"O filamento pode não ser compatível com as configurações atuais da máquina. "
+"Uma predefinição de filamento aleatória será usada."
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+"O modelo do filamento é desconhecido. Uma predefinição de filamento "
+"aleatória será usada."
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -22484,6 +22660,13 @@ msgstr ""
 "aumentar adequadamente a temperatura da mesa aquecida pode reduzir a "
 "probabilidade de empenamento?"
 
+#~ msgid "Network Plug-in"
+#~ msgstr "Plug-in de Rede"
+
+#, c-format, boost-format
+#~ msgid "The selected preset: %s is not found."
+#~ msgstr "A predefinição selecionada: %s não foi encontrada."
+
 #~ msgid "Line pattern of support."
 #~ msgstr "Padrão de linha de suporte."
 
@@ -22593,13 +22776,11 @@ msgstr ""
 #~ msgstr "Usar o plug-in de rede legado"
 
 #~ msgid ""
-#~ "Disable to use latest network plug-in that supports new BambuLab firmwares."
+#~ "Disable to use latest network plug-in that supports new BambuLab "
+#~ "firmwares."
 #~ msgstr ""
 #~ "Desabilitar para usar o plug-in de rede mais recente que suporta novos "
 #~ "firmwares BambuLab."
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Empacotando dados em 3MF"
 
 #~ msgid "Cool"
 #~ msgstr "Fria"
