@@ -47,7 +47,7 @@ static coordf_t troctWave(coordf_t pos, coordf_t gridSize, coordf_t Zpos)
 
 // Identify the important points of curve change within a truncated
 // octahedron wave (as waveform fraction t):
-// 1. Start of wave (always 0.0)
+// 1. Start of wave (always 0.0; not needed if the pattern base starts here)
 // 2. Transition to upper "horizontal" part
 // 3. Transition from upper "horizontal" part
 // 4. Transition to lower "horizontal" part
@@ -61,11 +61,9 @@ static coordf_t troctWave(coordf_t pos, coordf_t gridSize, coordf_t Zpos)
  */
 static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 {
-  std::vector<coordf_t> res = {0.};
+  std::vector<coordf_t> res;
   coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
-
   coordf_t normalisedOffset = perpOffset / gridSize;
-  // note: if the offset is zero, then it's a straight line
   if(normalisedOffset > 0){
     res.push_back(gridSize * (0. + normalisedOffset));
     res.push_back(gridSize * (1. - normalisedOffset));
@@ -80,7 +78,7 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 // points for columns, Y points for rows)
   static Polyline patternPoints(const coordf_t Zpos, coordf_t gridSize, std::vector<coordf_t> critPoints,
                                 coordf_t baseLocation, size_t gridLength,
-                                coordf_t offsetBase, coordf_t perpDir, int print_dir)
+                                coordf_t offsetBase, coordf_t perpDir, int print_dir, coordf_t linearOffset)
 {
   Polyline line;
   if(print_dir == 1){
@@ -88,13 +86,18 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
   } else {
     line.points.push_back(Point(baseLocation, offsetBase));
   }
+  coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
+  coordf_t zFlipDirection = sgn(fmod(zCycle, 0.5) - 0.25);
   for (coordf_t cLoc = baseLocation; cLoc < gridLength; cLoc+= gridSize*2) {
     for(size_t pi = 0; pi < critPoints.size(); pi++){
       coordf_t offset = troctWave(critPoints[pi], gridSize, Zpos);
+      coordf_t multiOffset = linearOffset * (floor(((pi + 1) % 4) / 2) - 0.5) * 2.0 * zFlipDirection;
       if(print_dir == 1){
-        line.points.push_back(Point(offsetBase + (offset * perpDir), baseLocation + cLoc + critPoints[pi]));
+        line.points.push_back(Point(offsetBase + (offset * perpDir),
+                                    baseLocation + cLoc + critPoints[pi] + multiOffset));
       } else {
-        line.points.push_back(Point(baseLocation + cLoc + critPoints[pi], offsetBase + (offset * perpDir)));
+        line.points.push_back(Point(baseLocation + cLoc + critPoints[pi] - multiOffset,
+                                    offsetBase + (offset * perpDir)));
       }
     }
   }
@@ -184,14 +187,12 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, size_t boundsX, si
       coordf_t xAdj = - spacing * (multiline_count - 1) / 2.0;
       for (size_t mci = 0; mci < multiline_count; mci++, xAdj += spacing){
         Polyline newPoints;
-        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsY, x, perpDirPattern, 1);
+        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsY, x,
+                                  perpDirPattern, 1, (sqrt(2) - 1) * xAdj * perpDirPattern);
         if (perpDir == 1)
           std::reverse(newPoints.points.begin(), newPoints.points.end());
         newPoints.translate(Point(xAdj, 0.0));
         lines.push_back(newPoints);
-        perpDir *= -1;
-      }
-      if(multiline_count % 2 == 0){
         perpDir *= -1;
       }
     }
@@ -202,14 +203,12 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, size_t boundsX, si
       coordf_t yAdj = - spacing * (multiline_count - 1) / 2.0;
       for (size_t mci = 0; mci < multiline_count; mci++, yAdj += spacing){
         Polyline newPoints;
-        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsX, y, perpDirPattern, 0);
+        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsX, y,
+                                  perpDirPattern, 0, (sqrt(2) - 1) * yAdj * perpDirPattern);
         if (perpDir == -1)
           std::reverse(newPoints.points.begin(), newPoints.points.end());
         newPoints.translate(Point(0.0, yAdj));
         lines.push_back(newPoints);
-        perpDir *= -1;
-      }
-      if(multiline_count % 2 == 0){
         perpDir *= -1;
       }
     }
