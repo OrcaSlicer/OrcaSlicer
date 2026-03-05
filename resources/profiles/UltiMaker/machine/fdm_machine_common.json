@@ -114,5 +114,6 @@
     "default_print_profile": "",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "machine_start_gcode": "",
-    "machine_end_gcode": ""
+    "machine_end_gcode": "",
+    "thumbnails": ""
 }
