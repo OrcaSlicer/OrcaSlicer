@@ -14537,7 +14537,7 @@ msgid "Contour"
 msgstr "Контур"
 
 msgid "Hole"
-msgstr "Oтвір"
+msgstr "Отвір"
 
 msgid "Contour and hole"
 msgstr "Контур та отвір"

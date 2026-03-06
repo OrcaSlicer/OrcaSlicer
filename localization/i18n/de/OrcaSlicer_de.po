@@ -15361,7 +15361,7 @@ msgid "Hole"
 msgstr "Loch"
 
 msgid "Contour and hole"
-msgstr "Kontur und loch"
+msgstr "Kontur und Loch"
 
 msgid "All walls"
 msgstr "Alle Wände"
