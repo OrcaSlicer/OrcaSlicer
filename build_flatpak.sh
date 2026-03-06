@@ -21,6 +21,8 @@ INSTALL_RUNTIME=false
 JOBS=$(nproc)
 FORCE_CLEAN=false
 ENABLE_CCACHE=false
+DISABLE_ROFILES_FUSE=false
+NO_DEBUGINFO=true
 CACHE_DIR=".flatpak-builder"
 
 # Help function
@@ -36,6 +38,8 @@ show_help() {
     echo "  -c, --cleanup          Clean build directory before building"
     echo "  -f, --force-clean      Force clean build (disables caching)"
     echo "  --ccache               Enable ccache for faster rebuilds (requires ccache in SDK)"
+    echo "  --disable-rofiles-fuse Disable rofiles-fuse (workaround for FUSE issues)"
+    echo "  --with-debuginfo       Include debug info (slower builds, needed for Flathub)"
     echo "  --cache-dir DIR        Flatpak builder cache directory [default: $CACHE_DIR]"
     echo "  -i, --install-runtime  Install required Flatpak runtime and SDK"
     echo "  -h, --help             Show this help message"
@@ -73,6 +77,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --ccache)
             ENABLE_CCACHE=true
+            shift
+            ;;
+        --disable-rofiles-fuse)
+            DISABLE_ROFILES_FUSE=true
+            shift
+            ;;
+        --with-debuginfo)
+            NO_DEBUGINFO=false
             shift
             ;;
         --cache-dir)
@@ -242,8 +254,8 @@ mkdir -p "$BUILD_DIR"
 rm -rf "$BUILD_DIR/build-dir"
 
 # Check if flatpak manifest exists
-if [[ ! -f "./scripts/flatpak/io.github.softfever.OrcaSlicer.yml" ]]; then
-    echo -e "${RED}Error: Flatpak manifest not found at scripts/flatpak/io.github.softfever.OrcaSlicer.yml${NC}"
+if [[ ! -f "./scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml" ]]; then
+    echo -e "${RED}Error: Flatpak manifest not found at scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml${NC}"
     exit 1
 fi
 
@@ -279,6 +291,7 @@ BUILDER_ARGS=(
     --verbose
     --state-dir="$CACHE_DIR"
     --jobs="$JOBS"
+    --mirror-screenshots-url=https://dl.flathub.org/media/
 )
 
 # Add force-clean only if explicitly requested (disables caching)
@@ -295,21 +308,40 @@ if [[ "$ENABLE_CCACHE" == true ]]; then
     echo -e "${GREEN}Using ccache for compiler caching${NC}"
 fi
 
+# Disable rofiles-fuse if requested (workaround for FUSE issues)
+if [[ "$DISABLE_ROFILES_FUSE" == true ]]; then
+    BUILDER_ARGS+=(--disable-rofiles-fuse)
+    echo -e "${YELLOW}rofiles-fuse disabled${NC}"
+fi
+
+# Use a temp manifest with no-debuginfo if requested
+MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
+if [[ "$NO_DEBUGINFO" == true ]]; then
+    MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
+    sed '0,/^finish-args:/s//build-options:\n  no-debuginfo: true\n  strip: true\nfinish-args:/' \
+        scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml > "$MANIFEST"
+    echo -e "${YELLOW}Debug info disabled (using temp manifest)${NC}"
+fi
+
 if ! flatpak-builder \
     "${BUILDER_ARGS[@]}" \
     "$BUILD_DIR/build-dir" \
-    scripts/flatpak/io.github.softfever.OrcaSlicer.yml; then
+    "$MANIFEST"; then
     echo -e "${RED}Error: flatpak-builder failed${NC}"
     echo -e "${YELLOW}Check the build log above for details${NC}"
+    rm -f "scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
     exit 1
 fi
+
+# Clean up temp manifest
+rm -f "scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
 
 # Create bundle
 echo -e "${YELLOW}Creating Flatpak bundle...${NC}"
 if ! flatpak build-bundle \
     "$BUILD_DIR/repo" \
     "$BUNDLE_NAME" \
-    io.github.softfever.OrcaSlicer \
+    io.github.orcaslicer.OrcaSlicer \
     --arch="$ARCH"; then
     echo -e "${RED}Error: Failed to create Flatpak bundle${NC}"
     exit 1
@@ -328,10 +360,10 @@ echo -e "${BLUE}To install the Flatpak:${NC}"
 echo -e "flatpak install --user $BUNDLE_NAME"
 echo ""
 echo -e "${BLUE}To run OrcaSlicer:${NC}"
-echo -e "flatpak run io.github.softfever.OrcaSlicer"
+echo -e "flatpak run io.github.orcaslicer.OrcaSlicer"
 echo ""
 echo -e "${BLUE}To uninstall:${NC}"
-echo -e "flatpak uninstall --user io.github.softfever.OrcaSlicer"
+echo -e "flatpak uninstall --user io.github.orcaslicer.OrcaSlicer"
 echo ""
 if [[ "$FORCE_CLEAN" != true ]]; then
     echo -e "${BLUE}Cache Management:${NC}"

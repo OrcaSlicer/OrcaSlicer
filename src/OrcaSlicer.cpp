@@ -88,6 +88,7 @@ using namespace nlohmann;
 
 #ifdef __WXGTK__
 #include <X11/Xlib.h>
+#include <unistd.h>
 #endif
 
 #ifdef SLIC3R_GUI
@@ -1190,6 +1191,17 @@ int CLI::run(int argc, char **argv)
     // (like the Setup Wizard) to render blank or freeze. Disabling compositing
     // mode forces software rendering, which works reliably on all backends.
     ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+
+    // On Linux dual-GPU systems, request the high-performance discrete GPU.
+    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
+    ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+    // For NVIDIA proprietary driver PRIME render offload, set additional variables.
+    // Only set if the NVIDIA kernel module is loaded to avoid breaking systems without NVIDIA.
+    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+    }
 
     // Also on Linux, we need to tell Xlib that we will be using threads,
     // lest we crash when we fire up GStreamer.

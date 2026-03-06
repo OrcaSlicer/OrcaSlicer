@@ -422,6 +422,11 @@ public:
     uint32_t  			m_ulSHChangeNotifyRegister { 0 };
 	static constexpr int WM_USER_MEDIACHANGED { 0x7FFF }; // WM_USER from 0x0400 to 0x7FFF, picking the last one to not interfere with wxWidgets allocation
 #endif // _WIN32
+
+#ifdef __WXGTK__
+    class GtkResizeBorderHandler;
+    GtkResizeBorderHandler* m_resize_border_handler{nullptr};
+#endif // __WXGTK__
 };
 
 wxDECLARE_EVENT(EVT_HTTP_ERROR, wxCommandEvent);

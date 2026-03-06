@@ -558,6 +558,50 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     return sizer_input;
 }
 
+wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange)
+{
+    wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto label = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    label->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    label->SetFont(::Label::Body_14);
+    label->SetToolTip(tooltip);
+    label->Wrap(DESIGN_TITLE_SIZE.x);
+    label->Wrap(DESIGN_TITLE_SIZE.x);
+
+    auto input = new SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS, min, max, stoi(app_config->get(param)));
+    input->SetToolTip(tooltip);
+
+    sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+
+    if(!title2.empty()){
+        auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
+        second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        second_title->SetFont(::Label::Body_14);
+        second_title->SetToolTip(tooltip);
+        sizer->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+    }
+
+    input->Bind(wxEVT_TEXT_ENTER, [this, param, input, onchange](wxCommandEvent& e) {
+        auto value = input->GetValue();
+        app_config->set(param, std::to_string(value));
+        app_config->save();
+        if (onchange != nullptr) onchange(value);
+        e.Skip();
+    });
+
+    input->Bind(wxEVT_KILL_FOCUS, [this, param, input, onchange](wxFocusEvent &e) {
+        auto value = input->GetValue();
+        app_config->set(param, std::to_string(value));
+        if (onchange != nullptr) onchange(value);
+        e.Skip();
+    });
+
+    return sizer;
+}
+
 wxBoxSizer *PreferencesDialog::create_camera_orbit_mult_input(wxString title, wxString tooltip)
 {
     wxBoxSizer *sizer_input = new wxBoxSizer(wxHORIZONTAL);
@@ -1354,6 +1398,9 @@ void PreferencesDialog::create_items()
         "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
     g_sizer->Add(item_filament_preset_grouping);
 
+    auto item_filament_area_height = create_item_spinctrl(_L("Optimize filaments area height for..."), _L("(Requires restart)"), _L("filaments"), _L("Optimizes filament area maximum height by chosen filament count."), "filaments_area_preferred_count", 8, 99);
+    g_sizer->Add(item_filament_area_height); 
+
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
 
@@ -1503,18 +1550,18 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_filament_sync_mode);
 
     //// ONLINE > Network plugin
-    g_sizer->Add(create_item_title(_L("Network plugin")), 1, wxEXPAND);
+    g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);
 
-    auto item_enable_plugin    = create_item_checkbox(_L("Enable network plugin"), "", "installed_networking");
+    auto item_enable_plugin    = create_item_checkbox(_L("Enable network plug-in"), "", "installed_networking");
     g_sizer->Add(item_enable_plugin);
 
     m_network_version_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_network_version_sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
 
-    auto version_title = new wxStaticText(m_parent, wxID_ANY, _L("Network plugin version"), wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    auto version_title = new wxStaticText(m_parent, wxID_ANY, _L("Network plug-in version"), wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
     version_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
     version_title->SetFont(::Label::Body_14);
-    version_title->SetToolTip(_L("Select the network plugin version to use"));
+    version_title->SetToolTip(_L("Select the network plug-in version to use"));
     version_title->Wrap(DESIGN_TITLE_SIZE.x);
     m_network_version_sizer->Add(version_title, 0, wxALIGN_CENTER);
 
@@ -1591,20 +1638,20 @@ void PreferencesDialog::create_items()
                 if (Slic3r::NetworkAgent::versioned_library_exists(new_version)) {
                     BOOST_LOG_TRIVIAL(info) << "Version " << new_version << " already exists on disk, triggering hot reload";
                     if (wxGetApp().hot_reload_network_plugin()) {
-                        MessageDialog dlg(this, _L("Network plugin switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
+                        MessageDialog dlg(this, _L("Network plug-in switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
                         dlg.ShowModal();
                     } else {
-                        MessageDialog dlg(this, _L("Failed to load network plugin. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
+                        MessageDialog dlg(this, _L("Failed to load network plug-in. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
                         dlg.ShowModal();
                     }
                 } else {
                     wxString msg = wxString::Format(
-                        _L("You've selected network plugin version %s.\n\nWould you like to download and install this version now?\n\nNote: The application may need to restart after installation."),
+                        _L("You've selected network plug-in version %s.\n\nWould you like to download and install this version now?\n\nNote: The application may need to restart after installation."),
                         wxString::FromUTF8(new_version));
 
-                    MessageDialog dlg(this, msg, _L("Download Network Plugin"), wxYES_NO | wxICON_QUESTION);
+                    MessageDialog dlg(this, msg, _L("Download Network Plug-in"), wxYES_NO | wxICON_QUESTION);
                     if (dlg.ShowModal() == wxID_YES) {
-                        DownloadProgressDialog progress_dlg(_L("Downloading Network Plugin"));
+                        DownloadProgressDialog progress_dlg(_L("Downloading Network Plug-in"));
                         progress_dlg.ShowModal();
                     }
                 }
@@ -1684,13 +1731,13 @@ void PreferencesDialog::create_items()
     auto loglevel_combox = create_item_loglevel_combobox(_L("Log Level"), _L("Log Level"), log_level_list);
     g_sizer->Add(loglevel_combox);
 
-    g_sizer->Add(create_item_title(_L("Network Plugin")), 1, wxEXPAND);
-    auto item_reload_plugin = create_item_button(_L("Network plugin"), _L("Reload"), _L("Reload the network plugin without restarting the application"), "", [this]() {
+    g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);
+    auto item_reload_plugin = create_item_button(_L("Network plug-in"), _L("Reload"), _L("Reload the network plug-in without restarting the application"), "", [this]() {
         if (wxGetApp().hot_reload_network_plugin()) {
-            MessageDialog dlg(this, _L("Network plugin reloaded successfully."), _L("Reload"), wxOK | wxICON_INFORMATION);
+            MessageDialog dlg(this, _L("Network plug-in reloaded successfully."), _L("Reload"), wxOK | wxICON_INFORMATION);
             dlg.ShowModal();
         } else {
-            MessageDialog dlg(this, _L("Failed to reload network plugin. Please restart the application."), _L("Reload Failed"), wxOK | wxICON_ERROR);
+            MessageDialog dlg(this, _L("Failed to reload network plug-in. Please restart the application."), _L("Reload Failed"), wxOK | wxICON_ERROR);
             dlg.ShowModal();
         }
     });
@@ -1812,12 +1859,12 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
         radio_group->SetSelection(3);
     }
 
-    Button* debug_button = new Button(m_parent, _L("debug save button"));
+    Button* debug_button = new Button(m_parent, _L("Debug save button"));
     debug_button->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     debug_button->Bind(wxEVT_LEFT_DOWN, [this, radio_group](wxMouseEvent &e) {
         // success message box
-        MessageDialog dialog(this, _L("save debug settings"), _L("DEBUG settings have been saved successfully!"), wxNO_DEFAULT | wxYES_NO | wxICON_INFORMATION);
+        MessageDialog dialog(this, _L("Save debug settings"), _L("DEBUG settings have been saved successfully!"), wxNO_DEFAULT | wxYES_NO | wxICON_INFORMATION);
         dialog.SetSize(400,-1);
         switch (dialog.ShowModal()) {
         case wxID_NO: {
