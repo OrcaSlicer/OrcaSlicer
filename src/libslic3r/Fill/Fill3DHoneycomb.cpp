@@ -124,11 +124,15 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_
   size_t pointCount = 0;
   coordf_t gridStartL = gridSize * 0.5 - topOffset;
   coordf_t gridEndL = gridSize * 0.5 + topOffset;
-  if(topDistance == 0){
+  if((topDistance == 0) && (multiline_count == 1)){
     // extend out a little bit on the first layer to help fuse the cover
     gridStartL -= spacing;
     gridEndL += spacing;
- }
+  } else if(multiline_count > 1) {
+    // match start point to the corner edge
+    gridStartL -= spacing * (multiline_count / 2.) * (sqrt(2) - 1);
+    gridEndL += spacing * (multiline_count / 2.) * (sqrt(2) - 1);
+  }
   // top cover extents perpendicular to the direction of travel
   coordf_t gridStartP = gridSize * 0.5 - topOffset + spacing * multiline_count / 2. + spacing / 2.;
   coordf_t gridEndP = gridSize * 0.5 + topOffset - spacing * multiline_count / 2. - spacing / 2.;
@@ -232,6 +236,8 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
   coordf_t zCycleLast = fmod(zLast + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   bool printVertLast = zCycleLast < 0.5;
   Polylines result;
+  Polylines polyZag = makeZigZag(z, gridSize, boundWidth, boundHeight, spacing, multiline_count);
+  result.insert(result.end(), polyZag.begin(), polyZag.end());
   if(completeTops && (printVert != printVertLast)){
     coordf_t layer_height = (z - zLast) / multiline_count;
     size_t top_distance = 0;
@@ -245,8 +251,6 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
     Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing, multiline_count, top_distance);
     result.insert(result.end(), polytops.begin(), polytops.end());
   }
-  Polylines polyZag = makeZigZag(z, gridSize, boundWidth, boundHeight, spacing, multiline_count);
-  result.insert(result.end(), polyZag.begin(), polyZag.end());
   return result;
 }
 
