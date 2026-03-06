@@ -62,6 +62,9 @@ public:
     std::string              filament_setting_id; // setting_id
     std::string              m_fila_type;
     std::string              sub_brands;
+    // Orca: preset the filament matcher identified for this tray, when it
+    // identified one.  Empty for BBL devices and for generic/type-only matches.
+    std::string              matched_preset_name;
     std::string              color;
     std::vector<std::string> cols;
     std::string              weight;

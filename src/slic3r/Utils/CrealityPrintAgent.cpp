@@ -2,6 +2,7 @@
 #include "CrealityPrint.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "FilamentMatcher.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include <boost/log/trivial.hpp>
@@ -16,106 +17,8 @@ namespace {
 
 constexpr const char* CrealityPrintAgent_VERSION = "0.1.0";
 
-bool has_visible_base_preset(const PresetCollection& filaments, const std::string& filament_id)
-{
-    for (const auto& p : filaments.get_presets()) {
-        if (p.is_visible && p.is_compatible
-            && filaments.get_preset_base(p) == &p
-            && p.filament_id == filament_id)
-            return true;
-    }
-    return false;
-}
 
 } // namespace
-
-// Score visible compatible filament presets against the CFS spool metadata and
-// return the best-matching filament_id. Scoring:
-//   +20  preset name contains brand_name as a substring
-//        (e.g. "Hyper PLA" in "Hyper PLA @Creality K2 0.4 nozzle")
-//   +10  preset name contains the vendor substring (e.g. "Creality")
-//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies. Brand-
-//   specific system presets carry their own filament_id; user copies of
-//   generic presets inherit a generic filament_id from their parent, so
-//   preferring the user copy can collapse a brand-specific match back to
-//   "Generic PLA" via the inherited id. Plus: this code targets upstream
-//   OrcaSlicer where shipping the user's local tuning would be wrong.
-// Requires the preset's declared filament_type to equal the spool's base type
-// (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
-// Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
-std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& filaments,
-                                                      const std::string&      vendor,
-                                                      const std::string&      brand_name,
-                                                      const std::string&      base_type)
-{
-    auto to_lower = [](std::string s) {
-        for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        return s;
-    };
-
-    const std::string vendor_lower = to_lower(vendor);
-    const std::string brand_lower  = to_lower(brand_name);
-    const std::string type_lower   = to_lower(base_type);
-
-    struct Match {
-        const Preset* preset;
-        int           score;
-        bool          is_user;
-    };
-    std::vector<Match> matches;
-
-    int considered = 0;
-    for (const auto& p : filaments.get_presets()) {
-        if (!p.is_visible || !p.is_compatible) continue;
-        // Note: we deliberately do NOT filter on get_preset_base(p) == &p.
-        // K2 owners frequently keep tweaked copies of system presets
-        // (e.g. "Creality Hyper PLA @K2 (Harky)" with their per-spool PA),
-        // which are derived presets — filtering to bases-only would skip
-        // exactly the presets users care about most.
-        ++considered;
-
-        std::string preset_type;
-        if (const auto* ft = p.config.option<ConfigOptionStrings>("filament_type"))
-            if (!ft->values.empty()) preset_type = ft->values.front();
-        if (to_lower(preset_type) != type_lower) continue;
-
-        const std::string name_lower = to_lower(p.name);
-        int score = 0;
-        if (!brand_lower.empty() && name_lower.find(brand_lower) != std::string::npos)
-            score += 20;
-        if (!vendor_lower.empty() && name_lower.find(vendor_lower) != std::string::npos)
-            score += 10;
-
-        if (score > 0)
-            matches.push_back({&p, score, !p.is_system && !p.is_default});
-    }
-
-    if (matches.empty()) {
-        const std::string fallback = filaments.filament_id_by_type(base_type);
-        const bool        fallback_ok = has_visible_base_preset(filaments, fallback);
-        BOOST_LOG_TRIVIAL(info)
-            << "CrealityPrintAgent: no preset scored for spool {" << vendor << " "
-            << brand_name << " (" << base_type << ")} after considering " << considered
-            << " presets; falling back to generic preset id \"" << fallback << "\""
-            << (fallback_ok ? "" : " (NOT visible — returning empty)");
-        return fallback_ok ? fallback : std::string();
-    }
-
-    std::sort(matches.begin(), matches.end(),
-              [](const Match& a, const Match& b) {
-                  if (a.score   != b.score)   return a.score > b.score;
-                  if (a.is_user != b.is_user) return !a.is_user; // prefer system over user
-                  return false;
-              });
-
-    BOOST_LOG_TRIVIAL(info)
-        << "CrealityPrintAgent: matched spool {" << vendor << " " << brand_name
-        << " (" << base_type << ")} -> preset \"" << matches.front().preset->name
-        << "\" (score=" << matches.front().score
-        << ", " << matches.size() << " candidate(s) of " << considered << " considered)";
-
-    return matches.front().preset->filament_id;
-}
 
 CrealityPrintAgent::CrealityPrintAgent(std::string log_dir)
     : MoonrakerPrinterAgent(std::move(log_dir))
@@ -315,13 +218,33 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id)
 
             const CFSSlot& s = *it->second;
             tray.has_filament = true;
-            tray.tray_type    = normalize_filament_type(s.filament_type);
             tray.tray_color   = s.color_hex;
 
-            if (bundle) {
-                tray.tray_info_idx = match_filament_preset(
-                    bundle->filaments, s.vendor, s.brand_name, tray.tray_type);
-            }
+            // Prefer a filament_type the loaded profiles actually define, so a
+            // composite survives ("PLA-CF" stays PLA-CF instead of collapsing
+            // onto PLA and being excluded from its own profiles).  The static
+            // ladder is the fallback for an unrecognized material and for early
+            // init before any bundle exists.
+            tray.tray_type = bundle ? FilamentMatcher::resolve_filament_type(
+                                          bundle->filaments, s.filament_type)
+                                    : std::string();
+            if (tray.tray_type.empty())
+                tray.tray_type = normalize_filament_type(s.filament_type);
+
+            // CFS reports a vendor and a product name ("Hyper PLA") alongside
+            // the base type and color, so the vendor-bearing config rungs carry
+            // this printer: vendor+type narrowed by the reported product name,
+            // then color.  There is no numeric id or agent prefix to supply.
+            FilamentMatchInput match_input;
+            match_input.vendor_name   = FilamentMatcher::sanitize_for_id(s.vendor);
+            match_input.filament_name = FilamentMatcher::sanitize_for_id(s.brand_name);
+            match_input.tray_type     = tray.tray_type;
+            match_input.color         = s.color_hex;
+
+            auto match = FilamentMatcher::resolve(bundle ? &bundle->filaments : nullptr,
+                                                  match_input);
+            tray.tray_info_idx       = match.filament_id;
+            tray.matched_preset_name = match.preset_name;
 
             trays.push_back(std::move(tray));
         }

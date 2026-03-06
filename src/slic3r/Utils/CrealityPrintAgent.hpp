@@ -53,13 +53,6 @@ public:
     // Strip PLA/PETG/... subtype suffixes ("PLA Silk", "PLA+", "ABS Pro") to base
     // type so the preset_bundle->filaments.filament_id_by_type() lookup succeeds.
     static std::string normalize_filament_type(const std::string& filament_type);
-
-    // Score visible compatible filament presets against the CFS spool metadata and
-    // return the best-matching filament_id. See implementation for scoring details.
-    static std::string match_filament_preset(const PresetCollection& filaments,
-                                             const std::string&      vendor,
-                                             const std::string&      brand_name,
-                                             const std::string&      base_type);
 };
 
 } // namespace Slic3r

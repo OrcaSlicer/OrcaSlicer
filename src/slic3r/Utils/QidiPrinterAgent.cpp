@@ -1,4 +1,5 @@
 #include "QidiPrinterAgent.hpp"
+#include "FilamentMatcher.hpp"
 #include "Http.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -10,22 +11,6 @@
 #include <sstream>
 
 namespace Slic3r {
-
-namespace {
-
-// Check whether any visible, compatible base preset in the collection has the given filament_id.
-bool has_visible_base_preset(const PresetCollection& filaments, const std::string& filament_id)
-{
-    for (const auto& p : filaments.get_presets()) {
-        if (p.is_visible && p.is_compatible
-            && filaments.get_preset_base(p) == &p
-            && p.filament_id == filament_id)
-            return true;
-    }
-    return false;
-}
-
-} // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
 
@@ -142,25 +127,14 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
     trays.clear();
     trays.reserve(max_slots);
 
-    // Lambda to build setting_id from slot data
-    auto build_setting_id = [&](int filament_type_idx, int vendor_type, const std::string& tray_type) {
-        const int vendor = (vendor_type == 1) ? 1 : 0;
-        if (is_numeric(series_id) && filament_type_idx > 0) {
-            return "QD_" + series_id + "_" + std::to_string(vendor) + "_" + std::to_string(filament_type_idx);
-        }
-        return map_filament_type_to_setting_id(tray_type);
-    };
-
     for (int i = 0; i < max_slots; ++i) {
         AmsTrayData tray;
         tray.slot_index = i;
 
-        // Read slot variables
         const int color_index     = variables.value("color_slot" + std::to_string(i), 1);
         const int filament_type   = variables.value("filament_slot" + std::to_string(i), 1);
         const int vendor_type     = variables.value("vendor_slot" + std::to_string(i), 0);
 
-        // Check filament presence via runout sensor
         std::string box_stepper_key = "box_stepper slot" + std::to_string(i);
         tray.has_filament = false;
         if (status.contains(box_stepper_key)) {
@@ -172,32 +146,63 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         }
 
         if (tray.has_filament) {
-            // Look up filament type name from dictionary
             std::string filament_name = "PLA";
             auto filament_it = dict.filaments.find(filament_type);
             if (filament_it != dict.filaments.end()) {
                 filament_name = filament_it->second;
             }
-            tray.tray_type = normalize_filament_type(filament_name);
+            // Prefer a filament_type the loaded profiles actually define, so a
+            // composite survives ("PLA-CF" stays PLA-CF instead of collapsing
+            // onto PLA and being excluded from its own profiles).  The static
+            // ladder below is the fallback for an unrecognized material, and for
+            // early init before any bundle exists.
+            auto* preset_bundle = GUI::wxGetApp().preset_bundle;
+            tray.tray_type      = preset_bundle ? FilamentMatcher::resolve_filament_type(
+                                                      preset_bundle->filaments, filament_name)
+                                                : std::string();
+            if (tray.tray_type.empty())
+                tray.tray_type = normalize_filament_type(filament_name);
 
-            // Try Qidi-specific setting ID first; fall back to visible preset by type
-            std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);
-            auto* bundle = GUI::wxGetApp().preset_bundle;
-            if (!bundle) {
-                tray.tray_info_idx = setting_id;
-            } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
-                tray.tray_info_idx = setting_id;
-            } else {
-                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
-            }
-
-            // Look up color from dictionary
+            // Look up color hex from dictionary
+            std::string color_hex;
             auto color_it = dict.colors.find(color_index);
             if (color_it != dict.colors.end()) {
                 tray.tray_color = color_it->second;
+                color_hex = color_it->second;
+                if (!color_hex.empty() && color_hex[0] == '#')
+                    color_hex = color_hex.substr(1);
             } else {
                 tray.tray_color = "FFFFFFFF";
             }
+
+            // Populate every piece of data QIDI reports for the shared matcher.
+            // QIDI gives both forms of the vendor (name + numeric id) and the
+            // filament (name + numeric index) plus the base type and color, so
+            // all of V/F/C/P participate.
+            //
+            // Example: X-Max 4, filament vendor 7 = "Acme Inc",
+            //          fila 52 = "PLA Plus", color 52 = "#FAFAFA"
+            //   prefix        = "QD_3"
+            //   vendor_name   = "Acme_Inc",  vendor_type  = 7
+            //   filament_name = "PLA_Plus",  filament_idx = 52
+            //   tray_type     = "PLA",       color        = "FAFAFA"
+            FilamentMatchInput match_input;
+            match_input.prefix        = series_id.empty() ? "QD" : ("QD_" + series_id);
+            match_input.color         = color_hex;
+            match_input.vendor_type   = vendor_type;
+            match_input.filament_idx  = filament_type;
+            match_input.tray_type     = tray.tray_type;
+
+            auto vendor_it = dict.vendors.find(vendor_type);
+            if (vendor_it != dict.vendors.end())
+                match_input.vendor_name = FilamentMatcher::sanitize_for_id(vendor_it->second);
+
+            match_input.filament_name = FilamentMatcher::sanitize_for_id(filament_name);
+
+            auto match = FilamentMatcher::resolve(
+                preset_bundle ? &preset_bundle->filaments : nullptr, match_input);
+            tray.tray_info_idx       = match.filament_id;
+            tray.matched_preset_name = match.preset_name;
         }
 
         trays.push_back(tray);
@@ -246,8 +251,10 @@ bool QidiPrinterAgent::fetch_filament_dict(const std::string& base_url,
 
     dict.colors.clear();
     dict.filaments.clear();
+    dict.vendors.clear();
     parse_ini_section(response_body, "colordict", dict.colors);
     parse_filament_sections(response_body, dict.filaments);
+    parse_ini_section(response_body, "vendor_list", dict.vendors);
 
     return !dict.colors.empty();
 }
@@ -320,25 +327,6 @@ void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::
             }
         }
     }
-}
-
-std::string QidiPrinterAgent::map_filament_type_to_setting_id(const std::string& filament_type)
-{
-    const std::string upper = trim_and_upper(filament_type);
-
-    if (upper == "PLA") {
-        return "QD_1_0_1";
-    }
-    if (upper == "ABS") {
-        return "QD_1_0_11";
-    }
-    if (upper == "PETG") {
-        return "QD_1_0_41";
-    }
-    if (upper == "TPU") {
-        return "QD_1_0_50";
-    }
-    return "";
 }
 
 std::string QidiPrinterAgent::normalize_model_key(std::string value)

@@ -1,4 +1,5 @@
 #include "MoonrakerPrinterAgent.hpp"
+#include "FilamentMatcher.hpp"
 #include "Http.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -511,6 +512,14 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 tray_json["tray_type"] = tray->tray_type;
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
 
+                // Orca extension to the BBL tray format: the preset the matcher
+                // identified, when it identified one.  Carried alongside
+                // tray_info_idx rather than in it, because a filament_id can be
+                // shared by many presets and so cannot name one.
+                if (!tray->matched_preset_name.empty()) {
+                    tray_json["orca_preset_name"] = tray->matched_preset_name;
+                }
+
                 // Add temperature data if provided
                 if (tray->bed_temp > 0) {
                     tray_json["bed_temp"] = std::to_string(tray->bed_temp);
@@ -613,58 +622,6 @@ std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)
     std::transform(result.begin(), result.end(), result.begin(),
                    [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
     return result;
-}
-
-std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::string& filament_type)
-{
-    const std::string upper = trim_and_upper(filament_type);
-
-    // Map to OrcaFilamentLibrary preset IDs (compatible with all printers)
-    // Source: resources/profiles/OrcaFilamentLibrary/filament/
-
-    // PLA variants
-    if (upper == "PLA")           return "OGFL99";
-    if (upper == "PLA-CF")        return "OGFL98";
-    if (upper == "PLA SILK" || upper == "PLA-SILK") return "OGFL96";
-    if (upper == "PLA HIGH SPEED" || upper == "PLA-HS" || upper == "PLA HS") return "OGFL95";
-
-    // ABS/ASA variants
-    if (upper == "ABS")           return "OGFB99";
-    if (upper == "ASA")           return "OGFB98";
-
-    // PETG/PET variants
-    if (upper == "PETG" || upper == "PET") return "OGFG99";
-    if (upper == "PCTG")          return "OGFG97";
-
-    // PA/Nylon variants
-    if (upper == "PA" || upper == "NYLON") return "OGFN99";
-    if (upper == "PA-CF")         return "OGFN98";
-    if (upper == "PPA" || upper == "PPA-CF") return "OGFN97";
-    if (upper == "PPA-GF")        return "OGFN96";
-
-    // PC variants
-    if (upper == "PC")            return "OGFC99";
-
-    // PP/PE variants
-    if (upper == "PE")            return "OGFP99";
-    if (upper == "PP")            return "OGFP97";
-
-    // Support materials
-    if (upper == "PVA")           return "OGFS99";
-    if (upper == "HIPS")          return "OGFS98";
-    if (upper == "BVOH")          return "OGFS97";
-
-    // TPU variants
-    if (upper == "TPU")           return "OGFU99";
-
-    // Other materials
-    if (upper == "EVA")           return "OGFR99";
-    if (upper == "PHA")           return "OGFR98";
-    if (upper == "COPE")          return "OGFLC99";
-    if (upper == "SBS")           return "OFLSBS99";
-
-    // Unknown material
-    return UNKNOWN_FILAMENT_ID;
 }
 
 // JSON helper methods - null-safe accessors
@@ -814,10 +771,17 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
-        auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        // Moonraker reports only a material type (e.g. "PLA", "ABS"), so the
+        // vendor/color levels are skipped and matching falls through to the
+        // type-based levels.  If it later reports vendor/color, populate those
+        // fields here to get richer matching for free.
+        FilamentMatchInput match_input;
+        match_input.tray_type = tray.tray_type;
+        auto* preset_bundle = GUI::wxGetApp().preset_bundle;
+        auto  match         = FilamentMatcher::resolve(
+            preset_bundle ? &preset_bundle->filaments : nullptr, match_input);
+        tray.tray_info_idx       = match.filament_id;
+        tray.matched_preset_name = match.preset_name;
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -942,10 +906,16 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         tray.bed_temp = 0;  // HH doesn't provide bed temp in gate arrays
         tray.has_filament = true;
 
-        auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        // Happy Hare reports only a material type (e.g. "PLA"), so the
+        // vendor/color levels are skipped.  Populate more fields here if HH
+        // gains vendor/color reporting.
+        FilamentMatchInput match_input;
+        match_input.tray_type = tray.tray_type;
+        auto* preset_bundle = GUI::wxGetApp().preset_bundle;
+        auto  match         = FilamentMatcher::resolve(
+            preset_bundle ? &preset_bundle->filaments : nullptr, match_input);
+        tray.tray_info_idx       = match.filament_id;
+        tray.matched_preset_name = match.preset_name;
 
         max_lane_index = std::max(max_lane_index, gate_idx);
         trays.push_back(tray);

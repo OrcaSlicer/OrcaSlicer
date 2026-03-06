@@ -47,6 +47,7 @@ void DevAmsTray::reset()
     filament_setting_id = "";
     m_fila_type         = "";
     sub_brands          = "";
+    matched_preset_name = "";
     color               = "";
     weight              = "";
     diameter            = "";
@@ -676,6 +677,11 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 curr_tray->sub_brands = (*tray_it)["tray_sub_brands"].get<std::string>();
                             else
                                 curr_tray->sub_brands = "";
+                            // Orca extension, emitted by pull-mode agents only.
+                            if (tray_it->contains("orca_preset_name"))
+                                curr_tray->matched_preset_name = (*tray_it)["orca_preset_name"].get<std::string>();
+                            else
+                                curr_tray->matched_preset_name = "";
                             if (tray_it->contains("tray_weight"))
                                 curr_tray->weight = (*tray_it)["tray_weight"].get<std::string>();
                             else
