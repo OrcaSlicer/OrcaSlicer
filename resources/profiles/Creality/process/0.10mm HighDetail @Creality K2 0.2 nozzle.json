@@ -1,6 +1,6 @@
 {
     "type": "process",
-    "name": "0.10mm HighDetail @Creality K2 Pro 0.2 nozzle",
+    "name": "0.10mm HighDetail @Creality K2 0.2 nozzle",
     "inherits": "fdm_process_common_klipper",
     "from": "system",
     "setting_id": "GP004",
@@ -15,7 +15,7 @@
     "brim_width": "5",
     "brim_object_gap": "0.1",
     "compatible_printers": [
-        "Creality K2 Pro 0.2 nozzle"
+        "Creality K2 0.2 nozzle"
     ],
     "default_acceleration": "12000",
     "bridge_no_support": "0",
