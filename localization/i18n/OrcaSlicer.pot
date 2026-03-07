@@ -10045,13 +10045,13 @@ msgstr ""
 msgid "Global shortcuts"
 msgstr ""
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr ""
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr ""
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr ""
 
 msgid ""

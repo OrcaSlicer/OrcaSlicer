@@ -10414,13 +10414,13 @@ msgstr "显示键盘快捷键列表"
 msgid "Global shortcuts"
 msgstr "全局快捷键"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "移动视角"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "旋转视角"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "缩放视角"
 
 msgid ""

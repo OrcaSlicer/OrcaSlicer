@@ -10685,13 +10685,13 @@ msgstr "Klavye kısayolları listesini göster"
 msgid "Global shortcuts"
 msgstr "Genel kısayollar"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Pan Görünümü"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Görüntüyü döndür"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Zoom Görünümü"
 
 msgid ""

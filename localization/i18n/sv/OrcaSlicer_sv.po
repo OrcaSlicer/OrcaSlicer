@@ -10415,13 +10415,13 @@ msgstr "Visa tangentbordets genvägs lista"
 msgid "Global shortcuts"
 msgstr "Övergripande genvägar"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Panoreringsvy"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotera vy"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Zoomvy"
 
 msgid ""

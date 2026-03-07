@@ -11155,13 +11155,13 @@ msgstr "Mostrar lista de atalhos de teclado"
 msgid "Global shortcuts"
 msgstr "Atalhos globais"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Movimentar vista"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotacionar vista"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Aproximar vista"
 
 msgid ""

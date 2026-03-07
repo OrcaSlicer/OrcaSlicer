@@ -10756,13 +10756,13 @@ msgstr "Rodyti sparčiųjų klavišų sąrašą"
 msgid "Global shortcuts"
 msgstr "Bendrieji spartieji klavišai"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Judinti vaizdą"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Pasukti vaizdą"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Padidinti vaizdą"
 
 msgid ""

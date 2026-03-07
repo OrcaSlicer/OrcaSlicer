@@ -11148,13 +11148,13 @@ msgstr "Показать список сочетаний клавиш"
 msgid "Global shortcuts"
 msgstr "Глобальные горячие клавиши"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Перемещение камеры"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Вращение камеры"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Масштабирование вида"
 
 msgid ""

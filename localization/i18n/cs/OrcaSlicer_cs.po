@@ -10568,13 +10568,13 @@ msgstr "Zobrazit seznam klávesových zkratek"
 msgid "Global shortcuts"
 msgstr "Globální klávesové zkratky"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Posouvat pohled"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Otočit pohled"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Přiblížení zobrazení"
 
 msgid ""

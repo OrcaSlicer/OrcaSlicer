@@ -11247,13 +11247,13 @@ msgstr "Muestra lista de atajos de teclado"
 msgid "Global shortcuts"
 msgstr "Atajos globales"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Desplazar vista"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotar Vista"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Hacer Zoom"
 
 msgid ""

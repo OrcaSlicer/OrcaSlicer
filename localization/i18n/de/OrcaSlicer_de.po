@@ -11275,13 +11275,13 @@ msgstr "Liste der Tastaturkürzel anzeigen"
 msgid "Global shortcuts"
 msgstr "Globale Tastaturkürzel"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Pan-Ansicht"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Drehen der Ansicht"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Ansicht zoomen"
 
 msgid ""

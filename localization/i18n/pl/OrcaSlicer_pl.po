@@ -10703,13 +10703,13 @@ msgstr "Pokaż listę skrótów klawiszowych"
 msgid "Global shortcuts"
 msgstr "Globalne skróty"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Przesuń widok"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Obróć widok"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Przybliż widok"
 
 msgid ""

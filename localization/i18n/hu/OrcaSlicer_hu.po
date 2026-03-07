@@ -10417,13 +10417,13 @@ msgstr "Gyorsgombok listájának megjelenítése"
 msgid "Global shortcuts"
 msgstr "Globális gyorsbillentyűk"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Pásztázó nézet"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Nézet elforgatása"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Nagyítás nézet"
 
 msgid ""

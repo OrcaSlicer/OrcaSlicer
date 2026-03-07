@@ -10743,13 +10743,13 @@ msgstr "Mostrar la llista de dreceres de teclat"
 msgid "Global shortcuts"
 msgstr "Dreceres Globals"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Vista Panoràmica"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotar la vista"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Vista amb Zoom"
 
 msgid ""

@@ -10497,13 +10497,13 @@ msgstr "키보드 단축키 목록 보기"
 msgid "Global shortcuts"
 msgstr "전역 단축키"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "시점 이동"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "시점 회전"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "시점 확대/축소"
 
 msgid ""

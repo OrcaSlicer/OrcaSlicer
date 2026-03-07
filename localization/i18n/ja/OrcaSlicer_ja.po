@@ -10246,13 +10246,13 @@ msgstr "ショートカット一覧を表示"
 msgid "Global shortcuts"
 msgstr "ショートカット"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "移動"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "回転"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "ズーム"
 
 msgid ""

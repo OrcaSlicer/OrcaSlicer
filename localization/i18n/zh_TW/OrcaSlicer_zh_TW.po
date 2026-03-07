@@ -10520,13 +10520,13 @@ msgstr "顯示鍵盤快捷鍵清單"
 msgid "Global shortcuts"
 msgstr "全域快捷鍵"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "移動視角"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "旋轉視角"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "縮放視角"
 
 msgid ""

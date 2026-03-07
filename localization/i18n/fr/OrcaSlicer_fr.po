@@ -10816,13 +10816,13 @@ msgstr "Afficher la liste des raccourcis clavier"
 msgid "Global shortcuts"
 msgstr "Raccourcis globaux"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Déplacement de vue"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotation de la vue"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Vue agrandie"
 
 #, fuzzy

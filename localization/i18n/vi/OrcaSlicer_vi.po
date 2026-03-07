@@ -10555,13 +10555,13 @@ msgstr "Hiển thị danh sách phím tắt"
 msgid "Global shortcuts"
 msgstr "Phím tắt toàn cục"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Kéo chế độ xem"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Xoay chế độ xem"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Thu phóng chế độ xem"
 
 msgid ""

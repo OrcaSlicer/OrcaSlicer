@@ -10546,13 +10546,13 @@ msgstr "Toon lijst met sneltoetsen"
 msgid "Global shortcuts"
 msgstr "Globale snelkoppelingen"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr ""
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr ""
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr ""
 
 msgid ""

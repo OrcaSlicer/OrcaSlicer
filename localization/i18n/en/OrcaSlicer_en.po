@@ -8220,13 +8220,13 @@ msgid "View control settings"
 msgstr ""
 
 msgid "Rotate of view"
-msgstr "Rotate View"
+msgstr "Rotate view"
 
 msgid "Move of view"
-msgstr "Pan View"
+msgstr "Pan view"
 
 msgid "Zoom of view"
-msgstr "Zoom View"
+msgstr "Zoom view"
 
 msgid "Other"
 msgstr ""
@@ -10192,13 +10192,13 @@ msgstr ""
 msgid "Global shortcuts"
 msgstr ""
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr ""
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr ""
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr ""
 
 msgid ""

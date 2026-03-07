@@ -10775,13 +10775,13 @@ msgstr "Mostra elenco scorciatoie da tastiera"
 msgid "Global shortcuts"
 msgstr "Scorciatoie globali"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Vista panoramica"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Ruota vista"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Ingrandimento vista"
 
 msgid ""

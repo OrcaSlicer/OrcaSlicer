@@ -10732,13 +10732,13 @@ msgstr "Показати список клавіш"
 msgid "Global shortcuts"
 msgstr "Глобальні ярлики"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Панорамний вигляд"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Повернути вигляд"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Перегляд масштабу"
 
 msgid ""
