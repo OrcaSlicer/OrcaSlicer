@@ -1,0 +1,38 @@
+name: Build Specific Commit
+
+on:
+  workflow_dispatch:  # allows manual trigger
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Checkout the repo at a specific commit
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed for full history to checkout commit
+
+      - name: Checkout specific commit
+        run: git checkout 9e889af
+
+      # Step 2: Setup CMake and Visual Studio environment
+      - name: Setup Visual Studio environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vs-version: latest
+
+      - name: Configure CMake
+        run: cmake -S . -B build -G "Visual Studio 18 2022" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      # Step 3: Upload executable as artifact
+      - name: Upload Executable
+        uses: actions/upload-artifact@v3
+        with:
+          name: OrcaSlicer-9e889af
+          path: build/Release/OrcaSlicer.exe
