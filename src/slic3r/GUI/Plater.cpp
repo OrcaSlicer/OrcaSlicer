@@ -2106,14 +2106,10 @@ Sidebar::Sidebar(Plater *parent)
     bSizer39->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
 
     // add filament content
-    // ORCA use a height with user preference
-    int filament_count_user = std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"));
-    p->filament_area_height = std::ceil(filament_count_user * 0.5) * (30 + SidebarProps::ElementSpacing()) - SidebarProps::ElementSpacing();
-
     p->m_panel_filament_content = new wxScrolledWindow( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     p->m_panel_filament_content->SetScrollbars(0, 100, 1, 2);
     p->m_panel_filament_content->SetScrollRate(0, 5);
-    p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(p->filament_area_height)}); // ORCA
+    //p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(p->filament_area_height)}); // ORCA
     p->m_panel_filament_content->SetBackgroundColour(wxColour(255, 255, 255));
 
     //wxBoxSizer* bSizer_filament_content;
@@ -2129,6 +2125,11 @@ Sidebar::Sidebar(Plater *parent)
 
     /* first filament item */
     init_filament_combo(&p->combos_filament[0], 0);
+
+    // ORCA use a height with user preference
+    int filament_count_user = std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"));
+    p->filament_area_height = std::ceil(filament_count_user * 0.5) * (p->combos_filament[0]->GetSize().GetHeight() + SidebarProps::ElementSpacing()) - SidebarProps::ElementSpacing();
+    p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(p->filament_area_height)}); // ORCA
 
     //bSizer_filament_content->Add(p->sizer_filaments, 1, wxALIGN_CENTER | wxALL);
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
