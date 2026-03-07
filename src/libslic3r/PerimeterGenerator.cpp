@@ -518,6 +518,9 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     extrusion_loop.make_counter_clockwise();
                 else
                     extrusion_loop.make_clockwise();
+                if (!pg_extrusion.is_contour){
+                    extrusion_loop.reverse();
+                }
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
