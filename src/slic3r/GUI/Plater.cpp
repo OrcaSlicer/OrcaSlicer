@@ -2128,8 +2128,8 @@ Sidebar::Sidebar(Plater *parent)
 
     // ORCA use a height with user preference
     int filament_count_user = std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"));
-    p->filament_area_height = std::ceil(filament_count_user * 0.5) * (p->combos_filament[0]->GetSize().GetHeight() + SidebarProps::ElementSpacing()) - SidebarProps::ElementSpacing();
-    p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(p->filament_area_height)}); // ORCA
+    p->filament_area_height = std::ceil(filament_count_user * 0.5) * (p->combos_filament[0]->GetSize().GetHeight() + FromDIP(SidebarProps::ElementSpacing())) - FromDIP(SidebarProps::ElementSpacing());
+    p->m_panel_filament_content->SetMaxSize(wxSize{-1, p->filament_area_height}); // ORCA
 
     //bSizer_filament_content->Add(p->sizer_filaments, 1, wxALIGN_CENTER | wxALL);
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
@@ -3525,7 +3525,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     for (auto& c : p->combos_filament)
         c->update();
     // Expand filament list
-    p->m_panel_filament_content->SetMaxSize({-1, FromDIP(p->filament_area_height)}); // ORCA
+    p->m_panel_filament_content->SetMaxSize({-1, p->filament_area_height}); // ORCA
     auto min_size = p->m_panel_filament_content->GetSizer()->GetMinSize();
     if (min_size.y > p->m_panel_filament_content->GetMaxHeight())
         min_size.y = p->m_panel_filament_content->GetMaxHeight();
