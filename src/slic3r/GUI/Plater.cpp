@@ -2109,7 +2109,7 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_filament_content = new wxScrolledWindow( p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL );
     p->m_panel_filament_content->SetScrollbars(0, 100, 1, 2);
     p->m_panel_filament_content->SetScrollRate(0, 5);
-    //p->m_panel_filament_content->SetMaxSize(wxSize{-1, FromDIP(p->filament_area_height)}); // ORCA
+    //p->m_panel_filament_content->SetMaxSize(wxSize{-1, p->filament_area_height}); // ORCA
     p->m_panel_filament_content->SetBackgroundColour(wxColour(255, 255, 255));
 
     //wxBoxSizer* bSizer_filament_content;
@@ -2126,10 +2126,7 @@ Sidebar::Sidebar(Plater *parent)
     /* first filament item */
     init_filament_combo(&p->combos_filament[0], 0);
 
-    // ORCA use a height with user preference
-    int filament_count_user = std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"));
-    p->filament_area_height = std::ceil(filament_count_user * 0.5) * (p->combos_filament[0]->GetSize().GetHeight() + FromDIP(4));
-    p->m_panel_filament_content->SetMaxSize(wxSize{-1, p->filament_area_height}); // ORCA
+    update_filaments_area_height(); // ORCA
 
     //bSizer_filament_content->Add(p->sizer_filaments, 1, wxALIGN_CENTER | wxALL);
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
@@ -2777,6 +2774,16 @@ void Sidebar::change_top_border_for_mode_sizer(bool increase_border)
 #endif
 }
 
+// ORCA use a height with user preference
+void Sidebar::update_filaments_area_height()
+{
+    int filament_count_user = std::stoi(wxGetApp().app_config->get("filaments_area_preferred_count"));
+    // Height and Border is static in here because GetSize() from item / sizer not returning of correct values while using wxEXPAND with 1(vertical) orientation
+    // FromDIP(2) + FromDIP(2) not equal to FromDIP(4) on 125% 175% scaling. this fixes scaling related issues
+    p->filament_area_height = std::ceil(filament_count_user * 0.5) * (FromDIP(30) + FromDIP(2) + FromDIP(2));
+    p->m_panel_filament_content->SetMaxSize(wxSize{-1, p->filament_area_height});
+}
+
 void Sidebar::msw_rescale()
 {
     SetMinSize(wxSize(42 * wxGetApp().em_unit(), -1));
@@ -2823,6 +2830,8 @@ void Sidebar::msw_rescale()
     p->m_bpButton_set_filament->msw_rescale();
     p->m_flushing_volume_btn->Rescale();
     set_flushing_volume_warning(is_flush_config_modified()); // ORCA reapply appearance
+
+    update_filaments_area_height();
 
     //BBS
     p->left_extruder->Rescale();
@@ -3525,7 +3534,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     for (auto& c : p->combos_filament)
         c->update();
     // Expand filament list
-    p->m_panel_filament_content->SetMaxSize({-1, p->filament_area_height}); // ORCA
+    update_filaments_area_height(); // ORCA
     auto min_size = p->m_panel_filament_content->GetSizer()->GetMinSize();
     if (min_size.y > p->m_panel_filament_content->GetMaxHeight())
         min_size.y = p->m_panel_filament_content->GetMaxHeight();
