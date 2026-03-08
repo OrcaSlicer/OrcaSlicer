@@ -59,7 +59,7 @@ static coordf_t troctWave(coordf_t pos, coordf_t gridSize, coordf_t Zpos)
  *            \     /
  *             o---o
  */
-static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
+ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 {
   std::vector<coordf_t> res;
   coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
@@ -76,85 +76,44 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
 // Generate a polyline that describes a single path segment through
 // the infill in the same direction as the basic printing line (i.e. X
 // points for columns, Y points for rows)
-  static Polyline patternPoints(const coordf_t Zpos, coordf_t gridSize, std::vector<coordf_t> critPoints,
-                                coordf_t baseLocation, coordf_t gridLength,
-                                coordf_t baseLocationP, coordf_t gridLengthP,
-                                coordf_t offsetBase, coordf_t perpDir, int print_dir, coordf_t linearOffset)
+static Polyline patternPoints(const coordf_t Zpos, coordf_t gridSize, std::vector<coordf_t> critPoints,
+                              coordf_t baseLocation, coordf_t gridLength,
+                              coordf_t baseLocationP, coordf_t gridLengthP,
+                              coordf_t offsetBase, coordf_t perpDir, int print_dir, coordf_t linearOffset)
 {
   Polyline line;
   coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
-  coordf_t offsetStart = troctWave(linearOffset, gridSize, Zpos);
-  int offsetStartFlip = sgn(offsetBase);
   int zFlipDirection = sgn(fmod(zCycle, 0.5) - 0.25);
   bool hitEnd = false;
-  coordf_t posLin = baseLocation;
-  coordf_t posPerp = offsetBase;
-  coordf_t lastPosLin = baseLocation;
-  coordf_t lastPosPerp = baseLocationP;
   int endPi = -1;
   size_t pi = 0;
-  if((critPoints[0] - linearOffset * zFlipDirection * print_dir) > baseLocation){
-    if(print_dir == 1){
-      line.points.push_back(Point(offsetBase + linearOffset * offsetStartFlip * perpDir, baseLocation));
-    } else {
-      line.points.push_back(Point(baseLocation, offsetBase + linearOffset * offsetStartFlip * perpDir));
-    }
-  }
-  for (coordf_t cLoc = baseLocation; cLoc < gridLength; cLoc+= gridSize*2) {
+  line.points.push_back(Point(0., 0.));
+  coordf_t gridMax = ceil(gridLength / (gridSize * 2.)) * gridSize * 2.;
+  for (coordf_t cLoc = 0; cLoc < (gridMax + EPSILON); cLoc+= gridSize*2) {
     for(pi = 0; pi < critPoints.size(); pi++){
       coordf_t offset = troctWave(critPoints[pi], gridSize, Zpos);
       coordf_t offsetFlip = sgn(offset);
       coordf_t posFlip = floor(((pi + 1) % 4) / 2) * 2 - 1;
       coordf_t multiOffset = linearOffset * posFlip * zFlipDirection;
-      posLin = cLoc + critPoints[pi] + multiOffset * print_dir;
-      if(posLin > gridLength){
-        hitEnd = true;
-        break;
-      } else {
-        lastPosLin = posLin;
-        lastPosPerp = posPerp;
-        posPerp = offsetBase + (offset * perpDir);
-        if(posPerp < baseLocationP){
-          posLin += (baseLocationP - posPerp) * posFlip * zFlipDirection * print_dir;
-          posPerp += (baseLocationP - posPerp);
-        }
-        if(posPerp > gridLengthP){
-          posLin -= (posPerp - gridLengthP) * posFlip * zFlipDirection * print_dir;
-          posPerp -= (posPerp - gridLengthP);
-        }
-        if(posLin < gridLength){
-          line.points.push_back((print_dir == 1) ? Point(posPerp, posLin) : Point(posLin, posPerp));
-        } else {
-          line.points.push_back((print_dir == 1) ? Point(posPerp, gridLength) : Point(gridLength, posPerp));
-          hitEnd = true;
-        }
-      }
-    }
-    if(hitEnd){
-      break;
+      coordf_t posLin = cLoc + critPoints[pi] + multiOffset * print_dir;
+      coordf_t posPerp = offset * perpDir;
+      line.points.push_back((print_dir == 1) ? Point(posPerp, posLin) : Point(posLin, posPerp));
     }
   }
-  // reached the end of the pattern, just need to fill in the last bit
-  if(pi == 3){
-    posLin = baseLocation + gridLength;
-    line.points.push_back((print_dir == 1) ? Point(posPerp, posLin) : Point(posLin, posPerp));
-  } else {
-    coordf_t extensionLin = abs(baseLocation + gridLength - lastPosLin);
-    posLin = baseLocation + gridLength;
-    posPerp = posPerp + extensionLin * perpDir * zFlipDirection * print_dir;
-    line.points.push_back((print_dir == 1) ? Point(posPerp, posLin) : Point(posLin, posPerp));
-  }
+  line.points.push_back((print_dir == 1) ? Point(0., gridMax) : Point(gridMax, 0.));
   return line;
 }
 
 // Add additional dense fill in line with the pattern direction to
 // cover the top squares of the pattern
-static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, coordf_t boundsY, coordf_t spacing,
+static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t lengthX, coordf_t lengthY, coordf_t spacing,
                          size_t multiline_count, size_t topDistance)
 {
   coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   coordf_t zHalfCycle = fmod(zCycle, 0.5) * 2.;
   bool printVert = zCycle < 0.5;
+  coordf_t offsetX = multiline_count;
+  coordf_t offsetY = multiline_count;
   coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
   coordf_t gridPoint = gridSize * (0. + perpOffset / gridSize);
   coordf_t topOffset = gridSize / 2.0 - abs(troctWave(gridPoint, gridSize, Zpos));
@@ -185,8 +144,8 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, coo
   // adjust spacing so that it starts and ends on exactly the right place
   coordf_t region_count = floor((gridEndP - gridStartP) / spacing);
   spacing = (gridEndP - gridStartP) / region_count;
-  for (x = 0, xm = 0; x <= (boundsX); x+= gridSize, xm = xm ^ 1) {
-    for (y = 0, ym = 0; y <= (boundsY); y += gridSize, ym = ym ^ 1) {
+  for (x = offsetX, xm = 0; x <= (lengthX); x+= gridSize, xm = xm ^ 1) {
+    for (y = offsetY, ym = 0; y <= (lengthY); y += gridSize, ym = ym ^ 1) {
       if(((xm ^ ym) == 1) == printVert){
         continue;
       }
@@ -197,9 +156,9 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, coo
       Polyline newPoints;
       int dirMod = xm ^ ym;
       if(printVert == (topDistance % 2)){
-        if(y < (boundsY - spacing * multiline_count * 1.5)){
-          coordf_t endPMod = std::min(boundsX - (multiline_count * (spacing + 1) / 2.), x + gridEndP) - x;
-          coordf_t endLMod = std::min(boundsY - (multiline_count * (spacing + 1) / 2.), y + gridEndL) - y;
+        if(y < (lengthY - spacing * multiline_count * 1.5)){
+          coordf_t endPMod = std::min(lengthX - (multiline_count * (spacing + 1) / 2.), x + gridEndP) - x;
+          coordf_t endLMod = std::min(lengthY - (multiline_count * (spacing + 1) / 2.), y + gridEndL) - y;
           for(coordf_t xi = gridStartP; xi < (endPMod + EPSILON); xi += spacing, dirMod = dirMod ^ 1){
             newPoints.points.push_back((dirMod == 0) ? Point(x + xi, y + gridStartL) : Point(x + xi, y + endLMod));
             newPoints.points.push_back((dirMod == 0) ? Point(x + xi, y + endLMod) : Point(x + xi, y + gridStartL));
@@ -207,9 +166,9 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, coo
           }
         }
       } else {
-        if(x < (boundsX - spacing * multiline_count * 1.5)){
-          coordf_t endPMod = std::min(boundsY - (multiline_count * (spacing + 1) / 2.), y + gridEndP) - y;
-          coordf_t endLMod = std::min(boundsX - (multiline_count * (spacing + 1) / 2.), x + gridEndL) - x;
+        if(x < (lengthX - spacing * multiline_count * 1.5)){
+          coordf_t endPMod = std::min(lengthY - (multiline_count * (spacing + 1) / 2.), y + gridEndP) - y;
+          coordf_t endLMod = std::min(lengthX - (multiline_count * (spacing + 1) / 2.), x + gridEndL) - x;
           for(coordf_t yi = gridStartP; yi < (endPMod + EPSILON); yi += spacing, dirMod = dirMod ^ 1){
             newPoints.points.push_back((dirMod == 0) ? Point(x + gridStartL, y + yi) : Point(x + endLMod, y + yi));
             newPoints.points.push_back((dirMod == 0) ? Point(x + endLMod, y + yi) : Point(x + gridStartL, y + yi));
@@ -225,10 +184,12 @@ static Polylines addTops(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, coo
 
 // Generate a set of curves (array of array of 2d points) that describe a
 // horizontal slice of a truncated regular octahedron.
-static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, coordf_t boundsY,
-                            coordf_t spacing, size_t multiline_count)
+  static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, coordf_t lengthX, coordf_t lengthY,
+                              coordf_t spacing, size_t multiline_count)
 {
   Polylines lines;
+  coordf_t offsetX = multiline_count;
+  coordf_t offsetY = multiline_count;
   std::vector<coordf_t> critPoints = getCriticalPoints(Zpos, gridSize);
   coordf_t zCycle = fmod(Zpos + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   bool printVert = zCycle < 0.5;
@@ -236,29 +197,29 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, 
     BoundingBox extents;
     int perpDir = -1;
     int perpDirPattern = -1;
-    coordf_t lastX = 0;
-    for (coordf_t x = 0; x <= (boundsX + EPSILON); lastX = x, x+= gridSize, perpDirPattern *= -1) {
+    coordf_t lastX = offsetX;
+    for (coordf_t x = offsetX; x <= (lengthX + EPSILON); lastX = x, x+= gridSize, perpDirPattern *= -1) {
       coordf_t xAdj = - spacing * (multiline_count - 1) / 2.0;
       for (size_t mci = 0; mci < multiline_count; mci++, xAdj += spacing){
         Polyline newPoints;
-        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsY, 0, boundsX, x,
+        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, lengthY, 0, lengthX, x,
                                   perpDirPattern, 1, (sqrt(2) - 1) * xAdj * perpDirPattern);
         if (perpDir == 1)
           std::reverse(newPoints.points.begin(), newPoints.points.end());
-        newPoints.translate(Point(xAdj, 0.0));
+        newPoints.translate(Point(x + xAdj, offsetY));
         extents.merge(newPoints.points);
         lines.push_back(newPoints);
         perpDir *= -1;
       }
     }
     // add ending straight lines, if necessary
-    if(extents.max.x() < (boundsX - spacing * multiline_count)){
+    if(extents.size()(0) < (lengthX - spacing * multiline_count)){
       Polyline endPoints;
-      endPoints.points.push_back(Point(boundsX, boundsY));
+      endPoints.points.push_back(Point(lengthX, lengthY));
       for(int pi = 0; pi < multiline_count; pi++){
-        endPoints.points.push_back(Point(boundsX - pi * spacing, (pi % 2 == 0) ? 0.0 : boundsY));
+        endPoints.points.push_back(Point(lengthX - pi * spacing, (pi % 2 == 0) ? 0.0 : lengthY));
         if(pi < (multiline_count - 1)){ // connection for next line
-          endPoints.points.push_back(Point(boundsX - (pi + 1) * spacing, (pi % 2 == 0) ? 0.0 : boundsY));
+          endPoints.points.push_back(Point(lengthX - (pi + 1) * spacing, (pi % 2 == 0) ? 0.0 : lengthY));
         }
       }
       lines.push_back(endPoints);
@@ -268,28 +229,28 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, 
     int perpDir = -1;
     int perpDirPattern = -1;
     coordf_t lastY = 0;
-    for (coordf_t y = 0; y <= (boundsY + EPSILON); lastY = y, y+= gridSize, perpDirPattern *= -1) {
+    for (coordf_t y = offsetY; y <= (lengthY + EPSILON); lastY = y, y+= gridSize, perpDirPattern *= -1) {
       coordf_t yAdj = - spacing * (multiline_count - 1) / 2.0;
       for (size_t mci = 0; mci < multiline_count; mci++, yAdj += spacing){
         Polyline newPoints;
-        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, boundsX, 0, boundsY, y,
+        newPoints = patternPoints(Zpos, gridSize, critPoints, 0, lengthX, 0, lengthY, y,
                                   perpDirPattern, -1, (sqrt(2) - 1) * yAdj * perpDirPattern);
         if (perpDir == -1)
           std::reverse(newPoints.points.begin(), newPoints.points.end());
-        newPoints.translate(Point(0.0, yAdj));
+        newPoints.translate(Point(offsetX, y + yAdj));
         extents.merge(newPoints.points);
         lines.push_back(newPoints);
         perpDir *= -1;
       }
     }
     // add ending straight lines, if necessary
-    if(extents.max.y() < (boundsY - spacing * multiline_count)){
+    if(extents.size()(1) < (lengthY - spacing * multiline_count)){
       Polyline endPoints;
-      endPoints.points.push_back(Point(boundsX, boundsY));
+      endPoints.points.push_back(Point(lengthX, lengthY));
       for(int pi = 0; pi < multiline_count; pi++){
-        endPoints.points.push_back(Point((pi % 2 == 0) ? 0.0 : boundsX, boundsY - pi * spacing));
+        endPoints.points.push_back(Point((pi % 2 == 0) ? 0.0 : lengthX, lengthY - pi * spacing));
         if(pi < (multiline_count - 1)){ // connection for next line
-          endPoints.points.push_back(Point((pi % 2 == 0) ? 0.0 : boundsX, boundsY - (pi + 1) * spacing));
+          endPoints.points.push_back(Point((pi % 2 == 0) ? 0.0 : lengthX, lengthY - (pi + 1) * spacing));
         }
       }
       lines.push_back(endPoints);
@@ -306,7 +267,7 @@ static Polylines makeZigZag(coordf_t Zpos, coordf_t gridSize, coordf_t boundsX, 
 //       square tops should be enclosed (true) or open (false). Alternatively,
 //       a rotation angle of 180 degrees or greater can be used.
 static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
-                          coordf_t boundWidth, coordf_t boundHeight,
+                          coordf_t lengthX, coordf_t lengthY,
                           bool completeTops, coordf_t spacing, size_t multiline_count)
 {
   coordf_t zCycle = fmod(z + gridSize/2, gridSize * 2.) / (gridSize * 2.);
@@ -314,7 +275,7 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
   coordf_t zCycleLast = fmod(zLast + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   bool printVertLast = zCycleLast < 0.5;
   Polylines result;
-  Polylines polyZag = makeZigZag(z, gridSize, boundWidth, boundHeight, spacing, multiline_count);
+  Polylines polyZag = makeZigZag(z, gridSize, lengthX, lengthY, spacing, multiline_count);
   result.insert(result.end(), polyZag.begin(), polyZag.end());
   if(completeTops && (printVert != printVertLast)){
     coordf_t layer_height = (z - zLast) / multiline_count;
@@ -326,7 +287,7 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
       }
     }
     // only print tops for the first <multiline_count> layers in each cycle
-    Polylines polytops = addTops(z, gridSize, boundWidth, boundHeight, spacing, multiline_count, top_distance);
+    Polylines polytops = addTops(z, gridSize, lengthX, lengthY, spacing, multiline_count, top_distance);
     result.insert(result.end(), polytops.begin(), polytops.end());
   }
   return result;
@@ -352,8 +313,8 @@ void Fill3DHoneycomb::_fill_surface_single(
     BoundingBox bb = expolygon.contour.bounding_box();
 
     // Reduce the bounding box inwards to avoid artifacts at the edges from clipping
-    coord_t reduceSize = 1. * scale_(this->spacing);
-    bb.offset(-reduceSize);
+    //coord_t reduceSize = 1. * scale_(this->spacing);
+    //bb.offset(-reduceSize);
 
     // Note: with equally-scaled X/Y/Z, the pattern will create a vertically-stretched
     // truncated octahedron; so Z is pre-adjusted first by scaling by sqrt(2)
@@ -380,19 +341,18 @@ void Fill3DHoneycomb::_fill_surface_single(
       zScale = (gridSize * 2) / (layersPerModule * layerHeight);
     }
 
-    // align bounding box to a multiple of the octahedron grid (a
-    // module is 2*$gridSize since one $gridSize octahedron is growing
-    // while the other $gridSize octahedron is shrinking)
+    // align bounding box to a multiple of the octahedron grid so that
+    // layers with different starting points have matching origins
     bb.merge(align_to_grid(bb.min, Point(gridSize * 2., gridSize * 2.)));
 
+    // Z adjustment to start at the widest point for the lowest layer
+    coordf_t startOffset = gridSize / 2. + scale_(params.layer_height / 2.);
     // generate pattern
     Polylines polylines =
       makeGrid(
-	       scale_(this->z) * zScale,
-	       scale_(this->z - (params.layer_height * params.multiline)) * zScale,
-	       gridSize,
-	       bb.size()(0),
-	       bb.size()(1),
+	       scale_(this->z) * zScale + startOffset,
+	       scale_(this->z - (params.layer_height * params.multiline)) * zScale + startOffset,
+	       gridSize, bb.size()(0), bb.size()(1),
 	       params.infill_complete_top,
                scale_(this->spacing),
                params.multiline);
