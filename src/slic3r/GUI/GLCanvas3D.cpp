@@ -116,7 +116,7 @@ float RetinaHelper::get_scale_factor() { return float(m_window->GetContentScaleF
 #endif // __WXGTK3__
 
 // Fixed the collision between BuildVolume_Type::Convex and macro Convex defined inside /usr/include/X11/X.h that is included by WxWidgets 3.0.
-#if defined(__linux__) && defined(Convex)
+#if (defined(__linux__) || defined(__FreeBSD__)) && defined(Convex)
 #undef Convex
 #endif
 

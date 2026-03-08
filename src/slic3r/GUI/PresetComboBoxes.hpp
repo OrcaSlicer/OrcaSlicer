@@ -154,7 +154,7 @@ protected:
     // BBS: ams
     int  update_ams_color();
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
     static const char* separator_head() { return "-- "; }
     static const char* separator_tail() { return " --"; }
 #else // __linux__

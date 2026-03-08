@@ -760,6 +760,16 @@ elseif (APPLE)
     else()
         target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security")
     endif()
+elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(DBUS REQUIRED dbus-1)
+    find_package(CURL REQUIRED)
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${DBUS_INCLUDE_DIRS})
+    target_link_libraries(libslic3r_gui
+        ${DBUS_LIBRARIES}
+        ${CURL_LIBRARIES}
+    )
+
 endif()
 
 if (SLIC3R_STATIC)

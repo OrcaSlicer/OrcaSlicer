@@ -448,7 +448,7 @@ CaliPageCaption::CaliPageCaption(wxWindow* parent, CalibMode cali_mode,
         wxPostEvent(m_parent, event);
         });
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
     wxGetApp().CallAfter([this, title_text]() {
         title_text->SetMinSize(title_text->GetSize() + wxSize{ FromDIP(150), title_text->GetCharHeight() / 2 });
         Layout();

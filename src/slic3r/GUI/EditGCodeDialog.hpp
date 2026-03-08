@@ -117,7 +117,7 @@ class ParamsNode
 
 public:
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
     wxIcon      icon;
 #else
     wxBitmap    icon;

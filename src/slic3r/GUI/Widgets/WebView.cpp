@@ -20,7 +20,7 @@
 #include <WebView2.h>
 #include <Shellapi.h>
 #include <slic3r/Utils/Http.hpp>
-#elif defined __linux__
+#elif defined(__linux__) || defined(__FreeBSD__)
 #include <gtk/gtk.h>
 #define WEBKIT_API
 struct WebKitWebView;

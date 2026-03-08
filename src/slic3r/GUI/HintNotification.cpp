@@ -151,11 +151,11 @@ namespace {
 #endif // WIN32
 
 			if (tag == "Linux")
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 				return TagCheckAffirmative;
 #else 
 				return TagCheckNegative;
-#endif // __linux__
+#endif // __linux__ || __FreeBSD__
 
 			if (tag == "OSX")
 #ifdef __APPLE__

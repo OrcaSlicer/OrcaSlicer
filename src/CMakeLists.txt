@@ -28,7 +28,7 @@ if (SLIC3R_GUI)
         endif()
     endif()
 
-    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
         find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core adv html gl aui net media webview)
     else ()

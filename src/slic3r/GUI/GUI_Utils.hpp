@@ -460,7 +460,7 @@ void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
 #endif
 
-#if defined(__WXOSX__) || defined(__linux__)
+#if defined(__WXOSX__) || defined(__linux__) || defined(__FreeBSD__)
 bool is_debugger_present();
 #endif
 
