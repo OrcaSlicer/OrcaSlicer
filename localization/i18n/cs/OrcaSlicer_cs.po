@@ -14962,7 +14962,8 @@ msgstr "Horní povrchy"
 msgid "Topmost surface"
 msgstr "Nejvyšší povrch"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Všechny pevné vrstvy"
 
 msgid "Ironing Pattern"
@@ -15451,7 +15452,8 @@ msgstr ""
 "Maximální plocha otvoru ve spodní části modelu, než bude vyplněn kuželovitým "
 "materiálem. Hodnota 0 vyplní všechny otvory ve spodní části modelu."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Detekovat převislou stěnu"
 
 #, c-format, boost-format
@@ -16130,8 +16132,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Minimální práh řídké výplně"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Oblast řídké výplně menší než prahová hodnota bude nahrazena vnitřní plnou "
@@ -16854,12 +16857,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Teplota trysky pro vrstvy po úvodní vrstvě."
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Detekovat tenkou stěnu"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Detekovat tenkou stěnu, do které se nevejdou dvě šířky čáry. A použít pro "
 "tisk pouze jednu čáru. Tisk nemusí být zcela kvalitní, protože nejde o "
@@ -17463,7 +17468,8 @@ msgstr ""
 "modelu. Pokud je minimální šířka stěny menší než tloušťka prvku, bude stěna "
 "tak silná, jako je samotný prvek. Je vyjádřena jako procento průměru trysky."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Detekovat úzkou vnitřní plnou výplň"
 
 msgid ""

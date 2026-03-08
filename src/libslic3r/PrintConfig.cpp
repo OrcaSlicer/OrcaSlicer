@@ -3972,7 +3972,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("No ironing"));
     def->enum_labels.push_back(L("Top surfaces"));
     def->enum_labels.push_back(L("Topmost surface"));
-    def->enum_labels.push_back(L("All solid layer"));
+    def->enum_labels.push_back(L("All solid layers"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<IroningType>(IroningType::NoIroning));
 
@@ -4554,7 +4554,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.));
 
     def = this->add("detect_overhang_wall", coBool);
-    def->label = L("Detect overhang wall");
+    def->label = L("Detect overhang walls");
     def->category = L("Quality");
     def->tooltip = L("Detect the overhang percentage relative to line width and use different speed to print. "
                      "For 100%% overhang, bridge speed is used.");
@@ -5304,7 +5304,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("minimum_sparse_infill_area", coFloat);
     def->label = L("Minimum sparse infill threshold");
     def->category = L("Strength");
-    def->tooltip = L("Sparse infill area which is smaller than threshold value is replaced by internal solid infill.");
+    def->tooltip = L("Sparse infill areas smaller than this threshold value are replaced by internal solid infill.");
     def->sidetext = L(u8"mm²");	// square milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -6145,10 +6145,10 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionPoints{});
 
     def = this->add("detect_thin_wall", coBool);
-    def->label = L("Detect thin wall");
+    def->label = L("Detect thin walls");
     def->category = L("Strength");
-    def->tooltip = L("Detect thin wall which can't contain two line width. And use single line to print. "
-                     "Maybe printed not very well, because it's not closed loop.");
+    def->tooltip = L("Detect thin walls which can't contain two line widths, and use single line to print. "
+                     "Maybe not printed very well, because it's not a closed loop.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6759,7 +6759,7 @@ void PrintConfigDef::init_fff_params()
     }
 
     def = this->add("detect_narrow_internal_solid_infill", coBool);
-    def->label = L("Detect narrow internal solid infill");
+    def->label = L("Detect narrow internal solid infills");
     def->category = L("Strength");
     def->tooltip = L("This option will auto-detect narrow internal solid infill areas. "
                      "If enabled, the concentric pattern will be used for the area to speed up printing. "

@@ -15260,7 +15260,8 @@ msgstr "Górne powierzchnie"
 msgid "Topmost surface"
 msgstr "Tylko ostatnia warstwa"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Wszystkie jednolite warstwy"
 
 msgid "Ironing Pattern"
@@ -15787,7 +15788,8 @@ msgstr ""
 "Maksymalna powierzchnia otworu w podstawie modelu przed jego wypełnieniem "
 "materiałem stożkowym. Wartość 0 wypełni wszystkie otwory w podstawie modelu."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Wykrywanie ścian nawisu"
 
 #, c-format, boost-format
@@ -16484,8 +16486,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Minimalny próg wypełnienia"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Obszar wypełnienia, który jest mniejszy od wartości progowej zostaje "
@@ -17237,12 +17240,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Temperatura dyszy dla warstw po początkowej"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Wykrywanie cienkich ścian"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Wykrywaj ściany o grubości jednego obrysu. Są to obszary, gdzie 2 obrysy nie "
 "zmieszczą się i trzeba będzie połączyć je w jedną linię"
@@ -17848,7 +17853,8 @@ msgstr ""
 "grubość detalu, obrys będzie miał taką samą grubość jak sam element. Jest "
 "wyrażona w procentach i zostanie obliczona na podstawie średnicy dyszy."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Wykryj wąskie wewnętrzne pełne wypełnienie"
 
 msgid ""

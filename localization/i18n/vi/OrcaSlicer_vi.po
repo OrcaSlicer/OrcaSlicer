@@ -15024,7 +15024,8 @@ msgstr "Bề mặt trên"
 msgid "Topmost surface"
 msgstr "Bề mặt trên cùng"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Tất cả lớp đặc"
 
 msgid "Ironing Pattern"
@@ -15540,7 +15541,8 @@ msgstr ""
 "Diện tích tối đa của lỗ ở đáy model trước khi nó được lấp bởi vật liệu hình "
 "nón. Giá trị 0 sẽ lấp tất cả các lỗ ở đáy model."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Phát hiện thành nhô"
 
 #, c-format, boost-format
@@ -16211,8 +16213,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Ngưỡng infill thưa tối thiểu"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Vùng infill thưa nhỏ hơn giá trị ngưỡng được thay thế bằng infill đặc bên "
@@ -16946,12 +16949,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Nhiệt độ đầu phun cho các lớp sau lớp đầu tiên."
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Phát hiện thành mỏng"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Phát hiện thành mỏng không thể chứa hai độ rộng đường. Và sử dụng đường đơn "
 "để in. Có thể in không tốt lắm, vì nó không phải vòng kín."
@@ -17558,7 +17563,8 @@ msgstr ""
 "thành sẽ trở nên dày như tính năng đó. Nó được biểu thị dưới dạng phần trăm "
 "trên đường kính đầu phun."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Phát hiện infill đặc bên trong hẹp"
 
 msgid ""

@@ -13698,7 +13698,7 @@ msgstr ""
 msgid "Topmost surface"
 msgstr ""
 
-msgid "All solid layer"
+msgid "All solid layers"
 msgstr ""
 
 msgid "Ironing Pattern"
@@ -14124,7 +14124,7 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "Detect overhang wall"
+msgid "Detect overhang walls"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -14674,7 +14674,7 @@ msgid "Minimum sparse infill threshold"
 msgstr ""
 
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 
@@ -15280,12 +15280,12 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr ""
 
-msgid "Detect thin wall"
+msgid "Detect thin walls"
 msgstr ""
 
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 
 msgid ""
@@ -15747,7 +15747,7 @@ msgid ""
 "itself. It's expressed as a percentage over nozzle diameter."
 msgstr ""
 
-msgid "Detect narrow internal solid infill"
+msgid "Detect narrow internal solid infills"
 msgstr ""
 
 msgid ""

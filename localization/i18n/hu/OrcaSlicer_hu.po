@@ -14313,7 +14313,8 @@ msgstr "Felső felületek"
 msgid "Topmost surface"
 msgstr "Legfelső felület"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Összes szilárd réteg"
 
 msgid "Ironing Pattern"
@@ -14769,7 +14770,8 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Túlnyúló fal felismerése"
 
 #, c-format, boost-format
@@ -15358,8 +15360,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Ritkás kitöltés küszöbértéke"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "A küszöbérték alatti ritkás kitöltési terület belső szilárd kitöltéssel "
@@ -16028,12 +16031,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Fúvóka hőmérséklete az első réteg után"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Vékony fal felismerése"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Felismeri a vékony falat, amit nem lehet két vonalnyi szélességgel "
 "nyomtatni, és egyetlen vonallal nyomtatja"
@@ -16563,7 +16568,8 @@ msgstr ""
 "mint a nyomtatandó elem vastagsága, akkor a fal olyan vastag lesz, mint maga "
 "a nyomtatott elem. A fúvóka átmérőjének százalékában van kifejezve"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Keskeny belső szilárd kitöltés felismerése"
 
 msgid ""

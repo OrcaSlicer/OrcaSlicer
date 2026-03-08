@@ -15333,7 +15333,8 @@ msgstr "Totes les superfícies superiors"
 msgid "Topmost surface"
 msgstr "Només la última superfície superior"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Tota la capa sòlida"
 
 msgid "Ironing Pattern"
@@ -15860,7 +15861,8 @@ msgstr ""
 "Àrea màxima d'un forat a la base del model abans que s'ompli amb material "
 "cònic. Un valor de 0 omplirà tots els forats de la base del model."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Detectar voladís de perímetre"
 
 #, c-format, boost-format
@@ -16558,8 +16560,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Llindar mínim de farciment poc dens"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "L'àrea de farciment poc dens que sigui més petita que el valor del llindar "
@@ -17319,12 +17322,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Temperatura del broquet per les capes després de l'inicial"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Detectar perímetres prims"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Detecta un perímetre prim que no pugui contenir dues línies d'amplada. I "
 "utilitzar una sola línia per imprimir. Potser no s'imprimeix gaire bé, "
@@ -17938,7 +17943,8 @@ msgstr ""
 "fina que el gruix de l'element el perímetre esdevindrà tan gruixut com el "
 "propi element. S'expressa en percentatge sobre el diàmetre del broquet"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Detectar de farciment sòlid intern estret"
 
 msgid ""

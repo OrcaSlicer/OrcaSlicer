@@ -15360,7 +15360,8 @@ msgstr "Viršutiniai paviršiai"
 msgid "Topmost surface"
 msgstr "Aukščiausias paviršius"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Visas vientisas sluoksnis"
 
 msgid "Ironing Pattern"
@@ -15889,7 +15890,8 @@ msgstr ""
 "Didžiausias modelio pagrindo skylės plotas prieš ją užpildant kūgine "
 "medžiaga. 0 reikšmė užpildys visas modelio pagrindo skyles."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Aptikti išsikišusią sieną"
 
 #, c-format, boost-format
@@ -16579,8 +16581,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Minimali reto užpildymo riba"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Reto užpildymo sritys, kurios yra mažesnės už šią ribinę vertę, pakeičiamos "
@@ -17340,12 +17343,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Po pradinio sluoksnio esančių sluoksnių purkštuko temperatūra."
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Aptikti plonas sieneles"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Aptikti ploną sienelę, kurioje negali būti dviejų eilučių pločio. "
 "Spausdinimui naudoti vieną liniją. Gali būti, kad nebus išspausdinta labai "
@@ -17973,7 +17978,8 @@ msgstr ""
 "siena taps tokio pat storio kaip ir pats elementas. Jis išreiškiamas "
 "procentais nuo purkštuko skersmens."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Aptikti siaurą vidinį vientisą užpildą"
 
 msgid ""

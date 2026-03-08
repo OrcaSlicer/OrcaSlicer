@@ -16126,7 +16126,8 @@ msgstr "Obere Oberflächen"
 msgid "Topmost surface"
 msgstr "Oberste Oberfläche"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Alle soliden Schichten"
 
 msgid "Ironing Pattern"
@@ -16659,7 +16660,8 @@ msgstr ""
 "konischem Material gefüllt wird. Ein Wert von 0 füllt alle Löcher in der "
 "Basis des Modells."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Erkennen von Wandüberhängen"
 
 #, c-format, boost-format
@@ -17368,8 +17370,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Mindestschwelle für Füllung"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Innere Füllbereiche, die kleiner als dieser Wert sind, werden durch massive "
@@ -18163,12 +18166,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Düsentemperatur nach der ersten Schicht"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Dünne Wand erkennen"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Erkennt dünne Wände, die keine zwei Linienbreiten enthalten können. Und "
 "verwendet eine einzelne Linie zum Drucken. Diese wird vielleicht nicht sehr "
@@ -18821,7 +18826,8 @@ msgstr ""
 "Dicke des Features, wird die Wand so dick wie das Feature selbst. Wird als "
 "Prozentsatz des Düsendurchmessers angegeben."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Erkennen einer schmalen internen soliden Füllung"
 
 msgid ""

@@ -14080,7 +14080,8 @@ msgstr "全てのトップ面"
 msgid "Topmost surface"
 msgstr "最上部のみ"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "全てのソリッド積層"
 
 msgid "Ironing Pattern"
@@ -14523,7 +14524,8 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "オーバーハングを検出"
 
 #, c-format, boost-format
@@ -15095,8 +15097,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "スパース インフィルの下閾値"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "スパース インフィルの面積がこの値以下の場合、ソリッド インフィルに変換されま"
@@ -15741,12 +15744,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "1層目後のノズル温度"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "薄い壁を検出"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "2ラインの入らない薄い壁面を検出し、1ラインで造形します。仕上がりが悪くなり可"
 "能性があります。"
@@ -16249,7 +16254,8 @@ msgid ""
 "itself. It's expressed as a percentage over nozzle diameter."
 msgstr ""
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "薄いソリッド インフィル検出"
 
 msgid ""
