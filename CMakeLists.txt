@@ -436,7 +436,11 @@ if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMP
     endif()
 
     if((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang") AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
-        add_compile_options(-Wno-error=enum-constexpr-conversion)
+        include(CheckCXXCompilerFlag)
+        check_cxx_compiler_flag(-Wno-error=enum-constexpr-conversion HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
+        if(HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
+            add_compile_options(-Wno-error=enum-constexpr-conversion)
+        endif()
     endif()
 
     #GCC generates loads of -Wunknown-pragmas when compiling igl. The fix is not easy due to a bug in gcc, see

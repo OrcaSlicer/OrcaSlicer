@@ -2202,7 +2202,7 @@ void AmsReplaceMaterialDialog::create()
     label_txt->SetMaxSize(wxSize(FromDIP(380), -1));
     label_txt->Wrap(FromDIP(380));
 
-    identical_filament = new Label(this, _L("Identical filament: same brand, type and color"));
+    identical_filament = new Label(this, _L("Identical filament: same brand, type and color."));
     identical_filament->SetFont(Label::Body_13);
     identical_filament->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688")));
 
