@@ -514,13 +514,10 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
-                if (perimeter_generator.config->wall_direction == WallDirection::CounterClockwise)
+                if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == pg_extrusion.is_contour)
                     extrusion_loop.make_counter_clockwise();
                 else
                     extrusion_loop.make_clockwise();
-                if (!pg_extrusion.is_contour){
-                    extrusion_loop.reverse();
-                }
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
