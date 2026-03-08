@@ -253,7 +253,7 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             ExtrusionLoop *eloop = static_cast<ExtrusionLoop*>(coll.entities[idx.first]);
             coll.entities[idx.first] = nullptr;
 
-            if (perimeter_generator.config->wall_direction == WallDirection::CounterClockwise)
+            if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == loop.is_contour)
                 eloop->make_counter_clockwise();
             else
                 eloop->make_clockwise();
