@@ -496,6 +496,15 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to parse json message: " << message;
         }
         });
+
+    m_webview->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+    if (e.GetKeyCode() == WXK_ESCAPE) {
+            if (IsModal()) EndModal(wxID_CANCEL);
+            else Close();
+            return;
+    }
+        e.Skip();
+    });
 }
 
 
