@@ -433,6 +433,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
             bool actual_speed_exist = vertex.is_extrusion() || vertex.is_travel() || vertex.is_wipe();
+            static float cached_table_wnd_width = 0.0f;  // ORCA: Cache the calculated window width to avoid recalculation on every frame
+            static float cached_table_wnd_scale = 0.0f;  // ORCA: Cache the calculated window scale to avoid recalculation on every frame
             //if (vertex.is_extrusion() || vertex.is_travel() || vertex.is_wipe()) { // ORCA always show button to keep properties on same place
                 ImGui::Spacing();
                 //ImGuiWrapper::text(_u8L("Actual speed profile"));
@@ -455,11 +457,43 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 //ImGui::Separator();
                 //const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.0f, 150.0f });
                 if (actual_speed_exist && table_shown) {
-                    static float table_wnd_height = 0.0f;
+                    const float plot_height = 135.f * m_scale;  // 135 is the height of the plot without labels
+
+                    if (cached_table_wnd_scale != m_scale) { // ORCA
+                        // Catch the window width to avoid recalculation on every frame, 
+                        // but recalculate it when/if scale changes.
+
+                        const float cell_pad_x = 9.f * m_scale; // matches ImGuiStyleVar_CellPadding.x below
+                        const float wnd_pad_x = 2.0f * ImGui::GetStyle().WindowPadding.x;
+                        const float table_border_x = 6.0f * m_scale;
+
+                        // Calculate the width needed to fully show each table column header
+                        // but not clamping to a minimum because later the window width is clamped anyway.
+                        const float col0_w = ImGui::CalcTextSize((_u8L("Position") + " (" + _u8L("mm") + ")").c_str()).x;
+                        const float col1_w = ImGui::CalcTextSize((_u8L("Speed") + " (" + _u8L("mm/s") + ")").c_str()).x;
+
+                        const float content_w = std::ceil(col0_w + col1_w + 4.0f * cell_pad_x + table_border_x + wnd_pad_x);
+                        const float aspect_w = std::ceil(plot_height * (16.0f / 9.0f)); // 16:9 ratio for better look
+                        // Try to obtain 16:9 ratio if possible, but keep enough width for content to make
+                        // window looking good on different languages, especially with long words in table header
+                        cached_table_wnd_width = std::max(content_w, aspect_w);
+                        cached_table_wnd_scale = m_scale;
+                    }
+
+                    // ORCA: Pre-calculate the height of the table based on number of rows
+                    // and clamp the final window height to keep at least the same height as ToolPosition window.
+                    const float cell_pad_y  = 1.f * m_scale; // ImGuiStyleVar_CellPadding.y below
+                    const float row_height  = ImGui::GetTextLineHeight() + 2.f * cell_pad_y;
+                    const float rows        = static_cast<float>(m_actual_speed_imgui_widget.data.size());
+                    const float table_h     = row_height * (1.0f + rows) + 2.f * m_scale; // border allowance
+                    const float target_h    = std::ceil(plot_height + table_h + 2.f * ImGui::GetStyle().WindowPadding.y);
+                    const float final_h     = std::max(target_h, ImGui::GetWindowHeight()); // keep at least the same height as ToolPosition window
+
                     //const ImVec2 wnd_size = ImGui::GetWindowSize();
                     imgui.set_next_window_pos(ImGui::GetWindowPos().x - 5.f * m_scale /*+ wnd_size.x*/, static_cast<float>(canvas_height), ImGuiCond_Always, 1.0f, 1.0f);
+                    ImGui::SetNextWindowSize(ImVec2(cached_table_wnd_width, final_h), ImGuiCond_Always);
                     //ImGui::SetNextWindowSizeConstraints({ 0.0f, 0.0f }, { -1.0f, wnd_size.y });
-                    imgui.begin(std::string("ToolPositionTableWnd"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar |
+                    imgui.begin(std::string("ToolPositionTableWnd"), ImGuiWindowFlags_NoTitleBar |
                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
                     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
                     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
@@ -488,23 +522,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                             ++counter;
                         }
 
-                        // ORCA add blank rows to keep plot in same place. row count can be 9 but mostly it shows between 3 to 5 
-                        for (int id = 7 - counter; id > 0; --id) {
-                            ImGui::TableNextRow();
-                            ImGui::TableSetColumnIndex(0);
-                            imgui.text_colored(ImVec4(0.f, 0.f, 0.f, 0.f), "f");
-                        }
-
                         ImGui::EndTable();
                     }
                     ImGui::PopStyleVar(2);
                     ImGui::PopStyleColor(1);
-                    const float curr_table_wnd_height = ImGui::GetWindowHeight();
-                    if (table_wnd_height != curr_table_wnd_height) {
-                        table_wnd_height = curr_table_wnd_height;
-                        // require extra frame to hide the table scroll bar (bug in imgui)
-                        imgui.set_requires_extra_frame();
-                    }
                     imgui.end();
                 }
 
