@@ -1802,10 +1802,10 @@ void PreferencesDialog::create_shortcuts_page()
     std::vector<wxString> mouse_supported;
     Split(app_config->get("mouse_supported"), "/", mouse_supported);
 
-    auto item_rotate_view = create_item_multiple_combobox(_L("Rotate of view"), _L("Rotate of view"), "rotate_view", keyboard_supported,
+    auto item_rotate_view = create_item_multiple_combobox(_L("Rotate view"), _L("Rotate view"), "rotate_view", keyboard_supported,
                                                                mouse_supported);
-    auto item_move_view   = create_item_multiple_combobox(_L("Move of view"), _L("Move of view"), "move_view", keyboard_supported, mouse_supported);
-    auto item_zoom_view   = create_item_multiple_combobox(_L("Zoom of view"), _L("Zoom of view"), "rotate_view", keyboard_supported, mouse_supported);
+    auto item_move_view   = create_item_multiple_combobox(_L("Pan view"), _L("Pan view"), "move_view", keyboard_supported, mouse_supported);
+    auto item_zoom_view   = create_item_multiple_combobox(_L("Zoom view"), _L("Zoom view"), "rotate_view", keyboard_supported, mouse_supported);
 
     auto title_other = create_item_title(_L("Other"));
     auto item_other  = create_item_checkbox(_L("Mouse wheel reverses when zooming"), _L("Mouse wheel reverses when zooming"), "mouse_wheel");
