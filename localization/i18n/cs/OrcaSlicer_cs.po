@@ -39,8 +39,8 @@ msgid ""
 "pull maintenance on the printer."
 
 msgstr ""
-„Před tiskem z TPU proveďte cold pull, abyste předešli ucpání trysky."
-"Na tiskárně můžete provést údržbu pomocí metody cold pull.“
+"Před tiskem z TPU proveďte cold pull, abyste předešli ucpání trysky."
+"Na tiskárně můžete provést údržbu pomocí metody cold pull."
 
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
@@ -58,8 +58,8 @@ msgid ""
 "particularly on the internal components of the AMS Lite."
 
 msgstr ""
-„Hrubý povrch PLA Glow může urychlit opotřebení systému AMS"
-"zejména vnitřních součástí AMS Lite.“
+"Hrubý povrch PLA Glow může urychlit opotřebení systému AMS"
+"zejména vnitřních součástí AMS Lite."
 
 msgid ""
 "CF/GF filaments are hard and brittle, it's easy to break or get stuck in "
@@ -311,7 +311,7 @@ msgstr "Vybrané resetuj"
 msgid ""
 "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 msgstr ""
-„Varování: Fuzzy skin je vypnuta, malovaná fuzzy skin se neprojeví!“
+"Varování: Fuzzy skin je vypnuta, malovaná fuzzy skin se neprojeví!"
 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Povolit malovanou (ručně aplikovanou) fuzzy skin pro tento objekt."
@@ -1826,8 +1826,8 @@ msgid ""
 "OrcaSlicer and try again."
 
 msgstr ""
-„Certifikát vypršel. Zkontrolujte nastavení času nebo aktualizujte OrcaSlicer"
-"a zkuste to znovu.“
+"Certifikát vypršel. Zkontrolujte nastavení času nebo aktualizujte OrcaSlicer"
+"a zkuste to znovu."
 
 msgid ""
 "The certificate is no longer valid and the printing functions are "
