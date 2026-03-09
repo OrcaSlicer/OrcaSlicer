@@ -60,6 +60,7 @@ public:
     ~PreferencesDialog();
 
     wxString m_backup_interval_time;
+    wxTimer m_filament_height_timer;
 
     void      create();
 
@@ -105,6 +106,8 @@ public:
     void create_sync_page();
     void create_shortcuts_page();
     wxBoxSizer* create_debug_page();
+
+    void UpdateSidebarLayout();
 
     // BBS
     void create_select_domain_widget();

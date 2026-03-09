@@ -592,6 +592,14 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
         e.Skip();
     });
 
+    input->Bind(wxEVT_SPINCTRL, [this, param, input, onchange](wxCommandEvent& e) {
+        auto value = input->GetValue();
+        app_config->set(param, std::to_string(value));
+        app_config->save();
+        if (onchange != nullptr) onchange(value);
+        e.Skip();
+    });
+
     input->Bind(wxEVT_KILL_FOCUS, [this, param, input, onchange](wxFocusEvent &e) {
         auto value = input->GetValue();
         app_config->set(param, std::to_string(value));
@@ -1398,7 +1406,13 @@ void PreferencesDialog::create_items()
         "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
     g_sizer->Add(item_filament_preset_grouping);
 
-    auto item_filament_area_height = create_item_spinctrl(_L("Optimize filaments area height for..."), _L("(Requires restart)"), _L("filaments"), _L("Optimizes filament area maximum height by chosen filament count."), "filaments_area_preferred_count", 8, 99);
+    // prevent burst calling on keyboard / spin events
+    m_filament_height_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+        wxGetApp().plater()->sidebar().update_filaments_area_height();
+        UpdateSidebarLayout();
+    });
+    auto item_filament_area_height = create_item_spinctrl(_L("Optimize filaments area height for..."), "", _L("filaments"), _L("Optimizes filament area maximum height by chosen filament count."),
+        "filaments_area_preferred_count", 8, 99, [this](int value) {m_filament_height_timer.StartOnce(500);});
     g_sizer->Add(item_filament_area_height); 
 
     //// GENERAL > Features
@@ -1948,6 +1962,24 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
     bSizer->Add(debug_button, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(15));
 
     return bSizer;
+}
+
+void PreferencesDialog::UpdateSidebarLayout()
+{
+    Plater* plater = wxGetApp().plater();
+    if (!plater) return;
+
+    Sidebar& sidebar = plater->sidebar();
+
+    sidebar.Freeze();
+
+    sidebar.Layout();
+    //plater->Layout();
+    //wxGetApp().mainframe->Layout();
+
+    sidebar.Thaw();
+
+    plater->PostSizeEvent();
 }
 
 }} // namespace Slic3r::GUI
