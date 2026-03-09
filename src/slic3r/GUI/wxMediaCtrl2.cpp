@@ -123,7 +123,7 @@ void wxMediaCtrl2::Load(wxURI url)
                 });
             } else {
                 CallAfter([] {
-                    wxMessageBox(_L("Missing BambuSource component registered for media playing! Please re-install BambuStudio or seek after-sales help."), _L("Error"), wxOK);
+                    wxMessageBox(_L("Missing BambuSource component registered for media playing! Please re-install OrcaSlicer or seek community help."), _L("Error"), wxOK);
                 });
             }
             m_error = clsid != CLSID_BAMBU_SOURCE ? 101 : path.empty() ? 102 : 103;

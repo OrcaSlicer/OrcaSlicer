@@ -48,14 +48,7 @@ wxBoxSizer* ObjColorDialog::create_btn_sizer(long flags,bool exist_error)
     if (!exist_error) {
         btn_sizer->AddSpacer(FromDIP(25));
         auto *tips = new HyperLink(this, _L("Wiki Guide")); // ORCA
-        tips->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
-            bool is_zh = wxGetApp().app_config->get("language") == "zh_CN";
-            if (is_zh) {
-                wxLaunchDefaultBrowser("https://wiki.bambulab.com/zh/software/bambu-studio/import_obj");
-            } else {
-                wxLaunchDefaultBrowser("https://wiki.bambulab.com/en/software/bambu-studio/import_obj");
-            }
-        });
+        tips->SetURL("https://www.orcaslicer.com/wiki/general-settings/import_export.html#obj");
         btn_sizer->Add(tips, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
     }
     btn_sizer->AddStretchSpacer();
