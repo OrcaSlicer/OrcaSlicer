@@ -903,9 +903,21 @@ void Tab::filter_diff_option(std::vector<std::string> &options)
                 break;
             }
         }
-        if (!found) opt = opt.substr(0, hash_pos);
+        if (found) continue;
+
+        // Keep key#index if that exact option is tracked.
+        if (m_options_list.find(opt) != m_options_list.end())
+            continue;
+
+        const std::string base = opt.substr(0, hash_pos);
+        const std::string idx0 = base + "#0";
+        if (m_options_list.find(idx0) != m_options_list.end()) {
+            opt = idx0;
+            continue;
+        }
+        if (m_options_list.find(base) != m_options_list.end())
+            opt = base;
     }
-    options.erase(std::remove(options.begin(), options.end(), ""), options.end());
 }
 
 // Update UI according to changes
@@ -988,10 +1000,15 @@ void TabPrinter::init_options_list()
     if (m_printer_technology == ptFFF)
         m_options_list.emplace("extruders_count", m_opt_status_value);
     for (size_t i = 1; i < m_extruders_count; ++i) {
-        auto extruder_page = m_pages[3 + i];
-        for (auto group : extruder_page->m_optgroups) {
-            for (auto & opt : group->opt_map())
-                m_options_list.emplace(opt.first, m_opt_status_value);
+        wxString target_title = wxString::Format("Extruder %d", int(i + 1));
+        for (auto &page : m_pages) {
+            if (page->title() == target_title) {
+                for (auto group : page->m_optgroups) {
+                    for (auto &opt : group->opt_map())
+                        m_options_list.emplace(opt.first, m_opt_status_value);
+                }
+                break;
+            }
         }
     }
 }
@@ -2441,7 +2458,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("ensure_vertical_shell_thickness", "strength_settings_advanced#ensure-vertical-shell-thickness");
 
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
-        optgroup = page->new_optgroup(L("Initial layer speed"), L"param_speed_first", 15);
+        optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
         optgroup->append_single_option_line("initial_layer_speed", "speed_settings_initial_layer_speed#initial-layer");
         optgroup->append_single_option_line("initial_layer_infill_speed", "speed_settings_initial_layer_speed#initial-layer-infill");
         optgroup->append_single_option_line("initial_layer_travel_speed", "speed_settings_initial_layer_speed#initial-layer-travel-speed");

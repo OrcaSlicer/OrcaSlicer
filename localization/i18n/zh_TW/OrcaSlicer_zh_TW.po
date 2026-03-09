@@ -4039,7 +4039,7 @@ msgstr ""
 "將重設為 0.1"
 
 msgid ""
-"Zero initial layer height is invalid.\n"
+"Zero first layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
@@ -9503,7 +9503,7 @@ msgstr "牆"
 msgid "Top/bottom shells"
 msgstr "頂部/底部外殼"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "首層速度"
 
 msgid "Other layers speed"
@@ -10520,13 +10520,13 @@ msgstr "顯示鍵盤快捷鍵清單"
 msgid "Global shortcuts"
 msgstr "全域快捷鍵"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "移動視角"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "旋轉視角"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "縮放視角"
 
 msgid ""
@@ -10953,7 +10953,7 @@ msgid "Open G-code file:"
 msgstr "打開 G-code 檔案："
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr "模型出現空層無法列印。請切掉底部或打開支撐。"
 
@@ -11474,7 +11474,7 @@ msgid "Elephant foot compensation"
 msgstr "象腳補償"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr "將首層收縮用於補償象腳效應"
 
@@ -11663,39 +11663,39 @@ msgid ""
 "filament does not support printing on the Textured PEI Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "首層"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "首層床溫"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate SuperTack."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫增穩列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫紋理列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Engineering Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於工程列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the High Temp Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於高溫列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured PEI Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
@@ -13791,7 +13791,7 @@ msgstr ""
 "行計算。"
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr "首層加速度。使用較低值可以改善和列印板的黏附"
 
@@ -13832,38 +13832,39 @@ msgstr "頂面抖動值"
 msgid "Jerk for infill."
 msgstr "填充抖動"
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr "首層抖動值"
 
 msgid "Jerk for travel."
 msgstr "空駛抖動值"
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr "首層的線寬。如果以 % 表示，它將以噴嘴直徑為基準來計算。"
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "首層層高"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr "首層層高"
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr "首層除實心填充之外的其他部分的列印速度"
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "首層填充"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "首層實心填充的列印速度"
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr "首層空駛速度"
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr "首層空駛速度"
 
 msgid "Number of slow layers"
@@ -13874,10 +13875,11 @@ msgid ""
 "increased in a linear fashion over the specified number of layers."
 msgstr "減慢前幾層的列印速度。列印速度會逐漸加速到滿速。"
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "首層列印溫度"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr "列印首層時的噴嘴溫度"
 
 msgid "Full fan speed at layer"
@@ -15256,13 +15258,13 @@ msgstr "筏層擴展"
 msgid "Expand all raft layers in XY plane."
 msgstr "在 XY 平面擴展所有筏層"
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "首層密度"
 
 msgid "Density of the first raft or support layer."
 msgstr "筏和支撐的首層密度"
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "首層擴展"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -17624,10 +17626,10 @@ msgid ""
 msgstr ""
 "第一層凸包的點向量。每個元素格式為：'[x, y]'（x 和 y 是以mm為單位的實數）。"
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr "第一層邊界左下角"
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr "第一層邊界右上角"
 
 msgid "Size of the first layer bounding box"
