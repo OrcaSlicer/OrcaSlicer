@@ -2461,7 +2461,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("When enabled, the extrusion flow is limited by the smaller of "
         "the fitted value (calculated from line width and layer height) and the user-defined maximum flow."
         " When disabled, only the user-defined maximum flow is applied.\n\n"
-        "Note: Experimental and incomplete feature imported from BBS. Functional for some profiles that already have the variable saved..");
+        "Note: Experimental and incomplete feature imported from BBS. Functional for some profiles that already have the variable saved.");
     def->mode = comDevelop;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable {false});
