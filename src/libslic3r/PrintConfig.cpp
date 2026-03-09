@@ -439,7 +439,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangFanThreshold)
 // BBS
 static const t_config_enum_values s_keys_map_BedType = {
     { "Default Plate",      btDefault },
-    { "Supertack Plate",    btSuperTack },
+    { "SuperTack Plate",    btSuperTack },
     { "Cool Plate",         btPC },
     { "Engineering Plate",  btEP  },
     { "High Temp Plate",    btPEI  },
@@ -673,7 +673,7 @@ void PrintConfigDef::init_common_params()
     def = this->add("elefant_foot_compensation", coFloat);
     def->label = L("Elephant foot compensation");
     def->category = L("Quality");
-    def->tooltip = L("Shrinks the initial layer on build plate to compensate for elephant foot effect.");
+    def->tooltip = L("Shrinks the first layer on build plate to compensate for elephant foot effect.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -926,9 +926,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{45});
 
     def = this->add("supertack_plate_temp_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer bed temperature");
-    def->tooltip = L("Bed temperature of the initial layer. "
+    def->label = L("First layer");
+    def->full_label = L("First layer bed temperature");
+    def->tooltip = L("Bed temperature of the first layer. "
                      "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
@@ -936,9 +936,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{ 35 });
 
     def = this->add("cool_plate_temp_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer bed temperature");
-    def->tooltip = L("Bed temperature of the initial layer. "
+    def->label = L("First layer");
+    def->full_label = L("First layer bed temperature");
+    def->tooltip = L("Bed temperature of the first layer. "
                      "A value of 0 means the filament does not support printing on the Cool Plate.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
@@ -946,9 +946,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{ 35 });
 
     def = this->add("textured_cool_plate_temp_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer bed temperature");
-    def->tooltip = L("Bed temperature of the initial layer. "
+    def->label = L("First layer");
+    def->full_label = L("First layer bed temperature");
+    def->tooltip = L("Bed temperature of the first layer. "
                      "A value of 0 means the filament does not support printing on the Textured Cool Plate.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
@@ -956,9 +956,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{ 40 });
 
     def = this->add("eng_plate_temp_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer bed temperature");
-    def->tooltip = L("Bed temperature of the initial layer. "
+    def->label = L("First layer");
+    def->full_label = L("First layer bed temperature");
+    def->tooltip = L("Bed temperature of the first layer. "
                      "A value of 0 means the filament does not support printing on the Engineering Plate.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
@@ -966,18 +966,18 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{ 45 });
 
     def = this->add("hot_plate_temp_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer bed temperature");
-    def->tooltip = L("Bed temperature of the initial layer. "
+    def->label = L("First layer");
+    def->full_label = L("First layer bed temperature");
+    def->tooltip = L("Bed temperature of the first layer. "
                      "A value of 0 means the filament does not support printing on the High Temp Plate.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 45 });
 
     def = this->add("textured_plate_temp_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer bed temperature");
-    def->tooltip = L("Bed temperature of the initial layer. "
+    def->label = L("First layer");
+    def->full_label = L("First layer bed temperature");
+    def->tooltip = L("Bed temperature of the first layer. "
                      "A value of 0 means the filament does not support printing on the Textured PEI Plate.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
@@ -995,7 +995,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("High Temp Plate");
     def->enum_values.emplace_back("Textured PEI Plate");
     def->enum_values.emplace_back("Textured Cool Plate");
-    def->enum_values.emplace_back("Supertack Plate");
+    def->enum_values.emplace_back("SuperTack Plate");
     def->enum_labels.emplace_back(L("Smooth Cool Plate"));
     def->enum_labels.emplace_back(L("Engineering Plate"));
     def->enum_labels.emplace_back(L("Smooth High Temp Plate"));
@@ -1829,7 +1829,7 @@ void PrintConfigDef::init_fff_params()
                      "unnecessary bridges. This works well for most difficult models\n"
                      "3. No filtering - creates internal bridges on every potential internal overhang. This option is "
                      "useful for heavily slanted top surface models; however, in most cases, it creates too many "
-                     "unnecessary bridges");
+                     "unnecessary bridges.");
     def->enum_keys_map = &ConfigOptionEnum<InternalBridgeFilter>::get_enum_values();
     def->enum_values.push_back("disabled");
     def->enum_values.push_back("limited");
@@ -2208,7 +2208,7 @@ void PrintConfigDef::init_fff_params()
                      "at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. "
                      "If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, "
                      "the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
-                     "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile");
+                     "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile.");
     def->mode = comAdvanced;
     //def->gui_flags = "serialized";
     def->multiline = true;
@@ -2460,8 +2460,9 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Adaptive volumetric speed");
     def->tooltip = L("When enabled, the extrusion flow is limited by the smaller of "
         "the fitted value (calculated from line width and layer height) and the user-defined maximum flow."
-        " When disabled, only the user-defined maximum flow is applied.");
-    def->mode = comAdvanced;
+        " When disabled, only the user-defined maximum flow is applied.\n\n"
+        "Note: Experimental and incomplete feature imported from BBS. Functional for some profiles that already have the variable saved.");
+    def->mode = comDevelop;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable {false});
 
@@ -3012,9 +3013,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
     def = this->add("initial_layer_acceleration", coFloat);
-    def->label = L("Initial layer");
+    def->label = L("First layer");
     def->category = L("Speed");
-    def->tooltip = L("Acceleration of initial layer. Using a lower value can improve build plate adhesion.");
+    def->tooltip = L("Acceleration of the first layer. Using a lower value can improve build plate adhesion.");
     def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3093,9 +3094,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(9));
 
     def = this->add("initial_layer_jerk", coFloat);
-    def->label = L("Initial layer");
+    def->label = L("First layer");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for initial layer.");
+    def->tooltip = L("Jerk for the first layer.");
     def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3111,9 +3112,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(12));
 
     def = this->add("initial_layer_line_width", coFloatOrPercent);
-    def->label = L("Initial layer");
+    def->label = L("First layer");
     def->category = L("Quality");
-    def->tooltip = L("Line width of initial layer. If expressed as a %, it will be computed over the nozzle diameter.");
+    def->tooltip = L("Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -3124,9 +3125,9 @@ void PrintConfigDef::init_fff_params()
 
 
     def = this->add("initial_layer_print_height", coFloat);
-    def->label = L("Initial layer height");
+    def->label = L("First layer height");
     def->category = L("Quality");
-    def->tooltip = L("Height of initial layer. Making initial layer height to be thick slightly can improve build plate adhesion.");
+    def->tooltip = L("Height of the first layer. Making the first layer height thicker can improve build plate adhesion.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.2));
@@ -3140,24 +3141,24 @@ void PrintConfigDef::init_fff_params()
     //def->set_default_value(new ConfigOptionBool(0));
 
     def = this->add("initial_layer_speed", coFloat);
-    def->label = L("Initial layer");
-    def->tooltip = L("Speed of initial layer except the solid infill part.");
+    def->label = L("First layer");
+    def->tooltip = L("Speed of the first layer except the solid infill part.");
     def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(30));
 
     def = this->add("initial_layer_infill_speed", coFloat);
-    def->label = L("Initial layer infill");
-    def->tooltip = L("Speed of solid infill part of initial layer.");
+    def->label = L("First layer infill");
+    def->tooltip = L("Speed of solid infill part of the first layer.");
     def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(60.0));
 
     def = this->add("initial_layer_travel_speed", coFloatOrPercent);
-    def->label = L("Initial layer travel speed");
-    def->tooltip = L("Travel speed of initial layer.");
+    def->label = L("First layer travel speed");
+    def->tooltip = L("Travel speed of the first layer.");
     def->category = L("Speed");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "travel_speed";
@@ -3176,9 +3177,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("nozzle_temperature_initial_layer", coInts);
-    def->label = L("Initial layer");
-    def->full_label = L("Initial layer nozzle temperature");
-    def->tooltip = L("Nozzle temperature for printing initial layer when using this filament.");
+    def->label = L("First layer");
+    def->full_label = L("First layer nozzle temperature");
+    def->tooltip = L("Nozzle temperature for printing the first layer when using this filament.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;
@@ -3632,7 +3633,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
     def->tooltip = L("Enable this to add comments into the G-code labeling print moves with what object they belong to,"
-                   " which is useful for the Octoprint CancelObject plugin. This settings is NOT compatible with "
+                   " which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with "
                    "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(1));
@@ -3963,7 +3964,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Ironing Type");
     def->category = L("Quality");
     def->tooltip = L("Ironing is using small flow to print on same height of surface again to make flat surface more smooth. "
-                     "This setting controls which layer being ironed");
+                     "This setting controls which layer being ironed.");
     def->enum_keys_map = &ConfigOptionEnum<IroningType>::get_enum_values();
     def->enum_values.push_back("no ironing");
     def->enum_values.push_back("top");
@@ -4672,7 +4673,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(1.5));
 
     def = this->add("raft_first_layer_density", coPercent);
-    def->label = L("Initial layer density");
+    def->label = L("First layer density");
     def->category = L("Support");
     def->tooltip = L("Density of the first raft or support layer.");
     def->sidetext = "%";
@@ -4682,7 +4683,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionPercent(90));
 
     def = this->add("raft_first_layer_expansion", coFloat);
-    def->label = L("Initial layer expansion");
+    def->label = L("First layer expansion");
     def->category = L("Support");
     def->tooltip = L("Expand the first raft or support layer to improve bed plate adhesion.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
@@ -5398,7 +5399,7 @@ void PrintConfigDef::init_fff_params()
                      "If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed "
                      "and then take a snapshot. "
                      "Since the melt filament may leak from the nozzle during the process of taking a snapshot, "
-                     "prime tower is required for smooth mode to wipe nozzle.");
+                     "a prime tower is required for smooth mode to wipe nozzle.");
     def->enum_keys_map = &ConfigOptionEnum<TimelapseType>::get_enum_values();
     def->enum_values.emplace_back("0");
     def->enum_values.emplace_back("1");
@@ -5413,7 +5414,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Temperature difference to be applied when an extruder is not active. "
                      "The value is not used when 'idle_temperature' in filament settings "
                      "is set to non-zero value.");
-    def->sidetext = L(u8"∆\u2103");	// delta degrees Celsius, CIS languages need translation
+    def->sidetext = L(u8"\u2206\u2103" /* ∆°C */);	// delta degrees Celsius, CIS languages need translation
     def->min = -max_temp;
     def->max = max_temp;
     def->mode = comAdvanced;
@@ -6396,9 +6397,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("rectangle");
     def->enum_values.emplace_back("cone");
     def->enum_values.emplace_back("rib");
-    def->enum_labels.emplace_back("Rectangle");
-    def->enum_labels.emplace_back("Cone");
-    def->enum_labels.emplace_back("Rib");
+    def->enum_labels.emplace_back(L("Rectangle"));
+    def->enum_labels.emplace_back(L("Cone"));
+    def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
 
@@ -6773,6 +6774,7 @@ void PrintConfigDef::init_extruder_option_keys()
     // ConfigOptionFloats, ConfigOptionPercents, ConfigOptionBools, ConfigOptionStrings
     m_extruder_option_keys = {
         "extruder_type", "nozzle_diameter", "default_nozzle_volume_type", "min_layer_height", "max_layer_height", "extruder_offset",
+        "extruder_printable_height", "nozzle_volume", "nozzle_type", "nozzle_flush_dataset",
         "retraction_length", "z_hop", "z_hop_types", "travel_slope", "retract_lift_above", "retract_lift_below", "retract_lift_enforce", "retraction_speed", "deretraction_speed",
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "extruder_colour",
@@ -10171,7 +10173,7 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("downward_settings", coStrings);
-    def->label = L("downward machines settings");
+    def->label = L("Downward machines settings");
     def->tooltip = L("The machine settings list needs to do downward checking.");
     def->cli_params = "\"machine1.json;machine2.json;...\"";
     def->set_default_value(new ConfigOptionStrings());
@@ -10517,11 +10519,11 @@ DimensionsConfigDef::DimensionsConfigDef()
                      "'[x, y]' (x and y are floating-point numbers in mm).");
 
     def = this->add("first_layer_print_min", coFloats);
-    def->label = L("Bottom-left corner of first layer bounding box");
+    def->label = L("Bottom-left corner of the first layer bounding box");
     def->tooltip = point_tooltip;
 
     def = this->add("first_layer_print_max", coFloats);
-    def->label = L("Top-right corner of first layer bounding box");
+    def->label = L("Top-right corner of the first layer bounding box");
     def->tooltip = point_tooltip;
 
     def = this->add("first_layer_print_size", coFloats);
@@ -10549,8 +10551,8 @@ TemperaturesConfigDef::TemperaturesConfigDef()
     ConfigOptionDef* def;
 
     new_def("bed_temperature", coInts, "Bed temperature", "Vector of bed temperatures for each extruder/filament.")
-    new_def("bed_temperature_initial_layer", coInts, "Initial layer bed temperature", "Vector of initial layer bed temperatures for each extruder/filament. Provides the same value as first_layer_bed_temperature.")
-    new_def("bed_temperature_initial_layer_single", coInt, "Initial layer bed temperature (initial extruder)", "Initial layer bed temperature for the initial extruder. Same as bed_temperature_initial_layer[initial_extruder]")
+    new_def("bed_temperature_initial_layer", coInts, "First layer bed temperature", "Vector of first layer bed temperatures for each extruder/filament. Provides the same value as first_layer_bed_temperature.")
+    new_def("bed_temperature_initial_layer_single", coInt, "First layer bed temperature (initial extruder)", "First layer bed temperature for the initial extruder. Same as bed_temperature_initial_layer[initial_extruder]")
     new_def("chamber_temperature", coInts, "Chamber temperature", "Vector of chamber temperatures for each extruder/filament.")
     new_def("overall_chamber_temperature", coInt, "Overall chamber temperature", "Overall chamber temperature. This value is the maximum chamber temperature of any extruder/filament used.")
     new_def("first_layer_bed_temperature", coInts, "First layer bed temperature", "Vector of first layer bed temperatures for each extruder/filament. Provides the same value as bed_temperature_initial_layer.")

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-01 01:03+0800\n"
+"POT-Creation-Date: 2026-03-05 17:45-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -19,26 +19,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.8\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr "線材可能與目前的列印設備設定不相容，將使用一般線材預設。"
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr "線材型號未知，將繼續使用先前的線材預設。"
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr "線材型號未知，將使用一般線材預設。"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr "線材可能與目前的列印設備設定不相容，將使用隨機線材預設。"
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr "線材型號未知，將使用隨機線材預設。"
 
 msgid "right"
 msgstr "右"
@@ -1555,6 +1535,30 @@ msgstr "平行距離："
 msgid "Flip by Face 2"
 msgstr "通過面 2 翻轉"
 
+msgid "Assemble"
+msgstr "組合"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "通知"
 
@@ -1591,6 +1595,54 @@ msgstr "設定檔「%1%」 已被載入，但部分數值無法識別。"
 msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "基於 PrusaSlicer 與 BambuStudio 開發"
 
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "紋理"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
+msgstr ""
+
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
 "It will be appreciated if you report the issue to our team."
@@ -1618,10 +1670,10 @@ msgstr "Orca Slicer 遭遇到一個未處理的例外：%1%"
 msgid "Untitled"
 msgstr "未命名"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr "正在重新載入網路外掛程式..."
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr "正在下載網路外掛程式"
 
 msgid "Downloading Bambu Network Plug-in"
@@ -1713,6 +1765,9 @@ msgstr "選擇 ZIP 檔"
 msgid "Choose one file (GCODE/3MF):"
 msgstr "選擇一個檔案（GCODE/3MF）："
 
+msgid "Ext"
+msgstr "擠出機"
+
 msgid "Some presets are modified."
 msgstr "部分預設已被修改。"
 
@@ -1778,7 +1833,7 @@ msgstr ""
 "\n"
 "開發者模式允許列印設備僅透過區域網路存取運作，以實現 OrcaSlicer 的完整功能。"
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr "網路外掛程式限制"
 
 msgid "Privacy Policy Update"
@@ -2013,6 +2068,9 @@ msgstr ""
 "是 - 自動更改這些設定\n"
 "否 - 不為我更改這些設定"
 
+msgid "Suggestion"
+msgstr ""
+
 msgid "Text"
 msgstr "文字"
 
@@ -2121,9 +2179,6 @@ msgstr "從公尺轉換"
 
 msgid "Restore to meters"
 msgstr "恢復到公尺"
-
-msgid "Assemble"
-msgstr "組合"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "組合所選物件為一個多零件物件"
@@ -2617,6 +2672,10 @@ msgstr "多色列印"
 msgid "Line Type"
 msgstr "走線類型"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "詳情"
 
@@ -2734,8 +2793,8 @@ msgstr "請檢查列印設備與 Orca Slicer 的網路連接。"
 msgid "Connecting..."
 msgstr "連接中..."
 
-msgid "Auto-refill"
-msgstr "自動補料"
+msgid "Auto Refill"
+msgstr "自動補充"
 
 msgid "Load"
 msgstr "匯入"
@@ -3120,6 +3179,38 @@ msgid ""
 "Storage before sending to printer."
 msgstr "列印設備中的儲存空間為唯讀。請在傳送到列印設備前更換為正常的儲存空間。"
 
+msgid "Bad input data for EmbossCreateObjectJob."
+msgstr ""
+
+msgid "Add Emboss text object"
+msgstr ""
+
+msgid "Bad input data for EmbossUpdateJob."
+msgstr ""
+
+msgid "Created text volume is empty. Change text or font."
+msgstr ""
+
+msgid "Bad input data for CreateSurfaceVolumeJob."
+msgstr ""
+
+msgid "Bad input data for UseSurfaceJob."
+msgstr ""
+
+#. TRN: This is the title of the action appearing in undo/redo stack.
+#. It is same for Text and SVG.
+msgid "Emboss attribute change"
+msgstr ""
+
+msgid "Add Emboss text Volume"
+msgstr ""
+
+msgid "Font doesn't have any shape for given text."
+msgstr ""
+
+msgid "There is no valid surface for text projection."
+msgstr ""
+
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "首層優化的熱預調節"
 
@@ -3451,9 +3542,6 @@ msgstr "右噴嘴"
 msgid "Nozzle"
 msgstr "噴嘴"
 
-msgid "Ext"
-msgstr "擠出機"
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3522,9 +3610,6 @@ msgstr "使用 AMS 裡的線材列印"
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "使用掛在機箱背部的線材列印"
 
-msgid "Auto Refill"
-msgstr "自動補充"
-
 msgid "Left"
 msgstr "左面"
 
@@ -3536,8 +3621,8 @@ msgid ""
 "following order."
 msgstr "當目前線材用完時，列印設備將按照以下順序繼續列印。"
 
-msgid "Identical filament: same brand, type and color"
-msgstr "相同線材：相同品牌、類型和顏色"
+msgid "Identical filament: same brand, type and color."
+msgstr "相同線材：相同品牌、類型和顏色。"
 
 msgid "Group"
 msgstr "組"
@@ -3669,8 +3754,8 @@ msgid "Calibration"
 msgstr "校正"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr "外掛程式下載失敗。請檢查您的防火牆設定和 VPN 軟體，檢查後重試。"
 
 msgid ""
@@ -3685,8 +3770,8 @@ msgid "Click here to see more info"
 msgstr "點擊這裡查看更多資訊"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr "網路外掛程式已安裝但無法載入。請重新啟動應用程式。"
 
 msgid "Restart Required"
@@ -3854,9 +3939,6 @@ msgstr "從 STL 檔案載入形狀..."
 msgid "Settings"
 msgstr "設定"
 
-msgid "Texture"
-msgstr "紋理"
-
 msgid "Remove"
 msgstr "移除"
 
@@ -3957,7 +4039,7 @@ msgstr ""
 "將重設為 0.1"
 
 msgid ""
-"Zero initial layer height is invalid.\n"
+"Zero first layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
@@ -4068,6 +4150,7 @@ msgstr ""
 "重設為 0。seam_slope_start_height 必須小於 layer_height。\n"
 "重設為 0。"
 
+#, fuzzy, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4696,6 +4779,9 @@ msgstr "mm³/s"
 msgid "Fan speed"
 msgstr "風扇速度"
 
+msgid "°C"
+msgstr ""
+
 msgid "Time"
 msgstr "時間"
 
@@ -4852,7 +4938,7 @@ msgstr "實際速度（mm/s）"
 msgid "Fan Speed (%)"
 msgstr "風扇速度（%）"
 
-msgid "Temperature (℃)"
+msgid "Temperature (°C)"
 msgstr "溫度（℃）"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -5176,7 +5262,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5249,7 +5335,7 @@ msgstr "換料塔位置超出列印板邊界，已重新定位到最近的有效
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
-"mixing in models. Please redjust flushing settings."
+"mixing in models. Please readjust flushing settings."
 msgstr "部分沖洗體積設為 0。多色列印可能導致模型出現混色。請重新調整沖洗設定。"
 
 msgid "Click Wiki for help."
@@ -6064,9 +6150,9 @@ msgid ""
 "The .gcode.3mf file contains no G-code data. Please slice it with Orca "
 "Slicer and export a new .gcode.3mf file."
 msgstr ""
-".gcode.3mf 檔案不包含 G-code 資料。請使用 OrcaSlicer 切片並匯出新"
-"的 .gcode.3mf 檔案。.gcode.3mf 檔案中不包含 G-code 資料。請使用 Orca Slicer "
-"進行切片並匯出新的 .gcode.3mf 檔案。"
+".gcode.3mf 檔案不包含 G-code 資料。請使用 OrcaSlicer 切片並匯出新的 ."
+"gcode.3mf 檔案。.gcode.3mf 檔案中不包含 G-code 資料。請使用 Orca Slicer 進行"
+"切片並匯出新的 .gcode.3mf 檔案。"
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -6536,6 +6622,9 @@ msgstr ""
 "若要給予正面評價（4 或 5 星），\n"
 "必須至少有一個此列印設定檔的成功列印記錄。"
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "設備狀態"
 
@@ -6545,6 +6634,14 @@ msgstr "更新"
 
 msgid "Assistant(HMS)"
 msgstr "助手（HMS）"
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
+msgstr ""
 
 msgid "Don't show again"
 msgstr "不再顯示"
@@ -6913,7 +7010,7 @@ msgstr "重新整理中"
 msgid "Unavailable while heating maintenance function is on."
 msgstr "加熱維護功能啟用時無法使用。"
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "閒置加熱保護"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
@@ -7454,7 +7551,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "請解決切片錯誤後再重新發布。"
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr "未偵測到網路外掛程式。網路相關功能不可用。"
 
 msgid ""
@@ -8014,7 +8112,7 @@ msgstr "（需要重啟程式）"
 msgid "filaments"
 msgstr "線材"
 
-msgid "Optimizes filament area maximum height by chosen filament count"
+msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "根據選擇的線材數量優化線材區域最大高度"
 
 msgid "Features"
@@ -8208,33 +8306,33 @@ msgstr "線材與顏色"
 msgid "Color only"
 msgstr "僅顏色"
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "網路外掛程式"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "啟用網路外掛程式"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr "網路外掛程式版本"
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr "選擇要使用的網路外掛程式版本"
 
 msgid "(Latest)"
 msgstr "（最新版）"
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr "網路外掛程式切換成功。"
 
 msgid "Success"
 msgstr "成功"
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr "無法載入網路外掛程式。請重新啟動應用程式。"
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
@@ -8246,7 +8344,7 @@ msgstr ""
 "\n"
 "注意：安裝後應用程式可能需要重新啟動。"
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr "下載網路外掛程式"
 
 msgid "Associate files to OrcaSlicer"
@@ -8316,19 +8414,16 @@ msgstr "除錯"
 msgid "trace"
 msgstr "跟蹤"
 
-msgid "Network Plugin"
-msgstr "網路外掛程式"
-
 msgid "Reload"
 msgstr "重新載入"
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr "重新載入網路外掛程式而無需重新啟動應用程式"
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr "網路外掛程式重新載入成功。"
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr "無法重新載入網路外掛程式。請重新啟動應用程式。"
 
 msgid "Reload Failed"
@@ -8547,8 +8642,11 @@ msgstr "發布已取消"
 msgid "Slicing Plate 1"
 msgstr "正在切片列印板 1"
 
-msgid "Packing data to 3mf"
-msgstr "正在將資料打包至 3mf"
+msgid "Packing data to 3MF"
+msgstr ""
+
+msgid "Uploading data"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "跳至網頁"
@@ -8876,8 +8974,8 @@ msgstr "高溫平滑列印板"
 msgid "Textured PEI Plate"
 msgstr "紋理 PEI 列印板"
 
-msgid "Cool Plate (Supertack)"
-msgstr "低溫列印板（超強黏性版）"
+msgid "Cool Plate (SuperTack)"
+msgstr "低溫增穩列印板"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "如果無法連接到列印設備，請按一下此處"
@@ -9188,7 +9286,7 @@ msgid ""
 msgstr "同時啟用精確 Z 軸高度與換料塔功能，可能會讓換料塔變大。是否仍要啟用？"
 
 msgid ""
-"Prime tower is required for clumping detection. There may be flaws on the "
+"A prime tower is required for clumping detection. There may be flaws on the "
 "model without prime tower. Do you still want to enable clumping detection?"
 msgstr ""
 "堵塞偵測需要換料塔。若沒有換料塔，列印物件上可能會有瑕疵。您是否仍要啟用堵塞"
@@ -9306,8 +9404,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "在錄製無工具頭縮時錄影影片時，建議新增一個「縮時錄影換料塔」\n"
 "可以通過右鍵點擊構建板的空白位置，選擇『新增標準模型』->『縮時錄影換料塔』來"
@@ -9405,7 +9503,7 @@ msgstr "牆"
 msgid "Top/bottom shells"
 msgstr "頂部/底部外殼"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "首層速度"
 
 msgid "Other layers speed"
@@ -9512,9 +9610,6 @@ msgstr "列印溫度"
 
 msgid "Nozzle temperature when printing"
 msgstr "列印時的噴嘴溫度"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "低溫增穩列印板"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -9954,6 +10049,12 @@ msgstr "顯示所有預設（包括不相容的）"
 msgid "Select presets to compare"
 msgstr "選擇要比較的預設"
 
+msgid "Left Preset Value"
+msgstr ""
+
+msgid "Right Preset Value"
+msgstr ""
+
 msgid ""
 "You can only transfer to current active profile because it has been modified."
 msgstr "因為目前的設定檔已被修改，您只能轉移到目前啟用的設定檔。"
@@ -10383,6 +10484,12 @@ msgstr "點擊下載。"
 msgid "Login"
 msgstr "登入"
 
+msgid "[Action Required] "
+msgstr ""
+
+msgid "[Action Required]"
+msgstr ""
+
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "設定檔在之前的設定引導過程中已改變"
 
@@ -10413,13 +10520,13 @@ msgstr "顯示鍵盤快捷鍵清單"
 msgid "Global shortcuts"
 msgstr "全域快捷鍵"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "移動視角"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "旋轉視角"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "縮放視角"
 
 msgid ""
@@ -10846,7 +10953,7 @@ msgid "Open G-code file:"
 msgstr "打開 G-code 檔案："
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr "模型出現空層無法列印。請切掉底部或打開支撐。"
 
@@ -11077,7 +11184,7 @@ msgid ""
 msgstr "啟用“按物件”序列時，不支援結塊檢測。"
 
 msgid ""
-"Prime tower is required for clumping detection; otherwise, there may be "
+"A prime tower is required for clumping detection; otherwise, there may be "
 "flaws on the model."
 msgstr "結塊檢測需要 Prime 塔；否則，模型可能存在缺陷。"
 
@@ -11367,7 +11474,7 @@ msgid "Elephant foot compensation"
 msgstr "象腳補償"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr "將首層收縮用於補償象腳效應"
 
@@ -11556,39 +11663,39 @@ msgid ""
 "filament does not support printing on the Textured PEI Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "首層"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "首層床溫"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate SuperTack."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫增穩列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫紋理列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Engineering Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於工程列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the High Temp Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於高溫列印板"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured PEI Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
@@ -12495,7 +12602,7 @@ msgid ""
 "models\n"
 "3. No filtering - creates internal bridges on every potential internal "
 "overhang. This option is useful for heavily slanted top surface models; "
-"however, in most cases, it creates too many unnecessary bridges"
+"however, in most cases, it creates too many unnecessary bridges."
 msgstr ""
 "此選項可幫助降低在高度傾斜或曲面模型上的頂部表面起皺問題。\n"
 "預設情況下，小型內部橋接會被過濾掉，內部實心填充會直接列印在稀疏填充上。這種"
@@ -12938,7 +13045,7 @@ msgid ""
 "less acceleration you print, the larger the range of acceptable PA values. "
 "If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box "
-"here and save your filament profile"
+"here and save your filament profile."
 msgstr ""
 "新增壓力補償 (PA) 值、體積流速和加速度的資料集，使用逗號分隔。每行一組資料。"
 "例如：\n"
@@ -13669,8 +13776,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 或 %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "稀疏填充的加速度。如果該值表示為百分比（例如 100%），則將根據預設加速度進行計"
 "算。"
@@ -13684,7 +13791,7 @@ msgstr ""
 "行計算。"
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr "首層加速度。使用較低值可以改善和列印板的黏附"
 
@@ -13725,38 +13832,39 @@ msgstr "頂面抖動值"
 msgid "Jerk for infill."
 msgstr "填充抖動"
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr "首層抖動值"
 
 msgid "Jerk for travel."
 msgstr "空駛抖動值"
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr "首層的線寬。如果以 % 表示，它將以噴嘴直徑為基準來計算。"
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "首層層高"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr "首層層高"
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr "首層除實心填充之外的其他部分的列印速度"
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "首層填充"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "首層實心填充的列印速度"
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr "首層空駛速度"
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr "首層空駛速度"
 
 msgid "Number of slow layers"
@@ -13767,10 +13875,11 @@ msgid ""
 "increased in a linear fashion over the specified number of layers."
 msgstr "減慢前幾層的列印速度。列印速度會逐漸加速到滿速。"
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "首層列印溫度"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr "列印首層時的噴嘴溫度"
 
 msgid "Full fan speed at layer"
@@ -13778,10 +13887,10 @@ msgstr "滿速風扇在"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "風扇速度會從第「close_fan_the_first_x_layers」層開始，從零速以線性方式逐漸增"
 "加，直到第「full_fan_speed_layer」層達到最大速度。如果"
@@ -14258,9 +14367,9 @@ msgstr "標註物件"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "啟用此選項可將註解新增至 G-code 中，標記列印移動及其所屬物件，這對於 "
 "Octoprint CancelObject 外掛程式非常有用。此設定與單擠出機多色設定和擦除到物"
@@ -14571,7 +14680,7 @@ msgstr "熨燙類型"
 
 msgid ""
 "Ironing is using small flow to print on same height of surface again to make "
-"flat surface more smooth. This setting controls which layer being ironed"
+"flat surface more smooth. This setting controls which layer being ironed."
 msgstr ""
 "熨燙是指使用小流量在表面相同高度再次列印，以使平面更加光滑。此設定控制哪些層"
 "進行熨燙"
@@ -15149,13 +15258,13 @@ msgstr "筏層擴展"
 msgid "Expand all raft layers in XY plane."
 msgstr "在 XY 平面擴展所有筏層"
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "首層密度"
 
 msgid "Density of the first raft or support layer."
 msgstr "筏和支撐的首層密度"
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "首層擴展"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -15521,8 +15630,8 @@ msgid "Role base wipe speed"
 msgstr "自動擦拭速度"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15758,7 +15867,7 @@ msgid ""
 "timelapse video when printing completes. If smooth mode is selected, the "
 "toolhead will move to the excess chute after each layer is printed and then "
 "take a snapshot. Since the melt filament may leak from the nozzle during the "
-"process of taking a snapshot, prime tower is required for smooth mode to "
+"process of taking a snapshot, a prime tower is required for smooth mode to "
 "wipe nozzle."
 msgstr ""
 "選擇平滑模式或傳統模式時，列印過程將產生縮時影片。每列印一層，相機會拍攝一張"
@@ -16323,8 +16432,8 @@ msgstr "啟動溫度控制"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16592,6 +16701,12 @@ msgstr ""
 "1. 矩形：預設牆體類型，具有固定寬度和高度的矩形。\n"
 "2. 圓錐：底部帶圓角的圓錐形，有助於穩定換料塔。\n"
 "3. 肋條：為換料塔牆體添加四條肋條以增強穩定性"
+
+msgid "Rectangle"
+msgstr "矩形"
+
+msgid "Rib"
+msgstr ""
 
 msgid "Extra rib length"
 msgstr "額外肋條長度"
@@ -17155,7 +17270,7 @@ msgid ""
 "machines in the list."
 msgstr "若啟用，則檢查目前列印設備是否與列表中的列印設備向下相容"
 
-msgid "downward machines settings"
+msgid "Downward machines settings"
 msgstr "向下相容列印設備設定"
 
 msgid "The machine settings list needs to do downward checking."
@@ -17188,8 +17303,8 @@ msgid "Debug level"
 msgstr "除錯模式等級"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "設定除錯日誌級別。0：致命錯誤，1：錯誤，2：警告，3：資訊，4：除錯，5：追蹤\n"
 
@@ -17511,10 +17626,10 @@ msgid ""
 msgstr ""
 "第一層凸包的點向量。每個元素格式為：'[x, y]'（x 和 y 是以mm為單位的實數）。"
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr "第一層邊界左下角"
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr "第一層邊界右上角"
 
 msgid "Size of the first layer bounding box"
@@ -17800,10 +17915,6 @@ msgstr "該名稱與另一個現有預設值名稱相同"
 
 msgid "create new preset failed."
 msgstr "新增預設失敗。"
-
-#, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr "找不到所選的預設：%s"
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
@@ -18457,6 +18568,23 @@ msgstr "快速塔"
 msgid "Input shaper type"
 msgstr "輸入整形器類型"
 
+msgid ""
+"Please ensure the selected type is compatible with your firmware version."
+msgstr ""
+
+msgid ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
+msgstr ""
+
+msgid "Klipper version => 0.9.0"
+msgstr ""
+
+msgid ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
+msgstr ""
+
 msgid "Frequency (Start / End): "
 msgstr "頻率（開始/結束）："
 
@@ -18494,6 +18622,9 @@ msgstr "請輸入有效的阻尼因子（0 < 阻尼/ζ因子 <= 1）"
 
 msgid "Input shaping Damp test"
 msgstr "輸入整形阻尼測試"
+
+msgid "Check firmware compatibility."
+msgstr ""
 
 msgid "Frequency: "
 msgstr "頻率："
@@ -18824,8 +18955,8 @@ msgstr ""
 "確定要覆寫嗎？"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "將會將預設名稱重新命名為「廠牌 型號 序號 @選擇的列印設備」。\n"
@@ -18872,9 +19003,6 @@ msgstr "輸入自訂噴嘴直徑"
 
 msgid "Can't find my nozzle diameter"
 msgstr "找不到我的噴嘴直徑"
-
-msgid "Rectangle"
-msgstr "矩形"
 
 msgid "Printable Space"
 msgstr "可列印空間"
@@ -19268,7 +19396,7 @@ msgstr "列印設備擠出機的數量與選擇進行校正的列印設備的數
 
 #, c-format, boost-format
 msgid ""
-"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
+"The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr "%s 擠出機的噴嘴直徑為 0.2mm，不支援自動流動動力學校正。"
 
@@ -20180,6 +20308,127 @@ msgstr "官方線材"
 msgid "More Colors"
 msgstr "更多顏色"
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr "線材可能與目前的列印設備設定不相容，將使用一般線材預設。"
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr "線材型號未知，將繼續使用先前的線材預設。"
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr "線材型號未知，將使用一般線材預設。"
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr "線材可能與目前的列印設備設定不相容，將使用隨機線材預設。"
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr "線材型號未知，將使用隨機線材預設。"
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -20543,3 +20792,19 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "Auto-refill"
+#~ msgstr "自動補料"
+
+#~ msgid "Network Plug-in"
+#~ msgstr "網路外掛程式"
+
+#~ msgid "Packing data to 3mf"
+#~ msgstr "正在將資料打包至 3mf"
+
+#~ msgid "Cool Plate (Supertack)"
+#~ msgstr "低溫列印板（超強黏性版）"
+
+#, c-format, boost-format
+#~ msgid "The selected preset: %s is not found."
+#~ msgstr "找不到所選的預設：%s"
