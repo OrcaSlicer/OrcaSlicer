@@ -3025,7 +3025,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             }
         }
         // wipe tower area
-        if (has_wipe_tower) {
+        if (has_wipe_tower && print.wipe_tower_data().wipe_tower_mesh_data) {
             Polygon temp_Expoly = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
             area_sum_temp += temp_Expoly.area();
         }

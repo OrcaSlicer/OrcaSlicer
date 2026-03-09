@@ -770,6 +770,7 @@ struct WipeTowerData
         number_of_toolchanges = -1;
         depth = 0.f;
         brim_width = 0.f;
+        rib_offset = Vec2f::Zero();
         wipe_tower_mesh_data  = std::nullopt;
     }
     void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall);
