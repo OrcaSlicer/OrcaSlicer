@@ -439,7 +439,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangFanThreshold)
 // BBS
 static const t_config_enum_values s_keys_map_BedType = {
     { "Default Plate",      btDefault },
-    { "Supertack Plate",    btSuperTack },
+    { "SuperTack Plate",    btSuperTack },
     { "Cool Plate",         btPC },
     { "Engineering Plate",  btEP  },
     { "High Temp Plate",    btPEI  },
@@ -995,7 +995,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("High Temp Plate");
     def->enum_values.emplace_back("Textured PEI Plate");
     def->enum_values.emplace_back("Textured Cool Plate");
-    def->enum_values.emplace_back("Supertack Plate");
+    def->enum_values.emplace_back("SuperTack Plate");
     def->enum_labels.emplace_back(L("Smooth Cool Plate"));
     def->enum_labels.emplace_back(L("Engineering Plate"));
     def->enum_labels.emplace_back(L("Smooth High Temp Plate"));
@@ -1829,7 +1829,7 @@ void PrintConfigDef::init_fff_params()
                      "unnecessary bridges. This works well for most difficult models\n"
                      "3. No filtering - creates internal bridges on every potential internal overhang. This option is "
                      "useful for heavily slanted top surface models; however, in most cases, it creates too many "
-                     "unnecessary bridges");
+                     "unnecessary bridges.");
     def->enum_keys_map = &ConfigOptionEnum<InternalBridgeFilter>::get_enum_values();
     def->enum_values.push_back("disabled");
     def->enum_values.push_back("limited");
@@ -2208,7 +2208,7 @@ void PrintConfigDef::init_fff_params()
                      "at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. "
                      "If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, "
                      "the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
-                     "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile");
+                     "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile.");
     def->mode = comAdvanced;
     //def->gui_flags = "serialized";
     def->multiline = true;
@@ -2405,13 +2405,13 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bed_temperature_formula", coEnum);
     def->label = L("Bed temperature type");
     def->tooltip = L("This option determines how the bed temperature is set during slicing: based on the temperature of the first filament or the highest temperature of the printed filaments.");
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<BedTempFormula>::get_enum_values();
     def->enum_values.push_back("by_first_filament");
     def->enum_values.push_back("by_highest_temp");
     def->enum_labels.push_back(L("By First filament"));
     def->enum_labels.push_back(L("By Highest Temp"));
-    def->set_default_value(new ConfigOptionEnum<BedTempFormula>(BedTempFormula::btfFirstFilament));
+    def->set_default_value(new ConfigOptionEnum<BedTempFormula>(BedTempFormula::btfHighestTemp));
 
     def = this->add("nozzle_flush_dataset", coInts);
     def->nullable = true;
@@ -3290,7 +3290,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("all");
     def->enum_values.push_back("allwalls");
     def->enum_values.push_back("disabled_fuzzy");
-    def->enum_labels.push_back(L("None (allow paint)"));
+    def->enum_labels.push_back(L("Painted only"));
     def->enum_labels.push_back(L("Contour"));
     def->enum_labels.push_back(L("Contour and hole"));
     def->enum_labels.push_back(L("All walls"));
@@ -3632,7 +3632,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
     def->tooltip = L("Enable this to add comments into the G-code labeling print moves with what object they belong to,"
-                   " which is useful for the Octoprint CancelObject plugin. This settings is NOT compatible with "
+                   " which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with "
                    "Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(1));
@@ -3963,7 +3963,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Ironing Type");
     def->category = L("Quality");
     def->tooltip = L("Ironing is using small flow to print on same height of surface again to make flat surface more smooth. "
-                     "This setting controls which layer being ironed");
+                     "This setting controls which layer being ironed.");
     def->enum_keys_map = &ConfigOptionEnum<IroningType>::get_enum_values();
     def->enum_values.push_back("no ironing");
     def->enum_values.push_back("top");
@@ -5398,7 +5398,7 @@ void PrintConfigDef::init_fff_params()
                      "If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed "
                      "and then take a snapshot. "
                      "Since the melt filament may leak from the nozzle during the process of taking a snapshot, "
-                     "prime tower is required for smooth mode to wipe nozzle.");
+                     "a prime tower is required for smooth mode to wipe nozzle.");
     def->enum_keys_map = &ConfigOptionEnum<TimelapseType>::get_enum_values();
     def->enum_values.emplace_back("0");
     def->enum_values.emplace_back("1");
@@ -5413,7 +5413,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Temperature difference to be applied when an extruder is not active. "
                      "The value is not used when 'idle_temperature' in filament settings "
                      "is set to non-zero value.");
-    def->sidetext = L(u8"∆\u2103");	// delta degrees Celsius, CIS languages need translation
+    def->sidetext = L(u8"\u2206\u2103" /* ∆°C */);	// delta degrees Celsius, CIS languages need translation
     def->min = -max_temp;
     def->max = max_temp;
     def->mode = comAdvanced;
@@ -5775,7 +5775,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_base_pattern", coEnum);
     def->label = L("Base pattern");
     def->category = L("Support");
-    def->tooltip = L("Line pattern of support.");
+    def->tooltip = L("Line pattern of support.\n\n"
+                     "The Default option for Tree supports is Hollow, which means no base pattern. "
+                     "For other support types, the Default option is the Rectilinear pattern.\n\n"
+                     "NOTE: For Organic supports, the two walls are supported only with the Hollow/Default base pattern. "
+                     "The Lightning base pattern is supported only by Tree Slim/Strong/Hybrid supports. "
+                     "For the other support types, the Rectilinear will be used instead of Lightning.");
     def->enum_keys_map = &ConfigOptionEnum<SupportMaterialPattern>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("rectilinear");
@@ -6391,9 +6396,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("rectangle");
     def->enum_values.emplace_back("cone");
     def->enum_values.emplace_back("rib");
-    def->enum_labels.emplace_back("Rectangle");
-    def->enum_labels.emplace_back("Cone");
-    def->enum_labels.emplace_back("Rib");
+    def->enum_labels.emplace_back(L("Rectangle"));
+    def->enum_labels.emplace_back(L("Cone"));
+    def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
 
@@ -6768,6 +6773,7 @@ void PrintConfigDef::init_extruder_option_keys()
     // ConfigOptionFloats, ConfigOptionPercents, ConfigOptionBools, ConfigOptionStrings
     m_extruder_option_keys = {
         "extruder_type", "nozzle_diameter", "default_nozzle_volume_type", "min_layer_height", "max_layer_height", "extruder_offset",
+        "extruder_printable_height", "nozzle_volume", "nozzle_type", "nozzle_flush_dataset",
         "retraction_length", "z_hop", "z_hop_types", "travel_slope", "retract_lift_above", "retract_lift_below", "retract_lift_enforce", "retraction_speed", "deretraction_speed",
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "extruder_colour",
@@ -10166,7 +10172,7 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("downward_settings", coStrings);
-    def->label = L("downward machines settings");
+    def->label = L("Downward machines settings");
     def->tooltip = L("The machine settings list needs to do downward checking.");
     def->cli_params = "\"machine1.json;machine2.json;...\"";
     def->set_default_value(new ConfigOptionStrings());

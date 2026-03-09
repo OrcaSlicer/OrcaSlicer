@@ -10098,7 +10098,7 @@ void Plater::priv::update_plugin_when_launch(wxCommandEvent &event)
 
 void Plater::priv::show_install_plugin_hint(wxCommandEvent &event)
 {
-    notification_manager->bbl_show_plugin_install_notification(into_u8(_L("Network Plug-in is not detected. Network related features are unavailable.")));
+    notification_manager->bbl_show_plugin_install_notification(into_u8(_L("The network plug-in was not detected. Network related features are unavailable.")));
 }
 
 void Plater::priv::show_preview_only_hint(wxCommandEvent &event)
@@ -11948,7 +11948,7 @@ void Plater::import_model_id(wxString download_info)
         int res = 0;
         std::string http_body;
 
-        msg = _L("prepare 3MF file...");
+        msg = _L("Preparing 3MF file...");
 
         //gets the number of files with the same name
         std::vector<wxString>   vecFiles;
@@ -11997,7 +11997,7 @@ void Plater::import_model_id(wxString download_info)
         }
 
 
-        msg = _L("downloading project...");
+        msg = _L("Downloading project...");
 
         //target_path = wxStandardPaths::Get().GetTempDir().utf8_str().data();
 

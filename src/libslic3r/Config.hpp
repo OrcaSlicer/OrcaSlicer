@@ -37,9 +37,9 @@ namespace Slic3r {
         template<class Archive> void serialize(Archive& ar) { ar(this->value); ar(this->percent); }
     };
 
-    inline bool operator==(const FloatOrPercent& l, const FloatOrPercent& r) throw() { return l.value == r.value && l.percent == r.percent; }
+    inline bool operator==(const FloatOrPercent& l, const FloatOrPercent& r) throw() { return is_approx(l.value, r.value) && l.percent == r.percent; }
     inline bool operator!=(const FloatOrPercent& l, const FloatOrPercent& r) throw() { return !(l == r); }
-    inline bool operator< (const FloatOrPercent& l, const FloatOrPercent& r) throw() { return l.value < r.value || (l.value == r.value && int(l.percent) < int(r.percent)); }
+    inline bool operator< (const FloatOrPercent& l, const FloatOrPercent& r) throw() { return l.value < r.value || (is_approx(l.value, r.value) && int(l.percent) < int(r.percent)); }
 }
 
 namespace std {
@@ -762,8 +762,8 @@ public:
     ConfigOptionType        type()      const override { return static_type(); }
     double                  getFloat()  const override { return this->value; }
     ConfigOption*           clone()     const override { return new ConfigOptionFloat(*this); }
-    bool                    operator==(const ConfigOptionFloat &rhs) const throw() { return this->value == rhs.value; }
-    bool                    operator< (const ConfigOptionFloat &rhs) const throw() { return this->value <  rhs.value; }
+    bool                    operator==(const ConfigOptionFloat &rhs) const throw() { return is_approx(this->value, rhs.value); }
+    bool                    operator< (const ConfigOptionFloat &rhs) const throw() { return this->value < rhs.value; }
 
     std::string serialize() const override
     {
@@ -778,6 +778,14 @@ public:
         std::istringstream iss(str);
         iss >> this->value;
         return !iss.fail();
+    }
+
+    bool operator==(const ConfigOption &rhs) const override
+    {
+        if (rhs.type() != this->type())
+            throw ConfigurationError("ConfigOptionFloat: Comparing incompatible types");
+        assert(dynamic_cast<const ConfigOptionFloat*>(&rhs));
+        return *this == *static_cast<const ConfigOptionFloat*>(&rhs);
     }
 
     ConfigOptionFloat& operator=(const ConfigOption *opt)
@@ -906,7 +914,7 @@ protected:
     		if (v1.size() != v2.size())
     			return false;
     		for (auto it1 = v1.begin(), it2 = v2.begin(); it1 != v1.end(); ++ it1, ++ it2)
-	    		if (! ((std::isnan(*it1) && std::isnan(*it2)) || *it1 == *it2))
+	    		if (! ((std::isnan(*it1) && std::isnan(*it2)) || is_approx(*it1, *it2)))
 	    			return false;
     		return true;
     	} else
@@ -1258,11 +1266,11 @@ public:
         return *this == *static_cast<const ConfigOptionFloatOrPercent*>(&rhs);
     }
     bool                        operator==(const ConfigOptionFloatOrPercent &rhs) const throw()
-        { return this->value == rhs.value && this->percent == rhs.percent; }
+        { return is_approx(this->value, rhs.value) && this->percent == rhs.percent; }
     size_t                      hash() const throw() override
         { size_t seed = std::hash<double>{}(this->value); return this->percent ? seed ^ 0x9e3779b9 : seed; }
     bool                        operator< (const ConfigOptionFloatOrPercent &rhs) const throw()
-        { return this->value < rhs.value || (this->value == rhs.value && int(this->percent) < int(rhs.percent)); }
+        { return this->value < rhs.value || (is_approx(this->value, rhs.value) && int(this->percent) < int(rhs.percent)); }
 
     double                      get_abs_value(double ratio_over) const
         { return this->percent ? (ratio_over * this->value / 100) : this->value; }

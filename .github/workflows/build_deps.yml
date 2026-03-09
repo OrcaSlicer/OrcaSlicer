@@ -80,11 +80,9 @@ jobs:
             if [ -z "${{ vars.SELF_HOSTED }}" ]; then
               brew install automake texinfo libtool
             fi
-            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15
-            for arch in arm64 x86_64; do
-                (cd "${{ github.workspace }}/deps/build/${arch}" && \
-                find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
-            done
+            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+            (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
+            find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
 
 
       - name: Apt-Install Dependencies

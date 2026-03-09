@@ -523,34 +523,34 @@ bool static check_old_linux_datadir(const wxString& app_name) {
 #endif
 
 struct FileWildcards {
-    std::string_view              title;
+    const char*                 title_id;
     std::vector<std::string_view> file_extensions;
 };
 
 static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
-    /* FT_STEP */    { "STEP files"sv,      { ".stp"sv, ".step"sv } },
-    /* FT_STL */     { "STL files"sv,       { ".stl"sv } },
-    /* FT_OBJ */     { "OBJ files"sv,       { ".obj"sv } },
-    /* FT_AMF */     { "AMF files"sv,       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
-    /* FT_3MF */     { "3MF files"sv,       { ".3mf"sv } },
-    /* FT_GCODE_3MF */ {"Gcode 3MF files"sv, {".gcode.3mf"sv}},
-    /* FT_GCODE */   { "G-code files"sv,    { ".gcode"sv} },
+    /* FT_STEP */    { L("STEP files"),      { ".stp"sv, ".step"sv } },
+    /* FT_STL */     { L("STL files"),       { ".stl"sv } },
+    /* FT_OBJ */     { L("OBJ files"),       { ".obj"sv } },
+    /* FT_AMF */     { L("AMF files"),       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
+    /* FT_3MF */     { L("3MF files"),       { ".3mf"sv } },
+    /* FT_GCODE_3MF */ {L("Gcode 3MF files"), {".gcode.3mf"sv}},
+    /* FT_GCODE */   { L("G-code files"),    { ".gcode"sv} },
 #ifdef __APPLE__
     /* FT_MODEL */
-    {"Supported files"sv, {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
 #else
     /* FT_MODEL */
-    {"Supported files"sv, {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".drc"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".drc"sv}},
 #endif
-    /* FT_ZIP */     { "ZIP files"sv,       { ".zip"sv } },
-    /* FT_PROJECT */ { "Project files"sv,   { ".3mf"sv} },
-    /* FT_GALLERY */ { "Known files"sv,     { ".stl"sv, ".obj"sv } },
+    /* FT_ZIP */     { L("ZIP files"),       { ".zip"sv } },
+    /* FT_PROJECT */ { L("Project files"),   { ".3mf"sv} },
+    /* FT_GALLERY */ { L("Known files"),     { ".stl"sv, ".obj"sv } },
 
-    /* FT_INI */     { "INI files"sv,       { ".ini"sv } },
-    /* FT_SVG */     { "SVG files"sv,       { ".svg"sv } },
-    /* FT_TEX */     { "Texture"sv,         { ".png"sv, ".svg"sv } },
-    /* FT_SL1 */     { "Masked SLA files"sv, { ".sl1"sv, ".sl1s"sv } },
-    /* FT_DRC */     { "Draco files"sv,     { ".drc"sv } },
+    /* FT_INI */     { L("INI files"),       { ".ini"sv } },
+    /* FT_SVG */     { L("SVG files"),       { ".svg"sv } },
+    /* FT_TEX */     { L("Texture"),         { ".png"sv, ".svg"sv } },
+    /* FT_SL1 */     { L("Masked SLA files"), { ".sl1"sv, ".sl1s"sv } },
+    /* FT_DRC */     { L("Draco files"),     { ".drc"sv } },
 };
 
 // This function produces a Win32 file dialog file template mask to be consumed by wxWidgets on all platforms.
@@ -605,7 +605,8 @@ wxString file_wildcards(FileType file_type, const std::string &custom_extension)
             mask += ";*";
             mask += boost::to_upper_copy(std::string(ext));
         }
-    return GUI::format_wxstr("%s (%s)|%s", data.title, title, mask);
+    const wxString translated_title = Slic3r::GUI::I18N::translate(data.title_id);
+    return GUI::format_wxstr("%s (%s)|%s", translated_title, title, mask);
 }
 
 static std::string libslic3r_translate_callback(const char *s) { return wxGetTranslation(wxString(s, wxConvUTF8)).utf8_str().data(); }
@@ -1717,7 +1718,7 @@ bool GUI_App::hot_reload_network_plugin()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": starting hot reload";
 
     wxBusyCursor busy;
-    wxBusyInfo info(_L("Reloading network plugin..."), mainframe);
+    wxBusyInfo info(_L("Reloading network plug-in..."), mainframe);
     wxYield();
     wxWindowDisabler disabler;
 
@@ -1860,7 +1861,7 @@ void GUI_App::show_network_plugin_download_dialog(bool is_update)
             app_config->set_network_plugin_version(selected);
             app_config->save();
 
-            DownloadProgressDialog download_dlg(_L("Downloading Network Plugin"));
+            DownloadProgressDialog download_dlg(_L("Downloading Network Plug-in"));
             download_dlg.ShowModal();
         }
         break;
@@ -2695,6 +2696,18 @@ bool GUI_App::on_init_inner()
     // TODO: Find workaround for GTK4
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
     g_object_set (gtk_settings_get_default (), "gtk-menu-images", TRUE, NULL);
+#endif
+
+#if defined(__WXGTK20__) || defined(__WXGTK3__)
+    // Suppress harmless GTK critical warnings from the GTK3/wxWidgets interaction.
+    // These include widget allocation on hidden widgets and events on unrealized widgets.
+    g_log_set_handler("Gtk", G_LOG_LEVEL_CRITICAL,
+        [](const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+            if (message && (strstr(message, "gtk_widget_set_allocation") ||
+                            strstr(message, "WIDGET_REALIZED_FOR_EVENT")))
+                return;
+            g_log_default_handler(log_domain, log_level, message, user_data);
+        }, nullptr);
 #endif
 
 #ifdef WIN32
@@ -4389,7 +4402,7 @@ wxString GUI_App::transition_tridid(int trid_id) const
     if (trid_id == VIRTUAL_TRAY_MAIN_ID || trid_id == VIRTUAL_TRAY_DEPUTY_ID)
     {
         assert(0);
-        return wxString("Ext");
+        return _L("Ext");
     }
 
     wxString maping_dict[] = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
@@ -5516,7 +5529,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                            "2. Enable Developer mode\n\n"
                            "Developer mode allows the printer to work exclusively through local network access, "
                            "enabling full functionality with OrcaSlicer."),
-                        _L("Network Plugin Restriction"), wxAPPLY | wxOK);
+                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
             m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
             m_show_error_msgdlg = false;
