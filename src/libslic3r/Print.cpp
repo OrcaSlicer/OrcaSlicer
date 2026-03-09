@@ -3396,6 +3396,11 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
+        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
+                                         wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
+                                         config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,

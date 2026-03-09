@@ -2460,8 +2460,9 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Adaptive volumetric speed");
     def->tooltip = L("When enabled, the extrusion flow is limited by the smaller of "
         "the fitted value (calculated from line width and layer height) and the user-defined maximum flow."
-        " When disabled, only the user-defined maximum flow is applied.");
-    def->mode = comAdvanced;
+        " When disabled, only the user-defined maximum flow is applied.\n\n"
+        "Note: Experimental and incomplete feature imported from BBS. Functional for some profiles that already have the variable saved.");
+    def->mode = comDevelop;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable {false});
 
@@ -6773,6 +6774,7 @@ void PrintConfigDef::init_extruder_option_keys()
     // ConfigOptionFloats, ConfigOptionPercents, ConfigOptionBools, ConfigOptionStrings
     m_extruder_option_keys = {
         "extruder_type", "nozzle_diameter", "default_nozzle_volume_type", "min_layer_height", "max_layer_height", "extruder_offset",
+        "extruder_printable_height", "nozzle_volume", "nozzle_type", "nozzle_flush_dataset",
         "retraction_length", "z_hop", "z_hop_types", "travel_slope", "retract_lift_above", "retract_lift_below", "retract_lift_enforce", "retraction_speed", "deretraction_speed",
         "retract_before_wipe", "retract_restart_extra", "retraction_minimum_travel", "wipe", "wipe_distance",
         "retract_when_changing_layer", "retract_length_toolchange", "retract_restart_extra_toolchange", "extruder_colour",

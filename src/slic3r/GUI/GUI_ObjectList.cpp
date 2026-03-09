@@ -5947,7 +5947,7 @@ void GUI::ObjectList::smooth_mesh()
         if (cur_face_count > limit_face_count) {
             auto name_str = wxString::FromUTF8(name);
             auto content = wxString::Format(_L("\"%s\" will exceed 1 million faces after this subdivision, which may increase slicing time. Do you want to continue?"), name_str);
-            WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), (is_part ? _L("Part") : _L("Object")) + " " + content, _L("BambuStudio warning"), wxYES_NO);
+            WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), (is_part ? _L("Part") : _L("Object")) + " " + content, wxEmptyString, wxYES_NO);
             if (dlg.ShowModal() == wxID_NO) {
                 return true;
             }
@@ -5958,7 +5958,7 @@ void GUI::ObjectList::smooth_mesh()
     auto show_smooth_mesh_error_dlg = [this](std::string name) {
         auto name_str = wxString::FromUTF8(name);
         auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
-        WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, _L("BambuStudio warning"), wxOK);
+        WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, wxEmptyString, wxOK);
         dlg.ShowModal();
     };
     bool has_show_smooth_mesh_error_dlg = false;
