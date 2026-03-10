@@ -966,9 +966,18 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
                 height = v.height;
                 width = v.width;
             }
+            
+            // ORCA: Set bias for wipes and options to avoid z-fighting
+            float bias = 0.0f;
+            if (v.is_wipe())
+                bias = 0.05f;
+            else if (v.is_option())
+                bias = 0.1f;
+
             // the last component is a dummy float to comply with GL_RGBA32F format
+            // ORCA: Pass bias to shader
             heights_widths_angles->push_back({ height, width,
-                std::atan2(prev_line[0] * this_line[1] - prev_line[1] * this_line[0], dot(prev_line, this_line)), 0.0f });
+                std::atan2(prev_line[0] * this_line[1] - prev_line[1] * this_line[0], dot(prev_line, this_line)), bias });
         }
     }
 }
