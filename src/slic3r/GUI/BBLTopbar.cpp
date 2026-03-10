@@ -263,15 +263,24 @@ void BBLTopbar::Init(wxFrame* parent)
     m_title_item = this->AddLabel(ID_TITLE, "", FromDIP(TOPBAR_TITLE_WIDTH));
     m_title_item->SetAlignment(wxALIGN_CENTRE);
 
+    this->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        if(m_title_item){
+            m_title_item->SetMinSize(wxSize(FromDIP(e.GetSize().GetWidth() > FromDIP(700) ? TOPBAR_TITLE_WIDTH : 200), -1));
+            SetTitle(m_title_item->GetLabel());
+            Refresh();
+        }
+        e.Skip();
+    });
+
     this->AddSpacer(FromDIP(10));
     this->AddStretchSpacer(1);
 
-    m_publish_bitmap = create_scaled_bitmap("topbar_publish", nullptr, TOPBAR_ICON_SIZE);
-    m_publish_item = this->AddTool(ID_PUBLISH, "", m_publish_bitmap);
-    m_publish_disable_bitmap = create_scaled_bitmap("topbar_publish_disable", nullptr, TOPBAR_ICON_SIZE);
-    m_publish_item->SetDisabledBitmap(m_publish_disable_bitmap);
-    this->EnableTool(m_publish_item->GetId(), false);
-    this->AddSpacer(FromDIP(4));
+    //m_publish_bitmap = create_scaled_bitmap("topbar_publish", nullptr, TOPBAR_ICON_SIZE);
+    //m_publish_item = this->AddTool(ID_PUBLISH, "", m_publish_bitmap);
+    //m_publish_disable_bitmap = create_scaled_bitmap("topbar_publish_disable", nullptr, TOPBAR_ICON_SIZE);
+    //m_publish_item->SetDisabledBitmap(m_publish_disable_bitmap);
+    //this->EnableTool(m_publish_item->GetId(), false);
+    //this->AddSpacer(FromDIP(4));
 
     /*wxBitmap model_store_bitmap = create_scaled_bitmap("topbar_store", nullptr, TOPBAR_ICON_SIZE);
     m_model_store_item = this->AddTool(ID_MODEL_STORE, "", model_store_bitmap);
@@ -279,7 +288,7 @@ void BBLTopbar::Init(wxFrame* parent)
     */
 
     //this->AddSeparator();
-    this->AddSpacer(FromDIP(4));
+    //this->AddSpacer(FromDIP(4));
 
     wxBitmap iconize_bitmap = create_scaled_bitmap("topbar_min", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* iconize_btn = this->AddTool(wxID_ICONIZE_FRAME, "", iconize_bitmap);
@@ -324,7 +333,7 @@ void BBLTopbar::Init(wxFrame* parent)
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnRedo, this, wxID_REDO);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnUndo, this, wxID_UNDO);
     //this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnModelStoreClicked, this, ID_MODEL_STORE);
-    this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnPublishClicked, this, ID_PUBLISH);
+    //this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnPublishClicked, this, ID_PUBLISH);
 }
 
 BBLTopbar::~BBLTopbar()
@@ -447,7 +456,7 @@ wxMenu* BBLTopbar::GetCalibMenu()
 void BBLTopbar::SetTitle(wxString title)
 {
     wxGCDC dc(this);
-    title = wxControl::Ellipsize(title, dc, wxELLIPSIZE_END, FromDIP(TOPBAR_TITLE_WIDTH));
+    title = wxControl::Ellipsize(title, dc, wxELLIPSIZE_END, m_title_item->GetMinSize().GetWidth());
 
     m_title_item->SetLabel(title);
     m_title_item->SetAlignment(wxALIGN_CENTRE);
