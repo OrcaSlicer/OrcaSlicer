@@ -3964,7 +3964,7 @@ msgid ""
 msgstr "値が小さいです、0.1にリセットします"
 
 msgid ""
-"Zero initial layer height is invalid.\n"
+"Zero first layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr "1層目の高さが無効です、0.2mmにリセットします"
@@ -9261,7 +9261,7 @@ msgstr "壁面"
 msgid "Top/bottom shells"
 msgstr "トップ面/底面"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "1層目の移動速度"
 
 msgid "Other layers speed"
@@ -10246,13 +10246,13 @@ msgstr "ショートカット一覧を表示"
 msgid "Global shortcuts"
 msgstr "ショートカット"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "移動"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "回転"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "ズーム"
 
 msgid ""
@@ -10681,7 +10681,7 @@ msgid "Open G-code file:"
 msgstr "G-codeファイルを開く"
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr ""
 "オブジェクトはプレートと接触していないため造形できません。サポートを有効する"
@@ -11210,7 +11210,7 @@ msgid "Elephant foot compensation"
 msgstr "コーナーはみ出し補正"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr "1層目を縮小して、コーナーのはみ出しを軽減します。"
 
@@ -11398,45 +11398,45 @@ msgstr ""
 "1層目以外のベッド温度。値が0の場合、フィラメントがPEIプレートをサポートしない"
 "意味をします。"
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "1層目"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "1層目ベッド温度"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate SuperTack."
 msgstr ""
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate."
 msgstr ""
 "1層目のベッド温度です。値が0の場合、フィラメントが常温プレートに使用できない"
 "意味です。"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured Cool Plate."
 msgstr ""
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Engineering Plate."
 msgstr ""
 "1層目のベッド温度です。値が0の場合、フィラメントがエンジニアリング プレートに"
 "使用できない意味です。"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the High Temp Plate."
 msgstr ""
 "1層目のベッド温度です。値が0の場合、フィラメントが高温プレートに使用できない"
 "意味です。"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured PEI Plate."
 msgstr ""
 "1層目のベッド温度。値が0の場合は、フィラメントがPEIプレートをサポートしない意"
@@ -13268,7 +13268,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr ""
 "1層目の造形加速度です。遅くするとプレートとの接着を向上させることができます"
@@ -13310,38 +13310,39 @@ msgstr ""
 msgid "Jerk for infill."
 msgstr ""
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr ""
 
 msgid "Jerk for travel."
 msgstr ""
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "1層目の高さ"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr "1層目の高さです。高さを大きくすればプレートとの接着性が良くなります。"
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr "1層目を造形時に、ソリッド インフィル以外の部分の造形速度です。"
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "1層目インフィル"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "1層目のソリッド インフィルの造形速度です。"
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr ""
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr ""
 
 msgid "Number of slow layers"
@@ -13352,10 +13353,11 @@ msgid ""
 "increased in a linear fashion over the specified number of layers."
 msgstr ""
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "1層目のノズル温度"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr "1層目でのノズル温度"
 
 msgid "Full fan speed at layer"
@@ -14599,13 +14601,13 @@ msgstr "ラフト拡張"
 msgid "Expand all raft layers in XY plane."
 msgstr "この設定により、ラフトのXYサイズを拡大します。"
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "1層目の密度"
 
 msgid "Density of the first raft or support layer."
 msgstr "ラフト或はサポートの1層目の密度です。"
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "1層目拡張"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -16850,10 +16852,10 @@ msgid ""
 "following format:'[x, y]' (x and y are floating-point numbers in mm)."
 msgstr ""
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr "最初のレイヤーの境界ボックスの左下隅"
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr "最初のレイヤーの境界ボックスの右上隅"
 
 msgid "Size of the first layer bounding box"
