@@ -3079,53 +3079,42 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 
 		calc_bounding_boxes();
 
-		ExPolygon logo_poly;
-		generate_logo_polygon(logo_poly);
-		m_logo_triangles.reset();
-		if (!init_model_from_poly(m_logo_triangles, logo_poly, GROUND_Z + 0.02f))
-			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to create logo triangles\n";
+		if (m_plater != nullptr) { // render data, skip in CLI mode where m_plater is null
+			ExPolygon logo_poly;
+			generate_logo_polygon(logo_poly);
+			m_logo_triangles.reset();
+			if (!init_model_from_poly(m_logo_triangles, logo_poly, GROUND_Z + 0.02f))
+				BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to create logo triangles\n";
 
-		ExPolygon poly;
-		/*for (const Vec2d& p : m_shape) {
-			poly.contour.append({ scale_(p(0)), scale_(p(1)) });
-		}*/
-		generate_print_polygon(poly);
-        calc_triangles(poly);
+			ExPolygon poly;
+			generate_print_polygon(poly);
+			calc_triangles(poly);
 
-        // reset m_wrapping_detection_triangles when change printer
-        m_print_polygon = poly;
-        m_wrapping_detection_triangles.reset();
-        init_raycaster_from_model(m_triangles);
+			// reset m_wrapping_detection_triangles when change printer
+			m_print_polygon = poly;
+			m_wrapping_detection_triangles.reset();
+			init_raycaster_from_model(m_triangles);
 
-		ExPolygon exclude_poly;
-		/*for (const Vec2d& p : m_exclude_area) {
-			exclude_poly.contour.append({ scale_(p(0)), scale_(p(1)) });
-		}*/
-		generate_exclude_polygon(exclude_poly);
-		calc_exclude_triangles(exclude_poly);
+			ExPolygon exclude_poly;
+			generate_exclude_polygon(exclude_poly);
+			calc_exclude_triangles(exclude_poly);
 
-		const BoundingBox& pp_bbox = poly.contour.bounding_box();
-		calc_gridlines(poly, pp_bbox);
+			const BoundingBox& pp_bbox = poly.contour.bounding_box();
+			calc_gridlines(poly, pp_bbox);
 
-		//calc_vertex_for_icons_background(5, m_del_and_background_icon);
-		//calc_vertex_for_icons(4, m_del_icon);
-		calc_vertex_for_icons(0, m_del_icon);
-        calc_vertex_for_icons(1, m_orient_icon);
-        calc_vertex_for_icons(2, m_arrange_icon);
-        calc_vertex_for_icons(3, m_lock_icon);
-        calc_vertex_for_icons(4, m_plate_settings_icon);
-        // ORCA also change bed_icon_count number in calc_vertex_for_icons() after adding or removing icons for circular shaped beds that uses vertical alingment for icons
-	    bool dual_bbl = false;
-	    if (m_plater) {
-	        PresetBundle* preset = wxGetApp().preset_bundle;
-	        dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
-	    }
-        calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
-        calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
+			calc_vertex_for_icons(0, m_del_icon);
+			calc_vertex_for_icons(1, m_orient_icon);
+			calc_vertex_for_icons(2, m_arrange_icon);
+			calc_vertex_for_icons(3, m_lock_icon);
+			calc_vertex_for_icons(4, m_plate_settings_icon);
+			// ORCA also change bed_icon_count number in calc_vertex_for_icons() after adding or removing icons for circular shaped beds that uses vertical alingment for icons
+			bool dual_bbl = false;
+			PresetBundle* preset = wxGetApp().preset_bundle;
+			dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
+			calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
+			calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
 
-		//calc_vertex_for_number(0, (m_plate_index < 9), m_plate_idx_icon);
-		calc_vertex_for_number(0, false, m_plate_idx_icon);
-		if (m_plater) {
+			calc_vertex_for_number(0, false, m_plate_idx_icon);
 			// calc vertex for plate name
 			generate_plate_name_texture();
 		}
