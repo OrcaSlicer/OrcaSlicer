@@ -518,6 +518,18 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     extrusion_loop.make_counter_clockwise();
                 else
                     extrusion_loop.make_clockwise();
+                // Detect thin wall holes, to prevent drag hot plastic while changing direction. We define thin wall hole as a hole with
+                // only one perimeter.
+                std::unordered_set<int> perimeter_counts;
+                for (const auto& pg_ext : pg_extrusions) {
+                    if (pg_ext.extrusion && !pg_ext.extrusion->empty()) {
+                        perimeter_counts.insert(pg_ext.extrusion->inset_idx);
+                    }
+                }
+
+                bool thin_wall_hole = !pg_extrusion.is_contour && perimeter_counts.size() == 1;
+                if (thin_wall_hole)
+                    extrusion_loop.reverse();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
