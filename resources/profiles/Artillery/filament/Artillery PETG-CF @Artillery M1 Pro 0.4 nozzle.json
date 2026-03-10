@@ -13,19 +13,19 @@
         "12"
     ],
     "additional_cooling_fan_speed": [
-        "50"
+        "0"
     ],
 	"filament_density": [
         "1.27"
     ],
     "filament_settings_id": [
-        "Artillery PETG @Artillery M1 Pro 0.4 nozzle"
+        "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_start_gcode": [
         "; filament start gcode "
     ],
     "is_custom_defined": "0",
-    "name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle",
+    "name": "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle",
 	"from": "system",
     "compatible_printers": [
 		"Artillery M1 Pro 0.4 nozzle"
@@ -40,7 +40,7 @@
         "30"
     ],
     "filament_type": [
-        "PETG"
+        "PETG-CF"
     ],
     "filament_vendor": [
         "Artillery"

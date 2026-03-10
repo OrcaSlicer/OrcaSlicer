@@ -1,6 +1,6 @@
 {
     "name": "Artillery",
-    "version": "02.03.02.51",
+    "version":  "03.00.00.00",
     "force_update": "0",
     "description": "Artillery configurations",
     "machine_model_list": [
@@ -348,6 +348,10 @@
             "name": "Artillery Generic PLA-CF",
             "sub_path": "filament/Artillery Generic PLA-CF.json"
         },
+		{
+            "name": "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle",
+            "sub_path": "filament/Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle.json"
+        },
         {
             "name": "Artillery Generic PETG",
             "sub_path": "filament/Artillery Generic PETG.json"
@@ -441,20 +445,20 @@
             "sub_path": "filament/Artillery PET @Artillery M1 Pro 0.8 nozzle.json"
         },
         {
-            "name": "Artillery PETG @Artillery M1 Pro 0.2 nozzle",
-            "sub_path": "filament/Artillery PETG @Artillery M1 Pro 0.2 nozzle.json"
+            "name": "Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle",
+            "sub_path": "filament/Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle.json"
         },
         {
-            "name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle",
-            "sub_path": "filament/Artillery PETG @Artillery M1 Pro 0.4 nozzle.json"
+            "name": "Artillery PETG Basic @Artillery M1 Pro 0.4 nozzle",
+            "sub_path": "filament/Artillery PETG Basic @Artillery M1 Pro 0.4 nozzle.json"
         },
         {
-            "name": "Artillery PETG @Artillery M1 Pro 0.6 nozzle",
-            "sub_path": "filament/Artillery PETG @Artillery M1 Pro 0.6 nozzle.json"
+            "name": "Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle",
+            "sub_path": "filament/Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle.json"
         },
         {
-            "name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle",
-            "sub_path": "filament/Artillery PETG @Artillery M1 Pro 0.8 nozzle.json"
+            "name": "Artillery PETG Basic @Artillery M1 Pro 0.8 nozzle",
+            "sub_path": "filament/Artillery PETG Basic @Artillery M1 Pro 0.8 nozzle.json"
         },
         {
             "name": "Artillery PLA @Artillery M1 Pro 0.2 nozzle",
@@ -485,10 +489,6 @@
             "sub_path": "filament/Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle.json"
         },
         {
-            "name": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle",
-            "sub_path": "filament/Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle.json"
-        },
-        {
             "name": "Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle",
             "sub_path": "filament/Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle.json"
         },
@@ -512,7 +512,7 @@
             "name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle",
             "sub_path": "filament/Artillery PA-CF @Artillery M1 Pro 0.4 nozzle.json"
         },
-        {
+		{
             "name": "Artillery PA @Artillery M1 Pro 0.4 nozzle",
             "sub_path": "filament/Artillery PA @Artillery M1 Pro 0.4 nozzle.json"
         },

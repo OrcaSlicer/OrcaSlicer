@@ -22,13 +22,13 @@
         "50"
     ],
     "chamber_temperature": [
-        "50"
+        "0"
     ],
     "close_fan_the_first_x_layers": [
         "3"
     ],
     "compatible_printers": [
-        "Artillery M1 Pro 0.6 nozzle"
+        "Artillery M1 Pro 0.2 nozzle"
     ],
     "compatible_printers_condition": "",
     "compatible_prints": [],
@@ -36,11 +36,17 @@
     "complete_print_exhaust_fan_speed": [
         "100"
     ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
     "cool_plate_temp": [
-        "35"
+        "70"
     ],
     "cool_plate_temp_initial_layer": [
-        "35"
+        "70"
     ],
     "default_filament_colour": [
         ""
@@ -64,13 +70,13 @@
         "0"
     ],
     "fan_cooling_layer_time": [
-        "100"
+        "30"
     ],
     "fan_max_speed": [
-        "100"
+        "40"
     ],
     "fan_min_speed": [
-        "100"
+        "10"
     ],
     "filament_cooling_final_speed": [
         "3.4"
@@ -99,7 +105,7 @@
     "filament_flow_ratio": [
         "0.98"
     ],
-    "filament_id": "P8163162",
+    "filament_id": "P284941e",
     "filament_is_support": [
         "0"
     ],
@@ -113,7 +119,7 @@
         "nil"
     ],
     "filament_max_volumetric_speed": [
-        "16"
+        "1"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"
@@ -164,7 +170,7 @@
         "40"
     ],
     "filament_settings_id": [
-        "Artillery PVA @Artillery M1 Pro 0.6 nozzle"
+        "Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle"
     ],
     "filament_shrink": [
         "100%"
@@ -182,13 +188,13 @@
         "0"
     ],
     "filament_start_gcode": [
-        ""
+        "; filament start gcode "
     ],
     "filament_toolchange_delay": [
         "0"
     ],
     "filament_type": [
-        "PVA"
+        "PETG Basic"
     ],
     "filament_unloading_speed": [
         "90"
@@ -216,33 +222,33 @@
         "0"
     ],
     "hot_plate_temp": [
-        "60"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
-        "60"
+        "70"
     ],
     "idle_temperature": [
         "0"
     ],
     "is_custom_defined": "0",
-    "name": "Artillery PVA @Artillery M1 Pro 0.6 nozzle",
+    "name": "Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle",
     "nozzle_temperature": [
-        "220"
+        "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "220"
+        "250"
     ],
     "nozzle_temperature_range_high": [
-        "240"
+        "270"
     ],
     "nozzle_temperature_range_low": [
-        "190"
+        "230"
     ],
     "overhang_fan_speed": [
-        "80"
+        "90"
     ],
     "overhang_fan_threshold": [
-        "25%"
+        "10%"
     ],
     "pellet_flow_coefficient": [
         "0.4157"
@@ -260,7 +266,7 @@
         "1"
     ],
     "slow_down_layer_time": [
-        "7"
+        "12"
     ],
     "slow_down_min_speed": [
         "10"
@@ -276,12 +282,6 @@
     ],
     "textured_cool_plate_temp_initial_layer": [
         "40"
-    ],
-    "textured_plate_temp": [
-        "45"
-    ],
-    "textured_plate_temp_initial_layer": [
-        "45"
     ],
     "version": "3.0.0.0"
 }
