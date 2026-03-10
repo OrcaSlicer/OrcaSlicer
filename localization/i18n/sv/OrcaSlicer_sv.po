@@ -3,33 +3,13 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-05 17:45-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 "X-Generator: Localazy (https://localazy.com)\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1540,6 +1520,30 @@ msgstr ""
 msgid "Flip by Face 2"
 msgstr ""
 
+msgid "Assemble"
+msgstr "Montera"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "Iakttag"
 
@@ -1575,6 +1579,54 @@ msgstr ""
 "Konfigurations fil “%1%” har laddats, men vissa värden känns inte igen."
 
 msgid "Based on PrusaSlicer and BambuStudio"
+msgstr ""
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Textur"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
 msgstr ""
 
 msgid ""
@@ -1688,6 +1740,9 @@ msgid "Choose ZIP file"
 msgstr ""
 
 msgid "Choose one file (GCODE/3MF):"
+msgstr ""
+
+msgid "Ext"
 msgstr ""
 
 msgid "Some presets are modified."
@@ -2090,9 +2145,6 @@ msgstr "Konvertera ifrån meter"
 
 msgid "Restore to meters"
 msgstr "Återställ till meter"
-
-msgid "Assemble"
-msgstr "Montera"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Montera de valda objekten till ett objekt med multipla delar"
@@ -2603,6 +2655,10 @@ msgstr "Multifärgs Utskrift"
 msgid "Line Type"
 msgstr "Linje typ"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Mer"
 
@@ -2720,7 +2776,7 @@ msgstr "Kontrollera nätverksanslutningen för skrivaren och Studio."
 msgid "Connecting..."
 msgstr "Sammankopplar..."
 
-msgid "Auto-refill"
+msgid "Auto Refill"
 msgstr ""
 
 msgid "Load"
@@ -3476,9 +3532,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "Nozzel"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3540,9 +3593,6 @@ msgstr "Skriv ut med filament i AMS"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Skriv ut med filament på en extern spole"
-
-msgid "Auto Refill"
-msgstr ""
 
 msgid "Left"
 msgstr "Vänster"
@@ -3706,8 +3756,8 @@ msgid "Click here to see more info"
 msgstr "Klicka här för att se mer information"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 
 msgid "Restart Required"
@@ -3863,9 +3913,6 @@ msgstr "Ladda form ifrån STL..."
 msgid "Settings"
 msgstr "Inställningar"
 
-msgid "Texture"
-msgstr "Textur"
-
 msgid "Remove"
 msgstr "Ta bort"
 
@@ -3964,7 +4011,7 @@ msgstr ""
 "Återställ till 0.1"
 
 msgid ""
-"Zero initial layer height is invalid.\n"
+"Zero first layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
@@ -6491,6 +6538,9 @@ msgstr ""
 "At least one successful print record of this print profile is required \n"
 "to give a positive rating (4 or 5 stars)."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "Status"
 
@@ -6499,6 +6549,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -7424,7 +7482,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Lös berednings felen och publicera igen."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "Nätverks plugin programmet detekteras inte. Nätverksrelaterade funktioner är "
 "inte tillgängliga."
@@ -8278,9 +8337,6 @@ msgstr "felsök"
 msgid "trace"
 msgstr "spåra"
 
-msgid "Network Plug-in"
-msgstr ""
-
 msgid "Reload"
 msgstr ""
 
@@ -8509,7 +8565,10 @@ msgstr "Publiceringen avbröts"
 msgid "Slicing Plate 1"
 msgstr "Beredningsplatta 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
+msgstr "Packar data till 3mf"
+
+msgid "Uploading data"
 msgstr ""
 
 msgid "Jump to webpage"
@@ -8827,7 +8886,7 @@ msgstr ""
 msgid "Textured PEI Plate"
 msgstr "Texturerad PEI-platta"
 
-msgid "Cool Plate (Supertack)"
+msgid "Cool Plate (SuperTack)"
 msgstr ""
 
 msgid "Click here if you can't connect to the printer"
@@ -9349,7 +9408,7 @@ msgstr "Väggar"
 msgid "Top/bottom shells"
 msgstr "Topp/botten skal"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "Hastighet på första lager"
 
 msgid "Other layers speed"
@@ -9464,9 +9523,6 @@ msgstr "Utskrifts temperatur"
 
 msgid "Nozzle temperature when printing"
 msgstr "Nozzel temperatur vid utskrift"
-
-msgid "Cool Plate (SuperTack)"
-msgstr ""
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -10359,13 +10415,13 @@ msgstr "Visa tangentbordets genvägs lista"
 msgid "Global shortcuts"
 msgstr "Övergripande genvägar"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Panoreringsvy"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotera vy"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Zoomvy"
 
 msgid ""
@@ -10799,7 +10855,7 @@ msgid "Open G-code file:"
 msgstr "Öppna G-kod fil:"
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr ""
 "Ett objekt har ett tomt första lager och kan inte skrivas ut. Skär ut botten "
@@ -11311,7 +11367,7 @@ msgid "Elephant foot compensation"
 msgstr "Elefant fots kompensation"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr ""
 "Minska första lager på byggplattan för att kompensera elefant fots effekten"
@@ -11516,45 +11572,45 @@ msgstr ""
 "Byggplattans temperatur efter det första lagret. 0 betyder att filamentet "
 "inte stöds på den texturerade PEI-plattan."
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "Första lager"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "Byggplattans första lager temperatur"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate SuperTack."
 msgstr ""
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate."
 msgstr ""
 "Detta är byggplattans temperatur för första lager. Värdet 0 betyder att "
 "filamentet inte stöder utskrift på Cool Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured Cool Plate."
 msgstr ""
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Engineering Plate."
 msgstr ""
 "Detta är byggplattans temperatur för första lager. Värdet 0 betyder att "
 "filamentet inte stöder utskrift på Engineering Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the High Temp Plate."
 msgstr ""
 "Detta är byggplattans temperatur för första lager. Värdet 0 betyder att "
 "filamentet inte stöder utskrift på High Temp Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured PEI Plate."
 msgstr ""
 "Byggplattans temperatur för första lager 0 betyder att filamentet inte stöds "
@@ -13396,7 +13452,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr ""
 "Utskrifts acceleration för första lager. Ett lägre värde kan förbättra "
@@ -13439,41 +13495,42 @@ msgstr ""
 msgid "Jerk for infill."
 msgstr ""
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr ""
 
 msgid "Jerk for travel."
 msgstr ""
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "Första lagerhöjd"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr ""
 "Första lagerhöjd. Högre första lager kan förbättra objektets fäste på "
 "byggplattan"
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr ""
 "Hastigheten för det första lagret förutom för solida ifyllnads sektioner"
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "Första lager ifyllnad"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "Hastigheten för fasta ifyllnadsdelar av det första lagret"
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr ""
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr ""
 
 msgid "Number of slow layers"
@@ -13484,10 +13541,11 @@ msgid ""
 "increased in a linear fashion over the specified number of layers."
 msgstr ""
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "Nozzel temperatur för första lager"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr "Nozzel temperatur för första lager med detta filament"
 
 msgid "Full fan speed at layer"
@@ -13925,9 +13983,9 @@ msgstr ""
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 
 msgid "Exclude objects"
@@ -14723,13 +14781,13 @@ msgstr ""
 msgid "Expand all raft layers in XY plane."
 msgstr "Öka alla raft lager i XY planet"
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "Första lager densitet"
 
 msgid "Density of the first raft or support layer."
 msgstr "Densiteten av första raft eller support lager"
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "Första lager expansion"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -16082,6 +16140,12 @@ msgid ""
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
 msgstr ""
 
+msgid "Rectangle"
+msgstr "Rektangel"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr ""
 
@@ -16985,10 +17049,10 @@ msgid ""
 "following format:'[x, y]' (x and y are floating-point numbers in mm)."
 msgstr ""
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr ""
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr ""
 
 msgid "Size of the first layer bounding box"
@@ -17277,10 +17341,6 @@ msgstr "Namnet är detsamma som ett annat befintligt förinställt namn"
 
 msgid "create new preset failed."
 msgstr "skapande av ny inställning misslyckades."
-
-#, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr ""
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
@@ -18319,9 +18379,6 @@ msgstr ""
 
 msgid "Can't find my nozzle diameter"
 msgstr ""
-
-msgid "Rectangle"
-msgstr "Rektangel"
 
 msgid "Printable Space"
 msgstr "Utskriftsbar yta"
@@ -19563,6 +19620,127 @@ msgstr ""
 msgid "More Colors"
 msgstr ""
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -19950,9 +20128,6 @@ msgstr ""
 
 #~ msgid "Advance"
 #~ msgstr "Avancerat"
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "Packar data till 3mf"
 
 #~ msgid "°"
 #~ msgstr "°"

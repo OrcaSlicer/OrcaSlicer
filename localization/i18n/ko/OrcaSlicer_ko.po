@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-05 17:45-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -17,26 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.6\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1570,6 +1550,30 @@ msgstr "평행 거리:"
 msgid "Flip by Face 2"
 msgstr "면 2로 뒤집기"
 
+msgid "Assemble"
+msgstr "병합"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "공지사항"
 
@@ -1604,6 +1608,54 @@ msgid ""
 msgstr "구성 파일 \"%1%\"가 로드되었지만 일부 값이 인식되지 않았습니다."
 
 msgid "Based on PrusaSlicer and BambuStudio"
+msgstr ""
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "텍스처"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
 msgstr ""
 
 msgid ""
@@ -1728,6 +1780,9 @@ msgstr "ZIP 파일 선택"
 
 msgid "Choose one file (GCODE/3MF):"
 msgstr "하나의 파일 선택 (GCODE/3MF):"
+
+msgid "Ext"
+msgstr ""
 
 msgid "Some presets are modified."
 msgstr "일부 사전 설정이 수정 되었습니다."
@@ -2135,9 +2190,6 @@ msgstr "미터에서 변환"
 
 msgid "Restore to meters"
 msgstr "미터로 복원"
-
-msgid "Assemble"
-msgstr "병합"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "선택한 객체를 여러 부품이 있는 객체로 조립"
@@ -2632,6 +2684,10 @@ msgstr "멀티컬러 출력"
 msgid "Line Type"
 msgstr "선 유형"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "더보기"
 
@@ -2749,8 +2805,8 @@ msgstr "프린터와 Orca Slicer의 네트워크 연결을 확인하세요."
 msgid "Connecting..."
 msgstr "연결 중..."
 
-msgid "Auto-refill"
-msgstr ""
+msgid "Auto Refill"
+msgstr "자동 리필"
 
 msgid "Load"
 msgstr "불러오기"
@@ -3494,9 +3550,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "노즐"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3559,9 +3612,6 @@ msgstr "AMS의 필라멘트로 출력"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "섀시 뒷면에 필라멘트를 장착하여 출력"
-
-msgid "Auto Refill"
-msgstr "자동 리필"
 
 msgid "Left"
 msgstr "왼쪽"
@@ -3724,8 +3774,8 @@ msgid "Click here to see more info"
 msgstr "자세한 내용을 보려면 여기를 클릭하세요"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 
 msgid "Restart Required"
@@ -3888,9 +3938,6 @@ msgstr "STL에서 모양 불러오기..."
 msgid "Settings"
 msgstr "설정"
 
-msgid "Texture"
-msgstr "텍스처"
-
 msgid "Remove"
 msgstr "제거"
 
@@ -3987,7 +4034,7 @@ msgstr ""
 "0.1로 재설정"
 
 msgid ""
-"Zero initial layer height is invalid.\n"
+"Zero first layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
@@ -6534,6 +6581,9 @@ msgstr ""
 "긍정적인 평가(별4개 또는 5개)를 제공하려면\n"
 "이 출력 사전 설정의 성공적인 출력 기록이 하나 이상 필요합니다."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "상태"
 
@@ -6542,6 +6592,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -7468,7 +7526,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "슬라이싱 오류를 해결하고 다시 시도하세요."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "네트워크 플러그인이 감지되지 않습니다. 네트워크 관련 기능을 사용할 수 없습니"
 "다."
@@ -8338,9 +8397,6 @@ msgstr "디버그"
 msgid "trace"
 msgstr "추적"
 
-msgid "Network Plug-in"
-msgstr ""
-
 msgid "Reload"
 msgstr ""
 
@@ -8569,7 +8625,10 @@ msgstr "게시가 취소되었습니다"
 msgid "Slicing Plate 1"
 msgstr "플레이트 1 슬라이싱"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
+msgstr "데이터를 3mf로 압축 중"
+
+msgid "Uploading data"
 msgstr ""
 
 msgid "Jump to webpage"
@@ -8883,8 +8942,8 @@ msgstr "부드러운 고온 플레이트"
 msgid "Textured PEI Plate"
 msgstr "텍스처 PEI 플레이트"
 
-msgid "Cool Plate (Supertack)"
-msgstr ""
+msgid "Cool Plate (SuperTack)"
+msgstr "쿨 플레이트(슈퍼택)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "프린터에 연결할 수 없는 경우 여기를 클릭하세요"
@@ -9410,7 +9469,7 @@ msgstr "벽"
 msgid "Top/bottom shells"
 msgstr "상단/하단 쉘"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "초기 레이어 속도"
 
 msgid "Other layers speed"
@@ -9518,9 +9577,6 @@ msgstr "출력 온도"
 
 msgid "Nozzle temperature when printing"
 msgstr "출력 시 노즐 온도"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "쿨 플레이트(슈퍼택)"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -10441,13 +10497,13 @@ msgstr "키보드 단축키 목록 보기"
 msgid "Global shortcuts"
 msgstr "전역 단축키"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "시점 이동"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "시점 회전"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "시점 확대/축소"
 
 msgid ""
@@ -10881,7 +10937,7 @@ msgid "Open G-code file:"
 msgstr "Gcode 파일 열기:"
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr ""
 "객체 하나에 초기 레이어가 비어 있어 출력할 수 없습니다. 바닥을 자르거나 서포"
@@ -11430,7 +11486,7 @@ msgid "Elephant foot compensation"
 msgstr "코끼리 발 보정"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr ""
 "코끼리 발 효과를 보정하기 위해 빌드 플레이트에 닿는 첫 레이어를 축소합니다"
@@ -11636,49 +11692,49 @@ msgstr ""
 "초기 레이어를 제외한 레이어의 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이"
 "트 출력을 지원하지 않음을 의미합니다."
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "초기 레이어"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "초기 레이어 베드 온도"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate SuperTack."
 msgstr ""
 "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 쿨 플레이트(슈퍼택)에 출력"
 "할 수 없음을 의미합니다."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate."
 msgstr ""
 "초기 레이어의 베드 온도. 값 0은 필라멘트가 쿨 플레이트 출력을 지원하지 않음"
 "을 의미합니다."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured Cool Plate."
 msgstr ""
 "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 텍스처드 쿨 플레이트에 출력"
 "할 수 없음을 의미합니다."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Engineering Plate."
 msgstr ""
 "초기 레이어의 베드 온도. 값 0은 필라멘트가 쿨 플레이트 출력을 지원하지 않음"
 "을 의미합니다."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the High Temp Plate."
 msgstr ""
 "초기 레이어의 베드 온도입니다. 값 0은 필라멘트가 고온 플레이트 출력을 지원하"
 "지 않음을 의미합니다."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured PEI Plate."
 msgstr ""
 "초기 레이어의 베드 온도. 값 0은 필라멘트가 텍스처 PEI 플레이트 출력을 지원하"
@@ -13854,7 +13910,7 @@ msgstr ""
 "으로 계산됩니다."
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr ""
 "초기 레이어 가속도. 낮은 값을 사용하면 빌드 플레이트 안착률을 높일 수 있습니"
@@ -13897,40 +13953,41 @@ msgstr "상단 표면 저크"
 msgid "Jerk for infill."
 msgstr "채우기 저크"
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr "초기 레이어 저크"
 
 msgid "Jerk for travel."
 msgstr "이동 저크"
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr "초기 레이어의 선 너비. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "초기 레이어 높이"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr ""
 "초기 레이어의 높이입니다. 초기 레이어 높이를 약간 두껍게 하면 빌드 플레이트 "
 "접착력을 향상시킬 수 있습니다"
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr "꽉찬 채우기 부분을 제외한 초기 레이어 속도"
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "초기 레이어 채우기"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "초기 레이어의 꽉찬 채우기 속도"
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr "초기 레이어 이동 속도"
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr "초기 레이어 이동 속도"
 
 msgid "Number of slow layers"
@@ -13943,10 +14000,11 @@ msgstr ""
 "처음 몇 개의 레이어는 평소보다 느리게 출력됩니다. 속도는 지정된 레이어 수에 "
 "걸쳐 선형 방식으로 점차 증가합니다."
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "초기 레이어 노즐 온도"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr "이 필라멘트를 사용할 때 초기 레이어를 출력하기 위한 노즐 온도"
 
 msgid "Full fan speed at layer"
@@ -14435,9 +14493,9 @@ msgstr "객체 이름표"
 # Wipe into this object;s infill/Wipe into this object
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "이 옵션을 선택하면 Gcode 출력시 이동에 설명을 추가할 수 있습니다. 이는 "
 "Octoprint CancelObject 플러그인에 유용합니다.\n"
@@ -15330,13 +15388,13 @@ msgstr "라프트 확장"
 msgid "Expand all raft layers in XY plane."
 msgstr "XY 평면에서 모든 라프트 레이어 확장"
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "초기 레이어 밀도"
 
 msgid "Density of the first raft or support layer."
 msgstr "첫 번째 라프트 또는 서포트의 밀도"
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "초기 레이어 확장"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -16833,6 +16891,12 @@ msgid ""
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
 msgstr ""
 
+msgid "Rectangle"
+msgstr "직사각형"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr ""
 
@@ -17787,10 +17851,10 @@ msgstr ""
 "첫 번째 레이어 볼록 껍질의 점으로 구성된 벡터입니다. 각 요소의 형식은 '[x, "
 "y]'입니다(x 및 y는 mm 단위의 부동 소수점 숫자입니다)."
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr "첫 번째 레이어 경계 상자의 왼쪽 하단 모서리"
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr "첫 번째 레이어 경계 상자의 오른쪽 위 모서리"
 
 msgid "Size of the first layer bounding box"
@@ -18079,10 +18143,6 @@ msgstr "이름이 기존의 다른 사전 설정 이름과 동일합니다"
 
 msgid "create new preset failed."
 msgstr "새 사전 설정을 생성하지 못했습니다."
-
-#, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr ""
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
@@ -19166,9 +19226,6 @@ msgstr ""
 
 msgid "Can't find my nozzle diameter"
 msgstr ""
-
-msgid "Rectangle"
-msgstr "직사각형"
 
 msgid "Printable Space"
 msgstr "출력 가능 공간"
@@ -20467,6 +20524,127 @@ msgstr ""
 msgid "More Colors"
 msgstr ""
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -20891,9 +21069,6 @@ msgstr ""
 
 #~ msgid "Advance"
 #~ msgstr "전문가 모드"
-
-#~ msgid "Packing data to 3MF"
-#~ msgstr "데이터를 3mf로 압축 중"
 
 #~ msgid ""
 #~ "Filament shrinkage will not be used because filament shrinkage for the "

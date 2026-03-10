@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 16:43-0300\n"
+"POT-Creation-Date: 2026-03-05 17:45-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -16,26 +16,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n==0 || n==1) ? 0 : 1;\n"
 "X-Generator: Poedit 3.6\n"
-
-msgid ""
-"The filament may not be compatible with the current machine settings. "
-"Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament model is unknown. Still using the previous filament preset."
-msgstr ""
-
-msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
-
-msgid ""
-"The filament may not be compatible with the current machine settings. A "
-"random filament preset will be used."
-msgstr ""
-
-msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
 
 msgid "right"
 msgstr ""
@@ -1603,6 +1583,30 @@ msgstr "Distance parallèle :"
 msgid "Flip by Face 2"
 msgstr "Retournement par la Face 2"
 
+msgid "Assemble"
+msgstr "Assembler"
+
+msgid "Please confirm explosion ratio = 1 and select at least two volumes."
+msgstr ""
+
+msgid "Please select at least two volumes."
+msgstr ""
+
+msgid "(Moving)"
+msgstr ""
+
+msgid "Point and point assembly"
+msgstr ""
+
+msgid ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
+msgstr ""
+
+msgid "Face and face assembly"
+msgstr ""
+
 msgid "Notice"
 msgstr "Remarque"
 
@@ -1643,6 +1647,54 @@ msgstr ""
 "n'ont pas été reconnues."
 
 msgid "Based on PrusaSlicer and BambuStudio"
+msgstr ""
+
+msgid "STEP files"
+msgstr ""
+
+msgid "STL files"
+msgstr ""
+
+msgid "OBJ files"
+msgstr ""
+
+msgid "AMF files"
+msgstr ""
+
+msgid "3MF files"
+msgstr ""
+
+msgid "Gcode 3MF files"
+msgstr ""
+
+msgid "G-code files"
+msgstr ""
+
+msgid "Supported files"
+msgstr ""
+
+msgid "ZIP files"
+msgstr ""
+
+msgid "Project files"
+msgstr ""
+
+msgid "Known files"
+msgstr ""
+
+msgid "INI files"
+msgstr ""
+
+msgid "SVG files"
+msgstr ""
+
+msgid "Texture"
+msgstr "Texture"
+
+msgid "Masked SLA files"
+msgstr ""
+
+msgid "Draco files"
 msgstr ""
 
 msgid ""
@@ -1771,6 +1823,9 @@ msgid "Choose ZIP file"
 msgstr "Choisissez un fichier ZIP"
 
 msgid "Choose one file (GCODE/3MF):"
+msgstr ""
+
+msgid "Ext"
 msgstr ""
 
 msgid "Some presets are modified."
@@ -2184,9 +2239,6 @@ msgstr "Convertir en mètre"
 
 msgid "Restore to meters"
 msgstr "Restaurer au compteur"
-
-msgid "Assemble"
-msgstr "Assembler"
 
 msgid "Assemble the selected objects to an object with multiple parts"
 msgstr "Assembler les objets sélectionnés à un objet en plusieurs parties"
@@ -2701,6 +2753,10 @@ msgstr "Impression multicolore"
 msgid "Line Type"
 msgstr "Type de ligne"
 
+#, c-format, boost-format
+msgid "1x1 Grid: %d mm"
+msgstr ""
+
 msgid "More"
 msgstr "Plus"
 
@@ -2818,8 +2874,8 @@ msgstr "Vérifiez la connexion réseau entre l'imprimante et Studio."
 msgid "Connecting..."
 msgstr "Connexion…"
 
-msgid "Auto-refill"
-msgstr ""
+msgid "Auto Refill"
+msgstr "Recharge Automatique"
 
 msgid "Load"
 msgstr "Charger"
@@ -3582,9 +3638,6 @@ msgstr ""
 msgid "Nozzle"
 msgstr "Buse"
 
-msgid "Ext"
-msgstr ""
-
 #, c-format, boost-format
 msgid ""
 "Note: the filament type(%s) does not match with the filament type(%s) in the "
@@ -3651,9 +3704,6 @@ msgstr "Imprimer avec du filament de l'AMS"
 
 msgid "Print with filaments mounted on the back of the chassis"
 msgstr "Impression avec du filament de la bobine externe"
-
-msgid "Auto Refill"
-msgstr "Recharge Automatique"
 
 msgid "Left"
 msgstr "Gauche"
@@ -3826,8 +3876,8 @@ msgid "Click here to see more info"
 msgstr "cliquez ici pour voir plus d'informations"
 
 msgid ""
-"The network plug-in was installed but could not be loaded. Please restart the "
-"application."
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 msgstr ""
 
 msgid "Restart Required"
@@ -4001,9 +4051,6 @@ msgstr "Charger une forme depuis un STL …"
 msgid "Settings"
 msgstr "Réglages"
 
-msgid "Texture"
-msgstr "Texture"
-
 msgid "Remove"
 msgstr "Retirer"
 
@@ -4106,7 +4153,7 @@ msgid ""
 msgstr "Espacement de lissage trop petit. Réinitialiser à 0.1"
 
 msgid ""
-"Zero initial layer height is invalid.\n"
+"Zero first layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
@@ -6702,6 +6749,9 @@ msgstr ""
 "Au moins un enregistrement d’impression réussi de ce profil\n"
 "d’impression est requis pour donner une note positive (4 ou 5 étoiles)."
 
+msgid "click to add machine"
+msgstr ""
+
 msgid "Status"
 msgstr "État"
 
@@ -6710,6 +6760,14 @@ msgid "Update"
 msgstr ""
 
 msgid "Assistant(HMS)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Network plug-in v%s (%s)"
 msgstr ""
 
 msgid "Don't show again"
@@ -7644,7 +7702,8 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Veuillez résoudre les erreurs de découpage et republier."
 
 msgid ""
-"The network plug-in was not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are "
+"unavailable."
 msgstr ""
 "Le plug-in réseau n'est pas détecté. Les fonctionnalités liées au réseau ne "
 "sont pas disponibles."
@@ -8549,9 +8608,6 @@ msgstr "déboguer"
 msgid "trace"
 msgstr "tracé"
 
-msgid "Network Plug-in"
-msgstr ""
-
 msgid "Reload"
 msgstr ""
 
@@ -8783,8 +8839,11 @@ msgstr "La publication a été annulée"
 msgid "Slicing Plate 1"
 msgstr "Découper Plaque 1"
 
-msgid "Packing data to 3mf"
-msgstr "Collecte des  données  3mf"
+msgid "Packing data to 3MF"
+msgstr ""
+
+msgid "Uploading data"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "Ouvrir la page internet"
@@ -9108,8 +9167,8 @@ msgstr "Plaque lisse haute température"
 msgid "Textured PEI Plate"
 msgstr "Plaque PEI texturée"
 
-msgid "Cool Plate (Supertack)"
-msgstr ""
+msgid "Cool Plate (SuperTack)"
+msgstr "Cool Plate (SuperTack)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Connexion impossible à l’imprimante"
@@ -9677,7 +9736,7 @@ msgstr "Parois"
 msgid "Top/bottom shells"
 msgstr "Coques supérieures/inférieures"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "Vitesse de couche initiale"
 
 msgid "Other layers speed"
@@ -9793,9 +9852,6 @@ msgstr "Température d'impression"
 
 msgid "Nozzle temperature when printing"
 msgstr "Température de la buse lors de l'impression"
-
-msgid "Cool Plate (SuperTack)"
-msgstr "Cool Plate (SuperTack)"
 
 msgid ""
 "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 "
@@ -10760,13 +10816,13 @@ msgstr "Afficher la liste des raccourcis clavier"
 msgid "Global shortcuts"
 msgstr "Raccourcis globaux"
 
-msgid "Pan View"
+msgid "Pan view"
 msgstr "Déplacement de vue"
 
-msgid "Rotate View"
+msgid "Rotate view"
 msgstr "Rotation de la vue"
 
-msgid "Zoom View"
+msgid "Zoom view"
 msgstr "Vue agrandie"
 
 #, fuzzy
@@ -11211,7 +11267,7 @@ msgid "Open G-code file:"
 msgstr "Ouvrir un fichier G-code :"
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr ""
 "Un objet a une couche initiale vide et ne peut pas être imprimé. Veuillez "
@@ -11806,7 +11862,7 @@ msgid "Elephant foot compensation"
 msgstr "Compensation de l'effet patte d'éléphant"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr ""
 "Rétrécissez la couche initiale sur le plateau pour compenser l'effet de "
@@ -12029,21 +12085,21 @@ msgstr ""
 "Température du plateau après la première couche. 0 signifie que le filament "
 "n'est pas supporté par la plaque PEI texturée."
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "Couche initiale"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "Température du plateau lors de la couche initiale"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate SuperTack."
 msgstr ""
 "Température du plateau de la couche initiale. La valeur 0 signifie que le "
 "filament n’est pas compatible avec l’impression sur la Cool Plate SuperTack"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Cool Plate."
 msgstr ""
 "Il s'agit de la température du plateau pour la première couche. Une valeur à "
@@ -12051,21 +12107,21 @@ msgstr ""
 "plate\""
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured Cool Plate."
 msgstr ""
 "Température du plateau de la couche initiale. La valeur 0 signifie que le "
 "filament ne peut pas être imprimé sur la plaque Cool Plate texturée"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Engineering Plate."
 msgstr ""
 "Il s'agit de la température du plateau pour la première couche. Une valeur à "
 "0 signifie que ce filament ne peut pas être imprimé sur la plaque Engineering"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the High Temp Plate."
 msgstr ""
 "Il s'agit de la température du plateau pour la première couche. Une valeur à "
@@ -12073,7 +12129,7 @@ msgstr ""
 "température (\"High Temp plate\")"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
+"Bed temperature of the first layer. A value of 0 means the filament does "
 "not support printing on the Textured PEI Plate."
 msgstr ""
 "La température du plateau à la première couche. La valeur 0 signifie que le "
@@ -14458,7 +14514,7 @@ msgstr ""
 "l’accélération par défaut."
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr ""
 "Accélération de la couche initiale. L'utilisation d'une valeur plus basse "
@@ -14502,42 +14558,43 @@ msgstr "Jerk des surfaces supérieures"
 msgid "Jerk for infill."
 msgstr "Jerk du remplissage"
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr "Jerk de la couche initiale"
 
 msgid "Jerk for travel."
 msgstr "Jerk des déplacements"
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
 "Largeur de la ligne de la couche initiale. Si elle est exprimée en %, elle "
 "sera calculée sur le diamètre de la buse."
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "Hauteur de couche initiale"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr ""
 "Il s'agit de la hauteur de la première couche. L'augmentation de la hauteur "
 "de la première couche peut améliorer l'adhérence sur le plateau"
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr "Vitesse de la couche initiale à l'exception du remplissage"
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "Remplissage de la couche initiale"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "Vitesse du remplissage à la couche initiale"
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr "Déplacements"
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr "Vitesse de déplacement de la couche initiale"
 
 msgid "Number of slow layers"
@@ -14551,10 +14608,11 @@ msgstr ""
 "vitesse augmente progressivement de manière linéaire sur le nombre de "
 "couches spécifié."
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "Température de la buse de couche initiale"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr ""
 "Température de la buse pour imprimer la couche initiale lors de "
 "l'utilisation de ce filament"
@@ -15072,9 +15130,9 @@ msgstr "Label Objects"
 
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
-"object they belong to, which is useful for the Octoprint CancelObject "
-"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
-"setup and Wipe into Object / Wipe into Infill."
+"object they belong to, which is useful for the Octoprint CancelObject plug-"
+"in. This setting is NOT compatible with Single Extruder Multi Material setup "
+"and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Permet d’ajouter des commentaires dans le G-code sur les mouvements "
 "d’impression de l’objet auquel ils appartiennent, ce qui est utile pour le "
@@ -16035,13 +16093,13 @@ msgstr "Agrandissement du radeau"
 msgid "Expand all raft layers in XY plane."
 msgstr "Développer toutes les couches de radeau dans le plan XY"
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "Densité de couche initiale"
 
 msgid "Density of the first raft or support layer."
 msgstr "Densité du premier radeau ou couche de support"
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "Extension de la couche initiale"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -17657,6 +17715,12 @@ msgid ""
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
 msgstr ""
 
+msgid "Rectangle"
+msgstr "Rectangle"
+
+msgid "Rib"
+msgstr ""
+
 msgid "Extra rib length"
 msgstr ""
 
@@ -18677,11 +18741,11 @@ msgstr ""
 "a le format suivant : ‘[x, y]’ (x et y sont des nombres à virgule flottante "
 "en mm)."
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr ""
 "Coin inférieur gauche de la boîte de délimitation de la première couche"
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr "Coin supérieur droit de la boîte de délimitation de la première couche"
 
 msgid "Size of the first layer bounding box"
@@ -18981,10 +19045,6 @@ msgstr "Le nom est le même qu’un autre nom de préréglage existant"
 
 msgid "create new preset failed."
 msgstr "la création d’un nouveau préréglage a échoué."
-
-#, c-format, boost-format
-msgid "The selected preset: %s is not found."
-msgstr ""
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
@@ -20126,9 +20186,6 @@ msgstr ""
 
 msgid "Can't find my nozzle diameter"
 msgstr ""
-
-msgid "Rectangle"
-msgstr "Rectangle"
 
 msgid "Printable Space"
 msgstr "Espace imprimable"
@@ -21505,6 +21562,127 @@ msgstr ""
 msgid "More Colors"
 msgstr ""
 
+msgid "Network Plug-in Update Available"
+msgstr ""
+
+msgid "Bambu Network Plug-in Required"
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
+msgstr ""
+
+msgid ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: %s"
+msgstr ""
+
+msgid "Show details"
+msgstr ""
+
+msgid "Version to install:"
+msgstr ""
+
+msgid "Download and Install"
+msgstr ""
+
+msgid "Skip for Now"
+msgstr ""
+
+msgid "A new version of the Bambu Network Plug-in is available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Current version: %s"
+msgstr ""
+
+msgid "Update to version:"
+msgstr ""
+
+msgid "Update Now"
+msgstr ""
+
+msgid "Remind Later"
+msgstr ""
+
+msgid "Skip Version"
+msgstr ""
+
+msgid "Don't Ask Again"
+msgstr ""
+
+msgid "The Bambu Network Plug-in has been installed successfully."
+msgstr ""
+
+msgid ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
+msgstr ""
+
+msgid "Restart Now"
+msgstr ""
+
+msgid "Restart Later"
+msgstr ""
+
+msgid "NO RAMMING AT ALL"
+msgstr ""
+
+msgid "Volumetric speed"
+msgstr ""
+
+msgid "Step file import parameters"
+msgstr ""
+
+msgid ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
+msgstr ""
+
+msgid "Linear Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr ""
+
+msgid "Angle Deflection"
+msgstr ""
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr ""
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr ""
+
+msgid "Number of triangular facets"
+msgstr ""
+
+msgid "Calculating, please wait..."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament model is unknown. Still using the previous filament preset."
+msgstr ""
+
+msgid "The filament model is unknown. Generic filament presets will be used."
+msgstr ""
+
+msgid ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
+msgstr ""
+
+msgid "The filament model is unknown. A random filament preset will be used."
+msgstr ""
+
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
 "Precise wall\n"
@@ -21901,6 +22079,9 @@ msgstr ""
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se "
 "déformer, tels que l’ABS, une augmentation appropriée de la température du "
 "plateau chauffant peut réduire la probabilité de déformation?"
+
+#~ msgid "Packing data to 3mf"
+#~ msgstr "Collecte des  données  3mf"
 
 #~ msgid "Line pattern of support."
 #~ msgstr "Motif de ligne de support"

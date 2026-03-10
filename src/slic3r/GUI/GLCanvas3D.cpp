@@ -8545,9 +8545,11 @@ void GLCanvas3D::_render_canvas_toolbar()
                 zoom_to_selection();
             }
         } else if (ImGui::IsItemHovered()) {
-            auto tooltip = _L("Fit camera to scene or selected object.");
-            auto width   = ImGui::CalcTextSize(tooltip.c_str()).x + imgui.scaled(2.0f);
-            imgui.tooltip(tooltip, width);
+            auto tooltip_str_wx = _L("Fit camera to scene or selected object.");
+            std::string tooltip_str = tooltip_str_wx.ToUTF8().data();
+
+            float width = ImGui::CalcTextSize(tooltip_str.c_str()).x + imgui.scaled(2.0f);
+            imgui.tooltip(tooltip_str, width);
         }
     }
 

@@ -2756,14 +2756,6 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
-    // FilamentTempType Temperature-based logic
-    int min_temp, max_temp;
-    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
-        if (max_temp <= 250) return FilamentTempType::LowTemp;
-        else if (max_temp < 280) return FilamentTempType::HighLowCompatible;
-        else return FilamentTempType::HighTemp;
-    }
-
     const static std::string HighTempFilamentStr = "high_temp_filament";
     const static std::string LowTempFilamentStr = "low_temp_filament";
     const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";
@@ -2798,6 +2790,19 @@ FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
         return HighTemp;
     if (filament_temp_type_map[LowTempFilamentStr].find(filament_type) != filament_temp_type_map[LowTempFilamentStr].end())
         return LowTemp;
+
+    // Orca: prefer explicit definition from JSON, if the filament type is not defined in json, fallback to temperature-based logic to determine the filament temp type.
+    // FilamentTempType Temperature-based logic
+    int min_temp, max_temp;
+    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
+        if (max_temp <= 250)
+            return FilamentTempType::LowTemp;
+        else if (max_temp < 280)
+            return FilamentTempType::HighLowCompatible;
+        else
+            return FilamentTempType::HighTemp;
+    }
+
     return Undefine;
 }
 
@@ -3396,6 +3401,11 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
+        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
+                                         wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
+                                         config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
