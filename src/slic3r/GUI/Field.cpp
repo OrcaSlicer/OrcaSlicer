@@ -101,43 +101,79 @@ ThumbnailErrors validate_thumbnails_string(wxString& str, const wxString& def_ex
     return errors;
 }
 
+// Orca
 wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_option_key& id)
 {
     wxString tooltip = _(opt.tooltip);
 
-    if (tooltip.length() > 0) {
-        edit_tooltip(tooltip);
+    std::string opt_id = id;
+    auto hash_pos = opt_id.find("#");
+    if (hash_pos != std::string::npos) {
+        opt_id.replace(hash_pos, 1,"[");
+        opt_id += "]";
+    }
 
-        std::string opt_id = id;
-        auto hash_pos = opt_id.find("#");
-        if (hash_pos != std::string::npos) {
-            opt_id.replace(hash_pos, 1,"[");
-            opt_id += "]";
-        }
+    tooltip += (tooltip.empty() ? "" : "\n\n") + _(L("parameter name")) + ": " + opt_id;
 
-        tooltip += "\n\n" + _(L("parameter name")) + ": " + opt_id;
+    // Orca: 
+    // We can't use Orca's default values as-is because they sometimes depend on other values. 
+    // Parent preset configuration values will be used instead.
+    if (const Preset* print_parent_preset = wxGetApp().preset_bundle->prints.get_selected_preset_parent()) {
+        const DynamicPrintConfig& parent_config = print_parent_preset->config;
 
-        if (opt.type == coFloat || opt.type == coInt) {
+        if (!parent_config.has(opt_id))
+            return tooltip;
+
+        wxString side_text = from_u8(opt.sidetext);
+
+        // Orca: a small hack for `layers` side text: adding a space before it for better looking text
+        if (opt.sidetext == L("layers"))
+            side_text = " " + _(side_text);
+
+        if (opt.type == coFloat || opt.type == coInt || opt.type == coPercent || opt.type == coFloatOrPercent) {
             double default_value = 0.;
 
             if (opt.type == coFloat)
-                default_value = opt.get_default_value<ConfigOptionFloat>()->value;
+                default_value = parent_config.option<ConfigOptionFloat>(opt_id)->value;
             else if (opt.type == coInt)
-                default_value = opt.get_default_value<ConfigOptionInt>()->value;
+                default_value = parent_config.option<ConfigOptionInt>(opt_id)->value;
+            else if (opt.type == coPercent)
+                default_value = parent_config.option<ConfigOptionPercent>(opt_id)->value;
+            else if (opt.type == coFloatOrPercent) {
+                default_value = parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->value;
+                if (parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->percent)
+                    side_text = "%";
+                else if (!side_text.empty()) {
+                    static std::string postfix = " or %";
+                    auto postfix_pos = side_text.find(postfix);
+                    if (postfix_pos != std::string::npos)
+                        side_text.erase(postfix_pos, postfix.length());
+                }
+            }
 
-            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value));
+            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value)) + _(side_text);
 
             if (opt.min > -FLT_MAX && opt.max < FLT_MAX) {
                 tooltip += "\n" + _(L("Range")) + ": [" + 
-                    _(double_to_string(opt.min)) + ", " + 
-                    _(double_to_string(opt.max)) + "]";
+                    _(double_to_string(opt.min)) + _(side_text) + ", " + 
+                    _(double_to_string(opt.max)) + _(side_text) + "]";
             }
-        }
+        } else if (opt.type == coBool || opt.type == coString) {
+            std::string default_value = "";
 
-        return tooltip;
+            if (opt.type == coString)
+                default_value = parent_config.option<ConfigOptionString>(opt_id)->value;
+            else if (opt.type == coBool)
+                default_value = parent_config.option<ConfigOptionBool>(opt_id)->value ? "true" : "false";
+
+            tooltip += "\n\n" + _(L("Default")) + ": " +
+                (default_value.empty() ? _(L("Empty string")) : _(default_value) + _(side_text));
+        }
     }
 
-    return "";
+    edit_tooltip(tooltip);
+
+    return tooltip;
 }
 
 Field::~Field()
