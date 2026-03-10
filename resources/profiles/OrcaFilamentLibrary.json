@@ -709,6 +709,18 @@
             "sub_path": "filament/Valment/Valment PLA-CF @base.json"
         },
         {
+            "name": "eSUN PLA-Basic @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Basic @base.json"
+        },
+        {
+            "name": "eSUN PLA-Matte @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Matte @base.json"
+        },
+        {
+            "name": "eSUN PLA-Marble @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Marble @base.json"
+        },
+        {
             "name": "eSUN PLA+ @base",
             "sub_path": "filament/eSUN/eSUN PLA+ @base.json"
         },
@@ -1311,6 +1323,18 @@
         {
             "name": "Valment PLA-CF @System",
             "sub_path": "filament/Valment/Valment PLA-CF @System.json"
+        },
+        {
+            "name": "eSUN PLA-Basic @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Basic @System.json"
+        },
+        {
+            "name": "eSUN PLA-Matte @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Matte @System.json"
+        },
+        {
+            "name": "eSUN PLA-Marble @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Marble @System.json"
         },
         {
             "name": "eSUN PLA+ @System",

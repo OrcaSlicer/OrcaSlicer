@@ -52,6 +52,9 @@ class PrintHostQueueDialog;
 class Plater;
 class MainFrame;
 class ParamsDialog;
+#ifdef __WXGTK__
+class ResizeEdgePanel;
+#endif
 
 enum QuickSlice
 {
@@ -424,8 +427,11 @@ public:
 #endif // _WIN32
 
 #ifdef __WXGTK__
-    class GtkResizeBorderHandler;
-    GtkResizeBorderHandler* m_resize_border_handler{nullptr};
+    friend class ResizeEdgePanel;
+    ResizeEdgePanel* m_edge_bottom{nullptr};
+    ResizeEdgePanel* m_edge_left{nullptr};
+    ResizeEdgePanel* m_edge_right{nullptr};
+    void update_edge_panels();
 #endif // __WXGTK__
 };
 
