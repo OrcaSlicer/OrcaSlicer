@@ -207,6 +207,17 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
     m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancle, this);
+    SetEscapeId(wxID_CANCEL);
+    Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+        if (e.GetKeyCode() == WXK_ESCAPE) {
+            if (IsModal())
+                EndModal(wxID_CANCEL);
+            else
+                Close();
+            return;
+        }
+        e.Skip();
+    });
 
     m_auto_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_switch_mode, this);
     m_manual_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_switch_mode, this);

@@ -301,11 +301,21 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             fuzzified.points.clear();
 
             const auto fuzzy_current_segment = [&segment, &fuzzified, &r, slice_z]() {
-                fuzzified.points.push_back(segment.front());
-                const auto back = segment.back();
+                // Orca: non fuzzy points to isolate fuzzy region
+                const auto front = segment.front();
+                const auto back  = segment.back();
+ 
                 fuzzy_polyline(segment, false, slice_z, r.first);
+                //Orca: only add non fuzzy point if it's not in the polygon closing point.
+                if (!fuzzified.points.empty()
+                    && fuzzified.points.back() != front) {
+                    fuzzified.points.push_back(front);
+                }
                 fuzzified.points.insert(fuzzified.points.end(), segment.begin(), segment.end());
-                fuzzified.points.push_back(back);
+                //Orca: only add non fuzzy point if it's not in the polygon closing point.
+                if (!fuzzified.points.empty() && fuzzified.points.back() != front) {
+                    fuzzified.points.push_back(back);
+                }
                 segment.clear();
             };
 
@@ -328,7 +338,12 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             }
         }
     }
-
+ 
+    // Orca: ensure the loop is closed after fuzzification 
+    if (!fuzzified.points.empty() && fuzzified.points.front() != fuzzified.points.back()) {
+        fuzzified.points.back() = fuzzified.points.front();
+    }
+ 
     return fuzzified;
 }
 
@@ -406,12 +421,12 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 
                         fuzzy_extrusion_line(segment, slice_z, r.first, false);
                         // Orca: only add non fuzzy point if it's not in the extrusion closing point.
-                        if (extrusion->junctions.front().p != front.p) {
+                        if (!extrusion->junctions.empty() && extrusion->junctions.front().p != front.p) {
                             extrusion->junctions.push_back(front);
                         }
                         extrusion->junctions.insert(extrusion->junctions.end(), segment.begin(), segment.end());
                         // Orca: only add non fuzzy point if it's not in the extrusion closing point.
-                        if (extrusion->junctions.back().p != front.p) {
+                        if (!extrusion->junctions.empty() && extrusion->junctions.back().p != front.p) {
                             extrusion->junctions.push_back(back);
                         }
                         segment.clear();
@@ -442,7 +457,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     }
 
                     //Orca: ensure the loop is closed after fuzzy
-                    if (extrusion->junctions.front().p != extrusion->junctions.back().p) {
+                    if (!extrusion->junctions.empty() && extrusion->junctions.front().p != extrusion->junctions.back().p) {
                         extrusion->junctions.back().p = extrusion->junctions.front().p;
                         extrusion->junctions.back().w = extrusion->junctions.front().w;
                     }

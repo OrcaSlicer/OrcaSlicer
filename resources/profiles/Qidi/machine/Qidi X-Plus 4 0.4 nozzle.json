@@ -98,5 +98,6 @@
     "thumbnails_format": "PNG",
     "default_filament_profile": [
         "Qidi Generic PLA @Qidi X-Plus 4 0.4 nozzle"
-    ]
+    ],
+    "printer_agent": "qidi"
 }
