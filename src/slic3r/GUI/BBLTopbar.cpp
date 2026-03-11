@@ -51,13 +51,12 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
         wxFontMetrics fm = dc.GetFontMetrics();
         int textHeight = fm.ascent + fm.descent;
 
-        wxRect rect = GetClientRect();
-
+        wxRect   rect       = GetClientRect();
         wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, rect.GetWidth() - FromDIP(8));
 
         int y = rect.y + (rect.height - textHeight) / 2;
-        int x = rect.x + (ellipsized != m_title)
-            ? FromDIP(4)                                          // fixed left when clipped
+        int x = rect.x + (ellipsized != m_title)                       // is ellipsized
+            ? FromDIP(4)                                               // fixed left when clipped
             : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2; // centered when full
 
         dc.DrawText(ellipsized, x, y);
@@ -69,15 +68,14 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
         e.Skip();
     });
 
-    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+    auto forwardMouseEvent = [this](wxMouseEvent& e) {
+        if (e.LeftDown() && e.GetClickCount() > 1) return; // prevent duplicate event
         e.SetPosition(GetParent()->ScreenToClient(ClientToScreen(e.GetPosition())));
         GetParent()->GetEventHandler()->ProcessEvent(e);
-    });
+    };
 
-    Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent& e) {
-        e.SetPosition(GetParent()->ScreenToClient(ClientToScreen(e.GetPosition())));
-        GetParent()->GetEventHandler()->ProcessEvent(e);
-    });
+    Bind(wxEVT_LEFT_DOWN,   forwardMouseEvent);
+    Bind(wxEVT_LEFT_DCLICK, forwardMouseEvent);
 }
 
 void CenteredTitle::SetTitle(const wxString& title) {
