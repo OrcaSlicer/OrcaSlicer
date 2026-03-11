@@ -2819,6 +2819,7 @@ msgstr "Пауза"
 msgid "Template"
 msgstr "Шаблон"
 
+# Тянется из 9 мест: группировка материалов: Auto/Custom, Форма стола: %s, тип линии: %s, калибровка температуры – Тип материала: %s (тут колонки узкие, но место вроде есть),). Причём местами должно согласоваться с разными родами (форма: пользов.). Лучше сократить до Пользов.
 msgid "Custom"
 msgstr "Пользовательский"
 
@@ -4165,9 +4166,9 @@ msgstr "Удалить"
 msgid "Not found:"
 msgstr "Не найдено:"
 
-# Используется в 7 местах
+# Используется в 7 местах – сокращаем, т.к. из-за длины растягивается окно с информацией о печати
 msgid "Model"
-msgstr "3D-модель"
+msgstr "Модель"
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "Выберите файл STL для импорта формы стола:"
@@ -5075,7 +5076,7 @@ msgstr "Видимость"
 
 # в результате нарезки это, в профиле прутка
 msgid "Flushed"
-msgstr "Очистка"
+msgstr "Прочистка"
 
 msgid "Tower"
 msgstr "Башня"
@@ -5601,7 +5602,7 @@ msgstr ""
 msgid ""
 "PLA and PETG filaments detected in the mixture. Adjust parameters according "
 "to the Wiki to ensure print quality."
-msgstr ""
+msgstr "Обнаружено совместное использование PLA и PETG. Для повышения качество рекомендуется настроить параметры в соответствии с руководством."
 
 msgid "The prime tower extends beyond the plate boundary."
 msgstr "Башня очистки выходит за пределы области печати."
@@ -5622,7 +5623,7 @@ msgstr ""
 "в цветной модели. Рекомендуется изменить настройки прочистки:"
 
 msgid "Click Wiki for help."
-msgstr "Подробнее на Wiki"
+msgstr "Открыть руководство"
 
 msgid "Click here to regroup"
 msgstr "Перегруппировать"
@@ -5739,6 +5740,7 @@ msgstr "Авторизация"
 msgid "Prepare"
 msgstr "Подготовка"
 
+# Предпросмотр – так места хватает, чтобы в split-режиме на экране целиком умещалась кнопка нарезки
 msgid "Preview"
 msgstr "Просмотр нарезки"
 
@@ -5760,8 +5762,9 @@ msgstr "Нет"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "будет закрыт перед созданием новой модели. Хотите продолжить?"
 
+# Возможно, имеет смысл убрать тут "стол". Подавляющее большинство проектов – это размещение моделей и их печать на одном столе, поэтому намёк на работу с несколькими столами тут выглядит излишним. А в режиме работы с несколькими столами по противопоставлению "Нарезать/Нарезать все" и так понятно, что к чему относится. Преимущества – это экономит немного места для соседней кнопки, которая сейчас не видна в split-режиме окон слайсера на некоторых экранах (ноутбуки с оптимальным масштабированием).
 msgid "Slice plate"
-msgstr "Нарезать стол"
+msgstr "Нарезать"
 
 msgid "Print plate"
 msgstr "Распечатать стол"
@@ -6833,8 +6836,9 @@ msgstr "Применимо только во время печати"
 msgid "Silent"
 msgstr "Тихий"
 
+# Подставляется в "%s экструдер"; используется везде совместно с "High flow" (Обычный режим/Высокий расход)
 msgid "Standard"
-msgstr "Стандартный"
+msgstr "Обычный"
 
 msgid "Sport"
 msgstr "Спортивный"
@@ -6847,7 +6851,7 @@ msgid ""
 "monitoring, like spaghetti detection. Please choose carefully."
 msgstr ""
 "Будьте осторожны, выключение освещения в процессе работы приведёт к отказу "
-"систем интеллектуального отслеживания (например, обнаружения слетевших "
+"систем интеллектуального отслеживания (например, обнаружения отрыва "
 "моделей)."
 
 msgid "Keep it On"
@@ -7368,7 +7372,7 @@ msgid "Brass"
 msgstr "Латунь"
 
 msgid "High flow"
-msgstr ""
+msgstr "Высокий расход"
 
 msgid "No wiki link available for this printer."
 msgstr "Ссылка на руководство по этому принтеру отсутствует."
@@ -7441,14 +7445,15 @@ msgstr "Внимание: «%s» экструдер не может печата
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Совмещение %1% с %2% при печати не рекомендуется.\n"
 
-# подстановка в составные уведомления. Часто речь идёт именно об экструдере, а не о сопле, плюс "экструдер" лучше согласуется.
+# подстановка в составные уведомления (напр.: "0.2mm Стандартный nozzle"). Часто речь идёт именно об экструдере, а не о сопле, плюс "экструдер" лучше согласуется.
 msgid " nozzle"
 msgstr " экструдер"
 
+# Очень кривая подстановка (nozzle_diameter, volume_type), поэтому такой вариант. Например, сейчас получается: "Не рекомендуется одновременно использовать сопло 0.2mm Стандартный экструдер и Bambu PETG Transparent"
 #, boost-format
 msgid ""
 "It is not recommended to print the following filament(s) with %1%: %2%\n"
-msgstr "Соплом %1% не рекомендуется печатать %2%\n"
+msgstr "Не рекомендуется одновременно использовать сопло %1% и %2%\n"
 
 msgid ""
 "It is not recommended to use the following nozzle and filament "
@@ -7757,6 +7762,7 @@ msgstr ""
 "Во избежание повреждения принтера убедитесь, что G-код в этих профилях "
 "безопасен!"
 
+# Проверить, где используется (кроме окна сохранения профиля) – может лучше переименовать в "Новый профиль"? Чтобы упростить понимание действия совершаемого слайсером действия.
 msgid "Customized Preset"
 msgstr "Пользовательский профиль"
 
@@ -8490,7 +8496,7 @@ msgid "Ask When Relevant"
 msgstr "автовыбор"
 
 msgid "Always Ask"
-msgstr "выбор действия"
+msgstr "окно выбора"
 
 msgid "Load Geometry Only"
 msgstr "3D-модели"
@@ -8515,7 +8521,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr "Сохранять STL/STEP в списке последних"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "Отключить предупреждение при загрузке 3MF с модифицированным G-кодом"
+msgstr "Не предупреждать при загрузке 3MF с модифицированным G-кодом"
 
 msgid "Show options when importing STEP file"
 msgstr "Показывать настройки импорта STEP"
@@ -9077,8 +9083,9 @@ msgstr "Пожалуйста, введите значение слоя (>= 2)."
 msgid "Plate name"
 msgstr "Имя стола"
 
+# Длинно и не понятно, зачем – это в настройках столов, переопределение типа покрытия
 msgid "Same as Global Plate Type"
-msgstr "Аналогично глобальному типу пластины"
+msgstr "По умолчанию"
 
 msgid "Bed type"
 msgstr "Покрытие"
@@ -9125,7 +9132,7 @@ msgid "Packing project data into 3MF file"
 msgstr "Упаковка данных проекта в файл формата 3mf"
 
 msgid "Uploading 3MF"
-msgstr "Отправка 3mf"
+msgstr "Отправка 3MF"
 
 msgid "Jump to model publish web page"
 msgstr "Перейти на веб-страницу публикации модели"
@@ -11031,7 +11038,7 @@ msgid ""
 "changed or filaments changed. You could disable the auto-calculate in Orca "
 "Slicer > Preferences"
 msgstr ""
-"Программа будет пересчитывать значения при каждом изменении цвета или смены "
+"Значения будут пересчитываться при каждом изменении цвета или смене "
 "материала. Это можно отключить в настройках."
 
 msgid "Flushing volume (mm³) for each filament pair."
@@ -12346,7 +12353,7 @@ msgid "Password"
 msgstr "Пароль"
 
 msgid "Ignore HTTPS certificate revocation checks"
-msgstr "Игнорировать проверки отзыва сертификата HTTPS"
+msgstr "Игнорировать проверки отзыва сертификата"
 
 msgid ""
 "Ignore HTTPS certificate revocation checks in case of missing or offline "
@@ -13826,6 +13833,7 @@ msgstr ""
 "внешней поверхности. Кроме того, это может приводить к тому, что заполнение "
 "будет просвечиваться через внешнюю поверхность детали.."
 
+# См. https://github.com/OrcaSlicer/OrcaSlicer/pull/12669
 msgid "Wall loop direction"
 msgstr "Направление печати периметров"
 
@@ -14536,12 +14544,12 @@ msgid ""
 msgstr ""
 
 msgid "Tower ironing area"
-msgstr ""
+msgstr "Разглаживание черновой башни"
 
 msgid ""
 "Ironing area for prime tower interface layer (where different materials "
 "meet)."
-msgstr ""
+msgstr "Площадь разглаживания области на стыке двух разных материалов. Снижает риск столкновения сопла с торчащими кончиками линий при дальнейшей прочистке.\n\nПримечание: эта функция требует включения защитных окон черновой башни."
 
 msgid "mm²"
 msgstr "мм²"
@@ -16721,7 +16729,7 @@ msgstr ""
 "эффекта низкополигональной модели."
 
 msgid "Travel distance threshold"
-msgstr "Порог перемещения для отката"
+msgstr "Порог перемещения"
 
 msgid ""
 "Only trigger retraction when the travel distance is longer than this "
@@ -16956,14 +16964,14 @@ msgstr ""
 msgid "Show auto-calibration marks"
 msgstr "Отображать на столе линии автокалибровки"
 
+# Не отправлять оценку времени, Не маркировать прогресс печати, Отключить маркировку прогресса печати
 msgid "Disable set remaining print time"
-msgstr "Откл. генерацию оставшегося времени печати"
+msgstr "Не отмечать прогресс"
 
 msgid ""
 "Disable generating of the M73: Set remaining print time in the final G-code."
 msgstr ""
-"Отключение генерации команды M73 - вывода оставшегося времени печати в "
-"конечный G-код."
+"Отключить вставку в G-код команд для вывода прогресса печати и оставшегося времени."
 
 msgid "Seam position"
 msgstr "Позиция шва"
@@ -18319,8 +18327,7 @@ msgstr "Внутренние рёбра"
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
 msgstr ""
-"Создавать внутренние рёбра жёсткости для повышения стабильности печати "
-"черновой башни."
+"Создавать внутренние опоры на протяжении всей высоты башни для повышения её устойчивости. Если отключено, опоры создаются только под слоями прочистки материала.\n\nПримечание: влияет только на принтеры Bambu, в остальных случаях башня автоматически сужается по необходимости."
 
 # ??? настройка отключена в коде
 msgid "Purging volumes"
@@ -18437,9 +18444,9 @@ msgstr ""
 "3. Рёбра жёсткости, которые добавляются по четырём углам черновой башни для "
 "повышения устойчивости."
 
-# Тянется из "Форма стола" и "Форма черновой башни"
+# Тянется из "Форма стола" (в создании принтера) и "Форма черновой башни"
 msgid "Rectangle"
-msgstr "Прямоугольник"
+msgstr "Прямоугольная"
 
 msgid "Rib"
 msgstr "Усиленная"
@@ -18675,9 +18682,10 @@ msgid ""
 "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the "
 "following format: \"XxY, XxY, ...\""
 msgstr ""
-"Размеры изображения, которые будут сохранены в файлах .sl1 / .sl1s в "
-"следующем формате: \"XxY, XxY, ...\""
+"Параметры изображений для сохранения в файлах .gcode, .sl1 и .sl1s. Задаются в "
+"следующем виде: \"XxY/PNG, XxY/PNG, ...\".\nПоддерживаются форматы JPG, PNG, QOI, BTT_TFT и COLPIC."
 
+# Легаси, сейчас формат задаётся отдельно для каждого отдельного изображения внутри файла.
 msgid "Format of G-code thumbnails"
 msgstr "Формат эскизов G-кода"
 
@@ -20593,7 +20601,7 @@ msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
 msgstr ""
-"Совет: установите значение затухания (Damp) равным 0\n"
+"Совет: установите значение затухания (Damp) равным 0 "
 "для использования значения из прошивки принтера."
 
 msgid ""
@@ -20606,7 +20614,7 @@ msgstr ""
 msgid "Please input a valid damping factor (0 < Damping/zeta factor <= 1)"
 msgstr ""
 "Введите допустимый коэффициент затухания (0 < Затухание/коэффициент "
-"затухания <= 1)"
+"затухания ≤ 1)"
 
 msgid "Input shaping Damp test"
 msgstr "Тест затухания Input shaping"
@@ -20633,14 +20641,13 @@ msgid ""
 "Please input valid values:\n"
 "(0 < Freq < 500)"
 msgstr ""
-"Введите допустимые значения:\n"
-"(0 < Частота < 500)"
+"Введите допустимое значение:\n"
+"(0 < частота < 500)"
 
 msgid ""
 "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr ""
-"Введите допустимый коэффициент затухания (0 <= DampingStart < DampingEnd <= "
-"1)"
+"Введите допустимый коэффициент затухания (0 ≤ начало < конец ≤ 1)"
 
 msgid "Cornering test"
 msgstr "Тест прохождения углов"
@@ -20660,12 +20667,13 @@ msgstr "Тестируемый диапазон"
 msgid "Note: Lower values = sharper corners but slower speeds."
 msgstr "Примечание: чем ниже значения, тем острее и медленнее печатаются углы."
 
+# Junction Deviation – a, c, e и o заменены на кириллические для обхода бага с расчётом ширины текста для переноса строк (чтобы текст не обрезался, короче).
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
 "To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
 "0."
 msgstr ""
-"Внимание: тестируется работа Junction Deviation.\n"
+"Внимание: тестируется Junсtiоn Dеviаtiоn.\n"
 "Для тестирования рывков необходимо обнулить его значение (профиль принтера → "
 "ограничения → рывки → Макс. значение Junction Deviation)."
 
@@ -21507,14 +21515,13 @@ msgstr "Веб-интерфейс хоста печати на вкладке «
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Заменить вкладку принтера BambuLab на веб-интерфейс хоста печати"
 
-# Слишком мало места, текст срезается. Костылим с неразрывными пробелами.
+# HTTPS – на кириллице, чтобы обойти баг с переносом.
 msgid ""
 "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-"
 "signed certificate."
 msgstr ""
-"Файл корневого сертификата HTTPS необходим только при\n"
-"использовании HTTPS с самоподписанным сертификатом.\n"
-" "
+"Файл корневого сертификата НТТРS необходим только при использовании\n"
+"НТТРS с самоподписанным сертификатом."
 
 msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
 msgstr "Файлы сертификатов (*.crt, *.pem)|*.crt;*.pem|Все файлы|*.*"
@@ -22281,7 +22288,7 @@ msgid "We will slice according to this grouping method:"
 msgstr "Осуществлять нарезку в соответствии с этой группировкой:"
 
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
-msgstr "Совет: для назначения материала можно перетащить его в нужное поле."
+msgstr "Совет: для назначения материала перетащите его в нужное поле."
 
 msgid ""
 "The filament grouping method for current plate is determined by the dropdown "
