@@ -622,7 +622,7 @@ void OptionsGroup::on_change_OG(const t_config_option_key& opt_id, const boost::
 Option ConfigOptionsGroup::get_option(const std::string& opt_key, int opt_index /*= -1*/)
 {
 	if (!m_config->has(opt_key)) {
-		// Option not in config — may be newly added (e.g. ZAA options)
+		std::cerr << "No " << opt_key << " in ConfigOptionsGroup config.\n";
 	}
 
 	std::string opt_id = opt_index == -1 ? opt_key : opt_key + "#" + std::to_string(opt_index);

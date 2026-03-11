@@ -2572,32 +2572,13 @@ void GUI_App::init_single_instance_checker(const std::string &name, const std::s
     m_single_instance_checker = std::make_unique<wxSingleInstanceChecker>(boost::nowide::widen(name), boost::nowide::widen(path));
 }
 
-bool GUI_App::CallOnInit()
-{
-    // Override wxApp::CallOnInit to catch exceptions from ~wxMacAutoreleasePool
-    try {
-        return wxApp::CallOnInit();
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(fatal) << "Exception in CallOnInit: " << e.what();
-        return false;
-    } catch (...) {
-        // The app was initialized, just the autorelease pool cleanup threw.
-        // Return true to let the app continue.
-        return m_initialized;
-    }
-}
-
 bool GUI_App::OnInit()
 {
     try {
         return on_init_inner();
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(fatal) << "OnInit Got Fatal error: " << e.what();
-        flush_logs();
-        return false;
-    } catch (...) {
-        BOOST_LOG_TRIVIAL(fatal) << "OnInit caught non-std exception";
-        flush_logs();
+        generic_exception_handle();
         return false;
     }
 }
@@ -3420,16 +3401,8 @@ bool GUI_App::on_init_network(bool try_backup)
     Slic3r::NetworkAgentFactory::register_all_agents();
 
     // m_agent = new Slic3r::NetworkAgent(data_directory);
-    try {
-        std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
-        m_agent = agent_ptr.release();
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "Failed to create network agent: " << e.what();
-        m_agent = nullptr;
-    } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << "Failed to create network agent: unknown exception (code signing?)";
-        m_agent = nullptr;
-    }
+    std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
+    m_agent = agent_ptr.release();
 
     if (!m_device_manager)
         m_device_manager = new Slic3r::DeviceManager(m_agent);
@@ -5731,7 +5704,6 @@ std::string GUI_App::format_display_version()
     if (!version_display.empty()) return version_display;
 
     version_display = SoftFever_VERSION;
-    version_display += " / ZAA v" + std::string(ZAA_VERSION);
     return version_display;
 }
 
@@ -6563,8 +6535,7 @@ void GUI_App::update_mode()
         mainframe->m_param_dialog->panel()->update_mode();
     if (mainframe->m_printer_view)
         mainframe->m_printer_view->update_mode();
-    if (mainframe->m_webview)
-        mainframe->m_webview->update_mode();
+    mainframe->m_webview->update_mode();
 
 #ifdef _MSW_DARK_MODE
     if (!wxGetApp().tabs_as_menu())
@@ -6575,6 +6546,8 @@ void GUI_App::update_mode()
         tab->update_mode();
     for (auto tab : model_tabs_list)
         tab->update_mode();
+
+    //BBS plater()->update_menus();
 
     plater()->canvas3D()->update_gizmos_on_off_state();
 }

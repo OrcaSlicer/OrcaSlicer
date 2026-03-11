@@ -1,7 +1,5 @@
 #include "MainFrame.hpp"
 
-#include <boost/filesystem/directory.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -25,7 +23,6 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/Utils.hpp"
 
 #include "Tab.hpp"
 #include "ProgressStatusBar.hpp"
