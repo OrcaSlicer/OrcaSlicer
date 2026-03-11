@@ -20,6 +20,8 @@ public:
 
 private:
     wxString m_title;
+    mutable int m_cachedX     = -1;
+    mutable int m_cachedWidth = -1;
 };
 
 class BBLTopbar : public wxAuiToolBar

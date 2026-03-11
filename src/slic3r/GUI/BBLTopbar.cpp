@@ -41,23 +41,38 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-    Bind(wxEVT_PAINT, [this](wxPaintEvent& e) {
+    Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
         wxBufferedPaintDC dc(this);
         dc.SetBackground(wxBrush(wxColour(38, 46, 48)));
         dc.Clear();
 
-        dc.SetFont(GetFont());
         dc.SetTextForeground(*wxWHITE);
 
-        wxFontMetrics fm = dc.GetFontMetrics();
-        int textHeight = fm.ascent + fm.descent;
+        wxRect rect       = GetClientRect();
+        int    clientW    = rect.GetWidth();
 
-        wxString text = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, GetClientSize().GetWidth() - FromDIP(8));
+        wxFontMetrics fm  = dc.GetFontMetrics();
+        int textHeight    = fm.ascent + fm.descent;
+        int y             = rect.y + (rect.height - textHeight) / 2;
 
-        wxRect rect = GetClientRect();
-        int y = rect.y + (rect.height - textHeight) / 2;
+        int fullW    = dc.GetTextExtent(m_title).GetWidth();
+        int naturalX = rect.x + (clientW - fullW) / 2;
 
-        dc.DrawText(text, rect.x + (rect.width - dc.GetTextExtent(text).GetWidth()) / 2, y);
+        // Only update cached x if the shift exceeds 3px threshold to fix shaky text while resizing window and ellipsizing end
+        if (m_cachedX == -1 || std::abs(naturalX - m_cachedX) > FromDIP(3)) {
+            m_cachedX     = wxMax(rect.x, naturalX);
+            m_cachedWidth = fullW;
+        }
+
+        wxString text     = m_title;
+        int      availW   = clientW - FromDIP(8);
+
+        if (fullW > availW) {
+            int availFromCached = rect.x + clientW - m_cachedX - FromDIP(4);
+            text = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, wxMax(availFromCached, FromDIP(20)));
+        }
+
+        dc.DrawText(text, m_cachedX, y);
     });
 
     // repaint for Ellipsize
@@ -79,6 +94,8 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
 
 void CenteredTitle::SetTitle(const wxString& title) {
     m_title = title;
+    m_cachedX     = -1;
+    m_cachedWidth = -1;
     RefreshRect(GetClientRect());
     Update(); 
 }
