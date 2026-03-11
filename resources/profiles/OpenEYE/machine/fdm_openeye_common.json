@@ -19,7 +19,7 @@
 	],
 	"default_print_profile": "0.20mm Standard @OpenEYE Peacock V2",
 	"deretraction_speed": [
-		"30"
+		"40"
 	],
     "disable_m73": "0",
     "emit_machine_limits_to_gcode": "0",
@@ -43,6 +43,7 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
+    "printer_agent": "moonraker",
 	"inherits": "fdm_machine_common",
 	"instantiation": "false",
     "layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\n_MMU_UPDATE_HEIGHT",
@@ -185,13 +186,13 @@
         "18"
     ],
     "retraction_length": [
-        "0.8"
+        "1"
     ],
     "retraction_minimum_travel": [
         "1"
     ],
     "retraction_speed": [
-        "30"
+        "40"
     ],
 	"scan_first_layer": "0",
 	"silent_mode": "0",

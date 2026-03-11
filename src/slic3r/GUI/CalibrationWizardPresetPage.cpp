@@ -764,7 +764,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
     m_filament_from_panel = new wxPanel(parent);
     m_filament_from_panel->Hide();
     auto filament_from_sizer = new wxBoxSizer(wxVERTICAL);
-    auto filament_from_text = new Label(m_filament_from_panel, _L("filament position"));
+    auto filament_from_text = new Label(m_filament_from_panel, _L("Filament position"));
     filament_from_text->SetFont(Label::Head_14);
     filament_from_sizer->Add(filament_from_text, 0);
 

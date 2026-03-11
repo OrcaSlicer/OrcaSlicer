@@ -1286,9 +1286,6 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
         size_t dst = m_extruder_remap[src];
         if (dst != src) {
             state_map[src+start_extruder] = static_cast<EnforcerBlockerType>(dst+start_extruder);
-            if (src == 0)
-                state_map[0] = static_cast<EnforcerBlockerType>(dst + start_extruder);
-
             any_change     = true;
         }
     }
@@ -1319,11 +1316,19 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
         // ORCA: Remap base volume extruder as well if selected
         int current_ext_id = mv->extruder_id();
         int current_idx = (current_ext_id > 0) ? current_ext_id - 1 : 0;
-        
+
         if (current_idx >= 0 && current_idx < m_extruder_remap.size()) {
             size_t dest_idx = m_extruder_remap[current_idx];
             if (dest_idx != current_idx) {
-                mv->config.set("extruder", (int)dest_idx + 1);
+                // Check if volume has its own extruder config or uses object's fallback                                                                                                                                            
+                const ConfigOption *vol_opt = mv->config.option("extruder");                                                                                                                                                        
+                if (vol_opt != nullptr && vol_opt->getInt() != 0) {                                                                                                                                                                 
+                    // Volume has its own extruder setting, update it                                                                                                                                                               
+                    mv->config.set("extruder", (int)dest_idx + 1);                                                                                                                                                                  
+                } else {                                                                                                                                                                                                            
+                    // Volume uses object's extruder setting, update the object                                                                                                                                                     
+                    mo->config.set("extruder", (int)dest_idx + 1);                                                                                                                                                                  
+                }      
                 if (idx < m_volumes_extruder_idxs.size())
                     m_volumes_extruder_idxs[idx] = (int)dest_idx + 1;
                 volume_extruder_changed = true;
@@ -1335,8 +1340,11 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
 
     if (updated) {
         // ORCA: Update renderer colors if base volume extruder changed
-        if (volume_extruder_changed)
+        if (volume_extruder_changed) {
             this->update_triangle_selectors_colors();
+            // ORCA: Update GUI_ObjectList extruder column to reflect the new extruder value
+            wxGetApp().obj_list()->update_objects_list_filament_column(wxGetApp().filaments_cnt());
+        }
 
         // ORCA: Removed "Filament remapping finished" notification to reduce UI noise.
         update_model_object();

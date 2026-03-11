@@ -1,4 +1,5 @@
 #include "BBLNetworkPlugin.hpp"
+#include "NetworkAgent.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +78,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     }
 
     // Auto-migration: If loading legacy version and versioned library doesn't exist,
-    // but unversioned legacy library does exist, rename it to versioned format
+    // but unversioned legacy library does exist, copy it to versioned format
     if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
         boost::filesystem::path versioned_path;
         boost::filesystem::path legacy_path;
@@ -93,9 +94,9 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
 #endif
         if (!boost::filesystem::exists(versioned_path) && boost::filesystem::exists(legacy_path)) {
             try {
-                boost::filesystem::rename(legacy_path, versioned_path);
+                boost::filesystem::copy(legacy_path, versioned_path);
             } catch (const std::exception& e) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to rename legacy library: " << e.what();
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to copy legacy library: " << e.what();
             }
         }
     }
@@ -161,9 +162,21 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     // Load all function pointers
     load_all_function_pointers();
 
+    // Sync legacy network flag from NetworkAgent (set during GUI_App initialization)
+    m_use_legacy_network = NetworkAgent::use_legacy_network;
+
+    std::string loaded_version;
     if (m_get_version) {
-        (void) m_get_version();
+        loaded_version = m_get_version();
     }
+
+    BOOST_LOG_TRIVIAL(info) << "BBLNetworkPlugin::initialize: legacy_mode="
+        << (m_use_legacy_network ? "true" : "false")
+        << ", library=" << library
+        << ", version=" << (loaded_version.empty() ? "unknown" : loaded_version)
+        << ", send_message=" << (m_send_message ? "loaded" : "null")
+        << ", start_print=" << (m_start_print ? "loaded" : "null")
+        << ", start_local_print=" << (m_start_local_print ? "loaded" : "null");
 
     return 0;
 }

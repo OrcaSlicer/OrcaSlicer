@@ -20,7 +20,7 @@ NetworkPluginDownloadDialog::NetworkPluginDownloadDialog(wxWindow* parent, Mode 
     const std::string& error_message,
     const std::string& error_details)
     : DPIDialog(parent, wxID_ANY, mode == Mode::UpdateAvailable ?
-        _L("Network Plugin Update Available") : _L("Bambu Network Plugin Required"),
+        _L("Network Plug-in Update Available") : _L("Bambu Network Plug-in Required"),
         wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
     , m_mode(mode)
     , m_error_message(error_message)
@@ -54,8 +54,8 @@ void NetworkPluginDownloadDialog::create_missing_plugin_ui()
 
     auto* desc = new wxStaticText(this, wxID_ANY,
         m_mode == Mode::CorruptedPlugin ?
-            _L("The Bambu Network Plugin is corrupted or incompatible. Please reinstall it.") :
-            _L("The Bambu Network Plugin is required for cloud features, printer discovery, and remote printing."));
+            _L("The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it.") :
+            _L("The Bambu Network Plug-in is required for cloud features, printer discovery, and remote printing."));
     desc->SetFont(::Label::Body_13);
     desc->Wrap(FromDIP(400));
     main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, FromDIP(25));
@@ -134,7 +134,7 @@ void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& 
     wxBoxSizer* main_sizer = static_cast<wxBoxSizer*>(GetSizer());
 
     auto* desc = new wxStaticText(this, wxID_ANY,
-        _L("A new version of the Bambu Network Plugin is available."));
+        _L("A new version of the Bambu Network Plug-in is available."));
     desc->SetFont(::Label::Body_13);
     desc->Wrap(FromDIP(400));
     main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, FromDIP(25));
@@ -305,14 +305,14 @@ NetworkPluginRestartDialog::NetworkPluginRestartDialog(wxWindow* parent)
     auto* text_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto* desc = new wxStaticText(this, wxID_ANY,
-        _L("The Bambu Network Plugin has been installed successfully."));
+        _L("The Bambu Network Plug-in has been installed successfully."));
     desc->SetFont(::Label::Body_14);
     desc->Wrap(FromDIP(350));
     text_sizer->Add(desc, 0, wxTOP, FromDIP(10));
     text_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
 
     auto* restart_msg = new wxStaticText(this, wxID_ANY,
-        _L("A restart is required to load the new plugin. Would you like to restart now?"));
+        _L("A restart is required to load the new plug-in. Would you like to restart now?"));
     restart_msg->SetFont(::Label::Body_13);
     restart_msg->Wrap(FromDIP(350));
     text_sizer->Add(restart_msg, 0, wxBOTTOM, FromDIP(10));

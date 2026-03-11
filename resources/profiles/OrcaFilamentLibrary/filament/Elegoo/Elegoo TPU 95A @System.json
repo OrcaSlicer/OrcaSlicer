@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Elegoo TPU 95A @System",
+    "inherits": "Elegoo TPU 95A @base",
+    "from": "system",
+    "setting_id": "OGFSE07_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

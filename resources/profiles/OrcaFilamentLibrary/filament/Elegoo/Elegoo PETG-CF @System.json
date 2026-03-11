@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Elegoo PETG-CF @System",
+    "inherits": "Elegoo PETG-CF @base",
+    "from": "system",
+    "setting_id": "OGFSE03_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

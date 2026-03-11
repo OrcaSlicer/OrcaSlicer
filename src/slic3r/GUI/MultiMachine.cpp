@@ -147,7 +147,7 @@ wxString DeviceItem::get_state_printable()
     str_state_printable.push_back(_L("Printing"));
     str_state_printable.push_back(_L("Upgrading"));
     str_state_printable.push_back(_L("Incompatible"));
-    str_state_printable.push_back(_L("syncing"));
+    str_state_printable.push_back(_L("Syncing"));
 
     return str_state_printable[state_printable];
 }
@@ -163,7 +163,7 @@ wxString DeviceItem::get_state_device()
     str_state_device.push_back(_L("Printing Pause"));
     str_state_device.push_back(_L("Prepare"));
     str_state_device.push_back(_L("Slicing"));
-    str_state_device.push_back(_L("syncing"));
+    str_state_device.push_back(_L("Syncing"));
 
     return str_state_device[state_device];
 }

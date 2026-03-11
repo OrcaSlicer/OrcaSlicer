@@ -3986,13 +3986,13 @@ void StatusPanel::axis_ctrl_e_hint(bool up_down)
 {
     if (ctrl_e_hint_dlg == nullptr) {
         /* ctrl_e_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::VisibleButtons::CONFIRM_AND_CANCEL, wxDefaultPosition,
-         ctrl_e_hint_dlg->update_text(_L("Please heat the nozzle to above 170°C before loading or unloading filament."));
+         ctrl_e_hint_dlg->update_text(_L("Please heat the nozzle to above 170\u2103 before loading or unloading filament."));
          ctrl_e_hint_dlg->m_show_again_checkbox->Hide();
          ctrl_e_hint_dlg->m_button_cancel->Hide();
          ctrl_e_hint_dlg->m_staticText_release_note->SetMaxSize(wxSize(FromDIP(360), -1));
          ctrl_e_hint_dlg->m_staticText_release_note->SetMinSize(wxSize(FromDIP(360), -1));
          ctrl_e_hint_dlg->Fit();*/
-        ctrl_e_hint_dlg = new MessageDialog(this, _L("Please heat the nozzle to above 170°C before loading or unloading filament."), wxString(_L("Warning")), wxOK | wxCENTER);
+        ctrl_e_hint_dlg = new MessageDialog(this, _L("Please heat the nozzle to above 170\u2103 before loading or unloading filament."), wxString(_L("Warning")), wxOK | wxCENTER);
     }
       ctrl_e_hint_dlg->ShowModal();
    // ctrl_e_hint_dlg->on_show();
@@ -5891,7 +5891,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                 if (ret == -1)
                     error_info += _L("Upload failed\n").ToUTF8().data();
                 else
-                    error_info += _L("obtaining instance_id failed\n").ToUTF8().data();
+                    error_info += _L("Obtaining instance_id failed\n").ToUTF8().data();
                 if (!error_info.empty()) { BOOST_LOG_TRIVIAL(info) << error_info; }
 
                 dlg_info = new MessageDialog(this,

@@ -110,6 +110,7 @@
     "wipe": [
         "1"
     ],
+    "wipe_distance":["2"],
     "z_hop_types": [
         "Auto Lift"
     ],

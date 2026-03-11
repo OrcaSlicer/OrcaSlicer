@@ -26,7 +26,7 @@ namespace Slic3r {
 bool load_drc(const char *path, TriangleMesh *meshptr)
 {
     try {
-        boost::iostreams::mapped_file_source file(path);
+        boost::iostreams::mapped_file_source file{boost::filesystem::path{path}};
 
         DecoderBuffer buffer;
         buffer.Init(file.data(), file.size());

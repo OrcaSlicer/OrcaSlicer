@@ -580,7 +580,7 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                                                    "Yes - Change these settings automatically\n"
                                                    "No  - Do not change these settings for me");
 
-                            MessageDialog dialog(wxGetApp().plater(), msg_text, "Suggestion", wxICON_WARNING | wxYES | wxNO);
+                            MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
                             if (dialog.ShowModal() == wxID_YES) {
                                 m_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0, false));
                                 wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
@@ -1351,6 +1351,8 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_fix_through_netfabb(&m_object_menu);
     // Object Simplify
     append_menu_item_simplify(&m_object_menu);
+    // Object Mesh Subdivision
+    append_menu_item_smooth_mesh(&m_object_menu);
     // merge to single part
     append_menu_item_merge_parts_to_single_part(&m_object_menu);
     // Object Center
@@ -1402,6 +1404,8 @@ void MenuFactory::create_bbl_assemble_object_menu()
     append_menu_item_fix_through_netfabb(&m_assemble_object_menu);
     // Object Simplify
     append_menu_item_simplify(&m_assemble_object_menu);
+    // Object Mesh Subdivision
+    append_menu_item_smooth_mesh(&m_assemble_object_menu);
     m_assemble_object_menu.AppendSeparator();
 }
 
@@ -1485,6 +1489,7 @@ void MenuFactory::create_bbl_part_menu()
     append_menu_item_edit_text(menu);
     append_menu_item_fix_through_netfabb(menu);
     append_menu_item_simplify(menu);
+    append_menu_item_smooth_mesh(menu);
     append_menu_item_center(menu);
     append_menu_item_drop(menu);
     append_menu_items_mirror(menu);
@@ -1516,6 +1521,7 @@ void MenuFactory::create_bbl_assemble_part_menu()
 
     append_menu_item_delete(menu);
     append_menu_item_simplify(menu);
+    append_menu_item_smooth_mesh(menu);
     menu->AppendSeparator();
 }
 
@@ -1568,7 +1574,7 @@ void MenuFactory::create_plate_menu()
 {
     wxMenu* menu = &m_plate_menu;
     // select objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Select All"), _L("select all objects on current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Select All"), _L("Select all objects on the current plate"),
         [](wxCommandEvent&) {
             plater()->select_curr_plate_all();
         }, "", nullptr, []() {
@@ -1577,8 +1583,16 @@ void MenuFactory::create_plate_menu()
             return !plate->get_objects().empty();
         }, m_parent);
 
+    // select objects on all plates
+    append_menu_item(menu, wxID_ANY, _L("Select All Plates"), _L("Select all objects on all plates"),
+        [](wxCommandEvent&) {
+            plater()->select_all();
+        }, "", nullptr, []() {
+            return !plater()->model().objects.empty();
+        }, m_parent);
+
     // delete objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("delete all objects on current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("Delete all objects on the current plate"),
         [](wxCommandEvent&) {
             plater()->remove_curr_plate_all();
         }, "", nullptr, []() {
@@ -1588,7 +1602,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // arrange objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Arrange"), _L("arrange current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Arrange"), _L("Arrange current plate"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1602,7 +1616,7 @@ void MenuFactory::create_plate_menu()
 
     // reload all objects on current plate
     append_menu_item(
-        menu, wxID_ANY, _L("Reload All"), _L("reload all from disk"),
+        menu, wxID_ANY, _L("Reload All"), _L("Reload all from disk"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1612,7 +1626,7 @@ void MenuFactory::create_plate_menu()
         "", nullptr, []() { return !plater()->get_partplate_list().get_selected_plate()->get_objects().empty(); }, m_parent);
 
     // orient objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Auto Rotate"), _L("auto rotate current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Auto Rotate"), _L("Auto rotate current plate"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1949,6 +1963,13 @@ void MenuFactory::append_menu_item_simplify(wxMenu* menu)
     wxMenuItem* menu_item = append_menu_item(menu, wxID_ANY, _L("Simplify Model"), "",
         [](wxCommandEvent&) { obj_list()->simplify(); }, "", menu,
         []() {return plater()->can_simplify(); }, m_parent);
+}
+
+void MenuFactory::append_menu_item_smooth_mesh(wxMenu *menu)
+{
+    wxMenuItem *menu_item = append_menu_item(
+        menu, wxID_ANY, _L("Subdivision mesh") + _L("(Lost color)"), "", [](wxCommandEvent &) { obj_list()->smooth_mesh(); }, "", menu, []() { return plater()->can_smooth_mesh(); },
+        m_parent);
 }
 
 void MenuFactory::append_menu_item_center(wxMenu* menu)

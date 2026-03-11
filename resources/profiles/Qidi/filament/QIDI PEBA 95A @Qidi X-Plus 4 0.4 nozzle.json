@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSR98",
+    "name": "QIDI PEBA 95A @Qidi X-Plus 4 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI PEBA 95A",
+	"compatible_printers": ["Qidi X-Plus 4 0.4 nozzle"]
+}

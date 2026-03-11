@@ -44,7 +44,7 @@
     "extruder_clearance_height_to_lid": "118",
     "single_extruder_multi_material": "1",
     "change_filament_gcode": "",
-    "machine_pause_gcode": "M0",
+    "machine_pause_gcode": "PAUSE",
     "default_filament_profile": [
         "Qidi Generic PLA"
     ]

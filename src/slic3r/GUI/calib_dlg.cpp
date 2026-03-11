@@ -868,18 +868,18 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     m_rbType->SetSelection(0);
 
     // Determine firmware-specific note
-    wxString firmware_note = "Please ensure the selected type is compatible with your firmware version.";
+    wxString firmware_note = _L("Please ensure the selected type is compatible with your firmware version.");
     if (gcode_flavor_option) {
         switch (gcode_flavor_option->value) {
         case GCodeFlavor::gcfMarlinFirmware:
         case GCodeFlavor::gcfMarlinLegacy:
-            firmware_note = "Marlin version => 2.1.2\nFixed-Time motion not yet implemented.";
+            firmware_note = _L("Marlin version => 2.1.2\nFixed-Time motion not yet implemented.");
             break;
         case GCodeFlavor::gcfKlipper:
-            firmware_note = "Klipper version => 0.9.0";
+            firmware_note = _L("Klipper version => 0.9.0");
             break;
         case GCodeFlavor::gcfRepRapFirmware:
-            firmware_note = "RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.";
+            firmware_note = _L("RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
             break;
         default:
             break;
@@ -921,9 +921,9 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     // Y axis frequencies
     auto y_freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_y_text = new wxStaticText(this, wxID_ANY, y_axis_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqStartY = new TextInput(this, std::to_string(15) , "Hz", "", wxDefaultPosition, ti_size);
+    m_tiFreqStartY = new TextInput(this, std::to_string(15) , _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqStartY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqEndY =   new TextInput(this, std::to_string(110), "Hz", "", wxDefaultPosition, ti_size);
+    m_tiFreqEndY =   new TextInput(this, std::to_string(110), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqEndY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     y_freq_sizer->Add(start_y_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1084,18 +1084,18 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     m_rbType->SetSelection(0);
 
     // Determine firmware-specific note
-    wxString firmware_note = "Check firmware compatibility.";
+    wxString firmware_note = _L("Check firmware compatibility.");
     if (gcode_flavor_option) {
         switch (gcode_flavor_option->value) {
         case GCodeFlavor::gcfMarlinFirmware:
         case GCodeFlavor::gcfMarlinLegacy:
-            firmware_note = "Marlin version => 2.1.2\nFixed-Time motion not yet implemented.";
+            firmware_note = _L("Marlin version => 2.1.2\nFixed-Time motion not yet implemented.");
             break;
         case GCodeFlavor::gcfKlipper:
-            firmware_note = "Klipper version => 0.9.0";
+            firmware_note = _L("Klipper version => 0.9.0");
             break;
         case GCodeFlavor::gcfRepRapFirmware:
-            firmware_note = "RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.";
+            firmware_note = _L("RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.");
             break;
         default:
             break;

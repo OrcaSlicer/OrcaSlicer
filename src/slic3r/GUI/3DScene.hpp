@@ -96,6 +96,7 @@ public:
 
     static void update_render_colors();
     static void load_render_colors();
+    static ColorRGBA brighten_color(const ColorRGBA& color, float multiplier = 1.25f);
 
     static float explosion_ratio;
     static float last_explosion_ratio;

@@ -160,6 +160,17 @@ private:
                                    const std::string& api_key,
                                    uint64_t generation);
 
+    // System-specific filament fetch methods
+    bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_afc_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
+
+    // JSON helper methods
+    static std::string safe_json_string(const nlohmann::json& obj, const char* key);
+    static int safe_json_int(const nlohmann::json& obj, const char* key);
+    static std::string safe_array_string(const nlohmann::json& arr, int idx);
+    static int safe_array_int(const nlohmann::json& arr, int idx);
+    static std::string normalize_color_value(const std::string& color);
+
     std::string                        ssdp_announced_host;
     std::string                        ssdp_announced_id;
     std::shared_ptr<ICloudServiceAgent> m_cloud_agent;

@@ -317,6 +317,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_brim_width"
             || opt_key == "prime_tower_skip_points"
             || opt_key == "prime_tower_flat_ironing"
+            || opt_key == "enable_tower_interface_features"
             || opt_key == "first_layer_print_sequence"
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
@@ -324,6 +325,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
             || opt_key == "filament_adhesiveness_category"
+            || opt_key == "filament_tower_interface_pre_extrusion_dist"
+            || opt_key == "filament_tower_interface_pre_extrusion_length"
+            || opt_key == "filament_tower_ironing_area"
+            || opt_key == "filament_tower_interface_purge_volume"
+            || opt_key == "filament_tower_interface_print_temp"
             || opt_key == "wipe_tower_bridging"
             || opt_key == "wipe_tower_extra_flow"
             || opt_key == "wipe_tower_no_sparse_layers"
@@ -1231,7 +1237,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     } else {
         if (m_config.enable_wrapping_detection && warning!=nullptr) {
             StringObjectException warningtemp;
-            warningtemp.string     = L("Prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
+            warningtemp.string     = L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
             warningtemp.opt_key    = "enable_prime_tower";
             warningtemp.is_warning = true;
             *warning               = warningtemp;
@@ -1484,18 +1490,42 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
                 // Prusa: Fixing crashes with invalid tip diameter or branch diameter
                 // https://github.com/prusa3d/PrusaSlicer/commit/96b3ae85013ac363cd1c3e98ec6b7938aeacf46d
-                if (is_tree(object->config().support_type.value) && (object->config().support_style == smsTreeOrganic ||
-                    // Orca: use organic as default
-                    object->config().support_style == smsDefault)) {
-                    float extrusion_width = std::min(
-                        support_material_flow(object).width(),
-                        support_material_interface_flow(object).width());
-                    if (object->config().tree_support_tip_diameter < extrusion_width - EPSILON)
-                        return { L("Organic support tree tip diameter must not be smaller than support material extrusion width."), object, "tree_support_tip_diameter" };
-                    if (object->config().tree_support_branch_diameter_organic < 2. * extrusion_width - EPSILON)
-                        return { L("Organic support branch diameter must not be smaller than 2x support material extrusion width."), object, "tree_support_branch_diameter_organic" };
-                    if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
-                        return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
+                if (is_tree(object->config().support_type.value)) {
+                    if (object->config().support_style == smsTreeOrganic ||
+                        // Orca: use organic as default
+                        object->config().support_style == smsDefault) {
+
+                        if (warning) {
+                            // Orca: check the support wall count and the base pattern
+                            if (object->config().tree_support_wall_count > 1 &&
+                                object->config().support_base_pattern != SupportMaterialPattern::smpNone &&
+                                object->config().support_base_pattern != SupportMaterialPattern::smpDefault) {
+                                warning->string = L("For Organic supports, two walls are supported only with the Hollow/Default base pattern.");
+                                warning->opt_key = "support_base_pattern";
+                            }
+
+                            // Orca: check if the Lightning base pattern selected
+                            if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning) {
+                                warning->string = L(
+                                    "The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
+                                warning->opt_key = "support_base_pattern";
+                            }
+                        }
+
+                        float extrusion_width = std::min(
+                            support_material_flow(object).width(),
+                            support_material_interface_flow(object).width());
+                        if (object->config().tree_support_tip_diameter < extrusion_width - EPSILON)
+                            return { L("Organic support tree tip diameter must not be smaller than support material extrusion width."), object, "tree_support_tip_diameter" };
+                        if (object->config().tree_support_branch_diameter_organic < 2. * extrusion_width - EPSILON)
+                            return { L("Organic support branch diameter must not be smaller than 2x support material extrusion width."), object, "tree_support_branch_diameter_organic" };
+                        if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
+                            return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
+                    }
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning && warning) {
+                    // Orca: check if the Lightning base pattern selected
+                    warning->string  = L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
+                    warning->opt_key = "support_base_pattern";
                 }
             }
 
@@ -2739,14 +2769,6 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
-    // FilamentTempType Temperature-based logic
-    int min_temp, max_temp;
-    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
-        if (max_temp <= 250) return FilamentTempType::LowTemp;
-        else if (max_temp < 280) return FilamentTempType::HighLowCompatible;
-        else return FilamentTempType::HighTemp;
-    }
-
     const static std::string HighTempFilamentStr = "high_temp_filament";
     const static std::string LowTempFilamentStr = "low_temp_filament";
     const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";
@@ -2781,6 +2803,19 @@ FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
         return HighTemp;
     if (filament_temp_type_map[LowTempFilamentStr].find(filament_type) != filament_temp_type_map[LowTempFilamentStr].end())
         return LowTemp;
+
+    // Orca: prefer explicit definition from JSON, if the filament type is not defined in json, fallback to temperature-based logic to determine the filament temp type.
+    // FilamentTempType Temperature-based logic
+    int min_temp, max_temp;
+    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
+        if (max_temp <= 250)
+            return FilamentTempType::LowTemp;
+        else if (max_temp < 280)
+            return FilamentTempType::HighLowCompatible;
+        else
+            return FilamentTempType::HighTemp;
+    }
+
     return Undefine;
 }
 
@@ -3379,6 +3414,11 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
+        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
+                                         wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
+                                         config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
