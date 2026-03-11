@@ -2454,17 +2454,6 @@ void MainFrame::init_menubar_as_editor()
                 open_recent_project(file_id, filename);
             }, wxID_FILE1, wxID_FILE1 + 49); // [5050, 5100)
 
-        std::vector<std::string> non_planar_projects;
-        for (auto &&entry : fs::directory_iterator(resources_dir() + "/nonplanar")) {
-            if (fs::is_regular_file(entry) && entry.path().extension() == ".3mf") {
-                non_planar_projects.push_back(entry.path().string());
-            }
-        }
-        std::sort(non_planar_projects.begin(), non_planar_projects.end());
-        for (auto &&path : non_planar_projects) {
-            m_recent_projects.AddFileToHistory(from_u8(path));
-        }
-
         std::vector<std::string> recent_projects = wxGetApp().app_config->get_recent_projects();
         std::reverse(recent_projects.begin(), recent_projects.end());
         for (const std::string& project : recent_projects)
