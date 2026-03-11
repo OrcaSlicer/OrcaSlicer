@@ -48,31 +48,19 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
 
         dc.SetTextForeground(*wxWHITE);
 
-        wxRect rect       = GetClientRect();
-        int    clientW    = rect.GetWidth();
+        wxFontMetrics fm = dc.GetFontMetrics();
+        int textHeight = fm.ascent + fm.descent;
 
-        wxFontMetrics fm  = dc.GetFontMetrics();
-        int textHeight    = fm.ascent + fm.descent;
-        int y             = rect.y + (rect.height - textHeight) / 2;
+        wxRect rect = GetClientRect();
 
-        int fullW    = dc.GetTextExtent(m_title).GetWidth();
-        int naturalX = rect.x + (clientW - fullW) / 2;
+        wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, rect.GetWidth() - FromDIP(8));
 
-        // Only update cached x if the shift exceeds 3px threshold to fix shaky text while resizing window and ellipsizing end
-        if (m_cachedX == -1 || std::abs(naturalX - m_cachedX) > FromDIP(3)) {
-            m_cachedX     = wxMax(rect.x, naturalX);
-            m_cachedWidth = fullW;
-        }
+        int y = rect.y + (rect.height - textHeight) / 2;
+        int x = rect.x + (ellipsized != m_title)
+            ? FromDIP(4)                                          // fixed left when clipped
+            : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2; // centered when full
 
-        wxString text     = m_title;
-        int      availW   = clientW - FromDIP(8);
-
-        if (fullW > availW) {
-            int availFromCached = rect.x + clientW - m_cachedX - FromDIP(4);
-            text = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, wxMax(availFromCached, FromDIP(20)));
-        }
-
-        dc.DrawText(text, m_cachedX, y);
+        dc.DrawText(ellipsized, x, y);
     });
 
     // repaint for Ellipsize
@@ -94,8 +82,6 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
 
 void CenteredTitle::SetTitle(const wxString& title) {
     m_title = title;
-    m_cachedX     = -1;
-    m_cachedWidth = -1;
     RefreshRect(GetClientRect());
     Update(); 
 }
