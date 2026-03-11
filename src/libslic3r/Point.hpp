@@ -280,6 +280,9 @@ public:
     Point3(const Point3 &rhs) { *this = rhs; }
     explicit Point3(const Point &rhs, coord_t z = 0) : Vec3crd(rhs.x(), rhs.y(), z) {}
     explicit Point3(const Vec3crd &vec3crd) : Vec3crd(vec3crd) {}
+    // This constructor allows you to construct Point from Eigen expressions
+    template<typename OtherDerived>
+    explicit Point3(const Eigen::MatrixBase<OtherDerived> &other) : Vec3crd(other) {}
 
     static Point3 new_scale(coordf_t x, coordf_t y, coordf_t z) {
         return Point3(coord_t(scale_(x)), coord_t(scale_(y)), coord_t(scale_(z)));
