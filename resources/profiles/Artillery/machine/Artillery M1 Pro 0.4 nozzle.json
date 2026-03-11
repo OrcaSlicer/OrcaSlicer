@@ -213,7 +213,6 @@
     ],
     "thumbnails_format": "PNG",
     "time_cost": "0",
-    "time_lapse_gcode": "",
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",

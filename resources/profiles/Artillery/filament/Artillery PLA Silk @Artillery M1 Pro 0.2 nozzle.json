@@ -25,5 +25,8 @@
     "inherits": "Artillery PLA @Artillery M1 Pro 0.2 nozzle",
     "is_custom_defined": "0",
     "name": "Artillery PLA Silk @Artillery M1 Pro 0.2 nozzle",
+    "compatible_printers": [
+		"Artillery M1 Pro 0.2 nozzle"
+    ],    
     "version": "3.0.0.0"
 }
