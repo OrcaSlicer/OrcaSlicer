@@ -2821,7 +2821,7 @@ msgstr "Шаблон"
 
 # Тянется из 9 мест: группировка материалов: Auto/Custom, Форма стола: %s, тип линии: %s, калибровка температуры – Тип материала: %s (тут колонки узкие, но место вроде есть),). Причём местами должно согласоваться с разными родами (форма: пользов.). Лучше сократить до Пользов.
 msgid "Custom"
-msgstr "Пользовательский"
+msgstr "Пользов."
 
 msgid "Pause:"
 msgstr "Пауза:"
@@ -4362,7 +4362,7 @@ msgid ""
 "seam_slope_start_height need to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
-"seam_slope_start_height должна быть меньше высоты слоя.\n"
+"Начальная высота не должна превышать высоту слоя.\n"
 "Значение сброшено на 0."
 
 #, fuzzy, c-format, boost-format
@@ -5481,7 +5481,7 @@ msgstr "Выйти из сборки"
 msgid "Return"
 msgstr "Назад"
 
-# Не нашёл в интерфейсе, в коде GLCanvas3D.cpp, 8485 строка (на момент февраля 2026)
+# Не нашёл в интерфейсе, в коде GLCanvas3D.cpp, 8485 строка (на момент февраля 2026). Похоже, это внутреннее название кнопки с панелью управления визуалом пространства моделей.
 msgid "Canvas Toolbar"
 msgstr ""
 
@@ -5560,34 +5560,35 @@ msgstr "Траектория перемещения в G-коде выходит
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "Печать двумя и более прутками TPU не поддерживается."
 
-# Подставляется ID экструдера
+# Подставляется ID экструдера. Используется для двухэкструдерных Bambu и тулченджеров. Чтобы не мешать в одном месте "инструмент-насадка", лучше взять более универсальное "экструдер". Подставляется в последующее сообщение.
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr "Инструмент %d"
+msgstr "%d экструдер"
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
-msgstr ""
+msgstr "%s назначен на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
-msgstr ""
+msgstr "%s назначены на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
+# Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при превышении высоты через подъём при откате оно не выводится. Квадратные скобки – костыль для обхода кривизны системы локализации.
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
-msgstr ""
+msgstr "%s назначен на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
-msgstr ""
+msgstr "%s назначены на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
 msgid "Open wiki for more information."
 msgstr "Подробнее на Вики."
@@ -5597,12 +5598,12 @@ msgstr "При редактировании другие модели скрыв
 
 #, c-format, boost-format
 msgid "Filaments %s cannot be printed directly on the surface of this plate."
-msgstr ""
+msgstr "Для печати %s требуется подложка или основание из другого материала."
 
 msgid ""
 "PLA and PETG filaments detected in the mixture. Adjust parameters according "
 "to the Wiki to ensure print quality."
-msgstr "Обнаружено совместное использование PLA и PETG. Для повышения качество рекомендуется настроить параметры в соответствии с руководством."
+msgstr "Обнаружено совместное использование PLA и PETG. Для повышения качества рекомендуется настроить параметры в соответствии с руководством."
 
 msgid "The prime tower extends beyond the plate boundary."
 msgstr "Башня очистки выходит за пределы области печати."
@@ -5772,7 +5773,7 @@ msgstr "Распечатать стол"
 msgid "Export G-code file"
 msgstr "Экспорт в G-код"
 
-# ??????? Используется в двух местах или уже исправили? – Судя по коду, вызывается аж в четырёх местах (Felix)
+# ??????? Используется в двух местах или уже исправили? – Судя по коду, вызывается аж в четырёх местах (Felix) UPD: уже в 5
 msgid "Send"
 msgstr "Отправить"
 
@@ -15769,7 +15770,7 @@ msgstr ""
 "Внимание: не все шаблоны поддерживают поворот."
 
 msgid "Skeleton infill density"
-msgstr "Плотность внутреннего заполнения"
+msgstr "Плотность зигзага"
 
 msgid ""
 "The remaining part of the model contour after removing a certain depth from "
@@ -15783,7 +15784,7 @@ msgstr ""
 "умолчанию равно плотности заполнения."
 
 msgid "Skin infill density"
-msgstr "Плотность оболочки зигзага"
+msgstr "Плотность оболочки"
 
 msgid ""
 "The portion of the model's outer surface within a certain depth range is "
@@ -15802,7 +15803,7 @@ msgid "The parameter sets the depth of skin."
 msgstr "Задаёт глубину создания внутренней оболочки."
 
 msgid "Infill lock depth"
-msgstr "Перекрытие заполнения"
+msgstr "Перекрытие зигзага"
 
 msgid "The parameter sets the overlapping depth between the interior and skin."
 msgstr "Задаёт ширину взаимного перекрытия зигзага и его оболочки."
