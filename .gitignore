@@ -44,3 +44,4 @@ test.js
 /.cache/
 .clangd
 internal_docs/
+*.flatpak
