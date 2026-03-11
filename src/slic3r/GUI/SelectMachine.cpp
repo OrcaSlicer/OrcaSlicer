@@ -3305,7 +3305,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         show_status(PrintDialogStatus::PrintStatusNoSdcard);
         return;
     }
-    if (wxGetApp().preset_bundle->filament_presets.size() > (16 + obj_->vt_slot.size()) && m_print_type != PrintFromType::FROM_SDCARD_VIEW) {
+    if (wxGetApp().preset_bundle->filament_presets.size() > 16 && m_print_type != PrintFromType::FROM_SDCARD_VIEW) { 
         if (!obj_->is_enable_ams_np && !obj_->is_enable_np)
         {
             show_status(PrintDialogStatus::PrintStatusColorQuantityExceed);
