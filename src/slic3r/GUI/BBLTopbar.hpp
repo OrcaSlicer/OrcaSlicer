@@ -6,8 +6,21 @@
 #include "SelectMachine.hpp"
 #include "DeviceManager.hpp"
 
+#include <wx/control.h>
 
 using namespace Slic3r::GUI;
+
+class CenteredTitle : public wxControl
+{
+public:
+    CenteredTitle(wxWindow* parent);
+    void SetTitle(const wxString& title);
+
+    wxSize DoGetBestSize() const override;
+
+private:
+    wxString m_title;
+};
 
 class BBLTopbar : public wxAuiToolBar
 {
@@ -70,7 +83,10 @@ private:
     wxMenu m_top_menu;
     wxMenu* m_file_menu;
     wxMenu m_calib_menu;
-    wxAuiToolBarItem* m_title_item;
+    
+    CenteredTitle*    m_title_ctrl { nullptr };
+    wxString          m_titleText;
+
     wxAuiToolBarItem* m_account_item;
     wxAuiToolBarItem* m_model_store_item;
     
