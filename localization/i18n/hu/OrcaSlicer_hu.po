@@ -20047,8 +20047,8 @@ msgstr "Vég: "
 msgid "Cornering settings"
 msgstr "Kanyarbeállítások"
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
-msgstr "Megjegyzés: Az alacsonyabb értékek élesebb sarkokat, de lassabb sebességet jelentenek.\n"
+msgid "Note: Lower values = sharper corners but slower speeds."
+msgstr "Megjegyzés: Az alacsonyabb értékek élesebb sarkokat, de lassabb sebességet jelentenek."
 
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"

@@ -18349,7 +18349,7 @@ msgstr ""
 msgid "Cornering settings"
 msgstr ""
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
+msgid "Note: Lower values = sharper corners but slower speeds."
 msgstr ""
 
 msgid ""
