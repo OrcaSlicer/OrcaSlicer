@@ -20,8 +20,8 @@ CLEANUP=false
 INSTALL_RUNTIME=false
 JOBS=$(nproc)
 FORCE_CLEAN=false
-ENABLE_CCACHE=true
-DISABLE_ROFILES_FUSE=true
+ENABLE_CCACHE=false
+DISABLE_ROFILES_FUSE=false
 NO_DEBUGINFO=true
 CACHE_DIR=".flatpak-builder"
 
@@ -37,19 +37,19 @@ show_help() {
     echo "  -j, --jobs JOBS        Number of parallel build jobs for flatpak-builder and modules [default: $JOBS]"
     echo "  -c, --cleanup          Clean build directory before building"
     echo "  -f, --force-clean      Force clean build (disables caching)"
-    echo "  --no-ccache            Disable ccache (enabled by default)"
-    echo "  --enable-rofiles-fuse  Enable rofiles-fuse (disabled by default as workaround for FUSE issues)"
+    echo "  --ccache               Enable ccache for faster rebuilds (requires ccache in SDK)"
+    echo "  --disable-rofiles-fuse Disable rofiles-fuse (workaround for FUSE issues)"
     echo "  --with-debuginfo       Include debug info (slower builds, needed for Flathub)"
     echo "  --cache-dir DIR        Flatpak builder cache directory [default: $CACHE_DIR]"
     echo "  -i, --install-runtime  Install required Flatpak runtime and SDK"
     echo "  -h, --help             Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                     # Build with defaults (ccache enabled, rofiles-fuse disabled)"
+    echo "  $0                     # Build for current architecture with caching enabled"
     echo "  $0 -f                  # Force clean build (no caching)"
-    echo "  $0 --no-ccache -j 8    # Disable ccache and use 8 parallel jobs"
+    echo "  $0 --ccache -j 8       # Use ccache and 8 parallel jobs for faster builds"
     echo "  $0 -a x86_64 -c       # Build for x86_64 and cleanup first"
-    echo "  $0 -i -j 16           # Install runtime and build with 16 jobs"
+    echo "  $0 -i -j 16 --ccache  # Install runtime, build with 16 jobs and ccache"
 }
 
 # Parse command line arguments
@@ -75,12 +75,12 @@ while [[ $# -gt 0 ]]; do
             FORCE_CLEAN=true
             shift
             ;;
-        --no-ccache)
-            ENABLE_CCACHE=false
+        --ccache)
+            ENABLE_CCACHE=true
             shift
             ;;
-        --enable-rofiles-fuse)
-            DISABLE_ROFILES_FUSE=false
+        --disable-rofiles-fuse)
+            DISABLE_ROFILES_FUSE=true
             shift
             ;;
         --with-debuginfo)
@@ -249,13 +249,9 @@ if [[ "$CLEANUP" == true ]]; then
     echo -e "${BLUE}Note: Host build directories (deps/build, build) are preserved${NC}"
 fi
 
-# Create build directory and set up log file
+# Create build directory
 mkdir -p "$BUILD_DIR"
 rm -rf "$BUILD_DIR/build-dir"
-LOG_FILE="$BUILD_DIR/build_flatpak_$(date +'%Y%m%d_%H%M%S').log"
-exec > >(tee -a "$LOG_FILE") 2>&1
-echo -e "${BLUE}Logging to: ${GREEN}$LOG_FILE${NC}"
-echo ""
 
 # Check if flatpak manifest exists
 if [[ ! -f "./scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml" ]]; then
@@ -307,13 +303,6 @@ else
 fi
 
 # Add ccache if enabled
-# NOTE: flatpak-builder's --ccache only creates symlinks for gcc/g++, not
-# clang/clang++. The actual ccache integration is done via
-# CMAKE_C_COMPILER_LAUNCHER=ccache in the manifest's build-commands.
-# --ccache is still needed because it:
-#   1. Bind-mounts the ccache directory into the sandbox at /run/ccache
-#   2. Sets CCACHE_DIR=/run/ccache for persistent caching
-#   3. Makes /usr/bin/ccache available in the build environment
 if [[ "$ENABLE_CCACHE" == true ]]; then
     BUILDER_ARGS+=(--ccache)
     echo -e "${GREEN}Using ccache for compiler caching${NC}"
@@ -329,12 +318,9 @@ fi
 MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
 if [[ "$NO_DEBUGINFO" == true ]]; then
     MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
-    sed '/^build-options:/a\  no-debuginfo: true\n  strip: true\n  cflags: "-g0"\n  cxxflags: "-g0"' \
+    sed '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
         scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml > "$MANIFEST"
-    # Preserve original manifest's mtime so flatpak-builder computes a
-    # deterministic SOURCE_DATE_EPOCH and module cache keys stay stable.
-    touch -r scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml "$MANIFEST"
-    echo -e "${YELLOW}Debug info disabled (using temp manifest with -g0)${NC}"
+    echo -e "${YELLOW}Debug info disabled (using temp manifest)${NC}"
 fi
 
 if ! flatpak-builder \
@@ -342,22 +328,13 @@ if ! flatpak-builder \
     "$BUILD_DIR/build-dir" \
     "$MANIFEST"; then
     echo -e "${RED}Error: flatpak-builder failed${NC}"
-    echo -e "${YELLOW}Check the build log for details: $LOG_FILE${NC}"
+    echo -e "${YELLOW}Check the build log above for details${NC}"
     rm -f "scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
     exit 1
 fi
 
 # Clean up temp manifest
 rm -f "scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
-
-# Show ccache statistics if ccache was enabled
-if [[ "$ENABLE_CCACHE" == true ]]; then
-    echo -e "${BLUE}=== ccache statistics ===${NC}"
-    CCACHE_DIR="$CACHE_DIR/ccache" ccache -sv 2>/dev/null || \
-    CCACHE_DIR="$CACHE_DIR/ccache" ccache -s 2>/dev/null || \
-    echo -e "${YELLOW}Could not retrieve ccache stats${NC}"
-    echo ""
-fi
 
 # Create bundle
 echo -e "${YELLOW}Creating Flatpak bundle...${NC}"
@@ -375,7 +352,6 @@ echo ""
 echo -e "${GREEN}✓ Flatpak build completed successfully!${NC}"
 echo -e "Bundle created: ${GREEN}$BUNDLE_NAME${NC}"
 echo -e "Size: ${GREEN}$(du -h "$BUNDLE_NAME" | cut -f1)${NC}"
-echo -e "Build log: ${GREEN}$LOG_FILE${NC}"
 if [[ "$FORCE_CLEAN" != true ]]; then
     echo -e "Build cache: ${GREEN}$CACHE_DIR${NC} (preserved for faster future builds)"
 fi

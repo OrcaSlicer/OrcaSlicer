@@ -194,20 +194,12 @@ jobs:
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Disable debug info for faster CI builds
       run: |
-        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true\n  cflags: "-g0"\n  cxxflags: "-g0"' \
+        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
       shell: bash
     - name: Inject git commit hash into Flatpak manifest
       run: |
         sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
-          scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
-      shell: bash
-    - name: Restore manifest mtime for deterministic cache keys
-      run: |
-        # sed changes mtime, which flatpak-builder uses for SOURCE_DATE_EPOCH
-        # and type:dir module cache keys. Restore to git commit time so cache
-        # keys are stable across builds of the same source.
-        touch -d @$(git log -1 --format='%ct' -- scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml) \
           scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
