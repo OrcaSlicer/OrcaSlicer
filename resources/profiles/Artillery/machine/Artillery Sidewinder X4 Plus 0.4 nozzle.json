@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "name": "Artillery Sidewinder X4 Plus 0.4 nozzle",
-    "inherits": "fdm_machine_common",
-    "from": "system",
     "setting_id": "GM006",
+    "name": "Artillery Sidewinder X4 Plus 0.4 nozzle",
+    "from": "system",
     "instantiation": "true",
+    "inherits": "fdm_machine_common",
     "printer_model": "Artillery Sidewinder X4 Plus",
     "printer_settings_id": "Artillery X4Plus 0.4 nozzle",
     "nozzle_diameter": [
@@ -212,7 +212,7 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
-    "version": "2.0.2.0",
+    "version": "3.0.0.0",
     "wipe": [
         "0"
     ],
