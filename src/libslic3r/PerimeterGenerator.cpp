@@ -98,7 +98,7 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
 }
 
 static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perimeter_generator, const PerimeterGeneratorLoops &loops, ThickPolylines &thin_walls,
-    bool &steep_overhang_contour, bool &steep_overhang_hole)
+    bool &steep_overhang_contour, bool &steep_overhang_hole, bool reverse_thin_wall_hole)
 {
     // loops is an arrayref of ::Loop objects
     // turn each one into an ExtrusionLoop object
@@ -248,7 +248,10 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
         } else {
             const PerimeterGeneratorLoop &loop = loops[idx.first];
             assert(thin_walls.empty());
-            ExtrusionEntityCollection children = traverse_loops(perimeter_generator, loop.children, thin_walls, steep_overhang_contour, steep_overhang_hole);
+            const bool reverse_children_thin_wall_hole = loops.size() == 1 && loop.is_contour && loop.children.size() == 1 &&
+                                                         (!loop.children.front().is_contour) && loop.children.front().children.empty();
+            ExtrusionEntityCollection children = traverse_loops(perimeter_generator, loop.children, thin_walls, steep_overhang_contour,
+                                                                steep_overhang_hole, reverse_children_thin_wall_hole);
             out.entities.reserve(out.entities.size() + children.entities.size() + 1);
             ExtrusionLoop *eloop = static_cast<ExtrusionLoop*>(coll.entities[idx.first]);
             coll.entities[idx.first] = nullptr;
@@ -257,6 +260,12 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
                 eloop->make_counter_clockwise();
             else
                 eloop->make_clockwise();
+
+            // Orca: Reverse thin wall holes (the only child of a single contour) to avoid dragging hot plastic.
+            if (reverse_thin_wall_hole && !loop.is_contour) {
+                eloop->reverse();
+            }
+
             eloop->inset_idx = loop.depth;
             if (loop.is_contour) {
                 out.append(std::move(children.entities));
@@ -518,8 +527,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     extrusion_loop.make_counter_clockwise();
                 else
                     extrusion_loop.make_clockwise();
-                // Detect thin wall holes, to prevent drag hot plastic while changing direction. We define thin wall hole as a hole with
-                // only one perimeter.
+                // Orca: Detect thin wall holes, to prevent drag hot plastic while changing direction. We define thin wall hole as a hole with only one perimeter.
                 std::unordered_set<int> perimeter_counts;
                 for (const auto& pg_ext : pg_extrusions) {
                     if (pg_ext.extrusion && !pg_ext.extrusion->empty()) {
@@ -1437,7 +1445,7 @@ void PerimeterGenerator::process_classic()
                 steep_overhang_contour = true;
                 steep_overhang_hole    = true;
             }
-            ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole);
+			ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole, false);
             // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
             if (config->overhang_reverse) {
                 reorient_perimeters(entities, steep_overhang_contour, steep_overhang_hole,
