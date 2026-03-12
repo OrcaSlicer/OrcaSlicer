@@ -196,6 +196,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 PA_Calibration_Dlg::~PA_Calibration_Dlg() {
@@ -409,6 +410,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 
     auto validate_text = [](TextInput* ti){
         unsigned long t = 0;
@@ -587,6 +589,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 MaxVolumetricSpeed_Test_Dlg::~MaxVolumetricSpeed_Test_Dlg() {
@@ -694,6 +697,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 VFA_Test_Dlg::~VFA_Test_Dlg()
@@ -802,6 +806,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Retraction_Test_Dlg::~Retraction_Test_Dlg() {
@@ -981,6 +986,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Input_Shaping_Freq_Test_Dlg::~Input_Shaping_Freq_Test_Dlg() {
@@ -1179,6 +1185,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Input_Shaping_Damp_Test_Dlg::~Input_Shaping_Damp_Test_Dlg() {
@@ -1374,6 +1381,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Cornering_Test_Dlg::~Cornering_Test_Dlg() {
