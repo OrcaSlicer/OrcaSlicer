@@ -480,9 +480,9 @@ public:
     void apply_cut_object_to_model(size_t init_obj_idx, const ModelObjectPtrs& cut_objects);
     void merge(size_t obj_idx, std::vector<int> &vol_indeces);
 
-    void send_to_printer(bool isall = false);
+    void send_to_printer(bool isall = false, bool use_plate_changer_all = false);
     void export_gcode(bool prefer_removable);
-    void export_gcode_3mf(bool export_all = false);
+    void export_gcode_3mf(bool export_all = false, bool use_plate_changer_all = false);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
@@ -491,7 +491,7 @@ public:
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
     // BBS: backup
-    int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+    int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false);
 
     //BBS
     void publish_project();
@@ -519,9 +519,9 @@ public:
     void suppress_background_process(const bool stop_background_process) ;
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
-    int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_3mf = false);
-    int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
+    int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false);
+    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_3mf = false, bool use_plate_changer_all = false);
+    int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);
     void print_job_finished(wxCommandEvent &evt);

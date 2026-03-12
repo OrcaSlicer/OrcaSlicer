@@ -1922,7 +1922,7 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_print_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
             //this->m_plater->select_view_3D("Preview");
-            if (m_print_select == ePrintAll || m_print_select == ePrintPlate || m_print_select == ePrintMultiMachine)
+            if (m_print_select == ePrintAll || m_print_select == ePrintPlate || m_print_select == ePrintMultiMachine || m_print_select == ePrintAllPlateChanger || m_print_select == eSendToPrinterAllPlateChanger || m_print_select == eExportAllSlicedFilePlateChanger)
             {
                 m_plater->apply_background_progress();
                 // check valid of print
@@ -1931,6 +1931,8 @@ wxBoxSizer* MainFrame::create_side_tools()
                 if (m_print_enable) {
                     if (m_print_select == ePrintAll)
                         wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_ALL));
+                    if (m_print_select == ePrintAllPlateChanger)
+                        wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_ALL_PLATE_CHANGER));
                     if (m_print_select == ePrintPlate)
                         wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_PLATE));
                     if(m_print_select == ePrintMultiMachine)
@@ -1947,10 +1949,14 @@ wxBoxSizer* MainFrame::create_side_tools()
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE));
             else if (m_print_select == eExportAllSlicedFile)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE));
+            else if (m_print_select == eExportAllSlicedFilePlateChanger)
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE_PLATE_CHANGER));
             else if (m_print_select == eSendToPrinter)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER));
             else if (m_print_select == eSendToPrinterAll)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL));
+            else if (m_print_select == eSendToPrinterAllPlateChanger)
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL_PLATE_CHANGER));
             /* else if (m_print_select == ePrintMultiMachine)
                  wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_MULTI_MACHINE));*/
         });
@@ -2105,6 +2111,43 @@ wxBoxSizer* MainFrame::create_side_tools()
                     p->Dismiss();
                     });
 
+                bool has_plate_change_gcode = false;
+                if (wxGetApp().preset_bundle && !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty())
+                    has_plate_change_gcode = true;
+
+                SideButton* print_all_plate_changer_btn = new SideButton(p, _L("Print all (plate changer)"), "");
+                print_all_plate_changer_btn->SetCornerRadius(0);
+                print_all_plate_changer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Print all (plate changer)"));
+                    m_print_select = ePrintAllPlateChanger;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    p->Dismiss();
+                    });
+
+                SideButton* send_to_printer_all_plate_changer_btn = new SideButton(p, _L("Send all (plate changer)"), "");
+                send_to_printer_all_plate_changer_btn->SetCornerRadius(0);
+                send_to_printer_all_plate_changer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Send all (plate changer)"));
+                    m_print_select = eSendToPrinterAllPlateChanger;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    p->Dismiss();
+                    });
+
+                SideButton* export_all_sliced_file_plate_changer_btn = new SideButton(p, _L("Export all (plate changer)"), "");
+                export_all_sliced_file_plate_changer_btn->SetCornerRadius(0);
+                export_all_sliced_file_plate_changer_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Export all (plate changer)"));
+                    m_print_select = eExportAllSlicedFilePlateChanger;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    p->Dismiss();
+                    });
+
                 bool support_send = true;
                 bool support_print_all = true;
 
@@ -2127,9 +2170,15 @@ wxBoxSizer* MainFrame::create_side_tools()
                 if (support_print_all) {
                     p->append_button(print_all_btn);
                 }
+                if (has_plate_change_gcode && support_print_all) {
+                    p->append_button(print_all_plate_changer_btn);
+                }
                 if (support_send) {
                     p->append_button(send_to_printer_btn);
                     p->append_button(send_to_printer_all_btn);
+                }
+                if (has_plate_change_gcode && support_send) {
+                    p->append_button(send_to_printer_all_plate_changer_btn);
                 }
                 if (enable_multi_machine) {
                     SideButton* print_multi_machine_btn = new SideButton(p, _L("Send to Multi-device"), "");
@@ -2147,6 +2196,9 @@ wxBoxSizer* MainFrame::create_side_tools()
                 }
                 p->append_button(export_sliced_file_btn);
                 p->append_button(export_all_sliced_file_btn);
+                if (has_plate_change_gcode) {
+                    p->append_button(export_all_sliced_file_plate_changer_btn);
+                }
                 SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
                 export_gcode_btn->SetCornerRadius(0);
                 export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
@@ -2238,6 +2290,11 @@ bool MainFrame::get_enable_print_status()
             enable = false;
         }
     }
+    else if (m_print_select == ePrintAllPlateChanger)
+    {
+        if (!part_plate_list.is_all_slice_results_ready_for_print())
+            enable = false;
+    }
     else if (m_print_select == ePrintPlate)
     {
         if (!current_plate->is_slice_result_ready_for_print())
@@ -2293,12 +2350,22 @@ bool MainFrame::get_enable_print_status()
             enable = false;
         }
     }
+    else if (m_print_select == eSendToPrinterAllPlateChanger)
+    {
+        if (!part_plate_list.is_all_slice_results_ready_for_print())
+            enable = false;
+    }
     else if (m_print_select == eExportAllSlicedFile)
     {
         if (!part_plate_list.is_all_slice_result_ready_for_export())
         {
             enable = false;
         }
+    }
+    else if (m_print_select == eExportAllSlicedFilePlateChanger)
+    {
+        if (!part_plate_list.is_all_slice_result_ready_for_export())
+            enable = false;
     }
     else if (m_print_select == ePrintMultiMachine)
     {
@@ -2762,6 +2829,14 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE)); }, "menu_export_sliced_file", nullptr,
             [this]() {return can_export_all_gcode(); }, this);
 
+        append_menu_item(export_menu, wxID_ANY, _L("Export all (plate changer)") + dots, _L("Export all plates with plate change G-code between plates"),
+            [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE_PLATE_CHANGER)); }, "", nullptr,
+            [this]() {
+                try {
+                    return can_export_all_gcode() && wxGetApp().preset_bundle && !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+                } catch (...) { return false; }
+            }, this);
+
         append_menu_item(export_menu, wxID_ANY, _L("Export G-code") + dots/* + "\t" + ctrl + "G"*/, _L("Export current plate as G-code"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_gcode(false); }, "menu_export_gcode", nullptr,
             [this]() {return can_export_gcode(); }, this);
@@ -2777,6 +2852,48 @@ void MainFrame::init_menubar_as_editor()
             []() { return true; }, this);
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
+
+        // Print & Send submenu (mirrors Print button dropdown). Enable predicates are try/catch guarded
+        // so they never throw during menu init when preset_bundle may not be fully loaded yet.
+        wxMenu* print_send_menu = new wxMenu();
+        auto has_plate_change_gcode_fn = []() {
+            try {
+                return wxGetApp().preset_bundle && !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+            } catch (...) { return false; }
+        };
+        auto support_print_all_fn = []() {
+            try {
+                if (!wxGetApp().preset_bundle) return true;
+                if (wxGetApp().preset_bundle->use_bbl_network()) return true;
+                const auto& cfg = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+                if (!cfg.has("host_type")) return false;
+                const auto* opt = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
+                return opt && opt->value == PrintHostType::htSimplyPrint;
+            } catch (...) { return false; }
+        };
+        auto support_send_fn = []() {
+            try {
+                return !wxGetApp().preset_bundle || wxGetApp().preset_bundle->use_bbl_network();
+            } catch (...) { return false; }
+        };
+        auto can_print_or_send_all_fn = [this]() {
+            try {
+                return m_plater && !m_plater->only_gcode_mode() && !m_plater->using_exported_file() && m_plater->get_partplate_list().is_all_slice_results_ready_for_print();
+            } catch (...) { return false; }
+        };
+        append_menu_item(print_send_menu, wxID_ANY, _L("Print all"), _L("Print all plates"),
+            [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_ALL)); }, "", nullptr,
+            [this, support_print_all_fn, can_print_or_send_all_fn]() { try { return support_print_all_fn() && can_print_or_send_all_fn(); } catch (...) { return false; } }, this);
+        append_menu_item(print_send_menu, wxID_ANY, _L("Print all (plate changer)"), _L("Print all plates with plate change G-code between plates"),
+            [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_ALL_PLATE_CHANGER)); }, "", nullptr,
+            [this, support_print_all_fn, can_print_or_send_all_fn, has_plate_change_gcode_fn]() { try { return has_plate_change_gcode_fn() && support_print_all_fn() && can_print_or_send_all_fn(); } catch (...) { return false; } }, this);
+        append_menu_item(print_send_menu, wxID_ANY, _L("Send all"), _L("Send all plates to printer"),
+            [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL)); }, "", nullptr,
+            [this, support_send_fn, can_print_or_send_all_fn]() { try { return support_send_fn() && can_print_or_send_all_fn(); } catch (...) { return false; } }, this);
+        append_menu_item(print_send_menu, wxID_ANY, _L("Send all (plate changer)"), _L("Send all plates with plate change G-code between plates"),
+            [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL_PLATE_CHANGER)); }, "", nullptr,
+            [this, support_send_fn, can_print_or_send_all_fn, has_plate_change_gcode_fn]() { try { return has_plate_change_gcode_fn() && support_send_fn() && can_print_or_send_all_fn(); } catch (...) { return false; } }, this);
+        append_submenu(fileMenu, print_send_menu, wxID_ANY, _L("Print & Send"), "");
 
         fileMenu->AppendSeparator();
 

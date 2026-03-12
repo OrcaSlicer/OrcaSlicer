@@ -1939,6 +1939,7 @@ namespace DoExport {
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Machine end G-code")), config.machine_end_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Before layer change G-code")), config.before_layer_change_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Layer change G-code")), config.layer_change_gcode.value);
+        if (ret.size() < MAX_TAGS_COUNT) check(_(L("Plate change G-code")), config.plate_change_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Timelapse G-code")), config.time_lapse_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Timelapse G-code")), config.wrapping_detection_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Change filament G-code")), config.change_filament_gcode.value);
@@ -5416,6 +5417,7 @@ void GCode::apply_print_config(const PrintConfig &print_config)
              &m_config.machine_end_gcode,
              &m_config.before_layer_change_gcode,
              &m_config.layer_change_gcode,
+             &m_config.plate_change_gcode,
              &m_config.time_lapse_gcode,
              &m_config.change_filament_gcode,
              &m_config.change_extrusion_role_gcode,

@@ -289,6 +289,7 @@ class SelectMachineDialog : public DPIDialog
 private:
     int                                 m_current_filament_id{0};
     int                                 m_print_plate_idx{0};
+    bool                                m_use_plate_changer_all{ false };
     int                                 m_print_plate_total{0};
     int                                 m_timeout_count{0};
     int                                 m_print_error_code{0};
@@ -442,7 +443,7 @@ public:
     void sending_mode();
     void finish_mode();
 	void sync_ams_mapping_result(std::vector<FilamentInfo>& result);
-    void prepare(int print_plate_idx);
+    void prepare(int print_plate_idx, bool use_plate_changer_all = false);
     void show_status(PrintDialogStatus status, std::vector<wxString> params = std::vector<wxString>(), wxString wiki_url = wxEmptyString);
     void sys_color_changed();
     void reset_timeout();

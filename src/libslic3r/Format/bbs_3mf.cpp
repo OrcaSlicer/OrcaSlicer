@@ -5671,6 +5671,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_skip_model { false };        // skip model when exporting .gcode.3mf
         bool m_skip_auxiliary { false };    // skip normal axuiliary files
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
+        bool m_use_plate_changer_all { false }; // when true, add merged_plates.gcode with plate_change_gcode between plates
         bool m_share_mesh { false };        // whether to share mesh between objects
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
         std::string m_thumbnail_small  = PRINTER_THUMBNAIL_SMALL_FILE;
@@ -5735,7 +5736,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _add_model_config_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, const ObjectToObjectDataMap &objects_data, const DynamicPrintConfig& config, int export_plate_idx = -1, bool save_gcode = true, bool use_loaded_id = false);
         bool _add_cut_information_file_to_archive(mz_zip_archive &archive, Model &model);
         bool _add_slice_info_config_file_to_archive(mz_zip_archive &archive, const Model &model, PlateDataPtrs &plate_data_list, const ObjectToObjectDataMap &objects_data, const DynamicPrintConfig& config);
-        bool _add_gcode_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, Export3mfProgressFn proFn = nullptr);
+        bool _add_gcode_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, const DynamicPrintConfig* config, Export3mfProgressFn proFn = nullptr);
         bool _add_custom_gcode_per_print_z_file_to_archive(mz_zip_archive& archive, Model& model, const DynamicPrintConfig* config);
         bool _add_auxiliary_dir_to_archive(mz_zip_archive &archive, const std::string &aux_dir, PackingTemporaryData &data);
 
@@ -5770,6 +5771,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_from_backup_save = store_params.strategy & SaveStrategy::Backup;
 
         m_use_loaded_id = store_params.strategy & SaveStrategy::UseLoadedId;
+        m_use_plate_changer_all = store_params.use_plate_changer_all;
 
         if (auto info = store_params.model->model_info) {
             if (auto iter = info->metadata_items.find("Thumbnail_Small"); iter != info->metadata_items.end())
@@ -6239,7 +6241,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Adds gcode files ("Metadata/plate_1.gcode, plate_2.gcode, ...)
         // Before _add_model_config_file_to_archive, because we modify plate_data
         //if (!m_skip_static && !_add_gcode_file_to_archive(archive, model, plate_data_list, proFn)) {
-        if (!m_skip_static && m_save_gcode && !_add_gcode_file_to_archive(archive, model, plate_data_list, proFn)) {
+        if (!m_skip_static && m_save_gcode && !_add_gcode_file_to_archive(archive, model, plate_data_list, config, proFn)) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", _add_gcode_file_to_archive failed\n");
             return false;
         }
@@ -8079,7 +8081,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         return true;
     }
-bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, Export3mfProgressFn proFn)
+bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, const DynamicPrintConfig* config, Export3mfProgressFn proFn)
 {
     bool result = true;
     bool cb_cancel = false;
@@ -8096,6 +8098,37 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
         PlateData* plate_data = plate_data_list[i];
         if (!plate_data->gcode_file.empty() && plate_data->is_sliced_valid && boost::filesystem::exists(plate_data->gcode_file)) {
             plate_data_list2.push_back(plate_data);
+        }
+    }
+
+    // When printing/exporting all plates with a plate swap device, add a single merged gcode file
+    // (plate1 + plate_change_gcode + plate2 + plate_change_gcode + ...) so the printer can run one file.
+    // Only do this when use_plate_changer_all is set (e.g. user chose "Print all (plate changer)").
+    if (m_use_plate_changer_all && plate_data_list2.size() > 1 && config && config->has("plate_change_gcode")) {
+        std::string plate_change = config->opt_string("plate_change_gcode");
+        if (!plate_change.empty()) {
+            std::string merged_gcode;
+            for (size_t i = 0; i < plate_data_list2.size(); ++i) {
+                PlateData* plate_data = plate_data_list2[i];
+                boost::filesystem::path src_gcode_path(plate_data->gcode_file);
+                if (boost::filesystem::exists(src_gcode_path)) {
+                    boost::filesystem::ifstream ifs(plate_data->gcode_file, std::ios::binary);
+                    merged_gcode.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+                }
+                if (i + 1 < plate_data_list2.size()) {
+                    if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                        merged_gcode += '\n';
+                    merged_gcode += plate_change;
+                    if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                        merged_gcode += '\n';
+                }
+            }
+            if (!merged_gcode.empty() && !mz_zip_writer_add_mem(&archive, "Metadata/merged_plates.gcode", merged_gcode.data(), merged_gcode.size(), MZ_DEFAULT_COMPRESSION)) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << " failed to add merged_plates.gcode to 3mf";
+                result = false;
+            } else {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " added Metadata/merged_plates.gcode with plate change g-code between " << plate_data_list2.size() << " plates";
+            }
         }
     }
 

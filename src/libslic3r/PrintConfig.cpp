@@ -4066,6 +4066,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("plate_change_gcode", coString);
+    def->label = L("Plate change G-code");
+    def->tooltip = L("This G-code is inserted between plates when printing, sending, or exporting all plates. Use it for plate swap devices (e.g. Chitu Platecycler). Left blank by default.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
+
     def = this->add("time_lapse_gcode",coString);
     def->label = L("Timelapse G-code");
     def->multiline = true;
@@ -10651,6 +10660,7 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
     {"machine_end_gcode",           {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id"}},
     {"before_layer_change_gcode",   {"layer_num", "layer_z", "max_layer_z"}},
     {"layer_change_gcode",          {"layer_num", "layer_z", "max_layer_z"}},
+    {"plate_change_gcode",          {}},
     {"timelapse_gcode",             {"layer_num", "layer_z", "max_layer_z"}},
     {"change_filament_gcode",       {"layer_num", "layer_z", "max_layer_z", "next_extruder", "previous_extruder", "fan_speed",
                                "first_flush_volume", "flush_length_1", "flush_length_2", "flush_length_3", "flush_length_4",

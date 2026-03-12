@@ -249,7 +249,10 @@ public:
         eSendToPrinterAll    = 6,
         eUploadGcode         = 7,
         eExportAllSlicedFile = 8,
-        ePrintMultiMachine   = 9
+        ePrintMultiMachine   = 9,
+        ePrintAllPlateChanger = 10,
+        eSendToPrinterAllPlateChanger = 11,
+        eExportAllSlicedFilePlateChanger = 12
     };
 
     void update_layout();

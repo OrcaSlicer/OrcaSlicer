@@ -1453,9 +1453,10 @@ int SelectMachineDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int no
     }
 }
 
-void SelectMachineDialog::prepare(int print_plate_idx)
+void SelectMachineDialog::prepare(int print_plate_idx, bool use_plate_changer_all)
 {
     m_print_plate_idx = print_plate_idx;
+    m_use_plate_changer_all = use_plate_changer_all;
 }
 
 void SelectMachineDialog::update_print_status_msg()
@@ -2446,7 +2447,7 @@ void SelectMachineDialog::on_send_print()
             wxString msg = _L("Preparing print job");
             m_status_bar->update_status(msg, cancelled, 10, true);
             m_export_3mf_cancel = cancel = cancelled;
-            });
+            }, m_use_plate_changer_all);
 
         if (m_is_canceled || m_export_3mf_cancel) {
             BOOST_LOG_TRIVIAL(info) << "print_job: m_export_3mf_cancel or m_is_canceled";
@@ -2462,7 +2463,7 @@ void SelectMachineDialog::on_send_print()
 
         // export config 3mf if needed
         if (!obj_->is_lan_mode_printer()) {
-            result = m_plater->export_config_3mf(m_print_plate_idx);
+            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all);
             if (result < 0) {
                 BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
                 return;
@@ -3253,9 +3254,10 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
     reset_timeout();
 
-    /*check print all*/
-    if (!obj_->GetConfig()->SupportPrintAllPlates() && m_print_plate_idx == PLATE_ALL_IDX)
-    {
+    /* check print all
+       For plate changer mode, we always allow \"all plates\" because we send a single
+       merged gcode file; the printer/host does not need explicit multi-plate support. */
+    if (!m_use_plate_changer_all && !obj_->GetConfig()->SupportPrintAllPlates() && m_print_plate_idx == PLATE_ALL_IDX) {
         show_status(PrintDialogStatus::PrintStatusNotSupportedPrintAll);
         return;
     }

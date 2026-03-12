@@ -4683,10 +4683,12 @@ struct Plater::priv
     void on_action_publish(wxCommandEvent &evt);
     void on_action_print_plate(SimpleEvent&);
     void on_action_print_all(SimpleEvent&);
+    void on_action_print_all_plate_changer(SimpleEvent&);
     void on_action_export_gcode(SimpleEvent&);
     void on_action_send_gcode(SimpleEvent&);
     void on_action_export_sliced_file(SimpleEvent&);
     void on_action_export_all_sliced_file(SimpleEvent&);
+    void on_action_export_all_sliced_file_plate_changer(SimpleEvent&);
     void on_action_select_sliced_plate(wxCommandEvent& evt);
     //BBS: change dark/light mode
     void on_change_color_mode(SimpleEvent& evt);
@@ -4789,7 +4791,7 @@ struct Plater::priv
     void update_fff_scene_only_shells(bool only_shells = true);
     //BBS: add popup object table logic
     bool PopupObjectTable(int object_id, int volume_id, const wxPoint& position);
-    void on_action_send_to_printer(bool isall = false);
+    void on_action_send_to_printer(bool isall = false, bool use_plate_changer_all = false);
     void on_action_send_to_multi_machine(SimpleEvent&);
     int update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
 private:
@@ -4802,6 +4804,7 @@ private:
     void update_after_undo_redo(const UndoRedo::Snapshot& snapshot, bool temp_snapshot_was_taken = false);
     void on_action_export_to_sdcard(SimpleEvent&);
     void on_action_export_to_sdcard_all(SimpleEvent&);
+    void on_action_export_to_sdcard_all_plate_changer(SimpleEvent&);
     void update_plugin_when_launch(wxCommandEvent& event);
     // path to project folder stored with no extension
     boost::filesystem::path     m_project_folder;
@@ -5243,12 +5246,15 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         q->Bind(EVT_PRINT_FROM_SDCARD_VIEW, &priv::on_action_print_plate_from_sdcard, this);
         q->Bind(EVT_GLTOOLBAR_SELECT_SLICED_PLATE, &priv::on_action_select_sliced_plate, this);
         q->Bind(EVT_GLTOOLBAR_PRINT_ALL, &priv::on_action_print_all, this);
+        q->Bind(EVT_GLTOOLBAR_PRINT_ALL_PLATE_CHANGER, &priv::on_action_print_all_plate_changer, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_GCODE, &priv::on_action_export_gcode, this);
         q->Bind(EVT_GLTOOLBAR_SEND_GCODE, &priv::on_action_send_gcode, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_SLICED_FILE, &priv::on_action_export_sliced_file, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE, &priv::on_action_export_all_sliced_file, this);
+        q->Bind(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE_PLATE_CHANGER, &priv::on_action_export_all_sliced_file_plate_changer, this);
         q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER, &priv::on_action_export_to_sdcard, this);
         q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL, &priv::on_action_export_to_sdcard_all, this);
+        q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL_PLATE_CHANGER, &priv::on_action_export_to_sdcard_all_plate_changer, this);
         q->Bind(EVT_GLTOOLBAR_PRINT_MULTI_MACHINE, &priv::on_action_send_to_multi_machine, this);
         q->Bind(EVT_GLCANVAS_PLATE_SELECT, &priv::on_plate_selected, this);
         q->Bind(EVT_DOWNLOAD_PROJECT, &priv::on_action_download_project, this);
@@ -10063,14 +10069,14 @@ int Plater::priv::update_print_required_data(Slic3r::DynamicPrintConfig config, 
     return m_select_machine_dlg->update_print_required_data(config, model, plate_data_list, file_name, file_path);
 }
 
-void Plater::priv::on_action_send_to_printer(bool isall)
+void Plater::priv::on_action_send_to_printer(bool isall, bool use_plate_changer_all)
 {
 	if (!m_send_to_sdcard_dlg) m_send_to_sdcard_dlg = new SendToPrinterDialog(q);
     if (isall) {
-        m_send_to_sdcard_dlg->prepare(PLATE_ALL_IDX);
+        m_send_to_sdcard_dlg->prepare(PLATE_ALL_IDX, use_plate_changer_all);
     }
     else {
-        m_send_to_sdcard_dlg->prepare(partplate_list.get_curr_plate_index());
+        m_send_to_sdcard_dlg->prepare(partplate_list.get_curr_plate_index(), false);
     }
 
 	m_send_to_sdcard_dlg->ShowModal();
@@ -10101,6 +10107,24 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
         m_select_machine_dlg->ShowModal();
     } else {
         q->send_gcode_legacy(PLATE_ALL_IDX, nullptr, true);
+    }
+}
+
+void Plater::priv::on_action_print_all_plate_changer(SimpleEvent&)
+{
+    if (q != nullptr) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received print all (plate changer) event\n";
+    }
+
+    PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
+    if (preset_bundle.use_bbl_network()) {
+        if (!m_select_machine_dlg)
+            m_select_machine_dlg = new SelectMachineDialog(q);
+        m_select_machine_dlg->set_print_type(PrintFromType::FROM_NORMAL);
+        m_select_machine_dlg->prepare(PLATE_ALL_IDX, true);
+        m_select_machine_dlg->ShowModal();
+    } else {
+        q->send_gcode_legacy(PLATE_ALL_IDX, nullptr, true, true);
     }
 }
 
@@ -10136,6 +10160,14 @@ void Plater::priv::on_action_export_all_sliced_file(SimpleEvent &)
     }
 }
 
+void Plater::priv::on_action_export_all_sliced_file_plate_changer(SimpleEvent &)
+{
+    if (q != nullptr) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export all (plate changer) event\n";
+        q->export_gcode_3mf(true, true);
+    }
+}
+
 void Plater::priv::on_action_export_to_sdcard(SimpleEvent&)
 {
 	if (q != nullptr) {
@@ -10149,6 +10181,14 @@ void Plater::priv::on_action_export_to_sdcard_all(SimpleEvent&)
     if (q != nullptr) {
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export sliced file event\n";
         q->send_to_printer(true);
+    }
+}
+
+void Plater::priv::on_action_export_to_sdcard_all_plate_changer(SimpleEvent&)
+{
+    if (q != nullptr) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received send all (plate changer) event\n";
+        q->send_to_printer(true, true);
     }
 }
 
@@ -14713,13 +14753,13 @@ void Plater::export_gcode(bool prefer_removable)
     }
 }
 
-void Plater::send_to_printer(bool isall)
+void Plater::send_to_printer(bool isall, bool use_plate_changer_all)
 {
-    p->on_action_send_to_printer(isall);
+    p->on_action_send_to_printer(isall, use_plate_changer_all);
 }
 
 //BBS export gcode 3mf to file
-void Plater::export_gcode_3mf(bool export_all)
+void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
 {
     if (p->model.objects.empty())
         return;
@@ -14782,7 +14822,7 @@ void Plater::export_gcode_3mf(bool export_all)
         int plate_idx = get_partplate_list().get_curr_plate_index();
         if (export_all)
             plate_idx = PLATE_ALL_IDX;
-        export_3mf(output_path, SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode | SaveStrategy::SkipModel, plate_idx); // BBS: silence
+        export_3mf(output_path, SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode | SaveStrategy::SkipModel, plate_idx, nullptr, use_plate_changer_all); // BBS: silence
 
         RemovableDriveManager& removable_drive_manager = *wxGetApp().removable_drive_manager();
 
@@ -15305,7 +15345,7 @@ void publish(Model &model, SaveStrategy strategy) {
 }
 
 // BBS: backup
-int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy strategy, int export_plate_idx, Export3mfProgressFn proFn)
+int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy strategy, int export_plate_idx, Export3mfProgressFn proFn, bool use_plate_changer_all)
 {
     int ret = 0;
     //if (p->model.objects.empty()) {
@@ -15442,6 +15482,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     store_params.id_bboxes = plate_bboxes;//BBS
     store_params.project = &p->project;
     store_params.strategy = strategy | SaveStrategy::Zip64;
+    store_params.use_plate_changer_all = use_plate_changer_all;
 
 
     // get type and color for platedata
@@ -15861,7 +15902,7 @@ void Plater::reslice_SLA_until_step(SLAPrintObjectStep step, const ModelObject &
     // and let the background processing start.
     this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
 }
-void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool use_3mf)
+void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool use_3mf, bool use_plate_changer_all)
 {
     // if physical_printer is selected, send gcode for this printer
     // DynamicPrintConfig* physical_printer_config = wxGetApp().preset_bundle->physical_printers.get_selected_printer_config();
@@ -15957,7 +15998,7 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
 
     if (use_3mf) {
         // Process gcode
-        const int result = send_gcode(plate_idx, nullptr);
+        const int result = send_gcode(plate_idx, nullptr, use_plate_changer_all);
 
         if (result < 0) {
             wxString msg = _L("Abnormal print file data. Please slice again");
@@ -15970,7 +16011,7 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
 
     p->export_gcode(fs::path(), false, std::move(upload_job));
 }
-int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn)
+int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn, bool use_plate_changer_all)
 {
     int result = 0;
     /* generate 3mf */
@@ -15994,12 +16035,12 @@ int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn)
         strategy = SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode;
 #endif
 
-    result = export_3mf(p->m_print_job_data._3mf_path, strategy, plate_idx, proFn);
+    result = export_3mf(p->m_print_job_data._3mf_path, strategy, plate_idx, proFn, use_plate_changer_all);
 
     return result;
 }
 
-int Plater::export_config_3mf(int plate_idx, Export3mfProgressFn proFn)
+int Plater::export_config_3mf(int plate_idx, Export3mfProgressFn proFn, bool use_plate_changer_all)
 {
     int result = 0;
     /* generate 3mf */
@@ -16015,7 +16056,7 @@ int Plater::export_config_3mf(int plate_idx, Export3mfProgressFn proFn)
     }
 
     SaveStrategy strategy = SaveStrategy::Silence | SaveStrategy::SkipModel | SaveStrategy::WithSliceInfo | SaveStrategy::SkipAuxiliary;
-    result = export_3mf(p->m_print_job_data._3mf_config_path, strategy, plate_idx, proFn);
+    result = export_3mf(p->m_print_job_data._3mf_config_path, strategy, plate_idx, proFn, use_plate_changer_all);
 
     return result;
 }

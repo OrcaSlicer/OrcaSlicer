@@ -55,6 +55,7 @@ private:
     void init_timer();
 
     int                                 m_print_plate_idx;
+    bool                                m_use_plate_changer_all{ false };
     int                                 m_current_filament_id;
     int                                 m_print_error_code = 0;
     int                                 timeout_count = 0;
@@ -191,7 +192,7 @@ public:
     void update_user_printer();
     void update_show_status();
     bool is_blocking_printing(MachineObject* obj_);
-    void prepare(int print_plate_idx);
+    void prepare(int print_plate_idx, bool use_plate_changer_all = false);
     void check_focus(wxWindow* window);
     void check_fcous_state(wxWindow* window);
     void update_priner_status_msg(wxString msg, bool is_warning = false);

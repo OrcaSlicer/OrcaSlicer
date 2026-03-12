@@ -731,9 +731,10 @@ void SendToPrinterDialog::sending_mode()
     }
 }
 
-void SendToPrinterDialog::prepare(int print_plate_idx)
+void SendToPrinterDialog::prepare(int print_plate_idx, bool use_plate_changer_all)
 {
     m_print_plate_idx = print_plate_idx;
+    m_use_plate_changer_all = use_plate_changer_all;
 }
 
 void SendToPrinterDialog::update_priner_status_msg(wxString msg, bool is_warning)
@@ -876,7 +877,7 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
              wxString msg       = _L("Preparing print job");
              m_status_bar->update_status(msg, cancelled, 10, true);
              m_export_3mf_cancel = cancel = cancelled;
-         });
+         }, m_use_plate_changer_all);
      }
 
     if (m_is_canceled || m_export_3mf_cancel) {
@@ -895,7 +896,7 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 
     // export config 3mf if needed
     if(!wxGetApp().plater()->using_exported_file() && !obj_->is_lan_mode_printer()) {
-            result = m_plater->export_config_3mf(m_print_plate_idx);
+            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all);
             if (result < 0) {
                 BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
                 return;

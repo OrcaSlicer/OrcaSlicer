@@ -39,6 +39,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "EditGCodeDialog.hpp"
+#include "Widgets/Button.hpp"
 
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
@@ -4525,6 +4526,97 @@ void TabPrinter::build_fff()
         option.opt.is_code = true;
         option.opt.height = gcode_field_height;//150;
         optgroup->append_single_option_line(option, "printer_machine_gcode#layer-change-g-code");
+
+        optgroup = page->new_optgroup(L("Plate change G-code"), L"param_gcode", 0);
+        optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
+            validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
+        };
+        optgroup->edit_custom_gcode = edit_custom_gcode_fn;
+        option = optgroup->get_option("plate_change_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = gcode_field_height;//150;
+        optgroup->append_single_option_line(option, "printer_machine_gcode#plate-change-g-code");
+
+        // Preset buttons to insert common plate-change g-code into the field above
+        {
+            // Chitu Systems Platecycler C1M
+            static const std::string chitu_platecycler_c1m_gcode =
+                "G0 X-10 F5000;\n"
+                "G0 Z175;\n"
+                "G0 Y-5 F2000;\n"
+                "G0 Y186.5 F2000;\n"
+                "G0 Y182 F10000;\n"
+                "G0 Z186;\n"
+                "G0 X180 F5000;\n"
+                "G0 Y120 F500;\n"
+                "G0 Y-4 Z175 X-15 F3000;\n"
+                "G0 Y145;\n"
+                "G0 Y115 F1000;\n"
+                "G0 Y25 F500;\n"
+                "G0 Y85 F1000;\n"
+                "G0 Y180 F1000;\n"
+                "G0 X-10 F5000;\n"
+                "G4 P500; wait\n"
+                "G0 Y186.5 F200;\n"
+                "G4 P500; wait\n"
+                "G0 Y3 F3000;\n"
+                "G0 Y-5 F200;\n"
+                "G4 P500; wait\n"
+                "G0 Y10 F1000;\n"
+                "G0 Z100 Y186 F2000;\n"
+                "G0 Y150;\n"
+                "G4 P1000; wait;\n";
+            // Innocube A1 swapmod (Bambu A1) – placeholder
+            static const std::string innocube_a1_swapmod_gcode =
+                "G28 X Y\n"
+                "G1 X0 Y0 F6000\n"
+                "; Innocube A1 swapmod (Bambu A1) – add your plate-change sequence here\n";
+            // Swapmod A1m kit (Bambu A1 Mini) – placeholder
+            static const std::string swapmod_a1m_kit_gcode =
+                "G28 X Y\n"
+                "G1 X0 Y0 F6000\n"
+                "; Swapmod A1m kit (Bambu A1 Mini) – add your plate-change sequence here\n";
+
+            Line preset_line(L"", L"");
+            preset_line.full_width = 1;
+            // Helper to write both config and visible field
+            auto apply_preset = [this](const std::string& gcode) {
+                load_key_value("plate_change_gcode", gcode);
+                if (Field* field = this->get_field("plate_change_gcode")) {
+                    wxString wxgcode = from_u8(gcode);
+                    field->set_value(wxgcode, true);
+                }
+                update_changed_ui();
+            };
+
+            preset_line.widget = [this, apply_preset](wxWindow* parent) {
+                auto sizer = new wxBoxSizer(wxHORIZONTAL);
+                auto label = new wxStaticText(parent, wxID_ANY, _L("Insert preset for:"));
+                label->SetFont(wxGetApp().normal_font());
+                sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+                Button* chitu_btn = new Button(parent, _L("Chitu Systems Platecycler C1M"));
+                chitu_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+                Button* innocube_btn = new Button(parent, _L("Innocube A1 swapmod"));
+                innocube_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+                Button* swapmod_btn = new Button(parent, _L("Swapmod A1m kit"));
+                swapmod_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+                sizer->Add(chitu_btn, 0, wxRIGHT, 5);
+                sizer->Add(innocube_btn, 0, wxRIGHT, 5);
+                sizer->Add(swapmod_btn, 0);
+                chitu_btn->Bind(wxEVT_BUTTON, [apply_preset](wxCommandEvent&) {
+                    apply_preset(chitu_platecycler_c1m_gcode);
+                });
+                innocube_btn->Bind(wxEVT_BUTTON, [apply_preset](wxCommandEvent&) {
+                    apply_preset(innocube_a1_swapmod_gcode);
+                });
+                swapmod_btn->Bind(wxEVT_BUTTON, [apply_preset](wxCommandEvent&) {
+                    apply_preset(swapmod_a1m_kit_gcode);
+                });
+                return sizer;
+            };
+            optgroup->append_line(preset_line);
+        }
 
         optgroup = page->new_optgroup(L("Timelapse G-code"), L"param_gcode", 0);
         optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
