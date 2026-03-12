@@ -134,7 +134,7 @@ jobs:
   flatpak:
     name: "Flatpak"
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
       volumes:
         - /usr/local/lib/android:/usr/local/lib/android
@@ -170,7 +170,7 @@ jobs:
           git_commit_hash="${{ github.event.pull_request.head.sha }}"
         else
           ver=V$ver_pure
-          git_commit_hash=""
+          git_commit_hash="${{ github.sha }}"
         fi
         echo "ver=$ver" >> $GITHUB_ENV
         echo "ver_pure=$ver_pure" >> $GITHUB_ENV
@@ -194,7 +194,12 @@ jobs:
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Disable debug info for faster CI builds
       run: |
-        sed -i '0,/^finish-args:/s//build-options:\n  no-debuginfo: true\n  strip: true\nfinish-args:/' \
+        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
+          scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    - name: Inject git commit hash into Flatpak manifest
+      run: |
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
@@ -219,3 +224,4 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+

@@ -20593,10 +20593,8 @@ msgstr "Ende: "
 msgid "Cornering settings"
 msgstr "Eckeneinstellungen"
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
-msgstr ""
-"Hinweis: Niedrigere Werte = schärfere Ecken, aber langsamere "
-"Geschwindigkeiten.\n"
+msgid "Note: Lower values = sharper corners but slower speeds."
+msgstr "Hinweis: Niedrigere Werte = schärfere Ecken, aber langsamere Geschwindigkeiten."
 
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
