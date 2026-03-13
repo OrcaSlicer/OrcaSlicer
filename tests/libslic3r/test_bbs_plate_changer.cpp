@@ -61,6 +61,19 @@ SCENARIO("Plate changer export produces single merged gcode and single plate met
                 auto model_settings = read_entry_from_zip(store_params.path, "Metadata/model_settings.config");
                 REQUIRE_FALSE(model_settings.empty());
             }
+
+            AND_THEN("The resulting 3mf contains a slice_info.config file") {
+                REQUIRE(boost::filesystem::exists(store_params.path));
+                auto slice_info = read_entry_from_zip(store_params.path, "Metadata/slice_info.config");
+                REQUIRE_FALSE(slice_info.empty());
+                REQUIRE(slice_info.find("<config") != std::string::npos);
+            }
+
+            AND_THEN("The resulting 3mf does not contain a second plate gcode file") {
+                REQUIRE(boost::filesystem::exists(store_params.path));
+                auto plate2_gcode = read_entry_from_zip(store_params.path, "Metadata/plate_2.gcode");
+                REQUIRE(plate2_gcode.empty());
+            }
         }
     }
 }

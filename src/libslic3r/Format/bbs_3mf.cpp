@@ -8306,74 +8306,57 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
     // that sequences all plates with the configured plate-change g-code between them. The printer then
     // sees this as a single-plate job.
     if (m_use_plate_changer_all && plate_data_list2.size() > 1 && config && config->has("plate_change_gcode")) {
-        std::string plate_change = config->opt_string("plate_change_gcode");
-        if (!plate_change.empty()) {
-            std::string merged_gcode;
-            for (size_t i = 0; i < plate_data_list2.size(); ++i) {
-                PlateData* plate_data = plate_data_list2[i];
-                boost::filesystem::path src_gcode_path(plate_data->gcode_file);
-                if (boost::filesystem::exists(src_gcode_path)) {
-                    boost::filesystem::ifstream ifs(plate_data->gcode_file, std::ios::binary);
-                    merged_gcode.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-                }
-                if (i + 1 < plate_data_list2.size()) {
-                    if (!merged_gcode.empty() && merged_gcode.back() != '\n')
-                        merged_gcode += '\n';
-                    merged_gcode += plate_change;
-                    if (!merged_gcode.empty() && merged_gcode.back() != '\n')
-                        merged_gcode += '\n';
+        // Use the shared helper to build the merged gcode string, but keep MD5/archive logic local.
+        std::string merged_gcode = build_plate_changer_merged_gcode(plate_data_list2, config);
+
+        if (!merged_gcode.empty()) {
+            // Name the combined file like a normal first-plate gcode so the printer treats this as a single plate.
+            const std::string combined_gcode_path = (boost::format(GCODE_FILE_FORMAT) % 1).str(); // Metadata/plate_1.gcode
+
+            // Compute MD5 for the combined gcode and write Metadata/plate_1.gcode.md5.
+            unsigned char digest[16];
+            MD5_CTX       ctx;
+            MD5_Init(&ctx);
+            MD5_Update(&ctx, reinterpret_cast<const unsigned char*>(merged_gcode.data()), merged_gcode.size());
+            MD5_Final(digest, &ctx);
+
+            char md5_str[33];
+            for (int j = 0; j < 16; j++)
+                sprintf(&md5_str[j * 2], "%02X", (unsigned int)digest[j]);
+
+            std::string md5_value(md5_str);
+            const std::string md5_target = "Metadata/plate_1.gcode.md5";
+            if (!mz_zip_writer_add_mem(&archive, md5_target.c_str(), md5_value.c_str(), md5_value.length(), MZ_DEFAULT_COMPRESSION)) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
+                                         << ", failed to add combined gcode md5 to 3mf";
+                return false;
+            }
+
+            // Write the combined gcode as Metadata/plate_1.gcode.
+            if (!mz_zip_writer_add_mem(&archive, combined_gcode_path.c_str(), merged_gcode.data(), merged_gcode.size(), MZ_DEFAULT_COMPRESSION)) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
+                                         << " failed to add combined gcode to 3mf";
+                return false;
+            }
+
+            // Ensure model_settings.config refers only to this combined file.
+            for (size_t i = 0; i < plate_data_list.size(); ++i) {
+                PlateData* plate_data = plate_data_list[i];
+                if (plate_data == nullptr)
+                    continue;
+                if (i == 0) {
+                    plate_data->gcode_file = combined_gcode_path;
+                } else {
+                    plate_data->gcode_file.clear();
                 }
             }
 
-            if (!merged_gcode.empty()) {
-                // Name the combined file like a normal first-plate gcode so the printer treats this as a single plate.
-                const std::string combined_gcode_path = (boost::format(GCODE_FILE_FORMAT) % 1).str(); // Metadata/plate_1.gcode
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
+                                    << " added combined gcode " << combined_gcode_path
+                                    << " with plate change g-code between " << plate_data_list2.size() << " plates";
 
-                // Compute MD5 for the combined gcode and write Metadata/plate_1.gcode.md5.
-                unsigned char digest[16];
-                MD5_CTX       ctx;
-                MD5_Init(&ctx);
-                MD5_Update(&ctx, reinterpret_cast<const unsigned char*>(merged_gcode.data()), merged_gcode.size());
-                MD5_Final(digest, &ctx);
-
-                char md5_str[33];
-                for (int j = 0; j < 16; j++)
-                    sprintf(&md5_str[j * 2], "%02X", (unsigned int)digest[j]);
-
-                std::string md5_value(md5_str);
-                const std::string md5_target = "Metadata/plate_1.gcode.md5";
-                if (!mz_zip_writer_add_mem(&archive, md5_target.c_str(), md5_value.c_str(), md5_value.length(), MZ_DEFAULT_COMPRESSION)) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
-                                             << ", failed to add combined gcode md5 to 3mf";
-                    return false;
-                }
-
-                // Write the combined gcode as Metadata/plate_1.gcode.
-                if (!mz_zip_writer_add_mem(&archive, combined_gcode_path.c_str(), merged_gcode.data(), merged_gcode.size(), MZ_DEFAULT_COMPRESSION)) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
-                                             << " failed to add combined gcode to 3mf";
-                    return false;
-                }
-
-                // Ensure model_settings.config refers only to this combined file.
-                for (size_t i = 0; i < plate_data_list.size(); ++i) {
-                    PlateData* plate_data = plate_data_list[i];
-                    if (plate_data == nullptr)
-                        continue;
-                    if (i == 0) {
-                        plate_data->gcode_file = combined_gcode_path;
-                    } else {
-                        plate_data->gcode_file.clear();
-                    }
-                }
-
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
-                                        << " added combined gcode " << combined_gcode_path
-                                        << " with plate change g-code between " << plate_data_list2.size() << " plates";
-
-                // We handled all gcode files in this combined export path.
-                return true;
-            }
+            // We handled all gcode files in this combined export path.
+            return true;
         }
     }
 
