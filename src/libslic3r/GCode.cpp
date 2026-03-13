@@ -1409,11 +1409,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     else
                         line_out << ch;
                 }
+                // Strip original wipe tower X/Y even if position unchanged (fixes out of bed moves).
+                line = line_out.str();
 
                 transformed_pos = trans_pos(pos);
 
                 if (transformed_pos != old_pos || never_skip) {
-                    line = line_out.str();
                     std::ostringstream oss;
                     oss << std::fixed << std::setprecision(3) << cur_gcode_start;
                     if (transformed_pos.x() != old_pos.x() || never_skip)
@@ -1446,7 +1447,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 }
                 old_pos = Vec2f{-1000.1f, -1000.1f};
                 pos     = tcr.tool_change_start_pos;
-                transformed_pos = pos;
+                transformed_pos = trans_pos(pos);
             }
         }
         return gcode_out;
@@ -1745,7 +1746,7 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
         // first layer may result in skirt/brim in the air and maybe other issues.
         if (layers_to_print.size() == 1u) {
             if (!has_extrusions)
-                throw Slic3r::SlicingError(_(L("One object has empty initial layer and can't be printed. Please Cut the bottom or enable supports.")), object.id().id);
+                throw Slic3r::SlicingError(_(L("One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports.")), object.id().id);
         }
 
         // In case there are extrusions on this layer, check there is a layer to lay it on.
@@ -3024,7 +3025,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             }
         }
         // wipe tower area
-        if (has_wipe_tower) {
+        if (has_wipe_tower && print.wipe_tower_data().wipe_tower_mesh_data) {
             Polygon temp_Expoly = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
             area_sum_temp += temp_Expoly.area();
         }
@@ -5401,7 +5402,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
                 size_t temp_begin_t = idx * matrix_value_count, temp_end_t = (idx + 1) * matrix_value_count;
                 std::transform(temp_flush_volumes_matrix.begin() + temp_begin_t, temp_flush_volumes_matrix.begin() + temp_end_t,
                                temp_flush_volumes_matrix.begin() + temp_begin_t,
-                               [temp_cfg_flush_multiplier_idx](double inputx) { return inputx * temp_cfg_flush_multiplier_idx; });
+                               [temp_cfg_flush_multiplier_idx](double inputx) { return std::round(inputx * temp_cfg_flush_multiplier_idx); });
             }
             cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values = temp_flush_volumes_matrix;
         } else if (filament_count_tmp == 1) {
@@ -6307,7 +6308,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (speed == 0)
         speed = filament_max_volumetric_speed / _mm3_per_mm;
     if (this->on_first_layer()) {
-        //BBS: for solid infill of initial layer, speed can be higher as long as
+        //BBS: for solid infill of first layer, speed can be higher as long as
         //wall lines have be attached
         if (path.role() != erBottomSurface)
             speed = m_config.get_abs_value("initial_layer_speed");

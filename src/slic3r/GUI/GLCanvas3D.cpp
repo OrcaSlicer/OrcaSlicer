@@ -1216,12 +1216,12 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     m_selection.set_volumes(&m_volumes.volumes);
 
     m_assembly_view_desc["object_selection_caption"] = _L("Left mouse button");
-    m_assembly_view_desc["object_selection"]         = _L("object selection");
+    m_assembly_view_desc["object_selection"]         = _L("Object selection");
     // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
     m_assembly_view_desc["part_selection_caption"]   = _L("Alt+") + _L("Left mouse button");
-    m_assembly_view_desc["part_selection"]           = _L("part selection");
+    m_assembly_view_desc["part_selection"]           = _L("Part selection");
     m_assembly_view_desc["number_key_caption"]       = "1~16 " + _L("number keys");
-    m_assembly_view_desc["number_key"]       = _L("number keys can quickly change the color of objects");
+    m_assembly_view_desc["number_key"]       = _L("Number keys can quickly change the color of objects");
 }
 
 GLCanvas3D::~GLCanvas3D()
@@ -4277,15 +4277,16 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_canvas->SetFocus();
 
     if (evt.Entering()) {
-//#if defined(__WXMSW__) || defined(__linux__)
-//        // On Windows and Linux needs focus in order to catch key events
-        // Set focus in order to remove it from sidebar fields
+        // Set focus in order to remove it from sidebar fields and ensure hotkeys work
         if (m_canvas != nullptr) {
-            // Only set focus, if the top level window of this canvas is active.
+            // Only set focus if the top level window of this canvas is active.
             auto p = dynamic_cast<wxWindow*>(evt.GetEventObject());
             while (p->GetParent())
                 p = p->GetParent();
             auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
+            //Orca: Set focus so hotkeys like 'tab' work when a notification is shown.
+            if (top_level_wnd != nullptr && top_level_wnd->IsActive())
+                m_canvas->SetFocus();
             m_mouse.position = pos.cast<double>();
             m_tooltip_enabled = false;
             // 1) forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
@@ -4297,7 +4298,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_tooltip_enabled = true;
         }
         m_mouse.set_start_position_2D_as_invalid();
-//#endif
     }
     else if (evt.Leaving()) {
         // to remove hover on objects when the mouse goes out of this canvas
@@ -8545,9 +8545,11 @@ void GLCanvas3D::_render_canvas_toolbar()
                 zoom_to_selection();
             }
         } else if (ImGui::IsItemHovered()) {
-            auto tooltip = _L("Fit camera to scene or selected object.");
-            auto width   = ImGui::CalcTextSize(tooltip.c_str()).x + imgui.scaled(2.0f);
-            imgui.tooltip(tooltip, width);
+            auto tooltip_str_wx = _L("Fit camera to scene or selected object.");
+            std::string tooltip_str = tooltip_str_wx.ToUTF8().data();
+
+            float width = ImGui::CalcTextSize(tooltip_str.c_str()).x + imgui.scaled(2.0f);
+            imgui.tooltip(tooltip_str, width);
         }
     }
 
@@ -8586,7 +8588,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
 
-        create_menu_item( "3D Navigator",
+        create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_3d_navigator(),
             [this]{
@@ -8595,7 +8597,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             }
         );
 
-        create_menu_item( "Zoom button",
+        create_menu_item( _utf8(L("Zoom button")),
             true, // work on all
             wxGetApp().show_canvas_zoom_button(),
             [this]{
@@ -8606,13 +8608,13 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Overhangs",
+        create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
             [this, p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
         );
 
-        create_menu_item( "Outline",
+        create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
             [this]{wxGetApp().toggle_show_outline();}
@@ -8620,7 +8622,7 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Perspective",
+        create_menu_item( _utf8(L("Perspective")),
             true, // work on all
             cfg->get_bool("use_perspective_camera"),
             [this, &cfg]{
@@ -8631,15 +8633,21 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Axes",
+        create_menu_item( _utf8(L("Axes")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             m_show_world_axes,
             [this]{toggle_world_axes_visibility(false);}
         );
 
-        // will add an option for gridlines in here
+        create_menu_item( _utf8(L("Gridlines")),
+            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
+            wxGetApp().show_plate_gridlines(),
+            [this]{wxGetApp().toggle_show_plate_gridlines();}
+        );
 
-        create_menu_item( "Labels",
+        ImGui::Separator();
+
+        create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
             [this, p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
@@ -8926,7 +8934,7 @@ void GLCanvas3D::_render_assemble_control()
             caption_max = std::max(caption_max, imgui->calc_text_size(m_assembly_view_desc.at(t + "_caption")).x);
         }
         const ImVec2 pos = ImGui::GetCursorScreenPos();
-        const float text_y =imgui->calc_text_size(_L("part selection")).y;
+        const float text_y = imgui->calc_text_size(_L("Part selection")).y;
         float get_cur_x = pos.x;
         float get_cur_y = pos.y - ImGui::GetFrameHeight() - 4 * text_y;
         tip_icon_size =_show_assembly_tooltip_information(caption_max, get_cur_x, get_cur_y);
@@ -9647,7 +9655,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             warning += std::to_string(filament + 1);
             warning += " ";
         }
-        text  = (boost::format(_u8L("filaments %s cannot be printed directly on the surface of this plate.")) % warning).str();
+        text  = (boost::format(_u8L("Filaments %s cannot be printed directly on the surface of this plate.")) % warning).str();
         error = ErrorType::SLICING_ERROR;
         break;
     }
@@ -9669,7 +9677,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         break;
     }
     case EWarning::FlushingVolumeZero:
-        text = _u8L("Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please redjust flushing settings.");
+        text = _u8L("Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please readjust flushing settings.");
         error = ErrorType::SLICING_ERROR;
         break;
     }

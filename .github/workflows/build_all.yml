@@ -58,22 +58,40 @@ jobs:
       os: ubuntu-24.04
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
-  build_all:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-          - os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
-            arch: arm64
+  build_windows:
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ matrix.os }}
+      os: windows-latest
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
+    secrets: inherit
+  build_macos_arch:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arm64
+          - x86_64
+    # Don't run scheduled builds on forks:
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
+    secrets: inherit
+  build_macos_universal:
+    name: Build macOS Universal
+    needs: build_macos_arch
+    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/build_orca.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      arch: universal
+      macos-combine-only: true
     secrets: inherit
   unit_tests:
     name: Unit Tests
@@ -116,7 +134,7 @@ jobs:
   flatpak:
     name: "Flatpak"
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
       volumes:
         - /usr/local/lib/android:/usr/local/lib/android
@@ -152,19 +170,43 @@ jobs:
           git_commit_hash="${{ github.event.pull_request.head.sha }}"
         else
           ver=V$ver_pure
-          git_commit_hash=""
+          git_commit_hash="${{ github.sha }}"
         fi
         echo "ver=$ver" >> $GITHUB_ENV
         echo "ver_pure=$ver_pure" >> $GITHUB_ENV
         echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
       shell: bash
+    # Manage flatpak-builder cache externally so PRs restore but never upload
+    - name: Restore flatpak-builder cache
+      if: github.event_name == 'pull_request'
+      uses: actions/cache/restore@v4
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
+        restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
+    - name: Save/restore flatpak-builder cache
+      if: github.event_name != 'pull_request'
+      uses: actions/cache@v4
+      with:
+        path: .flatpak-builder
+        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}
+        restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
+    - name: Disable debug info for faster CI builds
+      run: |
+        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
+          scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    - name: Inject git commit hash into Flatpak manifest
+      run: |
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
+          scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
+      shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
       with:
         bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        manifest-path: scripts/flatpak/io.github.softfever.OrcaSlicer.yml
-        cache: true
-        cache-key: flatpak-builder-${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
+        manifest-path: scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
+        cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
@@ -182,3 +224,4 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+
