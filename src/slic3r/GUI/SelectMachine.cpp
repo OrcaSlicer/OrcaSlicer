@@ -3849,7 +3849,15 @@ void SelectMachineDialog::reset_and_sync_ams_list()
         }
     }
 
-    auto           extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_filaments();
+    std::vector<int> extruders;
+    if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
+        // Plate-changer "all plates": show filaments from every plate so AMS mapping includes all needed.
+        std::set<int> all_ext = wxGetApp().plater()->get_partplate_list().get_extruders(true);
+        extruders.assign(all_ext.begin(), all_ext.end());
+        std::sort(extruders.begin(), extruders.end());
+    } else {
+        extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_filaments();
+    }
     BitmapCache    bmcache;
     MaterialHash::iterator iter = m_materialList.begin();
     while (iter != m_materialList.end()) {
@@ -3872,7 +3880,24 @@ void SelectMachineDialog::reset_and_sync_ams_list()
     if (use_double_extruder)
     {
         const auto& project_config = preset_bundle->project_config;
-        m_filaments_map = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
+        if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
+            // Build combined filament_map from all plates (first plate that uses each filament wins).
+            auto& ppl = wxGetApp().plater()->get_partplate_list();
+            size_t filament_count = preset_bundle->filaments.size();
+            m_filaments_map.assign(filament_count, 1);
+            for (int i = 0; i < ppl.get_plate_count(); i++) {
+                PartPlate* plate = ppl.get_plate(i);
+                std::vector<int> plate_ext = plate->get_used_filaments();
+                std::vector<int> plate_map = plate->get_real_filament_maps(project_config);
+                for (int fid : plate_ext) {
+                    int idx = fid - 1;
+                    if (idx >= 0 && idx < (int)plate_map.size() && idx < (int)filament_count)
+                        m_filaments_map[idx] = plate_map[idx];
+                }
+            }
+        } else {
+            m_filaments_map = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
+        }
     }
 
     for (auto i = 0; i < extruders.size(); i++) {

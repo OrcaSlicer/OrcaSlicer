@@ -5653,6 +5653,37 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
     }
 
+    // Build a single merged gcode string for plate-changer "all plates" exports.
+    // Reads each plate's gcode file and inserts plate_change_gcode between them.
+    static std::string build_plate_changer_merged_gcode(const PlateDataPtrs& plate_data_list2, const DynamicPrintConfig* config)
+    {
+        if (plate_data_list2.size() <= 1 || config == nullptr || !config->has("plate_change_gcode"))
+            return {};
+
+        std::string plate_change = config->opt_string("plate_change_gcode");
+        if (plate_change.empty())
+            return {};
+
+        std::string merged_gcode;
+        for (size_t i = 0; i < plate_data_list2.size(); ++i) {
+            PlateData* plate_data = plate_data_list2[i];
+            boost::filesystem::path src_gcode_path(plate_data->gcode_file);
+            if (boost::filesystem::exists(src_gcode_path)) {
+                boost::filesystem::ifstream ifs(plate_data->gcode_file, std::ios::binary);
+                merged_gcode.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+            }
+            if (i + 1 < plate_data_list2.size()) {
+                if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                    merged_gcode += '\n';
+                merged_gcode += plate_change;
+                if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                    merged_gcode += '\n';
+            }
+        }
+
+        return merged_gcode;
+    }
+
     class _BBS_3MF_Exporter : public _BBS_3MF_Base
     {
         struct BuildItem
