@@ -924,7 +924,15 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
         PrintPrepareData print_data;
 
         m_plater->get_print_job_data(&print_data);
-        std::string project_name = m_current_project_name.utf8_string() + ".gcode.3mf";
+        // For plate changer "all plates" jobs, include the plate count in the project
+        // name so it's visible on the printer (e.g. "model_3_plates_.gcode.3mf").
+        std::string plate_suffix;
+        if (m_use_plate_changer_all && print_data.plate_idx == PLATE_ALL_IDX) {
+            const int plate_count = m_plater->get_partplate_list().get_plate_count();
+            if (plate_count > 1)
+                plate_suffix = "_" + std::to_string(plate_count) + "_plates_";
+        }
+        std::string project_name = m_current_project_name.utf8_string() + plate_suffix + ".gcode.3mf";
 
         std::string _3mf_path;
         if (wxGetApp().plater()->using_exported_file())

@@ -1922,7 +1922,7 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_print_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
             //this->m_plater->select_view_3D("Preview");
-            if (m_print_select == ePrintAll || m_print_select == ePrintPlate || m_print_select == ePrintMultiMachine || m_print_select == ePrintAllPlateChanger || m_print_select == eSendToPrinterAllPlateChanger || m_print_select == eExportAllSlicedFilePlateChanger)
+            if (m_print_select == ePrintAll || m_print_select == ePrintPlate || m_print_select == ePrintMultiMachine || m_print_select == ePrintAllPlateChanger)
             {
                 m_plater->apply_background_progress();
                 // check valid of print

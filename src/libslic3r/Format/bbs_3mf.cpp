@@ -5609,6 +5609,49 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
+    // Draw plate-count indicator dots on the right edge of a thumbnail (for plate-changer merged exports).
+    static void draw_plate_count_dots_on_thumbnail(ThumbnailData& thumb, unsigned int plate_count)
+    {
+        if (plate_count < 2 || plate_count > 10 || !thumb.is_valid() || thumb.width == 0 || thumb.height == 0)
+            return;
+        const unsigned int w = thumb.width;
+        const unsigned int h = thumb.height;
+        const int max_dots   = std::min(plate_count, 10u);
+        const int dot_radius = std::max(4, (int)w / 32);  // visible size: at least 4px, scale with width
+        const int margin     = dot_radius * 2;
+        const int gap        = dot_radius;
+        const int rows       = std::min(max_dots, 5);
+        const int cols       = (max_dots > 5) ? 2 : 1;
+        const int total_h    = rows * (2 * dot_radius) + (rows - 1) * gap;
+        int cy_start         = std::max(dot_radius, (int)h / 2 - total_h / 2 + dot_radius);
+        const unsigned char dotR = 255, dotG = 255, dotB = 255, dotA = 255;  // solid white
+        const float a = dotA / 255.0f;
+        const float inv = 1.0f - a;
+        for (int d = 0; d < max_dots; ++d) {
+            const int col = (cols == 2 && d >= rows) ? 1 : 0;
+            const int row = (cols == 2 && d >= rows) ? d - rows : d;
+            const int cx  = (int)w - margin - dot_radius - col * (2 * dot_radius + gap);
+            const int cy  = cy_start + row * (2 * dot_radius + gap);
+            for (int y = cy - dot_radius; y <= cy + dot_radius; ++y) {
+                if (y < 0 || y >= (int)h) continue;
+                for (int x = cx - dot_radius; x <= cx + dot_radius; ++x) {
+                    if (x < 0 || x >= (int)w) continue;
+                    const int dx = x - cx, dy = y - cy;
+                    if (dx * dx + dy * dy > dot_radius * dot_radius)
+                        continue;
+                    const size_t idx = ((size_t)y * w + (size_t)x) * 4;
+                    unsigned char& srcR = thumb.pixels[idx + 0];
+                    unsigned char& srcG = thumb.pixels[idx + 1];
+                    unsigned char& srcB = thumb.pixels[idx + 2];
+                    unsigned char& srcA = thumb.pixels[idx + 3];
+                    srcR = (unsigned char)(dotR * a + srcR * inv);
+                    srcG = (unsigned char)(dotG * a + srcG * inv);
+                    srcB = (unsigned char)(dotB * a + srcB * inv);
+                    srcA = std::max(srcA, dotA);
+                }
+            }
+        }
+    }
 
     class _BBS_3MF_Exporter : public _BBS_3MF_Base
     {
@@ -5962,6 +6005,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     return false;
             }
 
+            // For plate-changer merged export, draw plate-count dots on the first thumbnail before writing it.
+            if (m_use_plate_changer_all && plate_data_list.size() > 1 && thumbnail_data.size() > 0 && thumbnail_data[0]->is_valid())
+                draw_plate_count_dots_on_thumbnail(*thumbnail_data[0], (unsigned int)plate_data_list.size());
+
             for (unsigned int index = 0; index < thumbnail_data.size(); index++)
             {
                 if (thumbnail_data[index]->is_valid())
@@ -6206,7 +6253,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         // add plate_N.gcode.md5 to file
-        if (!m_skip_static && m_save_gcode) {
+        // For plate changer \"all plates\" mode we generate a single combined gcode file
+        // and its MD5 later inside _add_gcode_file_to_archive, so skip the per-plate
+        // MD5 generation here in that case.
+        if (!m_use_plate_changer_all && !m_skip_static && m_save_gcode) {
             for (int i = 0; i < plate_data_list.size(); i++) {
                 PlateData *plate_data = plate_data_list[i];
                 if (!plate_data->gcode_file.empty() && plate_data->is_sliced_valid && boost::filesystem::exists(plate_data->gcode_file)) {
@@ -7731,6 +7781,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::vector<std::string> gcode_paths;
         for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
         {
+            // For plate changer \"all plates\" export, we collapse the job into a single logical plate.
+            if (m_use_plate_changer_all && i > 0)
+                continue;
+
             PlateData* plate_data = plate_data_list[i];
             int instance_size = plate_data->objects_and_instances.size();
 
@@ -7802,11 +7856,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     stream << "\"/>\n";
                 }
 
-                if (save_gcode)
+                if (save_gcode && !plate_data->gcode_file.empty())
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << GCODE_FILE_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << xml_escape(plate_data->gcode_file) << "\"/>\n";
                 if (!plate_data->gcode_file.empty()) {
                     gcode_paths.push_back(plate_data->gcode_file);
                 }
+
                 if (plate_data->plate_thumbnail.is_valid()) {
                     std::string thumbnail_file_in_3mf = (boost::format(THUMBNAIL_FILE_FORMAT) % (plate_data->plate_index + 1)).str();
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << THUMBNAIL_FILE_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << thumbnail_file_in_3mf << "\"/>\n";
@@ -7943,12 +7998,127 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Version" << "\" " << VALUE_ATTR << "=\"" << convert_to_full_version(SoftFever_VERSION) << "\"/>\n";
         stream << "  </" << SLICE_HEADER_TAG << ">\n";
 
+        // For plate-changer "all plates" we have one merged gcode and one logical plate in model_settings,
+        // so emit a single <plate> in slice_info with aggregated stats (matches Chitu-style single-plate slice_info).
+        const bool single_plate_slice_info = m_use_plate_changer_all && plate_data_list.size() > 1;
+
         for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
         {
+            if (single_plate_slice_info && i > 0)
+                continue;
             PlateData* plate_data = plate_data_list[i];
             //int instance_size = plate_data->objects_and_instances.size();
 
             if (plate_data != nullptr && plate_data->is_sliced_valid) {
+                if (single_plate_slice_info) {
+                    // Emit one <plate> with aggregated prediction, weight, first_layer_time; merged objects/filaments/warnings.
+                    int   timelapse_type = int(config.opt_enum<TimelapseType>("timelapse_type"));
+                    long  sum_prediction = 0;
+                    double sum_weight = 0.;
+                    double sum_first_layer_time = 0.;
+                    std::vector<std::pair<int, int>> all_objects;
+                    std::map<int, Slic3r::FilamentInfo> filaments_by_id; // id -> merged info (sum used_g/used_m)
+                    std::vector<GCodeProcessorResult::SliceWarning> all_warnings;
+                    for (unsigned int k = 0; k < (unsigned int)plate_data_list.size(); ++k) {
+                        PlateData* pd = plate_data_list[k];
+                        if (pd == nullptr || !pd->is_sliced_valid) continue;
+                        try { sum_prediction += std::stol(pd->gcode_prediction); } catch (...) {}
+                        try { sum_weight += std::stod(pd->gcode_weight); } catch (...) {}
+                        try { sum_first_layer_time += std::stod(pd->first_layer_time); } catch (...) {}
+                        for (const auto& o : pd->objects_and_instances) all_objects.push_back(o);
+                        for (const auto& f : pd->slice_filaments_info) {
+                            auto& entry = filaments_by_id[f.id];
+                            entry.id = f.id;
+                            entry.type = f.type;
+                            entry.color = f.color;
+                            entry.filament_id = f.filament_id;
+                            entry.used_g += f.used_g;
+                            entry.used_m += f.used_m;
+                        }
+                        for (const auto& w : pd->warnings) {
+                            if (w.msg == NOT_GENERATE_TIMELAPSE) timelapse_type = -1;
+                            all_warnings.push_back(w);
+                        }
+                    }
+                    stream << "  <" << PLATE_TAG << ">\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PLATE_IDX_ATTR << "\" " << VALUE_ATTR << "=\"" << 1 << "\"/>\n";
+                    std::vector<int> extruder_types = config.option<ConfigOptionEnumsGeneric>("extruder_type")->values;
+                    std::vector<int> nozzle_volume_types = config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << EXTRUDER_TYPE_ATTR << "\" " << VALUE_ATTR << "=\"";
+                    add_vector(stream, extruder_types);
+                    stream << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << NOZZLE_VOLUME_TYPE_ATTR << "\" " << VALUE_ATTR << "=\"";
+                    add_vector(stream, nozzle_volume_types);
+                    stream << "\"/>\n";
+                    auto* nozzle_diameter_option = dynamic_cast<const ConfigOptionFloats*>(config.option("nozzle_diameter"));
+                    std::string nozzle_diameters_str;
+                    if (nozzle_diameter_option) nozzle_diameters_str = nozzle_diameter_option->serialize();
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PRINTER_MODEL_ID_ATTR << "\" " << VALUE_ATTR << "=\"" << plate_data->printer_model_id << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << NOZZLE_DIAMETERS_ATTR << "\" " << VALUE_ATTR << "=\"" << nozzle_diameters_str << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << TIMELAPSE_TYPE_ATTR << "\" " << VALUE_ATTR << "=\"" << timelapse_type << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SLICE_PREDICTION_ATTR << "\" " << VALUE_ATTR << "=\"" << sum_prediction << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SLICE_WEIGHT_ATTR << "\" " << VALUE_ATTR << "=\"" << sum_weight << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FIRST_LAYER_TIME_ATTR << "\" " << VALUE_ATTR << "=\"" << sum_first_layer_time << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << OUTSIDE_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << plate_data->toolpath_outside << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SUPPORT_USED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << plate_data->is_support_used << "\"/>\n";
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LABEL_OBJECT_ENABLED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha << plate_data->is_label_object_enabled << "\"/>\n";
+                    std::vector<int> filament_maps = plate_data->filament_maps;
+                    if (filament_maps.empty()) filament_maps = config.option<ConfigOptionInts>("filament_map")->values;
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
+                    add_vector<int>(stream, filament_maps);
+                    stream << "\"/>\n";
+                    if (plate_data->limit_filament_maps.size() > 0) {
+                        stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LIMIT_FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
+                        add_vector<int>(stream, plate_data->limit_filament_maps);
+                        stream << "\"/>\n";
+                    }
+                    for (const auto& o : all_objects) {
+                        int obj_id = o.first, inst_id = o.second;
+                        int identify_id = 0;
+                        if (obj_id >= (int)model.objects.size()) continue;
+                        ModelObject* obj = model.objects[obj_id];
+                        ModelInstance* inst = (obj && inst_id < (int)obj->instances.size()) ? obj->instances[inst_id] : nullptr;
+                        if (!obj || !inst) continue;
+                        if (m_use_loaded_id && (inst->loaded_id > 0)) identify_id = inst->loaded_id;
+                        else identify_id = inst->id().id;
+                        bool skipped = false;
+                        for (PlateData* pd : plate_data_list) {
+                            if (std::find(pd->skipped_objects.begin(), pd->skipped_objects.end(), (size_t)identify_id) != pd->skipped_objects.end()) {
+                                skipped = true;
+                                break;
+                            }
+                        }
+                        stream << "    <" << OBJECT_TAG << " " << IDENTIFYID_ATTR << "=\"" << identify_id << "\" " << NAME_ATTR << "=\"" << xml_escape(obj->name)
+                               << "\" " << SKIPPED_ATTR << "=\"" << (skipped ? "true" : "false") << "\" />\n";
+                    }
+                    for (const auto& it : filaments_by_id)
+                        stream << "    <" << FILAMENT_TAG << " " << FILAMENT_ID_TAG << "=\"" << (it.second.id + 1) << "\" "
+                               << FILAMENT_TRAY_INFO_ID_TAG << "=\"" << it.second.filament_id << "\" "
+                               << FILAMENT_TYPE_TAG << "=\"" << it.second.type << "\" "
+                               << FILAMENT_COLOR_TAG << "=\"" << it.second.color << "\" "
+                               << FILAMENT_USED_M_TAG << "=\"" << it.second.used_m << "\" "
+                               << FILAMENT_USED_G_TAG << "=\"" << it.second.used_g << "\" />\n";
+                    for (const auto& w : all_warnings)
+                        stream << "    <" << SLICE_WARNING_TAG << " msg=\"" << w.msg << "\" level=\"" << w.level << "\" error_code =\"" << w.error_code << "\"  />\n";
+                    // Use first plate's layer_filaments for merged job (layer indices in merged gcode differ; firmware may use for display only).
+                    if (!plate_data->layer_filaments.empty()) {
+                        stream << "    <" << LAYER_FILAMENT_LISTS_TAG << ">\n";
+                        for (auto iter = plate_data->layer_filaments.begin(); iter != plate_data->layer_filaments.end(); ++iter) {
+                            std::stringstream key_stream;
+                            add_vector(key_stream, iter->first);
+                            std::vector<std::pair<int, int>> ranges = iter->second;
+                            std::stringstream value_stream;
+                            for (size_t r = 0; r < ranges.size(); ++r) {
+                                value_stream << ranges[r].first << " " << ranges[r].second;
+                                if (r != ranges.size() - 1) value_stream << ",";
+                            }
+                            stream << "      <" << LAYER_FILAMENT_LIST_TAG << " filament_list=\"" << key_stream.str() << "\" layer_ranges=\"" << value_stream.str() << "\" />\n";
+                        }
+                        stream << "    </" << LAYER_FILAMENT_LISTS_TAG << ">\n";
+                    }
+                    stream << "  </" << PLATE_TAG << ">\n";
+                    continue;
+                }
                 stream << "  <" << PLATE_TAG << ">\n";
                 //plate index
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << PLATE_IDX_ATTR        << "\" " << VALUE_ATTR << "=\"" << plate_data->plate_index + 1 << "\"/>\n";
@@ -8083,7 +8253,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     }
 bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, const Model& model, PlateDataPtrs& plate_data_list, const DynamicPrintConfig* config, Export3mfProgressFn proFn)
 {
-    bool result = true;
+    bool result   = true;
     bool cb_cancel = false;
 
     PlateDataPtrs plate_data_list2;
@@ -8101,9 +8271,9 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
         }
     }
 
-    // When printing/exporting all plates with a plate swap device, add a single merged gcode file
-    // (plate1 + plate_change_gcode + plate2 + plate_change_gcode + ...) so the printer can run one file.
-    // Only do this when use_plate_changer_all is set (e.g. user chose "Print all (plate changer)").
+    // When printing/exporting all plates with a plate swap device, write a single combined gcode file
+    // that sequences all plates with the configured plate-change g-code between them. The printer then
+    // sees this as a single-plate job.
     if (m_use_plate_changer_all && plate_data_list2.size() > 1 && config && config->has("plate_change_gcode")) {
         std::string plate_change = config->opt_string("plate_change_gcode");
         if (!plate_change.empty()) {
@@ -8123,56 +8293,105 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
                         merged_gcode += '\n';
                 }
             }
-            if (!merged_gcode.empty() && !mz_zip_writer_add_mem(&archive, "Metadata/merged_plates.gcode", merged_gcode.data(), merged_gcode.size(), MZ_DEFAULT_COMPRESSION)) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << " failed to add merged_plates.gcode to 3mf";
-                result = false;
-            } else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " added Metadata/merged_plates.gcode with plate change g-code between " << plate_data_list2.size() << " plates";
+
+            if (!merged_gcode.empty()) {
+                // Name the combined file like a normal first-plate gcode so the printer treats this as a single plate.
+                const std::string combined_gcode_path = (boost::format(GCODE_FILE_FORMAT) % 1).str(); // Metadata/plate_1.gcode
+
+                // Compute MD5 for the combined gcode and write Metadata/plate_1.gcode.md5.
+                unsigned char digest[16];
+                MD5_CTX       ctx;
+                MD5_Init(&ctx);
+                MD5_Update(&ctx, reinterpret_cast<const unsigned char*>(merged_gcode.data()), merged_gcode.size());
+                MD5_Final(digest, &ctx);
+
+                char md5_str[33];
+                for (int j = 0; j < 16; j++)
+                    sprintf(&md5_str[j * 2], "%02X", (unsigned int)digest[j]);
+
+                std::string md5_value(md5_str);
+                const std::string md5_target = "Metadata/plate_1.gcode.md5";
+                if (!mz_zip_writer_add_mem(&archive, md5_target.c_str(), md5_value.c_str(), md5_value.length(), MZ_DEFAULT_COMPRESSION)) {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
+                                             << ", failed to add combined gcode md5 to 3mf";
+                    return false;
+                }
+
+                // Write the combined gcode as Metadata/plate_1.gcode.
+                if (!mz_zip_writer_add_mem(&archive, combined_gcode_path.c_str(), merged_gcode.data(), merged_gcode.size(), MZ_DEFAULT_COMPRESSION)) {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
+                                             << " failed to add combined gcode to 3mf";
+                    return false;
+                }
+
+                // Ensure model_settings.config refers only to this combined file.
+                for (size_t i = 0; i < plate_data_list.size(); ++i) {
+                    PlateData* plate_data = plate_data_list[i];
+                    if (plate_data == nullptr)
+                        continue;
+                    if (i == 0) {
+                        plate_data->gcode_file = combined_gcode_path;
+                    } else {
+                        plate_data->gcode_file.clear();
+                    }
+                }
+
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
+                                        << " added combined gcode " << combined_gcode_path
+                                        << " with plate change g-code between " << plate_data_list2.size() << " plates";
+
+                // We handled all gcode files in this combined export path.
+                return true;
             }
         }
     }
 
+    // Default path: add one gcode file per plate.
     boost::mutex mutex;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, plate_data_list2.size(), 1), [this, &plate_data_list2, &root_archive = archive, &mutex, &result](const tbb::blocked_range<size_t>& range) {
-        for (int i = range.begin(); i < range.end(); ++i) {
-            PlateData* plate_data = plate_data_list2[i];
-            auto src_gcode_file = plate_data->gcode_file;
-            std::string gcode_in_3mf = (boost::format(GCODE_FILE_FORMAT) % (plate_data->plate_index + 1)).str();
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, plate_data_list2.size(), 1),
+        [this, &plate_data_list2, &root_archive = archive, &mutex, &result](const tbb::blocked_range<size_t>& range) {
+            for (int i = range.begin(); i < range.end(); ++i) {
+                PlateData* plate_data = plate_data_list2[i];
+                auto src_gcode_file   = plate_data->gcode_file;
+                std::string gcode_in_3mf = (boost::format(GCODE_FILE_FORMAT) % (plate_data->plate_index + 1)).str();
 
-            plate_data->gcode_file = gcode_in_3mf;
-            mz_zip_archive archive;
-            mz_zip_writer_staged_context context;
-            mz_zip_zero_struct(&archive);
-            mz_zip_writer_init_heap(&archive, 0, 1024 * 1024);
-            {
-                mz_zip_writer_add_staged_open(&archive, &context, gcode_in_3mf.c_str(), m_zip64 ? (uint64_t(1) << 30) * 16 : (uint64_t(1) << 32) - 1, nullptr, nullptr, 0,
-                    MZ_DEFAULT_COMPRESSION, nullptr, 0, nullptr, 0);
-                boost::filesystem::path src_gcode_path(src_gcode_file);
-                if (!boost::filesystem::exists(src_gcode_path)) {
-                    BOOST_LOG_TRIVIAL(error) << "Gcode is missing, filename = " << src_gcode_file;
-                    result = false;
+                plate_data->gcode_file = gcode_in_3mf;
+                mz_zip_archive archive;
+                mz_zip_writer_staged_context context;
+                mz_zip_zero_struct(&archive);
+                mz_zip_writer_init_heap(&archive, 0, 1024 * 1024);
+                {
+                    mz_zip_writer_add_staged_open(&archive, &context, gcode_in_3mf.c_str(),
+                        m_zip64 ? (uint64_t(1) << 30) * 16 : (uint64_t(1) << 32) - 1,
+                        nullptr, nullptr, 0, MZ_DEFAULT_COMPRESSION, nullptr, 0, nullptr, 0);
+                    boost::filesystem::path src_gcode_path(src_gcode_file);
+                    if (!boost::filesystem::exists(src_gcode_path)) {
+                        BOOST_LOG_TRIVIAL(error) << "Gcode is missing, filename = " << src_gcode_file;
+                        result = false;
+                    }
+                    boost::filesystem::ifstream ifs(src_gcode_file, std::ios::binary);
+                    std::string buf(64 * 1024, 0);
+                    while (ifs) {
+                        ifs.read(buf.data(), buf.size());
+                        mz_zip_writer_add_staged_data(&context, buf.data(), ifs.gcount());
+                    }
+                    mz_zip_writer_add_staged_finish(&context);
                 }
-                boost::filesystem::ifstream ifs(src_gcode_file, std::ios::binary);
-                std::string buf(64 * 1024, 0);
-                while (ifs) {
-                    ifs.read(buf.data(), buf.size());
-                    mz_zip_writer_add_staged_data(&context, buf.data(), ifs.gcount());
+                void*  ppBuf;
+                size_t pSize;
+                mz_zip_writer_finalize_heap_archive(&archive, &ppBuf, &pSize);
+                mz_zip_writer_end(&archive);
+                mz_zip_zero_struct(&archive);
+                mz_zip_reader_init_mem(&archive, ppBuf, pSize, 0);
+                {
+                    boost::unique_lock l(mutex);
+                    mz_zip_writer_add_from_zip_reader(&root_archive, &archive, 0);
                 }
-                mz_zip_writer_add_staged_finish(&context);
+                mz_zip_reader_end(&archive);
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
+                                        << boost::format(", store  %1% to 3mf %2%\n") % src_gcode_file % gcode_in_3mf;
             }
-            void *ppBuf; size_t pSize;
-            mz_zip_writer_finalize_heap_archive(&archive, &ppBuf, &pSize);
-            mz_zip_writer_end(&archive);
-            mz_zip_zero_struct(&archive);
-            mz_zip_reader_init_mem(&archive, ppBuf, pSize, 0);
-            {
-                boost::unique_lock l(mutex);
-                mz_zip_writer_add_from_zip_reader(&root_archive, &archive, 0);
-            }
-            mz_zip_reader_end(&archive);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", store  %1% to 3mf %2%\n") % src_gcode_file % gcode_in_3mf;
-        }
-    });
+        });
     return result;
 }
 

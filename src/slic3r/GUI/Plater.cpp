@@ -14797,9 +14797,24 @@ void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
     fs::path output_path;
     {
         std::string ext = default_output_file.extension().string();
+        // For plate changer "all plates" exports, include the plate count in the
+        // suggested filename (e.g. "model_3_plates_.gcode.3mf") so the user has a
+        // visual hint that this job depends on multiple plates.
+        fs::path suggested_name = default_output_file.filename();
+        if (use_plate_changer_all && export_all) {
+            const int plate_count = get_partplate_list().get_plate_count();
+            if (plate_count > 1) {
+                // default_output_file already has ".gcode.3mf"; first stem() strips
+                // ".3mf", second stem() strips ".gcode", giving us the pure base.
+                const fs::path stem1 = suggested_name.stem();
+                const std::string base = stem1.stem().string();
+                suggested_name = fs::path(base + "_" + std::to_string(plate_count) + "_plates.gcode.3mf");
+            }
+        }
+
         wxFileDialog dlg(this, _L("Save Sliced file as:"),
             start_dir,
-            from_path(default_output_file.filename()),
+            from_path(suggested_name),
             GUI::file_wildcards(FT_GCODE_3MF, ""),
             wxFD_SAVE | wxFD_OVERWRITE_PROMPT
         );
