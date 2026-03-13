@@ -315,7 +315,7 @@ public:
     void simplify_by_fitting_arc(double tolerance);
 
     // Reverse the polyline
-    using MultiPoint3::reverse;
+    void reverse();
 
     // Split polyline at given index
     bool split_at_index(const size_t index, Polyline3 *p1, Polyline3 *p2) const;
@@ -344,15 +344,10 @@ public:
     std::vector<PathFittingData> fitting_result;
 
 private:
-    // Helper methods for split_at_index
-    bool split_fitting_result_before_index(size_t index, Point3 &new_endpoint, std::vector<PathFittingData> &result) const {
-        // Simplified stub - full implementation would handle arc fitting data
-        return false;
-    }
-    bool split_fitting_result_after_index(size_t index, Point3 &new_startpoint, std::vector<PathFittingData> &result) const {
-        // Simplified stub - full implementation would handle arc fitting data
-        return false;
-    }
+    void append_fitting_result_after_append_points();
+    void append_fitting_result_after_append_polyline(const Polyline3& src);
+    bool split_fitting_result_before_index(size_t index, Point3& new_endpoint, std::vector<PathFittingData>& result) const;
+    bool split_fitting_result_after_index(size_t index, Point3& new_startpoint, std::vector<PathFittingData>& result) const;
 };
 
 typedef std::vector<Polyline3> Polylines3;

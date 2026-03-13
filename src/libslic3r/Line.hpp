@@ -236,6 +236,11 @@ public:
     // Convert to 2D line by dropping Z coordinate
     Line to_line() const { return Line(this->a.to_point(), this->b.to_point()); }
 
+    static inline double distance_to_squared(const Point3& point, const Point3& a, const Point3& b)
+    {
+        return line_alg::distance_to_squared(Line3{a, b}, Vec<3, coord_t>{point});
+    }
+
     Point3 a;
     Point3 b;
 

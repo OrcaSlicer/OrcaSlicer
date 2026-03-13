@@ -1,4 +1,5 @@
 #include "Point.hpp"
+#include "Exception.hpp"
 #include "Line.hpp"
 #include "MultiPoint.hpp"
 #include "Polyline.hpp"
@@ -266,9 +267,19 @@ Points to_points(const Points3 &points3) {
     Points points2;
     points2.reserve(points3.size());
     for (const Point3 &pt : points3) {
-        points2.push_back(pt.to_point());
+        points2.emplace_back(pt.to_point());
     }
     return points2;
+}
+
+Points3 to_points3(const Points& points)
+{
+    Points3 points3;
+    points3.reserve(points.size());
+    for (const Point& pt : points) {
+        points3.emplace_back(pt);
+    }
+    return points3;
 }
 
 // Point3 method implementations
@@ -311,6 +322,7 @@ double Point3::ccw_angle(const Point3 &p1, const Point3 &p2) const {
 Point3 Point3::projection_onto(const MultiPoint3 &poly) const {
     // TODO: Implement proper 3D projection when MultiPoint3 conversion methods are ready
     // For now, stub implementation
+    throw RuntimeError("Point3::projection_onto(MultiPoint3) not implemented yet");
     return *this;
 }
 

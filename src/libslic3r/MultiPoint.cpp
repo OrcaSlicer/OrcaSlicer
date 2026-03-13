@@ -422,32 +422,23 @@ Points MultiPoint::concave_hull_2d(const Points& pts, const double tolerence)
     return min_distance;
 }
 
-
-void MultiPoint3::translate(double x, double y)
+void MultiPoint3::translate(const Point3& v)
 {
-    for (Vec3crd &p : points) {
-        p(0) += coord_t(x);
-        p(1) += coord_t(y);
-    }
-}
-
-void MultiPoint3::translate(const Point& vector)
-{
-    this->translate(vector(0), vector(1));
+    for (Point3& pt : points)
+        pt += v;
 }
 
 double MultiPoint3::length() const
 {
-    double len = 0.0;
-    for (const Line3& line : this->lines())
-        len += line.length();
+    const Lines3& lines = this->lines();
+    double        len   = 0;
+    for (auto it = lines.cbegin(); it != lines.cend(); ++it) {
+        len += it->length();
+    }
     return len;
 }
 
-BoundingBox3 MultiPoint3::bounding_box() const
-{
-    return BoundingBox3(points);
-}
+BoundingBox3 MultiPoint3::bounding_box() const { return BoundingBox3(this->points); }
 
 bool MultiPoint3::remove_duplicate_points()
 {
@@ -472,48 +463,72 @@ bool MultiPoint3::remove_duplicate_points()
 }
 
 // Douglas-Peucker simplification for 3D points
-Points3 MultiPoint3::_douglas_peucker(const Points3 &points, double tolerance)
+Points3 MultiPoint3::_douglas_peucker(const Points3& pts, double tolerance)
 {
-    if (points.size() <= 2) return points;
-
-    // Find the point with maximum distance from line segment
-    double max_dist = 0;
-    size_t max_idx = 0;
-    const Point3 &first = points.front();
-    const Point3 &last = points.back();
-    Line3 line(first, last);
-
-    for (size_t i = 1; i < points.size() - 1; ++i) {
-        // Calculate perpendicular distance to line segment
-        Point3 proj = points[i].projection_onto(line);
-        double dist = points[i].distance_to(proj);
-        if (dist > max_dist) {
-            max_dist = dist;
-            max_idx = i;
+    Points3 result_pts;
+    double  tolerance_sq = tolerance * tolerance;
+    if (!pts.empty()) {
+        const Point3* anchor      = &pts.front();
+        size_t        anchor_idx  = 0;
+        const Point3* floater     = &pts.back();
+        size_t        floater_idx = pts.size() - 1;
+        result_pts.reserve(pts.size());
+        result_pts.emplace_back(*anchor);
+        if (anchor_idx != floater_idx) {
+            assert(pts.size() > 1);
+            std::vector<size_t> dpStack;
+            dpStack.reserve(pts.size());
+            dpStack.emplace_back(floater_idx);
+            for (;;) {
+                double max_dist_sq  = 0.0;
+                size_t furthest_idx = anchor_idx;
+                // find point furthest from line seg created by (anchor, floater) and note it
+                for (size_t i = anchor_idx + 1; i < floater_idx; ++i) {
+                    double dist_sq = Line3::distance_to_squared(pts[i], *anchor, *floater);
+                    if (dist_sq > max_dist_sq) {
+                        max_dist_sq  = dist_sq;
+                        furthest_idx = i;
+                    }
+                }
+                // remove point if less than tolerance
+                if (max_dist_sq <= tolerance_sq) {
+                    result_pts.emplace_back(*floater);
+                    anchor_idx = floater_idx;
+                    anchor     = floater;
+                    assert(dpStack.back() == floater_idx);
+                    dpStack.pop_back();
+                    if (dpStack.empty())
+                        break;
+                    floater_idx = dpStack.back();
+                } else {
+                    floater_idx = furthest_idx;
+                    dpStack.emplace_back(floater_idx);
+                }
+                floater = &pts[floater_idx];
+            }
         }
+        assert(result_pts.front() == pts.front());
+        assert(result_pts.back() == pts.back());
+
+#if 0
+        {
+            static int iRun = 0;
+			BoundingBox bbox(pts);
+			BoundingBox bbox2(result_pts);
+			bbox.merge(bbox2);
+            SVG svg(debug_out_path("douglas_peucker_%d.svg", iRun ++).c_str(), bbox);
+            if (pts.front() == pts.back())
+                svg.draw(Polygon(pts), "black");
+            else
+                svg.draw(Polyline(pts), "black");
+            if (result_pts.front() == result_pts.back())
+                svg.draw(Polygon(result_pts), "green", scale_(0.1));
+            else
+                svg.draw(Polyline(result_pts), "green", scale_(0.1));
+        }
+#endif
     }
-
-    // If max distance is greater than tolerance, recursively simplify
-    if (max_dist > tolerance) {
-        // Recursive call for first part
-        Points3 left_points(points.begin(), points.begin() + max_idx + 1);
-        Points3 left_result = _douglas_peucker(left_points, tolerance);
-
-        // Recursive call for second part
-        Points3 right_points(points.begin() + max_idx, points.end());
-        Points3 right_result = _douglas_peucker(right_points, tolerance);
-
-        // Concatenate results (avoiding duplicate middle point)
-        Points3 result = left_result;
-        result.insert(result.end(), right_result.begin() + 1, right_result.end());
-        return result;
-    } else {
-        // All points between first and last can be removed
-        Points3 result;
-        result.push_back(first);
-        result.push_back(last);
-        return result;
-    }
+    return result_pts;
 }
 
 BoundingBox get_extents(const MultiPoint &mp)

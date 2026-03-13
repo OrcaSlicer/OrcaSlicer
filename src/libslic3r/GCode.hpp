@@ -390,13 +390,20 @@ private:
     std::string     change_layer(coordf_t print_z);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string     extrude_entity(const ExtrusionEntity &entity, std::string description = "", double speed = -1., const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
+    std::string extrude_entity(const ExtrusionEntity&      entity,
+                               const std::string&          description       = "",
+                               double                      speed             = -1.,
+                               const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr());
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
-    std::string     extrude_loop(const ExtrusionLoop &loop, std::string description, double speed = -1., const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(), const Point* start_point = nullptr);
-    std::string     extrude_multi_path(const ExtrusionMultiPath &multipath, std::string description = "", double speed = -1.);
-    std::string     extrude_path(const ExtrusionPath &path, std::string description = "", double speed = -1.);
-    
+    std::string extrude_loop(const ExtrusionLoop&        loop,
+                             const std::string&          description,
+                             double                      speed             = -1.,
+                             const ExtrusionEntitiesPtr& region_perimeters = ExtrusionEntitiesPtr(),
+                             const Point*                start_point       = nullptr);
+    std::string extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description = "", double speed = -1.);
+    std::string extrude_path(const ExtrusionPath& path, const std::string& description = "", double speed = -1.);
+
     // Orca: Adaptive PA variables
     // Used for adaptive PA when extruding paths with multiple, varying flow segments.
     // This contains the sum of the mm3_per_mm values weighted by the length of each path segment.

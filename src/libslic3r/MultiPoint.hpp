@@ -121,9 +121,13 @@ public:
 
     void append(const Point3& point) { this->points.push_back(point); }
     void append(const Vec3crd& point) { this->points.push_back(Point3(point)); }
+    void append(const Points3::const_iterator& begin, const Points3::const_iterator& end)
+    {
+        this->points.insert(this->points.end(), begin, end);
+    }
 
-    void translate(double x, double y);
-    void translate(const Point& vector);
+    void translate(double x, double y, double z = 0) { this->translate(Point3(coord_t(x), coord_t(y), coord_t(z))); }
+    void translate(const Point3& vector);
     void reverse() { std::reverse(this->points.begin(), this->points.end()); }
     void rotate(double angle) { this->rotate(cos(angle), sin(angle)); }
     void rotate(double cos_angle, double sin_angle);

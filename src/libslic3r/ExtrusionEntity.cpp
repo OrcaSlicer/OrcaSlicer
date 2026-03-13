@@ -287,7 +287,7 @@ void ExtrusionLoop::split_at(const Point &point, bool prefer_non_overhang, const
     ExtrusionPath p1(path.role(), path.mm3_per_mm, path.width, path.height);
     ExtrusionPath p2(path.role(), path.mm3_per_mm, path.width, path.height);
     path.polyline.split_at(p, &p1.polyline, &p2.polyline);
-    
+
     if (this->paths.size() == 1) {
         if (!p1.polyline.is_valid()) {
             std::swap(this->paths.front().polyline.points, p2.polyline.points);

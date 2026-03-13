@@ -464,10 +464,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     };
                     std::unordered_map<Point, PointInfo, PointHash> point_occurrence;
                     for (const ExtrusionPath& path : paths) {
-                        const Point3 &first_p3 = path.polyline.first_point();
-                        const Point3 &last_p3 = path.polyline.last_point();
-                        Point first_p = Point(first_p3.x(), first_p3.y());
-                        Point last_p = Point(last_p3.x(), last_p3.y());
+                        Point first_p = path.polyline.first_point().to_point();
+                        Point last_p  = path.polyline.last_point().to_point();
                         ++point_occurrence[first_p].occurrence;
                         ++point_occurrence[last_p].occurrence;
                         if (path.role() == erOverhangPerimeter) {
@@ -660,13 +658,17 @@ bool paths_touch(const ExtrusionPath &path_one, const ExtrusionPath &path_two, d
 {
     AABBTreeLines::LinesDistancer<Line> lines_two{path_two.as_polyline().lines()};
     for (size_t pt_idx = 0; pt_idx < path_one.polyline.size(); pt_idx++) {
-        const Point3 &p3 = path_one.polyline.points[pt_idx];
-        if (lines_two.distance_from_lines<false>(Point(p3.x(), p3.y())) < limit_distance) { return true; }
+        Point pt = path_one.polyline.points[pt_idx].to_point();
+        if (lines_two.distance_from_lines<false>(pt) < limit_distance) {
+            return true;
+        }
     }
     AABBTreeLines::LinesDistancer<Line> lines_one{path_one.as_polyline().lines()};
     for (size_t pt_idx = 0; pt_idx < path_two.polyline.size(); pt_idx++) {
-        const Point3 &p3 = path_two.polyline.points[pt_idx];
-        if (lines_one.distance_from_lines<false>(Point(p3.x(), p3.y())) < limit_distance) { return true; }
+        Point pt = path_two.polyline.points[pt_idx].to_point();
+        if (lines_one.distance_from_lines<false>(pt) < limit_distance) {
+            return true;
+        }
     }
     return false;
 }
@@ -1032,8 +1034,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
                     size_t min_dist_idx = 0;
                     double min_dist = std::numeric_limits<double>::max();
                     for (size_t i = 0; i < overhang_region.front().polyline.size(); i++) {
-                        const Point3 &p3 = overhang_region.front().polyline.points[i];
-                        Point p = Point(p3.x(), p3.y());
+                        Point p = overhang_region.front().polyline.points[i].to_point();
                         if (double d = lower_layer_aabb_tree.distance_from_lines<true>(p) < min_dist) {
                             min_dist = d;
                             min_dist_idx = i;

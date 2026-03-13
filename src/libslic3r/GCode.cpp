@@ -5541,7 +5541,11 @@ static std::unique_ptr<EdgeGrid::Grid> calculate_layer_edge_grid(const Layer& la
     return out;
 }
 
-std::string GCode::extrude_loop(const ExtrusionLoop &loop_ref, std::string description, double speed, const ExtrusionEntitiesPtr& region_perimeters, const Point* start_point)
+std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
+                                const std::string&          description,
+                                double                      speed,
+                                const ExtrusionEntitiesPtr& region_perimeters,
+                                const Point*                start_point)
 {
     // get a copy; don't modify the orientation of the original loop object otherwise
     // next copies (if any) would not detect the correct orientation
@@ -5707,7 +5711,7 @@ std::string GCode::extrude_loop(const ExtrusionLoop &loop_ref, std::string descr
     if (!enable_seam_slope) {
         for (ExtrusionPaths::iterator path = paths.begin(); path != paths.end(); ++path) {
             gcode += this->_extrude(*path, description, speed_for_path(*path));
-            // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
+            // Orca: Adaptive PA - dont adapt PA after the first multipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
             // TODO: testing is needed with slope seams and adaptive PA.
@@ -5819,7 +5823,7 @@ std::string GCode::extrude_loop(const ExtrusionLoop &loop_ref, std::string descr
     return gcode;
 }
 
-std::string GCode::extrude_multi_path(const ExtrusionMultiPath &multipath, std::string description, double speed)
+std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, const std::string& description, double speed)
 {
     // extrude along the path
     std::string gcode;
@@ -5868,7 +5872,10 @@ std::string GCode::extrude_multi_path(const ExtrusionMultiPath &multipath, std::
     return gcode;
 }
 
-std::string GCode::extrude_entity(const ExtrusionEntity &entity, std::string description, double speed, const ExtrusionEntitiesPtr& region_perimeters)
+std::string GCode::extrude_entity(const ExtrusionEntity&      entity,
+                                  const std::string&          description,
+                                  double                      speed,
+                                  const ExtrusionEntitiesPtr& region_perimeters)
 {
     if (const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(&entity))
         return this->extrude_path(*path, description, speed);
@@ -5881,7 +5888,7 @@ std::string GCode::extrude_entity(const ExtrusionEntity &entity, std::string des
     return "";
 }
 
-std::string GCode::extrude_path(const ExtrusionPath &path, std::string description, double speed)
+std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& description, double speed)
 {
     // Orca: Reset average multipath flow as this is a single line, single extrude volumetric speed path
     m_multi_flow_segment_path_pa_set = false;
@@ -6155,12 +6162,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 throw RuntimeError("GCode: very low z");
             }
         }
-        gcode += this->travel_to(
-            path.first_point(),
-            path.role(),
-            "move to first " + description + " point; size " + std::to_string(path.polyline.size()),
-            z
-        );
+        gcode += this->travel_to(path.first_point(), path.role(), "move to first " + description + " point", z);
         m_need_change_layer_lift_z = false;
         // Orca: ensure Z matches planned layer height
         if (_last_pos_undefined && !slope_need_z_travel) {

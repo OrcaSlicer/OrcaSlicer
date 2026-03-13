@@ -62,7 +62,7 @@ using PointsAllocator = tbb::scalable_allocator<BaseType>;
 using Points         = std::vector<Point, PointsAllocator<Point>>;
 using PointPtrs      = std::vector<Point*>;
 using PointConstPtrs = std::vector<const Point*>;
-using Points3        = std::vector<Point3>;
+using Points3         = std::vector<Point3, PointsAllocator<Point3>>;
 using Pointfs        = std::vector<Vec2d>;
 using Vec2ds         = std::vector<Vec2d>;
 using Pointf3s       = std::vector<Vec3d>;
@@ -88,6 +88,7 @@ using Transform3d    = Eigen::Transform<double, 3, Eigen::Affine, Eigen::DontAli
 Polyline to_polyline(const Points &points);
 Polyline3 to_polyline(const Points3 &points);
 Points to_points(const Points3 &points);
+Points3   to_points3(const Points& points);
 
 // using ColorRGBA      = std::array<float, 4>;
 // I don't know why Eigen::Transform::Identity() return a const object...
@@ -420,6 +421,12 @@ inline Point lerp(const Point &a, const Point &b, double t)
 {
     assert((t >= -EPSILON) && (t <= 1. + EPSILON));
     return ((1. - t) * a.cast<double>() + t * b.cast<double>()).cast<coord_t>();
+}
+
+inline Point3 lerp(const Point3& a, const Point3& b, double t)
+{
+    assert((t >= -EPSILON) && (t <= 1. + EPSILON));
+    return Point3(((1. - t) * a.cast<double>() + t * b.cast<double>()).cast<coord_t>());
 }
 
 // if IncludeBoundary, then a bounding box is defined even for a single point.
