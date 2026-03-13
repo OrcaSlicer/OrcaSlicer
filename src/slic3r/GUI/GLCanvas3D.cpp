@@ -4277,15 +4277,16 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_canvas->SetFocus();
 
     if (evt.Entering()) {
-//#if defined(__WXMSW__) || defined(__linux__)
-//        // On Windows and Linux needs focus in order to catch key events
-        // Set focus in order to remove it from sidebar fields
+        // Set focus in order to remove it from sidebar fields and ensure hotkeys work
         if (m_canvas != nullptr) {
-            // Only set focus, if the top level window of this canvas is active.
+            // Only set focus if the top level window of this canvas is active.
             auto p = dynamic_cast<wxWindow*>(evt.GetEventObject());
             while (p->GetParent())
                 p = p->GetParent();
             auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
+            //Orca: Set focus so hotkeys like 'tab' work when a notification is shown.
+            if (top_level_wnd != nullptr && top_level_wnd->IsActive())
+                m_canvas->SetFocus();
             m_mouse.position = pos.cast<double>();
             m_tooltip_enabled = false;
             // 1) forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
@@ -4297,7 +4298,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_tooltip_enabled = true;
         }
         m_mouse.set_start_position_2D_as_invalid();
-//#endif
     }
     else if (evt.Leaving()) {
         // to remove hover on objects when the mouse goes out of this canvas

@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "Elegoo PLA-CF @ECC2",
-    "inherits": "Elegoo PLA-CF @base",
+    "inherits": "Elegoo PLA @base",
     "from": "system",
     "setting_id": "EPLACFECC2",
     "instantiation": "true",

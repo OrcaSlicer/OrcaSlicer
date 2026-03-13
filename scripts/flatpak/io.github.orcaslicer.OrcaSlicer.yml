@@ -1,10 +1,19 @@
 app-id: io.github.orcaslicer.OrcaSlicer
 runtime: org.gnome.Platform
-runtime-version: "48"
+runtime-version: "49"
 sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm21
 command: entrypoint
 separate-locales: true
 rename-icon: OrcaSlicer
+build-options:
+  append-path: /usr/lib/sdk/llvm21/bin
+  prepend-ld-library-path: /usr/lib/sdk/llvm21/lib
+  env:
+    CC: clang
+    CXX: clang++
+    LDFLAGS: "-fuse-ld=lld"
 finish-args:
   - --share=ipc
   - --socket=x11
@@ -38,6 +47,8 @@ modules:
         sha256: e305b9f07f52743ca481da0a4e0c76c35efd60adaf1b0694eb3bb021e2137e39
 
   - name: glu
+    build-options:
+      cxxflags: -Wno-register
     config-opts:
       - --disable-static
     sources:
@@ -70,6 +81,9 @@ modules:
   # Config-opts mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON, DEP_WX_GTK3=ON
   - name: wxWidgets
     buildsystem: cmake-ninja
+    build-options:
+      env:
+        CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DwxBUILD_PRECOMP=ON
@@ -99,6 +113,9 @@ modules:
       - -DwxUSE_LIBJPEG=sys
       - -DwxUSE_LIBTIFF=OFF
       - -DwxUSE_EXPAT=sys
+      - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
+      - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
+      - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
     sources:
       - type: git
         url: https://github.com/SoftFever/Orca-deps-wxWidgets
@@ -118,7 +135,10 @@ modules:
           -DDEP_DOWNLOAD_DIR=/run/build/orca_deps/external-packages \
           -DCMAKE_PREFIX_PATH=/app \
           -DDESTDIR=/app \
-          -DCMAKE_INSTALL_PREFIX=/app
+          -DCMAKE_INSTALL_PREFIX=/app \
+          -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld"
       - cmake --build $BUILD_DIR --parallel
       - rm -rf /run/build/orca_deps/external-packages
 
@@ -290,7 +310,10 @@ modules:
           -DFLATPAK=ON \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH=/app \
-          -DCMAKE_INSTALL_PREFIX=/app
+          -DCMAKE_INSTALL_PREFIX=/app \
+          -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld"
       - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS

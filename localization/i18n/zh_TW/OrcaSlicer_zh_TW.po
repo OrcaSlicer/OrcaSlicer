@@ -18667,8 +18667,8 @@ msgstr "結尾："
 msgid "Cornering settings"
 msgstr "轉彎設定"
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
-msgstr "注意：值越低 = 拐角越尖銳，但速度越慢。\n"
+msgid "Note: Lower values = sharper corners but slower speeds."
+msgstr "注意：值越低 = 拐角越尖銳，但速度越慢。"
 
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
