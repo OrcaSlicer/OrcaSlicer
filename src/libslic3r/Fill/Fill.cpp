@@ -882,6 +882,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         if (surface.is_top()) {
                             params.pattern = region_config.top_surface_pattern.value;
                             params.density = float(region_config.top_surface_density);
+                            if (params.density <= 0.0f) continue;
                         } else { // Surface is bottom
                             params.pattern = region_config.bottom_surface_pattern.value;
                             params.density = float(region_config.bottom_surface_density);
