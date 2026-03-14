@@ -379,6 +379,10 @@ protected:
     wxStaticText*                       m_rename_text{nullptr};
     Label*                              m_stext_time{ nullptr };
     Label*                              m_stext_weight{ nullptr };
+    wxSimplebook*                       m_stats_switch{ nullptr };
+    wxPanel*                            m_stats_single_line_panel{ nullptr };
+    Label*                              m_stext_plate_count{ nullptr };
+    wxFlexGridSizer*                    m_plate_table_grid_sizer{ nullptr };
     PrinterMsgPanel *                   m_statictext_ams_msg{nullptr};
     Label*                              m_txt_change_filament_times{ nullptr };
     CheckBox*                           m_check_ext_change_assist{ nullptr };

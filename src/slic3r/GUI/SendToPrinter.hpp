@@ -108,6 +108,11 @@ private:
     wxStaticText*                       m_rename_text{ nullptr };
     wxStaticText*                       m_stext_time{ nullptr };
     wxStaticText*                       m_stext_weight{ nullptr };
+    wxSimplebook*                       m_stats_switch{ nullptr };
+    wxPanel*                            m_stats_single_line_panel{ nullptr };
+    wxStaticText*                       m_stext_project_name_in_table{ nullptr };
+    wxStaticText*                       m_stext_plate_count{ nullptr };
+    wxFlexGridSizer*                    m_plate_table_grid_sizer{ nullptr };
     Label*                              m_st_txt_error_code{ nullptr };
     Label*                              m_st_txt_error_desc{ nullptr };
     Label*                              m_st_txt_extra_info{ nullptr };

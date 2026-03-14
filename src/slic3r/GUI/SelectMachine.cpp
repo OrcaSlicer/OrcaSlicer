@@ -259,24 +259,43 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     });
 
 
-    /*weight & time*/
-    wxBoxSizer *m_sizer_basic_weight_time = new wxBoxSizer(wxHORIZONTAL);
+    /*weight & time — switch between single-line and plate table */
+    m_stats_switch = new wxSimplebook(m_basic_panel, wxID_ANY);
+
+    m_stats_single_line_panel = new wxPanel(m_stats_switch, wxID_ANY);
+    wxBoxSizer *sizer_basic_weight_time = new wxBoxSizer(wxHORIZONTAL);
 
     print_time   = new ScalableBitmap(m_scroll_area, "print-time", 18);
-    timeimg = new wxStaticBitmap(m_basic_panel, wxID_ANY, print_time->bmp(), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
-    m_stext_time = new Label(m_basic_panel, wxEmptyString);
+    timeimg = new wxStaticBitmap(m_stats_single_line_panel, wxID_ANY, print_time->bmp(), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
+    m_stext_time = new Label(m_stats_single_line_panel, wxEmptyString);
     m_stext_time->SetFont(Label::Body_13);
 
     print_weight   = new ScalableBitmap(m_scroll_area, "print-weight", 18);
-    weightimg = new wxStaticBitmap(m_basic_panel, wxID_ANY, print_weight->bmp(), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
-    m_stext_weight = new Label(m_basic_panel, wxEmptyString);
+    weightimg = new wxStaticBitmap(m_stats_single_line_panel, wxID_ANY, print_weight->bmp(), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
+    m_stext_weight = new Label(m_stats_single_line_panel, wxEmptyString);
     m_stext_weight->SetFont(Label::Body_13);
 
-    m_sizer_basic_weight_time->Add(timeimg, 0, wxALIGN_CENTER, 0);
-    m_sizer_basic_weight_time->Add(m_stext_time, 0, wxALIGN_CENTER|wxLEFT, FromDIP(6));
-    m_sizer_basic_weight_time->AddSpacer(FromDIP(30));
-    m_sizer_basic_weight_time->Add(weightimg, 0, wxALIGN_CENTER, 0);
-    m_sizer_basic_weight_time->Add(m_stext_weight, 0, wxALIGN_CENTER|wxLEFT, FromDIP(6));
+    sizer_basic_weight_time->Add(timeimg, 0, wxALIGN_CENTER, 0);
+    sizer_basic_weight_time->Add(m_stext_time, 0, wxALIGN_CENTER|wxLEFT, FromDIP(6));
+    sizer_basic_weight_time->AddSpacer(FromDIP(30));
+    sizer_basic_weight_time->Add(weightimg, 0, wxALIGN_CENTER, 0);
+    sizer_basic_weight_time->Add(m_stext_weight, 0, wxALIGN_CENTER|wxLEFT, FromDIP(6));
+    m_stats_single_line_panel->SetSizer(sizer_basic_weight_time);
+    m_stats_switch->AddPage(m_stats_single_line_panel, wxEmptyString);
+
+    wxPanel *table_panel = new wxPanel(m_stats_switch, wxID_ANY);
+    table_panel->SetBackgroundColour(GetBackgroundColour());
+    wxBoxSizer *table_vsizer = new wxBoxSizer(wxVERTICAL);
+    m_stext_plate_count = new Label(table_panel, wxEmptyString);
+    m_stext_plate_count->SetFont(Label::Body_13);
+    table_vsizer->Add(m_stext_plate_count, 0, wxBOTTOM, 0);
+    table_vsizer->Add(0, 0, 0, wxTOP, FromDIP(8));
+
+    m_plate_table_grid_sizer = new wxFlexGridSizer(0, 3, FromDIP(1), FromDIP(1));
+    table_vsizer->Add(m_plate_table_grid_sizer, 0);
+    table_panel->SetSizer(table_vsizer);
+    m_stats_switch->AddPage(table_panel, wxEmptyString);
+    m_stats_switch->SetSelection(0);
 
     /*last & next page*/
     auto last_plate_sizer = new wxBoxSizer(wxVERTICAL);
@@ -314,7 +333,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     sizer_basic_right_info->Add(sizer_rename, 0, wxTOP, 0);
     sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(5));
-    sizer_basic_right_info->Add(m_sizer_basic_weight_time, 0, wxTOP, 0);
+    sizer_basic_right_info->Add(m_stats_switch, 0, wxTOP, 0);
     sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(10));
     sizer_basic_right_info->Add(m_printer_box, 0, wxTOP, 0);
     sizer_basic_right_info->Add(0, 0, 0, wxTOP, FromDIP(4));
@@ -4556,68 +4575,115 @@ void SelectMachineDialog::update_time_and_weight_labels()
     auto &partplate_list = m_plater->get_partplate_list();
     const auto &aprint_stats = partplate_list.get_current_fff_print().print_statistics();
 
-    wxString time;
-    char     weight[64];
+    const bool use_inches = wxGetApp().app_config->get("use_inches") == "1";
 
+    // Only show plate count + table when using plate changer (all plates). Otherwise show single-line time/weight only.
     if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
-        // Plate changer all-plates: show current plate stats and overall totals.
-        double plate_time_s   = 0.0;
-        double plate_weight_g = 0.0;
+        m_stats_switch->SetSelection(1);
 
-        PartPlate *plate = partplate_list.get_curr_plate();
-        if (plate && plate->get_slice_result()) {
-            const auto &est = plate->get_slice_result()->print_statistics;
-            plate_time_s    = est.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time;
-            PrintBase *pbase = nullptr;
-            plate->get_print(&pbase, nullptr, nullptr);
-            if (Slic3r::Print *print = dynamic_cast<Slic3r::Print *>(pbase))
-                plate_weight_g = print->print_statistics().total_weight;
-        }
+        const int n_plates = partplate_list.get_plate_count();
+        m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d plates."), n_plates));
 
+        std::vector<double> plate_times(n_plates, 0.0);
+        std::vector<double> plate_weights(n_plates, 0.0);
         double total_time_s   = 0.0;
         double total_weight_g = 0.0;
-        for (int i = 0; i < partplate_list.get_plate_count(); ++i) {
+
+        for (int i = 0; i < n_plates; ++i) {
             PartPlate *p = partplate_list.get_plate(i);
             if (p && p->get_slice_result())
-                total_time_s += p->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time;
+                plate_times[i] = p->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time;
             PrintBase *pbase = nullptr;
             if (p) p->get_print(&pbase, nullptr, nullptr);
             if (Slic3r::Print *print = dynamic_cast<Slic3r::Print *>(pbase))
-                total_weight_g += print->print_statistics().total_weight;
+                plate_weights[i] = print->print_statistics().total_weight;
+            total_time_s += plate_times[i];
+            total_weight_g += plate_weights[i];
         }
 
-        time = wxString::Format("%s (all: %s)",
-                                short_time(get_time_dhms(plate_time_s)),
-                                short_time(get_time_dhms(total_time_s)));
+        m_plate_table_grid_sizer->Clear(true);
 
-        if (wxGetApp().app_config->get("use_inches") == "1") {
-            ::sprintf(weight,
-                      "%.2f oz (all: %.2f oz)",
-                      plate_weight_g * 0.035274,
-                      total_weight_g * 0.035274);
-        } else {
-            ::sprintf(weight,
-                      "%.2f g (all: %.2f g)",
-                      plate_weight_g,
-                      total_weight_g);
+        wxWindow *table_panel = m_stext_plate_count->GetParent();
+        const wxColour table_text_colour(0x98, 0x98, 0x98);
+        const wxColour table_header_colour(0xBC, 0xBC, 0xBC);
+        const wxColour table_bg = table_panel->GetBackgroundColour();
+        const wxColour table_gridline_colour(0x50, 0x50, 0x50);
+        wxFont header_font(Label::Body_13);
+        header_font.MakeSmaller();
+        header_font.MakeBold();
+
+        auto make_line_cell = [this, table_panel, table_gridline_colour]() {
+            wxPanel *cell = new wxPanel(table_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(1)), wxBORDER_NONE);
+            cell->SetBackgroundColour(table_gridline_colour);
+            cell->SetMinSize(wxSize(-1, FromDIP(1)));
+            return cell;
+        };
+
+        auto make_cell = [this, table_panel, table_bg](const wxString &text, const wxFont *font, const wxColour &text_colour, const char *icon_name = nullptr) {
+            wxPanel *cell = new wxPanel(table_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE);
+            cell->SetBackgroundColour(table_bg);
+            wxBoxSizer *cell_sizer = new wxBoxSizer(wxHORIZONTAL);
+            if (icon_name) {
+                wxStaticBitmap *icon = new wxStaticBitmap(cell, wxID_ANY, create_scaled_bitmap(icon_name, m_scroll_area, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
+                cell_sizer->Add(icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+            }
+            Label *st = new Label(cell, text);
+            st->SetForegroundColour(text_colour);
+            st->SetBackgroundColour(table_bg);
+            if (font) st->SetFont(*font);
+            cell_sizer->Add(st, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
+            cell->SetSizer(cell_sizer);
+            return cell;
+        };
+
+        m_plate_table_grid_sizer->Add(make_cell(_L("Plate"), &header_font, table_header_colour, nullptr), 0, wxEXPAND | wxALL, 0);
+        m_plate_table_grid_sizer->Add(make_cell(_L("Time"), &header_font, table_header_colour, "print-time"), 0, wxEXPAND | wxALL, 0);
+        m_plate_table_grid_sizer->Add(make_cell(_L("Weight"), &header_font, table_header_colour, "print-weight"), 0, wxEXPAND | wxALL, 0);
+
+        auto add_line_row = [this, make_line_cell]() {
+            m_plate_table_grid_sizer->Add(make_line_cell(), 0, wxEXPAND | wxALL, 0);
+            m_plate_table_grid_sizer->Add(make_line_cell(), 0, wxEXPAND | wxALL, 0);
+            m_plate_table_grid_sizer->Add(make_line_cell(), 0, wxEXPAND | wxALL, 0);
+        };
+
+        add_line_row();
+
+        auto add_row = [this, make_cell, use_inches, table_text_colour, table_header_colour](const wxString &plate_label, double time_s, double weight_g, bool highlight) {
+            const wxColour &row_colour = highlight ? table_header_colour : table_text_colour;
+            m_plate_table_grid_sizer->Add(make_cell(plate_label, nullptr, row_colour), 0, wxEXPAND | wxALL, 0);
+            m_plate_table_grid_sizer->Add(make_cell(short_time(get_time_dhms(time_s)), nullptr, row_colour), 0, wxEXPAND | wxALL, 0);
+            wxString wstr = use_inches ? wxString::Format("%.2f oz", weight_g * 0.035274) : wxString::Format("%.2f g", weight_g);
+            m_plate_table_grid_sizer->Add(make_cell(wstr, nullptr, row_colour), 0, wxEXPAND | wxALL, 0);
+        };
+
+        add_row(_L("All"), total_time_s, total_weight_g, true);
+        for (int i = 0; i < n_plates; ++i) {
+            add_line_row();
+            add_row(wxString::Format("%d", i + 1), plate_times[i], plate_weights[i], false);
         }
+
+        table_panel->Layout();
     } else {
-        // Original behavior: per-plate time, total job weight.
+        m_stats_switch->SetSelection(0);
+
+        wxString time;
+        char     weight[64];
+
         PartPlate *plate = partplate_list.get_curr_plate();
         if (plate && plate->get_slice_result()) {
             time = wxString::Format("%s",
                                     short_time(get_time_dhms(plate->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time)));
         }
 
-        if (wxGetApp().app_config->get("use_inches") == "1") {
+        if (use_inches) {
             ::sprintf(weight, "%.2f oz", aprint_stats.total_weight * 0.035274);
         } else {
             ::sprintf(weight, "%.2f g", aprint_stats.total_weight);
         }
-    }
 
-    m_stext_time->SetLabel(time);
-    m_stext_weight->SetLabel(weight);
+        m_stext_time->SetLabel(time);
+        m_stext_weight->SetLabel(weight);
+    }
 }
 
 bool SelectMachineDialog::Show(bool show)
