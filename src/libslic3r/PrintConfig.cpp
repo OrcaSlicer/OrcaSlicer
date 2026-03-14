@@ -5543,7 +5543,7 @@ void PrintConfigDef::init_fff_params()
                      "Z-pinning significantly improves Z-direction (inter-layer) tensile and shear strength without requiring exotic materials. "
                      "Based on research by Duty et al. (Oak Ridge National Laboratory, 2019) — see OSTI biblio/1808415.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(true));
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("z_pin_spacing", coFloat);
     def->label = L("Z-pin spacing");

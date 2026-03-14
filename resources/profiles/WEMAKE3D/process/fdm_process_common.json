@@ -113,15 +113,5 @@
     "gap_infill_speed": "150",
     "travel_speed": "250",
     "wall_sequence": "inner-outer-inner wall",
-    "seam_position": "aligned_back",
-    "enable_z_pins": "1",
-    "z_pin_spacing": "5",
-    "z_pin_depth": "5",
-    "z_pin_diameter": "1.1",
-    "z_pin_fill_pct": "115",
-    "z_pin_feedrate": "8",
-    "z_pin_stagger": "1",
-    "z_pin_layer_stagger": "1",
-    "z_pin_layer_stagger_offset": "0",
-    "z_pin_style": "spiral"
+    "seam_position": "aligned_back"
 }

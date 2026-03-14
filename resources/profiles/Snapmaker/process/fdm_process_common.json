@@ -181,15 +181,5 @@
     "exclude_object": "0",
     "timelapse_type": "0",
     "gap_fill_enabled": "0",
-    "single_extruder_multi_material_priming": "0",
-    "enable_z_pins": "1",
-    "z_pin_spacing": "5",
-    "z_pin_depth": "5",
-    "z_pin_diameter": "1.1",
-    "z_pin_fill_pct": "115",
-    "z_pin_feedrate": "8",
-    "z_pin_stagger": "1",
-    "z_pin_layer_stagger": "1",
-    "z_pin_layer_stagger_offset": "0",
-    "z_pin_style": "spiral"
+    "single_extruder_multi_material_priming": "0"
 }

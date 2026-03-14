@@ -110,15 +110,5 @@
         "DeltaMaker 2 0.35 nozzle",
         "DeltaMaker 2T 0.5 nozzle",
         "DeltaMaker 2XT 0.5 nozzle"
-    ],
-    "enable_z_pins": "1",
-    "z_pin_spacing": "5",
-    "z_pin_depth": "5",
-    "z_pin_diameter": "1.1",
-    "z_pin_fill_pct": "115",
-    "z_pin_feedrate": "8",
-    "z_pin_stagger": "1",
-    "z_pin_layer_stagger": "1",
-    "z_pin_layer_stagger_offset": "0",
-    "z_pin_style": "spiral"
+    ]
 }

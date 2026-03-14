@@ -105,15 +105,5 @@
     "internal_solid_infill_speed": "150",
     "top_surface_speed": "50",
     "gap_infill_speed": "30",
-    "travel_speed": "200",
-    "enable_z_pins": "1",
-    "z_pin_spacing": "5",
-    "z_pin_depth": "5",
-    "z_pin_diameter": "1.1",
-    "z_pin_fill_pct": "115",
-    "z_pin_feedrate": "8",
-    "z_pin_stagger": "1",
-    "z_pin_layer_stagger": "1",
-    "z_pin_layer_stagger_offset": "0",
-    "z_pin_style": "spiral"
+    "travel_speed": "200"
 }

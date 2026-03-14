@@ -112,15 +112,5 @@
     "wall_loops": "2",
     "wipe_tower_no_sparse_layers": "0",
     "xy_contour_compensation": "0",
-    "xy_hole_compensation": "0",
-    "enable_z_pins": "1",
-    "z_pin_spacing": "5",
-    "z_pin_depth": "5",
-    "z_pin_diameter": "1.1",
-    "z_pin_fill_pct": "115",
-    "z_pin_feedrate": "8",
-    "z_pin_stagger": "1",
-    "z_pin_layer_stagger": "1",
-    "z_pin_layer_stagger_offset": "0",
-    "z_pin_style": "spiral"
+    "xy_hole_compensation": "0"
 }
