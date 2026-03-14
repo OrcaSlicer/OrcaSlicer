@@ -424,6 +424,8 @@ protected:
 
     PrePrintChecker                     m_pre_print_checker;
 
+    void update_time_and_weight_labels();
+
 public:
     static std::vector<wxString> MACHINE_BED_TYPE_STRING;
     static void                  init_machine_bed_types();

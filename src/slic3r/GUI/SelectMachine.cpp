@@ -34,6 +34,8 @@
 #include <wx/mstream.h>
 #include <miniz.h>
 #include <algorithm>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/Print.hpp"
 #include "Plater.hpp"
 #include "Notebook.hpp"
 #include "BitmapCache.hpp"
@@ -4312,23 +4314,8 @@ void SelectMachineDialog::set_default_normal(const ThumbnailData &data)
 #ifdef __WINDOWS__
 
 #endif // __WXOSX_MAC__
-    // basic info
-    auto       aprint_stats = m_plater->get_partplate_list().get_current_fff_print().print_statistics();
-    wxString   time;
-    PartPlate *plate = m_plater->get_partplate_list().get_curr_plate();
-    if (plate) {
-        if (plate->get_slice_result()) { time = wxString::Format("%s", short_time(get_time_dhms(plate->get_slice_result()->print_statistics.modes[0].time))); }
-    }
 
-    char weight[64];
-    if (wxGetApp().app_config->get("use_inches") == "1") {
-        ::sprintf(weight, "%.2f oz", aprint_stats.total_weight * 0.035274); // ORCA remove spacing before text
-    } else {
-        ::sprintf(weight, "%.2f g", aprint_stats.total_weight); // ORCA remove spacing before text
-    }
-
-    m_stext_time->SetLabel(time);
-    m_stext_weight->SetLabel(weight);
+    update_time_and_weight_labels();
 }
 
 void SelectMachineDialog::set_default_from_sdcard()
@@ -4562,6 +4549,75 @@ void SelectMachineDialog::sys_color_changed()
         m_rename_button->SetBitmap(rename_editable->bmp());
     }
     m_rename_button->Refresh();
+}
+
+void SelectMachineDialog::update_time_and_weight_labels()
+{
+    auto &partplate_list = m_plater->get_partplate_list();
+    const auto &aprint_stats = partplate_list.get_current_fff_print().print_statistics();
+
+    wxString time;
+    char     weight[64];
+
+    if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
+        // Plate changer all-plates: show current plate stats and overall totals.
+        double plate_time_s   = 0.0;
+        double plate_weight_g = 0.0;
+
+        PartPlate *plate = partplate_list.get_curr_plate();
+        if (plate && plate->get_slice_result()) {
+            const auto &est = plate->get_slice_result()->print_statistics;
+            plate_time_s    = est.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time;
+            PrintBase *pbase = nullptr;
+            plate->get_print(&pbase, nullptr, nullptr);
+            if (Slic3r::Print *print = dynamic_cast<Slic3r::Print *>(pbase))
+                plate_weight_g = print->print_statistics().total_weight;
+        }
+
+        double total_time_s   = 0.0;
+        double total_weight_g = 0.0;
+        for (int i = 0; i < partplate_list.get_plate_count(); ++i) {
+            PartPlate *p = partplate_list.get_plate(i);
+            if (p && p->get_slice_result())
+                total_time_s += p->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time;
+            PrintBase *pbase = nullptr;
+            if (p) p->get_print(&pbase, nullptr, nullptr);
+            if (Slic3r::Print *print = dynamic_cast<Slic3r::Print *>(pbase))
+                total_weight_g += print->print_statistics().total_weight;
+        }
+
+        time = wxString::Format("%s (all: %s)",
+                                short_time(get_time_dhms(plate_time_s)),
+                                short_time(get_time_dhms(total_time_s)));
+
+        if (wxGetApp().app_config->get("use_inches") == "1") {
+            ::sprintf(weight,
+                      "%.2f oz (all: %.2f oz)",
+                      plate_weight_g * 0.035274,
+                      total_weight_g * 0.035274);
+        } else {
+            ::sprintf(weight,
+                      "%.2f g (all: %.2f g)",
+                      plate_weight_g,
+                      total_weight_g);
+        }
+    } else {
+        // Original behavior: per-plate time, total job weight.
+        PartPlate *plate = partplate_list.get_curr_plate();
+        if (plate && plate->get_slice_result()) {
+            time = wxString::Format("%s",
+                                    short_time(get_time_dhms(plate->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time)));
+        }
+
+        if (wxGetApp().app_config->get("use_inches") == "1") {
+            ::sprintf(weight, "%.2f oz", aprint_stats.total_weight * 0.035274);
+        } else {
+            ::sprintf(weight, "%.2f g", aprint_stats.total_weight);
+        }
+    }
+
+    m_stext_time->SetLabel(time);
+    m_stext_weight->SetLabel(weight);
 }
 
 bool SelectMachineDialog::Show(bool show)

@@ -222,6 +222,7 @@ public:
     void GetConnection();
 
 private:
+    void update_time_and_weight_labels();
     void ResetConnectMethod();
     void ResetTunnelAndJob();
     void OnConnection(bool is_success, int error_code, std::string error_msg);
