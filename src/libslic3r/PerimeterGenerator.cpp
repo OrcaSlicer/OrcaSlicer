@@ -542,7 +542,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
                 extrusion_coll.append(std::move(extrusion_loop));
                 // Orca: Reverse the order of paths for thin wall holes.
-                if (thin_wall_hole)
+                if (thin_wall_hole && perimeter_generator.config->wall_sequence != WallSequence::OuterInner)
                     std::reverse(extrusion_coll.entities.begin(), extrusion_coll.entities.end());
             }
             else {
