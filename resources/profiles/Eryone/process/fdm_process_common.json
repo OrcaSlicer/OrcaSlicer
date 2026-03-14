@@ -114,5 +114,15 @@
     "inner_wall_jerk": "15",
     "outer_wall_jerk": "10",
     "top_surface_jerk": "12",
-    "travel_jerk": "20"
+    "travel_jerk": "20",
+    "enable_z_pins": "1",
+    "z_pin_spacing": "5",
+    "z_pin_depth": "5",
+    "z_pin_diameter": "1.1",
+    "z_pin_fill_pct": "115",
+    "z_pin_feedrate": "8",
+    "z_pin_stagger": "1",
+    "z_pin_layer_stagger": "1",
+    "z_pin_layer_stagger_offset": "0",
+    "z_pin_style": "spiral"
 }

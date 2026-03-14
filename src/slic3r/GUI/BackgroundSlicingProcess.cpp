@@ -694,6 +694,20 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const Dyn
 	// TODO: add partplate config
 	DynamicPrintConfig new_config = config;
 	new_config.apply(*m_current_plate->config());
+    // Z-pin params must come from the print preset (via full_fff_config), not
+    // the per-plate config. Re-apply them from the original config argument.
+    {
+        static const std::vector<std::string> z_pin_keys = {
+            "enable_z_pins", "z_pin_spacing", "z_pin_depth", "z_pin_diameter",
+            "z_pin_fill_pct", "z_pin_feedrate", "z_pin_stagger",
+            "z_pin_layer_stagger", "z_pin_layer_stagger_offset", "z_pin_style"
+        };
+        for (const auto& key : z_pin_keys) {
+            const auto* src = config.option(key);
+            if (src)
+                new_config.set_key_value(key, src->clone());
+        }
+    }
 	Print::ApplyStatus invalidated = m_print->apply(model, new_config);
 
 	// Orca: prevent resetting under gcode viewer mode

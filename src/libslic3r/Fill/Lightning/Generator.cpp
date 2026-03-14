@@ -8,6 +8,8 @@
 #include "../../Layer.hpp"
 #include "../../Print.hpp"
 
+#include <boost/log/trivial.hpp>
+
 #include "ExPolygon.hpp"
 
 /* Possible future tasks/optimizations,etc.:
@@ -67,7 +69,7 @@ Generator::Generator(const PrintObject &print_object, const std::function<void()
 {
     const PrintConfig         &print_config         = print_object.print()->config();
     const PrintObjectConfig   &object_config        = print_object.config();
-    const PrintRegionConfig   &region_config        = print_object.shared_regions()->all_regions.front()->config();
+    const PrintRegionConfig   &region_config        = print_object.printing_region(0).config();
     const std::vector<double> &nozzle_diameters     = print_config.nozzle_diameter.values;
     double                     max_nozzle_diameter  = *std::max_element(nozzle_diameters.begin(), nozzle_diameters.end());
     const int                  n_multiline          = region_config.fill_multiline.value;
@@ -104,7 +106,7 @@ Generator::Generator(PrintObject* m_object, std::vector<Polygons>& contours, std
 {
     const PrintConfig         &print_config         = m_object->print()->config();
     const PrintObjectConfig   &object_config        = m_object->config();
-    const PrintRegionConfig   &region_config        = m_object->shared_regions()->all_regions.front()->config();
+    const PrintRegionConfig   &region_config        = m_object->printing_region(0).config();
     const std::vector<double> &nozzle_diameters     = print_config.nozzle_diameter.values;
     double                     max_nozzle_diameter  = *std::max_element(nozzle_diameters.begin(), nozzle_diameters.end());
 //    const int                  infill_extruder      = region_config.infill_extruder.value;

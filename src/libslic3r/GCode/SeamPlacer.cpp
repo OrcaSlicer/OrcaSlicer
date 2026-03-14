@@ -9,6 +9,7 @@
 #include <random>
 #include <algorithm>
 #include <queue>
+#include <cstdio>
 
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/KDTreeIndirect.hpp"
@@ -1013,10 +1014,17 @@ void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, 
 // Store results in the SeamPlacer variables m_seam_per_object
 void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info) {
   using namespace SeamPlacerImpl;
-  PrintObjectSeamData &seam_data = m_seam_per_object.emplace(po, PrintObjectSeamData { }).first->second;
-  seam_data.layers.resize(po->layer_count());
+  // Use a single consistent layer count to avoid a race where apply() clears
+  // m_layers between the resize() and the loop bound check.
+  const size_t n_layers = po->layer_count();
 
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, po->layers().size()),
+  PrintObjectSeamData &seam_data = m_seam_per_object.emplace(po, PrintObjectSeamData { }).first->second;
+  seam_data.layers.resize(n_layers);
+
+  if (n_layers == 0)
+    return;
+
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, n_layers),
                     [po, &global_model_info, &seam_data]
                     (tbb::blocked_range<size_t> r) {
                       for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
@@ -1430,6 +1438,9 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
 
   for (const PrintObject *po : print.objects()) {
     throw_if_canceled_func();
+    // Skip objects with no layers (can happen if apply() ran concurrently).
+    if (po->layers().empty())
+      continue;
     SeamPosition configured_seam_preference = po->config().seam_position.value;
     SeamComparator comparator { configured_seam_preference };
 
@@ -1441,31 +1452,16 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
         compute_global_occlusion(global_model_info, po, throw_if_canceled_func, configured_seam_preference);
       }
       throw_if_canceled_func();
-      BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: gather_seam_candidates: start";
       gather_seam_candidates(po, global_model_info);
-      BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: gather_seam_candidates: end";
       throw_if_canceled_func();
       if (configured_seam_preference == spAligned || configured_seam_preference == spNearest || configured_seam_preference == spAlignedBack) {
-        BOOST_LOG_TRIVIAL(debug)
-            << "SeamPlacer: calculate_candidates_visibility : start";
         calculate_candidates_visibility(po, global_model_info);
-        BOOST_LOG_TRIVIAL(debug)
-            << "SeamPlacer: calculate_candidates_visibility : end";
       }
     } // destruction of global_model_info (large structure, no longer needed)
     throw_if_canceled_func();
-    BOOST_LOG_TRIVIAL(debug)
-        << "SeamPlacer: calculate_overhangs and layer embdedding : start";
     calculate_overhangs_and_layer_embedding(po);
-    BOOST_LOG_TRIVIAL(debug)
-        << "SeamPlacer: calculate_overhangs and layer embdedding: end";
     throw_if_canceled_func();
-    if (configured_seam_preference != spNearest) { // For spNearest, the seam is picked in the place_seam method with actual nozzle position information
-      BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: pick_seam_point : start";
-      //pick seam point
+    if (configured_seam_preference != spNearest) {
       std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
                         [&layers, configured_seam_preference, comparator](tbb::blocked_range<size_t> r) {
@@ -1479,16 +1475,10 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
                                 pick_seam_point(layer_perimeter_points, current, comparator);
                           }
                         });
-      BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: pick_seam_point : end";
     }
     throw_if_canceled_func();
     if (configured_seam_preference == spAligned || configured_seam_preference == spRear || configured_seam_preference == spAlignedBack) {
-      BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: align_seam_points : start";
       align_seam_points(po, comparator);
-      BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: align_seam_points : end";
     }
 
 #ifdef DEBUG_FILES
@@ -1507,6 +1497,17 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
   assert(layer->id() >= po->slicing_parameters().raft_layers());
   const size_t layer_index = layer->id() - po->slicing_parameters().raft_layers();
   const double unscaled_z = layer->slice_z;
+
+  // Guard against missing or empty seam data (can happen if apply() ran concurrently
+  // during SeamPlacer::init() and cleared the layers before gather_seam_candidates ran).
+  {
+    auto it = m_seam_per_object.find(layer->object());
+    if (it == m_seam_per_object.end() || layer_index >= it->second.layers.size() ||
+        it->second.layers[layer_index].points.empty()) {
+      loop.split_at(last_pos, false);
+      return;
+    }
+  }
 
   auto get_next_loop_point = [loop](ExtrusionLoop::ClosestPathPoint current) {
     current.segment_idx += 1;

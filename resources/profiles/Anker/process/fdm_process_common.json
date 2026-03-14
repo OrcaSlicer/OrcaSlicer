@@ -87,5 +87,15 @@
     "print_sequence": "by layer",
     "spiral_mode": "0",
     "reduce_infill_retraction": "1",
-    "filename_format": "{input_filename_base}_{layer_height}mm_{filament_type[0]}_{printer_model}.gcode"
+    "filename_format": "{input_filename_base}_{layer_height}mm_{filament_type[0]}_{printer_model}.gcode",
+    "enable_z_pins": "1",
+    "z_pin_spacing": "5",
+    "z_pin_depth": "5",
+    "z_pin_diameter": "1.1",
+    "z_pin_fill_pct": "115",
+    "z_pin_feedrate": "8",
+    "z_pin_stagger": "1",
+    "z_pin_layer_stagger": "1",
+    "z_pin_layer_stagger_offset": "0",
+    "z_pin_style": "spiral"
 }

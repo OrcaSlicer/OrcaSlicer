@@ -946,6 +946,32 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 	wxString text_value = wxString("");
 	const ConfigOptionDef* opt = config.def()->get(opt_key);
 
+	if (opt == nullptr) {
+		return boost::any();
+	}
+	if (!config.has(opt_key)) {
+		if (opt->default_value) {
+			switch (opt->type) {
+			case coBool:
+				return boost::any(opt->default_value->getBool());
+			case coFloat:
+			case coFloats:
+			case coPercent:
+			case coPercents:
+				return boost::any(double_to_string(opt->default_value->getFloat()));
+			case coEnum:
+			case coInt:
+			case coInts:
+				return boost::any((int)opt->default_value->getInt());
+			case coString:
+			case coStrings:
+				return boost::any(wxString(""));
+			default:
+				return boost::any((int)opt->default_value->getInt());
+			}
+		}
+		return boost::any();
+	}
     if (opt->nullable)
     {
         switch (opt->type)
@@ -1018,6 +1044,11 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 	case coPercents:
 	case coFloats:
 	case coFloat:{
+		if (!config.has(opt_key) || config.option(opt_key) == nullptr) {
+			const ConfigOptionDef* fdef = config.def()->get(opt_key);
+			ret = (fdef && fdef->default_value) ? double_to_string(fdef->default_value->getFloat()) : std::string("0");
+			break;
+		}
         if (opt_key == "extruder_printable_height") {
             auto opt_values = dynamic_cast<const ConfigOptionFloatsNullable *>(config.option(opt_key))->values;
             if (!opt_values.empty()) {
@@ -1055,6 +1086,11 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 			ret = from_u8(config.opt_string(opt_key, static_cast<unsigned int>(idx)));
 		break;
 	case coBool:
+		if (!config.has(opt_key) || config.option(opt_key) == nullptr) {
+			const ConfigOptionDef* bdef = config.def()->get(opt_key);
+			ret = (bdef && bdef->default_value) ? bdef->default_value->getBool() : false;
+			break;
+		}
 		ret = config.opt_bool(opt_key);
 		break;
 	case coBools:
@@ -1081,6 +1117,11 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             // reset to global value
             DynamicConfig& global_cfg = wxGetApp().preset_bundle->project_config;
             ret = global_cfg.option("curr_bed_type")->getInt();
+            break;
+        }
+        if (!config.has(opt_key) || config.option(opt_key) == nullptr) {
+            const ConfigOptionDef* edef = config.def()->get(opt_key);
+            ret = (edef && edef->default_value) ? edef->default_value->getInt() : 0;
             break;
         }
         ret = config.option(opt_key)->getInt();

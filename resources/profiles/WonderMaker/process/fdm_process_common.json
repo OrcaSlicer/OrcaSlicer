@@ -71,5 +71,15 @@
     "compatible_printers": [],
     "smooth_coefficient": "80",
     "overhang_totally_speed": "19",
-    "scarf_angle_threshold": "155"
+    "scarf_angle_threshold": "155",
+    "enable_z_pins": "1",
+    "z_pin_spacing": "5",
+    "z_pin_depth": "5",
+    "z_pin_diameter": "1.1",
+    "z_pin_fill_pct": "115",
+    "z_pin_feedrate": "8",
+    "z_pin_stagger": "1",
+    "z_pin_layer_stagger": "1",
+    "z_pin_layer_stagger_offset": "0",
+    "z_pin_style": "spiral"
 }
