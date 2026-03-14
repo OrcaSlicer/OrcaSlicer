@@ -2220,6 +2220,10 @@ void DiffPresetDialog::update_tree()
         m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
 
         const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
+        auto get_category_icon = [&category_icon_map](const wxString& key) {
+            auto it = category_icon_map.find(key);
+            return it != category_icon_map.end() ? it->second : std::string();
+        };
 
         // process changes of extruders count
         if (type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
@@ -2228,7 +2232,8 @@ void DiffPresetDialog::update_tree()
             wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
             wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
 
-            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val, category_icon_map.at("Basic information"));
+            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val,
+                get_category_icon("Basic information"));
         }
 
         for (const std::string& opt_key : dirty_options) {
@@ -2247,7 +2252,7 @@ void DiffPresetDialog::update_tree()
                 continue;
             }
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
-                left_val, right_val, category_icon_map.at(option.category));
+                left_val, right_val, get_category_icon(option.category));
         }
     }
 
