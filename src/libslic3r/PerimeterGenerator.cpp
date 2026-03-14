@@ -264,6 +264,7 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             // Orca: Reverse thin wall holes (the only child of a single contour) to avoid dragging hot plastic.
             if (reverse_thin_wall_hole && !loop.is_contour) {
                 eloop->reverse();
+                std::reverse(out.entities.begin(), out.entities.end());
             }
 
             eloop->inset_idx = loop.depth;
@@ -528,7 +529,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 else
                     extrusion_loop.make_clockwise();
                 // Orca: Detect thin wall holes, to prevent drag hot plastic while changing direction. We define thin wall hole as a hole with only one perimeter.
-                bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
+                const bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
                 if (thin_wall_hole)
                     extrusion_loop.reverse();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
@@ -540,6 +541,9 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 assert(extrusion_loop.paths.front().first_point() == extrusion_loop.paths.back().last_point());
 
                 extrusion_coll.append(std::move(extrusion_loop));
+                // Orca: Reverse the order of paths for thin wall holes.
+                if (thin_wall_hole)
+                    std::reverse(extrusion_coll.entities.begin(), extrusion_coll.entities.end());
             }
             else {
                 // Because we are processing one ExtrusionLine all ExtrusionPaths should form one connected path.
