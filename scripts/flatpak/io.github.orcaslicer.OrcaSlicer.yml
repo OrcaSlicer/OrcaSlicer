@@ -333,6 +333,11 @@ modules:
 
       - install -Dm644 LICENSE.txt /app/share/licenses/${FLATPAK_ID}/LICENSE.txt
 
+      - | # Install fonts into fontconfig-scanned directory so Pango finds them
+        # before initialization (avoids ensure_faces crash from AddPrivateFont)
+        install -Dm644 -t /app/share/fonts/OrcaSlicer/ resources/fonts/*.ttf
+        fc-cache -f /app/share/fonts/OrcaSlicer/
+
     sources:
       # OrcaSlicer source tree (specific dirs to avoid copying .git from worktree)
       - type: dir
