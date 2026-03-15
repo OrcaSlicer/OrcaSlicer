@@ -1244,6 +1244,7 @@ void MainFrame::init_tabpanel() {
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLVIEWTOOLBAR_PREVIEW));
                 m_param_panel->OnActivate();
             }
+            fit_tab_labels(); // ORCA on switching prepare / preview
         }
         //else if (panel == m_param_panel)
         //    m_param_panel->OnActivate();
