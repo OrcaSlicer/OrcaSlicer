@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pc",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pc",
     "from": "system",
     "filament_id": "OGFC99",
     "instantiation": "false",

@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pctg",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pctg",
     "from": "system",
     "instantiation": "false",
     "eng_plate_temp": [

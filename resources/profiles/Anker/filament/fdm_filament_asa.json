@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_asa",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_asa",
     "from": "system",
     "instantiation": "false",
     "filament_type": [

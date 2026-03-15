@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_sbs",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_sbs",
     "from": "system",
     "instantiation": "false",
     "fan_cooling_layer_time": [
@@ -11,7 +11,7 @@
         "23"
     ],
     "filament_type": [
-      "SBS"
+        "SBS"
     ],
     "filament_density": [
         "1.02"

@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pa",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pa",
     "from": "system",
     "instantiation": "false",
     "required_nozzle_HRC": [

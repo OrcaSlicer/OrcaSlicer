@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_ppa",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_ppa",
     "from": "system",
     "instantiation": "false",
     "activate_air_filtration": [

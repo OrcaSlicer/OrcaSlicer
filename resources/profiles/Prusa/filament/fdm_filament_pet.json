@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pet",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pet",
     "from": "system",
     "filament_id": "GFT02",
     "instantiation": "false",

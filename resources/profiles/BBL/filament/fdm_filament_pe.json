@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pe",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pe",
     "from": "system",
     "instantiation": "false",
     "additional_cooling_fan_speed": [

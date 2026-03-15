@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pps",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pps",
     "from": "system",
     "instantiation": "false",
     "chamber_temperatures": [

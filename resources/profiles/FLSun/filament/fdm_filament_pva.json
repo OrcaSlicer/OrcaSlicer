@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "fdm_filament_pva",
-    "inherits": "fdm_filament_common",
+    "inherits": "fdm_filament_pva",
     "from": "system",
     "instantiation": "false",
     "cool_plate_temp": [
