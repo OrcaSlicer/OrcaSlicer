@@ -56,6 +56,8 @@ private:
 
     int                                 m_print_plate_idx;
     bool                                m_use_plate_changer_all{ false };
+    bool                                m_start_with_new_plate{ false };
+    bool                                m_end_with_new_plate{ false };
     int                                 m_current_filament_id;
     int                                 m_print_error_code = 0;
     int                                 timeout_count = 0;
@@ -88,6 +90,10 @@ private:
     Button*                             m_button_ensure{ nullptr };
     wxPanel*                            m_scrollable_region;
     wxPanel*                            m_line_schedule{ nullptr };
+    wxPanel*                            m_line_plate_changer{ nullptr };
+    wxPanel*                            m_panel_plate_changer_opts{ nullptr };
+    PrintOption*                        m_opt_start_with_new_plate{ nullptr };
+    PrintOption*                        m_opt_end_with_new_plate{ nullptr };
     wxPanel*                            m_panel_sending{ nullptr };
     wxPanel*                            m_panel_prepare{ nullptr };
     wxPanel*                            m_panel_finish{ nullptr };

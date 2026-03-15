@@ -5655,7 +5655,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
     // Build a single merged gcode string for plate-changer "all plates" exports.
     // Reads each plate's gcode file and inserts plate_change_gcode between them.
-    static std::string build_plate_changer_merged_gcode(const PlateDataPtrs& plate_data_list2, const DynamicPrintConfig* config)
+    // When start_with_new_plate is true, prepends plate_change before the first plate.
+    // When end_with_new_plate is true, appends plate_change after the last plate.
+    static std::string build_plate_changer_merged_gcode(const PlateDataPtrs& plate_data_list2, const DynamicPrintConfig* config,
+                                                        bool start_with_new_plate, bool end_with_new_plate)
     {
         if (plate_data_list2.size() <= 1 || config == nullptr || !config->has("plate_change_gcode"))
             return {};
@@ -5665,6 +5668,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             return {};
 
         std::string merged_gcode;
+        if (start_with_new_plate) {
+            merged_gcode = plate_change;
+            if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                merged_gcode += '\n';
+        }
         for (size_t i = 0; i < plate_data_list2.size(); ++i) {
             PlateData* plate_data = plate_data_list2[i];
             boost::filesystem::path src_gcode_path(plate_data->gcode_file);
@@ -5679,6 +5687,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (!merged_gcode.empty() && merged_gcode.back() != '\n')
                     merged_gcode += '\n';
             }
+        }
+        if (end_with_new_plate) {
+            if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                merged_gcode += '\n';
+            merged_gcode += plate_change;
         }
 
         return merged_gcode;
@@ -5746,6 +5759,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_skip_auxiliary { false };    // skip normal axuiliary files
         bool m_use_loaded_id { false };        // whether to use loaded id for identify_id
         bool m_use_plate_changer_all { false }; // when true, add merged_plates.gcode with plate_change_gcode between plates
+        bool m_start_with_new_plate { false };  // when true, prepend plate_change before first plate
+        bool m_end_with_new_plate { false };   // when true, append plate_change after last plate
         bool m_share_mesh { false };        // whether to share mesh between objects
         std::string m_thumbnail_middle = PRINTER_THUMBNAIL_MIDDLE_FILE;
         std::string m_thumbnail_small  = PRINTER_THUMBNAIL_SMALL_FILE;
@@ -5846,6 +5861,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         m_use_loaded_id = store_params.strategy & SaveStrategy::UseLoadedId;
         m_use_plate_changer_all = store_params.use_plate_changer_all;
+        m_start_with_new_plate  = store_params.start_with_new_plate;
+        m_end_with_new_plate    = store_params.end_with_new_plate;
 
         if (auto info = store_params.model->model_info) {
             if (auto iter = info->metadata_items.find("Thumbnail_Small"); iter != info->metadata_items.end())
@@ -8307,7 +8324,7 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
     // sees this as a single-plate job.
     if (m_use_plate_changer_all && plate_data_list2.size() > 1 && config && config->has("plate_change_gcode")) {
         // Use the shared helper to build the merged gcode string, but keep MD5/archive logic local.
-        std::string merged_gcode = build_plate_changer_merged_gcode(plate_data_list2, config);
+        std::string merged_gcode = build_plate_changer_merged_gcode(plate_data_list2, config, m_start_with_new_plate, m_end_with_new_plate);
 
         if (!merged_gcode.empty()) {
             // Name the combined file like a normal first-plate gcode so the printer treats this as a single plate.

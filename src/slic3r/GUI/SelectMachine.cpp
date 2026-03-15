@@ -574,6 +574,33 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_options_other->Layout();
     m_options_other->Fit();
 
+    // Plate changer options: separator + "Start with new plate?" / "End with new plate?" (shown only when plate changer and printer has plate_change_gcode)
+    wxBoxSizer* sizer_plate_changer_line = new wxBoxSizer(wxHORIZONTAL);
+    m_line_plate_changer = new wxPanel(m_scroll_area, wxID_ANY);
+    m_line_plate_changer->SetBackgroundColour(wxColour(0xEE, 0xEE, 0xEE));
+    m_line_plate_changer->SetSize(wxSize(-1, FromDIP(1)));
+    m_line_plate_changer->SetMinSize(wxSize(-1, FromDIP(1)));
+    m_line_plate_changer->SetMaxSize(wxSize(-1, FromDIP(1)));
+    sizer_plate_changer_line->Add(0, 0, 0, wxEXPAND, 0);
+    sizer_plate_changer_line->Add(m_line_plate_changer, 1, wxALIGN_CENTER, 0);
+
+    m_panel_plate_changer_opts = new wxPanel(m_scroll_area);
+    m_panel_plate_changer_opts->SetBackgroundColour(m_colour_def_color);
+    wxGridSizer* sizer_plate_changer_opts = new wxGridSizer(0, 2, FromDIP(5), FromDIP(10));
+    m_opt_start_with_new_plate = new PrintOption(m_panel_plate_changer_opts, _L("Start with new plate?"),
+        _L("When enabled, the plate change G-code runs before the first plate so the printer ejects the current plate and loads a fresh one before the print starts."),
+        ops_no_auto, "start_with_new_plate");
+    m_opt_start_with_new_plate->setValue("off");
+    m_opt_end_with_new_plate = new PrintOption(m_panel_plate_changer_opts, _L("End with new plate?"),
+        _L("When enabled, the plate change G-code runs after the last plate so the printer ejects the final plate and loads a fresh one when the job finishes."),
+        ops_no_auto, "end_with_new_plate");
+    m_opt_end_with_new_plate->setValue("off");
+    sizer_plate_changer_opts->Add(m_opt_start_with_new_plate, 0, wxEXPAND);
+    sizer_plate_changer_opts->Add(m_opt_end_with_new_plate, 0, wxEXPAND);
+    m_panel_plate_changer_opts->SetSizer(sizer_plate_changer_opts);
+    m_line_plate_changer->Hide();
+    m_panel_plate_changer_opts->Hide();
+
     m_checkbox_list["timelapse"]     = option_timelapse;
     m_checkbox_list["bed_leveling"]  = option_auto_bed_level;
     m_checkbox_list["flow_cali"]     = option_flow_dynamics_cali;
@@ -740,6 +767,9 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_scroll_sizer->Add(sizer_split_options, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
     m_scroll_sizer->Add(m_options_other, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
+    m_scroll_sizer->Add(sizer_plate_changer_line, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
+    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+    m_scroll_sizer->Add(m_panel_plate_changer_opts, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(30));
 
     show_print_failed_info(false);
@@ -1478,6 +1508,12 @@ void SelectMachineDialog::prepare(int print_plate_idx, bool use_plate_changer_al
 {
     m_print_plate_idx = print_plate_idx;
     m_use_plate_changer_all = use_plate_changer_all;
+    // Show "Start with new plate?" / "End with new plate?" only when using plate changer and printer has plate_change_gcode
+    bool show_plate_changer_opts = use_plate_changer_all && wxGetApp().preset_bundle &&
+                                  !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+    if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
+    if (m_panel_plate_changer_opts) m_panel_plate_changer_opts->Show(show_plate_changer_opts);
+    if (m_scroll_area && m_scroll_area->GetSizer()) m_scroll_area->GetSizer()->Layout();
 }
 
 void SelectMachineDialog::update_print_status_msg()
@@ -2462,13 +2498,15 @@ void SelectMachineDialog::on_send_print()
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
+        bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
+        bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {
             if (this->m_is_canceled) return;
             bool     cancelled = false;
             wxString msg = _L("Preparing print job");
             m_status_bar->update_status(msg, cancelled, 10, true);
             m_export_3mf_cancel = cancel = cancelled;
-            }, m_use_plate_changer_all);
+            }, m_use_plate_changer_all, start_plate, end_plate);
 
         if (m_is_canceled || m_export_3mf_cancel) {
             BOOST_LOG_TRIVIAL(info) << "print_job: m_export_3mf_cancel or m_is_canceled";
@@ -2484,7 +2522,9 @@ void SelectMachineDialog::on_send_print()
 
         // export config 3mf if needed
         if (!obj_->is_lan_mode_printer()) {
-            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all);
+            bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
+            bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
+            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all, start_plate, end_plate);
             if (result < 0) {
                 BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
                 return;

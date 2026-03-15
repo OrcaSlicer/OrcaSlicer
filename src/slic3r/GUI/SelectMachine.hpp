@@ -290,6 +290,8 @@ private:
     int                                 m_current_filament_id{0};
     int                                 m_print_plate_idx{0};
     bool                                m_use_plate_changer_all{ false };
+    bool                                m_start_with_new_plate{ false };
+    bool                                m_end_with_new_plate{ false };
     int                                 m_print_plate_total{0};
     int                                 m_timeout_count{0};
     int                                 m_print_error_code{0};
@@ -387,6 +389,10 @@ protected:
     Label*                              m_txt_change_filament_times{ nullptr };
     CheckBox*                           m_check_ext_change_assist{ nullptr };
     Label*                              m_label_ext_change_assist{ nullptr };
+    wxPanel*                            m_line_plate_changer{ nullptr };
+    wxPanel*                            m_panel_plate_changer_opts{ nullptr };
+    PrintOption*                        m_opt_start_with_new_plate{ nullptr };
+    PrintOption*                        m_opt_end_with_new_plate{ nullptr };
 
     PrinterInfoBox*                     m_printer_box { nullptr};
     PrinterMsgPanel *                   m_text_printer_msg{nullptr};
