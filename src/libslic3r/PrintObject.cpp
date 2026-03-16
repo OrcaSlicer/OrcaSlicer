@@ -28,7 +28,6 @@
 #include <float.h>
 #include <iterator>
 #include <mutex>
-#include <ostream>
 #include <string>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/concurrent_vector.h>
@@ -731,13 +730,15 @@ void PrintObject::contour_z()
     }
 
     ModelInstance *inst = m_model_object->instances.front();
-    Point center_offset = this->center_offset();
+    Point                    center_offset = this->center_offset();
     Geometry::Transformation trans = inst->get_transformation();
+    double                   z             = trans.get_offset().z() - unscale<double>(this->height()) / 2;
     trans.set_offset(Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
-
     mesh.transform(trans.get_matrix());
 
     sla::IndexedMesh imesh(mesh);
+    imesh.ground_level_offset(-z);
+
     std::mutex mtx;
     size_t completed = 0;
     tbb::parallel_for(

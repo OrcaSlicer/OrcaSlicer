@@ -30,8 +30,6 @@ static double slope_from_normal(const Eigen::Vector3d& normal)
 	return angle_rad;
 }
 
-// const int LINE = 180;
-
 static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &mesh, ExtrusionPath &path)
 {
 	if (region->region().config().zaa_region_disable) {
@@ -213,14 +211,13 @@ static void contour_extrusion_entity(LayerRegion *region, const sla::IndexedMesh
 }
 
 static void handle_extrusion_collection(LayerRegion *region, const sla::IndexedMesh &mesh, ExtrusionEntityCollection &collection, std::initializer_list<ExtrusionRole> roles) {
-	for (ExtrusionEntity *extr : collection.entities) {
-		// printf("handling extrusion collection %p %p\n", &collection, extr);
-		if (!contains(roles, extr->role())) {
+    for (ExtrusionEntity* extr : collection.entities) {
+        if (!contains(roles, extr->role())) {
 			continue;
 		}
 
 		contour_extrusion_entity(region, mesh, extr);
-	}
+    }
 }
 
 void Layer::make_contour_z(const sla::IndexedMesh &mesh)
