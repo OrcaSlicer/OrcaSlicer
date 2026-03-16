@@ -45,3 +45,4 @@ test.js
 .clangd
 internal_docs/
 *.flatpak
+/flatpak-repo/
