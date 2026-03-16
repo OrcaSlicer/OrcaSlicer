@@ -26,6 +26,7 @@
 #include <wx/imaglist.h>
 
 #include <map>
+#include <utility>
 #include <vector>
 #include <memory>
 
@@ -50,6 +51,7 @@ class ModelConfig;
 class ObjectBase;
 
 namespace GUI {
+class ToggleExpr;
 
 class TabPresetComboBox;
 class OG_CustomCtrl;
@@ -387,9 +389,12 @@ public:
 	std::pair<OG_CustomCtrl*, bool*> get_custom_ctrl_with_blinking_ptr(const t_config_option_key& opt_key, int opt_index = -1);
 
     Field*          get_field(const t_config_option_key &opt_key, Page** selected_page, int opt_index = -1);
-    void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
-    void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
-	wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
+
+    void            toggle_option(const std::string& opt_key, const ToggleExpr& toggle_expr, int opt_index = -1);
+    void            toggle_line(const std::string& opt_key, const ToggleExpr& toggle_expr, int opt_index = -1);
+    void            clear_disabled_reasons();
+
+    wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
 	void            update_saved_preset_from_current_preset();

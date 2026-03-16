@@ -1301,6 +1301,14 @@ void ExtruderOptionsGroup::on_change_OG(const t_config_option_key& opt_id, const
     OptionsGroup::on_change_OG(opt_id, value);
 }
 
+void OptionsGroup::clear_disabled_reasons()
+{
+    for (auto& field : m_fields)
+        field.second->disabled_reasons.clear();
+    for (auto& line : m_lines)
+        line.hidden_reasons.clear();
+}
+
 wxString OptionsGroup::get_url(const std::string& path_end)
 {
     //BBS

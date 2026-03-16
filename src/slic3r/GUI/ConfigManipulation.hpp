@@ -10,6 +10,7 @@
 
 #include "libslic3r/PrintConfig.hpp"
 #include "Field.hpp"
+#include "ToggleExpr.hpp"
 
 namespace Slic3r {
 
@@ -27,8 +28,8 @@ class ConfigManipulation
 
     // function to loading of changed configuration
     std::function<void()>                                       load_config = nullptr;
-    std::function<void (const std::string&, bool toggle, int opt_index)>   cb_toggle_field = nullptr;
-    std::function<void(const std::string &, bool toggle, int opt_index)> cb_toggle_line  = nullptr;
+    std::function<void (const std::string&, const ToggleExpr& toggle_expr, int opt_index)>   cb_toggle_field = nullptr;
+    std::function<void(const std::string &, const ToggleExpr& toggle_expr, int opt_index)> cb_toggle_line  = nullptr;
     // callback to propagation of changed value, if needed
     std::function<void(const std::string&, const boost::any&)>  cb_value_change = nullptr;
     //BBS: change local config to const DynamicPrintConfig
@@ -40,8 +41,8 @@ class ConfigManipulation
 
 public:
     ConfigManipulation(std::function<void()> load_config,
-        std::function<void(const std::string&, bool toggle, int opt_index)> cb_toggle_field,
-        std::function<void(const std::string&, bool toggle, int opt_index)> cb_toggle_line,
+        std::function<void(const std::string&, const ToggleExpr& toggle_expr, int opt_index)> cb_toggle_field,
+        std::function<void(const std::string&, const ToggleExpr& toggle_expr, int opt_index)> cb_toggle_line,
         std::function<void(const std::string&, const boost::any&)>  cb_value_change,
         //BBS: change local config to DynamicPrintConfig
         const DynamicPrintConfig* local_config = nullptr,
@@ -65,8 +66,8 @@ public:
 
     void    apply(DynamicPrintConfig* config, DynamicPrintConfig* new_config);
     t_config_option_keys const &applying_keys() const;
-    void    toggle_field(const std::string& field_key, const bool toggle, int opt_index = -1);
-    void    toggle_line(const std::string& field_key, const bool toggle, int opt_index = -1);
+    void    toggle_field(const std::string& field_key, const ToggleExpr& toggle_expr, int opt_index = -1);
+    void    toggle_line(const std::string& field_key, const ToggleExpr& toggle_expr, int opt_index = -1);
 
     // FFF print
     void    update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config = false, const bool is_plate_config = false);

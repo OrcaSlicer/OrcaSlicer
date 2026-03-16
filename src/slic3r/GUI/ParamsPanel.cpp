@@ -637,13 +637,8 @@ void ParamsPanel::set_active_tab(wxPanel* tab)
     }
 
     auto tab_print = dynamic_cast<Tab *>(m_tab_print);
-    if (cur_tab == m_tab_print) {
-        if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
-    } else {
-        if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
-    }
+    if (tab_print)
+        tab_print->toggle_line("print_flow_ratio", ToggleExpr(false, "Disabled"));
 }
 
 bool ParamsPanel::is_active_and_shown_tab(wxPanel* tab)

@@ -207,6 +207,8 @@ public:
 	/// Callback function to edit field value
 	t_back_to_init	m_fn_edit_value{ nullptr };
 
+    std::set<std::string> disabled_reasons{};
+
 	// This is used to avoid recursive invocation of the field change/update by wxWidgets.
     bool			m_disable_change_event {false};
     bool			m_is_modified_value {false};
@@ -288,7 +290,7 @@ protected:
     bool    bEnterPressed = false;
 
     wxString m_na_value = _(L("N/A"));
-    
+
 	friend class OptionsGroup;
 };
 

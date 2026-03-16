@@ -74,6 +74,23 @@
 #define CLI_GCODE_PATH_IN_UNPRINTABLE_AREA -102
 
 
+#ifdef _WIN32
+#define PUSH_IGNORE_DEPRECATED \
+_Pragma("warning(push)") \
+_Pragma("warning(disable: 4996)")
+#else
+#define PUSH_IGNORE_DEPRECATED \
+_Pragma("GCC diagnostic push")\
+_Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#endif
+
+#ifdef _WIN32
+#define POP_IGNORE_DEPRECATED \
+_Pragma("warning(pop)")
+#else
+#define PUSH_IGNORE_DEPRECATED \
+_Pragma("GCC diagnostic pop")
+#endif
 namespace boost { namespace filesystem { class directory_entry; }}
 
 namespace Slic3r {

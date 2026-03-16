@@ -379,9 +379,9 @@ void ObjectSettings::update_config_values(ModelConfig* config)
             field->toggle(toggle);
     };
 #else
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, const ToggleExpr& toggle_expr, int opt_index)
     {
-        m_tab_active->toggle_option(opt_key, toggle, opt_index);
+        m_tab_active->toggle_option(opt_key, toggle_expr, opt_index);
     };
 #endif
 

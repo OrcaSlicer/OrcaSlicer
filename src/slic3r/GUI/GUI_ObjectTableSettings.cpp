@@ -284,16 +284,16 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         m_settings_list_sizer->Add(optgroup->sizer, 0, wxEXPAND | wxALL, 0);
         m_og_settings.push_back(optgroup);
 
-        auto toggle_field = [this, optgroup](const t_config_option_key & opt_key, bool toggle, int opt_index)
+        auto toggle_field = [this, optgroup](const t_config_option_key & opt_key, const ToggleExpr& toggle_expr, int opt_index)
         {
             Field* field = optgroup->get_fieldc(opt_key, opt_index);;
             if (field)
-                field->toggle(toggle);
+                field->toggle(toggle_expr.get_value());
         };
-        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index)
+        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, const ToggleExpr& toggle_expr, int opt_index)
         {
             Line* line = optgroup->get_line(opt_key);
-            if (line) line->toggle_visible = toggle;
+            if (line) line->toggle_visible = toggle_expr.get_value();
         };
         ConfigManipulation config_manipulation(nullptr, toggle_field, toggle_line, nullptr, &m_current_config);
 
@@ -381,7 +381,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
     DynamicPrintConfig  &main_config   = m_current_config;
 
 
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, const ToggleExpr& toggle_expr, int opt_index)
     {
         Field* field = nullptr;
         for (auto og : m_og_settings) {
@@ -390,12 +390,12 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
                 break;
         }
         if (field)
-            field->toggle(toggle);
+            field->toggle(toggle_expr.get_value());
     };
-    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index) {
+    auto toggle_line = [this](const t_config_option_key &opt_key, const ToggleExpr& toggle_expr, int opt_index) {
         for (auto og : m_og_settings) {
             Line *line = og->get_line(opt_key);
-            if (line) { line->toggle_visible = toggle; break; }
+            if (line) { line->toggle_visible = toggle_expr.get_value(); break; }
         }
     };
 

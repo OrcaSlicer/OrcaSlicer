@@ -57,6 +57,8 @@
 	#include <commctrl.h>
 #endif // WIN32
 
+#include "ToggleExpr.hpp"
+
 #include <algorithm>
 
 namespace Slic3r {
@@ -1429,21 +1431,41 @@ Field* Tab::get_field(const t_config_option_key& opt_key, Page** selected_page, 
     return field;
 }
 
-void Tab::toggle_option(const std::string& opt_key, bool toggle, int opt_index/* = -1*/)
+void Tab::toggle_option(const std::string& opt_key, const ToggleExpr& toggle_expr, int opt_index /*= -1*/)
 {
     if (!m_active_page)
         return;
     Field* field = m_active_page->get_field(opt_key, opt_index);
-    if (field)
-        field->toggle(toggle);
+    if (field) {
+        auto [value, reasons] = toggle_expr.get_result();
+        field->toggle(value);
+        if (value)
+            field->disabled_reasons.clear();
+        else
+            field->disabled_reasons.merge(reasons);
+    }
 }
 
-void Tab::toggle_line(const std::string &opt_key, bool toggle, int opt_index)
+void Tab::toggle_line(const std::string& opt_key, const ToggleExpr& toggle_expr, int opt_index /*= -1*/)
 {
     if (!m_active_page) return;
     Line *line = m_active_page->get_line(opt_key, opt_index);
-    if (line) line->toggle_visible = toggle;
-};
+    if (line) {
+        auto [value, reasons] = toggle_expr.get_result();
+        line->toggle_visible = value;
+        if (value)
+            line->hidden_reasons.clear();
+        else
+            line->hidden_reasons.merge(reasons);
+    }
+}
+
+void Tab::clear_disabled_reasons()
+{
+    if (!m_active_page) return;
+    for (auto optgroup : m_active_page->m_optgroups)
+        optgroup->clear_disabled_reasons();
+}
 
 // To be called by custom widgets, load a value into a config,
 // update the preset selection boxes (the dirty flags)
@@ -2026,6 +2048,16 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
             wxScrollEvent evt(wxEVT_SCROLL_CHANGED);
             evt.SetEventObject(field->getWindow());
             wxPostEvent(m_page_view, evt);
+        }
+        if (!field->getWindow()->IsShown()) {
+            Line* line = get_line(opt_key);
+            if (!line) return;
+            if (line->toggle_visible) {
+                show_error(this, std::string("The selected option is hidden by the config mode. ")
+                    .append(line->get_options()[0].opt.mode == comAdvanced ? "Enable advanced mode to use this option" : "Enable developer mode to use this option"));
+            } else {
+                show_error(this, ToggleExpr::build_reasons_string("The selected option is hidden.", line->hidden_reasons));
+            }
         }
     }
     else if (category == "Single extruder MM setup") {
@@ -2755,6 +2787,7 @@ void TabPrint::toggle_options()
 {
     if (!m_active_page) return;
     // BBS: whether the preset is Bambu Lab printer
+    this->clear_disabled_reasons();
     if (m_preset_bundle) {
         bool is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
         m_config_manipulation.set_is_BBL_Printer(is_BBL_printer);
@@ -3755,16 +3788,20 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
         if (opt_key == "filament_long_retractions_when_cut") {
             int machine_enabled_level = printers_config->option<ConfigOptionInt>(
                 "enable_long_retraction_when_cut")->value;
-            bool machine_enabled = machine_enabled_level == LongRectrationLevel::EnableFilament;
-                toggle_line(opt_key, machine_enabled, extruder_idx + 256);
-            field->toggle(is_checked && machine_enabled);
+            auto machine_enabled       = ToggleExpr(machine_enabled_level == LongRectrationLevel::EnableFilament,
+                                                    "enable_long_retraction_when_cut is not enabled for filament")
+                                       .disable_postfix();
+            toggle_line(opt_key, machine_enabled, extruder_idx + 256);
+            field->toggle(is_checked && machine_enabled.get_value());
         } else if (opt_key == "filament_retraction_distances_when_cut") {
             int machine_enabled_level = printers_config->option<ConfigOptionInt>(
                 "enable_long_retraction_when_cut")->value;
-            bool machine_enabled = machine_enabled_level == LongRectrationLevel::EnableFilament;
-            bool filament_enabled = m_config->option<ConfigOptionBools>("filament_long_retractions_when_cut")->values[extruder_idx] == 1;
+            auto machine_enabled       = ToggleExpr(machine_enabled_level == LongRectrationLevel::EnableFilament,
+                                                    "enable_long_retraction_when_cut is not enabled for filament")
+                                       .disable_postfix();
+            auto filament_enabled = ToggleExpr::FromConfigBool(m_config, "filament_long_retractions_when_cut", extruder_idx);
             toggle_line(opt_key, filament_enabled && machine_enabled, extruder_idx + 256);
-            field->toggle(is_checked && filament_enabled && machine_enabled);
+            field->toggle(is_checked && (filament_enabled && machine_enabled).get_value());
         } else {
             if (!is_checked) {
                 const std::string printer_opt_key = opt_key.substr(strlen("filament_"));
@@ -4177,34 +4214,37 @@ void TabFilament::toggle_options()
 {
     if (!m_active_page)
         return;
-    bool is_BBL_printer = false;
+    this->clear_disabled_reasons();
+    bool b_is_BBL_printer = false;
     if (m_preset_bundle) {
-      is_BBL_printer =
+      b_is_BBL_printer =
           wxGetApp().preset_bundle->is_bbl_vendor();
     }
-    bool is_multi_extruder = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1;
+    auto is_BBL_printer = ToggleExpr(b_is_BBL_printer, "BBL printer").set_prefixes("Isn't ", "Is ").disable_postfix();
+    auto is_multi_extruder = ToggleExpr(m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1, "Not multi extruder").disable_postfix();
 
     auto cfg = m_preset_bundle->printers.get_edited_preset().config;
     if (m_active_page->title() == L("Cooling")) {
-      bool has_enable_overhang_bridge_fan = m_config->opt_bool("enable_overhang_bridge_fan", 0);
+      auto has_enable_overhang_bridge_fan = ToggleExpr::FromConfigBool(m_config, "enable_overhang_bridge_fan", 0);
       for (auto el : {"overhang_fan_speed", "overhang_fan_threshold", "internal_bridge_fan_speed"}) // ORCA: Add support for separate internal bridge fan speed control
             toggle_option(el, has_enable_overhang_bridge_fan);
 
-      toggle_option("additional_cooling_fan_speed", cfg.opt_bool("auxiliary_fan"));
+      toggle_option("additional_cooling_fan_speed", ToggleExpr::FromConfigBool(&cfg, "auxiliary_fan"));
 
       // Orca: toggle dont slow down for external perimeters if
-      bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
+      auto has_slow_down_for_layer_cooling = ToggleExpr::FromConfigBool(m_config, "slow_down_for_layer_cooling", 0);
       toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling);
     }
     if (m_active_page->title() == L("Filament"))
     {
-        bool pa = m_config->opt_bool("enable_pressure_advance", 0);
+        auto pa = ToggleExpr::FromConfigBool(m_config, "enable_pressure_advance", 0);
         toggle_option("pressure_advance", pa);
 
         //Orca: Enable the plates that should be visible when multi bed support is enabled or a BBL printer is selected; otherwise, enable only the plate visible for the selected bed type.
         DynamicConfig& proj_cfg               = m_preset_bundle->project_config;
-        std::string    bed_temp_1st_layer_key = "";
-        if (proj_cfg.has("curr_bed_type"))
+        std::string    bed_temp_1st_layer_key;
+        auto           has_bed_type= ToggleExpr(proj_cfg.has("curr_bed_type"), "curr_bed_type").set_postfixes(" not set", " is set");
+        if (has_bed_type)
         {
             bed_temp_1st_layer_key = get_bed_temp_1st_layer_key(proj_cfg.opt_enum<BedType>("curr_bed_type"));
         }
@@ -4213,13 +4253,16 @@ void TabFilament::toggle_options()
                                                         "textured_cool_plate_temp_initial_layer", "eng_plate_temp_initial_layer",
                                                         "textured_plate_temp_initial_layer", "hot_plate_temp_initial_layer"};
 
-        bool support_multi_bed_types = std::find(bed_temp_keys.begin(), bed_temp_keys.end(), bed_temp_1st_layer_key) ==
-                                           bed_temp_keys.end() ||
-                                       is_BBL_printer || cfg.opt_bool("support_multi_bed_types");
+        auto current_bed_has_temp = ToggleExpr(std::find(bed_temp_keys.begin(), bed_temp_keys.end(), bed_temp_1st_layer_key) ==
+                                                        bed_temp_keys.end(),
+                                                    bed_temp_1st_layer_key).set_postfixes(" not set", " is set");
+        auto support_multi_bed_types_opt = ToggleExpr::FromConfigBool(&cfg, "support_multi_bed_types");
+        auto support_multi_bed_types = (has_bed_type && current_bed_has_temp) ||
+                                       is_BBL_printer || support_multi_bed_types_opt;
 
         for (const auto& key : bed_temp_keys)
         {
-            toggle_line(key, support_multi_bed_types || bed_temp_1st_layer_key == key);
+            toggle_line(key, support_multi_bed_types || ToggleExpr(bed_temp_1st_layer_key == key, ""));
         }
 
 
@@ -4229,20 +4272,20 @@ void TabFilament::toggle_options()
         // If adaptive PA is not enabled, hide the adaptive PA model section
         toggle_option("adaptive_pressure_advance", pa);
         toggle_option("adaptive_pressure_advance_overhangs", pa);
-        bool has_adaptive_pa = m_config->opt_bool("adaptive_pressure_advance", 0);
+        auto has_adaptive_pa = ToggleExpr::FromConfigBool(m_config, "adaptive_pressure_advance", 0);
         toggle_line("adaptive_pressure_advance_overhangs", has_adaptive_pa && pa);
         toggle_line("adaptive_pressure_advance_model", has_adaptive_pa && pa);
         toggle_line("adaptive_pressure_advance_bridges", has_adaptive_pa && pa);
 
-        bool is_pellet_printer = cfg.opt_bool("pellet_modded_printer");
+        auto is_pellet_printer = ToggleExpr::FromConfigBool(&cfg, "pellet_modded_printer");
         toggle_line("pellet_flow_coefficient", is_pellet_printer);
         toggle_line("filament_diameter", !is_pellet_printer);
 
-        bool support_chamber_temp_control = this->m_preset_bundle->printers.get_edited_preset().config.opt_bool("support_chamber_temp_control");
+        auto support_chamber_temp_control = ToggleExpr::FromConfigBool(&cfg, "support_chamber_temp_control");
         toggle_line("chamber_temperature", support_chamber_temp_control);
 
-        std::string volumetric_speed_cos = m_config->opt_string("volumetric_speed_coefficients", 0u);
-        bool enable_fit = volumetric_speed_cos != "0 0 0 0 0 0";
+        auto volumetric_speed_cos = ToggleExpr::FromConfigString(m_config, "volumetric_speed_coefficients", 0u);
+        auto enable_fit = volumetric_speed_cos != "0 0 0 0 0 0";
         toggle_option("filament_adaptive_volumetric_speed", enable_fit, 256 + 0u);
     }
 
@@ -4256,13 +4299,14 @@ void TabFilament::toggle_options()
                         "filament_cooling_initial_speed", "filament_cooling_final_speed"})
             toggle_option(el, !is_BBL_printer);
 
-        bool multitool_ramming = m_config->opt_bool("filament_multitool_ramming", 0);
+        auto multitool_ramming = ToggleExpr::FromConfigBool(m_config, "filament_multitool_ramming", 0);
         toggle_option("filament_multitool_ramming_volume", multitool_ramming);
         toggle_option("filament_multitool_ramming_flow", multitool_ramming);
 
         const int extruder_idx = 0; // m_variant_combo->GetSelection(); // TODO: Orca hack
         toggle_line("long_retractions_when_ec", is_multi_extruder && is_BBL_printer, 256 + extruder_idx);
-        toggle_line("retraction_distances_when_ec", is_multi_extruder && is_BBL_printer && m_config->opt_bool("long_retractions_when_ec", extruder_idx), 256 + extruder_idx);
+        auto long_retractions_ec = ToggleExpr::FromConfigBool(m_config, "long_retractions_when_ec", extruder_idx);
+        toggle_line("retraction_distances_when_ec", is_multi_extruder && is_BBL_printer && long_retractions_ec, 256 + extruder_idx);
     }
 }
 
@@ -5189,6 +5233,7 @@ void TabPrinter::toggle_options()
 {
     if (!m_active_page || m_presets->get_edited_preset().printer_technology() == ptSLA)
         return;
+    this->clear_disabled_reasons();
 
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     auto extruders      = m_config->option<ConfigOptionEnumsGeneric>("extruder_type");
@@ -5199,21 +5244,28 @@ void TabPrinter::toggle_options()
     };
 
     //BBS: whether the preset is Bambu Lab printer
-    bool is_BBL_printer = false;
+    bool b_is_BBL_printer = false;
     if (m_preset_bundle) {
-       is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
+       b_is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
     }
 
-    bool is_QIDI_printer = false;
+    bool b_is_QIDI_printer = false;
     if (m_preset_bundle) {
-       is_QIDI_printer = wxGetApp().preset_bundle->is_qidi_vendor();
+       b_is_QIDI_printer = wxGetApp().preset_bundle->is_qidi_vendor();
     }
 
-    bool have_multiple_extruders = true;
+    auto is_BBL_printer = ToggleExpr(b_is_BBL_printer, "BBL printer").set_prefixes("Isn't ", "Is ").disable_postfix();
+    auto is_QIDI_printer = ToggleExpr(b_is_QIDI_printer, "QIDI printer").set_prefixes("Isn't ", "Is ").disable_postfix();
+
+    // bool have_multiple_extruders = true;
     //m_extruders_count > 1;
     //if (m_active_page->title() == "Custom G-code") {
     //    toggle_option("change_filament_gcode", have_multiple_extruders);
     //}
+    auto gcf = ToggleExpr::FromConfigEnum<GCodeFlavor>(m_config, "gcode_flavor");
+    auto gcf_is_marlin = gcf == gcfMarlinFirmware;
+    auto gcf_is_marlin_legacy = gcf == gcfMarlinLegacy;
+    auto gcf_is_klipper = gcf == gcfKlipper;
     if (m_active_page->title() == L("Basic information")) {
 
         // SoftFever: hide BBL specific settings
@@ -5224,15 +5276,14 @@ void TabPrinter::toggle_options()
         for (auto el : {"use_firmware_retraction", "use_relative_e_distances", "support_multi_bed_types", "pellet_modded_printer", "bed_mesh_max", "bed_mesh_min", "bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "thumbnails"})
           toggle_line(el, !is_BBL_printer);
 
-        auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
+        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf_is_marlin);
     }
     
 
     if (m_active_page->title() == L("Machine G-code")) {
         PresetBundle *preset_bundle = wxGetApp().preset_bundle;
         std::string   printer_type  = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-        toggle_line("wrapping_detection_gcode", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
+        toggle_line("wrapping_detection_gcode", ToggleExpr(DevPrinterConfigUtil::support_wrapping_detection(printer_type), "Doesn't support wrapping detection").disable_postfix());
     }
 
     if (m_active_page->title() == L("Multimaterial")) {
@@ -5247,8 +5298,8 @@ void TabPrinter::toggle_options()
              })
             toggle_option(el, !is_BBL_printer && !is_QIDI_printer);
 
-        auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
-        if (!bSEMM && m_config->opt_bool("manual_filament_change")) {
+        auto bSEMM = ToggleExpr::FromConfigBool(m_config, "single_extruder_multi_material");
+        if (!bSEMM && ToggleExpr::FromConfigBool(m_config, "manual_filament_change")) {
             DynamicPrintConfig new_conf = *m_config;
             new_conf.set_key_value("manual_filament_change", new ConfigOptionBool(false));
             load_config(new_conf);
@@ -5265,15 +5316,17 @@ void TabPrinter::toggle_options()
     {
         size_t i = size_t(val - 1);
         int variant_index = get_index_for_extruder(i);
-        bool have_retract_length = m_config->opt_float("retraction_length", variant_index) > 0;
+        auto have_retract_length = ToggleExpr::FromConfigFloat(m_config, "retraction_length", variant_index) > 0;
 
-        toggle_option("extruder_printable_area", false, i);          // disable
-        toggle_line("extruder_printable_area", m_preset_bundle->get_printer_extruder_count() == 2, i);  //hide
-        toggle_option("extruder_printable_height", false, i);
-        toggle_line("extruder_printable_height", m_preset_bundle->get_printer_extruder_count() == 2, i);
+        auto hardcoded_disabled = ToggleExpr(false, "Disabled").disable_postfix();
+        auto two_extruders = ToggleExpr(m_preset_bundle->get_printer_extruder_count() == 2, "Printer extruder count") > "2";
+        toggle_option("extruder_printable_area", hardcoded_disabled, i);          // disable
+        toggle_line("extruder_printable_area", two_extruders, i);  //hide
+        toggle_option("extruder_printable_height", hardcoded_disabled, i);
+        toggle_line("extruder_printable_height", two_extruders, i);
 
         // when using firmware retraction, firmware decides retraction length
-        bool use_firmware_retraction = m_config->opt_bool("use_firmware_retraction");
+        auto use_firmware_retraction = ToggleExpr::FromConfigBool(m_config, "use_firmware_retraction");
         toggle_option("retract_length", !use_firmware_retraction, i);
 
         // user can customize travel length if we have retraction length or we"re using
@@ -5282,7 +5335,7 @@ void TabPrinter::toggle_options()
 
         // user can customize other retraction options if retraction is enabled
         //BBS
-        bool retraction = have_retract_length || use_firmware_retraction;
+        auto retraction = have_retract_length || use_firmware_retraction;
         std::vector<std::string> vec = {"z_hop", "retract_when_changing_layer"};
         for (auto el : vec)
             toggle_option(el, retraction, i);
@@ -5291,7 +5344,7 @@ void TabPrinter::toggle_options()
         vec.resize(0);
         vec = {"retract_lift_above", "retract_lift_below", "retract_lift_enforce"};
         for (auto el : vec)
-          toggle_option(el, retraction && (m_config->opt_float("z_hop", i) > 0), i);
+          toggle_option(el, retraction && ToggleExpr::FromConfigFloat(m_config, "z_hop", i) > 0, i);
 
         // some options only apply when not using firmware retraction
         vec.resize(0);
@@ -5302,7 +5355,7 @@ void TabPrinter::toggle_options()
             //BBS
             toggle_option(el, retraction && !use_firmware_retraction, i);
 
-        bool wipe = retraction && m_config->opt_bool("wipe", variant_index);
+        auto wipe = retraction && ToggleExpr::FromConfigBool(m_config, "wipe", variant_index);
         toggle_option("retract_before_wipe", wipe, i);
 
         if (use_firmware_retraction && wipe) {
@@ -5327,37 +5380,39 @@ void TabPrinter::toggle_options()
         // BBS
         toggle_option("wipe_distance", wipe, i);
 
-        toggle_option("retract_length_toolchange", have_multiple_extruders, i);
+        // toggle_option("retract_length_toolchange", have_multiple_extruders, i);
 
-        bool toolchange_retraction = m_config->opt_float("retract_length_toolchange", variant_index) > 0;
-        toggle_option("retract_restart_extra_toolchange", have_multiple_extruders && toolchange_retraction, i);
+        auto toolchange_retraction = ToggleExpr::FromConfigFloat(m_config, "retract_length_toolchange", variant_index) > 0;
+        toggle_option("retract_restart_extra_toolchange", toolchange_retraction, i);
 
-        toggle_option("long_retractions_when_cut", !use_firmware_retraction && m_config->opt_int("enable_long_retraction_when_cut"), i);
-        toggle_line("retraction_distances_when_cut", m_config->opt_bool("long_retractions_when_cut", variant_index), i);
+        toggle_option("long_retractions_when_cut",
+                      !use_firmware_retraction && ToggleExpr::FromConfigInt(m_config, "enable_long_retraction_when_cut") != 0, i);
+        toggle_line("retraction_distances_when_cut", ToggleExpr::FromConfigBool(m_config, "long_retractions_when_cut", variant_index), i);
 
-        toggle_option("travel_slope", m_config->opt_enum("z_hop_types", i) != ZHopType::zhtNormal, i);
+        toggle_option("travel_slope",
+                      ToggleExpr::FromConfigEnum<ZHopType>(m_config, "z_hop_types", i) != ZHopType::zhtNormal,
+                      i);
     }
 
     if (m_active_page->title() == L("Motion ability")) {
-        auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
         bool silent_mode = m_config->opt_bool("silent_mode");
         int  max_field   = silent_mode ? 2 : 1;
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper, i);
-        toggle_line("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper);
+            toggle_option("machine_max_acceleration_travel", !gcf_is_marlin_legacy && !gcf_is_klipper, i);
+        toggle_line("machine_max_acceleration_travel", !gcf_is_marlin_legacy && !gcf_is_klipper);
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_junction_deviation", gcf == gcfMarlinFirmware, i);
-        toggle_line("machine_max_junction_deviation", gcf == gcfMarlinFirmware);
+            toggle_option("machine_max_junction_deviation", gcf_is_marlin, i);
+        toggle_line("machine_max_junction_deviation", gcf_is_marlin);
 
         // Check if junction deviation value is non-zero and firmware is Marlin
-        bool enable_jerk = gcf != gcfMarlinFirmware;
+        auto enable_jerk = !gcf_is_marlin;
         if (gcf == gcfMarlinFirmware) {
             const auto *junction_deviation = m_config->option<ConfigOptionFloats>("machine_max_junction_deviation");
             if (junction_deviation != nullptr) {
                 const auto &values = junction_deviation->values;
-                enable_jerk = std::all_of(values.begin(), values.end(), [](double val) { return val == 0.0; });
+                enable_jerk = ToggleExpr(std::all_of(values.begin(), values.end(), [](double val) { return val == 0.0; }), "machine_max_junction_deviation") == "0";
             } else {
-                enable_jerk = true;
+                enable_jerk = ToggleExpr(true, "");
             }
         }
         for (int i = 0; i < max_field; ++i) {
@@ -5367,7 +5422,7 @@ void TabPrinter::toggle_options()
             toggle_option("machine_max_jerk_e", enable_jerk, i);
         }
 
-        bool resonance_avoidance = m_config->opt_bool("resonance_avoidance");
+        auto resonance_avoidance = ToggleExpr::FromConfigBool(m_config, "resonance_avoidance");
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
     }
@@ -7408,8 +7463,9 @@ void TabSLAMaterial::reload_config()
 
 void TabSLAMaterial::toggle_options()
 {
+    this->clear_disabled_reasons();
     const Preset &current_printer = m_preset_bundle->printers.get_edited_preset();
-    std::string model = current_printer.config.opt_string("printer_model");
+    auto model = ToggleExpr::FromConfigString(&current_printer.config, "printer_model");
     m_config_manipulation.toggle_field("material_print_speed", model != "SL1");
 }
 
@@ -7563,6 +7619,7 @@ void TabSLAPrint::update_description_lines()
 
 void TabSLAPrint::toggle_options()
 {
+    this->clear_disabled_reasons();
     if (m_active_page)
         m_config_manipulation.toggle_print_sla_options(m_config);
 }
@@ -7612,12 +7669,12 @@ ConfigManipulation Tab::get_config_manipulation()
         update();
     };
 
-    auto cb_toggle_field = [this](const t_config_option_key& opt_key, bool toggle, int opt_index) {
-        return toggle_option(opt_key, toggle, opt_index >= 0 ? opt_index + 256 : opt_index);
+    auto cb_toggle_field = [this](const t_config_option_key& opt_key, const ToggleExpr& toggle_expr, int opt_index) {
+        return toggle_option(opt_key, toggle_expr, opt_index >= 0 ? opt_index + 256 : opt_index);
     };
 
-    auto cb_toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index) {
-        return toggle_line(opt_key, toggle, opt_index >= 0 ? opt_index + 256 : opt_index);
+    auto cb_toggle_line = [this](const t_config_option_key &opt_key, const ToggleExpr& toggle_expr, int opt_index) {
+        return toggle_line(opt_key, toggle_expr, opt_index >= 0 ? opt_index + 256 : opt_index);
     };
 
     auto cb_value_change = [this](const std::string& opt_key, const boost::any& value) {

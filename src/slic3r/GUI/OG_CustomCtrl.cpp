@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include "libslic3r/Utils.hpp"
 #include "I18N.hpp"
+#include "ToggleExpr.hpp"
 #include "format.hpp"
 #include <slic3r/GUI/Widgets/Label.hpp>
 
@@ -400,6 +401,27 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
         }
         if (!tooltip.IsEmpty())
             break;
+        for (auto& ctrl_line : ctrl_lines) {
+            for (const auto& option : ctrl_line.og_line.get_options()) {
+                auto field = opt_group->get_field(option.opt_id);
+                if (!field) continue;
+                auto win = field->getWindow();
+                if (!win) continue;
+                auto tooltips = win->GetToolTip();
+
+                auto tip = tooltips ? tooltips->GetTip() : "";
+                tip += "\n\n";
+                tip += ToggleExpr::build_reasons_string("Option is disabled.", field->disabled_reasons);
+                tip.Trim(true);
+
+                if (!tip.IsEmpty() && !win->IsEnabled() && is_point_in_rect(pos, win->GetRect())) {
+                    tooltip = tip;
+                    break;
+                }
+            }
+            if (!tooltip.IsEmpty())
+                break;
+        }
     }
 
     // Set tooltips with information for each icon

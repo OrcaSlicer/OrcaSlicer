@@ -57,6 +57,7 @@ public:
 	std::string	label_path;
     bool        undo_to_sys{false}; // BBS: object config
     bool        toggle_visible{true}; // BBS: hide some line
+    std::set<std::string> hidden_reasons; // Why was the visibility toggled
 
     size_t		full_width {0};
     widget_t	widget {nullptr};
@@ -240,6 +241,7 @@ protected:
 	virtual void		back_to_sys_value(const std::string& opt_key) {}
 
 public:
+    void clear_disabled_reasons();
 	static wxString		get_url(const std::string& path_end);
 	static bool			launch_browser(const std::string& path_end);
 };
