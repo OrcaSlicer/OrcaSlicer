@@ -2835,6 +2835,12 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
+                // Helper: persist corrected wipe tower position to config so the next slice uses valid coords.
+                auto persist_wipe_tower_pos = [&](float nx, float ny) {
+                    ConfigOptionFloat cx(nx), cy(ny);
+                    proj_cfg.option<ConfigOptionFloats>("wipe_tower_x")->set_at(&cx, plate_id, 0);
+                    proj_cfg.option<ConfigOptionFloats>("wipe_tower_y")->set_at(&cy, plate_id, 0);
+                };
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
                 float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
 
@@ -2884,6 +2890,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                         _set_warning_notification(EWarning::PreviewPrimeTowerOutside, true);
                         x = new_x;
                         y = new_y;
+                        // Persist the correction to config so the next slice uses the valid position
+                        persist_wipe_tower_pos(new_x, new_y);
                     }
 
 
@@ -2906,7 +2914,13 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                         BoundingBoxf3 plate_bbox        = wxGetApp().plater()->get_partplate_list().get_plate(plate_id)->get_build_volume(true);
                         BoundingBox   plate_bbox2d      = BoundingBox(scaled(Vec2f(plate_bbox.min[0], plate_bbox.min[1])), scaled(Vec2f(plate_bbox.max[0], plate_bbox.max[1])));
                         Vec2f         offset            = WipeTower::move_box_inside_box(tower_bottom_bbox, plate_bbox2d, scaled(margin));
-                        int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
+                        // move_box_inside_box returns mm (already unscaled); apply directly.
+                        // If the actual brim polygon is outside bounds, persist the correction to config.
+                        float display_x = x + offset[0];
+                        float display_y = y + offset[1];
+                        if (offset.norm() > float(EPSILON))
+                            persist_wipe_tower_pos(display_x, display_y);
+                        int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, display_x + plate_origin(0), display_y + plate_origin(1),
                                                                                                current_print->wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
                                                                                                current_print->wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh,
                                                                                             true,a,/*!print->is_step_done(psWipeTower)*/ true, m_initialized);

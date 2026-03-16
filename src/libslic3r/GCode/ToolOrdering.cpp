@@ -1321,19 +1321,18 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         return false;
         };
 
-    if (m_print->is_BBL_printer() || number_of_extruders == 1){
+    auto maps_without_group = filament_maps;
+    for (auto& item : maps_without_group)
+        item = 0;
+
     reorder_filaments_for_minimum_flush_volume(
         filament_lists,
-        filament_maps,
+        m_print->is_BBL_printer() ? filament_maps : maps_without_group, // non-bbl printers do not support filament group yet
         layer_filaments,
         nozzle_flush_mtx,
         get_custom_seq,
         &filament_sequences
     );
-    } else {
-        // For non-bbl multi-extruder printers we don't support filament group yet, so we keep the layer sequence because we don't flush based on order
-        filament_sequences = layer_filaments;
-    }
 
     auto curr_flush_info = calc_filament_change_info_by_toolorder(print_config, filament_maps, nozzle_flush_mtx, filament_sequences);
     if (nozzle_nums <= 1)
@@ -1349,9 +1348,6 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         // always calculate the info by one extruder
         {
             std::vector<std::vector<unsigned int>>filament_sequences_one_extruder;
-            auto maps_without_group = filament_maps;
-            for (auto& item : maps_without_group)
-                item = 0;
             reorder_filaments_for_minimum_flush_volume(
                 filament_lists,
                 maps_without_group,

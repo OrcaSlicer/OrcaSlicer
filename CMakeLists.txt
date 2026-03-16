@@ -493,7 +493,8 @@ if (APPLE)
 endif ()
 
 if(MSVC)
-# 添加编译选项，忽略警告 C4305 （格式转换截断）
+# Ignore truncating casts in initializers & constructors
+# https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-c4305
 add_compile_options(/wd4305)
 endif()
 
