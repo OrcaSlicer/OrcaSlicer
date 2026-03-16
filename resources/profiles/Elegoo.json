@@ -87,6 +87,10 @@
             "sub_path": "process/fdm_process_elegoo_common.json"
         },
         {
+            "name": "fdm_process_elegoo_02010",
+            "sub_path": "process/fdm_process_elegoo_02010.json"
+        },
+        {
             "name": "fdm_process_ecc",
             "sub_path": "process/ECC/fdm_process_ecc.json"
         },
@@ -1105,6 +1109,10 @@
             "sub_path": "filament/fdm_filament_pla.json"
         },
         {
+            "name": "fdm_filament_paht",
+            "sub_path": "filament/fdm_filament_paht.json"
+        },
+        {
             "name": "Elegoo ASA @base",
             "sub_path": "filament/BASE/Elegoo ASA @base.json"
         },
@@ -1135,6 +1143,26 @@
         {
             "name": "Elegoo RAPID PLA+ @base",
             "sub_path": "filament/BASE/Elegoo RAPID PLA+ @base.json"
+        },
+        {
+            "name": "Elegoo TPU @base",
+            "sub_path": "filament/BASE/Elegoo TPU @base.json"
+        },
+        {
+            "name": "Elegoo PETG @base",
+            "sub_path": "filament/BASE/Elegoo PETG @base.json"
+        },
+        {
+            "name": "Elegoo ABS @base",
+            "sub_path": "filament/BASE/Elegoo ABS @base.json"
+        },
+        {
+            "name": "Elegoo PAHT @base",
+            "sub_path": "filament/BASE/Elegoo PAHT @base.json"
+        },
+        {
+            "name": "Elegoo PC @base",
+            "sub_path": "filament/BASE/Elegoo PC @base.json"
         },
         {
             "name": "Elegoo TPU 95A @base",
@@ -1171,6 +1199,10 @@
         {
             "name": "Elegoo ASA @0.2 nozzle",
             "sub_path": "filament/ELEGOO/Elegoo ASA @0.2 nozzle.json"
+        },
+        {
+            "name": "Elegoo PETG @0.2 nozzle",
+            "sub_path": "filament/ELEGOO/Elegoo PETG @0.2 nozzle.json"
         },
         {
             "name": "Elegoo ASA @EC",
@@ -1211,6 +1243,26 @@
         {
             "name": "Elegoo RAPID PETG @0.2 nozzle",
             "sub_path": "filament/ELEGOO/Elegoo RAPID PETG @0.2 nozzle.json"
+        },
+        {
+            "name": "Elegoo ABS @0.2 nozzle",
+            "sub_path": "filament/ELEGOO/Elegoo ABS @0.2 nozzle.json"
+        },
+        {
+            "name": "Elegoo PC @0.2 nozzle",
+            "sub_path": "filament/ELEGOO/Elegoo PC @0.2 nozzle.json"
+        },
+        {
+            "name": "Elegoo PC-FR @0.2 nozzle",
+            "sub_path": "filament/ELEGOO/Elegoo PC-FR @0.2 nozzle.json"
+        },
+        {
+            "name": "Elegoo PLA Basic @0.2 nozzle",
+            "sub_path": "filament/ELEGOO/Elegoo PLA Basic @0.2 nozzle.json"
+        },
+        {
+            "name": "Elegoo PETG Translucent @0.2 nozzle",
+            "sub_path": "filament/ELEGOO/Elegoo PETG Translucent @0.2 nozzle.json"
         },
         {
             "name": "Elegoo RAPID PETG @EC",
@@ -1367,6 +1419,66 @@
         {
             "name": "Elegoo TPU 95A @ECC2",
             "sub_path": "filament/ECC2/Elegoo TPU 95A @ECC2.json"
+        },
+        {
+            "name": "Elegoo PLA @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PLA @ECC2.json"
+        },
+        {
+            "name": "Elegoo PETG @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PETG @ECC2.json"
+        },
+        {
+            "name": "Elegoo ABS @ECC2",
+            "sub_path": "filament/ECC2/Elegoo ABS @ECC2.json"
+        },
+        {
+            "name": "Elegoo PLA Galaxy @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PLA Galaxy @ECC2.json"
+        },
+        {
+            "name": "Elegoo PLA Basic @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PLA Basic @ECC2.json"
+        },
+        {
+            "name": "Elegoo PLA Marble @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PLA Marble @ECC2.json"
+        },
+        {
+            "name": "Elegoo PLA Sparkle @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PLA Sparkle @ECC2.json"
+        },
+        {
+            "name": "Elegoo PLA Wood @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PLA Wood @ECC2.json"
+        },
+        {
+            "name": "Elegoo PAHT-CF @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PAHT-CF @ECC2.json"
+        },
+        {
+            "name": "Elegoo PC @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PC @ECC2.json"
+        },
+        {
+            "name": "Elegoo PC-FR @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PC-FR @ECC2.json"
+        },
+        {
+            "name": "Elegoo PETG-CF @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PETG-CF @ECC2.json"
+        },
+        {
+            "name": "Elegoo PETG-GF @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PETG-GF @ECC2.json"
+        },
+        {
+            "name": "Elegoo PETG Translucent @ECC2",
+            "sub_path": "filament/ECC2/Elegoo PETG Translucent @ECC2.json"
+        },
+        {
+            "name": "Elegoo RAPID TPU 95A @ECC2",
+            "sub_path": "filament/ECC2/Elegoo RAPID TPU 95A @ECC2.json"
         },
         {
             "name": "Elegoo ASA @Elegoo Giga",

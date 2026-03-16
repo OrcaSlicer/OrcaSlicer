@@ -16035,7 +16035,8 @@ msgstr "Поверхности"
 msgid "Topmost surface"
 msgstr "Верхний слой"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Сплошные слои"
 
 msgid "Ironing Pattern"
@@ -16589,7 +16590,8 @@ msgstr ""
 "материалом конической геометрии. При 0 все отверстия в основании модели "
 "будут заполнены."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Обнаруживать нависающие периметры"
 
 #, c-format, boost-format
@@ -17327,8 +17329,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Заполнять области менее"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Заполнять целиком области внутри слоя с площадью меньше указанного значения."
@@ -18167,12 +18170,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Температура при печати последующих слоёв."
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Обнаруживать тонкие стенки"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Обнаруживать стенки, которые можно напечатать только в одну линию. Возможно, "
 "будет напечатано не очень хорошо, так как это разомкнутый контур.\n"
@@ -18852,7 +18857,8 @@ msgstr ""
 "подогнана под размер элемента, если значение этого параметра меньше его "
 "ширины. Можно указать процент от диаметра сопла."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Оптимизация заполнения узких мест"
 
 msgid ""

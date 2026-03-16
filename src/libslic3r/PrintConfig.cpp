@@ -187,6 +187,12 @@ static t_config_enum_values s_keys_map_NoiseType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
 
+static t_config_enum_values s_keys_map_WipeTowerType {
+    { "type1",          int(WipeTowerType::Type1) },
+    { "type2",          int(WipeTowerType::Type2) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerType)
+
 static t_config_enum_values s_keys_map_FuzzySkinMode {
     { "displacement",   int(FuzzySkinMode::Displacement) },
     { "extrusion",      int(FuzzySkinMode::Extrusion) },
@@ -3973,7 +3979,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("No ironing"));
     def->enum_labels.push_back(L("Top surfaces"));
     def->enum_labels.push_back(L("Topmost surface"));
-    def->enum_labels.push_back(L("All solid layer"));
+    def->enum_labels.push_back(L("All solid layers"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<IroningType>(IroningType::NoIroning));
 
@@ -4555,7 +4561,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0.));
 
     def = this->add("detect_overhang_wall", coBool);
-    def->label = L("Detect overhang wall");
+    def->label = L("Detect overhang walls");
     def->category = L("Quality");
     def->tooltip = L("Detect the overhang percentage relative to line width and use different speed to print. "
                      "For 100%% overhang, bridge speed is used.");
@@ -5305,7 +5311,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("minimum_sparse_infill_area", coFloat);
     def->label = L("Minimum sparse infill threshold");
     def->category = L("Strength");
-    def->tooltip = L("Sparse infill area which is smaller than threshold value is replaced by internal solid infill.");
+    def->tooltip = L("Sparse infill areas smaller than this threshold value are replaced by internal solid infill.");
     def->sidetext = L(u8"mm²");	// square milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -5483,6 +5489,17 @@ void PrintConfigDef::init_fff_params()
                     "This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wipe_tower_type", coEnum);
+    def->label = L("Wipe tower type");
+    def->tooltip = L("Choose the wipe tower implementation for multi-material prints. Type 1 is recommended for Bambu and Qidi printers with a filament cutter. Type 2 offers better compatibility with multi-tool and MMU printers and provide overall better compatibility.");
+    def->enum_keys_map = &ConfigOptionEnum<WipeTowerType>::get_enum_values();
+    def->enum_values.emplace_back("type1");
+    def->enum_values.emplace_back("type2");
+    def->enum_labels.emplace_back(L("Type 1"));
+    def->enum_labels.emplace_back(L("Type 2"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<WipeTowerType>(WipeTowerType::Type2));
 
     def = this->add("purge_in_prime_tower", coBool);
     def->label = L("Purge in prime tower");
@@ -6146,10 +6163,10 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionPoints{});
 
     def = this->add("detect_thin_wall", coBool);
-    def->label = L("Detect thin wall");
+    def->label = L("Detect thin walls");
     def->category = L("Strength");
-    def->tooltip = L("Detect thin wall which can't contain two line width. And use single line to print. "
-                     "Maybe printed not very well, because it's not closed loop.");
+    def->tooltip = L("Detect thin walls which can't contain two line widths, and use single line to print. "
+                     "Maybe not printed very well, because it's not a closed loop.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6760,7 +6777,7 @@ void PrintConfigDef::init_fff_params()
     }
 
     def = this->add("detect_narrow_internal_solid_infill", coBool);
-    def->label = L("Detect narrow internal solid infill");
+    def->label = L("Detect narrow internal solid infills");
     def->category = L("Strength");
     def->tooltip = L("This option will auto-detect narrow internal solid infill areas. "
                      "If enabled, the concentric pattern will be used for the area to speed up printing. "

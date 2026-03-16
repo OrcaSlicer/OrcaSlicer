@@ -145,7 +145,6 @@ public:
     VendorType get_current_vendor_type();
     // Vendor related handy functions
     bool is_bbl_vendor() { return get_current_vendor_type() == VendorType::Marlin_BBL; }
-    bool is_qidi_vendor() { return get_current_vendor_type() == VendorType::Klipper_Qidi; }
 
     // Whether using bbl network for print upload
     bool use_bbl_network();

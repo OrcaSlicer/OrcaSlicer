@@ -15259,7 +15259,8 @@ msgstr "Üst yüzeyler"
 msgid "Topmost surface"
 msgstr "En üst yüzey"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Tamamı katı katman"
 
 msgid "Ironing Pattern"
@@ -15787,7 +15788,8 @@ msgstr ""
 "Modelin tabanındaki bir deliğin, konik malzemeyle doldurulmadan önce "
 "maksimum alanı. 0 değeri, model tabanındaki tüm delikleri dolduracaktır."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Çıkıntılı duvarı algıla"
 
 #, c-format, boost-format
@@ -16482,8 +16484,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Minimum seyrek dolgu"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Eşik değerinden küçük olan seyrek dolgu alanı, yerini iç katı dolguya "
@@ -17237,12 +17240,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "İlk katmandan sonraki katmanlar için nozul sıcaklığı."
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "İnce duvarı algıla"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "İki çizgi genişliğini içeremeyen ince duvarı tespit edin. Ve yazdırmak için "
 "tek satır kullanın. Kapalı döngü olmadığından pek iyi basılmamış olabilir."
@@ -17867,7 +17872,8 @@ msgstr ""
 "duvar, özelliğin kendisi kadar kalın olacaktır. Nozul çapına göre yüzde "
 "olarak ifade edilir."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Dar iç katı dolguyu tespit et"
 
 msgid ""

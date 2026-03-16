@@ -14479,7 +14479,8 @@ msgstr "Alle bovenoppervlakken"
 msgid "Topmost surface"
 msgstr "Alleen het bovenste oppervlak"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Alle vaste lagen"
 
 msgid "Ironing Pattern"
@@ -14942,7 +14943,8 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Overhange wand detecteren"
 
 #, c-format, boost-format
@@ -15538,8 +15540,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Minimale drempel voor dunne opvulling (infill)"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Dunne opvullingen (infill) die kleiner zijn dan deze drempelwaarde worden "
@@ -16216,12 +16219,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Mondstuk temperatuur voor de lagen na de eerste laag"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Detecteer dunne wanden"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Dit detecteert dunne wanden die geen twee lijnen kunnen bevatten en gebruikt "
 "een enkele lijn tijdens het printen. Het kan zijn dat de kwaliteit minder "
@@ -16772,7 +16777,8 @@ msgstr ""
 "van het element, wordt de muur net zo dik als het object zelf. Dit wordt "
 "uitgedrukt als een percentage ten opzichte van de diameter van het mondstuk"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Detecteer dichte interne solide vulling (infill)"
 
 msgid ""
