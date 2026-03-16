@@ -52,12 +52,12 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
         int textHeight = fm.ascent + fm.descent;
 
         wxRect   rect       = GetClientRect();
-        wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, rect.GetWidth() - FromDIP(8));
+        wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, wxMax(0, rect.GetWidth() - FromDIP(8)));
 
         int y = rect.y + (rect.height - textHeight) / 2;
         int x = rect.x + (ellipsized != m_title)                       // is ellipsized
-            ? FromDIP(4)                                               // fixed left when clipped
-            : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2; // centered when full
+            ? FromDIP(4)                                               // align to left when clipped
+            : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2; // centered when has available space
 
         dc.DrawText(ellipsized, x, y);
     });
@@ -80,8 +80,7 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
 
 void CenteredTitle::SetTitle(const wxString& title) {
     m_title = title;
-    RefreshRect(GetClientRect());
-    Update(); 
+    Refresh();
 }
 
 // required for proper height
@@ -94,40 +93,9 @@ wxSize CenteredTitle::DoGetBestSize() const
 class BBLTopbarArt : public wxAuiDefaultToolBarArt
 {
 public:
-    //virtual void DrawLabel(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect) wxOVERRIDE;
     virtual void DrawBackground(wxDC& dc, wxWindow* wnd, const wxRect& rect) wxOVERRIDE;
     virtual void DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect) wxOVERRIDE;
 };
-
-/*
-void BBLTopbarArt::DrawLabel(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect)
-{
-    dc.SetFont(m_font);
-#ifdef __WINDOWS__
-    dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
-#else
-    dc.SetTextForeground(*wxWHITE);
-#endif
-
-    int textWidth = 0, textHeight = 0;
-    dc.GetTextExtent(item.GetLabel(), &textWidth, &textHeight);
-
-    wxRect clipRect = rect;
-    clipRect.width -= 1;
-    dc.SetClippingRegion(clipRect);
-
-    int textX, textY;
-    if (textWidth < rect.GetWidth()) {
-        textX = rect.x + 1 + (rect.width - textWidth) / 2;
-    }
-    else {
-        textX = rect.x + 1;
-    }
-    textY = rect.y + (rect.height - textHeight) / 2;
-    dc.DrawText(item.GetLabel(), textX, textY);
-    dc.DestroyClippingRegion();
-}
-*/
 
 void BBLTopbarArt::DrawBackground(wxDC& dc, wxWindow* wnd, const wxRect& rect)
 {
@@ -399,11 +367,11 @@ void BBLTopbar::OnOpenProject(wxAuiToolBarEvent& event)
     plater->load_project();
 }
 
-void BBLTopbar::show_publish_button(bool show)
-{
-    this->EnableTool(m_publish_item->GetId(), show);
-    Refresh();
-}
+//void BBLTopbar::show_publish_button(bool show)
+//{
+//    this->EnableTool(m_publish_item->GetId(), show);
+//    Refresh();
+//}
 
 void BBLTopbar::OnSaveProject(wxAuiToolBarEvent& event)
 {

@@ -44,7 +44,7 @@ public:
     void OnMouseCaptureLost(wxMouseCaptureLostEvent& event);
     void OnMenuClose(wxMenuEvent& event);
     void OnOpenProject(wxAuiToolBarEvent& event);
-    void show_publish_button(bool show);
+    //void show_publish_button(bool show);
     void OnSaveProject(wxAuiToolBarEvent& event);
     void OnUndo(wxAuiToolBarEvent& event);
     void OnRedo(wxAuiToolBarEvent& event);
@@ -90,7 +90,7 @@ private:
     wxAuiToolBarItem* m_account_item;
     wxAuiToolBarItem* m_model_store_item;
     
-    wxAuiToolBarItem *m_publish_item;
+    //wxAuiToolBarItem *m_publish_item;
     wxAuiToolBarItem* m_undo_item;
     wxAuiToolBarItem* m_redo_item;
     wxAuiToolBarItem* m_calib_item;
