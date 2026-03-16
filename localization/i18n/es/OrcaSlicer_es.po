@@ -16065,7 +16065,8 @@ msgstr "Todas las superficies superiores"
 msgid "Topmost surface"
 msgstr "Sólo la superficie superior"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Todas la capas sólidas"
 
 msgid "Ironing Pattern"
@@ -16617,7 +16618,7 @@ msgstr ""
 "material cónico. El valor 0 llenará todos los orificios en la base del "
 "modelo."
 
-msgid "Detect overhang wall"
+msgid "Detect overhang walls"
 msgstr "Detectar perímetros en voladizo"
 
 #, c-format, boost-format
@@ -17325,8 +17326,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Umbral de área mínima de relleno de baja densidad"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "El área de relleno de baja densidad que es menor que este valor de umbral se "
@@ -18117,12 +18119,12 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Temperatura de la boquilla después de la primera capa."
 
-msgid "Detect thin wall"
+msgid "Detect thin walls"
 msgstr "Detección de perímetros delgados"
 
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Detectar los perímetros delgados que no pueden contener dos líneas de ancho, "
 "y utilizar una sola línea para imprimir. Tal vez no se imprima muy bien, "
@@ -18777,7 +18779,8 @@ msgstr ""
 "propia característica. Se expresa en porcentaje en base al diámetro de la "
 "boquilla."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Detección de relleno interno estrecho"
 
 msgid ""

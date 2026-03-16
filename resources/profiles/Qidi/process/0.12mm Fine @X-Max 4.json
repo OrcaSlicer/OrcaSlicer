@@ -10,7 +10,7 @@
     "bridge_flow": "1",
     "default_acceleration": ["10000"],
     "elefant_foot_compensation": "0.15",
-    "enable_arc_fitting": "1",
+    "enable_arc_fitting": "0",
     "gap_infill_speed": ["350"],
     "initial_layer_infill_speed": ["105"],
     "initial_layer_speed": ["50"],

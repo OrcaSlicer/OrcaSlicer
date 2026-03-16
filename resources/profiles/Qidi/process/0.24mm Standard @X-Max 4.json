@@ -8,7 +8,7 @@
     "bridge_flow": "1",
     "default_acceleration": ["10000"],
     "elefant_foot_compensation": "0.15",
-    "enable_arc_fitting": "1",
+    "enable_arc_fitting": "0",
     "gap_infill_speed": ["230"],
     "inner_wall_acceleration": ["5000"],
     "inner_wall_speed": ["230"],
