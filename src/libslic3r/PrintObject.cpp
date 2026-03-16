@@ -1,4 +1,6 @@
 #include "Exception.hpp"
+#include "Model.hpp"
+#include "Point.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
@@ -728,9 +730,14 @@ void PrintObject::contour_z()
         throw RuntimeError("ContourZ: unexpected number of instances");
     }
 
-    m_model_object->instances.front()->transform_mesh(&mesh, true);
-    sla::IndexedMesh imesh(mesh);
+    ModelInstance *inst = m_model_object->instances.front();
+    Point center_offset = this->center_offset();
+    Geometry::Transformation trans = inst->get_transformation();
+    trans.set_offset(Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
 
+    mesh.transform(trans.get_matrix());
+
+    sla::IndexedMesh imesh(mesh);
     std::mutex mtx;
     size_t completed = 0;
     tbb::parallel_for(
