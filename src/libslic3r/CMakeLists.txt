@@ -175,6 +175,8 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
+    Fill/FillFloatingConcentric.hpp
+    Fill/FillFloatingConcentric.cpp
     Flow.cpp
     Flow.hpp
     FlushVolCalc.cpp

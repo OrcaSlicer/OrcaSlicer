@@ -757,6 +757,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (auto el : {"tree_support_branch_angle_organic", "tree_support_branch_distance_organic", "tree_support_branch_diameter_organic", "tree_support_angle_slow", "tree_support_tip_diameter", "tree_support_top_rate", "tree_support_branch_diameter_angle"})
         toggle_line(el, support_is_organic);
 
+    const bool ensure_vertical_shell_enabled =
+        config->has("ensure_vertical_shell_thickness") &&
+        config->opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") != evstNone;
+    for (auto el : { "detect_floating_vertical_shell", "vertical_shell_speed" })
+        toggle_line(el, ensure_vertical_shell_enabled);
+
     toggle_field("tree_support_brim_width", support_is_tree && !config->opt_bool("tree_support_auto_brim"));
     // tree support use max_bridge_length instead of bridge_no_support
     toggle_line("max_bridge_length", support_is_tree);

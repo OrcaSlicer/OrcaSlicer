@@ -134,6 +134,7 @@ enum class EGCodeExtrusionRole : uint8_t
 	  OverhangPerimeter,
 	  InternalInfill,
 	  SolidInfill,
+      EnsureVertical,
 	  TopSolidInfill,
 	  Ironing,
 	  BridgeInfill,

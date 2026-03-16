@@ -101,6 +101,8 @@ public:
     }
     void append(const Polyline& src);
     void append(Polyline&& src);
+
+    Polyline rebase_at(size_t idx);
   
     Point& operator[](Points::size_type idx) { return this->points[idx]; }
     const Point& operator[](Points::size_type idx) const { return this->points[idx]; }
@@ -265,6 +267,9 @@ public:
         Polyline::clear();
         width.clear();
     }
+
+    ThickPolyline rebase_at(size_t idx);
+    coordf_t get_width_at(size_t point_idx) const;
 
     // Make this closed ThickPolyline starting in the specified index.
     // Be aware that this method can be applicable just for closed ThickPolyline.

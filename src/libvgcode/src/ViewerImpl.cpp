@@ -287,6 +287,7 @@ static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRU
     {  31,  31, 255 }, // OverhangPerimeter
     { 176,  48,  41 }, // InternalInfill
     { 150,  84, 204 }, // SolidInfill
+    { 230, 179, 179 }, // EnsureVertical
     { 240,  64,  64 }, // TopSolidInfill
     { 255, 140, 105 }, // Ironing
     {  77, 128, 186 }, // BridgeInfill

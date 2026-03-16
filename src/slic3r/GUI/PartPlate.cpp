@@ -4916,12 +4916,22 @@ int PartPlateList::notify_instance_update(int obj_id, int instance_id, bool is_n
 
 	auto is_object_config_compatible_with_spiral_vase = [](ModelObject* object) {
 		const DynamicPrintConfig& config = object->config.get();
+        const bool ensure_vertical_shell_enabled = [&config]() {
+            if (const auto *opt = config.option<ConfigOptionEnum<EnsureVerticalShellThickness>>("ensure_vertical_shell_thickness"))
+                return opt->value != evstNone;
+            if (const auto *opt_generic = config.option<ConfigOptionEnumGeneric>("ensure_vertical_shell_thickness"))
+                return opt_generic->value != int(evstNone);
+            // Legacy fallback.
+            if (const auto *opt_bool = config.option<ConfigOptionBool>("ensure_vertical_shell_thickness"))
+                return opt_bool->value;
+            return false;
+        }();
 		if (config.has("wall_loops") && config.opt_int("wall_loops") == 1 &&
 			config.has("top_shell_layers") && config.opt_int("top_shell_layers") == 0 &&
 			config.has("sparse_infill_density") && config.option<ConfigOptionPercent>("sparse_infill_density")->value == 0 &&
 			config.has("enable_support") && !config.opt_bool("enable_support") &&
 			config.has("enforce_support_layers") && config.opt_int("enforce_support_layers") == 0 &&
-			config.has("ensure_vertical_shell_thickness") && config.opt_bool("ensure_vertical_shell_thickness") &&
+			ensure_vertical_shell_enabled &&
 			config.has("detect_thin_wall") && !config.opt_bool("detect_thin_wall") &&
 			config.has("timelapse_type") && config.opt_enum<TimelapseType>("timelapse_type") == TimelapseType::tlTraditional)
 			return true;

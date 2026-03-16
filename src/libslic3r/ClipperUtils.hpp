@@ -521,6 +521,7 @@ Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3
 Slic3r::Polylines  intersection_pl(const Slic3r::Polyline &subject, const Slic3r::ExPolygon &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::ExPolygon &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polyline &subject, const Slic3r::Polygons &clip);
+Slic3r::Polylines  intersection_pl(const Slic3r::Polyline &subject, const Slic3r::ExPolygons &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::Polygons &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::ExPolygons &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip);

@@ -5703,7 +5703,7 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
     
     if (!enable_seam_slope) {
         for (ExtrusionPaths::iterator path = paths.begin(); path != paths.end(); ++path) {
-            gcode += this->_extrude(*path, description, speed_for_path(*path));
+            gcode += this->_extrude(*path, description, speed_for_path(*path),path->get_customize_flag() == CustomizeFlag::cfFloatingVerticalShell);
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -5739,7 +5739,7 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
 
         // Then extrude it
         for (const auto& p : new_loop.get_all_paths()) {
-            gcode += this->_extrude(*p, description, speed_for_path(*p));
+            gcode += this->_extrude(*p, description, speed_for_path(*p) ,p->get_customize_flag() == CustomizeFlag::cfFloatingVerticalShell);
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -5834,7 +5834,7 @@ std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string 
     // Orca: end of multipath average mm3_per_mm value calculation
     
     for (ExtrusionPath path : multipath.paths){
-        gcode += this->_extrude(path, description, speed);
+        gcode += this->_extrude(path, description, speed ,path.get_customize_flag() == CustomizeFlag::cfFloatingVerticalShell);
         // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
         // as we have already set the PA value to the average flow over the totality of the path
         // in the first extrude move.
@@ -5877,7 +5877,7 @@ std::string GCode::extrude_path(ExtrusionPath path, std::string description, dou
     m_multi_flow_segment_path_pa_set = false;
     m_multi_flow_segment_path_average_mm3_per_mm = 0;
     //    description += ExtrusionEntity::role_to_string(path.role());
-    std::string gcode = this->_extrude(path, description, speed);
+    std::string gcode = this->_extrude(path, description, speed, path.get_customize_flag() == CustomizeFlag::cfFloatingVerticalShell);
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
         m_wipe.path = path.polyline;
         if (is_tree(this->config().support_type) && (path.role() == erSupportMaterial || path.role() == erSupportMaterialInterface || path.role() == erSupportTransition)) {
@@ -6111,7 +6111,7 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
     return res;
 }
 
-std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
+std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed, bool use_seperate_speed, bool is_first_slope)
 {
     std::string gcode;
 
@@ -6280,6 +6280,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             speed = m_config.get_abs_value("sparse_infill_speed");
         } else if (path.role() == erSolidInfill) {
             speed = m_config.get_abs_value("internal_solid_infill_speed");
+        } else if (path.role() == erFloatingVerticalShell) {
+            if(use_seperate_speed){
+                speed = m_config.get_abs_value("bridge_speed");
+            }
+            else{
+                speed = m_config.vertical_shell_speed.get_abs_value(m_config.get_abs_value("internal_solid_infill_speed"));
+            }
         } else if (path.role() == erTopSolidInfill) {
             speed = m_config.get_abs_value("top_surface_speed");
         } else if (path.role() == erIroning) {
@@ -6503,6 +6510,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     bool last_was_wipe_tower = (m_last_processor_extrusion_role == erWipeTower);
     char buf[64];
     assert(is_decimal_separator_point());
+
+     if (use_seperate_speed)
+        gcode += "; Slow Down Start\n";
 
     if (path.role() != m_last_processor_extrusion_role) {
         m_last_processor_extrusion_role = path.role();
@@ -6730,7 +6740,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     } else {
                         // Sloped extrusion
-                        const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
+                        const auto [z_ratio, e_ratio,slope_speed] = sloped->interpolate(path_length / total_length);
                         Vec2d dest2d = this->point_to_gcode(line.b);
                         Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
                         gcode += m_writer.extrude_to_xyz(
@@ -6916,7 +6926,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 gcode += m_writer.extrude_to_xy(p, dE, GCodeWriter::full_gcode_comment ? tempDescription : "");
             } else {
                 // Sloped extrusion
-                const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
+                const auto [z_ratio, e_ratio,slope_speed] = sloped->interpolate(path_length / total_length);
                 Vec3d dest3d(p(0), p(1), get_sloped_z(z_ratio));
                 gcode += m_writer.extrude_to_xyz(dest3d, dE * e_ratio, GCodeWriter::full_gcode_comment ? tempDescription : "");
             }
@@ -6933,6 +6943,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
       m_last_notgapfill_extrusion_role = path.role();
     }
 
+    if (use_seperate_speed) {
+        gcode += "; Slow Down End\n";
+    }
+    
     this->set_last_pos(path.last_point());
     return gcode;
 }

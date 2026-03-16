@@ -19,6 +19,7 @@
 #include "FillTpmsFK.hpp"
 #include "FillConcentric.hpp"
 #include "libslic3r.h"
+#include "FillFloatingConcentric.hpp"
 
 namespace Slic3r {
 
@@ -886,7 +887,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                             params.pattern = region_config.bottom_surface_pattern.value;
                             params.density = float(region_config.bottom_surface_density);
                         }
-                    } else if (surface.is_solid_infill()) {
+					}else if(surface.is_floating_vertical_shell()){
+						params.pattern = InfillPattern::ipFloatingConcentric;
+					}else if (surface.is_solid_infill()) {
                         params.pattern = region_config.internal_solid_infill_pattern.value;
                         params.density = 100.f;
                     } else {
@@ -910,7 +913,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.extrusion_role = erTopSolidInfill;
                     } else if (surface.is_bottom()) {
                         params.extrusion_role = erBottomSurface;
-                    } else {
+                    } else if(surface.is_floating_vertical_shell()) {
+						params.extrusion_role = erFloatingVerticalShell;
+					}else{
                         params.extrusion_role = erSolidInfill;
                     }
                 }
@@ -942,12 +947,15 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 					layerm.flow(extrusion_role, (surface.thickness == -1) ? layer.height : surface.thickness);
 				// record speed params
                 if (!params.bridge) {
-                    if (params.extrusion_role == erInternalInfill)
+                    if (params.extrusion_role == erInternalInfill){
                         params.sparse_infill_speed = region_config.sparse_infill_speed;
-                    else if (params.extrusion_role == erTopSolidInfill) {
+					} else if (params.extrusion_role == erTopSolidInfill) {
                         params.top_surface_speed = region_config.top_surface_speed;
-                    } else if (params.extrusion_role == erSolidInfill)
+                    } else if (params.extrusion_role == erSolidInfill){
                         params.solid_infill_speed = region_config.internal_solid_infill_speed;
+					}else if(params.extrusion_role == erFloatingVerticalShell){
+						params.solid_infill_speed = region_config.bridge_speed;
+					}
                 }
 				// Calculate flow spacing for infill pattern generation.
 		        if (surface.is_solid() || is_bridge) {
@@ -1130,36 +1138,146 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 
 	// BBS: detect narrow internal solid infill area and use ipConcentricInternal pattern instead
 	if (layer.object()->config().detect_narrow_internal_solid_infill) {
+		ExPolygons lower_internal_areas;
+		BoundingBox lower_internal_bbox;
+		if (layer.lower_layer) {
+			for (auto layerm : layer.lower_layer->regions()) {
+				auto internal_surfaces = layerm->fill_surfaces.filter_by_types({ stInternal,stInternalVoid });
+				for (auto surface : internal_surfaces)
+					lower_internal_areas.push_back(surface->expolygon);
+			}
+			lower_internal_bbox = get_extents(lower_internal_areas);
+		}
 		size_t surface_fills_size = surface_fills.size();
+
+		// Helper: create a new SurfaceFill entry that inherits metadata from an existing one,
+		// but uses different infill parameters + geometry.
+		// We keep this centralized so concentric/ensure-vertical branches cannot drift.
+		auto append_split_surface_fill = [&](const SurfaceFill &src,
+											const SurfaceFillParams &params_for_new_fill,
+											ExPolygons &&expolygons_for_new_fill) {
+			// No geometry means no fill object to append.
+			if (expolygons_for_new_fill.empty())
+				return;
+
+			surface_fills.emplace_back(params_for_new_fill);
+			SurfaceFill &dst = surface_fills.back();
+
+			// Preserve all grouping / region metadata so downstream region logic stays consistent.
+			dst.region_id = src.region_id;
+			dst.surface.surface_type = (params_for_new_fill.pattern == ipFloatingConcentric)
+                                        ? stFloatingVerticalShell
+                                        : src.surface.surface_type;
+			dst.surface.thickness = src.surface.thickness;
+			dst.region_id_group = src.region_id_group;
+			dst.no_overlap_expolygons = src.no_overlap_expolygons;
+
+			// Transfer ownership of geometry.
+			dst.expolygons = std::move(expolygons_for_new_fill);
+		};
+
 		for (size_t i = 0; i < surface_fills_size; i++) {
 			if (surface_fills[i].surface.surface_type != stInternalSolid)
 				continue;
 
+			// 1) First split internal solid into:
+			//    - normal_infill  : wide / stable area for default solid strategy
+			//    - narrow_infill  : thin area needing special handling
 			ExPolygons normal_infill;
             ExPolygons narrow_infill;
             split_solid_surface(layer.id(), surface_fills[i], normal_infill, narrow_infill);
-
+			
+			// If no narrow area exists, nothing to reroute.
 			if (narrow_infill.empty()) {
 				// BBS: has no narrow expolygon
 				continue;
-			} else if (normal_infill.empty()) {
-				// BBS: all expolygons are narrow, directly change the fill pattern
-				surface_fills[i].params.pattern = ipConcentricInternal;
 			}
-			else {
-				// BBS: some expolygons are narrow, spilit surface_fills[i] and rearrange the expolygons
-				params = surface_fills[i].params;
-				params.pattern = ipConcentricInternal;
-				surface_fills.emplace_back(params);
-				surface_fills.back().region_id = surface_fills[i].region_id;
-				surface_fills.back().surface.surface_type = stInternalSolid;
-				surface_fills.back().surface.thickness = surface_fills[i].surface.thickness;
-                surface_fills.back().region_id_group       = surface_fills[i].region_id_group;
-                surface_fills.back().no_overlap_expolygons = surface_fills[i].no_overlap_expolygons;
-			    // BBS: move the narrow expolygons to new surface_fills.back();
-			    surface_fills.back().expolygons = std::move(narrow_infill);
-			    // BBS: delete the narrow expolygons from old surface_fills
-                surface_fills[i].expolygons = std::move(normal_infill);
+
+			// 2) Re-classify narrow area into:
+			//    - narrow_concentric : narrow but not floating -> concentric
+			//    - narrow_floating   : narrow + lower-layer-overlap condition -> ensure-vertical
+			ExPolygons narrow_concentric;
+			ExPolygons narrow_floating;
+			narrow_concentric.reserve(narrow_infill.size());
+			narrow_floating.reserve(narrow_infill.size()); 
+			//Floating classification is meaningful only when lower layer data exists.
+			const bool can_detect_floating = layer.object()->config().detect_floating_vertical_shell.value &&
+                                            layer.lower_layer != nullptr &&
+                                            !lower_internal_areas.empty();
+
+			for (ExPolygon &expoly : narrow_infill) {
+				bool is_floating_narrow = false;
+
+				if (can_detect_floating) {
+					const BoundingBox bbox = get_extents(expoly);
+
+					// Fast reject: skip expensive polygon intersection if bboxes do not overlap.
+					if (bbox.overlap(lower_internal_bbox)) {
+						// Same rule as your previous index-based logic:
+						// if epsilon-expanded narrow region intersects lower_internal_areas,
+						// treat it as "floating narrow" bucket.
+						ExPolygons touch = intersection_ex(offset_ex(expoly, SCALED_EPSILON), lower_internal_areas);
+						is_floating_narrow = !touch.empty();
+					}
+				}
+
+				if (is_floating_narrow)
+					narrow_floating.emplace_back(std::move(expoly));
+				else
+					narrow_concentric.emplace_back(std::move(expoly));
+			}
+
+			// 3) Case A: no normal area left (entire original fill was narrow).
+			if (normal_infill.empty()) {
+				// All narrow -> concentric only.
+				if (!narrow_concentric.empty() && narrow_floating.empty()) {
+					surface_fills[i].params.pattern = ipConcentricInternal;
+                    surface_fills[i].surface.surface_type = stInternalSolid;
+					surface_fills[i].expolygons = std::move(narrow_concentric);
+					continue;
+				}
+
+				// All narrow -> ensure-vertical only.
+				if (narrow_concentric.empty() && !narrow_floating.empty()) {
+					surface_fills[i].params.pattern = ipFloatingConcentric;
+					surface_fills[i].params.extrusion_role = erFloatingVerticalShell;
+                    surface_fills[i].surface.surface_type = stFloatingVerticalShell;
+					surface_fills[i].expolygons = std::move(narrow_floating);
+					continue;
+				}
+
+				// Entire fill is narrow, but split between concentric and ensure-vertical.
+				// Keep concentric in current entry and append ensure-vertical as a sibling entry.
+				surface_fills[i].params.pattern = ipConcentricInternal;
+                surface_fills[i].surface.surface_type = stInternalSolid;
+				surface_fills[i].expolygons = std::move(narrow_concentric);
+
+				SurfaceFillParams ensure_params = surface_fills[i].params;
+				ensure_params.pattern = ipFloatingConcentric;
+				ensure_params.extrusion_role = erFloatingVerticalShell;
+                surface_fills[i].surface.surface_type = stFloatingVerticalShell;
+				append_split_surface_fill(surface_fills[i], ensure_params, std::move(narrow_floating));
+				continue;
+			}
+			// 4) Case B: normal area exists.
+			// Keep normal area in current entry (default solid behavior).
+			surface_fills[i].expolygons = std::move(normal_infill);
+
+			// Add concentric entry for non-floating narrow area.
+			if (!narrow_concentric.empty()) {
+				SurfaceFillParams concentric_params = surface_fills[i].params;
+				concentric_params.pattern = ipConcentricInternal;
+                surface_fills[i].surface.surface_type = stInternalSolid;
+				append_split_surface_fill(surface_fills[i], concentric_params, std::move(narrow_concentric));
+			}
+
+			// Add ensure-vertical entry for floating narrow area.
+			if (!narrow_floating.empty()) {
+				SurfaceFillParams ensure_params = surface_fills[i].params;
+				ensure_params.pattern = ipFloatingConcentric;
+				ensure_params.extrusion_role = erFloatingVerticalShell;
+                surface_fills[i].surface.surface_type = stFloatingVerticalShell;
+				append_split_surface_fill(surface_fills[i], ensure_params, std::move(narrow_floating));
 			}
 		}
 	}
@@ -1231,8 +1349,49 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
             assert(fill_concentric != nullptr);
             fill_concentric->print_config = &this->object()->print()->config();
             fill_concentric->print_object_config = &this->object()->config();
-        } else if (surface_fill.params.pattern == ipLightning)
+        } else if (surface_fill.params.pattern == ipLightning){
             dynamic_cast<FillLightning::Filler*>(f.get())->generator = lightning_generator;
+		}
+		else if (surface_fill.params.pattern == ipFloatingConcentric) {
+			FillFloatingConcentric* fill_contour = dynamic_cast<FillFloatingConcentric*>(f.get());
+			assert(fill_contour != nullptr);
+			ExPolygons lower_unsuporrt_expolys;
+			Polygons lower_sparse_polys;
+			if (lower_layer) {
+				for (LayerRegion* layerm : lower_layer->regions()) {
+					auto surfaces = layerm->fill_surfaces.filter_by_types({ stInternal,stInternalVoid });
+					ExPolygons sexpolys;
+					for (auto surface : surfaces) {
+						sexpolys.push_back(surface->expolygon);
+					}
+					sexpolys = union_ex(sexpolys);
+					lower_unsuporrt_expolys = union_ex(lower_unsuporrt_expolys, sexpolys);
+				}
+				lower_unsuporrt_expolys = shrink_ex(lower_unsuporrt_expolys, SCALED_EPSILON);
+                LockRegionParam lock_region;
+				std::vector<SurfaceFill> lower_fills = group_fills(*lower_layer,lock_region);
+				bool detect_lower_sparse_lines = true;
+				for (auto& fill : lower_fills) {
+					if (fill.params.pattern == ipAdaptiveCubic || fill.params.pattern == ipLightning || fill.params.pattern == ipSupportCubic) {
+						detect_lower_sparse_lines = false;
+						break;
+					}
+				}
+				if (detect_lower_sparse_lines) {
+					float internal_infill_width = 0;
+					for (auto layerm : lower_layer->regions())
+						internal_infill_width += layerm->flow(frInfill).scaled_width();
+					internal_infill_width /= lower_layer->m_regions.size();
+					Polylines lower_sparse_lines = lower_layer->generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr, nullptr);
+					lower_sparse_polys = offset(lower_sparse_lines, internal_infill_width / 2);
+					lower_sparse_polys = union_(lower_sparse_polys);
+				}
+			}
+			fill_contour->lower_sparse_polys = lower_sparse_polys;
+			fill_contour->lower_layer_unsupport_areas = lower_unsuporrt_expolys;
+			fill_contour->print_config = &this->object()->print()->config();
+			fill_contour->print_object_config = &this->object()->config();
+		}
         // calculate flow spacing for infill pattern generation
         bool using_internal_flow = ! surface_fill.surface.is_solid() && ! surface_fill.params.bridge;
         double link_max_length = 0.;
@@ -1261,7 +1420,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.anchor_length     = surface_fill.params.anchor_length;
 		params.anchor_length_max = surface_fill.params.anchor_length_max;
 		params.resolution        = resolution;
-        params.use_arachne       = surface_fill.params.pattern == ipConcentric || surface_fill.params.pattern == ipConcentricInternal;
+        params.use_arachne       = surface_fill.params.pattern == ipConcentric || surface_fill.params.pattern == ipConcentricInternal || surface_fill.params.pattern == ipFloatingConcentric;
         params.layer_height      = layerm->layer()->height;
         params.lateral_lattice_angle_1   = surface_fill.params.lateral_lattice_angle_1;
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
@@ -1295,7 +1454,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
             params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
 
         }
-		if (surface_fill.params.pattern == ipGrid)
+		if (surface_fill.params.pattern == ipGrid || surface_fill.params.pattern == ipFloatingConcentric)
 			params.can_reverse = false;
 		for (ExPolygon& expoly : surface_fill.expolygons) {
 
