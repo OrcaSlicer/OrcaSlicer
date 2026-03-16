@@ -15,7 +15,6 @@
 #include "LocalesUtils.hpp"
 #include "Geometry.hpp"
 #include "PrintConfig.hpp"
-#include "Surface.hpp"
 #include "Fill/FillRectilinear.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -172,6 +171,49 @@ static Polygon rounding_polygon(Polygon& polygon, double rounding = 2., double a
     res.remove_duplicate_points();
     res.points.shrink_to_fit();
     return res;
+}
+
+static Polylines generate_internal_framework_paths(const WipeTower::box_coordinates& fill_box, float perimeter_width)
+{
+    Polylines result;
+    const float min_x = fill_box.ld.x() + 2.f * perimeter_width;
+    const float max_x = fill_box.rd.x() - 2.f * perimeter_width;
+    const float min_y = fill_box.ld.y() + perimeter_width;
+    const float max_y = fill_box.lu.y() - perimeter_width;
+    const float usable_width = max_x - min_x;
+    const float usable_depth = max_y - min_y;
+
+    if (usable_width <= 4.f * perimeter_width || usable_depth <= 2.f * perimeter_width)
+        return result;
+
+    const int rib_count = usable_width > 24.f ? 2 : 1;
+    const int brace_count = usable_depth > 16.f ? std::min(4, std::max(1, int(usable_depth / 8.f) - 1)) : 0;
+    result.reserve(rib_count + brace_count);
+    for (int rib_idx = 1; rib_idx <= rib_count; ++rib_idx) {
+        const float x = min_x + usable_width * rib_idx / float(rib_count + 1);
+        Polyline rib;
+        rib.points.emplace_back(Point::new_scale(Vec2f(x, min_y)));
+        rib.points.emplace_back(Point::new_scale(Vec2f(x, max_y)));
+        result.push_back(std::move(rib));
+    }
+
+    for (int brace_idx = 1; brace_idx <= brace_count; ++brace_idx) {
+        const float y = min_y + usable_depth * brace_idx / float(brace_count + 1);
+        Polyline brace;
+        brace.points.emplace_back(Point::new_scale(Vec2f(min_x, y)));
+        brace.points.emplace_back(Point::new_scale(Vec2f(max_x, y)));
+        result.push_back(std::move(brace));
+    }
+
+    return result;
+}
+
+static float framework_path_length(const Polylines& paths)
+{
+    float length = 0.f;
+    for (const Polyline& path : paths)
+        length += unscaled<float>(path.length());
+    return length;
 }
 
 static Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double angle_tol = 30. / 180. * PI)
@@ -577,9 +619,6 @@ public:
         m_gcode_flavor(flavor), m_filpar(filament_parameters)
         //m_enable_arc_fitting(enable_arc_fitting)
     {
-            // ORCA: This class is only used by non BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = false;
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << m_layer_height << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -1272,6 +1311,8 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_rib_width(config.wipe_tower_rib_width), 
     m_extra_rib_length(config.wipe_tower_extra_rib_length),
     m_wall_type((int)config.wipe_tower_wall_type),
+    m_use_gap_wall(config.prime_tower_skip_points.value),
+    m_tower_framework(config.prime_tower_enable_framework.value),
     m_flat_ironing(config.prime_tower_flat_ironing.value),
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
     m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
@@ -1593,7 +1634,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
             float pre_dist = m_filpar[tool].tower_interface_pre_extrusion_dist;
             float pre_len = m_filpar[tool].tower_interface_pre_extrusion_length;
             if (pre_dist > 0.f && pre_len > 0.f) {
-                float target_x = writer.x() + pre_dist;
+                float target_x = writer.x() <= 0.5f * (cleaning_box.ld.x() + cleaning_box.rd.x()) ? writer.x() + pre_dist : writer.x() - pre_dist;
                 target_x = std::max(cleaning_box.ld.x(), std::min(cleaning_box.rd.x(), target_x));
                 writer.extrude_explicit(target_x, writer.y(), pre_len, 600.f);
             }
@@ -2088,6 +2129,15 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
                 writer.travel(x,writer.y());
                 writer.extrude(x,i%2 ? fill_box.rd.y() : fill_box.ru.y());
             }
+
+            if (m_tower_framework) {
+                const float retract_length = m_filpar[m_current_tool].retract_length;
+                const float retract_speed  = m_filpar[m_current_tool].retract_speed * 60.f;
+                Polylines framework_paths  = generate_internal_framework_paths(fill_box, m_perimeter_width);
+                if (!framework_paths.empty())
+                    writer.generate_path(framework_paths, feedrate, retract_length, retract_speed, false);
+            }
+
         }
 
         writer.append("; CP EMPTY GRID END\n"
@@ -2097,16 +2147,18 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     const float spacing = m_perimeter_width - m_layer_height*float(1.-M_PI_4);
     feedrate = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_perimeter_speed * 60.f);
 
+    writer.set_y_shift(m_y_shift);
+
     Polygon poly;
     if (m_wall_type == (int)wtwCone) {
          WipeTower::box_coordinates wt_box(Vec2f(0.f, (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f)),
                                            m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
         // outer contour (always)
         bool infill_cone = first_layer && m_wipe_tower_width > 2 * spacing && m_wipe_tower_depth > 2 * spacing;
-        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing);
+        poly = generate_support_cone_wall(writer, wt_box, feedrate, infill_cone, spacing, m_use_gap_wall);
     } else {
         WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int)wtwRib, true, false);
+        poly = generate_support_rib_wall(writer, wt_box, feedrate, first_layer, m_wall_type == (int)wtwRib, true, m_use_gap_wall);
     }
 
     // brim (first layer only)
@@ -2160,7 +2212,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 // Static method to get the radius and x-scaling of the stabilizing cone base.
 std::pair<double, double> WipeTower2::get_wipe_tower_cone_base(double width, double height, double depth, double angle_deg)
 {
-    double R = std::tan(Geometry::deg2rad(angle_deg/2.)) * height;
+    double R = depth / 2. + std::tan(Geometry::deg2rad(angle_deg/2.)) * height;
     double fake_width = 0.66 * width;
     double diag = std::hypot(fake_width / 2., depth / 2.);
     double support_scale = 1.;
@@ -2260,7 +2312,7 @@ void WipeTower2::plan_tower()
     m_wipe_tower_height = m_plan.empty() ? 0.f : m_plan.back().z;
     m_current_height = 0.f;
 	
-    for (int layer_index = int(m_plan.size()) - 1; layer_index >= 0; --layer_index)
+	for (int layer_index = int(m_plan.size()) - 1; layer_index >= 0; --layer_index)
 	{
 		float this_layer_depth = std::max(m_plan[layer_index].depth, m_plan[layer_index].toolchanges_depth());
 		m_plan[layer_index].depth = this_layer_depth;
@@ -2274,6 +2326,41 @@ void WipeTower2::plan_tower()
 				m_plan[i].depth = this_layer_depth;
 		}
 	}
+
+    if (m_wall_type == (int)wtwRib && m_wipe_tower_depth > m_perimeter_width) {
+        const float constant_depth = m_wipe_tower_depth - m_perimeter_width;
+        for (auto& layer : m_plan)
+            layer.depth = std::max(layer.toolchanges_depth(), constant_depth);
+    }
+
+    if (!m_tower_framework)
+        return;
+
+    float framework_reserve = 0.f;
+    for (size_t layer_idx = 0; layer_idx < m_plan.size(); ++layer_idx)
+        framework_reserve = std::max(framework_reserve, framework_depth_reserve_for_layer(m_plan[layer_idx], layer_idx));
+
+    if (framework_reserve <= WT_EPSILON)
+        return;
+
+    m_wipe_tower_depth = 0.f;
+    for (size_t layer_idx = 0; layer_idx < m_plan.size(); ++layer_idx) {
+        m_plan[layer_idx].depth += framework_reserve;
+        if (m_plan[layer_idx].depth > m_wipe_tower_depth - m_perimeter_width)
+            m_wipe_tower_depth = m_plan[layer_idx].depth + m_perimeter_width;
+    }
+
+    for (int layer_index = int(m_plan.size()) - 1; layer_index >= 0; --layer_index) {
+        const float this_layer_depth = m_plan[layer_index].depth;
+        for (int i = layer_index - 1; i >= 0; --i) {
+            if (m_plan[i].depth - this_layer_depth < 2 * m_perimeter_width)
+                m_plan[i].depth = this_layer_depth;
+        }
+    }
+
+    const float constant_depth = std::max(0.f, m_wipe_tower_depth - m_perimeter_width);
+    for (auto& layer : m_plan)
+        layer.depth = std::max(layer.toolchanges_depth(), constant_depth);
 }
 
 void WipeTower2::save_on_last_wipe()
@@ -2298,7 +2385,10 @@ void WipeTower2::save_on_last_wipe()
             if (i == idx) {
                 float width = m_wipe_tower_width - 3*m_perimeter_width; // width we draw into
 
-                float volume_to_save = length_to_volume(finish_layer().total_extrusion_length_in_plane(), m_perimeter_width, m_layer_info->height);
+                const size_t layer_idx = size_t(m_layer_info - m_plan.begin());
+                const float framework_length = framework_path_length_for_layer(*m_layer_info, layer_idx);
+                const float finish_layer_length = std::max(0.f, finish_layer().total_extrusion_length_in_plane() - framework_length);
+                float volume_to_save = length_to_volume(finish_layer_length, m_perimeter_width, m_layer_info->height);
                 float volume_left_to_wipe = std::max(m_filpar[toolchange.new_tool].filament_minimal_purge_on_wipe_tower, toolchange.wipe_volume_total - volume_to_save);
                 float volume_we_need_depth_for = std::max(0.f, volume_left_to_wipe - length_to_volume(toolchange.first_wipe_line, m_perimeter_width*m_extra_flow, m_layer_info->height));
                 
@@ -2319,6 +2409,48 @@ void WipeTower2::save_on_last_wipe()
             }
         }
     }
+}
+
+bool WipeTower2::uses_solid_empty_grid(size_t layer_idx) const
+{
+    const bool first_tower_layer = layer_idx == m_first_layer_idx;
+    bool solid_infill = layer_idx + 1 == m_plan.size()
+                      ? false
+                      : std::any_of(m_plan[layer_idx + 1].tool_changes.begin(),
+                                    m_plan[layer_idx + 1].tool_changes.end(),
+                                    [this](const WipeTowerInfo::ToolChange& tch) {
+                                        return m_filpar[tch.new_tool].is_soluble || m_filpar[tch.old_tool].is_soluble;
+                                    });
+    solid_infill |= first_tower_layer && m_adhesion;
+    return solid_infill;
+}
+
+float WipeTower2::framework_path_length_for_layer(const WipeTowerInfo& layer, size_t layer_idx) const
+{
+    if (!m_tower_framework || uses_solid_empty_grid(layer_idx))
+        return 0.f;
+
+    const float current_depth = layer.depth - layer.toolchanges_depth();
+    const float minimum_framework_depth = 8.f * m_perimeter_width;
+    const float effective_depth = std::max(current_depth, minimum_framework_depth);
+    if (effective_depth <= 3.f * m_perimeter_width)
+        return 0.f;
+
+    WipeTower::box_coordinates fill_box(Vec2f(m_perimeter_width, layer.depth - (effective_depth - m_perimeter_width)),
+                                        m_wipe_tower_width - 2 * m_perimeter_width,
+                                        effective_depth - m_perimeter_width);
+    return framework_path_length(generate_internal_framework_paths(fill_box, m_perimeter_width));
+}
+
+float WipeTower2::framework_depth_reserve_for_layer(const WipeTowerInfo& layer, size_t layer_idx) const
+{
+    const float framework_length = framework_path_length_for_layer(layer, layer_idx);
+    const float width = m_wipe_tower_width - 3 * m_perimeter_width;
+    if (framework_length <= WT_EPSILON || width <= WT_EPSILON)
+        return 0.f;
+
+    const float framework_volume = length_to_volume(framework_length, m_perimeter_width, layer.height);
+    return get_wipe_depth(framework_volume, layer.height, m_perimeter_width, 1.f, 1.f, width);
 }
 
 
@@ -2406,6 +2538,8 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
         if (m_layer_info->depth < m_wipe_tower_depth - m_perimeter_width)
 			m_y_shift = (m_wipe_tower_depth-m_layer_info->depth-m_perimeter_width)/2.f;
 
+        get_wall_skip_points(layer);
+
         int idx = first_toolchange_to_nonsoluble(layer.tool_changes);
         WipeTower::ToolChangeResult finish_layer_tcr;
 
@@ -2459,14 +2593,14 @@ std::vector<std::pair<float, float>> WipeTower2::get_z_and_depth_pairs() const
 }
 
 
-Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_box)
+Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_box) const
 {
 
     auto get_current_layer_rib_len = [](float cur_height, float max_height, float max_len) -> float {
         return std::abs(max_height - cur_height) / max_height * max_len;
     };
     coord_t diagonal_width = scaled(m_rib_width) / 2;
-    float   a = this->m_wipe_tower_width, b = this->m_wipe_tower_depth;
+    float   a = this->m_wipe_tower_width, b = wt_box.lu.y() - wt_box.ld.y();
     Line    line_1(Point::new_scale(Vec2f{0, 0}), Point::new_scale(Vec2f{a, b}));
     Line    line_2(Point::new_scale(Vec2f{a, 0}), Point::new_scale(Vec2f{0, b}));
     float   diagonal_extra_length = std::max(0.f, m_rib_length - (float) unscaled(line_1.length())) / 2.f;
@@ -2521,7 +2655,7 @@ Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 
         return wall_polygon;
 
     if (skip_points) {
-        result_wall = contrust_gap_for_skip_points(wall_polygon, std::vector<Vec2f>(), m_wipe_tower_width, 2.5 * m_perimeter_width,
+        result_wall = contrust_gap_for_skip_points(wall_polygon, m_wall_skip_points, m_wipe_tower_width, 2.5 * m_perimeter_width,
                                                    insert_skip_polygon);
     } else {
         result_wall.push_back(to_polyline(wall_polygon));
@@ -2536,22 +2670,54 @@ Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 
     return insert_skip_polygon;
 }
 
+void WipeTower2::get_wall_skip_points(const WipeTowerInfo& layer)
+{
+    m_wall_skip_points.clear();
+    if (!m_use_gap_wall)
+        return;
 
-// This block creates the stabilization cone.
-// First define a lambda to draw the rectangle with stabilization.
-Polygon WipeTower2::generate_support_cone_wall(
-    WipeTowerWriter2& writer, const WipeTower::box_coordinates& wt_box, double feedrate, bool infill_cone, float spacing){
+    float process_depth = 0.f;
+    const size_t layer_idx = size_t(m_layer_info - m_plan.begin());
+    for (const WipeTowerInfo::ToolChange &tool_change : layer.tool_changes) {
+        const float wipe_depth = tool_change.required_depth;
+        if (wipe_depth <= WT_EPSILON)
+            continue;
 
-    const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
-                                                             m_wipe_tower_cone_angle);
+        Vec2f res;
+        switch (layer_idx % 4) {
+        case 0:
+            res = Vec2f(0.f, process_depth);
+            break;
+        case 1:
+            res = Vec2f(m_wipe_tower_width, process_depth + wipe_depth - m_perimeter_width);
+            break;
+        case 2:
+            res = Vec2f(m_wipe_tower_width, process_depth);
+            break;
+        case 3:
+            res = Vec2f(0.f, process_depth + wipe_depth - m_perimeter_width);
+            break;
+        default:
+            continue;
+        }
 
+        m_wall_skip_points.emplace_back(res);
+        process_depth += wipe_depth;
+    }
+}
+
+
+Polygon WipeTower2::generate_support_cone_polygon(const WipeTower::box_coordinates& wt_box) const
+{
+    const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height,
+                                                             wt_box.lu.y() - wt_box.ld.y(), m_wipe_tower_cone_angle);
     double z = m_no_sparse_layers ?
                    (m_current_height + m_layer_info->height) :
                    m_layer_info->z; // the former should actually work in both cases, but let's stay on the safe side (the 2.6.0 is close)
 
-    double r      = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
-    Vec2f  center = (wt_box.lu + wt_box.rd) / 2.;
     double w      = wt_box.lu.y() - wt_box.ld.y();
+    double r      = w / 2. + std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
+    Vec2f  center = (wt_box.lu + wt_box.rd) / 2.;
     enum Type { Arc, Corner, ArcStart, ArcEnd };
 
     // First generate vector of annotated point which form the boundary.
@@ -2571,6 +2737,44 @@ Polygon WipeTower2::generate_support_cone_wall(
     pts.emplace_back(wt_box.rd, Corner);
 
     // Create a Polygon from the points.
+    Polygon poly;
+    for (const auto& [pt, tag] : pts)
+        poly.points.push_back(Point::new_scale(pt));
+    return poly;
+}
+
+// This block creates the stabilization cone.
+// First define a lambda to draw the rectangle with stabilization.
+Polygon WipeTower2::generate_support_cone_wall(
+    WipeTowerWriter2& writer, const WipeTower::box_coordinates& wt_box, double feedrate, bool infill_cone, float spacing, bool skip_points){
+    const float retract_length = m_filpar[m_current_tool].retract_length;
+    const float retract_speed  = m_filpar[m_current_tool].retract_speed * 60.f;
+    const auto [R, support_scale] = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height,
+                                                             wt_box.lu.y() - wt_box.ld.y(), m_wipe_tower_cone_angle);
+    double z = m_no_sparse_layers ?
+                   (m_current_height + m_layer_info->height) :
+                   m_layer_info->z;
+
+    double w      = wt_box.lu.y() - wt_box.ld.y();
+    double r      = w / 2. + std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
+    Vec2f  center = (wt_box.lu + wt_box.rd) / 2.;
+    enum Type { Arc, Corner, ArcStart, ArcEnd };
+
+    std::vector<std::pair<Vec2f, Type>> pts = {{wt_box.ru, Corner}};
+    if (double alpha_start = std::asin((0.5 * w) / r); !std::isnan(alpha_start) && r > 0.5 * w + 0.01) {
+        for (double alpha = alpha_start; alpha < M_PI - alpha_start + 0.001; alpha += (M_PI - 2 * alpha_start) / 40.)
+            pts.emplace_back(Vec2f(center.x() + r * std::cos(alpha) / support_scale, center.y() + r * std::sin(alpha)),
+                             alpha == alpha_start ? ArcStart : Arc);
+        pts.back().second = ArcEnd;
+    }
+    pts.emplace_back(wt_box.lu, Corner);
+    pts.emplace_back(wt_box.ld, Corner);
+    for (int i = int(pts.size()) - 3; i > 0; --i)
+        pts.emplace_back(Vec2f(pts[i].first.x(), 2 * center.y() - pts[i].first.y()), i == int(pts.size()) - 3 ? ArcStart :
+                                                                                 i == 1                   ? ArcEnd :
+                                                                                                            Arc);
+    pts.emplace_back(wt_box.rd, Corner);
+
     Polygon poly;
     for (const auto& [pt, tag] : pts)
         poly.points.push_back(Point::new_scale(pt));
@@ -2607,41 +2811,53 @@ Polygon WipeTower2::generate_support_cone_wall(
         }
     }
 
-    // Find the closest corner and travel to it.
-    int    start_i  = 0;
-    double min_dist = std::numeric_limits<double>::max();
-    for (int i = 0; i < int(pts.size()); ++i) {
-        if (pts[i].second == Corner) {
-            double dist = (pts[i].first - Vec2f(writer.x(), writer.y())).squaredNorm();
-            if (dist < min_dist) {
-                min_dist = dist;
-                start_i  = i;
-            }
+    if (skip_points) {
+        Polygon   insert_skip_polygon;
+        Polylines result_wall = contrust_gap_for_skip_points(poly, m_wall_skip_points, m_wipe_tower_width, 2.5f * m_perimeter_width,
+                                                             insert_skip_polygon);
+        writer.generate_path(result_wall, feedrate, retract_length, retract_speed, m_used_fillet);
+        for (const Polyline &line : polylines) {
+            writer.travel(unscale(line.points.front()).cast<float>());
+            for (const Point &point : line.points)
+                writer.extrude(unscale(point).cast<float>());
         }
-    }
-    writer.travel(pts[start_i].first);
-
-    // Now actually extrude the boundary (and possibly infill):
-    int i = start_i + 1 == int(pts.size()) ? 0 : start_i + 1;
-    while (i != start_i) {
-        writer.extrude(pts[i].first, feedrate);
-        if (pts[i].second == ArcEnd) {
-            // Extrude the infill.
-            if (!polylines.empty()) {
-                // Extrude the infill and travel back to where we were.
-                bool mirror = ((pts[i].first.y() - center.y()) * (unscale(polylines.front().points.front()).y() - center.y())) < 0.;
-                for (const Polyline& line : polylines) {
-                    writer.travel(center - (mirror ? 1.f : -1.f) * (unscale(line.points.front()).cast<float>() - center));
-                    for (size_t i = 0; i < line.points.size(); ++i)
-                        writer.extrude(center - (mirror ? 1.f : -1.f) * (unscale(line.points[i]).cast<float>() - center));
+    } else {
+        // Find the closest corner and travel to it.
+        int    start_i  = 0;
+        double min_dist = std::numeric_limits<double>::max();
+        for (int i = 0; i < int(pts.size()); ++i) {
+            if (pts[i].second == Corner) {
+                double dist = (pts[i].first - Vec2f(writer.x(), writer.y())).squaredNorm();
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    start_i  = i;
                 }
-                writer.travel(pts[i].first);
             }
         }
-        if (++i == int(pts.size()))
-            i = 0;
+        writer.travel(pts[start_i].first);
+
+        // Now actually extrude the boundary (and possibly infill):
+        int i = start_i + 1 == int(pts.size()) ? 0 : start_i + 1;
+        while (i != start_i) {
+            writer.extrude(pts[i].first, feedrate);
+            if (pts[i].second == ArcEnd) {
+                // Extrude the infill.
+                if (!polylines.empty()) {
+                    // Extrude the infill and travel back to where we were.
+                    bool mirror = ((pts[i].first.y() - center.y()) * (unscale(polylines.front().points.front()).y() - center.y())) < 0.;
+                    for (const Polyline& line : polylines) {
+                        writer.travel(center - (mirror ? 1.f : -1.f) * (unscale(line.points.front()).cast<float>() - center));
+                        for (size_t i = 0; i < line.points.size(); ++i)
+                            writer.extrude(center - (mirror ? 1.f : -1.f) * (unscale(line.points[i]).cast<float>() - center));
+                    }
+                    writer.travel(pts[i].first);
+                }
+            }
+            if (++i == int(pts.size()))
+                i = 0;
+        }
+        writer.extrude(pts[start_i].first, feedrate);
     }
-    writer.extrude(pts[start_i].first, feedrate);
     return poly;
 }
 } // namespace Slic3r

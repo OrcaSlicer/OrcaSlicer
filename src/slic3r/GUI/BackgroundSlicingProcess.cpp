@@ -30,6 +30,7 @@
 
 #include <boost/format/format_fwd.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include "I18N.hpp"
@@ -38,6 +39,13 @@
 #include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
+
+static bool detect_vendor_from_print_config(const Print& print, const char* vendor_prefix)
+{
+    const ConfigOptionString *printer_model_opt = print.config().option<ConfigOptionString>("printer_model");
+    const std::string printer_model = printer_model_opt != nullptr ? printer_model_opt->value : std::string();
+    return !printer_model.empty() && boost::starts_with(printer_model, vendor_prefix);
+}
 
 bool SlicingProcessCompletedEvent::critical_error() const
 {
@@ -196,7 +204,8 @@ void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
-    m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
+    m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor() || detect_vendor_from_print_config(*m_fff_print, "Bambu Lab");
+    m_fff_print->is_QIDI_printer() = preset_bundle.is_qidi_vendor() || detect_vendor_from_print_config(*m_fff_print, "Qidi");
 	//BBS: add the logic to process from an existed gcode file
 	if (m_print->finished()) {
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file")%__LINE__;
@@ -680,8 +689,8 @@ StringObjectException BackgroundSlicingProcess::validate(StringObjectException *
 	assert(m_print != nullptr);
     assert(m_print == m_fff_print);
 
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
-	m_fff_print->is_QIDI_printer() = wxGetApp().preset_bundle->is_qidi_vendor();
+    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor() || detect_vendor_from_print_config(*m_fff_print, "Bambu Lab");
+	m_fff_print->is_QIDI_printer() = wxGetApp().preset_bundle->is_qidi_vendor() || detect_vendor_from_print_config(*m_fff_print, "Qidi");
     return m_print->validate(warning, collison_polygons, height_polygons);
 }
 

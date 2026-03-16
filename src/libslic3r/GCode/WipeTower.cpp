@@ -530,9 +530,6 @@ public:
     m_gcode_flavor(flavor),
     m_filpar(filament_parameters)
     {
-            // ORCA: This class is only used by BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = true;
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << std::to_string(m_layer_height) << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -1492,7 +1489,6 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
     m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
 {
-    m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
     // Read absolute value of first layer speed, if given as percentage,
     // it is taken over following default. Speeds from config are not
     // easily accessible here.
@@ -2786,6 +2782,11 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
             }
     }
 
+    // Only the specific solid toolchange triggers interface-layer behaviour.
+    // Using m_current_layer_has_interface here caused every toolchange in a layer
+    // that contained *any* solid block to receive interface treatment (extra purge,
+    // pre-extrusion, slow speed), which broke colours, layer ordering, and the
+    // Tower legend column.
     bool interface_layer = solid_toolchange && m_enable_tower_interface_features;
     if (interface_layer && new_tool < m_filpar.size()) {
         float extra_purge_length = m_filpar[new_tool].tower_interface_purge_length;
@@ -2840,8 +2841,7 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
             float pre_dist = m_filpar[new_tool].tower_interface_pre_extrusion_dist;
             float pre_len = m_filpar[new_tool].tower_interface_pre_extrusion_length;
             if (pre_dist > 0.f && pre_len > 0.f) {
-                bool start_left = (m_cur_layer_id % 4 == 0 || m_cur_layer_id % 4 == 3);
-                float target_x = writer.x() + (start_left ? pre_dist : -pre_dist);
+                float target_x = writer.x() <= 0.5f * (cleaning_box.ld.x() + cleaning_box.rd.x()) ? writer.x() + pre_dist : writer.x() - pre_dist;
                 target_x = std::max(cleaning_box.ld.x(), std::min(cleaning_box.rd.x(), target_x));
                 writer.extrude_explicit(target_x, writer.y(), pre_len, 600.f);
             }
@@ -2879,7 +2879,7 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
             writer.travel(initial_position);
         }
 
-        toolchange_wipe_new(writer, cleaning_box, wipe_length, solid_toolchange);
+        toolchange_wipe_new(writer, cleaning_box, wipe_length, interface_layer);
 
         if (interface_layer) {
             int base_temp = is_first_layer() ? m_filpar[new_tool].nozzle_temperature_initial_layer : m_filpar[new_tool].nozzle_temperature;
@@ -3387,7 +3387,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
     return construct_block_tcr(writer, false, filament_id, true, 0.f);
 }
 
-void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinates &cleaning_box, float wipe_length,bool solid_tool_toolchange)
+void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinates &cleaning_box, float wipe_length, bool interface_layer)
 {
     writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? 1.15f : 1.f)).append("; CP TOOLCHANGE WIPE\n");
 
@@ -3401,16 +3401,16 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
     float        retract_length = m_filpar[m_current_tool].retract_length;
     float        retract_speed  = m_filpar[m_current_tool].retract_speed * 60;
     const float  ironing_area   = m_filpar[m_current_tool].tower_ironing_area;
-    const bool   do_ironing     = m_flat_ironing && (!solid_tool_toolchange || !m_enable_tower_interface_features);
+    const bool   do_ironing     = m_flat_ironing && (!interface_layer || !m_enable_tower_interface_features);
 
     const float &xl = cleaning_box.ld.x();
     const float &xr = cleaning_box.rd.x();
 
     float x_to_wipe = wipe_length;
-    float dy        = solid_tool_toolchange ? m_perimeter_width :m_layer_info->extra_spacing * m_perimeter_width;
-    x_to_wipe                = solid_tool_toolchange ? std::numeric_limits<float>::max(): x_to_wipe;
+    float dy        = interface_layer ? m_perimeter_width :m_layer_info->extra_spacing * m_perimeter_width;
+    x_to_wipe                = interface_layer ? std::numeric_limits<float>::max(): x_to_wipe;
     float target_speed = is_first_layer() ? std::min(m_first_layer_speed * 60.f, 4800.f) : 4800.f;
-    target_speed             = solid_tool_toolchange ? 20.f * 60.f : target_speed;
+    target_speed             = interface_layer ? 20.f * 60.f : target_speed;
     float       wipe_speed   = 0.33f * target_speed;
 
     m_left_to_right = ((m_cur_layer_id + 3) % 4 >= 2);
@@ -3465,7 +3465,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
                     Vec2f pos{writer.x() - 1.0f * ironing_length, writer.y()};
                     writer.spiral_flat_ironing(writer.pos(), ironing_area, m_perimeter_width, flat_iron_speed);
                     writer.travel(pos, wipe_speed);
-                }else
+                } else
                     writer.travel(writer.x() - 1.5 * ironing_length, writer.y(), 240.);
                 writer.retract(-retract_length, retract_speed);
                 writer.extrude(xl - wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), wipe_speed);
@@ -3475,6 +3475,10 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
                 writer.extrude(xr + wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), wipe_speed);
             else
                 writer.extrude(xl - wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), wipe_speed);
+            if (i == 0 && do_ironing && ironing_area > 0.f) {
+                writer.travel(writer.x(), writer.y(), 600.f);
+                writer.spiral_flat_ironing(writer.pos(), ironing_area, m_perimeter_width, flat_iron_speed);
+            }
         }
 
         // BBS: recover the flow in non-bridging area

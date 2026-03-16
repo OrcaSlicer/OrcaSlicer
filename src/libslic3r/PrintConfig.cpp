@@ -6451,7 +6451,9 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    def      = this->add("prime_tower_flat_ironing", coBool);
+    def = this->add("prime_tower_flat_ironing", coBool);
+    def->label = L("Improved ironing strategy");
+    def->tooltip = L("Apply flat ironing moves to prime tower wipe paths while avoiding interface layers.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

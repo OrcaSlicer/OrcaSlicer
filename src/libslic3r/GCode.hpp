@@ -79,6 +79,7 @@ public:
         // BBS: add partplate logic
         const int                                                    plate_idx,
         const Vec3d                                                  plate_origin,
+        bool                                                         use_wipe_tower2,
         const std::vector<WipeTower::ToolChangeResult>              &priming,
         const std::vector<std::vector<WipeTower::ToolChangeResult>> &tool_changes,
         const WipeTower::ToolChangeResult                           &final_purge,
@@ -90,6 +91,7 @@ public:
         m_priming(priming),
         m_tool_changes(tool_changes),
         m_final_purge(final_purge),
+        m_use_wipe_tower2(use_wipe_tower2),
         m_layer_idx(-1),
         m_tool_change_idx(0),
         m_plate_origin(plate_origin),
@@ -141,6 +143,7 @@ private:
     const std::vector<WipeTower::ToolChangeResult>              &m_priming;
     const std::vector<std::vector<WipeTower::ToolChangeResult>> &m_tool_changes;
     const WipeTower::ToolChangeResult                           &m_final_purge;
+    bool                                                         m_use_wipe_tower2;
     // Current layer index.
     int                                                          m_layer_idx;
     int                                                          m_tool_change_idx;

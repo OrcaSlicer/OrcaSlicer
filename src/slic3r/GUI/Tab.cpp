@@ -2594,6 +2594,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Prime tower"), L"param_tower");
         optgroup->append_single_option_line("enable_prime_tower", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_skip_points", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("prime_tower_flat_ironing", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("enable_tower_interface_features", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("enable_tower_interface_cooldown_during_tower", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_enable_framework", "multimaterial_settings_prime_tower");
@@ -2754,11 +2755,10 @@ void TabPrint::update_description_lines()
 void TabPrint::toggle_options()
 {
     if (!m_active_page) return;
-    // BBS: whether the preset is Bambu Lab printer
-    if (m_preset_bundle) {
-        bool is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
-        m_config_manipulation.set_is_BBL_Printer(is_BBL_printer);
-    }
+    const std::string printer_model = m_config != nullptr ? m_config->opt_string("printer_model", true) : std::string();
+    const bool is_bbl_printer = (m_preset_bundle && m_preset_bundle->is_bbl_vendor()) ||
+                                boost::starts_with(printer_model, "Bambu Lab");
+    m_config_manipulation.set_is_BBL_Printer(is_bbl_printer);
 
     m_config_manipulation.toggle_print_fff_options(m_config, m_type < Preset::TYPE_COUNT);
 
@@ -2783,13 +2783,13 @@ void TabPrint::toggle_options()
         cb->SetValue(n);
     }
 
-    // BBL printers do not support cone wipe tower
+    // BBL printers do not support cone wipe tower.
     field = m_active_page->get_field("wipe_tower_wall_type");
     if (auto choice = dynamic_cast<Choice*>(field)) {
         auto def = print_config_def.get("wipe_tower_wall_type");
         std::vector<int> enum_set_bbl      = {wtwRectangle, wtwRib};
         std::vector<int> enum_set_none_bbl = {wtwRectangle, wtwCone, wtwRib};
-        auto&            set               = m_config_manipulation.get_is_BBL_Printer() ? enum_set_bbl : enum_set_none_bbl;
+        const auto&      set               = is_bbl_printer ? enum_set_bbl : enum_set_none_bbl;
         auto&            opt               = const_cast<ConfigOptionDef&>(field->m_opt);
         auto             cb                = dynamic_cast<ComboBox*>(choice->window);
         auto             n                 = cb->GetValue();
@@ -2801,6 +2801,8 @@ void TabPrint::toggle_options()
             opt.enum_labels.push_back(def->enum_labels[i]);
             cb->Append(_(def->enum_labels[i]));
         }
+        if (is_bbl_printer && n == _(def->enum_labels[wtwCone]))
+            n = _(def->enum_labels[wtwRectangle]);
         cb->SetValue(n);
     }
 }

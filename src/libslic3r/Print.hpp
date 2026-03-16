@@ -600,8 +600,15 @@ struct FakeWipeTower
     float brim_width;
     float rotation_angle;
     float cone_angle;
+    bool use_wipe_tower2{false};
+    bool is_rib_wipe_tower{false};
+    bool is_cone_wipe_tower{false};
+    bool has_internal_ribs{false};
+    float rib_width{0.f};
+    float rib_length{0.f};
     Vec2d plate_origin;
     Vec2f rib_offset{0.f,0.f};
+    std::vector<std::pair<float, float>> wt2_bottom_z_and_height;
     std::map<float , Polylines> outer_wall; //wipe tower's true outer wall and brim
 
     void set_fake_extrusion_data(Vec2f p, float w, float h, float lh, float d, float bd, Vec2d o)
@@ -611,10 +618,22 @@ struct FakeWipeTower
         height       = h;
         layer_height = lh;
         depth        = d;
+        rotation_angle = 0.f;
+        cone_angle     = 0.f;
         brim_width   = bd;
         plate_origin = o;
+        use_wipe_tower2   = false;
+        is_rib_wipe_tower = false;
+        is_cone_wipe_tower = false;
+        has_internal_ribs = false;
+        rib_width         = 0.f;
+        rib_length        = 0.f;
+        z_and_depth_pairs.clear();
+        wt2_bottom_z_and_height.clear();
     }
-    void set_fake_extrusion_data(const Vec2f& p, float w, float h, float lh, float d, const std::vector<std::pair<float, float>>& zad, float bd, float ra, float ca, const Vec2d& o)
+    void set_fake_extrusion_data(const Vec2f& p, float w, float h, float lh, float d, const std::vector<std::pair<float, float>>& zad, float bd, float ra, float ca, const Vec2d& o,
+                                 bool is_rib = false, bool is_cone = false, float rw = 0.f, float rl = 0.f, bool use_wt2 = false, bool internal_ribs = false,
+                                 std::vector<std::pair<float, float>> wt2_layers = {})
     {
         pos = p;
         width = w;
@@ -625,7 +644,14 @@ struct FakeWipeTower
         brim_width = bd;
         rotation_angle = ra;
         cone_angle = ca;
+        use_wipe_tower2 = use_wt2;
+        is_rib_wipe_tower = is_rib;
+        is_cone_wipe_tower = is_cone;
+        has_internal_ribs = internal_ribs;
+        rib_width = rw;
+        rib_length = rl;
         plate_origin = o;
+        wt2_bottom_z_and_height = std::move(wt2_layers);
     }
 
     void set_pos(Vec2f p) { pos = p+rib_offset; }
@@ -658,78 +684,96 @@ struct FakeWipeTower
 
     ExtrusionLayers getTrueExtrusionLayersFromWipeTower() const;
 
+    ExtrusionPaths getFakeExtrusionPathsFromWipeTower2Layer(float bottom_z, float lh, bool include_brim) const
+    {
+        int   d  = scale_(depth);
+        int   w  = scale_(width);
+        int   bd = scale_(brim_width);
+        Point minCorner = include_brim ? Point{-bd, -bd} : Point{0, 0};
+        Point maxCorner = include_brim ? Point{w + bd, d + bd} : Point{w, d};
+
+        const auto [cone_base_R, cone_scale_x] = is_cone_wipe_tower ?
+            WipeTower2::get_wipe_tower_cone_base(width, height, depth, cone_angle) :
+            std::make_pair(0.0, 1.0);
+
+        ExtrusionPaths paths;
+        ExtrusionPath  path(ExtrusionRole::erWipeTower, 0.0, 0.0, lh);
+        if (is_cone_wipe_tower && cone_base_R > 0.) {
+            const double current_depth = unscaled<double>(maxCorner.y() - minCorner.y());
+            const double cone_extension = std::tan(Geometry::deg2rad(cone_angle / 2.0)) * std::max(0.f, height - bottom_z);
+            const double r = current_depth / 2.0 + cone_extension;
+            const Vec2d center(unscaled<double>(minCorner.x() + maxCorner.x()) / 2.0, unscaled<double>(minCorner.y() + maxCorner.y()) / 2.0);
+
+            path.polyline.points.emplace_back(maxCorner.x(), maxCorner.y());
+            const double normalized_depth = std::max(-1.0, std::min(1.0, (0.5 * current_depth) / r));
+            const double alpha_start = std::asin(normalized_depth);
+            for (double alpha = alpha_start; alpha < M_PI - alpha_start + 0.001; alpha += (M_PI - 2.0 * alpha_start) / 40.0) {
+                path.polyline.points.emplace_back(Point::new_scale(center.x() + r * std::cos(alpha) / cone_scale_x,
+                                                                   center.y() + r * std::sin(alpha)));
+            }
+            path.polyline.points.emplace_back(minCorner.x(), maxCorner.y());
+            path.polyline.points.emplace_back(minCorner.x(), minCorner.y());
+            for (int i = int(path.polyline.points.size()) - 3; i > 0; --i) {
+                const auto mirrored = unscale(path.polyline.points[i]).cast<double>();
+                path.polyline.points.emplace_back(Point::new_scale(mirrored.x(), 2.0 * center.y() - mirrored.y()));
+            }
+            path.polyline.points.emplace_back(maxCorner.x(), minCorner.y());
+            path.polyline.points.emplace_back(maxCorner.x(), maxCorner.y());
+        } else {
+            path.polyline = {minCorner, {maxCorner.x(), minCorner.y()}, maxCorner, {minCorner.x(), maxCorner.y()}, minCorner};
+        }
+        paths.push_back(path);
+
+        if (has_internal_ribs) {
+            auto push_rib = [&](Point start, Point end) {
+                ExtrusionPath rib_path(ExtrusionRole::erWipeTower, 0.0, 0.0, lh);
+                rib_path.polyline = {start, end};
+                paths.push_back(rib_path);
+            };
+            push_rib(minCorner, maxCorner);
+            push_rib({maxCorner.x(), minCorner.y()}, {minCorner.x(), maxCorner.y()});
+        }
+
+        for (coord_t y = minCorner.y() + scale_(3.); y < maxCorner.y(); y += scale_(3.)) {
+            path.polyline = {{minCorner.x(), y}, {maxCorner.x(), y}};
+            paths.emplace_back(path);
+        }
+
+        if (is_cone_wipe_tower && cone_base_R > 0.) {
+            path.polyline.clear();
+            double r = depth / 2. + std::tan(Geometry::deg2rad(cone_angle / 2.0)) * std::max(0.f, height - bottom_z);
+            for (double alpha = 0; alpha < 2.01 * M_PI; alpha += 2 * M_PI / 20.)
+                path.polyline.points.emplace_back(Point::new_scale(width / 2. + r * std::cos(alpha) / cone_scale_x,
+                                                                   depth / 2. + r * std::sin(alpha)));
+            paths.emplace_back(path);
+            if (include_brim) {
+                for (float bw = brim_width; bw > 0.f; bw -= 3.f) {
+                    path.polyline.clear();
+                    for (double alpha = 0; alpha < 2.01 * M_PI; alpha += 2 * M_PI / 20.)
+                        path.polyline.points.emplace_back(Point::new_scale(
+                            width / 2. + cone_base_R * std::cos(alpha) / cone_scale_x * (1. + cone_scale_x * bw / cone_base_R),
+                            depth / 2. + cone_base_R * std::sin(alpha) * (1. + bw / cone_base_R)));
+                    paths.emplace_back(path);
+                }
+            }
+        }
+
+        for (ExtrusionPath& p : paths) {
+            p.polyline.rotate(Geometry::deg2rad(rotation_angle));
+            p.polyline.translate(scale_(pos.x()), scale_(pos.y()));
+        }
+
+        return paths;
+    }
+
     std::vector<ExtrusionPaths> getFakeExtrusionPathsFromWipeTower2() const
     {
         float h = height;
         float lh = layer_height;
-        int   d = scale_(depth);
-        int   w = scale_(width);
-        int   bd = scale_(brim_width);
-        Point minCorner = { -bd, -bd };
-        Point maxCorner = { minCorner.x() + w + bd, minCorner.y() + d + bd };
-
-        const auto [cone_base_R, cone_scale_x] = WipeTower2::get_wipe_tower_cone_base(width, height, depth, cone_angle);
 
         std::vector<ExtrusionPaths> paths;
-        for (float hh = 0.f; hh < h; hh += lh) {
-            
-            if (hh != 0.f) {
-                // The wipe tower may be getting smaller. Find the depth for this layer.
-                size_t i = 0;
-                for (i=0; i<z_and_depth_pairs.size()-1; ++i)
-                    if (hh >= z_and_depth_pairs[i].first && hh < z_and_depth_pairs[i+1].first)
-                        break;
-                d = scale_(z_and_depth_pairs[i].second);
-                minCorner = {0.f, -d/2 + scale_(z_and_depth_pairs.front().second/2.f)};
-                maxCorner = { minCorner.x() + w, minCorner.y() + d };
-            }
-
-
-            ExtrusionPath path(ExtrusionRole::erWipeTower, 0.0, 0.0, lh);
-            path.polyline = { minCorner, {maxCorner.x(), minCorner.y()}, maxCorner, {minCorner.x(), maxCorner.y()}, minCorner };
-            paths.push_back({ path });
-
-            // We added the border, now add several parallel lines so we can detect an object that is fully inside the tower.
-            // For now, simply use fixed spacing of 3mm.
-            for (coord_t y=minCorner.y()+scale_(3.); y<maxCorner.y(); y+=scale_(3.)) {
-                path.polyline = { {minCorner.x(), y}, {maxCorner.x(), y} };
-                paths.back().emplace_back(path);
-            }
-
-            // And of course the stabilization cone and its base...
-            if (cone_base_R > 0.) {
-                path.polyline.clear();
-                double r = cone_base_R * (1 - hh/height);
-                for (double alpha=0; alpha<2.01*M_PI; alpha+=2*M_PI/20.)
-                    path.polyline.points.emplace_back(Point::new_scale(width/2. + r * std::cos(alpha)/cone_scale_x, depth/2. + r * std::sin(alpha)));
-                paths.back().emplace_back(path);
-                if (hh == 0.f) { // Cone brim.
-                    for (float bw=brim_width; bw>0.f; bw-=3.f) {
-                        path.polyline.clear();
-                        for (double alpha=0; alpha<2.01*M_PI; alpha+=2*M_PI/20.) // see load_wipe_tower_preview, where the same is a bit clearer
-                            path.polyline.points.emplace_back(Point::new_scale(
-                                width/2. + cone_base_R * std::cos(alpha)/cone_scale_x * (1. + cone_scale_x*bw/cone_base_R),
-                                depth/2. + cone_base_R * std::sin(alpha) * (1. + bw/cone_base_R))
-                            );
-                        paths.back().emplace_back(path);
-                    }
-                }
-            }
-
-            // Only the first layer has brim.
-            if (hh == 0.f) {
-                minCorner = minCorner + Point(bd, bd);
-                maxCorner = maxCorner - Point(bd, bd);
-            }
-        }
-
-        // Rotate and translate the tower into the final position.
-        for (ExtrusionPaths& ps : paths) {
-            for (ExtrusionPath& p : ps) {
-                p.polyline.rotate(Geometry::deg2rad(rotation_angle));
-                p.polyline.translate(scale_(pos.x()), scale_(pos.y()));
-            }
-        }
+        for (float hh = 0.f; hh < h; hh += lh)
+            paths.emplace_back(getFakeExtrusionPathsFromWipeTower2Layer(hh, lh, hh == 0.f));
 
         return paths;
     }
@@ -753,8 +797,10 @@ struct WipeTowerData
     std::unique_ptr<WipeTower::ToolChangeResult>          final_purge;
     std::vector<float>                                    used_filament;
     int                                                   number_of_toolchanges;
+    bool                                                  use_wipe_tower2;
 
     // Depth of the wipe tower to pass to GLCanvas3D for exact bounding box:
+    float                                                 width;
     float                                                 depth;
     std::vector<std::pair<float, float>>                  z_and_depth_pairs;
     float                                                 brim_width;
@@ -768,6 +814,8 @@ struct WipeTowerData
         final_purge.reset(nullptr);
         used_filament.clear();
         number_of_toolchanges = -1;
+        use_wipe_tower2 = true;
+        width = 0.f;
         depth = 0.f;
         brim_width = 0.f;
         rib_offset = Vec2f::Zero();

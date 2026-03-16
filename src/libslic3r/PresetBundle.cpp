@@ -523,10 +523,11 @@ VendorType PresetBundle::get_current_vendor_type()
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;
+    const std::string printer_model = config->opt_string("printer_model", true);
     std::string vendor_name;
     for (auto vendor_profile : vendors) {
         for (auto vendor_model : vendor_profile.second.models)
-            if (vendor_model.name == config->opt_string("printer_model")) {
+            if (vendor_model.name == printer_model) {
                 vendor_name = vendor_profile.first;
                 break;
             }

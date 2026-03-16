@@ -220,11 +220,14 @@ private:
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
+    bool   m_use_gap_wall       = false;
+    bool   m_tower_framework    = false;
     bool   m_flat_ironing       = false;
     bool   m_enable_tower_interface_features = false;
     bool   m_enable_tower_interface_cooldown_during_tower = false;
     bool   m_prev_layer_had_interface = false;
     bool   m_current_layer_has_interface = false;
+    std::vector<Vec2f> m_wall_skip_points;
 
 	int m_wall_type;
     bool   m_used_fillet                  = true;
@@ -317,6 +320,10 @@ private:
 			: z{z_par}, height{layer_height_par}, depth{0} {}
 	};
 
+    bool  uses_solid_empty_grid(size_t layer_idx) const;
+    float framework_path_length_for_layer(const WipeTowerInfo& layer, size_t layer_idx) const;
+    float framework_depth_reserve_for_layer(const WipeTowerInfo& layer, size_t layer_idx) const;
+
 	std::vector<WipeTowerInfo> m_plan; 	// Stores information about all layers and toolchanges for the future wipe tower (filled by plan_toolchange(...))
 	std::vector<WipeTowerInfo>::iterator m_layer_info = m_plan.end();
 
@@ -365,13 +372,16 @@ private:
                                       bool                   skip_points);
 
     Polygon generate_support_cone_wall(
-        WipeTowerWriter2& writer, 
-		const WipeTower::box_coordinates& wt_box, 
-		double feedrate, 
-		bool infill_cone, 
-		float spacing);
+        WipeTowerWriter2& writer,
+        const WipeTower::box_coordinates& wt_box,
+        double feedrate,
+        bool infill_cone,
+        float spacing,
+        bool skip_points);
 
-    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
+    Polygon generate_support_cone_polygon(const WipeTower::box_coordinates& wt_box) const;
+    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box) const;
+    void get_wall_skip_points(const WipeTowerInfo& layer);
 };
 
 

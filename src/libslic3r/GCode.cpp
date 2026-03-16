@@ -1456,7 +1456,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::prime(GCode &gcodegen)
     {
         std::string gcode;
-        if (!gcodegen.is_BBL_Printer() && !gcodegen.is_QIDI_Printer()) {
+        if (m_use_wipe_tower2) {
             for (const WipeTower::ToolChangeResult &tcr : m_priming) {
                 if (!tcr.extrusions.empty())
                     gcode += append_tcr2(gcodegen, tcr, tcr.new_tool);
@@ -1472,7 +1472,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         assert(m_layer_idx >= 0);
         if (m_layer_idx >= (int) m_tool_changes.size())
             return gcode;
-        if (!gcodegen.is_BBL_Printer() && !gcodegen.is_QIDI_Printer()) {
+        auto has_pending_tcr = [this]() {
+            return size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size();
+        };
+        auto next_tcr_matches_requested_tool = [this, extruder_id, &has_pending_tcr]() {
+            return has_pending_tcr() && m_tool_changes[m_layer_idx][m_tool_change_idx].new_tool == extruder_id;
+        };
+        if (m_use_wipe_tower2) {
             if (gcodegen.writer().need_toolchange(extruder_id) || finish_layer) {
                 if (m_layer_idx < (int) m_tool_changes.size()) {
                     if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
@@ -1510,8 +1516,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
             }
 
-            if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
-                gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][0], m_tool_changes[m_layer_idx][0].new_tool, wipe_tower_z);
+            if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print && next_tcr_matches_requested_tool()) {
+                gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx], m_tool_changes[m_layer_idx][m_tool_change_idx].new_tool, wipe_tower_z);
                 m_tool_change_idx++;
                 m_is_first_print = false;
             }
@@ -1520,8 +1526,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
                     throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
 
-                if (!ignore_sparse) {
-                    gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx++], extruder_id, wipe_tower_z);
+                if (!ignore_sparse && next_tcr_matches_requested_tool()) {
+                    gcode += append_tcr(gcodegen, m_tool_changes[m_layer_idx][m_tool_change_idx], m_tool_changes[m_layer_idx][m_tool_change_idx].new_tool, wipe_tower_z);
+                    m_tool_change_idx++;
                     m_last_wipe_tower_print_z = wipe_tower_z;
                 }
             }
@@ -1535,13 +1542,19 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         assert(m_layer_idx >= 0);
         if (m_layer_idx >= (int) m_tool_changes.size())
             return true;
+        auto has_pending_tcr = [this]() {
+            return size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size();
+        };
+        auto next_tcr_matches_requested_tool = [this, extruder_id, &has_pending_tcr]() {
+            return has_pending_tcr() && m_tool_changes[m_layer_idx][m_tool_change_idx].new_tool == extruder_id;
+        };
 
         bool   ignore_sparse = false;
         if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
             ignore_sparse = (m_tool_changes[m_layer_idx].size() == 1 && m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool);
         }
 
-        if ((m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print) {
+        if (!m_use_wipe_tower2 && (m_enable_timelapse_print || m_enable_wrapping_detection) && m_is_first_print && next_tcr_matches_requested_tool()) {
             return false;
         }
 
@@ -1549,7 +1562,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
                 throw Slic3r::RuntimeError("Wipe tower generation failed, possibly due to empty first layer.");
 
-            if (!ignore_sparse) {
+            if (!ignore_sparse && next_tcr_matches_requested_tool()) {
                 return false;
             }
         }
@@ -1561,7 +1574,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::finalize(GCode &gcodegen)
     {
         std::string gcode;
-        if (!gcodegen.is_BBL_Printer() && !gcodegen.is_QIDI_Printer()) {
+        if (m_use_wipe_tower2) {
             if (std::abs(gcodegen.writer().get_position().z() - m_final_purge.print_z) > EPSILON)
                 gcode += gcodegen.change_layer(m_final_purge.print_z);
             gcode += append_tcr2(gcodegen, m_final_purge, -1);
@@ -3282,8 +3295,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> layers_to_print = collect_layers_to_print(print);
             // Prusa Multi-Material wipe tower.
             if (has_wipe_tower && ! layers_to_print.empty()) {
-                m_wipe_tower.reset(new WipeTowerIntegration(print.config(), print.get_plate_index(), print.get_plate_origin(), *print.wipe_tower_data().priming.get(),
-                                                            print.wipe_tower_data().tool_changes, *print.wipe_tower_data().final_purge.get(), print.get_slice_used_filaments(false)));
+                m_wipe_tower.reset(new WipeTowerIntegration(print.config(), print.get_plate_index(), print.get_plate_origin(),
+                                                            print.wipe_tower_data().use_wipe_tower2,
+                                                            *print.wipe_tower_data().priming.get(),
+                                                            print.wipe_tower_data().tool_changes,
+                                                            *print.wipe_tower_data().final_purge.get(),
+                                                            print.get_slice_used_filaments(false)));
                 m_wipe_tower->set_wipe_tower_depth(print.get_wipe_tower_depth());
                 m_wipe_tower->set_wipe_tower_bbx(print.get_wipe_tower_bbx());
                 m_wipe_tower->set_rib_offset(print.get_rib_offset());
