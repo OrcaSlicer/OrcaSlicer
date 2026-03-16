@@ -4911,6 +4911,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
+        optgroup->append_single_option_line("wipe_tower_type", "printer_multimaterial_wipe_tower");
         optgroup->append_single_option_line("purge_in_prime_tower", "printer_multimaterial_wipe_tower#purge-in-prime-tower");
         optgroup->append_single_option_line("enable_filament_ramming", "printer_multimaterial_wipe_tower#enable-filament-ramming");
 
@@ -5204,11 +5205,6 @@ void TabPrinter::toggle_options()
        is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
     }
 
-    bool is_QIDI_printer = false;
-    if (m_preset_bundle) {
-       is_QIDI_printer = wxGetApp().preset_bundle->is_qidi_vendor();
-    }
-
     bool have_multiple_extruders = true;
     //m_extruders_count > 1;
     //if (m_active_page->title() == "Custom G-code") {
@@ -5236,6 +5232,8 @@ void TabPrinter::toggle_options()
     }
 
     if (m_active_page->title() == L("Multimaterial")) {
+        const bool supports_wipe_tower_2 = !is_BBL_printer && m_config->opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type2;
+        toggle_line("wipe_tower_type", !is_BBL_printer);
         // SoftFever: hide specific settings for BBL printer
         for (auto el : {
                  "enable_filament_ramming",
@@ -5245,7 +5243,7 @@ void TabPrinter::toggle_options()
                  "extra_loading_move",
                  "high_current_on_filament_swap",
              })
-            toggle_option(el, !is_BBL_printer && !is_QIDI_printer);
+            toggle_option(el, supports_wipe_tower_2);
 
         auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
         if (!bSEMM && m_config->opt_bool("manual_filament_change")) {
@@ -5255,7 +5253,7 @@ void TabPrinter::toggle_options()
         }
         toggle_option("extruders_count", !bSEMM);
         toggle_option("manual_filament_change", bSEMM);
-        toggle_option("purge_in_prime_tower", bSEMM && (!is_BBL_printer && !is_QIDI_printer));
+        toggle_option("purge_in_prime_tower", bSEMM && supports_wipe_tower_2);
     }
     wxString extruder_number;
     long val = 1;
