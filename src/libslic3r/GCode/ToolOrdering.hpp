@@ -279,7 +279,6 @@ private:
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;
-    WipeTowerType              m_wipe_tower_type = WipeTowerType::Type1;
 
     FilamentChangeStats        m_stats_by_single_extruder;
     FilamentChangeStats        m_stats_by_multi_extruder_curr;
