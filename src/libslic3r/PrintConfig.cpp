@@ -4075,6 +4075,47 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("additional_initial_plate_change_gcode", coString);
+    def->label = L("Additional initial plate change G-code");
+    def->tooltip = L("Optional G-code that runs before Plate change G-code when a plate-change sequence happens at the very start of a job (for example when using \"Start with new plate?\"). Use this to safely raise Z and load a plate when the current Z height is unknown.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    {
+        auto *opt = new ConfigOptionString();
+        opt->value =
+            "; Additional initial plate change G-code\n"
+            "; This sequence is intended to run right at the start of a job, when the\n"
+            "; printer may not know the current Z height or whether a plate is present.\n"
+            "; OrcaSlicer will prepend this block (when non-empty) before the normal\n"
+            "; Plate change G-code when \"Start with new plate?\" is enabled.\n"
+            "; The example below is based on the swapmod plate-load sequence from\n"
+            "; swap-systems.com and is tuned for the A1 Mini. Adjust as needed for\n"
+            "; your printer and swap hardware.\n"
+            "\n"
+            ";plate-load start\n"
+            "G91\n"
+            "G0 Z50 F1000\n"
+            "G0 Z-20\n"
+            "G90\n"
+            "G28 XY\n"
+            "G0 Y-4 F5000\n"
+            "G0 Y145\n"
+            "G0 Y115 F1000\n"
+            "G0 Y180 F5000\n"
+            "G4 P500\n"
+            "G0 Y186.5 F200\n"
+            "G4 P500 ; wait\n"
+            "G0 Y3 F15000\n"
+            "G0 Y-5 F200\n"
+            "G4 P500 ; wait\n"
+            "G0 Y10 F1000\n"
+            "G0 Y20 F15000\n"
+            ";plate-load end\n";
+        def->set_default_value(opt);
+    }
+
     def = this->add("time_lapse_gcode",coString);
     def->label = L("Timelapse G-code");
     def->multiline = true;

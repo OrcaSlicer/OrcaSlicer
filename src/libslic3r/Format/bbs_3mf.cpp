@@ -5655,21 +5655,31 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
     // Build a single merged gcode string for plate-changer "all plates" exports.
     // Reads each plate's gcode file and inserts plate_change_gcode between them.
-    // When start_with_new_plate is true, prepends plate_change before the first plate.
+    // When start_with_new_plate is true, prepends an optional additional_initial_plate_change_gcode
+    // (when configured) followed by plate_change before the first plate.
     // When end_with_new_plate is true, appends plate_change after the last plate.
     static std::string build_plate_changer_merged_gcode(const PlateDataPtrs& plate_data_list2, const DynamicPrintConfig* config,
                                                         bool start_with_new_plate, bool end_with_new_plate)
     {
-        if (plate_data_list2.size() <= 1 || config == nullptr || !config->has("plate_change_gcode"))
+        if (plate_data_list2.empty() || config == nullptr || !config->has("plate_change_gcode"))
             return {};
 
         std::string plate_change = config->opt_string("plate_change_gcode");
         if (plate_change.empty())
             return {};
 
+        std::string initial_plate_change;
+        if (config->has("additional_initial_plate_change_gcode"))
+            initial_plate_change = config->opt_string("additional_initial_plate_change_gcode");
+
         std::string merged_gcode;
         if (start_with_new_plate) {
-            merged_gcode = plate_change;
+            if (!initial_plate_change.empty()) {
+                merged_gcode = initial_plate_change;
+                if (!merged_gcode.empty() && merged_gcode.back() != '\n')
+                    merged_gcode += '\n';
+            }
+            merged_gcode += plate_change;
             if (!merged_gcode.empty() && merged_gcode.back() != '\n')
                 merged_gcode += '\n';
         }
@@ -8321,8 +8331,9 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
 
     // When printing/exporting all plates with a plate swap device, write a single combined gcode file
     // that sequences all plates with the configured plate-change g-code between them. The printer then
-    // sees this as a single-plate job.
-    if (m_use_plate_changer_all && plate_data_list2.size() > 1 && config && config->has("plate_change_gcode")) {
+    // sees this as a single-plate job. Even if there's only one plate, this path is used so that
+    // optional start/end plate-change sequences can still run.
+    if (m_use_plate_changer_all && !plate_data_list2.empty() && config && config->has("plate_change_gcode")) {
         // Use the shared helper to build the merged gcode string, but keep MD5/archive logic local.
         std::string merged_gcode = build_plate_changer_merged_gcode(plate_data_list2, config, m_start_with_new_plate, m_end_with_new_plate);
 

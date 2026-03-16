@@ -4528,8 +4528,16 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line(option, "printer_machine_gcode#layer-change-g-code");
 
         optgroup = page->new_optgroup(L("Plate change G-code"), L"param_gcode", 0);
-        optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
+        auto update_initial_plate_change_visibility = [this]() {
+            bool has_plate_change_gcode = wxGetApp().preset_bundle &&
+                !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+            if (Field* field = this->get_field("additional_initial_plate_change_gcode"))
+                field->Show(has_plate_change_gcode);
+        };
+        optgroup->m_on_change = [this, &optgroup_title = optgroup->title, update_initial_plate_change_visibility](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
+            if (opt_key.id() == "plate_change_gcode")
+                update_initial_plate_change_visibility();
         };
         optgroup->edit_custom_gcode = edit_custom_gcode_fn;
         option = optgroup->get_option("plate_change_gcode");
@@ -4537,6 +4545,15 @@ void TabPrinter::build_fff()
         option.opt.is_code = true;
         option.opt.height = gcode_field_height;//150;
         optgroup->append_single_option_line(option, "printer_machine_gcode#plate-change-g-code");
+
+        option = optgroup->get_option("additional_initial_plate_change_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = gcode_field_height;//150;
+        optgroup->append_single_option_line(option, "printer_machine_gcode#additional-initial-plate-change-g-code");
+
+        // Initialize visibility on first open based on current preset.
+        update_initial_plate_change_visibility();
 
         // Preset buttons to insert common plate-change g-code into the field above
         {
@@ -4572,12 +4589,33 @@ void TabPrinter::build_fff()
                 "G28 X Y\n"
                 "G1 X0 Y0 F6000\n"
                 "; Innocube A1 swapmod (Bambu A1) – add your plate-change sequence here\n";
-            // Swapmod A1m kit (Bambu A1 Mini) – placeholder
+            // Swapmod A1m kit (Bambu A1 Mini) – from swaplist.app V00-24
             static const std::string swapmod_a1m_kit_gcode =
-                "G28 X Y\n"
-                "G1 X0 Y0 F6000\n"
-                "; Swapmod A1m kit (Bambu A1 Mini) – add your plate-change sequence here\n";
-
+                ";swap code from swaplist.app V00-24\n"
+                "G0 X-10 F5000;\n"
+                " G0 Z175;\n"
+                " G0 Y-5 F2000;\n"
+                "  G0 Y186.5 F2000;\n"
+                "  G0 Y182 F10000;\n"
+                "  G0 Z186 ;\n"
+                " G0 Y120 F500;\n"
+                " G0 Y-4 Z175 F5000;\n"
+                " G0 Y145;\n"
+                "  G0 Y115 F1000;\n"
+                " G0 Y25 F500;\n"
+                " G0 Y85 F1000;\n"
+                " G0 Y180 F2000;\n"
+                " G4 P500; wait\n"
+                " G0 Y186.5 F200;\n"
+                " G4 P500; wait\n"
+                " G0 Y3 F3000;\n"
+                " G0 Y-5 F200;\n"
+                "G4 P500; wait\n"
+                " G0 Y10 F1000;\n"
+                " G0 Z100 Y186 F2000;\n"
+                " G0 Y150;\n"
+                " G4 P1000; wait\n";
+                
             Line preset_line(L"", L"");
             preset_line.full_width = 1;
             // Helper to write both config and visible field

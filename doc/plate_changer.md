@@ -48,15 +48,12 @@ Example with two plates and both toggles on:
 
 ## Limitations
 
-### Single G-code for start, between plates, and end
+### Single vs. additional initial G-code
 
-- **Only one** G-code string is used for every insertion: the **Plate change G-code** from the printer preset.
-- The **same** block is used for:
-  1. **Start** (when “Start with new plate?” is on),
-  2. **Between plates** (always, when merging multiple plates),
-  3. **End** (when “End with new plate?” is on).
+- **Between plates** (and at the end): OrcaSlicer always uses the printer preset’s **Plate change G-code**.
+- **Start of job**: when “Start with new plate?” is enabled, OrcaSlicer first runs the optional **Additional initial plate change G-code** (if non-empty) and then runs the regular **Plate change G-code**.
 
-Some setups (e.g. swaplist.app or custom workflows) use a different “initialisation” or “final” sequence at the very start or end of the job. That is **not** supported: there is no separate “start plate change” or “end plate change” field. If you need different G-code at start/middle/end, you would need to handle that outside OrcaSlicer (e.g. by post-processing the merged G-code).
+This matches setups like swapmod/swaplist.app where a small, **start-only wrapper** is used to lift Z and safely load a plate when the current Z height is unknown, while the main swap routine is reused for both mid-queue and end-of-job swaps.
 
 ### Visibility of start/end toggles
 
