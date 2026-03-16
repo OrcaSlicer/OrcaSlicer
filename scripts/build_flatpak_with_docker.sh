@@ -10,9 +10,6 @@
 #   - Docker (or Podman with docker compatibility)
 #
 # The resulting .flatpak bundle is placed in the project root.
-# A persistent Docker volume "flatpak-builder-cache" is used to cache
-# downloaded sources across builds. Remove it with:
-#   docker volume rm flatpak-builder-cache
 
 set -euo pipefail
 
@@ -24,7 +21,22 @@ ARCH="$(uname -m)"
 NO_DEBUG_INFO=false
 NO_PULL=false
 FORCE_CLEAN=true
+PRIVILEGED=false
 CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-49"
+
+normalize_arch() {
+    case "$1" in
+        arm64|aarch64)
+            echo "aarch64"
+            ;;
+        x86_64|amd64)
+            echo "x86_64"
+            ;;
+        *)
+            echo "$1"
+            ;;
+    esac
+}
 
 # ---------- parse args ----------
 while [[ $# -gt 0 ]]; do
@@ -37,15 +49,28 @@ while [[ $# -gt 0 ]]; do
             NO_PULL=true; shift ;;
         --keep-build)
             FORCE_CLEAN=false; shift ;;
+        --privileged)
+            PRIVILEGED=true; shift ;;
         --image)
             CONTAINER_IMAGE="$2"; shift 2 ;;
         -h|--help)
-            echo "Usage: $0 [--arch <x86_64|aarch64>] [--no-debug-info] [--no-pull] [--keep-build] [--image <image>]"
+            echo "Usage: $0 [--arch <x86_64|aarch64>] [--no-debug-info] [--no-pull] [--keep-build] [--privileged] [--image <image>]"
             exit 0 ;;
         *)
             echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
+
+ARCH="$(normalize_arch "$ARCH")"
+
+case "$ARCH" in
+    x86_64|aarch64)
+        ;;
+    *)
+        echo "Unsupported architecture: $ARCH. Supported: x86_64, aarch64" >&2
+        exit 1
+        ;;
+esac
 
 # ---------- version & commit ----------
 cd "$PROJECT_ROOT"
@@ -66,24 +91,34 @@ echo "  Arch:       ${ARCH}"
 echo "  Image:      ${CONTAINER_IMAGE}"
 echo "  Bundle:     ${BUNDLE_NAME}"
 echo "  Debug info: $([ "$NO_DEBUG_INFO" = true ] && echo "disabled" || echo "enabled")"
+echo "  Privileged: $([ "$PRIVILEGED" = true ] && echo "enabled" || echo "disabled")"
 echo "  ccache:     enabled"
 echo ""
 
 # ---------- prepare manifest ----------
 MANIFEST_SRC="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
 MANIFEST_DOCKER="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml"
-cp "$MANIFEST_SRC" "$MANIFEST_DOCKER"
-
 # Ensure cleanup on exit (success or failure)
 trap 'rm -f "$PROJECT_ROOT/$MANIFEST_DOCKER"' EXIT
 
-# Optionally strip debug info (matches CI behaviour for faster builds)
-if [ "$NO_DEBUG_INFO" = true ]; then
-    sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' "$MANIFEST_DOCKER"
-fi
-
-# Inject git commit hash (same sed as CI)
-sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$GIT_COMMIT_HASH\"|}" "$MANIFEST_DOCKER"
+# Build Docker-specific manifest with customizations (piped to avoid sed -i portability)
+{
+    if [ "$NO_DEBUG_INFO" = true ]; then
+        sed '/^build-options:/a\
+  no-debuginfo: true\
+  strip: true
+'
+    else
+        cat
+    fi
+} < "$MANIFEST_SRC" | \
+sed "/name: OrcaSlicer/{
+    n
+    s|^\([[:space:]]*\)buildsystem: simple|\1buildsystem: simple\\
+\1build-options:\\
+\1  env:\\
+\1    git_commit_hash: \"$GIT_COMMIT_HASH\"|
+}" > "$MANIFEST_DOCKER"
 
 # ---------- run build in Docker ----------
 DOCKER="${DOCKER:-docker}"
@@ -98,43 +133,82 @@ if [ "$FORCE_CLEAN" = true ]; then
     FORCE_CLEAN_FLAG="--force-clean"
 fi
 
+DOCKER_RUN_ARGS=(run --rm)
+if [ "$PRIVILEGED" = true ]; then
+    DOCKER_RUN_ARGS+=(--privileged)
+fi
+
 # Pass build parameters as env vars so the inner script doesn't need
 # variable expansion from the outer shell (avoids quoting issues).
 echo "=== Starting Flatpak build inside container ==="
-"$DOCKER" run --rm --privileged \
+"$DOCKER" "${DOCKER_RUN_ARGS[@]}" \
     -v "$PROJECT_ROOT":/src:Z \
-    -v flatpak-builder-cache:/src/.flatpak-builder \
     -w /src \
     -e "BUILD_ARCH=$ARCH" \
     -e "BUNDLE_NAME=$BUNDLE_NAME" \
     -e "FORCE_CLEAN_FLAG=$FORCE_CLEAN_FLAG" \
     "$CONTAINER_IMAGE" \
-    bash -c '
-        set -euo pipefail
+    bash -s <<'EOF'
+set -euo pipefail
 
-        # Install required SDK extensions (not pre-installed in the container image)
-        flatpak install -y --noninteractive flathub \
-            org.freedesktop.Sdk.Extension.llvm21//25.08 || true
+format_duration() {
+    local total_seconds="$1"
+    local hours=$((total_seconds / 3600))
+    local minutes=$(((total_seconds % 3600) / 60))
+    local seconds=$((total_seconds % 60))
 
-        flatpak-builder $FORCE_CLEAN_FLAG \
-            --ccache \
-            --disable-rofiles-fuse \
-            --arch="$BUILD_ARCH" \
-            --repo=flatpak-repo \
-            flatpak-build \
-            scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml
+    printf "%02d:%02d:%02d" "$hours" "$minutes" "$seconds"
+}
 
-        flatpak build-bundle \
-            --arch="$BUILD_ARCH" \
-            flatpak-repo \
-            "$BUNDLE_NAME" \
-            io.github.orcaslicer.OrcaSlicer
+overall_start=$(date +%s)
+install_start=$overall_start
 
-        # Fix ownership so output files are not root-owned on the host
-        chown "$(stat -c %u:%g /src)" "$BUNDLE_NAME" flatpak-build flatpak-repo
+# Install required SDK extensions (not pre-installed in the container image)
+flatpak install -y --noninteractive --arch="$BUILD_ARCH" flathub \
+    org.gnome.Platform//49 \
+    org.gnome.Sdk//49 \
+    org.freedesktop.Sdk.Extension.llvm21//25.08 || true
 
-        echo "=== Build complete ==="
-    '
+install_end=$(date +%s)
+install_duration=$((install_end - install_start))
+
+builder_start=$(date +%s)
+flatpak-builder $FORCE_CLEAN_FLAG \
+    --verbose \
+    --ccache \
+    --disable-rofiles-fuse \
+    --state-dir=.flatpak-builder \
+    --arch="$BUILD_ARCH" \
+    --repo=flatpak-repo \
+    flatpak-build \
+    scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml
+builder_end=$(date +%s)
+builder_duration=$((builder_end - builder_start))
+
+bundle_start=$(date +%s)
+flatpak build-bundle \
+    --arch="$BUILD_ARCH" \
+    flatpak-repo \
+    "$BUNDLE_NAME" \
+    io.github.orcaslicer.OrcaSlicer
+bundle_end=$(date +%s)
+bundle_duration=$((bundle_end - bundle_start))
+
+# Fix ownership so output files are not root-owned on the host
+owner="$(stat -c %u:%g /src)"
+chown -R "$owner" .flatpak-builder flatpak-build flatpak-repo "$BUNDLE_NAME" 2>/dev/null || true
+
+overall_end=$(date +%s)
+overall_duration=$((overall_end - overall_start))
+
+echo ""
+echo "=== Build complete ==="
+echo "=== Build Stats ==="
+echo "  Runtime install: $(format_duration "$install_duration")"
+echo "  flatpak-builder: $(format_duration "$builder_duration")"
+echo "  Bundle export:   $(format_duration "$bundle_duration")"
+echo "  Overall:         $(format_duration "$overall_duration")"
+EOF
 
 echo ""
 echo "=== Flatpak bundle ready ==="
