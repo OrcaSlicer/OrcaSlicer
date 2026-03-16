@@ -15263,7 +15263,8 @@ msgstr "Верхові поверхні"
 msgid "Topmost surface"
 msgstr "Найвища поверхня"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Весь суцільний шар"
 
 msgid "Ironing Pattern"
@@ -15780,7 +15781,8 @@ msgstr ""
 "Максимальна площа отвору в основі моделі перед заповненням його конічним "
 "матеріалом. Значення 0 заповнює всі отвори в основі моделі."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Виявлення стінок що нависають"
 
 #, c-format, boost-format
@@ -16468,8 +16470,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Мінімальний поріг часткового заповнення"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Ділянки часткового заповнення, менші за порогове значення, замінюються "
@@ -17212,12 +17215,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Температура сопла для шарів після першого"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Виявлення тонкої стінки"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Виявляти тонкі стінки, товщина яких менше ніж ширина двох ліній і "
 "використовувати лише одну лінію для друку. Можуть бути надруковані не дуже "
@@ -17815,7 +17820,8 @@ msgstr ""
 "елемента, то товщина периметра дорівнюватиме товщині самого елемента. Він "
 "виражається у відсотках від діаметра сопла"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Виявлення вузького внутрішнього суцільного заповнення"
 
 msgid ""

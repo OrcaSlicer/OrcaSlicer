@@ -14263,7 +14263,8 @@ msgstr "Top ytor"
 msgid "Topmost surface"
 msgstr "Endast högsta ytan"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Alla solida lager"
 
 msgid "Ironing Pattern"
@@ -14704,7 +14705,8 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Upptäck överhängs vägg"
 
 #, c-format, boost-format
@@ -15283,8 +15285,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Min sparsam ifyllnads gräns"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Sparsam ifyllnads ytor som är mindre än detta gränsvärde ersätts med inre "
@@ -15939,12 +15942,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Nozzel temperatur efter första lager"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Upptäck tunna väggar"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Upptäck tunna väggar som inte kan ha två linjer och använder en linje för "
 "att skrivas ut. Utskrifts kvaliteten begränsas efter som det inte är en "
@@ -16472,7 +16477,8 @@ msgstr ""
 "elementet blir väggen lika tjock som själva elementet. Den uttrycks i "
 "procent av nozzel diametern."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Upptäck tight inre solid ifyllnad"
 
 msgid ""
