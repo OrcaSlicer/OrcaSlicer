@@ -7,8 +7,6 @@ find_package(${CMAKE_FIND_PACKAGE_NAME} ${${CMAKE_FIND_PACKAGE_NAME}_FIND_VERSIO
 
 if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FOUND)
     include(CheckIncludeFileCXX)
-    add_library(draco INTERFACE)
-    target_include_directories(draco INTERFACE include)
 
     if (_quietly)
         set(CMAKE_REQUIRED_QUIET ON)
@@ -22,5 +20,14 @@ if (NOT ${CMAKE_FIND_PACKAGE_NAME}_FOUND)
             message(WARNING "Draco library not found.")
         endif()
     endif ()
-endif()
 
+    find_path(DRACO_INCLUDE_DIR draco/draco_features.h)
+    if (NOT TARGET draco::draco)
+        add_library(draco::draco INTERFACE IMPORTED)
+        if (DRACO_INCLUDE_DIR)
+            set_target_properties(draco::draco PROPERTIES
+                INTERFACE_INCLUDE_DIRECTORIES "${DRACO_INCLUDE_DIR}"
+            )
+        endif()
+    endif()
+endif()

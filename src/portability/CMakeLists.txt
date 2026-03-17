@@ -1,10 +1,3 @@
-add_library(orcaslicer_portability_api INTERFACE)
-
-target_include_directories(orcaslicer_portability_api
-    INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 option(ORCASLICER_BUILD_IOS_PORTABILITY "Build iOS portability services" ON)
 
 set(ORCASLICER_IOS_TOOLCHAIN_ACTIVE OFF)
@@ -18,4 +11,5 @@ endif ()
 
 if (ORCASLICER_IOS_TOOLCHAIN_ACTIVE)
     add_subdirectory(platform/ios)
+    add_subdirectory(render/ios)
 endif ()

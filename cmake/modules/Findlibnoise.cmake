@@ -1,6 +1,6 @@
 find_path(LIBNOISE_INCLUDE_DIR libnoise/noise.h)
-find_library(LIBNOISE_LIBRARY_RELEASE NAMES libnoise libnoise_static liblibnoise_static)
-find_library(LIBNOISE_LIBRARY_DEBUG NAMES libnoised libnoise_staticd liblibnoise_staticd)
+find_library(LIBNOISE_LIBRARY_RELEASE NAMES noise libnoise noise_static libnoise_static liblibnoise_static)
+find_library(LIBNOISE_LIBRARY_DEBUG NAMES noised libnoised noise_staticd libnoise_staticd liblibnoise_staticd)
 
 set(libnoise_LIB_FOUND FALSE)
 if (LIBNOISE_LIBRARY_RELEASE OR LIBNOISE_LIBRARY_DEBUG)
@@ -14,7 +14,7 @@ find_package_handle_standard_args(libnoise DEFAULT_MSG
 )
 
 if(libnoise_FOUND)
-    add_library(noise::noise STATIC IMPORTED)
+    add_library(noise::noise UNKNOWN IMPORTED)
 
     set_target_properties(noise::noise PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${LIBNOISE_INCLUDE_DIR}"

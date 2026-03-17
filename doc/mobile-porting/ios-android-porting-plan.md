@@ -31,6 +31,13 @@ Use a layered split:
    - Android: Jetpack Compose/View
    - desktop: wxWidgets (existing)
 
+## Canonical module layout
+- Portability interfaces and adapters live in `src/portability/**`.
+- iOS-first modules currently scaffolded:
+  - `src/portability/platform/ios/IOSPlatformServices.*`
+  - `src/portability/render/ios/IOSMetalRenderBackend.*`
+- Any equivalent service classes that still live in `src/slic3r/Utils/**` are transitional desktop wiring and should migrate behind portability interfaces.
+
 ## What should stay identical across iOS/Android
 - `libslic3r` algorithms and print pipeline
 - project/profile semantics and serialization (`Format/*`, presets)

@@ -18,3 +18,7 @@ Do not include the following from `src/portability/**`:
 - Desktop OpenGL headers such as `#include <GL/...>` or `#include <OpenGL/...>`
 
 This rule is enforced at CMake configure-time by `cmake/CheckPortabilityIncludes.cmake`.
+
+## Current implementation focus: iOS-first
+
+The active implementation target is iOS portability modules under `src/portability/platform/ios/` and `src/portability/render/ios/`. Android modules should start only after iOS adapters are integrated end-to-end.
