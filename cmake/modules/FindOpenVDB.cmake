@@ -348,24 +348,36 @@ macro(just_fail msg)
   return()
 endmacro()
 
+set(_OPENVDB_HALF_TARGET "")
+
 find_package(IlmBase QUIET)
 if(NOT IlmBase_FOUND)
   pkg_check_modules(IlmBase QUIET IlmBase)
 endif()
-if (IlmBase_FOUND AND NOT TARGET IlmBase::Half)
+if(IlmBase_FOUND AND TARGET IlmBase::Half)
+  set(_OPENVDB_HALF_TARGET IlmBase::Half)
+elseif (IlmBase_FOUND)
   message(STATUS "Falling back to IlmBase found by pkg-config...")
 
   find_library(IlmHalf_LIBRARY NAMES Half)
-  if(IlmHalf_LIBRARY-NOTFOUND OR NOT IlmBase_INCLUDE_DIRS)
-    just_fail("IlmBase::Half can not be found!")
+  if(NOT IlmHalf_LIBRARY-NOTFOUND AND IlmBase_INCLUDE_DIRS)
+    add_library(IlmBase::Half UNKNOWN IMPORTED)
+    set_target_properties(IlmBase::Half PROPERTIES
+      IMPORTED_LOCATION "${IlmHalf_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${IlmBase_INCLUDE_DIRS}")
+    set(_OPENVDB_HALF_TARGET IlmBase::Half)
   endif()
-  
-  add_library(IlmBase::Half UNKNOWN IMPORTED)
-  set_target_properties(IlmBase::Half PROPERTIES
-    IMPORTED_LOCATION "${IlmHalf_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${IlmBase_INCLUDE_DIRS}")
-elseif(NOT IlmBase_FOUND)
-  just_fail("IlmBase::Half can not be found!")
+endif()
+
+if(NOT _OPENVDB_HALF_TARGET)
+  find_package(Imath QUIET)
+  if(TARGET Imath::Imath)
+    set(_OPENVDB_HALF_TARGET Imath::Imath)
+  endif()
+endif()
+
+if(NOT _OPENVDB_HALF_TARGET)
+  just_fail("Neither IlmBase::Half nor Imath::Imath can be found!")
 endif()
 find_package(TBB ${_quiet} ${_required} COMPONENTS tbb)
 find_package(ZLIB ${_quiet} ${_required})
@@ -472,7 +484,7 @@ endif()
 set(_OPENVDB_VISIBLE_DEPENDENCIES
   Boost::iostreams
   Boost::system
-  IlmBase::Half
+  ${_OPENVDB_HALF_TARGET}
 )
 
 set(_OPENVDB_DEFINITIONS)
@@ -481,12 +493,30 @@ if(OpenVDB_ABI)
 endif()
 
 if(OpenVDB_USES_EXR)
-  list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES
-    IlmBase::IlmThread
-    IlmBase::Iex
-    IlmBase::Imath
-    OpenEXR::IlmImf
-  )
+  if(TARGET IlmBase::IlmThread)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES IlmBase::IlmThread)
+  elseif(TARGET OpenEXR::IlmThread)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES OpenEXR::IlmThread)
+  endif()
+
+  if(TARGET IlmBase::Iex)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES IlmBase::Iex)
+  elseif(TARGET OpenEXR::Iex)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES OpenEXR::Iex)
+  endif()
+
+  if(TARGET IlmBase::Imath)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES IlmBase::Imath)
+  elseif(TARGET Imath::Imath)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES Imath::Imath)
+  endif()
+
+  if(TARGET OpenEXR::IlmImf)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES OpenEXR::IlmImf)
+  elseif(TARGET OpenEXR::OpenEXR)
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES OpenEXR::OpenEXR)
+  endif()
+
   list(APPEND _OPENVDB_DEFINITIONS "-DOPENVDB_TOOLS_RAYTRACER_USE_EXR")
 endif()
 

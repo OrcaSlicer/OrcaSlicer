@@ -83,18 +83,17 @@ This is a **planning list** of files likely needing edits to modularize platform
 
 ## 6) New abstraction headers to add
 
-- `src/platform/IPlatformPaths.hpp`
-- `src/platform/IKeyValueSecureStore.hpp`
-- `src/platform/ITaskDispatcher.hpp`
-- `src/platform/INetworkReachability.hpp`
-- `src/render/IRenderBackend.hpp`
-- `src/render/ISceneRenderer.hpp`
-- `src/render/IPickingService.hpp`
+- `src/portability/platform/IPlatformServices.hpp`
+- `src/portability/platform/ICredentialStore.hpp`
+- `src/portability/platform/ios/IOSPlatformServices.hpp`
+- `src/portability/render/IRenderBackend.hpp`
+- `src/portability/render/ISceneRenderer.hpp`
+- `src/portability/render/ios/IOSMetalRenderBackend.hpp`
 
 (Exact names can vary; key requirement is strict interface/implementation split.)
 
 ## 7) Initial implementation sequence
 1. Introduce interfaces + desktop adapter implementations first.
 2. Move compile dependencies so shared targets have no `<wx/...>`/OpenGL includes.
-3. Add iOS build target consuming shared libs only.
+3. Add iOS build targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`) consuming shared libs only.
 4. Add Android target after iOS scaffolding, reusing the same interfaces.

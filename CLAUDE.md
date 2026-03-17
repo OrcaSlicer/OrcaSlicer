@@ -107,6 +107,7 @@ ctest --test-dir ./tests/sla_print/sla_print_tests
 - **src/slic3r/**: Main application framework and GUI
   - GUI application built with wxWidgets
   - Integration between libslic3r core and user interface
+  - Located in `src/slic3r/GUI/`
   - Desktop GUI code lives in `src/slic3r/GUI/`
 
 - **Portability layer (`src/portability/`)**: platform adapters and renderer abstraction
@@ -140,6 +141,13 @@ ctest --test-dir ./tests/sla_print/sla_print_tests
 - **CGAL**: Computational Geometry Algorithms Library (selective use)
 - **OpenVDB**: Volumetric data structures for advanced operations
 - **Eigen**: Linear algebra library for mathematical operations
+
+## Mobile Porting Docs of Record
+- `doc/mobile-porting/ios-android-porting-plan.md`
+- `doc/mobile-porting/file-edit-plan.md`
+- `doc/mobile-porting/implementation-status.md`
+
+Use the files above as the source of truth for iOS-first modularization (portability interfaces, platform adapters, renderer abstraction, and desktop/mobile split).
 
 ## File Organization
 
@@ -202,6 +210,7 @@ Use these documents as the source of truth for platform adapter boundaries, rend
 5. Add regression tests where appropriate
 
 #### GUI Development
+1. GUI code resides in `src/slic3r/GUI/`
 1. Desktop GUI code resides in `src/slic3r/GUI/`
 2. Use existing wxWidgets patterns and custom controls
 3. Support both light and dark themes

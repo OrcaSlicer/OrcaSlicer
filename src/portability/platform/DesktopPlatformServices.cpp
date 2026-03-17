@@ -1,20 +1,17 @@
-#include "portability/platform/DesktopPlatformServices.hpp"
-
-namespace OrcaSlicer::Portability {
-
-std::string_view DesktopPlatformServices::platform_name() const
-{
-    return "desktop";
-}
-
-} // namespace OrcaSlicer::Portability
 #include "DesktopPlatformServices.hpp"
 
 #include <cstdlib>
 #include <filesystem>
 #include <future>
 
-namespace Slic3r::Portability::Platform {
+namespace Slic3r::portability::platform {
+
+DesktopPlatformServices::DesktopPlatformServices() = default;
+
+std::string_view DesktopPlatformServices::platform_name() const
+{
+    return "desktop";
+}
 
 std::string DesktopPlatformServices::writable_app_data_path() const
 {
@@ -59,20 +56,14 @@ void DesktopPlatformServices::post_background(std::function<void()> task)
     });
 }
 
-bool DesktopPlatformServices::read_secure_value(const std::string &key, std::string &value) const
+ICredentialStore& DesktopPlatformServices::credential_store()
 {
-    const auto it = m_fake_secure_store.find(key);
-    if (it == m_fake_secure_store.end())
-        return false;
-
-    value = it->second;
-    return true;
+    return m_credential_store;
 }
 
-bool DesktopPlatformServices::write_secure_value(const std::string &key, const std::string &value)
+const ICredentialStore& DesktopPlatformServices::credential_store() const
 {
-    m_fake_secure_store[key] = value;
-    return true;
+    return m_credential_store;
 }
 
-} // namespace Slic3r::Portability::Platform
+} // namespace Slic3r::portability::platform

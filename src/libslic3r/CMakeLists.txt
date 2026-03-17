@@ -542,7 +542,7 @@ find_package(OpenCASCADE REQUIRED)
 target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 
 find_package(JPEG REQUIRED)
-find_package(draco REQUIRED)
+find_package(Draco REQUIRED)
 
 set(OCCT_LIBS
     TKXDESTEP

@@ -1,18 +1,27 @@
 #pragma once
 
-#include <functional>
-#include <string>
+#include "portability/platform/DesktopInMemoryCredentialStore.hpp"
+#include "portability/platform/IPlatformServices.hpp"
 
-namespace OrcaSlicer::Portability {
+namespace Slic3r::portability::platform::ios {
 
-class IOSPlatformServices
+class IOSPlatformServices final : public IPlatformServices
 {
 public:
-    static std::string app_data_path();
-    static std::string temp_path();
+    IOSPlatformServices();
 
-    static void dispatch_to_main_thread(std::function<void()> task);
-    static void dispatch_to_background(std::function<void()> task);
+    std::string_view platform_name() const override;
+    std::string      writable_app_data_path() const override;
+    std::string      temporary_path() const override;
+
+    void post_to_main_thread(std::function<void()> task) override;
+    void post_background(std::function<void()> task) override;
+
+    ICredentialStore&       credential_store() override;
+    const ICredentialStore& credential_store() const override;
+
+private:
+    DesktopInMemoryCredentialStore m_credential_store;
 };
 
-} // namespace OrcaSlicer::Portability
+} // namespace Slic3r::portability::platform::ios

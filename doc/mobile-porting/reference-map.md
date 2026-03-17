@@ -4,6 +4,7 @@
 - `src/libslic3r/` — slicing engine, model processing, gcode generation (core candidate).
 - `src/slic3r/` — GUI, app orchestration, platform utilities (currently mixed concerns).
 - `src/libvgcode/` — G-code visualization library (already has GL/GLES split support).
+- `src/portability/` — portability contracts + platform/render adapters (desktop and iOS scaffold).
 - `src/dev-utils/platform/` — platform packaging/runtime templates.
 - `resources/` — presets/icons/assets.
 - `tests/` — unit/integration test coverage.
@@ -52,6 +53,8 @@ Search clusters:
 ## Fast search strings for future edits
 - `SLIC3R_GUI`
 - `target_link_libraries(libslic3r_gui`
+- `orcaslicer_platform_ios`
+- `orcaslicer_render_ios_metal`
 - `#include <wx/`
 - `#include "slic3r/GUI/`
 - `OpenGLManager`
@@ -66,3 +69,5 @@ Search clusters:
 2. Rendering calls must flow through backend-neutral interfaces.
 3. Platform services (paths, keychain, task dispatch, share/open handlers) must be abstracted behind adapters.
 4. Native UI state should consume shared C++ view-model/state outputs, not raw engine internals.
+
+5. iOS-first scope: add iOS adapters in `src/portability/platform/ios` and `src/portability/render/ios` before Android work starts.

@@ -6,12 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(orcaslicer_portability_api INTERFACE)
 target_sources(orcaslicer_portability_api INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/portability/platform/ICredentialStore.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/platform/IPlatformServices.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/render/IRenderBackend.hpp
 )
 target_include_directories(orcaslicer_portability_api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(orcaslicer_platform_desktop STATIC
+    portability/platform/DesktopInMemoryCredentialStore.hpp
+    portability/platform/DesktopInMemoryCredentialStore.cpp
     portability/platform/DesktopPlatformServices.hpp
     portability/platform/DesktopPlatformServices.cpp
 )
@@ -37,7 +40,10 @@ add_subdirectory(libslic3r)
 
 
 add_library(orcaslicer_portability STATIC
+    portability/platform/ICredentialStore.hpp
     portability/platform/IPlatformServices.hpp
+    portability/platform/DesktopInMemoryCredentialStore.hpp
+    portability/platform/DesktopInMemoryCredentialStore.cpp
     portability/platform/DesktopPlatformServices.hpp
     portability/platform/DesktopPlatformServices.cpp
     portability/render/IRenderBackend.hpp
