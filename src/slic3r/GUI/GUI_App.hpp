@@ -11,6 +11,7 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/PlatformServices.hpp"
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "slic3r/GUI/WebUserLoginDialog.hpp"
 #include "slic3r/GUI/BindDialog.hpp"
@@ -320,6 +321,7 @@ private:
     HttpServer       m_http_server;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
+    DesktopPlatformServices m_platform_services;
 public:
     //try again when subscription fails
     void            on_start_subscribe_again(std::string dev_id);
@@ -343,6 +345,8 @@ public:
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
+    IPlatformServices& platform_services() { return m_platform_services; }
+    const IPlatformServices& platform_services() const { return m_platform_services; }
 
     // Dynamic printer agent switching
     void switch_printer_agent();
