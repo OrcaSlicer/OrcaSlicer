@@ -13,6 +13,16 @@ find_package(libnoise REQUIRED)
 
 add_subdirectory(libslic3r)
 
+
+add_library(orcaslicer_portability STATIC
+    portability/platform/IPlatformServices.hpp
+    portability/platform/DesktopPlatformServices.hpp
+    portability/platform/DesktopPlatformServices.cpp
+    portability/render/IRenderBackend.hpp
+    portability/render/NullRenderBackend.hpp
+)
+target_include_directories(orcaslicer_portability PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 if (SLIC3R_GUI)
     # imgui, imguizmo, and hidapi are now included from deps_src
     add_subdirectory(libvgcode)
