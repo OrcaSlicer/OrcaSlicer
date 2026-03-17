@@ -222,7 +222,7 @@ public:
             // Only allow opening a new PrusaSlicer instance on OSX if "single_instance" is disabled,
             // as starting new instances would interfere with the locking mechanism of "single_instance" support.
             append_menu_item(menu, wxID_ANY, _L("New Window"), _L("Open a new window"),
-            [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr);
+            [](wxCommandEvent&) { start_new_slicer(wxGetApp().platform_services()); }, "", nullptr);
         }
 //        append_menu_item(menu, wxID_ANY, _L("G-code Viewer") + dots, _L("Open G-code Viewer"),
 //            [](wxCommandEvent&) { start_new_gcodeviewer_open_file(); }, "", nullptr);
@@ -236,7 +236,7 @@ public:
     wxMenu *CreatePopupMenu() override {
         wxMenu *menu = new wxMenu;
         append_menu_item(menu, wxID_ANY, _L("Open PrusaSlicer"), _L("Open a new PrusaSlicer"),
-            [](wxCommandEvent&) { start_new_slicer(nullptr, true); }, "", nullptr);
+            [](wxCommandEvent&) { start_new_slicer(wxGetApp().platform_services(), nullptr, true); }, "", nullptr);
         //append_menu_item(menu, wxID_ANY, _L("G-code Viewer") + dots, _L("Open new G-code Viewer"),
         //    [](wxCommandEvent&) { start_new_gcodeviewer_open_file(); }, "", nullptr);
         return menu;
@@ -2622,7 +2622,7 @@ void MainFrame::init_menubar_as_editor()
 #ifdef __APPLE__
         // New Window
         append_menu_item(fileMenu, wxID_ANY, _L("New Window"), _L("Start a new window"),
-                         [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr,
+                         [](wxCommandEvent&) { start_new_slicer(wxGetApp().platform_services()); }, "", nullptr,
                          [this] { return m_plater != nullptr && wxGetApp().app_config->get("app", "single_instance") == "false"; }, this);
 #endif
         // New Project
@@ -3530,7 +3530,7 @@ void MainFrame::init_menubar_as_gcodeviewer()
             [this](wxCommandEvent&) { if (m_plater != nullptr) m_plater->export_toolpaths_to_obj(); }, "export_plater", nullptr,
             [this]() {return can_export_toolpaths(); }, this);
         append_menu_item(fileMenu, wxID_ANY, _L("Open &Slicer") + dots, _L("Open Slicer"),
-            [](wxCommandEvent&) { start_new_slicer(); }, "", nullptr,
+            [](wxCommandEvent&) { start_new_slicer(wxGetApp().platform_services()); }, "", nullptr,
             []() {return true; }, this);
         fileMenu->AppendSeparator();
         append_menu_item(fileMenu, wxID_EXIT, _L("&Quit"), wxString::Format(_L("Quit %s"), SLIC3R_APP_NAME),
