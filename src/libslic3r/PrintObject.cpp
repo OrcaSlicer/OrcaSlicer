@@ -1964,12 +1964,8 @@ void PrintObject::detect_surfaces_type()
                     // No bridge polygons found, continue to the next layer
                     if (polygons_bridge.empty())
                         continue;
-                    
+
                     // Step 4: Bottom bridge polygons found - scan and create layer+1 bridge polygon
-                    Surfaces &top_surfs = m_layers[i + 1]->m_regions[region_id]->slices.surfaces;
-                    Surfaces new_surfaces;
-                    new_surfaces.reserve(top_surfs.size());
-                    
                     //filtering parameters here. Filter bridges that are less than 2x external walls and 2xN internal perimeters wide.
                     LayerRegion *layerm = m_layers[i]->m_regions[region_id];
                     int number_of_internal_walls = std::max(0, layerm->m_region->config().wall_loops - 1); // number of internal walls, clamped to a minimum of 0 as a safety precaution
@@ -1981,87 +1977,90 @@ void PrintObject::detect_surfaces_type()
                     // We could reduce this slightly to account for innacurcies in the clipping operation.
                     // TODO: Monitor GitHub issues to check whether second bridge layers are ommited where they should be generated. If yes, reduce the filtering distance
 
-                    // ORCA: Same-layer-top guard.
-                    //
-                    // Collect every stTop polygon present at layer i+1 (this region) and
-                    // expand it by the same `offset_distance` used by the bridge filter
-                    // above. Note that `offset_distance` here is the full wall-band
-                    // distance for the region (external wall width + all configured
-                    // internal wall widths, i.e. external + (wall_loops - 1) × internal),
-                    // not a single perimeter width. Any candidate second-bridge area that
-                    // falls under this expanded mask will be subtracted out below.
-                    //
-                    // Why this exists: detect_surfaces_type() classifies a layer's "top"
-                    // surfaces as the geometry that is not covered by the layer above. Those
-                    // stTop regions often have small stInternal islands embedded in them.
-                    // The pre-existing wall-band filter (shrink_ex/offset_ex by
-                    // offset_distance) is supposed to throw those tiny islands away, but
-                    // its result is sensitive to Clipper's floating-point order of
-                    // operations: on macOS ARM the filter eats them, on Windows/Intel it
-                    // doesn't. Visible bridges then show up scattered across the printed
-                    // top surface.
-                    //
-                    // Expanding stTop by offset_distance and subtracting it from the
-                    // overlap makes the decision platform-independent: an island fully
-                    // surrounded by stTop disappears regardless of which Clipper happens
-                    // to be doing the math, while large stInternal regions away from the
-                    // top survive intact (the expansion only nibbles the wall-band depth
-                    // inward).
-                    //
-                    // Keep ExPolygons throughout so that any holes inside an stTop surface
-                    // are offset with the correct sign (positive offset shrinks holes /
-                    // grows the solid region). Using Polygons + expand() would treat the
-                    // contour and each hole as independent polygons and could distort the
-                    // mask.
-                    ExPolygons same_layer_top_expanded;
-                    {
-                        ExPolygons same_layer_top;
-                        for (const Surface &s : top_surfs) {
-                            if (s.surface_type == stTop)
-                                same_layer_top.push_back(s.expolygon);
+                    // Lambda: apply extra bridge layer reclassification to target surfaces.
+                    // Finds stInternal surfaces overlapping the bridge polygons and reclassifies
+                    // the overlapping portion as stInternalAfterExternalBridge.
+                    // Also applies the same-layer-top guard (see ORCA comment inside the lambda)
+                    // to avoid spurious second bridge layers on top surfaces.
+                    auto apply_extra_bridge = [&](Surfaces &target_surfs) -> bool {
+                        // ORCA: Same-layer-top guard.
+                        //
+                        // Collect every stTop polygon present in this target region and expand
+                        // it by the same `offset_distance` used by the bridge filter above.
+                        // Any candidate second-bridge area that falls under this expanded mask
+                        // will be subtracted out below, making the decision platform-independent.
+                        //
+                        // Why this exists: detect_surfaces_type() classifies a layer's "top"
+                        // surfaces as the geometry that is not covered by the layer above. Those
+                        // stTop regions often have small stInternal islands embedded in them.
+                        // The pre-existing wall-band filter (shrink_ex/offset_ex by
+                        // offset_distance) is supposed to throw those tiny islands away, but
+                        // its result is sensitive to Clipper's floating-point order of
+                        // operations: on macOS ARM the filter eats them, on Windows/Intel it
+                        // doesn't. Visible bridges then show up scattered across the printed
+                        // top surface.
+                        //
+                        // Keep ExPolygons throughout so that any holes inside an stTop surface
+                        // are offset with the correct sign (positive offset shrinks holes /
+                        // grows the solid region). Using Polygons + expand() would treat the
+                        // contour and each hole as independent polygons and could distort the
+                        // mask.
+                        ExPolygons same_layer_top_expanded;
+                        {
+                            ExPolygons same_layer_top;
+                            for (const Surface &s : target_surfs) {
+                                if (s.surface_type == stTop)
+                                    same_layer_top.push_back(s.expolygon);
+                            }
+                            if (!same_layer_top.empty())
+                                same_layer_top_expanded = offset_ex(same_layer_top, offset_distance);
                         }
-                        if (! same_layer_top.empty())
-                            same_layer_top_expanded = offset_ex(same_layer_top, offset_distance);
+
+                        bool found_internal = false;
+                        Surfaces new_surfaces;
+                        new_surfaces.reserve(target_surfs.size());
+                        for (Surface &s_up : target_surfs) {
+                            if (s_up.surface_type != stInternal) {
+                                new_surfaces.push_back(std::move(s_up));
+                                continue;
+                            }
+                            found_internal = true;
+                            Polygons p_up = to_polygons(s_up);
+                            ExPolygons overlap = intersection_ex(p_up, polygons_bridge, ApplySafetyOffset::Yes);
+                            overlap = offset_ex(shrink_ex(overlap, offset_distance), offset_distance);
+
+                            // ORCA: subtract the expanded same-layer stTop mask. Drops stInternal
+                            // islands fully surrounded by stTop without affecting real bridges.
+                            if (!same_layer_top_expanded.empty() && !overlap.empty())
+                                overlap = diff_ex(overlap, same_layer_top_expanded, ApplySafetyOffset::Yes);
+
+                            ExPolygons remainder = diff_ex(p_up, overlap, ApplySafetyOffset::Yes);
+                            ExPolygons unified_remainder = union_safety_offset_ex(remainder);
+                            for (auto &ex_remainder : unified_remainder)
+                                new_surfaces.emplace_back(stInternal, ex_remainder);
+                            ExPolygons unified_overlap = union_safety_offset_ex(overlap);
+                            for (auto &ex_overlap : unified_overlap)
+                                new_surfaces.emplace_back(stInternalAfterExternalBridge, ex_overlap);
+                        }
+                        if (found_internal)
+                            target_surfs = std::move(new_surfaces);
+                        return found_internal;
+                    };
+
+                    // Try same region first (the common single-material case).
+                    Surfaces &top_surfs = m_layers[i + 1]->m_regions[region_id]->slices.surfaces;
+                    if (!apply_extra_bridge(top_surfs) && this->num_printing_regions() > 1) {
+                        // Cross-region fallback: for face-painted MMU bridges the painted
+                        // region only exists at the bridge layer; layer i+1 has the geometry
+                        // in a different region. Search other regions at layer i+1.
+                        for (size_t other_id = 0; other_id < m_layers[i + 1]->region_count(); ++other_id) {
+                            if (other_id == region_id)
+                                continue;
+                            Surfaces &other_top = m_layers[i + 1]->m_regions[other_id]->slices.surfaces;
+                            if (apply_extra_bridge(other_top))
+                                break;
+                        }
                     }
-
-                    // For each surface in the layer above
-                    for (Surface &s_up : top_surfs) {
-                        // Only reclassify stInternal polygons (i.e. what will become later solid and sparse infill)
-                        // Leave the rest unaffected
-                        if (s_up.surface_type != stInternal) {
-                            new_surfaces.push_back(std::move(s_up)); // do not modify them
-                            continue; // continue to the next surface
-                        }
-                        // Identify stInternal polygons that overlap with the bridging polygons on the layer underneath.
-                        Polygons p_up = to_polygons(s_up);
-                        ExPolygons overlap   = intersection_ex(p_up, polygons_bridge , ApplySafetyOffset::Yes);
-                        // Filter out the resulting candidate bridges based on size. First perform a shrink operation...
-                        // ...followed by an expand operation to bring them back to the original size (positive offset)
-                        overlap = offset_ex(shrink_ex(overlap, offset_distance), offset_distance);
-
-                        // ORCA: subtract the expanded same-layer stTop mask (see comment above
-                        // the mask construction). Drops stInternal islands fully surrounded by
-                        // stTop at i+1 without affecting bridges that lie away from the top.
-                        if (! same_layer_top_expanded.empty() && ! overlap.empty())
-                            overlap = diff_ex(overlap, same_layer_top_expanded, ApplySafetyOffset::Yes);
-
-                        // Now subtract the filtered new bridge layer from the remaining internal surfaces to create the new internal surface
-                        ExPolygons remainder = diff_ex(p_up, overlap, ApplySafetyOffset::Yes);
-                        
-                        // Remainder stays as stInternal
-                        ExPolygons unified_remainder = union_safety_offset_ex(remainder);
-                        for (auto &ex_remainder : unified_remainder) {
-                            Surface s(stInternal, ex_remainder);
-                            new_surfaces.push_back(std::move(s));
-                        }
-                        // Overlap portion becomes the new polygon type - stInternalAfterExternalBridge
-                        ExPolygons unified_overlap = union_safety_offset_ex(overlap);
-                        for (auto &ex_overlap : unified_overlap) {
-                            Surface s(stInternalAfterExternalBridge, ex_overlap);
-                            new_surfaces.push_back(std::move(s));
-                        }
-                    }
-                    top_surfs = std::move(new_surfaces);
                 }
             }
             );
@@ -2082,6 +2081,20 @@ void PrintObject::detect_surfaces_type()
                     }
                 }
               );
+            }
+            // Cross-region modifications may have changed other regions' slices.surfaces
+            // after their slices_to_fill_surfaces_clipped() already ran. Re-clip those
+            // regions so fill_surfaces reflects the new stBottomBridge surfaces.
+            if (this->num_printing_regions() > 1) {
+                tbb::parallel_for(
+                    tbb::blocked_range<size_t>(0, m_layers.size()),
+                    [this, region_id](const tbb::blocked_range<size_t> &range) {
+                        for (size_t idx = range.begin(); idx < range.end(); ++idx)
+                            for (size_t rid = 0; rid < m_layers[idx]->region_count(); ++rid)
+                                if (rid != region_id)
+                                    m_layers[idx]->m_regions[rid]->slices_to_fill_surfaces_clipped();
+                    }
+                );
             }
         }
         // ==============================================================================================================

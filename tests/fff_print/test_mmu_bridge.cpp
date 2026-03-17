@@ -60,6 +60,20 @@ static int count_surface_type(const PrintObject &obj, SurfaceType type)
     return count;
 }
 
+// Helper: verify bridge surfaces do not extend into void at the given layer.
+static void check_bridge_within_model(const Layer *bridge_layer)
+{
+    for (const LayerRegion *lr : bridge_layer->regions()) {
+        for (const Surface &s : lr->fill_surfaces.surfaces) {
+            if (s.surface_type != stBottomBridge)
+                continue;
+            ExPolygons void_overflow = diff_ex(ExPolygons{s.expolygon}, bridge_layer->lslices);
+            double overflow_mm2 = std::abs(unscale<double>(unscale<double>(area(void_overflow))));
+            CHECK(overflow_mm2 < 0.1);
+        }
+    }
+}
+
 // ============================================================================
 // Test 1: A painted region spanning a gap (true bridge) should be stBottomBridge
 // ============================================================================
@@ -100,8 +114,10 @@ TEST_CASE("MMU cross-region bridge over void is stBottomBridge", "[MMUBridge]") 
             for (const Surface &s : lr->fill_surfaces.surfaces)
                 if (s.surface_type == stBottomBridge)
                     layer_has_bridge = true;
-        if (layer_has_bridge)
+        if (layer_has_bridge) {
             bridge_layer_count++;
+            check_bridge_within_model(layer);
+        }
     }
     REQUIRE(bridge_layer_count == 1);
 }
@@ -174,8 +190,10 @@ TEST_CASE("MMU bridge preserved with bottom_shell_layers=0", "[MMUBridge]") {
             for (const Surface &s : lr->fill_surfaces.surfaces)
                 if (s.surface_type == stBottomBridge)
                     layer_has_bridge = true;
-        if (layer_has_bridge)
+        if (layer_has_bridge) {
             bridge_layer_count++;
+            check_bridge_within_model(layer);
+        }
     }
     REQUIRE(bridge_layer_count == 1);
 }
@@ -226,6 +244,7 @@ TEST_CASE("MMU bridge fill covers the gap area", "[MMUBridge]") {
         }
     }
     REQUIRE(bridge_layer != nullptr);
+    check_bridge_within_model(bridge_layer);
 
     // At the bridge layer, check bridge fill covers the gap.
     // Note: ensure_on_bed() centers the object. With y spanning 0..50, the center
@@ -301,7 +320,8 @@ TEST_CASE("Normal single-material bridge still works", "[MMUBridge]") {
 // Two pillars (20x20x6) at y=0..20 and y=30..50 with a 10mm gap, merged with a
 // slab (20x50x1) at z=6..7. Only bottom face triangles of the slab are painted as
 // extruder 2. Caller owns Print and Model (must outlive returned reference).
-static const PrintObject &init_face_painted_bridge_print(Print &print, Model &model)
+static const PrintObject &init_face_painted_bridge_print(Print &print, Model &model,
+    const DynamicPrintConfig &extra_overrides = DynamicPrintConfig())
 {
     TriangleMesh pillars = make_cube(20, 20, 6);
     TriangleMesh pillar2 = make_cube(20, 20, 6);
@@ -347,6 +367,7 @@ static const PrintObject &init_face_painted_bridge_print(Print &print, Model &mo
         { "bottom_shell_layers",    "1" },
         { "top_shell_layers",       "1" },
     });
+    config.apply(extra_overrides);
 
     ModelObject *object = model.add_object();
     object->name = "painted_bridge";
@@ -408,8 +429,10 @@ TEST_CASE("MMU face-painted bridge full pipeline", "[MMUBridge]") {
                         found_overhang_perimeter = true;
             }
         }
-        if (layer_has_bridge)
+        if (layer_has_bridge) {
             bridge_layer_count++;
+            check_bridge_within_model(layer);
+        }
     }
     REQUIRE(bridge_layer_count == 1);
     // With the fix, the gap region gets bridge fills - no overhang perimeters.
@@ -446,17 +469,7 @@ TEST_CASE("MMU face-painted bridge does not extend into void", "[MMUBridge]") {
         }
     }
     REQUIRE(bridge_layer != nullptr);
-
-    // Bridge surfaces must not extend beyond the model boundary (void).
-    for (const LayerRegion *lr : bridge_layer->regions()) {
-        for (const Surface &s : lr->fill_surfaces.surfaces) {
-            if (s.surface_type != stBottomBridge)
-                continue;
-            ExPolygons void_overflow = diff_ex(ExPolygons{s.expolygon}, bridge_layer->lslices);
-            double overflow_mm2 = std::abs(unscale<double>(unscale<double>(area(void_overflow))));
-            CHECK(overflow_mm2 < 0.1);  // less than 0.1mm² overflow into void
-        }
-    }
+    check_bridge_within_model(bridge_layer);
 
     // Bridge extrusion paths must stay within the model boundary.
     BoundingBox model_bb = get_extents(bridge_layer->lslices);
@@ -471,5 +484,94 @@ TEST_CASE("MMU face-painted bridge does not extend into void", "[MMUBridge]") {
             CHECK(extr_bb.max.y() <= model_bb.max.y());
         }
     }
+}
+
+// ============================================================================
+// Test 8: Two-volume bridge with enable_extra_bridge_layer = "apply_to_all"
+// ============================================================================
+TEST_CASE("MMU two-volume bridge with extra bridge layer", "[MMUBridge]") {
+    // Same geometry as Test 1 (pillars + slab, separate volumes).
+    // With enable_extra_bridge_layer, the bridge should span TWO layers.
+    TriangleMesh pillar1 = make_cube(20, 20, 6);
+    TriangleMesh pillar2 = make_cube(20, 20, 6);
+    pillar2.translate(0, 30, 0);
+    pillar1.merge(pillar2);
+
+    TriangleMesh slab = make_cube(20, 50, 1);
+    slab.translate(0, 0, 6);
+
+    Print print;
+    Model model;
+    DynamicPrintConfig overrides;
+    overrides.set_deserialize_strict({
+        { "layer_height",             "0.3" },
+        { "first_layer_height",       "0.3" },
+        { "bottom_shell_layers",      "1" },
+        { "top_shell_layers",         "1" },
+        { "enable_extra_bridge_layer", "apply_to_all" },
+    });
+    init_mmu_print(std::move(pillar1), std::move(slab), print, model, overrides);
+    print.process();
+
+    const PrintObject &obj = *print.objects().front();
+    REQUIRE(obj.num_printing_regions() > 1);
+
+    // Count layers with stBottomBridge surfaces — should be exactly 2.
+    int bridge_layer_count = 0;
+    std::vector<const Layer *> bridge_layers;
+    for (const Layer *layer : obj.layers()) {
+        bool layer_has_bridge = false;
+        for (const LayerRegion *lr : layer->regions())
+            for (const Surface &s : lr->fill_surfaces.surfaces)
+                if (s.surface_type == stBottomBridge)
+                    layer_has_bridge = true;
+        if (layer_has_bridge) {
+            bridge_layer_count++;
+            bridge_layers.push_back(layer);
+        }
+    }
+    REQUIRE(bridge_layer_count == 2);
+
+    // Both bridge layers must not extend into void.
+    for (const Layer *bl : bridge_layers)
+        check_bridge_within_model(bl);
+}
+
+// ============================================================================
+// Test 9: Face-painted bridge with enable_extra_bridge_layer = "apply_to_all"
+// ============================================================================
+TEST_CASE("MMU face-painted bridge with extra bridge layer", "[MMUBridge]") {
+    // Same face-painted geometry as Test 6, but with extra bridge layer enabled.
+    // The painted region only exists at the bridge layer; at layer i+1 the geometry
+    // is in a different region. The cross-region fallback must find and reclassify
+    // the stInternal surface in the other region.
+    Print print;
+    Model model;
+    DynamicPrintConfig extra;
+    extra.set_deserialize_strict({
+        { "enable_extra_bridge_layer", "apply_to_all" },
+    });
+    const PrintObject &obj = init_face_painted_bridge_print(print, model, extra);
+    REQUIRE(obj.num_printing_regions() > 1);
+
+    // Count layers with stBottomBridge — should be exactly 2.
+    int bridge_layer_count = 0;
+    std::vector<const Layer *> bridge_layers;
+    for (const Layer *layer : obj.layers()) {
+        bool layer_has_bridge = false;
+        for (const LayerRegion *lr : layer->regions())
+            for (const Surface &s : lr->fill_surfaces.surfaces)
+                if (s.surface_type == stBottomBridge)
+                    layer_has_bridge = true;
+        if (layer_has_bridge) {
+            bridge_layer_count++;
+            bridge_layers.push_back(layer);
+        }
+    }
+    REQUIRE(bridge_layer_count == 2);
+
+    // Both bridge layers must not extend into void.
+    for (const Layer *bl : bridge_layers)
+        check_bridge_within_model(bl);
 }
 
