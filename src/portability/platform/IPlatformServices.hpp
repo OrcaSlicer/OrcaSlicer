@@ -1,3 +1,8 @@
+#pragma once
+
+#include <string_view>
+
+namespace OrcaSlicer::Portability {
 #ifndef orcaslicer_IPlatformServices_hpp_
 #define orcaslicer_IPlatformServices_hpp_
 
@@ -16,6 +21,10 @@ class IPlatformServices
 public:
     virtual ~IPlatformServices() = default;
 
+    virtual std::string_view platform_name() const = 0;
+};
+
+} // namespace OrcaSlicer::Portability
     virtual std::string writable_app_data_path() const = 0;
     virtual std::string temporary_path() const = 0;
 

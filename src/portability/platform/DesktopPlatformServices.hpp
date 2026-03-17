@@ -1,3 +1,8 @@
+#pragma once
+
+#include "portability/platform/IPlatformServices.hpp"
+
+namespace OrcaSlicer::Portability {
 #ifndef orcaslicer_DesktopPlatformServices_hpp_
 #define orcaslicer_DesktopPlatformServices_hpp_
 
@@ -10,6 +15,10 @@ namespace Slic3r::Portability::Platform {
 class DesktopPlatformServices final : public IPlatformServices
 {
 public:
+    std::string_view platform_name() const override;
+};
+
+} // namespace OrcaSlicer::Portability
     std::string writable_app_data_path() const override;
     std::string temporary_path() const override;
 

@@ -1,3 +1,8 @@
+#pragma once
+
+#include <string_view>
+
+namespace OrcaSlicer::Portability {
 #ifndef orcaslicer_IRenderBackend_hpp_
 #define orcaslicer_IRenderBackend_hpp_
 
@@ -18,6 +23,10 @@ class IRenderBackend
 public:
     virtual ~IRenderBackend() = default;
 
+    virtual std::string_view backend_name() const = 0;
+};
+
+} // namespace OrcaSlicer::Portability
     virtual BackendType backend_type() const = 0;
     virtual bool initialize() = 0;
     virtual void resize(int width, int height) = 0;

@@ -575,6 +575,7 @@ set(OCCT_LIBS
 
 target_link_libraries(libslic3r
     PUBLIC
+        orcaslicer_portability_api
         admesh
         libigl
         libnest2d
