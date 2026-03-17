@@ -108,6 +108,13 @@ ctest --test-dir ./tests/sla_print/sla_print_tests
   - GUI application built with wxWidgets
   - Integration between libslic3r core and user interface
   - Located in `src/slic3r/GUI/`
+  - Desktop GUI code lives in `src/slic3r/GUI/`
+
+- **Portability layer (`src/portability/`)**: platform adapters and renderer abstraction
+  - `src/portability/platform/` contains platform adapter interfaces and implementations for desktop/mobile split work
+  - `src/portability/render/` contains renderer abstraction interfaces used to decouple platform-specific rendering paths
+
+- **libvgcode (`src/libvgcode/`)**: shared G-code visualization/geometry library used by rendering and preview paths
 
 ### Key Algorithmic Components
 - **Arachne Wall Generation**: Variable-width perimeter generation using skeletal trapezoidation
@@ -157,16 +164,25 @@ Use the files above as the source of truth for iOS-first modularization (portabi
 - Translation managed via `scripts/run_gettext.sh` / `scripts/run_gettext.bat`
 
 ### Platform-Specific Code
-- `src/libslic3r/Platform.cpp` - Platform abstractions and utilities
-- `src/libslic3r/MacUtils.mm` - macOS-specific utilities (Objective-C++)
-- Windows-specific build scripts and configurations
-- Linux distribution support scripts in `scripts/linux.d/`
+- `src/portability/platform/` - platform adapter code for desktop/mobile split
+- `src/portability/render/` - renderer abstraction surfaces shared across platforms
+- `src/slic3r/GUI/` - desktop wxWidgets UI layer
+- `src/libvgcode/` - rendering/preview support library shared by UI paths
+- `src/libslic3r/MacUtils.mm` - macOS-specific utility implementation (Objective-C++)
+- `scripts/linux.d/` - Linux distribution integration scripts
 
 ### Build and Development Tools
 - `cmake/modules/` - Custom CMake find modules and utilities
 - `scripts/` - Python utilities for profile generation and validation  
 - `tools/` - Windows build tools (gettext utilities)
 - `deps/` - External dependency build configurations
+
+### Mobile-porting docs of record
+- `doc/mobile-porting/ios-android-porting-plan.md`
+- `doc/mobile-porting/file-edit-plan.md`
+- `doc/mobile-porting/implementation-status.md`
+
+Use these documents as the source of truth for platform adapter boundaries, renderer abstraction direction, and desktop/mobile split milestones. Keep this `CLAUDE.md` guidance high-level and defer detailed architectural decisions to those docs to avoid divergence.
 
 ## Development Workflow
 
@@ -195,10 +211,18 @@ Use the files above as the source of truth for iOS-first modularization (portabi
 
 #### GUI Development
 1. GUI code resides in `src/slic3r/GUI/`
+1. Desktop GUI code resides in `src/slic3r/GUI/`
 2. Use existing wxWidgets patterns and custom controls
 3. Support both light and dark themes
 4. Consider DPI scaling on high-resolution displays
 5. Maintain cross-platform compatibility
+
+#### Portability and Mobile-Readiness Changes
+1. Keep shared domain logic in `src/libslic3r/` and avoid introducing UI/platform assumptions there
+2. Implement platform-specific behavior behind adapters in `src/portability/platform/`
+3. Route rendering integration through abstractions in `src/portability/render/` and shared primitives in `src/libvgcode/`
+4. Preserve the desktop/mobile split by keeping wxWidgets-specific behavior in `src/slic3r/GUI/`
+5. For concrete file-level decisions and sequencing, follow `doc/mobile-porting/` docs of record
 
 #### Adding Printer Support
 1. Create JSON profile in `resources/profiles/[manufacturer].json`
@@ -210,7 +234,7 @@ Use the files above as the source of truth for iOS-first modularization (portabi
 ### Dependencies and Build System
 - **CMake-based** with separate dependency building phase
 - **Dependencies** built once in `deps/build/`, then linked to main application  
-- **Cross-platform** considerations important for all changes
+- **Cross-platform** considerations and platform adapter boundaries are important for all changes
 - **Resource files** embedded at build time, platform-specific handling
 
 ### Performance Considerations
