@@ -5,6 +5,11 @@
 #include <string>
 
 namespace Slic3r::Portability::Platform {
+#pragma once
+
+namespace Slic3r::portability::platform {
+
+class ICredentialStore;
 
 class IPlatformServices
 {
@@ -24,3 +29,8 @@ public:
 } // namespace Slic3r::Portability::Platform
 
 #endif // orcaslicer_IPlatformServices_hpp_
+    virtual ICredentialStore&       credential_store()       = 0;
+    virtual const ICredentialStore& credential_store() const = 0;
+};
+
+} // namespace Slic3r::portability::platform

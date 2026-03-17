@@ -1,0 +1,21 @@
+add_library(orcaslicer_portability_api INTERFACE)
+
+target_include_directories(orcaslicer_portability_api
+    INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+option(ORCASLICER_BUILD_IOS_PORTABILITY "Build iOS portability services" ON)
+
+set(ORCASLICER_IOS_TOOLCHAIN_ACTIVE OFF)
+if (APPLE AND ORCASLICER_BUILD_IOS_PORTABILITY)
+    if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set(ORCASLICER_IOS_TOOLCHAIN_ACTIVE ON)
+    elseif (CMAKE_OSX_SYSROOT MATCHES "iphoneos|iphonesimulator")
+        set(ORCASLICER_IOS_TOOLCHAIN_ACTIVE ON)
+    endif ()
+endif ()
+
+if (ORCASLICER_IOS_TOOLCHAIN_ACTIVE)
+    add_subdirectory(platform/ios)
+endif ()

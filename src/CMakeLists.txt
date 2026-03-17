@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
+add_subdirectory(portability)
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
