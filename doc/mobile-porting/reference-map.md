@@ -20,6 +20,13 @@
 - `src/slic3r/CMakeLists.txt`: GUI + many utility/application files + platform-specific source selection.
 - `src/libvgcode/CMakeLists.txt`: visualization lib and GL/GLES selection.
 
+Canonical portability targets:
+- `orcaslicer_portability_api` (shared interfaces)
+- `orcaslicer_platform_desktop` (desktop platform services implementation)
+- `orcaslicer_render_null` (default no-op render backend)
+- `orcaslicer_platform_ios` + `orcaslicer_render_ios_metal` (iOS-only, gated by `ORCASLICER_IOS_TOOLCHAIN_ACTIVE`)
+- `orcaslicer_portability` (compatibility interface meta-target that forwards to the three canonical desktop targets)
+
 ## Core engine map (`src/libslic3r`)
 - Geometry and mesh primitives: `Geometry/`, `AABB*`, `TriangleMesh*`, `Model*`.
 - Slicing algorithms: `Fill/`, `Support/`, `Arachne/`, `PerimeterGenerator*`.

@@ -11,7 +11,7 @@ The repository now has a portability scaffold under `src/portability/` and an in
 | iOS platform adapter | `src/portability/platform/ios/IOSPlatformServices.*` | Replace placeholder implementations with ObjC++ bridge to Apple APIs | Scaffolded |
 | Renderer contract | `src/portability/render/IRenderBackend.hpp` | Keep backend-neutral API in `src/portability/render/` | In progress |
 | iOS renderer adapter | `src/portability/render/ios/IOSMetalRenderBackend.*` | Wire to Metal render pipeline and scene commands | Scaffolded |
-| Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`) built only for iOS toolchains | Scaffolded |
+| Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | Canonical portability graph (`orcaslicer_portability_api`, `orcaslicer_platform_desktop`, `orcaslicer_render_null`, plus iOS targets on iOS toolchains) | Scaffolded |
 
 ## What landed in this phase
 - Normalized portability interfaces and namespaces under `Slic3r::portability::*` with renderer APIs and scene integration standardized on `Slic3r::portability::render`.
@@ -33,7 +33,15 @@ Some desktop integration still exists in `src/slic3r/Utils` for launch/process a
 - Android build composition and packaging automation.
 
 ## iOS smoke target invocation
-When configuring with an iOS toolchain (for example `-DCMAKE_SYSTEM_NAME=iOS` or an iPhone OS/simulator sysroot), CMake now adds `orcaslicer_ios_smoke`, a minimal smoke target in `src/portability/` that links:
+Canonical portability targets exported from `src/CMakeLists.txt` are:
+
+- `orcaslicer_portability_api`
+- `orcaslicer_platform_desktop`
+- `orcaslicer_render_null`
+
+`orcaslicer_portability` remains as an interface compatibility meta-target that only forwards to the canonical targets above (no duplicated compilation units).
+
+When configuring with an iOS toolchain (for example `-DCMAKE_SYSTEM_NAME=iOS` or an iPhone OS/simulator sysroot), CMake adds `orcaslicer_ios_smoke`, a minimal smoke target in `src/portability/` that links:
 
 - `libslic3r`
 - `orcaslicer_portability_api`

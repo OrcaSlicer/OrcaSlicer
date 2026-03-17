@@ -28,6 +28,13 @@ target_sources(orcaslicer_render_null INTERFACE
 target_link_libraries(orcaslicer_render_null INTERFACE orcaslicer_portability_api)
 target_include_directories(orcaslicer_render_null INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_library(orcaslicer_portability INTERFACE)
+target_link_libraries(orcaslicer_portability INTERFACE
+    orcaslicer_portability_api
+    orcaslicer_platform_desktop
+    orcaslicer_render_null
+)
+
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
 add_subdirectory(portability)
@@ -37,19 +44,6 @@ add_subdirectory(portability)
 find_package(libnoise REQUIRED)
 
 add_subdirectory(libslic3r)
-
-
-add_library(orcaslicer_portability STATIC
-    portability/platform/ICredentialStore.hpp
-    portability/platform/IPlatformServices.hpp
-    portability/platform/DesktopInMemoryCredentialStore.hpp
-    portability/platform/DesktopInMemoryCredentialStore.cpp
-    portability/platform/DesktopPlatformServices.hpp
-    portability/platform/DesktopPlatformServices.cpp
-    portability/render/IRenderBackend.hpp
-    portability/render/NullRenderBackend.hpp
-)
-target_include_directories(orcaslicer_portability PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (SLIC3R_GUI)
     # imgui, imguizmo, and hidapi are now included from deps_src
