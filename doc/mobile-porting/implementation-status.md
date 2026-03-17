@@ -26,12 +26,31 @@ Some desktop integration still exists in `src/slic3r/Utils` for launch/process a
 1. Replace iOS placeholder filesystem/thread stubs with Objective-C++ bridges (`NSFileManager`, `NSTemporaryDirectory`, GCD main/background queues).
 2. Introduce an iOS secure credential store implementation (Keychain-backed) behind `ICredentialStore`.
 3. Bridge scene upload/viewport lifecycle from current desktop renderer integration to `IOSMetalRenderBackend`.
-4. Add an iOS smoke-test target that links core + portability iOS modules without wx/OpenGL.
+4. Expand the iOS smoke target to compile and run basic portability contracts once Objective-C++ service bridges land.
 
 ## Deferred until after iOS milestone
 - Android adapter implementation (JNI + Vulkan/GLES backend).
 - Android build composition and packaging automation.
 
+## iOS smoke target invocation
+When configuring with an iOS toolchain (for example `-DCMAKE_SYSTEM_NAME=iOS` or an iPhone OS/simulator sysroot), CMake now adds `orcaslicer_ios_smoke`, a minimal smoke target in `src/portability/` that links:
+
+- `libslic3r`
+- `orcaslicer_portability_api`
+- `orcaslicer_platform_ios`
+- `orcaslicer_render_ios_metal`
+
+Expected invocation:
+
+```bash
+cmake -S . -B build-ios \
+  -DCMAKE_SYSTEM_NAME=iOS \
+  -DORCASLICER_BUILD_IOS_PORTABILITY=ON
+
+cmake --build build-ios --target orcaslicer_ios_smoke --config Release
+```
+
+Configure-time status output explicitly reports whether iOS portability detection is active and whether the smoke target is enabled.
 ## Namespace contract
 - Renderer-facing portability interfaces use `Slic3r::portability::render` as the canonical namespace (`IRenderBackend`, `ISceneRenderer`, `DesktopOpenGLSceneRenderer`, and GUI integration call sites).
 - Compatibility aliases were not retained; callers should migrate directly to the canonical namespace.
