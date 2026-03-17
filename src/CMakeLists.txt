@@ -4,6 +4,27 @@ project(OrcaSlicer-native)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_library(orcaslicer_portability_api INTERFACE)
+target_sources(orcaslicer_portability_api INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/portability/platform/IPlatformServices.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/portability/render/IRenderBackend.hpp
+)
+target_include_directories(orcaslicer_portability_api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(orcaslicer_platform_desktop STATIC
+    portability/platform/DesktopPlatformServices.hpp
+    portability/platform/DesktopPlatformServices.cpp
+)
+target_link_libraries(orcaslicer_platform_desktop PUBLIC orcaslicer_portability_api)
+target_include_directories(orcaslicer_platform_desktop PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(orcaslicer_render_null INTERFACE)
+target_sources(orcaslicer_render_null INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/portability/render/NullRenderBackend.hpp
+)
+target_link_libraries(orcaslicer_render_null INTERFACE orcaslicer_portability_api)
+target_include_directories(orcaslicer_render_null INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
 # add_subdirectory(avrdude)
@@ -125,7 +146,7 @@ if (NOT WIN32 AND NOT APPLE)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/unix/build_linux_image.sh.in ${CMAKE_CURRENT_BINARY_DIR}/build_linux_image.sh USE_SOURCE_PERMISSIONS @ONLY)
 endif ()
 
-target_link_libraries(OrcaSlicer libslic3r cereal::cereal)
+target_link_libraries(OrcaSlicer libslic3r cereal::cereal orcaslicer_platform_desktop orcaslicer_render_null)
 # target_include_directories(OrcaSlicer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/slic3r)
 if (APPLE)
 #    add_compile_options(-stdlib=libc++)
