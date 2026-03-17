@@ -60,7 +60,7 @@ bool IOSMetalRenderBackend::initialize()
             return false;
 
         if (m_state->metal_layer == nil) {
-            m_state->metal_layer = [CAMetalLayer layer];
+            m_state->metal_layer = [[CAMetalLayer layer] retain];
             m_state->owns_layer = true;
         }
 
@@ -134,8 +134,10 @@ void IOSMetalRenderBackend::shutdown()
         m_state->command_queue = nil;
         m_state->device = nil;
 
-        if (m_state->owns_layer)
+        if (m_state->owns_layer) {
+            [m_state->metal_layer release];
             m_state->metal_layer = nil;
+        }
     }
 
     m_initialized = false;
