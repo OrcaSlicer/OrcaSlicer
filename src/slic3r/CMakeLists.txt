@@ -174,6 +174,9 @@ set(SLIC3R_GUI_SOURCES
     #GUI/Gizmos/GLGizmoText.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
+    ../portability/render/ISceneRenderer.hpp
+    ../portability/render/DesktopOpenGLSceneRenderer.cpp
+    ../portability/render/DesktopOpenGLSceneRenderer.hpp
     GUI/GLModel.cpp
     GUI/GLModel.hpp
     GUI/GLSelectionRectangle.cpp

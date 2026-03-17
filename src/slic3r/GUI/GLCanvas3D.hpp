@@ -20,6 +20,7 @@
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
+#include "portability/render/ISceneRenderer.hpp"
 
 #include <float.h>
 
@@ -616,6 +617,7 @@ private:
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
     Slope m_slope;
+    std::unique_ptr<Portability::Render::ISceneRenderer> m_scene_renderer;
 
     OrientSettings m_orient_settings_fff, m_orient_settings_sla;
 
