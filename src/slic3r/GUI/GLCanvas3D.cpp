@@ -33,6 +33,7 @@
 #include "format.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
+#include "portability/render/DesktopOpenGLSceneRenderer.hpp"
 
 #include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -1222,6 +1223,20 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     m_assembly_view_desc["part_selection"]           = _L("Part selection");
     m_assembly_view_desc["number_key_caption"]       = "1~16 " + _L("number keys");
     m_assembly_view_desc["number_key"]       = _L("Number keys can quickly change the color of objects");
+
+    m_scene_renderer = std::make_unique<Portability::Render::DesktopOpenGLSceneRenderer>(
+        [this](unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
+            Camera& renderer_camera = wxGetApp().plater()->get_camera();
+            renderer_camera.set_viewport(x, y, width, height);
+            renderer_camera.apply_viewport();
+        },
+        [](const Portability::Render::SceneState&) {},
+        [this](const Portability::Render::SceneState& scene_state) {
+            if (scene_state.render_opaque)
+                _render_objects(GLVolumeCollection::ERenderType::Opaque, !scene_state.gizmos_running);
+            if (scene_state.render_transparent)
+                _render_objects(GLVolumeCollection::ERenderType::Transparent, !scene_state.gizmos_running);
+        });
 }
 
 GLCanvas3D::~GLCanvas3D()
@@ -1970,8 +1985,13 @@ void GLCanvas3D::render(bool only_init)
     // and the viewport was set incorrectly, leading to tripping glAsserts further down
     // the road (in apply_projection). That's why the minimum size is forced to 10.
     Camera& camera = wxGetApp().plater()->get_camera();
-    camera.set_viewport(0, 0, std::max(10u, (unsigned int)cnv_size.get_width()), std::max(10u, (unsigned int)cnv_size.get_height()));
-    camera.apply_viewport();
+    const unsigned int viewport_width = std::max(10u, (unsigned int)cnv_size.get_width());
+    const unsigned int viewport_height = std::max(10u, (unsigned int)cnv_size.get_height());
+    camera.set_viewport(0, 0, viewport_width, viewport_height);
+    if (m_scene_renderer)
+        m_scene_renderer->set_viewport(0, 0, viewport_width, viewport_height);
+    else
+        camera.apply_viewport();
 
     if (camera.requires_zoom_to_bed) {
         zoom_to_bed();
@@ -2035,7 +2055,24 @@ void GLCanvas3D::render(bool only_init)
     int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         //BBS: add outline logic
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        if (m_scene_renderer) {
+            Portability::Render::SceneState scene_state;
+            scene_state.camera = &camera;
+            scene_state.model_states.reserve(m_volumes.volumes.size());
+            for (const GLVolume* volume : m_volumes.volumes) {
+                Portability::Render::SceneModelState model_state;
+                model_state.transform = volume->world_matrix();
+                model_state.is_visible = volume->is_active && !volume->disabled;
+                scene_state.model_states.emplace_back(std::move(model_state));
+            }
+            scene_state.render_opaque = true;
+            scene_state.render_transparent = false;
+            scene_state.gizmos_running = m_gizmos.is_running();
+            m_scene_renderer->submit_scene_state(scene_state);
+            m_scene_renderer->render_frame();
+        } else {
+            _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        }
         _render_sla_slices();
         _render_selection();
         if (!no_partplate)
