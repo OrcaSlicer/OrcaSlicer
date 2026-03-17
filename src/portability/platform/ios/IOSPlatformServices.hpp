@@ -1,6 +1,6 @@
 #pragma once
 
-#include "portability/platform/DesktopInMemoryCredentialStore.hpp"
+#include "IOSKeychainCredentialStore.hpp"
 #include "portability/platform/IPlatformServices.hpp"
 
 namespace Slic3r::portability::platform::ios {
@@ -21,7 +21,7 @@ public:
     const ICredentialStore& credential_store() const override;
 
 private:
-    DesktopInMemoryCredentialStore m_credential_store;
+    IOSKeychainCredentialStore m_credential_store;
 };
 
 } // namespace Slic3r::portability::platform::ios

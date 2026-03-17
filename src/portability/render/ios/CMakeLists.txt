@@ -1,11 +1,15 @@
 add_library(orcaslicer_render_ios_metal STATIC
-    IOSMetalRenderBackend.cpp
+    IOSMetalRenderBackend.mm
     IOSMetalRenderBackend.hpp
 )
 
 target_link_libraries(orcaslicer_render_ios_metal
     PUBLIC
         orcaslicer_portability_api
+    PRIVATE
+        "-framework Metal"
+        "-framework QuartzCore"
+        "-framework Foundation"
 )
 
 target_include_directories(orcaslicer_render_ios_metal

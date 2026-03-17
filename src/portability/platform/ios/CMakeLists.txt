@@ -1,11 +1,15 @@
 add_library(orcaslicer_platform_ios STATIC
-    IOSPlatformServices.cpp
+    IOSKeychainCredentialStore.hpp
+    IOSKeychainCredentialStore.mm
     IOSPlatformServices.hpp
+    IOSPlatformServices.mm
 )
 
 target_link_libraries(orcaslicer_platform_ios
     PUBLIC
         orcaslicer_portability_api
+        "-framework Foundation"
+        "-framework Security"
 )
 
 target_include_directories(orcaslicer_platform_ios

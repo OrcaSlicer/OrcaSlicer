@@ -10,7 +10,7 @@ namespace GUI {
 class Camera;
 }
 
-namespace Portability::Render {
+namespace portability::render {
 
 struct SceneModelState
 {
@@ -37,7 +37,7 @@ public:
     virtual void render_frame()                                                                        = 0;
 };
 
-} // namespace Portability::Render
+} // namespace portability::render
 } // namespace Slic3r
 
 #endif // slic3r_ISceneRenderer_hpp_

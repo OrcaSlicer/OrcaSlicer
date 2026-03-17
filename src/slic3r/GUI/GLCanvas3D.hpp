@@ -617,7 +617,7 @@ private:
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
     Slope m_slope;
-    std::unique_ptr<Portability::Render::ISceneRenderer> m_scene_renderer;
+    std::unique_ptr<portability::render::ISceneRenderer> m_scene_renderer;
 
     OrientSettings m_orient_settings_fff, m_orient_settings_sla;
 

@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace Slic3r::Portability::Render {
+namespace Slic3r::portability::render {
 
 DesktopOpenGLSceneRenderer::DesktopOpenGLSceneRenderer(SetViewportFn      set_viewport_fn,
                                                        SubmitSceneStateFn submit_scene_state_fn,
@@ -31,4 +31,4 @@ void DesktopOpenGLSceneRenderer::render_frame()
         m_render_frame_fn(m_scene_state);
 }
 
-} // namespace Slic3r::Portability::Render
+} // namespace Slic3r::portability::render

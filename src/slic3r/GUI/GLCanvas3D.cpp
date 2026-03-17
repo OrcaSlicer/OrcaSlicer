@@ -1224,14 +1224,14 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     m_assembly_view_desc["number_key_caption"]       = "1~16 " + _L("number keys");
     m_assembly_view_desc["number_key"]       = _L("Number keys can quickly change the color of objects");
 
-    m_scene_renderer = std::make_unique<Portability::Render::DesktopOpenGLSceneRenderer>(
+    m_scene_renderer = std::make_unique<portability::render::DesktopOpenGLSceneRenderer>(
         [this](unsigned int x, unsigned int y, unsigned int width, unsigned int height) {
             Camera& renderer_camera = wxGetApp().plater()->get_camera();
             renderer_camera.set_viewport(x, y, width, height);
             renderer_camera.apply_viewport();
         },
-        [](const Portability::Render::SceneState&) {},
-        [this](const Portability::Render::SceneState& scene_state) {
+        [](const portability::render::SceneState&) {},
+        [this](const portability::render::SceneState& scene_state) {
             if (scene_state.render_opaque)
                 _render_objects(GLVolumeCollection::ERenderType::Opaque, !scene_state.gizmos_running);
             if (scene_state.render_transparent)
@@ -2056,11 +2056,11 @@ void GLCanvas3D::render(bool only_init)
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         //BBS: add outline logic
         if (m_scene_renderer) {
-            Portability::Render::SceneState scene_state;
+            portability::render::SceneState scene_state;
             scene_state.camera = &camera;
             scene_state.model_states.reserve(m_volumes.volumes.size());
             for (const GLVolume* volume : m_volumes.volumes) {
-                Portability::Render::SceneModelState model_state;
+                portability::render::SceneModelState model_state;
                 model_state.transform = volume->world_matrix();
                 model_state.is_visible = volume->is_active && !volume->disabled;
                 scene_state.model_states.emplace_back(std::move(model_state));

@@ -14,7 +14,7 @@ The repository now has a portability scaffold under `src/portability/` and an in
 | Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`) built only for iOS toolchains | Scaffolded |
 
 ## What landed in this phase
-- Normalized portability interfaces and namespaces under `Slic3r::portability::*`.
+- Normalized portability interfaces and namespaces under `Slic3r::portability::*` with renderer APIs and scene integration standardized on `Slic3r::portability::render`.
 - Added iOS platform services module implementing `IPlatformServices` with safe placeholders.
 - Added iOS Metal renderer module implementing `IRenderBackend` with no-op render lifecycle.
 - Added iOS-specific CMake subtargets gated by iOS toolchain detection.
@@ -51,3 +51,6 @@ cmake --build build-ios --target orcaslicer_ios_smoke --config Release
 ```
 
 Configure-time status output explicitly reports whether iOS portability detection is active and whether the smoke target is enabled.
+## Namespace contract
+- Renderer-facing portability interfaces use `Slic3r::portability::render` as the canonical namespace (`IRenderBackend`, `ISceneRenderer`, `DesktopOpenGLSceneRenderer`, and GUI integration call sites).
+- Compatibility aliases were not retained; callers should migrate directly to the canonical namespace.
