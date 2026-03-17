@@ -9,6 +9,10 @@
 - `resources/` — presets/icons/assets.
 - `tests/` — unit/integration test coverage.
 
+## Portability namespace contract
+- Canonical render namespace: `Slic3r::portability::render` (used by `ISceneRenderer`, `DesktopOpenGLSceneRenderer`, and GUI call sites).
+- Avoid introducing mixed-case portability namespaces (for example `Slic3r::Portability::Render`) in new APIs.
+
 ## Build graph entry points
 - `CMakeLists.txt` (root): global options (`SLIC3R_GUI`) and dependency setup.
 - `src/CMakeLists.txt`: app target composition (`libslic3r`, `libslic3r_gui`, `OrcaSlicer`).

@@ -5,7 +5,7 @@
 
 #include "ISceneRenderer.hpp"
 
-namespace Slic3r::Portability::Render {
+namespace Slic3r::portability::render {
 
 class DesktopOpenGLSceneRenderer final : public ISceneRenderer
 {
@@ -27,6 +27,6 @@ private:
     SceneState         m_scene_state;
 };
 
-} // namespace Slic3r::Portability::Render
+} // namespace Slic3r::portability::render
 
 #endif // slic3r_DesktopOpenGLSceneRenderer_hpp_
