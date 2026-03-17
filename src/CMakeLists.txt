@@ -27,12 +27,23 @@ target_include_directories(orcaslicer_render_null INTERFACE ${CMAKE_CURRENT_SOUR
 
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
+add_subdirectory(portability)
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
 find_package(libnoise REQUIRED)
 
 add_subdirectory(libslic3r)
+
+
+add_library(orcaslicer_portability STATIC
+    portability/platform/IPlatformServices.hpp
+    portability/platform/DesktopPlatformServices.hpp
+    portability/platform/DesktopPlatformServices.cpp
+    portability/render/IRenderBackend.hpp
+    portability/render/NullRenderBackend.hpp
+)
+target_include_directories(orcaslicer_portability PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (SLIC3R_GUI)
     # imgui, imguizmo, and hidapi are now included from deps_src

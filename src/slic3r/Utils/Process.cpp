@@ -1,4 +1,5 @@
 #include "Process.hpp"
+#include "PlatformServices.hpp"
 
 #include <libslic3r/AppConfig.hpp>
 
@@ -21,8 +22,6 @@
     #include <boost/process/args.hpp>
 #endif
 
-#include <wx/stdpaths.h>
-
 namespace Slic3r {
 namespace GUI {
 
@@ -33,11 +32,11 @@ enum class NewSlicerInstanceType {
 
 // Start a new Slicer process instance either in a Slicer mode or in a G-code mode.
 // Optionally load a 3MF, STL or a G-code on start.
-static void start_new_slicer_or_gcodeviewer(const NewSlicerInstanceType instance_type, const std::vector<wxString> paths_to_open, bool single_instance)
+static void start_new_slicer_or_gcodeviewer(IPlatformServices& platform_services, const NewSlicerInstanceType instance_type, const std::vector<wxString> paths_to_open, bool single_instance)
 {
 #ifdef _WIN32
 	wxString path;
-	wxFileName::SplitPath(wxStandardPaths::Get().GetExecutablePath(), &path, nullptr, nullptr, wxPATH_NATIVE);
+	wxFileName::SplitPath(platform_services.executable_path(), &path, nullptr, nullptr, wxPATH_NATIVE);
 	path += "\\";
 	path += (instance_type == NewSlicerInstanceType::Slicer) ? "orca-slicer.exe" : "bambu-gcodeviewer.exe";
 	std::vector<const wchar_t*> args;
@@ -57,7 +56,7 @@ static void start_new_slicer_or_gcodeviewer(const NewSlicerInstanceType instance
 		BOOST_LOG_TRIVIAL(error) << "Failed to spawn a new slicer \"" << into_u8(path);
 #else 
 	// Own executable path.
-	boost::filesystem::path bin_path = into_path(wxStandardPaths::Get().GetExecutablePath());
+	boost::filesystem::path bin_path = into_path(platform_services.executable_path());
 #if defined(__APPLE__)
 	{
         auto bundle_path = bin_path.parent_path().parent_path().parent_path();
@@ -122,29 +121,29 @@ static void start_new_slicer_or_gcodeviewer(const NewSlicerInstanceType instance
 #endif // Linux or Unix
 #endif // Win32
 }
-static void start_new_slicer_or_gcodeviewer(const NewSlicerInstanceType instance_type, const wxString* path_to_open, bool single_instance)
+static void start_new_slicer_or_gcodeviewer(IPlatformServices& platform_services, const NewSlicerInstanceType instance_type, const wxString* path_to_open, bool single_instance)
 {
 	std::vector<wxString> paths;
 	if (path_to_open != nullptr)
 		paths.emplace_back(path_to_open->wc_str());
-	start_new_slicer_or_gcodeviewer(instance_type, paths, single_instance);
+	start_new_slicer_or_gcodeviewer(platform_services, instance_type, paths, single_instance);
 }
 
-void start_new_slicer(const wxString *path_to_open, bool single_instance)
+void start_new_slicer(IPlatformServices& platform_services, const wxString *path_to_open, bool single_instance)
 {
-	start_new_slicer_or_gcodeviewer(NewSlicerInstanceType::Slicer, path_to_open, single_instance);
+	start_new_slicer_or_gcodeviewer(platform_services, NewSlicerInstanceType::Slicer, path_to_open, single_instance);
 }
-void start_new_slicer(const std::vector<wxString>& files, bool single_instance)
+void start_new_slicer(IPlatformServices& platform_services, const std::vector<wxString>& files, bool single_instance)
 {
-	start_new_slicer_or_gcodeviewer(NewSlicerInstanceType::Slicer, files, single_instance);
-}
-
-void start_new_gcodeviewer(const wxString *path_to_open)
-{
-	start_new_slicer_or_gcodeviewer(NewSlicerInstanceType::GCodeViewer, path_to_open, false);
+	start_new_slicer_or_gcodeviewer(platform_services, NewSlicerInstanceType::Slicer, files, single_instance);
 }
 
-void start_new_gcodeviewer_open_file(wxWindow *parent)
+void start_new_gcodeviewer(IPlatformServices& platform_services, const wxString *path_to_open)
+{
+	start_new_slicer_or_gcodeviewer(platform_services, NewSlicerInstanceType::GCodeViewer, path_to_open, false);
+}
+
+void start_new_gcodeviewer_open_file(IPlatformServices& platform_services, wxWindow *parent)
 {
     wxFileDialog dialog(parent ? parent : wxGetApp().GetTopWindow(),
         _L("Open G-code file:"),
@@ -152,7 +151,7 @@ void start_new_gcodeviewer_open_file(wxWindow *parent)
         file_wildcards(FT_GCODE), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dialog.ShowModal() == wxID_OK) {
         wxString path = dialog.GetPath();
-        start_new_gcodeviewer(&path);
+        start_new_gcodeviewer(platform_services, &path);
     }
 }
 

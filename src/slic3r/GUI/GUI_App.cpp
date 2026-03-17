@@ -7189,7 +7189,7 @@ void GUI_App::MacOpenFiles(const wxArrayString &fileNames)
             names.push_back(n);
         }
         if (has3mf) {
-            start_new_slicer(names);
+            start_new_slicer(platform_services(), names);
             return;
         }
     }
@@ -7213,7 +7213,7 @@ void GUI_App::MacOpenFiles(const wxArrayString &fileNames)
         if (! gcode_files.empty())
             this->plater()->load_gcode(gcode_files.front());
         if (!non_gcode_files.empty())
-            start_new_slicer(non_gcode_files, true);
+            start_new_slicer(platform_services(), non_gcode_files, true);
     } else*/
     {
         if (! files.empty()) {
@@ -7237,7 +7237,7 @@ void GUI_App::MacOpenFiles(const wxArrayString &fileNames)
             }
         }
         /*for (const wxString &filename : gcode_files)
-            start_new_gcodeviewer(&filename);*/
+            start_new_gcodeviewer(platform_services(), &filename);*/
     }
 }
 
