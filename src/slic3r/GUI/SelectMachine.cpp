@@ -5154,13 +5154,11 @@ static wxString _get_tips(MachineObject* obj_)
 
     wxString ext_diameter;
     if (obj_->GetExtderSystem()->GetTotalExtderCount() == 1) {
-        ext_diameter += wxString::FromDouble(obj_->GetExtderSystem()->GetNozzleDiameter(0));
-        ext_diameter += "mm";
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
     } else if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
-        ext_diameter += wxString::FromDouble(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
         ext_diameter += "/";
-        ext_diameter += wxString::FromDouble(obj_->GetExtderSystem()->GetNozzleDiameter(0));
-        ext_diameter += "mm";
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
     } else {
         assert(0);
     }
