@@ -36,6 +36,16 @@ int GUI_Run(GUI_InitParams &params)
     // The child instance of PrusaSlicer has to reset SIGCHLD to its default, so that posix waitpid() and similar continue to work.
     // See GH issue #5507
     signal(SIGCHLD, SIG_DFL);
+
+    // Ignore SIGPIPE so that writes to a closed pipe/socket do not terminate the process.
+    // When a connection is closed by the other end (e.g. printer disconnect, network drop,
+    // or Bambu device connection failure), a write() can raise SIGPIPE (signal 13); by
+    // default the process is killed. With SIG_IGN, write() instead returns EPIPE and
+    // existing connection/error handling (e.g. PrinterFileSystem reconnect logic) can run.
+    // This fix is unrelated to plate-changer functionality. Hopefully this will get rid of
+    // frequent crashes when trying to connect to LAN-mode Bambu devices. It is possible that
+    // this change would also be a useful thing to try for the Linux build.
+    signal(SIGPIPE, SIG_IGN);
 #endif // __APPLE__
 
     //BBS: remove the try-catch and let exception goto above
