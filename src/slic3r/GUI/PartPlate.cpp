@@ -4074,13 +4074,6 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx)
         wt_x_opt = ConfigOptionFloat(I3_WIPE_TOWER_DEFAULT_X_POS);
         wt_y_opt = ConfigOptionFloat(I3_WIPE_TOWER_DEFAULT_Y_POS);
     }
-    // Clamp default position to fit within the actual plate dimensions so the wipe tower
-    // doesn't start outside the bed for printers smaller than the hardcoded defaults.
-    const double wt_default_margin  = 2.;
-    const double wt_estimated_width = 60.; // conservative estimate matching prime_tower_width default
-    const double wt_estimated_depth = 20.; // conservative depth estimate
-    wt_x_opt.value = std::max(wt_default_margin, std::min(wt_x_opt.value, m_plate_width  - wt_estimated_width - wt_default_margin));
-    wt_y_opt.value = std::max(wt_default_margin, std::min(wt_y_opt.value, m_plate_depth  - wt_estimated_depth - wt_default_margin));
     dynamic_cast<ConfigOptionFloats *>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_idx, 0);
     dynamic_cast<ConfigOptionFloats *>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_idx, 0);
 }
