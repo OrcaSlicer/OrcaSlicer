@@ -354,7 +354,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 append_table_row(_u8L("Width"), [&vertex, &buff, NA_TXT]() {
                     std::string text;
                     if (vertex.is_extrusion()) {
-                        sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.width);
+                        snprintf(buff, sizeof(buff), ("%.3f " + _u8L("mm")).c_str(), vertex.width);
                         text = std::string(buff);
                     }
                     else
@@ -364,7 +364,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 append_table_row(_u8L("Height"), [&vertex, &buff, NA_TXT]() {
                     std::string text;
                     if (vertex.is_extrusion()) {
-                        sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height);
+                        snprintf(buff, sizeof(buff), ("%.3f " + _u8L("mm")).c_str(), vertex.height);
                         text = std::string(buff);
                     }
                     else
@@ -372,19 +372,19 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Layer"), [&vertex, &buff]() {
-                    sprintf(buff, "%d", vertex.layer_id + 1);
+                    snprintf(buff, sizeof(buff), "%d", vertex.layer_id + 1);
                     const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Speed"), [&vertex, &buff]() {
-                    sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.feedrate);
+                    snprintf(buff, sizeof(buff), ("%.1f " + _u8L("mm/s")).c_str(), vertex.feedrate);
                     const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
                   append_table_row(_u8L("Flow rate"), [&vertex, &buff, NA_TXT]() { // ORCA use "Flow rate" instead "Volumetric flow Rate" to make window more compact
                     std::string text;
                     if (vertex.is_extrusion()) {
-                        sprintf(buff, ("%.3f " + _u8L("mm³/s")).c_str(), vertex.volumetric_rate());
+                        snprintf(buff, sizeof(buff), ("%.3f " + _u8L("mm³/s")).c_str(), vertex.volumetric_rate());
                         text = std::string(buff);
                     }
                     else
@@ -392,22 +392,22 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWrapper::text(text);
                   });
                 append_table_row(_u8L("Fan speed"), [&vertex, &buff]() {
-                    sprintf(buff, "%.0f %%", vertex.fan_speed);
+                    snprintf(buff, sizeof(buff), "%.0f %%", vertex.fan_speed);
                     const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Temperature"), [&vertex, &buff]() {
-                    sprintf(buff, ("%.0f " + _u8L("°C")).c_str(), vertex.temperature);
+                    snprintf(buff, sizeof(buff), ("%.0f " + _u8L("°C")).c_str(), vertex.temperature);
                     ImGuiWrapper::text(std::string(buff));
                 });
 // ORCA: Add Pressure Advance visualization support
                 append_table_row(_u8L("Pressure Advance"), [&vertex, &buff]() {
-                    sprintf(buff, "%.4f", vertex.pressure_advance);
+                    snprintf(buff, sizeof(buff), "%.4f", vertex.pressure_advance);
                     ImGuiWrapper::text(std::string(buff));
                 });
                 append_table_row(_u8L("Time"), [viewer, &vertex, &buff, vertex_id]() {
                     const float estimated_time = viewer->get_estimated_time_at(vertex_id);
-                    sprintf(buff, "%s (%.3fs)", get_time_dhms(estimated_time).c_str(), vertex.times[static_cast<size_t>(viewer->get_time_mode())]);
+                    snprintf(buff, sizeof(buff), "%s (%.3fs)", get_time_dhms(estimated_time).c_str(), vertex.times[static_cast<size_t>(viewer->get_time_mode())]);
                     const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
@@ -464,10 +464,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                             const ImU32 row_bg_color = ImGui::GetColorU32(item.internal ? ImVec4(0.0f, 150.f / 255.0f, 136.0f / 255.f, 0.15f) : ImVec4(0.2f, 0.2f, 0.2f, 0.25f)); // ORCA
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, row_bg_color);
                             ImGui::TableSetColumnIndex(0);
-                            sprintf(buff, "%.3f", item.pos);
+                            snprintf(buff, sizeof(buff), "%.3f", item.pos);
                             imgui.text_colored(highlight ? ImGuiWrapper::COL_ORCA : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
                             ImGui::TableSetColumnIndex(1);
-                            sprintf(buff, "%.1f", item.speed);
+                            snprintf(buff, sizeof(buff), "%.1f", item.speed);
                             imgui.text_colored(highlight ? ImGuiWrapper::COL_ORCA : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
                             ++counter;
                         }
@@ -534,21 +534,21 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         char xBuf[32];
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
         ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(xBuf, precision, pos[0]);
+        snprintf(xBuf, sizeof(xBuf), precision, pos[0]);
         ImGui::Text("%s", xBuf);
 
         char yBuf[32];
         ImGui::SameLine(axes_width);
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
         ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(yBuf, precision, pos[1]);
+        snprintf(yBuf, sizeof(yBuf), precision, pos[1]);
         ImGui::Text("%s", yBuf);
 
         char zBuf[32];
         ImGui::SameLine(axes_width * 2);
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
         ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(zBuf, precision, pos[2]);
+        snprintf(zBuf, sizeof(zBuf), precision, pos[2]);
         ImGui::Text("%s", zBuf);
 
         ImGui::SameLine(axes_width * 3);
@@ -556,68 +556,68 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         const bool is_extrusion = vertex.is_extrusion();
         char buf[1024]; char valBuf[32]; char spdBuf[128];
-        sprintf(spdBuf, "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
+        snprintf(spdBuf, sizeof(spdBuf), "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
         const float speed_width = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;
         ImGuiWrapper::text(std::string(spdBuf)); // render Speed as differrent item to keep next item in same place
         switch (view_type) {
                 case libvgcode::EViewType::Height: {
                     if (is_extrusion)
-                        sprintf(valBuf, "%.2f", vertex.height);
+                        snprintf(valBuf, sizeof(valBuf), "%.2f", vertex.height);
                     else
-                        sprintf(valBuf, "%s", NA_CSTR);
-                    sprintf(buf, "%s %s%s", buf, _u8L("Height: ").c_str(), valBuf);
+                        snprintf(valBuf, sizeof(valBuf), "%s", NA_CSTR);
+                    snprintf(buf, sizeof(buf), "%s %s%s", buf, _u8L("Height: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::Width: {
                     if (is_extrusion)
-                        sprintf(valBuf, "%.2f", vertex.width);
+                        snprintf(valBuf, sizeof(valBuf), "%.2f", vertex.width);
                     else
-                        sprintf(valBuf, "%s", NA_CSTR);
-                    sprintf(buf, "%s %s%s", buf, _u8L("Width: ").c_str(), valBuf);
+                        snprintf(valBuf, sizeof(valBuf), "%s", NA_CSTR);
+                    snprintf(buf, sizeof(buf), "%s %s%s", buf, _u8L("Width: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::VolumetricFlowRate: {
                     if (is_extrusion)
-                        sprintf(valBuf, "%.2f", vertex.volumetric_rate());
+                        snprintf(valBuf, sizeof(valBuf), "%.2f", vertex.volumetric_rate());
                     else
-                        sprintf(valBuf, "%s", NA_CSTR);
-                    sprintf(buf, "%s %s%s", buf, _u8L("Flow: ").c_str(), valBuf);
+                        snprintf(valBuf, sizeof(valBuf), "%s", NA_CSTR);
+                    snprintf(buf, sizeof(buf), "%s %s%s", buf, _u8L("Flow: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::FanSpeed: {
-                    sprintf(buf, "%s %s%.0f", buf, _u8L("Fan: ").c_str(), vertex.fan_speed);
+                    snprintf(buf, sizeof(buf), "%s %s%.0f", buf, _u8L("Fan: ").c_str(), vertex.fan_speed);
                     break;
                 }
                 case libvgcode::EViewType::Temperature: {
-                    sprintf(buf, "%s %s%.0f", buf, _u8L("Temperature: ").c_str(), vertex.temperature);
+                    snprintf(buf, sizeof(buf), "%s %s%.0f", buf, _u8L("Temperature: ").c_str(), vertex.temperature);
                     break;
                 }
                 case libvgcode::EViewType::LayerTimeLinear:
                 case libvgcode::EViewType::LayerTimeLogarithmic: {
-                    sprintf(buf, "%s %s%.1f", buf, _u8L("Layer Time: ").c_str(), vertex.layer_duration);
+                    snprintf(buf, sizeof(buf), "%s %s%.1f", buf, _u8L("Layer Time: ").c_str(), vertex.layer_duration);
                     break;
                 }
                 case libvgcode::EViewType::Tool: {
-                    sprintf(buf, "%s %s%d", buf, _u8L("Tool: ").c_str(), vertex.extruder_id + 1);
+                    snprintf(buf, sizeof(buf), "%s %s%d", buf, _u8L("Tool: ").c_str(), vertex.extruder_id + 1);
                     break;
                 }
                 case libvgcode::EViewType::ColorPrint: {
-                    sprintf(buf, "%s %s%d", buf, _u8L("Color: ").c_str(), vertex.color_id + 1);
+                    snprintf(buf, sizeof(buf), "%s %s%d", buf, _u8L("Color: ").c_str(), vertex.color_id + 1);
                     break;
                 }
                 case libvgcode::EViewType::ActualVolumetricFlowRate: {
                     // Don't display the actual flow, since it only gives data for the end of a segment
-                    // sprintf(buf, "%s %s%.2f", buf, _u8L("Actual Flow: ").c_str(), vertex.actual_volumetric_rate());
-                    sprintf(buf, "%s %s", buf, " ");
+                    // snprintf(buf, sizeof(buf), "%s %s%.2f", buf, _u8L("Actual Flow: ").c_str(), vertex.actual_volumetric_rate());
+                    snprintf(buf, sizeof(buf), "%s %s", buf, " ");
                     break;
                 }
                 case libvgcode::EViewType::ActualSpeed: {
-                    sprintf(buf, "%s %s%.1f", buf, _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
+                    snprintf(buf, sizeof(buf), "%s %s%.1f", buf, _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
                     break;
                 }
 // ORCA: Add Pressure Advance visualization support
                 case libvgcode::EViewType::PressureAdvance: {
-                    sprintf(buf, "%s %s%.4f", buf, _u8L("PA: ").c_str(), vertex.pressure_advance);
+                    snprintf(buf, sizeof(buf), "%s %s%.4f", buf, _u8L("PA: ").c_str(), vertex.pressure_advance);
                     break;
                 }
 
@@ -660,21 +660,21 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         char xBuf[32];
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
         ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(xBuf, precision, pos.x());
+        snprintf(xBuf, sizeof(xBuf), precision, pos.x());
         ImGui::Text("%s", xBuf);
 
         char yBuf[32]; 
         ImGui::SameLine(axes_width);
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
         ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(yBuf, precision, pos.y());
+        snprintf(yBuf, sizeof(yBuf), precision, pos.y());
         ImGui::Text("%s", yBuf);
 
         char zBuf[32];
         ImGui::SameLine(axes_width * 2);
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
         ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(zBuf, precision, pos.z());
+        snprintf(zBuf, sizeof(zBuf), precision, pos.z());
         ImGui::Text("%s", zBuf);
 
         ImGui::SameLine(axes_width * 3);
@@ -2278,7 +2278,7 @@ void GCodeViewer::render_toolpaths()
                 ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, label);
                 ImGui::TableSetColumnIndex(1);
                 char buf[128];
-                sprintf(buf, "%.3f - %.3f", range[0], range[1]);
+                snprintf(buf, sizeof(buf), "%.3f - %.3f", range[0], range[1]);
                 ImGuiWrapper::text(buf);
             };
 
@@ -2609,7 +2609,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
             if (i > longest_str)
                 longest_str = i;
         }
-        ::sprintf(buff, "%.2f", longest_str);
+        ::snprintf(buff, sizeof(buff), "%.2f", longest_str);
 
         std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
@@ -2652,33 +2652,33 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
                 float column_sum_g = 0.0f;
                 if (displayed_columns & ColumnData::Model) {
                     if ((displayed_columns & ~ColumnData::Model) > 0)
-                        ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
+                        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
                     else
-                        ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
+                        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
                     columns_offsets.push_back({ buf, offsets[_u8L("Model")] });
                     column_sum_m += model_used_filaments_m_all_plates[i];
                     column_sum_g += model_used_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::Support) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m_all_plates[i], support_used_filaments_g_all_plates[i] / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m_all_plates[i], support_used_filaments_g_all_plates[i] / unit_conver);
                     columns_offsets.push_back({ buf, offsets[_u8L("Support")] });
                     column_sum_m += support_used_filaments_m_all_plates[i];
                     column_sum_g += support_used_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::Flushed) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m_all_plates[i], flushed_filaments_g_all_plates[i] / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m_all_plates[i], flushed_filaments_g_all_plates[i] / unit_conver);
                     columns_offsets.push_back({ buf, offsets[_u8L("Flushed")] });
                     column_sum_m += flushed_filaments_m_all_plates[i];
                     column_sum_g += flushed_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::WipeTower) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m_all_plates[i], wipe_tower_used_filaments_g_all_plates[i] / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m_all_plates[i], wipe_tower_used_filaments_g_all_plates[i] / unit_conver);
                     columns_offsets.push_back({ buf, offsets[_u8L("Tower")] });
                     column_sum_m += wipe_tower_used_filaments_m_all_plates[i];
                     column_sum_g += wipe_tower_used_filaments_g_all_plates[i];
                 }
                 if ((displayed_columns & ~ColumnData::Model) > 0) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
                     columns_offsets.push_back({ buf, offsets[_u8L("Total")] });
                 }
 
@@ -2703,7 +2703,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         imgui.text(_u8L("Total cost") + ":");
         ImGui::SameLine();
         char buf[64];
-        ::sprintf(buf, "%.2f", total_cost_all_plates);
+        ::snprintf(buf, sizeof(buf), "%.2f", total_cost_all_plates);
         imgui.text(buf);
     }
     ImGui::End();
@@ -3154,7 +3154,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     auto append_range = [append_item](const libvgcode::ColorRange& range, unsigned int decimals) {
         auto append_range_item = [append_item, &range](int i, float value, unsigned int decimals) {
             char buf[1024];
-            ::sprintf(buf, "%.*f", decimals, value);
+            ::snprintf(buf, sizeof(buf), "%.*f", decimals, value);
             append_item(EItemType::Rect, libvgcode::convert(range.get_palette()[i]), { { buf , 0} });
         };
 
@@ -3250,21 +3250,21 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
     auto upto_label = [](double z) {
         char buf[64];
-        ::sprintf(buf, "%.2f", z);
+        ::snprintf(buf, sizeof(buf), "%.2f", z);
         return _u8L("up to") + " " + std::string(buf) + " " + _u8L("mm");
     };
 
     auto above_label = [](double z) {
         char buf[64];
-        ::sprintf(buf, "%.2f", z);
+        ::snprintf(buf, sizeof(buf), "%.2f", z);
         return _u8L("above") + " " + std::string(buf) + " " + _u8L("mm");
     };
 
     auto fromto_label = [](double z1, double z2) {
         char buf1[64];
-        ::sprintf(buf1, "%.2f", z1);
+        ::snprintf(buf1, sizeof(buf1), "%.2f", z1);
         char buf2[64];
-        ::sprintf(buf2, "%.2f", z2);
+        ::snprintf(buf2, sizeof(buf2), "%.2f", z2);
         return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + _u8L("mm");
     };
 
@@ -3494,15 +3494,15 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 auto [time, percent] = role_time_and_percent(role);
                 times.push_back((time > 0.0f) ? short_time(get_time_dhms(time)) : "");
                 if (percent == 0) // ORCA remove % symbol from rows
-                    ::sprintf(buffer, "0");
+                    ::snprintf(buffer, sizeof(buffer), "0");
                 else
-                    percent > 0.001 ? ::sprintf(buffer, "%.1f", percent * 100) : ::sprintf(buffer, "<0.1");
+                    percent > 0.001 ? ::snprintf(buffer, sizeof(buffer), "%.1f", percent * 100) : ::snprintf(buffer, sizeof(buffer), "<0.1");
                 percents.push_back(buffer);
 
                 auto [model_used_filament_m, model_used_filament_g] = used_filament_per_role(convert(role));
-                ::sprintf(buffer, imperial_units ? "%.2fin" : "%.2fm", model_used_filament_m); // ORCA dont use spacing between value and unit
+                ::snprintf(buffer, sizeof(buffer), imperial_units ? "%.2fin" : "%.2fm", model_used_filament_m); // ORCA dont use spacing between value and unit
                 used_filaments_length.push_back(buffer);
-                ::sprintf(buffer, imperial_units ? "%.2foz" : "%.2fg", model_used_filament_g); // ORCA dont use spacing between value and unit
+                ::snprintf(buffer, sizeof(buffer), imperial_units ? "%.2foz" : "%.2fg", model_used_filament_g); // ORCA dont use spacing between value and unit
                 used_filaments_weight.push_back(buffer);
             }
         }
@@ -3512,9 +3512,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             auto [time, percent] = travel_time_and_percent();
             travel_time = (time > 0.0f) ? short_time(get_time_dhms(time)) : "";
             if (percent == 0) // ORCA remove % symbol from rows
-                ::sprintf(buffer, "0");
+                ::snprintf(buffer, sizeof(buffer), "0");
             else
-                percent > 0.001 ? ::sprintf(buffer, "%.1f", percent * 100) : ::sprintf(buffer, "<0.1");
+                percent > 0.001 ? ::snprintf(buffer, sizeof(buffer), "%.1f", percent * 100) : ::snprintf(buffer, sizeof(buffer), "<0.1");
             travel_percent = buffer;
         }
 
@@ -3573,7 +3573,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     {
         std::vector<std::string> total_filaments;
         char buffer[64];
-        ::sprintf(buffer, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", ps.total_used_filament / /*1000*/koef, ps.total_weight / unit_conver);
+        ::snprintf(buffer, sizeof(buffer), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", ps.total_used_filament / /*1000*/koef, ps.total_weight / unit_conver);
         total_filaments.push_back(buffer);
 
 
@@ -3728,7 +3728,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         size_t i = 0;
         const std::vector<uint8_t>& used_extruders_ids = m_viewer.get_used_extruders_ids();
         for (uint8_t extruder_id : used_extruders_ids) {
-            ::sprintf(buf, imperial_units ? "%.2f in    %.2f g" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i]);
+            ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in    %.2f g" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i]);
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
@@ -3741,14 +3741,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         char buf[64];
         imgui.text(_u8L("Total") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "%.2f in / %.2f oz" : "%.2f m / %.2f g", ps.total_used_filament / koef, ps.total_weight / unit_conver);
+        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in / %.2f oz" : "%.2f m / %.2f g", ps.total_used_filament / koef, ps.total_weight / unit_conver);
         imgui.text(buf);
 
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
         imgui.text(_u8L("Cost") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%.2f", ps.total_cost);
+        ::snprintf(buf, sizeof(buf), "%.2f", ps.total_cost);
         imgui.text(buf);
 
         ImGui::Dummy({window_padding, window_padding});
@@ -3788,33 +3788,33 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 float column_sum_g = 0.0f;
                 if (displayed_columns & ColumnData::Model) {
                     if ((displayed_columns & ~ColumnData::Model) > 0)
-                        ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
+                        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
                     else
-                        ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
+                        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Model")] });
                     column_sum_m += model_used_filaments_m[i];
                     column_sum_g += model_used_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::Support) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m[i], support_used_filaments_g[i] / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m[i], support_used_filaments_g[i] / unit_conver);
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Support")] });
                     column_sum_m += support_used_filaments_m[i];
                     column_sum_g += support_used_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::Flushed) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m[i], flushed_filaments_g[i] / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m[i], flushed_filaments_g[i] / unit_conver);
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Flushed")]});
                     column_sum_m += flushed_filaments_m[i];
                     column_sum_g += flushed_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::WipeTower) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m[i], wipe_tower_used_filaments_g[i] / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m[i], wipe_tower_used_filaments_g[i] / unit_conver);
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Tower")] });
                     column_sum_m += wipe_tower_used_filaments_m[i];
                     column_sum_g += wipe_tower_used_filaments_g[i];
                 }
                 if ((displayed_columns & ~ColumnData::Model) > 0) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
                 }
 
@@ -3841,25 +3841,25 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             columns_offsets.push_back({ _u8L("Total"), color_print_offsets[_u8L("Filament")]});
             if (displayed_columns & ColumnData::Model) {
                 if ((displayed_columns & ~ColumnData::Model) > 0)
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
                 else
-                    ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
+                    ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Model")] });
             }
             if (displayed_columns & ColumnData::Support) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_support_used_filament_m, total_support_used_filament_g / unit_conver);
+                ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_support_used_filament_m, total_support_used_filament_g / unit_conver);
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Support")] });
             }
             if (displayed_columns & ColumnData::Flushed) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_flushed_filament_m, total_flushed_filament_g / unit_conver);
+                ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_flushed_filament_m, total_flushed_filament_g / unit_conver);
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Flushed")] });
             }
             if (displayed_columns & ColumnData::WipeTower) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_wipe_tower_used_filament_m, total_wipe_tower_used_filament_g / unit_conver);
+                ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_wipe_tower_used_filament_m, total_wipe_tower_used_filament_g / unit_conver);
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Tower")] });
             }
             if ((displayed_columns & ~ColumnData::Model) > 0) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m + total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m,
+                ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m + total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m,
                     (total_model_used_filament_g + total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g) / unit_conver);
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
             }
@@ -3871,7 +3871,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         imgui.text(_u8L("Filament change times") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%d", m_print_statistics.total_filament_changes);
+        ::snprintf(buf, sizeof(buf), "%d", m_print_statistics.total_filament_changes);
         imgui.text(buf);
 
         //BBS display cost
@@ -3879,7 +3879,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         imgui.text(_u8L("Cost")+":");
         ImGui::SameLine();
-        ::sprintf(buf, "%.2f", ps.total_cost);
+        ::snprintf(buf, sizeof(buf), "%.2f", ps.total_cost);
         imgui.text(buf);
 
         break;
@@ -3995,11 +3995,11 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (used_filament.first > 0.0f) {
                 char buffer[64];
                 ImGui::SameLine(offsets[2]);
-                ::sprintf(buffer, imperial_units ? "%.2f in" : "%.2f m", used_filament.first);
+                ::snprintf(buffer, sizeof(buffer), imperial_units ? "%.2f in" : "%.2f m", used_filament.first);
                 imgui.text(buffer);
 
                 ImGui::SameLine(offsets[3]);
-                ::sprintf(buffer, "%.2f g", used_filament.second);
+                ::snprintf(buffer, sizeof(buffer), "%.2f g", used_filament.second);
                 imgui.text(buffer);
             }
         };
@@ -4023,7 +4023,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             for (const PartialTime& item : partial_times) {
                 if (item.used_filament.first > 0.0f) {
                     char buffer[64];
-                    ::sprintf(buffer, imperial_units ? "%.2f in" : "%.2f m", item.used_filament.first);
+                    ::snprintf(buffer, sizeof(buffer), imperial_units ? "%.2f in" : "%.2f m", item.used_filament.first);
                     if (::strlen(buffer) > longest_used_filament_string.length())
                         longest_used_filament_string = buffer;
                 }
@@ -4246,7 +4246,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImGui::SameLine(max_len);
             char buf[64];
             int layer = find_close_layer_idx(layer_zs, custom_gcode.print_z, epsilon()); // ORCA: find layer index by Z
-            ::sprintf(buf, "%d", layer + 1); // +1 because layer 0 is the first layer
+            ::snprintf(buf, sizeof(buf), "%d", layer + 1); // +1 because layer 0 is the first layer
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
 
@@ -4320,10 +4320,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         //BBS: use current plater's print statistics
         bool imperial_units = wxGetApp().app_config->get("use_inches") == "1";
         char buf[64];
-        ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef);
+        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "  %.2f oz" : "  %.2f g", ps.total_weight / unit_conver);
+        ::snprintf(buf, sizeof(buf), imperial_units ? "  %.2f oz" : "  %.2f g", ps.total_weight / unit_conver);
         imgui.text(buf);
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
@@ -4331,17 +4331,17 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine(max_len);
         auto exlude_m = total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m;
         auto exlude_g = total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g;
-        ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef - exlude_m);
+        ::snprintf(buf, sizeof(buf), imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef - exlude_m);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "  %.2f oz" : "  %.2f g", (ps.total_weight - exlude_g) / unit_conver);
+        ::snprintf(buf, sizeof(buf), imperial_units ? "  %.2f oz" : "  %.2f g", (ps.total_weight - exlude_g) / unit_conver);
         imgui.text(buf);
         //BBS: display cost of filaments
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         imgui.text(cost_str + ":");
         ImGui::SameLine(max_len);
-        ::sprintf(buf, "%.2f", ps.total_cost);
+        ::snprintf(buf, sizeof(buf), "%.2f", ps.total_cost);
         imgui.text(buf);
     }
     //BBS: start gcode is mostly same with prepeare time
