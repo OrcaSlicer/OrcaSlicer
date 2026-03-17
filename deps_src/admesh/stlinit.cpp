@@ -162,7 +162,7 @@ static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first, Impor
         rewind(fp);
         try{
             char solid_name[256];
-            int res_solid = fscanf(fp, " solid %[^\n]", solid_name);
+            int res_solid = fscanf(fp, " solid %255[^\n]", solid_name);
             if (res_solid == 1) {
                 char* mw_position = strstr(solid_name, "MW");
                 if (mw_position != NULL) {
@@ -170,7 +170,7 @@ static bool stl_read(stl_file *stl, FILE *fp, int first_facet, bool first, Impor
                     char version_str[16];
                     char model_id_str[128]; 
                     char country_code_str[16];
-                    int num_values = sscanf(mw_position + 3, "%s %s %s", version_str, model_id_str, country_code_str);
+                    int num_values = sscanf(mw_position + 3, "%15s %127s %15s", version_str, model_id_str, country_code_str);
                     if (num_values == 3) {
                         if (strcmp(version_str, "1.0") == 0) {
                             model_id = model_id_str;
