@@ -16,51 +16,104 @@ NSMutableDictionary* base_query(const std::string& service, const std::string& a
     return query;
 }
 
+IOSKeychainStatus keychain_status_from_os_status(const OSStatus status)
+{
+    if (status == errSecSuccess)
+        return IOSKeychainStatus::success;
+    if (status == errSecItemNotFound)
+        return IOSKeychainStatus::item_not_found;
+    return IOSKeychainStatus::error;
+}
+
+class IOSSecurityFrameworkCredentialBackend final : public IOSKeychainCredentialBackend
+{
+public:
+    IOSKeychainReadResult read(const std::string& service, const std::string& account) const override
+    {
+        NSMutableDictionary* query = base_query(service, account);
+        query[(__bridge id) kSecReturnData]  = @YES;
+        query[(__bridge id) kSecMatchLimit]  = (__bridge id) kSecMatchLimitOne;
+
+        CFTypeRef result = nullptr;
+        const OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef) query, &result);
+        if (status == errSecItemNotFound)
+            return {IOSKeychainStatus::item_not_found, std::nullopt};
+        if (status != errSecSuccess)
+            return {IOSKeychainStatus::error, std::nullopt};
+
+        NSData* data = (__bridge_transfer NSData*) result;
+        if (data == nil)
+            return {IOSKeychainStatus::error, std::nullopt};
+
+        return {IOSKeychainStatus::success, std::string(static_cast<const char*>(data.bytes), data.length)};
+    }
+
+    IOSKeychainStatus update(const std::string& service, const std::string& account, const std::string& secret) override
+    {
+        NSMutableDictionary* query = base_query(service, account);
+        NSData* secret_data = [NSData dataWithBytes:secret.data() length:secret.size()];
+        NSDictionary* attributes_to_update = @{(__bridge id) kSecValueData : secret_data};
+        const OSStatus status = SecItemUpdate((__bridge CFDictionaryRef) query, (__bridge CFDictionaryRef) attributes_to_update);
+        return keychain_status_from_os_status(status);
+    }
+
+    IOSKeychainStatus add(const std::string& service, const std::string& account, const std::string& secret) override
+    {
+        NSMutableDictionary* query = base_query(service, account);
+        query[(__bridge id) kSecValueData] = [NSData dataWithBytes:secret.data() length:secret.size()];
+        const OSStatus status = SecItemAdd((__bridge CFDictionaryRef) query, nullptr);
+        return keychain_status_from_os_status(status);
+    }
+
+    IOSKeychainStatus remove(const std::string& service, const std::string& account) override
+    {
+        NSMutableDictionary* query = base_query(service, account);
+        const OSStatus status = SecItemDelete((__bridge CFDictionaryRef) query);
+        return keychain_status_from_os_status(status);
+    }
+};
+
 } // namespace
+
+std::shared_ptr<IOSKeychainCredentialBackend> make_ios_keychain_credential_backend()
+{
+    return std::make_shared<IOSSecurityFrameworkCredentialBackend>();
+}
+
+IOSKeychainCredentialStore::IOSKeychainCredentialStore()
+    : IOSKeychainCredentialStore(make_ios_keychain_credential_backend())
+{
+}
+
+IOSKeychainCredentialStore::IOSKeychainCredentialStore(std::shared_ptr<IOSKeychainCredentialBackend> backend)
+    : m_backend(backend ? std::move(backend) : make_ios_keychain_credential_backend())
+{
+}
 
 std::optional<std::string> IOSKeychainCredentialStore::read(const std::string& service, const std::string& account) const
 {
-    NSMutableDictionary* query = base_query(service, account);
-    query[(__bridge id) kSecReturnData]  = @YES;
-    query[(__bridge id) kSecMatchLimit]  = (__bridge id) kSecMatchLimitOne;
-
-    CFTypeRef result = nullptr;
-    const OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef) query, &result);
-    if (status == errSecItemNotFound)
-        return std::nullopt;
-    if (status != errSecSuccess)
+    const IOSKeychainReadResult result = m_backend->read(service, account);
+    if (result.status != IOSKeychainStatus::success)
         return std::nullopt;
 
-    NSData* data = (__bridge_transfer NSData*) result;
-    if (data == nil)
-        return std::nullopt;
-
-    return std::string(static_cast<const char*>(data.bytes), data.length);
+    return result.secret;
 }
 
 bool IOSKeychainCredentialStore::write(const std::string& service, const std::string& account, const std::string& secret)
 {
-    NSMutableDictionary* query      = base_query(service, account);
-    NSData*              secretData = [NSData dataWithBytes:secret.data() length:secret.size()];
-
-    NSDictionary* attributesToUpdate = @{(__bridge id) kSecValueData : secretData};
-    const OSStatus  updateStatus      = SecItemUpdate((__bridge CFDictionaryRef) query, (__bridge CFDictionaryRef) attributesToUpdate);
-    if (updateStatus == errSecSuccess)
+    const IOSKeychainStatus update_status = m_backend->update(service, account, secret);
+    if (update_status == IOSKeychainStatus::success)
         return true;
-
-    if (updateStatus != errSecItemNotFound)
+    if (update_status != IOSKeychainStatus::item_not_found)
         return false;
 
-    query[(__bridge id) kSecValueData] = secretData;
-    const OSStatus addStatus = SecItemAdd((__bridge CFDictionaryRef) query, nullptr);
-    return addStatus == errSecSuccess;
+    return m_backend->add(service, account, secret) == IOSKeychainStatus::success;
 }
 
 bool IOSKeychainCredentialStore::remove(const std::string& service, const std::string& account)
 {
-    NSMutableDictionary* query = base_query(service, account);
-    const OSStatus       status = SecItemDelete((__bridge CFDictionaryRef) query);
-    return status == errSecSuccess || status == errSecItemNotFound;
+    const IOSKeychainStatus status = m_backend->remove(service, account);
+    return status == IOSKeychainStatus::success || status == IOSKeychainStatus::item_not_found;
 }
 
 } // namespace Slic3r::portability::platform::ios
