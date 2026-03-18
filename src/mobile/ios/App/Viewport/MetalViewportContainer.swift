@@ -27,8 +27,8 @@ struct MetalViewportContainer: UIViewRepresentable {
                     return
                 }
 
-                uiView.setCamera(
-                    withViewMatrix: viewPtr,
+                uiView.setCameraWithViewMatrix(
+                    viewPtr,
                     projectionMatrix: projectionPtr,
                     isLookingDownward: camera.isLookingDownward
                 )
@@ -76,7 +76,8 @@ struct MetalViewportContainer: UIViewRepresentable {
             guard let view = viewportView else { return }
             let translation = recognizer.translation(in: view)
             recognizer.setTranslation(.zero, in: view)
-            viewportSession.applyPan(delta: translation, viewportSize: view.bounds.size)
+            let panDelta = CGSize(width: translation.x, height: translation.y)
+            viewportSession.applyPan(delta: panDelta, viewportSize: view.bounds.size)
             pushCameraState(into: view)
         }
 
@@ -104,8 +105,8 @@ struct MetalViewportContainer: UIViewRepresentable {
                         return
                     }
 
-                    view.setCamera(
-                        withViewMatrix: viewPtr,
+                    view.setCameraWithViewMatrix(
+                        viewPtr,
                         projectionMatrix: projectionPtr,
                         isLookingDownward: camera.isLookingDownward
                     )

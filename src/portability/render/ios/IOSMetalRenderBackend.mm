@@ -66,7 +66,9 @@ static id<MTLBuffer> update_or_create_buffer(id<MTLDevice> device, id<MTLBuffer>
         return nil;
 
     std::memcpy(buffer.contents, data, length);
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
     [buffer didModifyRange:NSMakeRange(0, length)];
+#endif
     return buffer;
 }
 

@@ -638,7 +638,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/PlatformServices.cpp
     Utils/PlatformServices.hpp
-    ../portability/app/IAppService.hpp
     Utils/DesktopAppServiceAdapter.cpp
     Utils/DesktopAppServiceAdapter.hpp
     Utils/Process.cpp
@@ -667,6 +666,7 @@ set(SLIC3R_GUI_SOURCES
 )
 
 set(SLIC3R_GUI_PORTABILITY_SOURCES
+    ../portability/app/IAppService.hpp
     ../portability/render/ISceneRenderer.hpp
     ../portability/render/DesktopOpenGLSceneRenderer.cpp
     ../portability/render/DesktopOpenGLSceneRenderer.hpp
