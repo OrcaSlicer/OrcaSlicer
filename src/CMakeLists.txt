@@ -152,10 +152,30 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/msw/OrcaSlicer.rc.in ${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.rc @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/msw/OrcaSlicer.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.manifest @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/osx/Info.plist.in ${CMAKE_CURRENT_BINARY_DIR}/Info.plist @ONLY)
+
+# Shared application-services target. Keep interfaces free of GUI dependencies.
+add_library(orcaslicer_app STATIC
+    OrcaSlicer.cpp
+    OrcaSlicer.hpp
+    OrcaSlicer_bootstrap.hpp
+)
+target_include_directories(orcaslicer_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(orcaslicer_app
+    PRIVATE
+        libslic3r
+        cereal::cereal
+        orcaslicer_platform_desktop
+        orcaslicer_render_null
+)
+
+if (SLIC3R_GUI)
+    target_link_libraries(orcaslicer_app PRIVATE libslic3r_gui)
+endif ()
+
 if (WIN32)
-    add_library(OrcaSlicer SHARED OrcaSlicer.cpp OrcaSlicer_desktop_entry.cpp OrcaSlicer.hpp OrcaSlicer_bootstrap.hpp)
+    add_library(OrcaSlicer SHARED OrcaSlicer_desktop_entry.cpp)
 else ()
-    add_executable(OrcaSlicer OrcaSlicer.cpp OrcaSlicer_desktop_entry.cpp OrcaSlicer.hpp OrcaSlicer_bootstrap.hpp)
+    add_executable(OrcaSlicer OrcaSlicer_desktop_entry.cpp)
 endif ()
 
 if (MINGW)
@@ -170,7 +190,7 @@ if (NOT WIN32 AND NOT APPLE)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/unix/build_linux_image.sh.in ${CMAKE_CURRENT_BINARY_DIR}/build_linux_image.sh USE_SOURCE_PERMISSIONS @ONLY)
 endif ()
 
-target_link_libraries(OrcaSlicer libslic3r cereal::cereal orcaslicer_platform_desktop orcaslicer_render_null)
+target_link_libraries(OrcaSlicer PRIVATE orcaslicer_app)
 # target_include_directories(OrcaSlicer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/slic3r)
 if (APPLE)
 #    add_compile_options(-stdlib=libc++)
@@ -188,7 +208,6 @@ endif ()
 # Add the Slic3r GUI library, libcurl, OpenGL and GLU libraries.
 if (SLIC3R_GUI)
 #    target_link_libraries(OrcaSlicer ws2_32 uxtheme setupapi libslic3r_gui ${wxWidgets_LIBRARIES})
-target_link_libraries(OrcaSlicer libslic3r_gui)
     if (MSVC)
         # Generate debug symbols even in release mode.
         target_link_options(OrcaSlicer PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
