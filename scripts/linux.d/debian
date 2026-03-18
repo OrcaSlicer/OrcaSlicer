@@ -4,15 +4,18 @@ REQUIRED_DEV_PACKAGES=(
     autoconf
     build-essential
     cmake
+    curl
     eglexternalplatform-dev
     extra-cmake-modules
     file
-    g++
     gettext
     git
+    libboost-all-dev
     libcurl4-openssl-dev
     libdbus-1-dev
+    libgl1-mesa-dev
     libglew-dev
+    libglu1-mesa-dev
     libgstreamerd-3-dev
     libgtk-3-dev
     libmspack-dev
@@ -22,8 +25,12 @@ REQUIRED_DEV_PACKAGES=(
     libtool
     libudev-dev
     ninja-build
+    pkg-config
+    tar
     texinfo
+    unzip
     wget
+    zip
 )
 
 if [[ -n "$UPDATE_LIB" ]]
@@ -53,8 +60,8 @@ then
     fi
 
     # install them all at once
-    sudo apt update
-    sudo apt install -y "${REQUIRED_DEV_PACKAGES[@]}"
+    sudo apt-get update
+    sudo apt-get install -y --no-install-recommends "${REQUIRED_DEV_PACKAGES[@]}"
 
     echo -e "done\n"
     exit 0
