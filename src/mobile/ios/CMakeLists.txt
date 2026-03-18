@@ -77,8 +77,11 @@ set(ORCASLICER_IOS_SHELL_SOURCES
     App/State/ScreenshotLaunchConfiguration.swift
     App/Viewport/MetalViewportContainer.swift
     App/OrcaSlicerIOS-Bridging-Header.h
+    App/AppService/OrcaSlicerAppService.h
+    App/AppService/OrcaSlicerAppService.mm
     App/Viewport/OrcaMetalViewportView.h
     App/Viewport/OrcaMetalViewportView.mm
+    ../portability/app/SlicingOrchestrator.cpp
 )
 
 add_executable(OrcaSlicerIOS
@@ -108,6 +111,7 @@ target_include_directories(OrcaSlicerIOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../
 target_link_libraries(OrcaSlicerIOS
     PRIVATE
         orcaslicer_portability_render_interface
+        orcaslicer_portability_app_interface
         orcaslicer_render_ios_metal
         "-framework SwiftUI"
         "-framework UIKit"

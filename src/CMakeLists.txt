@@ -21,6 +21,7 @@ target_include_directories(orcaslicer_portability_render_interface INTERFACE ${C
 add_library(orcaslicer_portability_app_interface INTERFACE)
 target_sources(orcaslicer_portability_app_interface INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/app/IAppService.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/portability/app/SlicingOrchestrator.hpp
 )
 target_include_directories(orcaslicer_portability_app_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
