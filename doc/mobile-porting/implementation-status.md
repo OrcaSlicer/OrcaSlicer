@@ -69,6 +69,20 @@ Start iOS UI implementation only after all of the following are complete:
    - `orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`, and `orcaslicer_ios_smoke` remain green in repeatable iOS toolchain builds.
    - Portability tests/smoke checks cover adapter bring-up + critical failure paths.
 
+## First native iOS shell milestone (post-gate only)
+After portability and app-service gates are complete, scope the first native iOS shell milestone to:
+
+1. **App launch only**
+   - Bring up a minimal native iOS host (SwiftUI/UIKit shell) that initializes shared services without adding product workflows yet.
+
+2. **Metal-backed view only**
+   - Attach `IOSMetalRenderBackend` to a `CAMetalLayer`-backed view and prove frame presentation.
+   - Keep rendering scope at bring-up level (no additional UI feature work, slicing UX flows, or Android parity tasks in this milestone).
+
+3. **Reuse existing adapters**
+   - Use `IOSPlatformServices` for platform service wiring and `IOSMetalRenderBackend` for render wiring as-is.
+   - Any expansion beyond launch + Metal view stays deferred until this minimal shell milestone is validated.
+
 ## Deferred until after iOS milestone
 - Android platform adapters and renderer backend implementation.
 - Android build/packaging automation and mobile UI integration work.
