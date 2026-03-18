@@ -76,6 +76,8 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 # Engineering reviews
 
 - [In-Depth File Search and Code Review (2026-03-18)](doc/2026-03-18-in-depth-file-search-and-code-review.md)
+- [Mobile Porting Documentation Index](doc/mobile-porting/README.md)
+- [Repository Operator Guide and Markdown Inventory](AGENTS.md)
 
 # Download
 
@@ -157,9 +159,10 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target OrcaSlicer --config Release --parallel
 ```
 
-To build automated tests:
+To build automated tests (note: tests are disabled by default unless `-DBUILD_TESTS=ON` is set at configure time):
 
 ```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
 cmake --build build --target tests --config Release --parallel
 ctest --test-dir build --output-on-failure
 ```

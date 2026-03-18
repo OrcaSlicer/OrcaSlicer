@@ -1,47 +1,45 @@
 # Security Policy
 
-At OrcaSlicer, we are committed to maintaining the security of our ecosystem. Our policy is to ensure that we do not introduce vulnerabilities and that any security issues are addressed promptly and responsibly. We appreciate your help in improving the security of OrcaSlicer and thank you for your responsible disclosure.
-Reporting Security Bugs
+OrcaSlicer follows responsible disclosure for security vulnerabilities.
 
-## To report a security bug, please follow these guidelines:
+## Reporting a Vulnerability
 
-  * Email Security Bugs:
-        Send an email to the lead maintainer at softfeverever@gmail.com.
-        Include the word "SECURITY" in the subject line of your email.
+Please report security issues privately by email:
 
-  * Response Times:
-        The lead maintainer will acknowledge receipt of your email within one week (7 days).
-        A detailed response will follow within 48 hours, outlining the next steps for handling your report.
-        After the initial reply, the security team will keep you informed about the progress toward a fix and any announcements.
+- **Contact:** `softfeverever@gmail.com`
+- **Subject:** include `SECURITY`
 
-  * Information and Collaboration:
-        We may request additional information or guidance as we work on addressing the issue.
+Include as much of the following as possible:
 
-  * Handling the Report:
-        OrcaSlicer will confirm the problem and determine the affected versions.
-        We will audit the code to find any similar issues and prepare fixes for all releases still under maintenance.
-        Fixes will be released as quickly as possible.
+- Affected version(s), OS/platform, and configuration.
+- Reproduction steps.
+- Potential impact and threat model.
+- Proof-of-concept details, logs, screenshots, or sample files where relevant.
 
-  * Third-Party Modules:
-        Report security issues in third-party modules to the respective maintainer of those modules.
+If helpful, use the OWASP disclosure checklist: <https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html>.
 
-## Security Disclosure Guidelines
+## Response Expectations
 
-When disclosing a vulnerability, please follow these steps to ensure your report is clear and actionable:
+- Initial acknowledgment target: **within 7 calendar days**.
+- Follow-up target after acknowledgment: **within 48 hours** with next steps when triage has enough detail.
 
-  * Provide Detailed Information:
-        Scope: Clearly define the scope of the vulnerability.
-        Potential Impact: Let us know who could be affected by this exploit.
-        Reproduction Steps: Document detailed steps to reproduce the vulnerability.
+Complex reports may require additional back-and-forth; maintainers may ask for clarifications or validation artifacts.
 
-    Reference OWASP Guidelines:
-        Follow the <a href="https://cheatsheetseries.owasp.org/cheatsheets/Vulnerability_Disclosure_Cheat_Sheet.html">OWASP Vulnerability Disclosure Cheat Sheet</a> for best practices in vulnerability disclosure.
+## Coordination and Fixes
 
-## Security Recommendations
+When a report is confirmed, maintainers will:
 
-To enhance security when using OrcaSlicer, we recommend following these steps:
+1. Validate and scope affected versions.
+2. Audit for related variants.
+3. Prepare and ship patches for maintained releases.
+4. Coordinate disclosure timing when needed.
 
-  * SEE SOMETHING: If you notice anything suspicious or have concerns, please report it.
-  * SAY SOMETHING: If you have any doubts or need assistance, do not hesitate to contact us.
+## Third-Party Components
 
-### Thank you for your commitment to the security of OrcaSlicer. Your efforts help us maintain a safe and reliable ecosystem.
+For vulnerabilities originating in vendored or external dependencies, please also report upstream to the relevant project maintainers.
+
+## User Safety Recommendations
+
+- Download binaries only from official OrcaSlicer release channels.
+- Avoid untrusted plugins, profiles, and scripts.
+- Keep OrcaSlicer and printer firmware updated.
