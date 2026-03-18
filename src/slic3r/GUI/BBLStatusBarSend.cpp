@@ -147,7 +147,7 @@ void BBLStatusBarSend::clear_percent()
     m_cancelbutton->Hide();
 }
 
-void BBLStatusBarSend::show_error_info(wxString msg, int code, wxString description, wxString extra)
+void BBLStatusBarSend::show_error_info(const std::string &msg, int code, const std::string &description, const std::string &extra)
 {
     set_status_text(msg);
     m_prog->Hide();

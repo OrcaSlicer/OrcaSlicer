@@ -140,7 +140,7 @@ public:
     void show_error_info(const std::string &msg, int code, const std::string &description, const std::string &extra) override
     {
         if (m_progress) {
-            m_progress->show_error_info(from_u8(msg), code, from_u8(description), from_u8(extra));
+            m_progress->show_error_info(msg, code, description, extra);
         }
     }
 

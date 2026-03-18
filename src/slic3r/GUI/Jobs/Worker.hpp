@@ -31,8 +31,7 @@ public:
     virtual void cancel_all() = 0;
 
     // Needs to be called continuously to process events (like status update
-    // or finalizing of jobs) in the main thread. This can be done e.g. in a
-    // wxIdle handler.
+    // or finalizing of jobs) in the foreground execution context.
     virtual void process_events() = 0;
 
     // Wait until the current job finishes. Timeout will only be considered

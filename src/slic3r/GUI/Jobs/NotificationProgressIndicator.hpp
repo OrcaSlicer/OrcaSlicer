@@ -16,7 +16,7 @@ public:
     explicit NotificationProgressIndicator(NotificationManager *nm);
 
     void clear_percent() override;
-    void show_error_info(wxString msg, int code, wxString description, wxString extra) override;
+    void show_error_info(const std::string &msg, int code, const std::string &description, const std::string &extra) override;
     void set_range(int range) override;
     void set_cancel_callback(CancelFn = CancelFn()) override;
     void set_progress(int pr) override;

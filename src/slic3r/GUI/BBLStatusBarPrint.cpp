@@ -182,7 +182,7 @@ void BBLStatusBarPrint::clear_percent()
     }
 }
 
-void BBLStatusBarPrint::show_error_info(wxString msg, int code, wxString description, wxString extra)
+void BBLStatusBarPrint::show_error_info(const std::string &msg, int code, const std::string &description, const std::string &extra)
 {
     set_status_text(msg);
     m_prog->Hide();
