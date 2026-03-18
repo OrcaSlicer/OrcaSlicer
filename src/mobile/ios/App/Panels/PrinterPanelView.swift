@@ -11,9 +11,10 @@ struct PrinterPanelView: View {
                 summaryRow("Material", value: machineProfileState.materialSummary)
             }
 
-            Section("Status") {
-                Text("Profile synchronization placeholder")
-                Text("Remote printer connectivity placeholder")
+            Section("Connectivity") {
+                summaryRow("LAN mode", value: "Standby")
+                summaryRow("Cloud sync", value: "Not linked")
+                summaryRow("Firmware", value: "Placeholder 01.00")
             }
         }
         .navigationTitle("Printer")

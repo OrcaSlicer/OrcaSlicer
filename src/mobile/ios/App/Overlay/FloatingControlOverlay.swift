@@ -27,7 +27,7 @@ struct FloatingControlOverlay: View {
                 Spacer()
 
                 HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 12) {
                         FloatingActionButton(title: "Tools", systemImage: "wrench.and.screwdriver", action: {
                             panelRouter.present(.tools)
                         })
@@ -41,16 +41,20 @@ struct FloatingControlOverlay: View {
                         })
                     }
 
-                    Spacer()
+                    Spacer(minLength: 12)
 
-                    VStack(alignment: .trailing, spacing: 10) {
+                    VStack(alignment: .trailing, spacing: 12) {
                         if !appSession.lastActionStatus.isEmpty {
                             Text(appSession.lastActionStatus)
-                                .font(.caption)
+                                .font(.caption.weight(.medium))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .foregroundStyle(.white)
-                                .background(Color(red: 0.15, green: 0.15, blue: 0.18))
+                                .background(Color(red: 0.13, green: 0.14, blue: 0.18).opacity(0.95))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                                )
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
 

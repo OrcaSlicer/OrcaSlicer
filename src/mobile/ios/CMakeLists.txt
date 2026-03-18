@@ -74,6 +74,7 @@ set(ORCASLICER_IOS_SHELL_SOURCES
     App/State/ToolPanelState.swift
     App/State/SliceSettingsState.swift
     App/State/MachineProfileState.swift
+    App/State/ScreenshotLaunchConfiguration.swift
     App/Viewport/MetalViewportContainer.swift
     App/OrcaSlicerIOS-Bridging-Header.h
     App/Viewport/OrcaMetalViewportView.h

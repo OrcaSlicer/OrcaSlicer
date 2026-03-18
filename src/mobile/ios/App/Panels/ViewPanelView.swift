@@ -13,10 +13,20 @@ struct ViewPanelView: View {
             }
 
             Section("Preview") {
-                Text("Layer slider placeholder")
-                Text("Toolpath preview mode placeholder")
+                summaryRow("Layer range", value: "0 - 186")
+                summaryRow("Coloring", value: "Speed")
+                summaryRow("Travel moves", value: "Visible")
             }
         }
         .navigationTitle("View")
+    }
+
+    private func summaryRow(_ name: String, value: String) -> some View {
+        HStack {
+            Text(name)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+        }
     }
 }

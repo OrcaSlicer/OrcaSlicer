@@ -11,9 +11,10 @@ struct AppSettingsPanelView: View {
                 summaryRow("Status", value: appSession.lastActionStatus.isEmpty ? "Ready" : appSession.lastActionStatus)
             }
 
-            Section("Debug") {
-                Text("Portability diagnostics placeholder")
-                Text("Renderer stats placeholder")
+            Section("Diagnostics") {
+                summaryRow("Render backend", value: "Metal (placeholder)")
+                summaryRow("Portability API", value: "Connected")
+                summaryRow("Debug logs", value: "Scene routing enabled")
             }
         }
         .navigationTitle("Settings")
