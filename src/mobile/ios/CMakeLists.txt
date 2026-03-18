@@ -83,7 +83,7 @@ set(ORCASLICER_IOS_SHELL_SOURCES
     App/AppService/OrcaSlicerAppService.mm
     App/Viewport/OrcaMetalViewportView.h
     App/Viewport/OrcaMetalViewportView.mm
-    ../portability/app/SlicingOrchestrator.cpp
+    ../../portability/app/SlicingOrchestrator.cpp
 )
 
 add_executable(OrcaSlicerIOS
