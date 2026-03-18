@@ -41,11 +41,6 @@ jobs:
         with:
           cmakeVersion: "~3.28.0"
 
-      - name: Install macOS dependencies
-        run: |
-          brew update
-          brew install boost
-
       - name: Configure iOS simulator portability build
         run: |
           cmake -S . -B build-ios-sim -G Ninja \
@@ -53,9 +48,6 @@ jobs:
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphonesimulator \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DBoost_ROOT="$(brew --prefix boost)" \
-            -DBoost_INCLUDE_DIR="$(brew --prefix boost)/include" \
-            -DBoost_LIBRARY_DIR_RELEASE="$(brew --prefix boost)/lib" \
             -DORCASLICER_BUILD_IOS_PORTABILITY=ON \
             -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON
 

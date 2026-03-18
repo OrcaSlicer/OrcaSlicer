@@ -1,22 +1,33 @@
 #ifndef slic3r_ISceneRenderer_hpp_
 #define slic3r_ISceneRenderer_hpp_
 
+#include <array>
 #include <vector>
-
-#include "libslic3r/Point.hpp"
 
 namespace Slic3r::portability::render {
 
+using RenderMatrix4x4 = std::array<double, 16>;
+
+constexpr RenderMatrix4x4 identity_matrix4x4()
+{
+    return {
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    };
+}
+
 struct RenderCameraState
 {
-    Transform3d view_matrix{Transform3d::Identity()};
-    Transform3d projection_matrix{Transform3d::Identity()};
+    RenderMatrix4x4 view_matrix{identity_matrix4x4()};
+    RenderMatrix4x4 projection_matrix{identity_matrix4x4()};
     bool        is_looking_downward{false};
 };
 
 struct RenderModelState
 {
-    Transform3d transform{Transform3d::Identity()};
+    RenderMatrix4x4 transform{identity_matrix4x4()};
     bool        is_visible{false};
 };
 
