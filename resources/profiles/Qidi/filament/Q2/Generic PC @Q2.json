@@ -4,7 +4,7 @@
     "inherits": "fdm_filament_q_common",
     "from": "system",
     "setting_id": "GFSA04",
-    "filament_id": "GFB99",
+    "filament_id": "QD_1_0_23",
     "instantiation": "false",
     "box_temperature_range_high": [
         "65"

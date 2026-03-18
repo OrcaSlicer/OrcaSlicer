@@ -150,7 +150,7 @@ wxString Slic3r::get_stage_string(int stage)
     case 39:
         return _L("Nozzle offset calibration");
     case 40:
-        return _L("high temperature auto bed leveling");
+        return _L("High temperature auto bed leveling");
     case 41:
         return _L("Auto Check: Quick Release Lever");
     case 42:
@@ -361,6 +361,30 @@ std::string MachineObject::get_auto_pa_cali_thumbnail_img_str() const
 std::string MachineObject::get_ftp_folder()
 {
     return DevPrinterConfigUtil::get_ftp_folder(printer_type);
+}
+
+std::string MachineObject::dev_id_from_address(const std::string& host, const std::string& port)
+{
+    std::string result = host;
+    // Normalize host: strip protocol and path
+    if (result.find("http://") == 0)
+        result = result.substr(7);
+    else if (result.find("https://") == 0)
+        result = result.substr(8);
+    auto slash = result.find('/');
+    if (slash != std::string::npos)
+        result = result.substr(0, slash);
+
+    // Build full address (host:port)
+    if (!port.empty()) {
+        // Strip inline port if present (port comes from printhost_port)
+        auto colon = result.find(':');
+        if (colon != std::string::npos)
+            result = result.substr(0, colon);
+
+        result += ":" + port;
+    }
+    return result;
 }
 
 bool MachineObject::HasRecentCloudMessage()

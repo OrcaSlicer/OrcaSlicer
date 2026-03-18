@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "QIDI ASA-Aero @Qidi Q2C 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI ASA-Aero@Q2C-Series",
+	"compatible_printers": ["Qidi Q2C 0.4 nozzle"]
+}

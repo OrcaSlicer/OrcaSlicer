@@ -25,6 +25,18 @@
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
 
+// Verify GLEW and wxWidgets use the same OpenGL backend (EGL vs GLX).
+// A mismatch causes rendering failures: GLEW's function loading must match
+// the context type created by wxWidgets.
+#if defined(__linux__)
+    #if defined(GLEW_EGL) && (!defined(wxUSE_GLCANVAS_EGL) || !wxUSE_GLCANVAS_EGL)
+        #error "OpenGL backend mismatch: GLEW has EGL support enabled but wxWidgets does not. Ensure GLEW_USE_EGL and wxUSE_GLCANVAS_EGL are both ON or both OFF."
+    #endif
+    #if !defined(GLEW_EGL) && defined(wxUSE_GLCANVAS_EGL) && wxUSE_GLCANVAS_EGL
+        #error "OpenGL backend mismatch: wxWidgets has EGL support enabled but GLEW does not. Ensure GLEW_USE_EGL and wxUSE_GLCANVAS_EGL are both ON or both OFF."
+    #endif
+#endif
+
 namespace Slic3r {
 namespace GUI {
 
@@ -253,7 +265,7 @@ bool OpenGLManager::init_gl(bool popup_error)
         glewExperimental = true;
         GLenum result = glewInit();
         if (result != GLEW_OK) {
-            BOOST_LOG_TRIVIAL(error) << "Unable to init glew library";
+            BOOST_LOG_TRIVIAL(error) << "Unable to init glew library, Error: " << glewGetErrorString(result);
             return false;
         }
 	//BOOST_LOG_TRIVIAL(info) << "glewInit Success."<< std::endl;

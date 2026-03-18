@@ -119,6 +119,10 @@
 #include "ModelMall.hpp"
 #include "HintNotification.hpp"
 
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
+
 //#ifdef WIN32
 //#include "BaseException.h"
 //#endif
@@ -519,33 +523,34 @@ bool static check_old_linux_datadir(const wxString& app_name) {
 #endif
 
 struct FileWildcards {
-    std::string_view              title;
+    const char*                 title_id;
     std::vector<std::string_view> file_extensions;
 };
 
 static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
-    /* FT_STEP */    { "STEP files"sv,      { ".stp"sv, ".step"sv } },
-    /* FT_STL */     { "STL files"sv,       { ".stl"sv } },
-    /* FT_OBJ */     { "OBJ files"sv,       { ".obj"sv } },
-    /* FT_AMF */     { "AMF files"sv,       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
-    /* FT_3MF */     { "3MF files"sv,       { ".3mf"sv } },
-    /* FT_GCODE_3MF */ {"Gcode 3MF files"sv, {".gcode.3mf"sv}},
-    /* FT_GCODE */   { "G-code files"sv,    { ".gcode"sv} },
+    /* FT_STEP */    { L("STEP files"),      { ".stp"sv, ".step"sv } },
+    /* FT_STL */     { L("STL files"),       { ".stl"sv } },
+    /* FT_OBJ */     { L("OBJ files"),       { ".obj"sv } },
+    /* FT_AMF */     { L("AMF files"),       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
+    /* FT_3MF */     { L("3MF files"),       { ".3mf"sv } },
+    /* FT_GCODE_3MF */ {L("Gcode 3MF files"), {".gcode.3mf"sv}},
+    /* FT_GCODE */   { L("G-code files"),    { ".gcode"sv} },
 #ifdef __APPLE__
     /* FT_MODEL */
-    {"Supported files"sv, {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
 #else
     /* FT_MODEL */
-    {"Supported files"sv, {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".drc"sv}},
 #endif
-    /* FT_ZIP */     { "ZIP files"sv,       { ".zip"sv } },
-    /* FT_PROJECT */ { "Project files"sv,   { ".3mf"sv} },
-    /* FT_GALLERY */ { "Known files"sv,     { ".stl"sv, ".obj"sv } },
+    /* FT_ZIP */     { L("ZIP files"),       { ".zip"sv } },
+    /* FT_PROJECT */ { L("Project files"),   { ".3mf"sv} },
+    /* FT_GALLERY */ { L("Known files"),     { ".stl"sv, ".obj"sv } },
 
-    /* FT_INI */     { "INI files"sv,       { ".ini"sv } },
-    /* FT_SVG */     { "SVG files"sv,       { ".svg"sv } },
-    /* FT_TEX */     { "Texture"sv,         { ".png"sv, ".svg"sv } },
-    /* FT_SL1 */     { "Masked SLA files"sv, { ".sl1"sv, ".sl1s"sv } },
+    /* FT_INI */     { L("INI files"),       { ".ini"sv } },
+    /* FT_SVG */     { L("SVG files"),       { ".svg"sv } },
+    /* FT_TEX */     { L("Texture"),         { ".png"sv, ".svg"sv } },
+    /* FT_SL1 */     { L("Masked SLA files"), { ".sl1"sv, ".sl1s"sv } },
+    /* FT_DRC */     { L("Draco files"),     { ".drc"sv } },
 };
 
 // This function produces a Win32 file dialog file template mask to be consumed by wxWidgets on all platforms.
@@ -600,7 +605,8 @@ wxString file_wildcards(FileType file_type, const std::string &custom_extension)
             mask += ";*";
             mask += boost::to_upper_copy(std::string(ext));
         }
-    return GUI::format_wxstr("%s (%s)|%s", data.title, title, mask);
+    const wxString translated_title = Slic3r::GUI::I18N::translate(data.title_id);
+    return GUI::format_wxstr("%s (%s)|%s", translated_title, title, mask);
 }
 
 static std::string libslic3r_translate_callback(const char *s) { return wxGetTranslation(wxString(s, wxConvUTF8)).utf8_str().data(); }
@@ -867,7 +873,9 @@ void GUI_App::post_init()
     }
     if (!switch_to_3d) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
+#ifndef __linux__
         mainframe->Freeze();
+#endif
         plater_->canvas3D()->enable_render(false);
         mainframe->select_tab(size_t(MainFrame::tp3DEditor));
         plater_->select_view_3D("3D");
@@ -904,7 +912,9 @@ void GUI_App::post_init()
             mainframe->select_tab(size_t(0));
         if (app_config->get("default_page") == "1")
             mainframe->select_tab(size_t(1));
+#ifndef __linux__
         mainframe->Thaw();
+#endif
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
     }
 
@@ -1176,9 +1186,9 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
         curr_version = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (name == "plugins" && app_config) {
         std::string user_version = app_config->get_network_plugin_version();
-        curr_version = user_version.empty() ? BBL::get_latest_network_version() : user_version;
+        curr_version = user_version.empty() ? get_latest_network_version() : user_version;
     } else {
-        curr_version = BBL::get_latest_network_version();
+        curr_version = get_latest_network_version();
     }
 
     std::string using_version = curr_version.substr(0, 9) + "00";
@@ -1519,7 +1529,7 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
     if (name == "plugins") {
         std::string config_version = app_config->get_network_plugin_version();
         if (config_version.empty()) {
-            config_version = BBL::get_latest_network_version();
+            config_version = get_latest_network_version();
             BOOST_LOG_TRIVIAL(info) << "[install_plugin] config_version was empty, using latest: " << config_version;
             app_config->set_network_plugin_version(config_version);
             GUI::wxGetApp().CallAfter([this] {
@@ -1712,7 +1722,7 @@ bool GUI_App::hot_reload_network_plugin()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": starting hot reload";
 
     wxBusyCursor busy;
-    wxBusyInfo info(_L("Reloading network plugin..."), mainframe);
+    wxBusyInfo info(_L("Reloading network plug-in..."), mainframe);
     wxYield();
     wxWindowDisabler disabler;
 
@@ -1814,7 +1824,7 @@ bool GUI_App::hot_reload_network_plugin()
 
 std::string GUI_App::get_latest_network_version() const
 {
-    return BBL::get_latest_network_version();
+    return Slic3r::get_latest_network_version();
 }
 
 bool GUI_App::has_network_update_available() const
@@ -1855,7 +1865,7 @@ void GUI_App::show_network_plugin_download_dialog(bool is_update)
             app_config->set_network_plugin_version(selected);
             app_config->save();
 
-            DownloadProgressDialog download_dlg(_L("Downloading Network Plugin"));
+            DownloadProgressDialog download_dlg(_L("Downloading Network Plug-in"));
             download_dlg.ShowModal();
         }
         break;
@@ -1919,9 +1929,9 @@ bool GUI_App::check_networking_version()
         studio_ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (app_config) {
         std::string user_version = app_config->get_network_plugin_version();
-        studio_ver = user_version.empty() ? BBL::get_latest_network_version() : user_version;
+        studio_ver = user_version.empty() ? get_latest_network_version() : user_version;
     } else {
-        studio_ver = BBL::get_latest_network_version();
+        studio_ver = get_latest_network_version();
     }
 
     BOOST_LOG_TRIVIAL(info) << "check_networking_version: network_ver=" << network_ver << ", expected=" << studio_ver;
@@ -2197,7 +2207,9 @@ void GUI_App::init_networking_callbacks()
 
                 if (MachineObject* obj = m_device_manager->get_my_machine(dev_id)) {
                     obj->parse_json("lan", msg);
-                    if (this->m_device_manager->get_selected_machine() == obj) {
+                    // Orca: skip it if it doesn't support subscription based filament sync
+                    if (this->m_device_manager->get_selected_machine() == obj &&
+                        m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription) {
                         GUI::wxGetApp().sidebar().load_ams_list(obj);
                     }
                 }
@@ -2233,6 +2245,8 @@ GUI_App::~GUI_App()
     }
 
     StaticBambuLib::release();
+    BBLNetworkPlugin::shutdown();
+
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": exit");
 }
@@ -2583,6 +2597,11 @@ int GUI_App::OnExit()
         m_user_manager = nullptr;
     }
 
+    // Clear the printer agent cache before destroying the NetworkAgent.
+    // This disconnects all cached agents and releases their shared_ptrs,
+    // ensuring clean thread shutdown before the agent is deleted.
+    NetworkAgentFactory::clear_printer_agent_cache();
+
     if (m_agent) {
         // BBS avoid a crash on mac platform
 #ifdef __WINDOWS__
@@ -2681,6 +2700,18 @@ bool GUI_App::on_init_inner()
     // TODO: Find workaround for GTK4
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
     g_object_set (gtk_settings_get_default (), "gtk-menu-images", TRUE, NULL);
+#endif
+
+#if defined(__WXGTK20__) || defined(__WXGTK3__)
+    // Suppress harmless GTK critical warnings from the GTK3/wxWidgets interaction.
+    // These include widget allocation on hidden widgets and events on unrealized widgets.
+    g_log_set_handler("Gtk", G_LOG_LEVEL_CRITICAL,
+        [](const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+            if (message && (strstr(message, "gtk_widget_set_allocation") ||
+                            strstr(message, "WIDGET_REALIZED_FOR_EVENT")))
+                return;
+            g_log_default_handler(log_domain, log_level, message, user_data);
+        }, nullptr);
 #endif
 
 #ifdef WIN32
@@ -3296,126 +3327,127 @@ void GUI_App::copy_network_if_available()
 
 bool GUI_App::on_init_network(bool try_backup)
 {
-    bool create_network_agent = false;
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
     std::string config_version = app_config->get_network_plugin_version();
 
-    if(!should_load_networking_plugin) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Don't load plugin as installed_networking is false";
-    } else {
-    if (config_version.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
-        m_networking_need_update = true;
+    if (should_load_networking_plugin) {
+        if (config_version.empty()) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
+            m_networking_need_update = true;
 
-        if (!m_device_manager)
-            m_device_manager = new Slic3r::DeviceManager();
-        if (!m_user_manager)
-            m_user_manager = new Slic3r::UserManager();
+            if (!m_device_manager)
+                m_device_manager = new Slic3r::DeviceManager();
+            if (!m_user_manager)
+                m_user_manager = new Slic3r::UserManager();
 
-        return false;
-    }
-    int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
-__retry:
-    if (!load_agent_dll) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll ok";
-
-        std::string loaded_version = Slic3r::NetworkAgent::get_version();
-        if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
-            std::string config_version = app_config->get_network_plugin_version();
-            std::string config_base = BBL::extract_base_version(config_version);
-            if (config_base != loaded_version) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded " << loaded_version;
-                app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
-                app_config->save();
-            }
+            return false;
         }
 
-        if (check_networking_version()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
-            auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
-            if (!bambu_source) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
-                m_networking_compatible = false;
+        int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
+    __retry:
+        if (!load_agent_dll) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll ok";
+
+            std::string loaded_version = Slic3r::NetworkAgent::get_version();
+            if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
+                std::string config_version = app_config->get_network_plugin_version();
+                std::string config_base    = extract_base_version(config_version);
+                if (config_base != loaded_version) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
+                                            << loaded_version;
+                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                    app_config->save();
+                }
+            }
+
+            if (check_networking_version()) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
+                auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
+                if (!bambu_source) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
+                    m_networking_compatible = false;
+                    if (should_load_networking_plugin) {
+                        m_networking_need_update = true;
+                    }
+                }
+            } else {
+                if (try_backup) {
+                    int result = Slic3r::NetworkAgent::unload_network_module();
+                    BOOST_LOG_TRIVIAL(info) << "on_init_network, version mismatch, unload_network_module, result = " << result;
+                    load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(true, config_version);
+                    try_backup     = false;
+                    goto __retry;
+                }
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, version dismatch, need upload network module";
                 if (should_load_networking_plugin) {
                     m_networking_need_update = true;
                 }
             }
-            else
-                create_network_agent = true;
         } else {
-            if (try_backup) {
-                int result = Slic3r::NetworkAgent::unload_network_module();
-                BOOST_LOG_TRIVIAL(info) << "on_init_network, version mismatch, unload_network_module, result = " << result;
-                load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(true, config_version);
-                try_backup = false;
-                goto __retry;
-            }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, version dismatch, need upload network module";
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
             if (should_load_networking_plugin) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
                 m_networking_need_update = true;
             }
         }
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create network agent...");
+    //std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
+    std::string data_directory = data_dir();
+
+    // Register all printer agents before creating the network agent
+    Slic3r::NetworkAgentFactory::register_all_agents();
+
+    // m_agent = new Slic3r::NetworkAgent(data_directory);
+    std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
+    m_agent = agent_ptr.release();
+
+    if (!m_device_manager)
+        m_device_manager = new Slic3r::DeviceManager(m_agent);
+    else
+        m_device_manager->set_agent(m_agent);
+
+    if (!m_user_manager)
+        m_user_manager = new Slic3r::UserManager(m_agent);
+    else
+        m_user_manager->set_agent(m_agent);
+
+    if (this->is_enable_multi_machine()) {
+        if (!m_task_manager) {
+            m_task_manager = new Slic3r::TaskManager(m_agent);
+            m_task_manager->start();
+        }
+
+        m_device_manager->EnableMultiMachine(true);
     } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
-        if (should_load_networking_plugin) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
-            m_networking_need_update = true;
-        }
-    }
+        m_device_manager->EnableMultiMachine(false);
     }
 
-    if (create_network_agent) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create network agent...");
-        //std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
-        std::string data_directory = data_dir();
-
-        m_agent = new Slic3r::NetworkAgent(data_directory);
-
-        if (!m_device_manager)
-            m_device_manager = new Slic3r::DeviceManager(m_agent);
-        else
-            m_device_manager->set_agent(m_agent);
-
-        if (!m_user_manager)
-            m_user_manager = new Slic3r::UserManager(m_agent);
-        else
-            m_user_manager->set_agent(m_agent);
-
-        if (this->is_enable_multi_machine()) {
-            if (!m_task_manager) {
-                m_task_manager = new Slic3r::TaskManager(m_agent);
-                m_task_manager->start();
-            }
-
-            m_device_manager->EnableMultiMachine(true);
-        } else {
-            m_device_manager->EnableMultiMachine(false);
-        }
-
-        //BBS set config dir
-        if (m_agent) {
-            m_agent->set_config_dir(data_directory);
-        }
-        //BBS start http log
-        if (m_agent) {
-            m_agent->init_log();
-        }
-
-        //BBS set cert dir
-        if (m_agent)
-            m_agent->set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
-
-        init_http_extra_header();
-
-        if (m_agent) {
-            init_networking_callbacks();
-            std::string country_code = app_config->get_country_code();
-            m_agent->set_country_code(country_code);
-            m_agent->start();
-        }
+    //BBS set config dir
+    if (m_agent) {
+        m_agent->set_config_dir(data_directory);
     }
-    else {
+    //BBS start http log
+    if (m_agent) {
+        m_agent->init_log();
+    }
+
+    //BBS set cert dir
+    if (m_agent)
+        m_agent->set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
+
+    init_http_extra_header();
+
+    if (m_agent) {
+        init_networking_callbacks();
+        std::string country_code = app_config->get_country_code();
+        m_agent->set_country_code(country_code);
+        m_agent->start();
+    }
+
+    if (!should_load_networking_plugin) {
         int result = Slic3r::NetworkAgent::unload_network_module();
         BOOST_LOG_TRIVIAL(info) << "on_init_network, unload_network_module, result = " << result;
 
@@ -3426,7 +3458,7 @@ __retry:
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (create_network_agent && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
@@ -3458,6 +3490,139 @@ unsigned GUI_App::get_colour_approx_luma(const wxColour &colour)
         g * g * .691 +
         b * b * .068
         ));
+}
+
+void GUI_App::switch_printer_agent()
+{
+    if (!m_agent) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no agent exists";
+        return;
+    }
+
+    // Read printer_agent from config, falling back to default
+    std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
+    if (preset_bundle->is_bbl_vendor()) {
+        effective_agent_id = BBL_PRINTER_AGENT_ID;
+    } else {
+        const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
+        if (config.has("printer_agent")) {
+            const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
+            if (!value.empty())
+                effective_agent_id = value;
+        }
+    }
+
+    // Check if agent is registered
+    if (!NetworkAgentFactory::is_printer_agent_registered(effective_agent_id)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": unregistered agent ID '" << effective_agent_id
+                                   << "', keeping current agent";
+        // Keep current agent, don't switch
+        return;
+    }
+
+    std::string current_agent_id;
+    if (m_agent->get_printer_agent())
+        current_agent_id = m_agent->get_printer_agent()->get_agent_info().id;
+
+    if (current_agent_id != effective_agent_id) {
+        std::string log_dir = data_dir();
+        std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent();
+
+        // Create new printer agent via registry
+        std::shared_ptr<IPrinterAgent> new_printer_agent =
+            NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
+
+        if (!new_printer_agent) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id << "', keeping current agent";
+            return;
+        }
+
+        // Swap the agent
+        m_agent->set_printer_agent(new_printer_agent);
+        sidebar().update_all_preset_comboboxes();
+
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
+
+        // Auto-switch MachineObject
+        select_machine(effective_agent_id);
+    }
+}
+
+void GUI_App::select_machine(const std::string& agent_id)
+{
+    // Skip for BBL agent for now - uses its own device discovery/selection
+    // Orca todo: revisit in future if we want to support auto-switching for BBL printers
+    if (agent_id == BBL_PRINTER_AGENT_ID) {
+        return;
+    }
+
+    if (!m_device_manager || !preset_bundle) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
+        return;
+    }
+
+    // Get config source (preset or physical printer)
+    const auto& preset = preset_bundle->printers.get_edited_preset();
+    const DynamicPrintConfig* host_cfg = &preset.config;
+
+    std::string print_host = host_cfg->opt_string("print_host");
+    if (print_host.empty()) {
+        return;
+    }
+    std::string port = host_cfg->opt_string("printhost_port");
+
+    // Generate dev_id from host and port
+    std::string dev_id = MachineObject::dev_id_from_address(print_host, port);
+
+    // Check if already exists by dev_id
+    MachineObject* existing = m_device_manager->get_local_machine(dev_id);
+
+    // If not found by dev_id, search by full_addr
+    if (!existing) {
+        auto local_machines = m_device_manager->get_local_machinelist();
+        for (auto& [id, machine] : local_machines) {
+            if (machine && machine->get_dev_ip() == dev_id) {
+                existing = machine;
+                break;
+            }
+        }
+    }
+
+    // If machine doesn't exist, create it first
+    if (!existing) {
+        BBLocalMachine machine;
+        machine.dev_id = dev_id;
+        // We use dev_id as dev_ip to store the address (host:port)
+        machine.dev_ip = dev_id;
+        machine.dev_name = dev_id;
+        machine.printer_type = preset.config.opt_string("printer_model");
+        auto access_code = preset.config.opt_string("printhost_apikey");
+        // Orca expect non empty access code
+        if (access_code.empty()) {
+            access_code = "88888888";
+        }
+
+        existing = m_device_manager->insert_local_device(
+            machine, "lan", "free", "", access_code);
+
+        if (!existing) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
+            return;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
+    }
+    existing->local_use_ssl = boost::istarts_with(print_host, "https://");
+
+    // Use MonitorPanel::select_machine() to trigger full selection flow
+    // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
+    if (mainframe && mainframe->m_monitor) {
+        mainframe->m_monitor->select_machine(dev_id);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
+    } else {
+        // Fallback if MonitorPanel not available
+        m_device_manager->set_selected_machine(dev_id);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": fallback set_selected_machine dev_id=" << dev_id;
+    }
 }
 
 bool GUI_App::dark_mode()
@@ -4241,7 +4406,7 @@ wxString GUI_App::transition_tridid(int trid_id) const
     if (trid_id == VIRTUAL_TRAY_MAIN_ID || trid_id == VIRTUAL_TRAY_DEPUTY_ID)
     {
         assert(0);
-        return wxString("Ext");
+        return _L("Ext");
     }
 
     wxString maping_dict[] = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
@@ -4283,12 +4448,20 @@ void GUI_App::get_login_info()
             GUI::wxGetApp().run_script(strJS);
         }
         else {
-            m_agent->user_logout();
-            std::string logout_cmd = m_agent->build_logout_cmd();
-            wxString strJS = wxString::Format("window.postMessage(%s)", logout_cmd);
-            GUI::wxGetApp().run_script(strJS);
+            // OrcaNetwork performs async refresh on startup; avoid clearing
+            // persisted tokens when the UI polls before refresh completes.
+            if (m_agent->get_version() != "orca_network") {
+                m_agent->user_logout();
+                std::string logout_cmd = m_agent->build_logout_cmd();
+                wxString    strJS      = wxString::Format("window.postMessage(%s)", logout_cmd);
+                GUI::wxGetApp().run_script(strJS);
+            }
         }
-        mainframe->m_webview->SetLoginPanelVisibility(true);
+        if(app_config->get_bool("installed_networking")) {
+            mainframe->m_webview->SetLoginPanelVisibility(true);
+        } else {
+            mainframe->m_webview->SetLoginPanelVisibility(false);
+        }
     }
 }
 
@@ -5267,7 +5440,7 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             }
 
             version_info.url           = prefer_release ? best_release_url : best_pre_url;
-            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string();
+            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
             version_info.description   = prefer_release ? best_release_content : best_pre_content;
             version_info.force_upgrade = false;
 
@@ -5352,11 +5525,15 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
-            MessageDialog msg_dlg(nullptr,
-                _L("Bambu Lab has implemented a signature verification check in their network plugin that restricts "
-                   "third-party software from communicating with your printer.\n\n"
-                   "As a result, some printing functions are unavailable in OrcaSlicer."),
-                _L("Network Plugin Restriction"), wxAPPLY | wxOK);
+            MessageDialog
+                msg_dlg(nullptr,
+                        _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
+                           "Please go to your printer's settings and:\n"
+                           "1. Turn on LAN mode\n"
+                           "2. Enable Developer mode\n\n"
+                           "Developer mode allows the printer to work exclusively through local network access, "
+                           "enabling full functionality with OrcaSlicer."),
+                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
             m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
             m_show_error_msgdlg = false;
@@ -5635,7 +5812,7 @@ void GUI_App::sync_preset(Preset* preset)
             if (!new_setting_id.empty()) {
                 setting_id = new_setting_id;
                 result = 0;
-                auto update_time_str = values_map[BBL_JSON_KEY_UPDATE_TIME];
+                auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
                 if (!update_time_str.empty())
                     update_time = std::atoll(update_time_str.c_str());
             }
@@ -5664,7 +5841,7 @@ void GUI_App::sync_preset(Preset* preset)
             if (!new_setting_id.empty()) {
                 setting_id = new_setting_id;
                 result = 0;
-                auto update_time_str = values_map[BBL_JSON_KEY_UPDATE_TIME];
+                auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
                 if (!update_time_str.empty())
                     update_time = std::atoll(update_time_str.c_str());
             } else {
@@ -5690,16 +5867,16 @@ void GUI_App::sync_preset(Preset* preset)
                     result = 0;
                 }
                 else {
-                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
-                    if (http_code >= 400) {
-                        result = 0;
-                        updated_info = "hold";
-                        BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
-                    } else {
-                        auto update_time_str = values_map[BBL_JSON_KEY_UPDATE_TIME];
+                result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
+                if (http_code >= 400) {
+                    result = 0;
+                    updated_info = "hold";
+                    BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
+                } else {
+                        auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
                         if (!update_time_str.empty())
                             update_time = std::atoll(update_time_str.c_str());
-                    }
+                }
                 }
 
             }
@@ -5752,6 +5929,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
         return;
 
     if (!m_agent || !m_agent->is_user_login()) return;
+    if(!m_agent->get_cloud_agent())
+        return;
 
     // has already start sync
     if (m_user_sync_token) return;
@@ -5801,7 +5980,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 auto type = info[BBL_JSON_KEY_TYPE];
                 auto name = info[BBL_JSON_KEY_NAME];
                 auto setting_id = info[BBL_JSON_KEY_SETTING_ID];
-                auto update_time_str = info[BBL_JSON_KEY_UPDATE_TIME];
+                auto update_time_str = info[ORCA_JSON_KEY_UPDATE_TIME];
                 long long update_time = 0;
                 if (!update_time_str.empty())
                     update_time = std::atoll(update_time_str.c_str());
@@ -5911,6 +6090,25 @@ void GUI_App::start_http_server()
     if (!m_http_server.is_started())
         m_http_server.start();
 }
+
+void GUI_App::start_http_server(int port)
+{
+    if (port <= 0) {
+        start_http_server();
+        return;
+    }
+
+    if (m_http_server.is_started()) {
+        if (m_http_server.get_port() == static_cast<boost::asio::ip::port_type>(port)) {
+            return;
+        }
+        m_http_server.stop();
+    }
+
+    m_http_server.set_port(static_cast<boost::asio::ip::port_type>(port));
+    m_http_server.start();
+}
+
 void GUI_App::stop_http_server()
 {
     m_http_server.stop();
@@ -6001,7 +6199,7 @@ static const wxLanguageInfo* linux_get_existing_locale_language(const wxLanguage
         if (! it->empty()) {
             const std::string &locale = *it;
             const wxLanguageInfo* lang = wxLocale::FindLanguageInfo(from_u8(locale));
-            if (wxLocale::IsAvailable(lang->Language))
+            if (lang != nullptr && wxLocale::IsAvailable(lang->Language))
                 return lang;
         }
     return language;
@@ -6043,7 +6241,10 @@ bool GUI_App::select_language()
     names.Alloc(language_infos.size());
 
     // Some valid language should be selected since the application start up.
-    const wxLanguage current_language = wxLanguage(m_wxLocale->GetLanguage());
+    const wxString active_language_code = current_language_code();
+    const wxLanguageInfo* active_language_info = wxLocale::FindLanguageInfo(active_language_code);
+    const wxLanguage current_language = active_language_info != nullptr ? wxLanguage(active_language_info->Language) : wxLanguage(m_wxLocale->GetLanguage());
+    const wxString active_lang_prefix = active_language_code.BeforeFirst('_');
     int 		     init_selection   		= -1;
     int 			 init_selection_alt     = -1;
     int 			 init_selection_default = -1;
@@ -6051,9 +6252,9 @@ bool GUI_App::select_language()
         if (wxLanguage(language_infos[i]->Language) == current_language)
         	// The dictionary matches the active language and country.
             init_selection = i;
-        else if ((language_infos[i]->CanonicalName.BeforeFirst('_') == m_wxLocale->GetCanonicalName().BeforeFirst('_')) ||
+        else if ((language_infos[i]->CanonicalName.BeforeFirst('_') == active_lang_prefix) ||
         		 // if the active language is Slovak, mark the Czech language as active.
-        	     (language_infos[i]->CanonicalName.BeforeFirst('_') == "cs" && m_wxLocale->GetCanonicalName().BeforeFirst('_') == "sk"))
+        	     (language_infos[i]->CanonicalName.BeforeFirst('_') == "cs" && active_lang_prefix == "sk"))
         	// The dictionary matches the active language, it does not necessarily match the country.
         	init_selection_alt = i;
         if (language_infos[i]->CanonicalName.BeforeFirst('_') == "en")
@@ -6171,7 +6372,10 @@ bool GUI_App::load_language(wxString language, bool initial)
 			language_info = wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_US);
     }
 
-	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % language_info->CanonicalName.ToUTF8().data();
+    const wxLanguageInfo *translation_language_info = language_info;
+    const wxString requested_language_code = translation_language_info->CanonicalName;
+    const wxLanguageInfo *locale_language_info = translation_language_info;
+    BOOST_LOG_TRIVIAL(trace) << boost::format("Requested translation language %1%") % requested_language_code.ToUTF8().data();
 
     // Select language for locales. This language may be different from the language of the dictionary.
     //if (language_info == m_language_info_best || language_info == m_language_info_system) {
@@ -6184,8 +6388,8 @@ bool GUI_App::load_language(wxString language, bool initial)
     //    language_info = m_language_info_system;
 
     // Alternate language code.
-    wxLanguage language_dict = wxLanguage(language_info->Language);
-    if (language_info->CanonicalName.BeforeFirst('_') == "sk") {
+    wxLanguage language_dict = wxLanguage(translation_language_info->Language);
+    if (translation_language_info->CanonicalName.BeforeFirst('_') == "sk") {
     	// Slovaks understand Czech well. Give them the Czech translation.
     	language_dict = wxLANGUAGE_CZECH;
 		BOOST_LOG_TRIVIAL(info) << "Using Czech dictionaries for Slovak language";
@@ -6194,19 +6398,34 @@ bool GUI_App::load_language(wxString language, bool initial)
 #ifdef __linux__
     // If we can't find this locale , try to use different one for the language
     // instead of just reporting that it is impossible to switch.
-    if (! wxLocale::IsAvailable(language_info->Language) && m_language_info_system) {
-        std::string original_lang = into_u8(language_info->CanonicalName);
-        language_info = linux_get_existing_locale_language(language_info, m_language_info_system);
-        BOOST_LOG_TRIVIAL(info) << boost::format("Can't switch language to %1% (missing locales). Using %2% instead.")
-                                    % original_lang % language_info->CanonicalName.ToUTF8().data();
+    if (!wxLocale::IsAvailable(locale_language_info->Language) && m_language_info_system) {
+        std::string original_lang = into_u8(locale_language_info->CanonicalName);
+        locale_language_info = linux_get_existing_locale_language(locale_language_info, m_language_info_system);
+        if (locale_language_info != nullptr && locale_language_info != translation_language_info) {
+            BOOST_LOG_TRIVIAL(info) << boost::format("Can't use locale %1% directly (missing locales). Using locale %2% instead.")
+                                        % original_lang % locale_language_info->CanonicalName.ToUTF8().data();
+        }
+    }
+
+    if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
+        auto try_locale = [](const wxLanguageInfo* candidate) -> const wxLanguageInfo* {
+            return (candidate && wxLocale::IsAvailable(candidate->Language)) ? candidate : nullptr;
+        };
+        const wxLanguageInfo* fallback_locale_info =
+            try_locale(m_wxLocale ? wxLocale::GetLanguageInfo(wxLanguage(m_wxLocale->GetLanguage())) : nullptr);
+        if (!fallback_locale_info) fallback_locale_info = try_locale(m_language_info_system);
+        if (!fallback_locale_info) fallback_locale_info = try_locale(m_language_info_best);
+        if (!fallback_locale_info) fallback_locale_info = try_locale(wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_US));
+        if (!fallback_locale_info) fallback_locale_info = try_locale(wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_UK));
+        if (fallback_locale_info != nullptr) {
+            BOOST_LOG_TRIVIAL(info) << boost::format("Using fallback locale %1% while keeping translation dictionary %2%.")
+                                        % fallback_locale_info->CanonicalName.ToUTF8().data() % requested_language_code.ToUTF8().data();
+            locale_language_info = fallback_locale_info;
+        }
     }
 #endif
 
-    if (! wxLocale::IsAvailable(language_info->Language)&&initial) {
-        language_info = wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_UK);
-        app_config->set("language", language_info->CanonicalName.ToUTF8().data());
-    }
-    else if (initial) {
+    if (initial) {
         // bbs supported languages
         //TODO: use a global one with Preference
         //wxLanguage supported_languages[]{
@@ -6240,9 +6459,11 @@ bool GUI_App::load_language(wxString language, bool initial)
         //}
     }
 
-    if (! wxLocale::IsAvailable(language_info->Language)) {
+	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_language_info->CanonicalName.ToUTF8().data();
+
+    if (!wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
-    	wxString message = "Switching Orca Slicer to language " + language_info->CanonicalName + " failed.";
+	    wxString message = "Switching Orca Slicer to language " + requested_language_code + " failed.";
 #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux system
         message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
@@ -6260,12 +6481,13 @@ bool GUI_App::load_language(wxString language, bool initial)
     //FIXME wxWidgets cause havoc if the current locale is deleted. We just forget it causing memory leaks for now.
     m_wxLocale.release();
     m_wxLocale = Slic3r::make_unique<wxLocale>();
-    m_wxLocale->Init(language_info->Language);
+    m_wxLocale->Init(locale_language_info->Language);
     // Override language at the active wxTranslations class (which is stored in the active m_wxLocale)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
     m_wxLocale->AddCatalog(SLIC3R_APP_KEY);
-    m_imgui->set_language(into_u8(language_info->CanonicalName));
+    m_active_language_code = requested_language_code;
+    m_imgui->set_language(into_u8(requested_language_code));
 
     //FIXME This is a temporary workaround, the correct solution is to switch to "C" locale during file import / export only.
     //wxSetlocale(LC_NUMERIC, "C");
@@ -6553,49 +6775,57 @@ void  GUI_App::show_ip_address_enter_dialog_handler(wxCommandEvent& evt)
 
 void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
 {
-    bool app_layout_changed = false;
+    bool need_recreate_gui = false;
+    std::string pending_language;
     {
         // the dialog needs to be destroyed before the call to recreate_GUI()
         // or sometimes the application crashes into wxDialogBase() destructor
         // so we put it into an inner scope
         PreferencesDialog dlg(mainframe, open_on_tab, highlight_option);
         dlg.ShowModal();
-        this->plater_->get_current_canvas3D()->force_set_focus();
-        // BBS
-        //app_layout_changed = dlg.settings_layout_changed();
+        need_recreate_gui = dlg.recreate_GUI();
+        pending_language = dlg.pending_language();
+        if (!need_recreate_gui) {
+            this->plater_->get_current_canvas3D()->force_set_focus();
 #if ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-        if (dlg.seq_top_layer_only_changed() || dlg.seq_seq_top_gcode_indices_changed())
+            if (dlg.seq_top_layer_only_changed() || dlg.seq_seq_top_gcode_indices_changed())
 #else
-        if (dlg.seq_top_layer_only_changed())
+            if (dlg.seq_top_layer_only_changed())
 #endif // ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-            this->plater_->reload_print();
+                this->plater_->reload_print();
 #ifdef _WIN32
-        if (is_editor()) {
-            if (app_config->get("associate_3mf") == "true")
-                associate_files(L"3mf");
-            if (app_config->get("associate_stl") == "true")
-                associate_files(L"stl");
-            if (app_config->get("associate_step") == "true") {
-                associate_files(L"step");
-                associate_files(L"stp");
+            if (is_editor()) {
+                if (app_config->get("associate_3mf") == "true")
+                    associate_files(L"3mf");
+                if (app_config->get("associate_stl") == "true")
+                    associate_files(L"stl");
+                if (app_config->get("associate_step") == "true") {
+                    associate_files(L"step");
+                    associate_files(L"stp");
+                }
+                associate_url(L"orcaslicer");
             }
-            associate_url(L"orcaslicer");
-        }
-        else {
-            if (app_config->get("associate_gcode") == "true")
-                associate_files(L"gcode");
-        }
+            else {
+                if (app_config->get("associate_gcode") == "true")
+                    associate_files(L"gcode");
+            }
 #endif // _WIN32
+        }
     }
 
-    // BBS
-    /*
-    if (app_layout_changed) {
-        // hide full main_sizer for mainFrame
-        mainframe->GetSizer()->Show(false);
-        mainframe->update_layout();
-        mainframe->select_tab(size_t(0));
-    }*/
+    if (!pending_language.empty()) {
+        const std::string previous_language = app_config->get("language");
+        app_config->set("language", pending_language);
+        if (!load_language(wxString::FromUTF8(pending_language), false)) {
+            app_config->set("language", previous_language);
+            if (this->plater_)
+                this->plater_->get_current_canvas3D()->force_set_focus();
+            return;
+        }
+    }
+
+    if (need_recreate_gui)
+        recreate_GUI(_L("Changing application language"));
 }
 
 bool GUI_App::has_unsaved_preset_changes() const

@@ -1,0 +1,6 @@
+{
+    "inherits": "0.40mm Standard @Elegoo CC2 0.8 nozzle",
+    "layer_height": "0.48",
+    "name": "0.48mm Draft @Elegoo CC2 0.8 nozzle",
+    "instantiation": "true"
+}

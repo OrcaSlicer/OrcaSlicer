@@ -1,0 +1,7 @@
+{
+    "elefant_foot_compensation": "0.05",
+    "inherits": "0.10mm Standard @Elegoo CC2 0.2 nozzle",
+    "layer_height": "0.08",
+    "name": "0.08mm Optimal @Elegoo CC2 0.2 nozzle",
+    "instantiation": "true"
+}

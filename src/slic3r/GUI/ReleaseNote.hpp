@@ -107,6 +107,7 @@ public:
     Button*           m_button_download;
     Button*           m_button_cancel;
     std::string       url_line;
+    std::string       html_source;
 };
 
 class SecondaryCheckDialog : public DPIFrame
