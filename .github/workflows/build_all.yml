@@ -55,7 +55,7 @@ jobs:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+      os: ubuntu-24.04
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   build_windows:
@@ -63,7 +63,7 @@ jobs:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      os: windows-latest
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
@@ -95,7 +95,7 @@ jobs:
     secrets: inherit
   unit_tests:
     name: Unit Tests
-    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     steps:
@@ -107,7 +107,6 @@ jobs:
             scripts
             tests
       - name: Apt-Install Dependencies
-        if: ${{ !vars.SELF_HOSTED }}
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
         uses: actions/download-artifact@v7
@@ -149,19 +148,17 @@ jobs:
         variant:
           - arch: x86_64
             runner: ubuntu-24.04
-            self-hosted-runner: orca-lnx-server
           - arch: aarch64
             runner: ubuntu-24.04-arm
-    # Don't run scheduled builds on forks; skip aarch64 on self-hosted (no ARM runner)
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') && (!vars.SELF_HOSTED || matrix.variant.self-hosted-runner) }}
-    runs-on: ${{ vars.SELF_HOSTED && matrix.variant.self-hosted-runner || matrix.variant.runner }}
+    # Don't run scheduled builds on forks:
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    runs-on: ${{ matrix.variant.runner }}
     env:
       date:
       ver:
       ver_pure:
     steps:
     - name: "Remove unneeded stuff to free disk space"
-      if: ${{ !vars.SELF_HOSTED }}
       run:
         rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
     - uses: actions/checkout@v6
@@ -218,7 +215,7 @@ jobs:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
     - name: Deploy Flatpak to nightly release
-      if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && !vars.SELF_HOSTED
+      if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main'
       uses: WebFreak001/deploy-nightly@v3.2.0
       with:
         upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
