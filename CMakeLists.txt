@@ -267,7 +267,7 @@ endif ()
 
 if (NOT MSVC)
     # ARMs (Raspberry PI) use an unsigned char by default. Let's make it consistent for OrcaSlicer on all platforms.
-    add_compile_options(-fsigned-char)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-fsigned-char>)
 endif ()
 
 if ("${DEP_BUILD_DIR}" STREQUAL "")

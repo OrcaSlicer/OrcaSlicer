@@ -96,9 +96,10 @@ jobs:
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphonesimulator \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 \
             -DORCASLICER_BUILD_IOS_PORTABILITY=ON \
-            -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON
+            -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON \
+            -DORCASLICER_BUILD_IOS_UI_SHELL=ON
 
       - name: Build OrcaSlicerIOS app target
         run: |

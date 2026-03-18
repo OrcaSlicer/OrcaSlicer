@@ -101,7 +101,7 @@ Configure-time output reports whether iOS toolchain detection is active and whet
 
 ## iOS simulator smoke CI baseline
 
-The `.github/workflows/ios_simulator_smoke.yml` pipeline intentionally uses the same simulator smoke target and configure flags as the local smoke path (`orcaslicer_ios_smoke`, iOS simulator sysroot, `arm64`, deployment target `15.0`, and `ORCASLICER_BUILD_IOS_PORTABILITY/SMOKE_TARGET=ON`).
+The `.github/workflows/ios_simulator_smoke.yml` pipeline intentionally uses the same simulator smoke target and configure flags as the local smoke path (`orcaslicer_ios_smoke`, iOS simulator sysroot, `arm64`, deployment target `15.0`, `ORCASLICER_BUILD_IOS_PORTABILITY/SMOKE_TARGET=ON`, and `ORCASLICER_BUILD_IOS_UI_SHELL=OFF`).
 
 Post-success cleanup applied:
 - Pin CMake setup action to `lukka/get-cmake@v4.2.3` (instead of floating `@latest`) to keep the workflow stable during GitHub Actions runtime transitions.
@@ -110,6 +110,6 @@ Post-success cleanup applied:
 
 ## iOS simulator UI screenshot CI
 
-The repository now includes `.github/workflows/ios_ui_screenshot.yml`, a dedicated follow-on workflow to `ios_simulator_smoke`. It configures and builds the native `OrcaSlicerIOS` app target for the iOS simulator with the Xcode generator (no code signing), boots a simulator device, installs and launches the app by bundle identifier, captures a portrait screenshot via `simctl io screenshot`, and uploads the result as the `ios-ui-screenshot` artifact.
+The repository now includes `.github/workflows/ios_ui_screenshot.yml`, a dedicated follow-on workflow to `ios_simulator_smoke`. It configures and builds the native `OrcaSlicerIOS` app target for the iOS simulator with the Xcode generator (no code signing), uses iOS deployment target `16.0` to match the current SwiftUI shell APIs, boots a simulator device, installs and launches the app by bundle identifier, captures a portrait screenshot via `simctl io screenshot`, and uploads the result as the `ios-ui-screenshot` artifact.
 
 Validation scope: this confirms that the native SwiftUI shell app can be built, installed, launched, and rendered on a simulator in CI. It does **not** validate end-to-end slicing workflows, deep UI interaction automation, or renderer feature parity beyond launch-time viewport shell bring-up.
