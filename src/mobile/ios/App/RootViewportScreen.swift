@@ -43,6 +43,11 @@ struct RootViewportScreen: View {
                 .padding(.top, 12)
                 .padding(.horizontal, 20)
 
+                ProjectStatusChip(
+                    projectName: appSession.activeProjectName,
+                    printerName: machineProfileState.printerName
+                )
+                .padding(.top, 56)
                 Spacer()
             }
             .safeAreaPadding(.top, 12)
@@ -51,7 +56,8 @@ struct RootViewportScreen: View {
             FloatingControlOverlay(
                 appSession: appSession,
                 panelRouter: panelRouter,
-                onSliceTapped: startSlice
+                onSliceTapped: startSlice,
+                onCancelSliceTapped: cancelSlice
             )
         }
         .sheet(item: $panelRouter.presentedPanel) { panel in
@@ -60,6 +66,7 @@ struct RootViewportScreen: View {
                 .presentationDragIndicator(.visible)
         }
         .onAppear(perform: applyScreenshotRouteIfNeeded)
+        .onChange(of: appSession.activeProjectName, perform: applyProjectPreviewState)
     }
 
     @ViewBuilder
@@ -83,8 +90,68 @@ struct RootViewportScreen: View {
     }
 
     private func startSlice() {
-        appSession.lastActionStatus = "Slice settings ready"
-        panelRouter.present(.sliceSettings)
+        guard !appSession.isSliceRunning else {
+            appSession.lastActionStatus = "Slicing is already running"
+            return
+        }
+
+        let modelName = appSession.recentProjectNames.first ?? "Current project"
+        appSession.beginSlicing(message: "Starting slice for \(modelName)")
+
+        let started = OrcaSlicerAppService.sharedService().startSlice(
+            withModelName: modelName,
+            qualityPreset: sliceSettingsState.qualityPreset,
+            infillPercent: sliceSettingsState.infillPercent,
+            supportsEnabled: sliceSettingsState.supportsEnabled,
+            progressHandler: { progressPercent, message in
+                appSession.updateSlicingProgress(percent: progressPercent, message: message)
+            },
+            completionHandler: { output, failure, cancelled in
+                if cancelled {
+                    appSession.cancelSlicing()
+                    return
+                }
+
+                if let failure {
+                    let actionable = "Slice failed: \(failure.message). Check diagnostics for details."
+                    appSession.failSlicing(message: actionable, diagnosticsLog: failure.diagnosticLog)
+                    panelRouter.present(.sliceSettings)
+                    return
+                }
+
+                guard let output else {
+                    let fallback = "Slice failed: no output was produced."
+                    appSession.failSlicing(message: fallback, diagnosticsLog: "slice.failure: missing output and failure payload")
+                    panelRouter.present(.sliceSettings)
+                    return
+                }
+
+                appSession.completeSlicingSuccessfully(summary: "Slice complete for \(modelName)", diagnosticsLog: output.diagnosticLog)
+                viewportSession.applySliceOutput(
+                    modelName: modelName,
+                    statusText: output.statusText,
+                    detailText: output.detailText,
+                    layerCount: output.layerCount,
+                    toolpathCount: output.toolpathCount,
+                    estimatedPrintTimeSeconds: output.estimatedPrintTimeSeconds
+                )
+            }
+        )
+
+        if !started {
+            appSession.failSlicing(
+                message: "Slice request ignored because another slice is in progress.",
+                diagnosticsLog: "slice.failure: startSlice returned false"
+            )
+        }
+    }
+
+    private func cancelSlice() {
+        guard appSession.isSliceRunning else {
+            return
+        }
+
+        OrcaSlicerAppService.sharedService().cancelSlice()
     }
 
     private func applyScreenshotRouteIfNeeded() {
@@ -106,6 +173,15 @@ struct RootViewportScreen: View {
         }
     }
 
+    private func applyProjectPreviewState(_ projectName: String) {
+        guard projectName != "No model loaded" else {
+            viewportSession.resetPreviewMetadata()
+            return
+        }
+
+        viewportSession.configurePreviewLoaded(projectName: projectName)
+    }
+
     private func applyScreenshotSceneState() {
         switch screenshotLaunch.requestedScene {
         case .root:
@@ -113,10 +189,12 @@ struct RootViewportScreen: View {
             appSession.lastActionStatus = "Screenshot scene: root"
         case .benchyPreview:
             viewportSession.configureBenchyPreviewLoaded()
+            appSession.activeProjectName = "3DBenchy.3mf"
             appSession.recentProjectNames = ["3DBenchy.3mf", "PhoneStand.stl"]
             appSession.lastActionStatus = "Loaded 3DBenchy.3mf into preview"
         case .benchySliced:
             viewportSession.configureBenchyPreviewSliced()
+            appSession.activeProjectName = "3DBenchy.3mf"
             appSession.recentProjectNames = ["3DBenchy.3mf", "PhoneStand.stl"]
             appSession.lastActionStatus = "Slice complete for 3DBenchy.3mf"
         case .project, .tools, .sliceSettings, .printer, .view, .appSettings:
@@ -152,7 +230,7 @@ private struct ViewportPlaceholderOverlay: View {
                         statusText: viewportSession.previewStatusText,
                         detailText: viewportSession.previewDetailText
                     )
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 120)
@@ -236,11 +314,12 @@ private struct ProjectStatusChip: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.black.opacity(0.55))
+        .foregroundStyle(.white)
+        .background(Color.black.opacity(0.28))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
