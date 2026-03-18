@@ -2,6 +2,8 @@
 
 #import <QuartzCore/CAMetalLayer.h>
 
+#include <algorithm>
+#include <array>
 #include <memory>
 
 #include "portability/render/ISceneRenderer.hpp"
@@ -10,6 +12,8 @@
 @interface OrcaMetalViewportView () {
     std::unique_ptr<Slic3r::portability::render::ios::IOSMetalRenderBackend> _backend;
     CADisplayLink *_displayLink;
+    Slic3r::portability::render::RenderSceneState _sceneState;
+    BOOL _sceneStateDirty;
 }
 @end
 
@@ -28,6 +32,9 @@
 
     self.opaque = YES;
     self.contentScaleFactor = UIScreen.mainScreen.scale;
+
+    _sceneState = Slic3r::portability::render::RenderSceneState{};
+    _sceneStateDirty = YES;
 
     _backend = std::make_unique<Slic3r::portability::render::ios::IOSMetalRenderBackend>();
     auto *layer = (CAMetalLayer *) self.layer;
@@ -60,20 +67,34 @@
         _backend->resize((int) CGRectGetWidth(self.bounds), (int) CGRectGetHeight(self.bounds));
 }
 
-- (void)setLookingDownward:(BOOL)lookingDownward
+- (void)setCameraWithViewMatrix:(const double *)viewMatrix projectionMatrix:(const double *)projectionMatrix isLookingDownward:(BOOL)lookingDownward
 {
-    if (_backend == nullptr)
+    if (_backend == nullptr || viewMatrix == nullptr || projectionMatrix == nullptr)
         return;
 
-    Slic3r::portability::render::RenderSceneState state;
-    state.camera.is_looking_downward = lookingDownward;
-    _backend->submit_scene_state(state);
+    std::copy_n(viewMatrix, _sceneState.camera.view_matrix.size(), _sceneState.camera.view_matrix.begin());
+    std::copy_n(projectionMatrix, _sceneState.camera.projection_matrix.size(), _sceneState.camera.projection_matrix.begin());
+    _sceneState.camera.is_looking_downward = lookingDownward;
+    _sceneStateDirty = YES;
+}
+
+- (void)setLookingDownward:(BOOL)lookingDownward
+{
+    _sceneState.camera.is_looking_downward = lookingDownward;
+    _sceneStateDirty = YES;
 }
 
 - (void)renderFrame
 {
-    if (_backend != nullptr)
-        _backend->render_frame();
+    if (_backend == nullptr)
+        return;
+
+    if (_sceneStateDirty) {
+        _backend->submit_scene_state(_sceneState);
+        _sceneStateDirty = NO;
+    }
+
+    _backend->render_frame();
 }
 
 @end
