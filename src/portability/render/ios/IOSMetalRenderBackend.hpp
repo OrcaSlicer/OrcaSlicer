@@ -25,7 +25,7 @@ public:
     void             resize(int width, int height) override;
     void             render_frame() override;
     // Stores the latest portable scene state used by desktop and mobile renderers.
-    void submit_scene_state(const SceneState& scene_state);
+    void submit_scene_state(const RenderSceneState& scene_state);
 
     void             shutdown() override;
 
@@ -48,7 +48,7 @@ private:
     int                                m_height{0};
     bool                               m_initialized{false};
     std::unique_ptr<MetalBackendState> m_state;
-    SceneState                 m_scene_state;
+    RenderSceneState           m_scene_state;
 };
 
 } // namespace Slic3r::portability::render::ios

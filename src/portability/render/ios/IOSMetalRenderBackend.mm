@@ -93,7 +93,7 @@ void IOSMetalRenderBackend::configure_layer_for_current_state(CAMetalLayer *laye
     layer.drawableSize = CGSizeMake(std::max(m_width, 1), std::max(m_height, 1));
 }
 
-void IOSMetalRenderBackend::submit_scene_state(const SceneState& scene_state)
+void IOSMetalRenderBackend::submit_scene_state(const RenderSceneState& scene_state)
 {
     m_scene_state = scene_state;
 }

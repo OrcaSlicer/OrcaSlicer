@@ -18,7 +18,7 @@ void DesktopOpenGLSceneRenderer::set_viewport(unsigned int x, unsigned int y, un
         m_set_viewport_fn(x, y, width, height);
 }
 
-void DesktopOpenGLSceneRenderer::submit_scene_state(const SceneState& scene_state)
+void DesktopOpenGLSceneRenderer::submit_scene_state(const RenderSceneState& scene_state)
 {
     m_scene_state = scene_state;
     if (m_submit_scene_state_fn)
