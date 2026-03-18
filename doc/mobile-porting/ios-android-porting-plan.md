@@ -68,7 +68,10 @@ Use a layered split:
 ### Phase 3: iOS bootstrap
 - Build `orcaslicer_core + orcaslicer_app` for iOS toolchain.
 - Implement iOS adapters (storage, networking callbacks, task dispatch, secure keychain, file access).
-- Add initial iOS renderer that can display model preview and plate state.
+- Only after portability + app-service gates are complete, add a minimal native iOS shell that does:
+  - app launch bring-up
+  - one Metal-backed view wired through `IOSMetalRenderBackend`
+- Reuse existing `IOSPlatformServices` and `IOSMetalRenderBackend` first; defer broader UI/product flows until after this launch + Metal-view milestone.
 
 ### Phase 4: Android bootstrap (same interfaces)
 - Reuse shared C++ libs and platform/render contracts.
