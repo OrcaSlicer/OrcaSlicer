@@ -105,12 +105,23 @@ jobs:
         run: |
           cmake --build build-ios-ui --config Release --target OrcaSlicerIOS --parallel
 
-      - name: Boot simulator, install app, launch, and capture screenshot
+      - name: Boot simulator, install app, and capture screenshot matrix
         env:
           APP_BUNDLE_ID: com.softfever3d.orcaslicer.ios
+          SCREENSHOT_SETTLE_MS: "900"
         shell: bash
         run: |
           set -euo pipefail
+
+          SCENES=(
+            root
+            project
+            tools
+            slice-settings
+            printer
+            view
+            app-settings
+          )
 
           APP_BUNDLE="$(find build-ios-ui -type d -name OrcaSlicerIOS.app | head -n 1)"
           if [[ -z "${APP_BUNDLE}" || ! -d "${APP_BUNDLE}" ]]; then
@@ -135,20 +146,41 @@ jobs:
 
           xcrun simctl boot "${DEVICE_UDID}"
           xcrun simctl bootstatus "${DEVICE_UDID}" -b
+          xcrun simctl ui "${DEVICE_UDID}" appearance dark
 
           xcrun simctl install "${DEVICE_UDID}" "${APP_BUNDLE}"
 
-          LAUNCH_OUTPUT="$(xcrun simctl launch "${DEVICE_UDID}" "${APP_BUNDLE_ID}" 2>&1)" || {
-            echo "Failed to launch ${APP_BUNDLE_ID}"
-            echo "${LAUNCH_OUTPUT}"
-            exit 1
-          }
-          echo "${LAUNCH_OUTPUT}"
-
-          sleep 10
-
           mkdir -p artifacts/ios-screenshots
-          xcrun simctl io "${DEVICE_UDID}" screenshot "artifacts/ios-screenshots/orcaslicer-ios-root-portrait.png"
+          manifest="artifacts/ios-screenshots/manifest.txt"
+          : > "${manifest}"
+
+          for scene in "${SCENES[@]}"; do
+            output="artifacts/ios-screenshots/${scene}.png"
+            echo "[ios_ui_screenshot] launching scene=${scene} output=${output}"
+
+            xcrun simctl terminate "${DEVICE_UDID}" "${APP_BUNDLE_ID}" >/dev/null 2>&1 || true
+
+            LAUNCH_OUTPUT="$(SIMCTL_CHILD_ORCASLICER_IOS_SCREENSHOT_MODE=1 \
+              SIMCTL_CHILD_ORCASLICER_IOS_SCREENSHOT_SCENE="${scene}" \
+              SIMCTL_CHILD_ORCASLICER_IOS_SCREENSHOT_SETTLE_MS="${SCREENSHOT_SETTLE_MS}" \
+              xcrun simctl launch --terminate-running-process "${DEVICE_UDID}" "${APP_BUNDLE_ID}" 2>&1)" || {
+              echo "Failed to launch ${APP_BUNDLE_ID} for scene=${scene}"
+              echo "${LAUNCH_OUTPUT}"
+              exit 1
+            }
+
+            echo "${LAUNCH_OUTPUT}"
+            sleep 2
+
+            xcrun simctl io "${DEVICE_UDID}" screenshot "${output}"
+
+            if [[ ! -s "${output}" ]]; then
+              echo "Screenshot missing or empty for scene=${scene}: ${output}"
+              exit 1
+            fi
+
+            echo "${scene} ${output}" | tee -a "${manifest}"
+          done
 
       - name: Upload iOS UI screenshot artifact
         uses: actions/upload-artifact@v4

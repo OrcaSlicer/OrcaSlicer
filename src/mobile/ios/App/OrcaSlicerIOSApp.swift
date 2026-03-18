@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct OrcaSlicerIOSApp: App {
@@ -9,6 +10,16 @@ struct OrcaSlicerIOSApp: App {
     @StateObject private var sliceSettingsState = SliceSettingsState()
     @StateObject private var machineProfileState = MachineProfileState()
 
+    private let screenshotLaunch: ScreenshotLaunchConfiguration
+
+    init() {
+        let launchConfig = ScreenshotLaunchConfiguration.fromEnvironment()
+        screenshotLaunch = launchConfig
+        if launchConfig.enabled {
+            UIView.setAnimationsEnabled(false)
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             RootViewportScreen(
@@ -17,7 +28,8 @@ struct OrcaSlicerIOSApp: App {
                 panelRouter: panelRouter,
                 toolState: toolState,
                 sliceSettingsState: sliceSettingsState,
-                machineProfileState: machineProfileState
+                machineProfileState: machineProfileState,
+                screenshotLaunch: screenshotLaunch
             )
             .preferredColorScheme(.dark)
             .onOpenURL { sharedFileURL in

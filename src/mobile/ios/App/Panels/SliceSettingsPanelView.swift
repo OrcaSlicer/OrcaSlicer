@@ -22,7 +22,8 @@ struct SliceSettingsPanelView: View {
             Section("Material / Profile") {
                 summaryRow("Material", value: sliceSettingsState.materialName)
                 summaryRow("Profile", value: sliceSettingsState.profileName)
-                summaryRow("Cooling", value: "Placeholder")
+                summaryRow("Nozzle temp", value: "220°C")
+                summaryRow("Bed temp", value: "60°C")
             }
         }
         .navigationTitle("Slice Settings")

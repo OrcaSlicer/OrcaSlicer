@@ -17,10 +17,10 @@ struct ToolsPanelView: View {
                 Toggle("Uniform scale lock", isOn: $toolState.uniformScale)
             }
 
-            Section("Arrange") {
+            Section("Quick actions") {
                 panelText("Auto-arrange models")
-                panelText("Orient for strongest faces")
-                panelText("Support painting placeholder")
+                panelText("Lay flat on selected face")
+                panelText("Generate painted supports")
             }
         }
         .navigationTitle("Tools")
