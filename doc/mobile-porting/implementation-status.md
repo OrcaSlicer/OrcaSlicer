@@ -10,6 +10,8 @@ The repository now has a portability scaffold under `src/portability/` and an in
 | Desktop platform adapter | `src/portability/platform/DesktopPlatformServices.*` + `DesktopInMemoryCredentialStore.*` | Keep as desktop adapter implementation | In progress |
 | iOS platform adapter | `src/portability/platform/ios/IOSPlatformServices.mm` now bridges Foundation + GCD for paths/thread dispatch and uses `IOSKeychainCredentialStore` for credentials | Harden Apple API integration edge-cases and extend lifecycle coverage for app/background transitions | In progress |
 | Renderer contract | `src/portability/render/IRenderBackend.hpp` | Keep backend-neutral API in `src/portability/render/` | In progress |
+| iOS renderer adapter | `src/portability/render/ios/IOSMetalRenderBackend.*` | Wire to Metal render pipeline and scene commands | Scaffolded |
+| Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | Canonical portability graph (`orcaslicer_portability_api`, `orcaslicer_platform_desktop`, `orcaslicer_render_null`, plus iOS targets on iOS toolchains) | Scaffolded |
 | iOS renderer adapter | `src/portability/render/ios/IOSMetalRenderBackend.mm` initializes Metal device/queue/layer, resizes drawable, and submits a basic clear render pass | Integrate scene command submission/resources and harden frame/layer lifecycle | In progress |
 | Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`) built only for iOS toolchains | Scaffolded |
 
@@ -32,7 +34,15 @@ Some desktop integration still exists in `src/slic3r/Utils` for launch/process a
 - Android build composition and packaging automation.
 
 ## iOS smoke target invocation
-When configuring with an iOS toolchain (for example `-DCMAKE_SYSTEM_NAME=iOS` or an iPhone OS/simulator sysroot), CMake now adds `orcaslicer_ios_smoke`, a minimal smoke target in `src/portability/` that links:
+Canonical portability targets exported from `src/CMakeLists.txt` are:
+
+- `orcaslicer_portability_api`
+- `orcaslicer_platform_desktop`
+- `orcaslicer_render_null`
+
+`orcaslicer_portability` remains as an interface compatibility meta-target that only forwards to the canonical targets above (no duplicated compilation units).
+
+When configuring with an iOS toolchain (for example `-DCMAKE_SYSTEM_NAME=iOS` or an iPhone OS/simulator sysroot), CMake adds `orcaslicer_ios_smoke`, a minimal smoke target in `src/portability/` that links:
 
 - `libslic3r`
 - `orcaslicer_portability_api`
