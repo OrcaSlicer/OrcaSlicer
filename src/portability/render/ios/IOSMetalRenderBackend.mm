@@ -93,6 +93,11 @@ void IOSMetalRenderBackend::configure_layer_for_current_state(CAMetalLayer *laye
     layer.drawableSize = CGSizeMake(std::max(m_width, 1), std::max(m_height, 1));
 }
 
+void IOSMetalRenderBackend::submit_scene_state(const SceneState& scene_state)
+{
+    m_scene_state = scene_state;
+}
+
 void IOSMetalRenderBackend::resize(int width, int height)
 {
     m_width = std::max(width, 0);
@@ -118,7 +123,10 @@ void IOSMetalRenderBackend::render_frame()
         render_pass_descriptor.colorAttachments[0].texture = drawable.texture;
         render_pass_descriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
         render_pass_descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-        render_pass_descriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.08, 0.08, 0.12, 1.0);
+        const bool looking_downward = m_scene_state.camera.is_looking_downward;
+        render_pass_descriptor.colorAttachments[0].clearColor = looking_downward ?
+            MTLClearColorMake(0.08, 0.08, 0.12, 1.0) :
+            MTLClearColorMake(0.10, 0.08, 0.14, 1.0);
 
         id<MTLCommandBuffer> command_buffer = [m_state->command_queue commandBuffer];
         if (command_buffer == nil)

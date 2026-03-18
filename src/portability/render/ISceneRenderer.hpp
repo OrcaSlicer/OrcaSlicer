@@ -5,12 +5,14 @@
 
 #include "libslic3r/Point.hpp"
 
-namespace Slic3r {
-namespace GUI {
-class Camera;
-}
+namespace Slic3r::portability::render {
 
-namespace portability::render {
+struct SceneCameraState
+{
+    Transform3d view_matrix{Transform3d::Identity()};
+    Transform3d projection_matrix{Transform3d::Identity()};
+    bool        is_looking_downward{false};
+};
 
 struct SceneModelState
 {
@@ -20,7 +22,7 @@ struct SceneModelState
 
 struct SceneState
 {
-    const GUI::Camera*           camera{nullptr};
+    SceneCameraState             camera;
     std::vector<SceneModelState> model_states;
     bool                         render_opaque{true};
     bool                         render_transparent{false};
@@ -37,7 +39,6 @@ public:
     virtual void render_frame()                                                                        = 0;
 };
 
-} // namespace portability::render
-} // namespace Slic3r
+} // namespace Slic3r::portability::render
 
 #endif // slic3r_ISceneRenderer_hpp_

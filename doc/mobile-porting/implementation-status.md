@@ -1,7 +1,7 @@
 # Mobile Porting Implementation Status
 
 ## Status snapshot
-The repository now has a portability scaffold under `src/portability/` and an initial iOS module entry-point. Current work is intentionally iOS-first with interfaces shared for Android follow-up.
+The repository now has a portability scaffold under `src/portability/`, desktop scene-state adaptation extracted from `GLCanvas3D`, and an initial iOS module entry-point consuming the same portable scene contract. Current work is intentionally iOS-first with interfaces shared for Android follow-up.
 
 ## Current state vs target state
 | Area | Current state | Target state | Migration status |
@@ -9,8 +9,8 @@ The repository now has a portability scaffold under `src/portability/` and an in
 | Platform service contract | `src/portability/platform/IPlatformServices.hpp` and `ICredentialStore.hpp` | Keep contracts in `src/portability/platform/` | In progress |
 | Desktop platform adapter | `src/portability/platform/DesktopPlatformServices.*` + `DesktopInMemoryCredentialStore.*` | Keep as desktop adapter implementation | In progress |
 | iOS platform adapter | `src/portability/platform/ios/IOSPlatformServices.mm` now bridges Foundation + GCD for paths/thread dispatch and uses `IOSKeychainCredentialStore` for credentials | Harden Apple API integration edge-cases and extend lifecycle coverage for app/background transitions | In progress |
-| Renderer contract | `src/portability/render/IRenderBackend.hpp` | Keep backend-neutral API in `src/portability/render/` | In progress |
-| iOS renderer adapter | `src/portability/render/ios/IOSMetalRenderBackend.*` | Wire to Metal render pipeline and scene commands | Scaffolded |
+| Renderer contract | `src/portability/render/IRenderBackend.hpp` + `ISceneRenderer.hpp` (`SceneState` now stores portable camera matrices instead of `GUI::Camera`) | Keep backend-neutral API in `src/portability/render/` with no GUI namespace dependencies | In progress |
+| Desktop scene-state adapter | `src/slic3r/GUI/DesktopSceneStateAdapter.*` now builds `portability::render::SceneState` from desktop `Camera` + `GLVolumeCollection` | Keep desktop-to-portability translation outside `GLCanvas3D` render loop plumbing | In progress |
 | Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | Canonical portability graph (`orcaslicer_portability_api`, `orcaslicer_platform_desktop`, `orcaslicer_render_null`, plus iOS targets on iOS toolchains) | Scaffolded |
 | iOS renderer adapter | `src/portability/render/ios/IOSMetalRenderBackend.mm` initializes Metal device/queue/layer, supports rebinding externally owned `CAMetalLayer` instances after initialization, resizes drawable, and submits a basic clear render pass | Integrate scene command submission/resources and harden frame/layer lifecycle | In progress |
 | Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`) built only for iOS toolchains | Scaffolded |
@@ -18,14 +18,14 @@ The repository now has a portability scaffold under `src/portability/` and an in
 ## What landed in this phase
 - Normalized portability interfaces and namespaces under `Slic3r::portability::*` with renderer APIs and scene integration standardized on `Slic3r::portability::render`.
 - Added iOS platform services module implementing `IPlatformServices` with Foundation/GCD bridging and a Keychain-backed `ICredentialStore` (`IOSKeychainCredentialStore`).
-- Added iOS Metal renderer module implementing `IRenderBackend` with device/queue/layer setup, post-initialize layer rebinding support, and a basic clear-color render pass.
+- Added iOS Metal renderer module implementing `IRenderBackend` with device/queue/layer setup, post-initialize layer rebinding support, and portable `SceneState` intake used during frame rendering.
 - Added iOS-specific CMake subtargets gated by iOS toolchain detection.
 
 ## Temporary/legacy placement note
 Some desktop integration still exists in `src/slic3r/Utils` for launch/process and wx-bound application wiring. This is temporary and should be migrated behind `src/portability/**` contracts as we move additional services out of GUI-coupled modules.
 
 ## Next iOS-focused steps
-1. Integrate scene command submission/upload lifecycle into `IOSMetalRenderBackend` so the Metal backend renders real scene content rather than clear-only frames.
+1. Extend `IOSMetalRenderBackend` from scene-state intake to full scene command submission/upload lifecycle so Metal draws real model content rather than clear-only frames.
 2. Continue hardening iOS platform/renderer lifecycle handling (suspend/resume and thread handoff edge-cases) across `IOSPlatformServices` and `IOSMetalRenderBackend` now that layer rebind behavior is in place.
 3. Expand smoke/CI coverage for iOS portability targets (including credential-store and renderer bring-up paths) to catch regressions earlier.
 

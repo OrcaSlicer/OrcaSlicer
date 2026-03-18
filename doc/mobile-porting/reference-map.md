@@ -10,7 +10,7 @@
 - `tests/` — unit/integration test coverage.
 
 ## Portability namespace contract
-- Canonical render namespace: `Slic3r::portability::render` (used by `ISceneRenderer`, `DesktopOpenGLSceneRenderer`, and GUI call sites).
+- Canonical render namespace: `Slic3r::portability::render` (used by `ISceneRenderer`, `DesktopOpenGLSceneRenderer`, `IOSMetalRenderBackend`, and GUI call sites).
 - Avoid introducing mixed-case portability namespaces (for example `Slic3r::Portability::Render`) in new APIs.
 
 ## Build graph entry points
@@ -36,7 +36,7 @@ Canonical portability targets:
 
 ## GUI + rendering map (`src/slic3r/GUI`)
 - Application shell: `GUI_App.*`, `MainFrame.*`, `GUI_Init.*`, `Plater.*`.
-- 3D rendering core: `GLCanvas3D.*`, `OpenGLManager.*`, `GLModel.*`, `GLTexture.*`, `GLShader.*`, `GLShadersManager.*`.
+- 3D rendering core: `GLCanvas3D.*`, `DesktopSceneStateAdapter.*`, `OpenGLManager.*`, `GLModel.*`, `GLTexture.*`, `GLShader.*`, `GLShadersManager.*`.
 - Scene/control: `3DScene.*`, `Camera.*`, `Selection.*`, `Raycaster.*`.
 - Tooling overlays/gizmos: `Gizmos/*`.
 - Web-related UI: `WebViewDialog.*`, `PrinterWebView.*`, `Widgets/WebView.*`.
@@ -82,3 +82,4 @@ Search clusters:
 4. Native UI state should consume shared C++ view-model/state outputs, not raw engine internals.
 
 5. iOS-first scope: add iOS adapters in `src/portability/platform/ios` and `src/portability/render/ios` before Android work starts.
+6. Renderer scene contracts in `src/portability/render/**` must remain GUI-free (no `GUI::Camera` or other GUI namespace types).

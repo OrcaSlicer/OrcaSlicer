@@ -174,6 +174,8 @@ set(SLIC3R_GUI_SOURCES
     #GUI/Gizmos/GLGizmoText.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
+    GUI/DesktopSceneStateAdapter.cpp
+    GUI/DesktopSceneStateAdapter.hpp
     ../portability/render/ISceneRenderer.hpp
     ../portability/render/DesktopOpenGLSceneRenderer.cpp
     ../portability/render/DesktopOpenGLSceneRenderer.hpp
