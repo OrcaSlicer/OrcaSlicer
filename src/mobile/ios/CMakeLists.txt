@@ -101,6 +101,8 @@ set_target_properties(OrcaSlicerIOS PROPERTIES
     XCODE_ATTRIBUTE_INFOPLIST_KEY_UIRequiresFullScreen "YES"
     XCODE_ATTRIBUTE_CLANG_ENABLE_MODULES "YES"
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.9"
+    # Work around intermittent swift-frontend crashes in CI by avoiding batched multi-file frontend invocations.
+    XCODE_ATTRIBUTE_SWIFT_COMPILATION_MODE "singlefile"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}"
     XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
     # Prevent global C/C++ warning flags from being forwarded to SwiftDriver in Xcode mixed-language builds.
