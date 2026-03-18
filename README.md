@@ -144,9 +144,28 @@ winget install --id=SoftFever.OrcaSlicer -e
 
 # How to Compile
 
-All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/How-to-build) page.
+For complete and platform-specific details, use the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/How-to-build).
 
-Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
+If you are developing locally, these commands are the standard flow:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target OrcaSlicer --config Release --parallel
+```
+
+To build automated tests:
+
+```bash
+cmake --build build --target tests --config Release --parallel
+ctest --test-dir build --output-on-failure
+```
+
+Linux developers can also use `build_linux.sh` for dependency setup and build orchestration. A first-time setup typically looks like:
+
+```bash
+./build_linux.sh -u
+./build_linux.sh -dsi
+```
 
 # Klipper Note
 

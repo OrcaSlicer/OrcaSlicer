@@ -1,3 +1,11 @@
-Files in this directory are named for the **exact** output of `awk -F= '/^ID=/ {print $2}' /etc/os-release` for their respective distribution.
+Files in this directory are selected from `/etc/os-release` values used by `build_linux.sh`.
 
-When `build_linux.sh` is executed, the respective file for the distribution will be sourced so the distribution specific instructions/logic are used.
+Selection behavior:
+
+- The script starts with `ID`.
+- `ubuntu` and `linuxmint` are remapped to `debian`.
+- If `ID_LIKE` contains `debian` or `ubuntu`, it is also remapped to `debian`.
+- If `ID_LIKE` contains `arch`, it is remapped to `arch`.
+- Otherwise it falls back to the raw `ID` value.
+
+When `build_linux.sh` runs, it sources `scripts/linux.d/<resolved-id>` and executes the distribution-specific dependency logic from that file.
