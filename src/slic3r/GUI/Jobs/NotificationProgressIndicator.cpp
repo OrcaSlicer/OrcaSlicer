@@ -10,7 +10,7 @@ void NotificationProgressIndicator::clear_percent()
 
 }
 
-void NotificationProgressIndicator::show_error_info(wxString msg, int code, wxString description, wxString extra)
+void NotificationProgressIndicator::show_error_info(const std::string &msg, int code, const std::string &description, const std::string &extra)
 {
 
 }
