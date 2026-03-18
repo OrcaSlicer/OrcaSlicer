@@ -613,7 +613,7 @@ if (NOT ORCASLICER_IS_IOS_BUILD)
     target_link_libraries(libslic3r PRIVATE TBB::tbb TBB::tbbmalloc)
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT ORCASLICER_IS_IOS_BUILD)
     # Link freetype for OCCT dependency (CAD operations need font rendering)
     target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
     if (NOT APPLE)
