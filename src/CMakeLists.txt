@@ -61,6 +61,11 @@ add_subdirectory(portability)
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
+if (ORCASLICER_IS_IOS_BUILD AND ORCASLICER_BUILD_IOS_PORTABILITY AND ORCASLICER_BUILD_IOS_SMOKE_TARGET)
+    message(STATUS "iOS smoke mode: skipping desktop/core target configuration after portability targets")
+    return()
+endif()
+
 find_package(libnoise REQUIRED)
 
 add_subdirectory(libslic3r)
@@ -132,11 +137,6 @@ if (SLIC3R_GUI)
     message(STATUS "wx libs: ${wxWidgets_LIBRARIES}")
 
     add_subdirectory(slic3r)
-endif()
-
-if (ORCASLICER_IS_IOS_BUILD AND ORCASLICER_BUILD_IOS_PORTABILITY AND ORCASLICER_BUILD_IOS_SMOKE_TARGET)
-    message(STATUS "iOS smoke mode: skipping desktop app/executable target configuration")
-    return()
 endif()
 
 if(ORCA_TOOLS)
