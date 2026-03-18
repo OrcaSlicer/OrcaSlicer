@@ -38,6 +38,8 @@ public:
 private:
     struct MetalBackendState;
 
+    void configure_layer_for_current_state(CAMetalLayer* layer);
+
     int                                m_width{0};
     int                                m_height{0};
     bool                               m_initialized{false};
