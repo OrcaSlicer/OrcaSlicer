@@ -11,16 +11,38 @@ struct RootViewportScreen: View {
 
     @State private var hasAppliedScreenshotRoute = false
 
+    private var shouldShowStaticViewportOverlay: Bool {
+        guard screenshotLaunch.enabled else {
+            return false
+        }
+
+        let flag = ProcessInfo.processInfo.environment["ORCA_IOS_FORCE_STATIC_VIEWPORT_OVERLAY"]?.lowercased() ?? ""
+        return flag == "1" || flag == "true" || flag == "yes"
+    }
+
     var body: some View {
         ZStack {
             MetalViewportContainer(viewportSession: viewportSession)
                 .ignoresSafeArea()
 
-            ViewportPlaceholderOverlay(viewportSession: viewportSession)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            if shouldShowStaticViewportOverlay {
+                ViewportPlaceholderOverlay(viewportSession: viewportSession)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
 
             VStack {
+                HStack {
+                    ProjectStatusChip(
+                        projectName: appSession.recentProjectNames.first ?? "No project loaded",
+                        printerName: machineProfileState.printerName
+                    )
+                    .frame(maxWidth: 360)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 12)
+                .padding(.horizontal, 20)
+
                 ProjectStatusChip(
                     projectName: appSession.activeProjectName,
                     printerName: machineProfileState.printerName
@@ -28,7 +50,7 @@ struct RootViewportScreen: View {
                 .padding(.top, 56)
                 Spacer()
             }
-            .padding(.horizontal, 20)
+            .safeAreaPadding(.top, 12)
             .allowsHitTesting(false)
 
             FloatingControlOverlay(
