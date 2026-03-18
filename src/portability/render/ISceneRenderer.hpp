@@ -2,6 +2,7 @@
 #define slic3r_ISceneRenderer_hpp_
 
 #include <array>
+#include <cstdint>
 #include <vector>
 
 namespace Slic3r::portability::render {
@@ -31,10 +32,24 @@ struct RenderModelState
     bool        is_visible{false};
 };
 
+struct RenderVertex
+{
+    float position[3]{0.0f, 0.0f, 0.0f};
+    float color[4]{1.0f, 1.0f, 1.0f, 1.0f};
+};
+
+struct RenderDrawPayload
+{
+    std::vector<RenderVertex> vertices;
+    std::vector<uint32_t>     indices;
+};
+
 struct RenderSceneState
 {
     RenderCameraState             camera;
     std::vector<RenderModelState> model_states;
+    RenderDrawPayload             model_draw_payload;
+    RenderDrawPayload             toolpath_draw_payload;
     bool                          render_opaque{true};
     bool                          render_transparent{false};
     bool                          gizmos_running{false};

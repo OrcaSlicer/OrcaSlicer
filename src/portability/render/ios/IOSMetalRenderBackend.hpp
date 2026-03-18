@@ -43,6 +43,8 @@ private:
     struct MetalBackendState;
 
     void configure_layer_for_current_state(CAMetalLayer* layer);
+    void ensure_depth_resources();
+    void update_draw_payload_buffers(const RenderSceneState& scene_state);
 
     int                                m_width{0};
     int                                m_height{0};
