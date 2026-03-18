@@ -24,7 +24,7 @@
     "draft_shield": "disabled",
     "elefant_foot_compensation": "0",
     "embedding_wall_into_infill": "0",
-    "enable_arc_fitting": "1",
+    "enable_arc_fitting": "0",
     "enable_height_slowdown": ["0"],
     "enable_overhang_speed": ["1"],
     "enable_prime_tower": "1",

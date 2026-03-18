@@ -67,7 +67,7 @@ std::vector<wxString> make_shaper_type_labels()
 }
 
 PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("PA Calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("PA Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -102,7 +102,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     int text_max = GetTextMax(this, std::vector<wxString>{start_pa_str, end_pa_str, PA_step_str, sp_accel_str, sp_speed_str, cb_print_no_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -123,7 +123,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto end_PA_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_pa_text = new wxStaticText(this, wxID_ANY, end_pa_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiEndPA = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiStartPA->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEndPA->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_PA_sizer->Add(end_pa_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_PA_sizer->Add(m_tiEndPA  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_PA_sizer, 0, wxLEFT, FromDIP(3));
@@ -132,7 +132,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto PA_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto PA_step_text = new wxStaticText(this, wxID_ANY, PA_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiPAStep = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiStartPA->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiPAStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     PA_step_sizer->Add(PA_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     PA_step_sizer->Add(m_tiPAStep  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(PA_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -196,6 +196,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 PA_Calibration_Dlg::~PA_Calibration_Dlg() {
@@ -328,7 +329,7 @@ enum FILAMENT_TYPE : int
 };
 
 Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Temperature calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Temperature calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -351,7 +352,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     wxString temp_step_str  = _L("Temp step: ");
     int text_max = GetTextMax(this, std::vector<wxString>{start_temp_str, end_temp_str, temp_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -372,7 +373,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     auto end_temp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_temp_text = new wxStaticText(this, wxID_ANY, end_temp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiEnd = new TextInput(this, std::to_string(190), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_temp_sizer->Add(end_temp_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_temp_sizer->Add(m_tiEnd      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_temp_sizer, 0, wxLEFT, FromDIP(3));
@@ -381,7 +382,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     auto temp_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto temp_step_text = new wxStaticText(this, wxID_ANY, temp_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiStep = new TextInput(this, wxString::FromDouble(5), _L("\u2103" /* °C */), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     m_tiStep->Enable(false);
     temp_step_sizer->Add(temp_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     temp_step_sizer->Add(m_tiStep      , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -409,6 +410,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 
     auto validate_text = [](TextInput* ti){
         unsigned long t = 0;
@@ -518,7 +520,7 @@ void Temp_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Max volumetric speed test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Max volumetric speed test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -533,7 +535,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     wxString vol_step_str  = _L("Step") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{start_vol_str, end_vol_str, vol_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -555,7 +557,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     auto end_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_vol_text = new wxStaticText(this, wxID_ANY, end_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiEnd = new TextInput(this, std::to_string(20), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_vol_sizer->Add(end_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_vol_sizer->Add(m_tiEnd     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_vol_sizer, 0, wxLEFT, FromDIP(3));
@@ -564,7 +566,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     auto vol_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto vol_step_text = new wxStaticText(this, wxID_ANY, vol_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiStep = new TextInput(this, wxString::FromDouble(0.5), _L(u8"mm³/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     vol_step_sizer->Add(vol_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(vol_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -587,6 +589,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 MaxVolumetricSpeed_Test_Dlg::~MaxVolumetricSpeed_Test_Dlg() {
@@ -622,7 +625,7 @@ void MaxVolumetricSpeed_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("VFA test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE)
+    : DPIDialog(parent, id, _L("VFA test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
     , m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
@@ -638,7 +641,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     wxString vol_step_str = _L("Step") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{start_str, end_vol_str, vol_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -660,7 +663,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     auto end_vol_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_vol_text = new wxStaticText(this, wxID_ANY, end_vol_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiEnd = new TextInput(this, std::to_string(200), _L("mm/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_vol_sizer->Add(end_vol_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_vol_sizer->Add(m_tiEnd     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_vol_sizer, 0, wxLEFT, FromDIP(3));
@@ -669,7 +672,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     auto vol_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto vol_step_text = new wxStaticText(this, wxID_ANY, vol_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiStep = new TextInput(this, wxString::FromDouble(10), _L("mm/s"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     vol_step_sizer->Add(vol_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     vol_step_sizer->Add(m_tiStep     , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(vol_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -694,6 +697,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 VFA_Test_Dlg::~VFA_Test_Dlg()
@@ -731,7 +735,7 @@ void VFA_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect)
 //
 
 Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Retraction test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Retraction test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -746,7 +750,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     wxString length_step_str  = _L("Step") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{start_length_str, end_length_str, length_step_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
@@ -768,7 +772,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     auto end_length_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto end_length_text = new wxStaticText(this, wxID_ANY, end_length_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiEnd = new TextInput(this, std::to_string(2), _L("mm"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_length_sizer->Add(end_length_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     end_length_sizer->Add(m_tiEnd        , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(end_length_sizer, 0, wxLEFT, FromDIP(3));
@@ -777,7 +781,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     auto length_step_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto length_step_text = new wxStaticText(this, wxID_ANY, length_step_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiStep = new TextInput(this, wxString::FromDouble(0.1), _L("mm"), "", wxDefaultPosition, ti_size);
-    m_tiStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiStep->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     length_step_sizer->Add(length_step_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     length_step_sizer->Add(m_tiStep        , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(length_step_sizer, 0, wxLEFT, FromDIP(3));
@@ -802,6 +806,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Retraction_Test_Dlg::~Retraction_Test_Dlg() {
@@ -836,7 +841,7 @@ void Retraction_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Input shaping Frequency test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Input shaping Frequency test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -855,7 +860,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxVERTICAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
@@ -897,7 +902,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     wxString y_axis_str = "Y " + _L("Start / End") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{x_axis_str, y_axis_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Frequency settings"));
@@ -958,6 +963,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     auto note_text = new wxStaticText(this, wxID_ANY, _L("Recommended: Set Damp to 0.\nThis will use the printer's default or saved value."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     note_text->SetForegroundColour(wxColour(128, 128, 128));
+    note_text->Wrap(FromDIP(350));
     settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
     settings_sizer->AddSpacer(FromDIP(5));
@@ -980,6 +986,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Input_Shaping_Freq_Test_Dlg::~Input_Shaping_Freq_Test_Dlg() {
@@ -1052,7 +1059,7 @@ void Input_Shaping_Freq_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Input shaping Damp test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Input shaping Damp test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -1071,7 +1078,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxVERTICAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
@@ -1113,7 +1120,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     wxString damp_str = _L("Damp") + " " + _L("Start / End") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{freq_str, damp_str});
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Frequency settings"));
@@ -1178,6 +1185,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Input_Shaping_Damp_Test_Dlg::~Input_Shaping_Damp_Test_Dlg() {
@@ -1245,7 +1253,7 @@ void Input_Shaping_Damp_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 //
 
 Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Cornering test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+    : DPIDialog(parent, id, _L("Cornering test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -1258,13 +1266,14 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower"), _L("SCV-V2") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower"), _L("SCV-V2") }, wxVERTICAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
     wxString start_jd_str = _L("Start: ");
     wxString end_jd_str   = _L("End: ");
+    int text_max = GetTextMax(this, std::vector<wxString>{start_jd_str, end_jd_str});
 
     LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Cornering settings"));
     wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
@@ -1297,60 +1306,62 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
                 units_str = "mm/s";
         }
 
+    auto st_size = wxSize(text_max, -1);
     auto ti_size = FromDIP(wxSize(120, -1));
-
-    // Start and End cornering on same row
-    auto cornering_row_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     // Start cornering
     auto start_jd_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto start_jd_text = new wxStaticText(this, wxID_ANY, start_jd_str, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    auto start_jd_text = new wxStaticText(this, wxID_ANY, start_jd_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiJDStart = new TextInput(this, start_value_str, units_str, "", wxDefaultPosition, ti_size);
     m_tiJDStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     start_jd_sizer->Add(start_jd_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     start_jd_sizer->Add(m_tiJDStart  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    cornering_row_sizer->Add(start_jd_sizer, 0, wxLEFT, FromDIP(3));
+    settings_sizer->Add(start_jd_sizer, 0, wxLEFT, FromDIP(3));
 
     // End cornering
     auto end_jd_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto end_jd_text = new wxStaticText(this, wxID_ANY, end_jd_str, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    auto end_jd_text = new wxStaticText(this, wxID_ANY, end_jd_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiJDEnd = new TextInput(this, end_value_str, units_str, "", wxDefaultPosition, ti_size);
     m_tiJDEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_jd_sizer->Add(end_jd_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
        end_jd_sizer->Add(m_tiJDEnd  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    cornering_row_sizer->Add(end_jd_sizer, 0, wxLEFT, FromDIP(3));
-
-    settings_sizer->Add(cornering_row_sizer, 0, wxLEFT, FromDIP(3));
+    settings_sizer->Add(end_jd_sizer, 0, wxLEFT, FromDIP(3));
 
     settings_sizer->AddSpacer(FromDIP(5));
 
     // Add note about cornering based on GCode Flavor
-    wxString note_msg = _L("Note: Lower values = sharper corners but slower speeds.\n");
+    wxString note_msg = _L("Note: Lower values = sharper corners but slower speeds.");
+    auto note_text = new wxStaticText(this, wxID_ANY, note_msg, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    note_text->SetForegroundColour(wxColour(128, 128, 128));
+    note_text->Wrap(FromDIP(300));
+    settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
+
     if (gcode_flavor_option) {
+        wxString note_msg_2;
         switch (gcode_flavor_option->value) {
             case GCodeFlavor::gcfMarlinFirmware: {
                 // Check if machine_max_junction_deviation is set and > 0
                 const auto* max_jd_option = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
                 if (max_jd_option && !max_jd_option->values.empty() && max_jd_option->values[0] > 0) {
-                    note_msg += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
+                    note_msg_2 += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
                 } else {
-                    note_msg += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
+                    note_msg_2 += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
                 }
                 break;
             }
             case GCodeFlavor::gcfRepRapFirmware:
-                note_msg += _L("RepRap detected: Jerk in mm/s.\nOrcaSlicer will convert the values to mm/min when necessary.");
+                note_msg_2 += _L("RepRap detected: Jerk in mm/s.\nOrcaSlicer will convert the values to mm/min when necessary.");
                 break;
             default:
                 break;
         }
+        if(!note_msg_2.empty()){
+            auto note_text_2 = new wxStaticText(this, wxID_ANY, note_msg_2, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+            note_text_2->SetForegroundColour(wxColour(128, 128, 128));
+            note_text_2->Wrap(FromDIP(300));
+            settings_sizer->Add(note_text_2, 0, wxALL, FromDIP(5));
+        }
     }
-
-    auto note_text = new wxStaticText(this, wxID_ANY, note_msg,
-                                    wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    note_text->SetForegroundColour(wxColour(128, 128, 128));
-    note_text->Wrap(FromDIP(300));
-    settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
@@ -1370,6 +1381,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     Layout();
     Fit();
+    v_sizer->SetSizeHints(this);
 }
 
 Cornering_Test_Dlg::~Cornering_Test_Dlg() {

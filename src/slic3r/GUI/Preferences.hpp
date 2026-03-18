@@ -6,6 +6,7 @@
 
 #include <wx/dialog.h>
 #include <wx/timer.h>
+#include <string>
 #include <vector>
 #include <list>
 #include <map>
@@ -43,10 +44,12 @@ protected:
     // bool								m_settings_layout_changed {false};
     bool m_seq_top_layer_only_changed{false};
     bool m_recreate_GUI{false};
+    std::string m_pending_language;
 
 public:
     bool seq_top_layer_only_changed() const { return m_seq_top_layer_only_changed; }
     bool recreate_GUI() const { return m_recreate_GUI; }
+    const std::string& pending_language() const { return m_pending_language; }
     void on_dpi_changed(const wxRect &suggested_rect) override;
 
 public:
@@ -60,6 +63,7 @@ public:
     ~PreferencesDialog();
 
     wxString m_backup_interval_time;
+    wxTimer m_filament_height_timer;
 
     void      create();
 
@@ -105,6 +109,8 @@ public:
     void create_sync_page();
     void create_shortcuts_page();
     wxBoxSizer* create_debug_page();
+
+    void UpdateSidebarLayout();
 
     // BBS
     void create_select_domain_widget();

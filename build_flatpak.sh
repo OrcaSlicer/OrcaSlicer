@@ -198,22 +198,22 @@ echo -e "${GREEN}All required dependencies found${NC}"
 # Install runtime and SDK if requested
 if [[ "$INSTALL_RUNTIME" == true ]]; then
     echo -e "${YELLOW}Installing GNOME runtime and SDK...${NC}"
-    flatpak install --user -y flathub org.gnome.Platform//48
-    flatpak install --user -y flathub org.gnome.Sdk//48
+    flatpak install --user -y flathub org.gnome.Platform//49
+    flatpak install --user -y flathub org.gnome.Sdk//49
 fi
 
 # Check if required runtime is available
-if ! flatpak info --user org.gnome.Platform//48 &> /dev/null; then
-    echo -e "${RED}Error: GNOME Platform 48 runtime is not installed.${NC}"
+if ! flatpak info --user org.gnome.Platform//49 &> /dev/null; then
+    echo -e "${RED}Error: GNOME Platform 49 runtime is not installed.${NC}"
     echo "Run with -i flag to install it automatically, or install manually:"
-    echo "flatpak install --user flathub org.gnome.Platform//48"
+    echo "flatpak install --user flathub org.gnome.Platform//49"
     exit 1
 fi
 
-if ! flatpak info --user org.gnome.Sdk//48 &> /dev/null; then
-    echo -e "${RED}Error: GNOME SDK 48 is not installed.${NC}"
+if ! flatpak info --user org.gnome.Sdk//49 &> /dev/null; then
+    echo -e "${RED}Error: GNOME SDK 49 is not installed.${NC}"
     echo "Run with -i flag to install it automatically, or install manually:"
-    echo "flatpak install --user flathub org.gnome.Sdk//48"
+    echo "flatpak install --user flathub org.gnome.Sdk//49"
     exit 1
 fi
 
@@ -318,7 +318,7 @@ fi
 MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
 if [[ "$NO_DEBUGINFO" == true ]]; then
     MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
-    sed '0,/^finish-args:/s//build-options:\n  no-debuginfo: true\n  strip: true\nfinish-args:/' \
+    sed '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
         scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml > "$MANIFEST"
     echo -e "${YELLOW}Debug info disabled (using temp manifest)${NC}"
 fi

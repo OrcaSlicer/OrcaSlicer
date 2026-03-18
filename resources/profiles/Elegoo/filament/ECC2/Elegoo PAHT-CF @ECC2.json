@@ -1,0 +1,70 @@
+{
+    "type": "filament",
+    "name": "Elegoo PAHT-CF @ECC2",
+    "inherits": "Elegoo PAHT @base",
+    "from": "system",
+    "setting_id": "EPAHTCFECC2",
+    "instantiation": "true",
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "nozzle_temperature": [
+        "290"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "290"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "nozzle_temperature_range_low": [
+        "260"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "overhang_fan_threshold": [
+        "0%"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "pressure_advance": [
+        "0.024"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if  (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200\n{elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150\n{elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri Carbon 2 0.4 nozzle",
+        "Elegoo Centauri Carbon 2 0.6 nozzle",
+        "Elegoo Centauri Carbon 2 0.8 nozzle"
+    ]
+}
