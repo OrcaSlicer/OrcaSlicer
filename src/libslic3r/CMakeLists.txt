@@ -532,7 +532,9 @@ endif ()
 
 encoding_check(libslic3r)
 
-target_compile_definitions(libslic3r PUBLIC -DUSE_TBB -DTBB_USE_CAPTURED_EXCEPTION=0)
+if (NOT ORCASLICER_IS_IOS_BUILD)
+    target_compile_definitions(libslic3r PUBLIC -DUSE_TBB -DTBB_USE_CAPTURED_EXCEPTION=0)
+endif()
 target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
 
@@ -600,11 +602,13 @@ target_link_libraries(libslic3r
         qhull
         qoi
         semver
-        TBB::tbb
-        TBB::tbbmalloc
         ZLIB::ZLIB
         OpenSSL::Crypto
     )
+
+if (NOT ORCASLICER_IS_IOS_BUILD)
+    target_link_libraries(libslic3r PRIVATE TBB::tbb TBB::tbbmalloc)
+endif()
 
 if(NOT WIN32)
     # Link freetype for OCCT dependency (CAD operations need font rendering)
