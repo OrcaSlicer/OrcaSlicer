@@ -104,6 +104,8 @@ set_target_properties(OrcaSlicerIOS PROPERTIES
     # Work around intermittent swift-frontend crashes in CI by avoiding batched multi-file frontend invocations.
     XCODE_ATTRIBUTE_SWIFT_COMPILATION_MODE "singlefile"
     XCODE_ATTRIBUTE_SWIFT_DISABLE_BATCH_MODE "YES"
+    # Swift 5.10 in Xcode 15.4 intermittently crashes optimizing this target in CI; prefer stable non-optimized compilation.
+    XCODE_ATTRIBUTE_SWIFT_OPTIMIZATION_LEVEL "-Onone"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}"
     XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
     # Prevent global C/C++ warning flags from being forwarded to SwiftDriver in Xcode mixed-language builds.
