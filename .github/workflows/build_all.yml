@@ -93,6 +93,67 @@ jobs:
       arch: universal
       macos-combine-only: true
     secrets: inherit
+
+  publish_build_logs:
+    name: Publish CI Build Logs
+    runs-on: ubuntu-24.04
+    needs:
+      - build_linux
+      - build_windows
+      - build_macos_arch
+      - build_macos_universal
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+    steps:
+      - name: Download CI build log artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: ci-build-logs-*
+          path: ci-build-logs
+          merge-multiple: true
+
+      - name: Publish latest CI build logs to main branch folder
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_BRANCH: main
+          PUBLISH_DIR: ci-logbook/build-latest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! find ci-build-logs -type f -name '*.log' -print -quit >/dev/null 2>&1; then
+            echo "No CI build logs found to publish."
+            exit 0
+          fi
+
+          tmpdir="$(mktemp -d)"
+          cleanup() { rm -rf "${tmpdir}"; }
+          trap cleanup EXIT
+
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --depth 1 --branch "${TARGET_BRANCH}" "${REPO_URL}" "${tmpdir}/repo"
+
+          mkdir -p "${tmpdir}/repo/${PUBLISH_DIR}"
+          rsync -a --delete \
+            --include='*/' \
+            --include='*.log' \
+            --exclude='*' \
+            "ci-build-logs/" "${tmpdir}/repo/${PUBLISH_DIR}/"
+          printf '%s\n' "${GITHUB_SHA}" > "${tmpdir}/repo/${PUBLISH_DIR}/source-commit.txt"
+
+          pushd "${tmpdir}/repo" >/dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${PUBLISH_DIR}"
+
+          if git diff --cached --quiet; then
+            echo "No CI build log changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Update CI build logs for ${GITHUB_SHA}"
+          git push origin HEAD:"${TARGET_BRANCH}"
+          popd >/dev/null
+
   unit_tests:
     name: Unit Tests
     runs-on: ubuntu-24.04
@@ -262,4 +323,3 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
-
