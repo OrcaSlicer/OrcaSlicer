@@ -79,6 +79,8 @@ cmake --build build-ios --target orcaslicer_ios_smoke --config Release
 Current workflow files are under `.github/workflows/`, including:
 
 - Build and dependency workflows (`build_all.yml`, `build_orca.yml`, `build_deps.yml`, `build_check_cache.yml`)
+  - `build_all.yml` supports manual `workflow_dispatch` scope selection: `full` (default) and `ios-only`.
+  - `build_all.yml` exposes a stable always-on summary job (`CI Scope Summary`) for branch-protection required checks.
 - Validation workflows (`check_locale.yml`, `check_profiles.yml`, `check_profiles_comment.yml`, `shellcheck.yml`)
 - iOS verification workflows (`ios_simulator_smoke.yml`, `ios_ui_screenshot.yml`)
 - Automation/support workflows (`assign.yml`, `auto-close-duplicates.yml`, `backfill-duplicate-comments.yml`, `dedupe-issues.yml`, `doxygen-docs.yml`, `update-translation.yml`)

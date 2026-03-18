@@ -41,6 +41,13 @@ on:
         description: 'Only build dependencies (bypasses caching)'
         type: boolean
         default: false
+      scope:
+        description: 'CI scope to run'
+        type: choice
+        options:
+          - full
+          - ios-only
+        default: full
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -48,19 +55,54 @@ concurrency:
   
 
 jobs:
+  resolve_scope:
+    name: Resolve CI Scope
+    runs-on: ubuntu-24.04
+    outputs:
+      scope: ${{ steps.resolve.outputs.scope }}
+      run_desktop: ${{ steps.resolve.outputs.run_desktop }}
+      run_ios: ${{ steps.resolve.outputs.run_ios }}
+    steps:
+      - name: Resolve workflow scope
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scope="full"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            scope="${{ inputs.scope || 'full' }}"
+          fi
+
+          if [[ "${scope}" == "ios-only" ]]; then
+            run_desktop="false"
+            run_ios="true"
+          else
+            scope="full"
+            run_desktop="true"
+            run_ios="false"
+          fi
+
+          echo "scope=${scope}" >> "$GITHUB_OUTPUT"
+          echo "run_desktop=${run_desktop}" >> "$GITHUB_OUTPUT"
+          echo "run_ios=${run_ios}" >> "$GITHUB_OUTPUT"
+          echo "Resolved CI scope: ${scope} (desktop=${run_desktop}, ios=${run_ios})"
+
   build_linux:
+    needs: resolve_scope
     strategy:
       fail-fast: false
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ubuntu-24.04
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   build_windows:
+    needs: resolve_scope
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: windows-latest
@@ -68,6 +110,7 @@ jobs:
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_macos_arch:
+    needs: resolve_scope
     strategy:
       fail-fast: false
       matrix:
@@ -75,7 +118,7 @@ jobs:
           - arm64
           - x86_64
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
@@ -85,8 +128,10 @@ jobs:
     secrets: inherit
   build_macos_universal:
     name: Build macOS Universal
-    needs: build_macos_arch
-    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    needs:
+      - resolve_scope
+      - build_macos_arch
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
@@ -98,11 +143,12 @@ jobs:
     name: Publish CI Build Logs
     runs-on: ubuntu-24.04
     needs:
+      - resolve_scope
       - build_linux
       - build_windows
       - build_macos_arch
       - build_macos_universal
-    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && github.event_name != 'pull_request' }}
     steps:
       - name: Download CI build log artifacts
         uses: actions/download-artifact@v7
@@ -157,8 +203,10 @@ jobs:
   unit_tests:
     name: Unit Tests
     runs-on: ubuntu-24.04
-    needs: build_linux
-    if: ${{ !cancelled() && success() }}
+    needs:
+      - resolve_scope
+      - build_linux
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && needs.build_linux.result == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -232,6 +280,7 @@ jobs:
           files: "ctest_results.xml"
   flatpak:
     name: "Flatpak"
+    needs: resolve_scope
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
@@ -250,7 +299,7 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_desktop == 'true' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     runs-on: ${{ matrix.variant.runner }}
     env:
       date:
@@ -323,3 +372,70 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+
+  ios_simulator_smoke:
+    name: iOS simulator smoke
+    needs: resolve_scope
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_ios == 'true' }}
+    uses: ./.github/workflows/ios_simulator_smoke.yml
+    secrets: inherit
+
+  ios_ui_screenshot:
+    name: iOS UI screenshot
+    needs: resolve_scope
+    if: ${{ !cancelled() && needs.resolve_scope.outputs.run_ios == 'true' }}
+    uses: ./.github/workflows/ios_ui_screenshot.yml
+    with:
+      publish_latest_to_repo: true
+    secrets: inherit
+
+  ci_scope_summary:
+    name: CI Scope Summary
+    runs-on: ubuntu-24.04
+    if: ${{ always() }}
+    needs:
+      - resolve_scope
+      - build_linux
+      - build_windows
+      - build_macos_arch
+      - build_macos_universal
+      - publish_build_logs
+      - unit_tests
+      - flatpak
+      - ios_simulator_smoke
+      - ios_ui_screenshot
+    steps:
+      - name: Validate scoped workflow results
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          scope="${{ needs.resolve_scope.outputs.scope }}"
+          echo "Resolved scope: ${scope}"
+
+          check_result() {
+            local job_name="$1"
+            local job_result="$2"
+            case "${job_result}" in
+              success|skipped)
+                echo "OK: ${job_name} -> ${job_result}"
+                ;;
+              *)
+                echo "ERROR: ${job_name} -> ${job_result}"
+                return 1
+                ;;
+            esac
+          }
+
+          if [[ "${scope}" == "ios-only" ]]; then
+            check_result "ios_simulator_smoke" "${{ needs.ios_simulator_smoke.result }}"
+            check_result "ios_ui_screenshot" "${{ needs.ios_ui_screenshot.result }}"
+          else
+            check_result "build_linux" "${{ needs.build_linux.result }}"
+            check_result "build_windows" "${{ needs.build_windows.result }}"
+            check_result "build_macos_arch" "${{ needs.build_macos_arch.result }}"
+            check_result "build_macos_universal" "${{ needs.build_macos_universal.result }}"
+            check_result "publish_build_logs" "${{ needs.publish_build_logs.result }}"
+            check_result "unit_tests" "${{ needs.unit_tests.result }}"
+            check_result "flatpak" "${{ needs.flatpak.result }}"
+          fi
