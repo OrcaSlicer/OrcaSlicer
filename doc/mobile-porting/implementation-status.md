@@ -56,6 +56,35 @@ See also:
 - iOS smoke target validates linkage and basic object construction only.
 - There is no full CI-proven end-to-end mobile flow yet (`load model -> slice -> preview -> export`) through portability adapters.
 
+
+## UI shell currently implemented
+
+The iOS simulator screenshot workflow currently exercises these shell scene/menu entry points:
+
+- `root`
+- `project`
+- `tools`
+- `slice-settings`
+- `printer`
+- `view`
+- `app-settings`
+- `benchy-preview`
+- `benchy-sliced`
+
+Current shell behavior by area:
+
+- **Root viewport shell**: native shell route is present and can present a Metal-backed viewport surface in screenshot mode.
+- **Panel scenes** (`project`, `tools`, `slice-settings`, `printer`, `view`, `app-settings`): scene routing and panel shells are implemented for launch/navigation coverage.
+- **Preview scenes** (`benchy-preview`, `benchy-sliced`): deterministic screenshot presets exist for CI image capture.
+
+Still mocked / not workflow-complete:
+
+- Import workflow is not yet validated as an end-to-end user flow (file picker/document-provider flow is still treated as post-shell work).
+- Slice job orchestration from the mobile shell to shared background slicing is not yet validated as end-to-end.
+- Preview rendering parity remains partial; iOS backend is still clear-pass + viewport bring-up rather than full object/render-feature parity.
+- Export/share workflow is not yet validated from sliced output to native share sheet destinations.
+- CI screenshot success demonstrates scene launch/renderability only, not completion of the import → slice → preview → export workflow.
+
 ## UI start gate (must be true before iOS UI work begins)
 Start iOS UI implementation only after all of the following are complete:
 

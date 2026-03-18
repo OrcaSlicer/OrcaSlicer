@@ -98,11 +98,52 @@ Then keep desktop OpenGL code as the first implementation of this API.
 - macOS-specific Objective-C++ helpers (`*.mm`) embedded in shared code paths.
 - ImGui usage tightly coupled with OpenGL state.
 
-## Milestone deliverables
-1. Build still passes on desktop with adapters enabled.
-2. Headless mobile-safe library builds with no wx/OpenGL includes.
-3. iOS demo app can load project + run slice + render preview via adapter.
-4. Android prototype reuses same C++ APIs with only platform/render replacements.
+## Post-shell workflow phase (immediately after first iOS shell milestone)
+After the launch + Metal-view shell is proven, execute workflow closure in this strict order:
+
+1. **Import**
+   - Open a project/model from native iOS entry points and materialize it in shared C++ state.
+2. **Slice job**
+   - Trigger background slicing from the iOS shell and surface progress/error completion states.
+3. **Preview render**
+   - Render sliced output/preview scene through mobile renderer pathways with deterministic outputs.
+4. **Export/share**
+   - Export generated artifacts and hand off through native share/open-in flows.
+
+## Milestones and acceptance criteria
+
+### Milestone 1 — Portability contracts and desktop adapter safety
+- Scope: facades/interfaces introduced; desktop behavior unchanged.
+- Acceptance criteria:
+  - Desktop builds remain green with adapters enabled.
+  - No regressions in existing desktop launch + slice sanity flow.
+
+### Milestone 2 — Mobile-safe shared libraries
+- Scope: mobile-safe build separation for core/app contracts.
+- Acceptance criteria:
+  - Headless/mobile-targeted libraries compile without wx/OpenGL headers in portability boundaries.
+  - Portability include guard checks pass in CI/local configure.
+
+### Milestone 3 — iOS shell bring-up (launch + viewport shell only)
+- Scope: app launch + Metal-backed viewport shell route.
+- Acceptance criteria:
+  - iOS simulator smoke build and launch pass.
+  - Screenshot CI captures all defined shell scenes successfully.
+  - Explicit limitation acknowledged: this milestone does **not** certify import/slice/preview/export workflow completion.
+
+### Milestone 4 — Post-shell workflow closure (import → slice job → preview render → export/share)
+- Scope: complete first functional user workflow on iOS using shared engine + adapters.
+- Acceptance criteria:
+  - Import flow validated from native file entry to loaded project/model state.
+  - Slice job validated with progress + completion/error reporting.
+  - Preview render validated for sliced content presentation path.
+  - Export/share validated end-to-end to at least one supported destination.
+
+### Milestone 5 — Android bootstrap on same contracts
+- Scope: Android platform/render replacement using the same shared C++ APIs.
+- Acceptance criteria:
+  - Android prototype builds and runs minimal import/slice/preview/export workflow using the shared contracts.
+  - No platform-specific forks introduced in shared engine behavior.
 
 ## Out of scope for this planning set
 - Product-roadmap decisions, UX prioritization, or release dates.
