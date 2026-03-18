@@ -4527,33 +4527,25 @@ void TabPrinter::build_fff()
         option.opt.height = gcode_field_height;//150;
         optgroup->append_single_option_line(option, "printer_machine_gcode#layer-change-g-code");
 
-        optgroup = page->new_optgroup(L("Plate change G-code"), L"param_gcode", 0);
-        auto update_initial_plate_change_visibility = [this]() {
-            bool has_plate_change_gcode = wxGetApp().preset_bundle &&
-                !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
-            if (Field* field = this->get_field("additional_initial_plate_change_gcode"))
-                field->Show(has_plate_change_gcode);
+        ConfigOptionsGroupShp og_initial;
+
+        ConfigOptionsGroupShp og_plate_change = page->new_optgroup(L("Plate change G-code"), L"param_gcode", 0);
+        og_plate_change->m_on_change = [this, &og_plate_change, &og_initial](const t_config_option_key& opt_key, const boost::any& value) {
+            validate_custom_gcode_cb(this, og_plate_change->title, opt_key, value);
+
+            if (og_initial != nullptr) {
+                const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
+                og_initial->show_field("additional_initial_plate_change_gcode", has_plate_change);
+                if (!has_plate_change)
+                    og_initial->hide_field("additional_initial_plate_change_gcode");
+            }
         };
-        optgroup->m_on_change = [this, &optgroup_title = optgroup->title, update_initial_plate_change_visibility](const t_config_option_key& opt_key, const boost::any& value) {
-            validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
-            if (opt_key.id() == "plate_change_gcode")
-                update_initial_plate_change_visibility();
-        };
-        optgroup->edit_custom_gcode = edit_custom_gcode_fn;
-        option = optgroup->get_option("plate_change_gcode");
+        og_plate_change->edit_custom_gcode = edit_custom_gcode_fn;
+        option = og_plate_change->get_option("plate_change_gcode");
         option.opt.full_width = true;
         option.opt.is_code = true;
         option.opt.height = gcode_field_height;//150;
-        optgroup->append_single_option_line(option, "printer_machine_gcode#plate-change-g-code");
-
-        option = optgroup->get_option("additional_initial_plate_change_gcode");
-        option.opt.full_width = true;
-        option.opt.is_code = true;
-        option.opt.height = gcode_field_height;//150;
-        optgroup->append_single_option_line(option, "printer_machine_gcode#additional-initial-plate-change-g-code");
-
-        // Initialize visibility on first open based on current preset.
-        update_initial_plate_change_visibility();
+        og_plate_change->append_single_option_line(option, "printer_machine_gcode#plate-change-g-code");
 
         // Preset buttons to insert common plate-change g-code into the field above
         {
@@ -4619,11 +4611,17 @@ void TabPrinter::build_fff()
             Line preset_line(L"", L"");
             preset_line.full_width = 1;
             // Helper to write both config and visible field
-            auto apply_preset = [this](const std::string& gcode) {
+            auto apply_preset = [this, &og_initial](const std::string& gcode) {
                 load_key_value("plate_change_gcode", gcode);
                 if (Field* field = this->get_field("plate_change_gcode")) {
                     wxString wxgcode = from_u8(gcode);
                     field->set_value(wxgcode, true);
+                }
+                if (og_initial != nullptr) {
+                    const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
+                    og_initial->show_field("additional_initial_plate_change_gcode", has_plate_change);
+                    if (!has_plate_change)
+                        og_initial->hide_field("additional_initial_plate_change_gcode");
                 }
                 update_changed_ui();
             };
@@ -4653,13 +4651,11 @@ void TabPrinter::build_fff()
                 });
                 return sizer;
             };
-            optgroup->append_line(preset_line);
+            og_plate_change->append_line(preset_line);
         }
 
         {
-            ConfigOptionsGroupShp og_initial = page->new_optgroup(wxEmptyString, L"param_gcode", 0);
-            og_initial->wrap_in_collapsible_pane   = true;
-            og_initial->collapsible_pane_label     = _L("Additional initial plate change G-code");
+            og_initial = page->new_optgroup(L("Additional initial plate change G-code"), L"param_gcode", 0);
             og_initial->m_on_change                = [this](const t_config_option_key& opt_key, const boost::any& value) {
                 validate_custom_gcode_cb(this, _L("Additional initial plate change G-code"), opt_key, value);
             };
@@ -4669,6 +4665,12 @@ void TabPrinter::build_fff()
             opt_initial.opt.is_code       = true;
             opt_initial.opt.height        = gcode_field_height;
             og_initial->append_single_option_line(opt_initial, "printer_machine_gcode#additional-initial-plate-change-gcode");
+            {
+                const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
+                og_initial->show_field("additional_initial_plate_change_gcode", has_plate_change);
+                if (!has_plate_change)
+                    og_initial->hide_field("additional_initial_plate_change_gcode");
+            }
         }
 
         optgroup = page->new_optgroup(L("Timelapse G-code"), L"param_gcode", 0);
