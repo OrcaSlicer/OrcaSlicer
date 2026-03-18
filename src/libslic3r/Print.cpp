@@ -1235,6 +1235,16 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     if (m_config.enable_prime_tower) {
+        for (const PrintObject* object : m_objects) {
+            if (object->config().precise_z_height.value && warning != nullptr) {
+                StringObjectException warningtemp;
+                warningtemp.string     = L("Enabling both precise Z height and the prime tower may cause the slicing errors.");
+                warningtemp.opt_key    = "precise_z_height";
+                warningtemp.is_warning = true;
+                *warning               = warningtemp;
+                break;
+            }
+        }
     } else {
         if (m_config.enable_wrapping_detection && warning!=nullptr) {
             StringObjectException warningtemp;

@@ -1589,11 +1589,11 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
         bool is_precise_z_height = m_config->option<ConfigOptionBool>("precise_z_height")->value;
         if (boost::any_cast<bool>(value) && is_precise_z_height) {
-            MessageDialog dlg(wxGetApp().plater(), _L("Enabling both precise Z height and the prime tower may cause the size of prime tower to increase. Do you still want to enable?"),
+            MessageDialog dlg(wxGetApp().plater(), _L("Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable?"),
                 _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_NO) {
                 DynamicPrintConfig new_conf = *m_config;
-                new_conf.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
+                new_conf.set_key_value("precise_z_height", new ConfigOptionBool(false));
                 m_config_manipulation.apply(m_config, &new_conf);
             }
             wxGetApp().plater()->update();
@@ -1631,7 +1631,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (opt_key == "precise_z_height") {
         bool wipe_tower_enabled = m_config->option<ConfigOptionBool>("enable_prime_tower")->value;
         if (boost::any_cast<bool>(value) && wipe_tower_enabled) {
-            MessageDialog dlg(wxGetApp().plater(), _L("Enabling both precise Z height and the prime tower may cause the size of prime tower to increase. Do you still want to enable?"),
+            MessageDialog dlg(wxGetApp().plater(), _L("Enabling both precise Z height and the prime tower may cause the slicing errors when there are multiple parts."),
                 _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_NO) {
                 DynamicPrintConfig new_conf = *m_config;
