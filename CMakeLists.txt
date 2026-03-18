@@ -818,20 +818,24 @@ else()
 endif()
 
 
-if(SLIC3R_STATIC)
-    set(OPENVDB_USE_STATIC_LIBS ON)
-    set(USE_BLOSC TRUE)
-endif ()
+if(NOT ORCASLICER_IS_IOS_BUILD)
+    if(SLIC3R_STATIC)
+        set(OPENVDB_USE_STATIC_LIBS ON)
+        set(USE_BLOSC TRUE)
+    endif ()
 
-find_package(OpenVDB 5.0 COMPONENTS openvdb)
-if(OpenVDB_FOUND)
-    slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
-    slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
-else ()
-    message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
-                   "You can try to specify the find module location of your "
-                   "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable.")
-endif ()
+    find_package(OpenVDB 5.0 COMPONENTS openvdb)
+    if(OpenVDB_FOUND)
+        slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+        slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
+    else ()
+        message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
+                       "You can try to specify the find module location of your "
+                       "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable.")
+    endif ()
+else()
+    message(STATUS "Skipping OpenVDB package discovery for iOS build")
+endif()
 
 find_path(SPNAV_INCLUDE_DIR spnav.h)
 if (SPNAV_INCLUDE_DIR)
