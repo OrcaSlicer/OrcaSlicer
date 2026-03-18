@@ -12,9 +12,9 @@ struct PrinterPanelView: View {
             }
 
             Section("Connectivity") {
-                summaryRow("LAN mode", value: "Standby")
-                summaryRow("Cloud sync", value: "Not linked")
-                summaryRow("Firmware", value: "Placeholder 01.00")
+                summaryRow("LAN mode", value: machineProfileState.lanMode)
+                summaryRow("Cloud sync", value: machineProfileState.cloudSync)
+                summaryRow("Firmware", value: machineProfileState.firmwareVersion)
             }
         }
         .navigationTitle("Printer")
