@@ -4,13 +4,13 @@
 
 #include <memory>
 
-namespace Slic3r::portability::render::ios {
-
 #ifdef __OBJC__
 @class CAMetalLayer;
 #else
 using CAMetalLayer = void;
 #endif
+
+namespace Slic3r::portability::render::ios {
 
 class IOSMetalRenderBackend final : public IRenderBackend
 {
