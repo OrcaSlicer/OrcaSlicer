@@ -41,9 +41,9 @@ final class AppSession: ObservableObject {
         let exportedAt: Date
     }
 
-    @Published var recentProjectNames: [String] = ["Benchy.3mf", "PhoneStand.stl"]
-    @Published var activeProjectName: String = "No model loaded"
-    @Published var lastActionStatus: String = ""
+    @Published var recentProjectNames: [String]
+    @Published var activeProjectName: String
+    @Published var lastActionStatus: String
     @Published var pickerImportPresented = false
     @Published var exportTargetPickerPresented = false
     @Published var exportShareSheetPresented = false
@@ -56,7 +56,6 @@ final class AppSession: ObservableObject {
     @Published var slicingMessage: String = ""
     @Published var slicingDiagnosticsLog: String = ""
 
-    let buildSummary: String = "iOS shell scaffold"
     @Published private(set) var buildSummary: String
     @Published private(set) var runtimeSummary: String
     @Published private(set) var renderBackend: String
@@ -65,13 +64,37 @@ final class AppSession: ObservableObject {
     @Published private(set) var debugLogsSummary: String
 
     private let fileAccessService: ProjectFileAccessServicing
-    private var recentProjectURLs: [String: URL] = [:]
-    private let supportedSharedExtensions: Set<String> = ["3mf", "stl", "obj", "step", "stp", "amf"]
     private let store: ProjectProfileStore
+    private var recentProjectURLs: [String: URL] = [:]
     private var cancellables: Set<AnyCancellable> = []
 
     var isSliceRunning: Bool {
         slicingState == .running
+    }
+
+    init(
+        store: ProjectProfileStore,
+        fileAccessService: ProjectFileAccessServicing = LocalProjectFileAccessService()
+    ) {
+        self.store = store
+        self.fileAccessService = fileAccessService
+
+        let diagnostics = store.diagnostics
+        buildSummary = diagnostics.buildSummary
+        runtimeSummary = diagnostics.runtimeSummary
+        renderBackend = diagnostics.renderBackend
+        backendVersion = diagnostics.backendVersion
+        portabilityStatus = diagnostics.portabilityAPI
+        debugLogsSummary = diagnostics.debugLogs
+
+        recentProjectNames = ["Benchy.3mf", "PhoneStand.stl"]
+        activeProjectName = "No model loaded"
+        lastActionStatus = "Ready"
+
+        bindDiagnostics()
+        if let firstRecent = recentProjectNames.first {
+            store.hydrateFromRecentProjectName(firstRecent)
+        }
     }
 
     func beginSlicing(message: String) {
@@ -110,37 +133,6 @@ final class AppSession: ObservableObject {
         lastActionStatus = "Slicing cancelled"
     }
 
-    func handleSharedFile(_ fileURL: URL) {
-        let fileName = fileURL.lastPathComponent
-        let fileExtension = fileURL.pathExtension.lowercased()
-    init(store: ProjectProfileStore) {
-        self.store = store
-        buildSummary = store.diagnostics.buildSummary
-        runtimeSummary = store.diagnostics.runtimeSummary
-        renderBackend = store.diagnostics.renderBackend
-        backendVersion = store.diagnostics.backendVersion
-        portabilityStatus = store.diagnostics.portabilityAPI
-        debugLogsSummary = store.diagnostics.debugLogs
-
-        store.$diagnostics
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] diagnostics in
-                self?.buildSummary = diagnostics.buildSummary
-                self?.runtimeSummary = diagnostics.runtimeSummary
-                self?.renderBackend = diagnostics.renderBackend
-                self?.backendVersion = diagnostics.backendVersion
-                self?.portabilityStatus = diagnostics.portabilityAPI
-                self?.debugLogsSummary = diagnostics.debugLogs
-            }
-            .store(in: &cancellables)
-
-        store.hydrateFromRecentProjectName(recentProjectNames.first)
-    }
-
-    init(fileAccessService: ProjectFileAccessServicing = LocalProjectFileAccessService()) {
-        self.fileAccessService = fileAccessService
-    }
-
     func beginImportFlow() {
         pickerImportPresented = true
     }
@@ -162,9 +154,7 @@ final class AppSession: ObservableObject {
 
         let fileName = fileAccessService.displayName(for: fileURL)
         recentProjectURLs[fileName] = fileURL
-        updateRecentProjects(with: fileName)
-        activeProjectName = fileName
-        lastActionStatus = "Imported model: \(fileName)"
+        activateProject(named: fileName, statusPrefix: "Imported model")
     }
 
     func openRecentProject(named fileName: String) {
@@ -180,9 +170,7 @@ final class AppSession: ObservableObject {
             return
         }
 
-        updateRecentProjects(with: fileName)
-        activeProjectName = fileName
-        lastActionStatus = "Opened recent project: \(fileName)"
+        activateProject(named: fileName, statusPrefix: "Opened recent project")
     }
 
     func runExport(target: ExportTarget) {
@@ -209,7 +197,36 @@ final class AppSession: ObservableObject {
     }
 
     func handleSharedFile(_ fileURL: URL) {
-        importPickedDocument(fileURL)
+        guard fileAccessService.isSupportedModelFile(fileURL) else {
+            let fileName = fileAccessService.displayName(for: fileURL)
+            presentFailure(title: "Unsupported shared file", detail: "\(fileName) is not a supported model type.")
+            return
+        }
+
+        let fileName = fileAccessService.displayName(for: fileURL)
+        recentProjectURLs[fileName] = fileURL
+        activateProject(named: fileName, statusPrefix: "Imported shared file")
+    }
+
+    private func bindDiagnostics() {
+        store.$diagnostics
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] diagnostics in
+                self?.buildSummary = diagnostics.buildSummary
+                self?.runtimeSummary = diagnostics.runtimeSummary
+                self?.renderBackend = diagnostics.renderBackend
+                self?.backendVersion = diagnostics.backendVersion
+                self?.portabilityStatus = diagnostics.portabilityAPI
+                self?.debugLogsSummary = diagnostics.debugLogs
+            }
+            .store(in: &cancellables)
+    }
+
+    private func activateProject(named fileName: String, statusPrefix: String) {
+        updateRecentProjects(with: fileName)
+        activeProjectName = fileName
+        store.hydrateFromRecentProjectName(fileName)
+        lastActionStatus = "\(statusPrefix): \(fileName)"
     }
 
     private func updateRecentProjects(with fileName: String) {
@@ -239,7 +256,5 @@ final class AppSession: ObservableObject {
             "G1 X10 Y10 F1800",
             "M84"
         ].joined(separator: "\n")
-        store.hydrateFromRecentProjectName(fileName)
-        lastActionStatus = "Imported shared file: \(fileName)"
     }
 }
