@@ -69,10 +69,14 @@ final class ViewportSession: ObservableObject {
         previewDetailText = "Portable Metal renderer bridge active"
     }
 
-    func configureBenchyPreviewLoaded() {
-        previewModelName = "3DBenchy.3mf"
+    func configurePreviewLoaded(projectName: String) {
+        previewModelName = projectName
         previewStatusText = "Preview ready (unsliced)"
         previewDetailText = "Layer estimate pending • 0 toolpaths generated"
+    }
+
+    func configureBenchyPreviewLoaded() {
+        configurePreviewLoaded(projectName: "3DBenchy.3mf")
     }
 
     func configureBenchyPreviewSliced() {
