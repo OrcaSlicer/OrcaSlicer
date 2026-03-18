@@ -21,6 +21,7 @@
 #include <string>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <math.h>
 
 #if defined(__linux__) || defined(__LINUX__)
@@ -78,7 +79,8 @@ using namespace nlohmann;
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
-#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/IThumbnailRenderer.hpp"
+#include "slic3r/GUI/ThumbnailRendererFactory.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GuiColor.hpp"
@@ -6451,6 +6453,7 @@ int CLI::run(int argc, char **argv)
                 }
                 else {
                     BOOST_LOG_TRIVIAL(info) << "glewInit Success." << std::endl;
+                    std::unique_ptr<Slic3r::GUI::IThumbnailRenderer> thumbnail_renderer = Slic3r::GUI::make_thumbnail_renderer();
                     GLVolumeCollection glvolume_collection;
                     Model &model = m_models[0];
                     int obj_extruder_id = 1, volume_extruder_id = 1;
@@ -6543,28 +6546,9 @@ int CLI::run(int argc, char **argv)
                                     const ThumbnailsParams thumbnail_params = {{}, false, true, true, true, i};
 
                                     BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%'s thumbnail, need to regenerate")%(i+1);
-                                    switch (Slic3r::GUI::OpenGLManager::get_framebuffers_type())
-                                    {
-                                    case Slic3r::GUI::OpenGLManager::EFramebufferType::Arb:
-                                            {
-                                                BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: ARB");
-                                                Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer(*thumbnail_data,
-                                                   thumbnail_width, thumbnail_height, thumbnail_params,
-                                                   partplate_list, model.objects, glvolume_collection, colors_out, shader, Slic3r::GUI::Camera::EType::Ortho);
-                                                break;
-                                            }
-                                    case Slic3r::GUI::OpenGLManager::EFramebufferType::Ext:
-                                            {
-                                                BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: EXT");
-                                                Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer_ext(*thumbnail_data,
-                                                   thumbnail_width, thumbnail_height, thumbnail_params,
-                                                   partplate_list, model.objects, glvolume_collection, colors_out, shader, Slic3r::GUI::Camera::EType::Ortho);
-                                                break;
-                                            }
-                                    default:
-                                            BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: unknown");
-                                            break;
-                                    }
+                                    if (!thumbnail_renderer->render(*thumbnail_data, thumbnail_width, thumbnail_height, thumbnail_params, partplate_list,
+                                                                    model.objects, glvolume_collection, colors_out, shader, false, false, false))
+                                        BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%'s thumbnail render skipped by renderer backend") % (i + 1);
                                     BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%'s thumbnail,finished rendering")%(i+1);
                                 }
                             }
@@ -6595,32 +6579,10 @@ int CLI::run(int argc, char **argv)
                                     const ThumbnailsParams thumbnail_params = { {}, false, true, false, true, i };
 
                                     BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%'s no_light_thumbnail_file missed, need to regenerate")%(i+1);
-                                    switch (Slic3r::GUI::OpenGLManager::get_framebuffers_type())
-                                    {
-                                        case Slic3r::GUI::OpenGLManager::EFramebufferType::Arb:
-                                            {
-                                                BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: ARB");
-                                                Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer(*no_light_thumbnail,
-                                                   thumbnail_width, thumbnail_height, thumbnail_params,
-                                                                                                  partplate_list, model.objects, glvolume_collection, colors_out, shader,
-                                                                                                  Slic3r::GUI::Camera::EType::Ortho, Slic3r::GUI::Camera::ViewAngleType::Iso,
-                                                                                                  false, true);
-                                                break;
-                                            }
-                                        case Slic3r::GUI::OpenGLManager::EFramebufferType::Ext:
-                                            {
-                                                BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: EXT");
-                                                Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer_ext(*no_light_thumbnail,
-                                                   thumbnail_width, thumbnail_height, thumbnail_params,
-                                                                                                      partplate_list, model.objects, glvolume_collection, colors_out, shader,
-                                                                                                      Slic3r::GUI::Camera::EType::Ortho, Slic3r::GUI::Camera::ViewAngleType::Iso,
-                                                                                                      false, true);
-                                                break;
-                                            }
-                                        default:
-                                            BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: unknown");
-                                            break;
-                                    }
+                                    if (!thumbnail_renderer->render(*no_light_thumbnail, thumbnail_width, thumbnail_height, thumbnail_params,
+                                                                    partplate_list, model.objects, glvolume_collection, colors_out, shader, false, false,
+                                                                    true))
+                                        BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%'s no_light thumbnail render skipped by renderer backend") % (i + 1);
                                     plate_data->no_light_thumbnail_file = "valid_no_light";
                                     BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%'s no_light thumbnail,finished rendering")%(i+1);
                                 }
@@ -6683,43 +6645,13 @@ int CLI::run(int argc, char **argv)
                                         BOOST_LOG_TRIVIAL(info) << boost::format("skip rendering for top&&pick");
                                     }
                                     else {
-                                        switch (Slic3r::GUI::OpenGLManager::get_framebuffers_type())
-                                        {
-                                            case Slic3r::GUI::OpenGLManager::EFramebufferType::Arb:
-                                                {
-                                                    BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: ARB");
-                                                    Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer(*top_thumbnail,
-                                                       thumbnail_width, thumbnail_height, thumbnail_params,
-                                                                                                      partplate_list, model.objects, glvolume_collection, colors_out, shader,
-                                                                                                      Slic3r::GUI::Camera::EType::Ortho, Slic3r::GUI::Camera::ViewAngleType::Top_Plate,
-                                                                                                      false);
-                                                    Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer(*picking_thumbnail,
-                                                       thumbnail_width, thumbnail_height, thumbnail_params,
-                                                                                                          partplate_list, model.objects, glvolume_collection, colors_out, shader,
-                                                                                                          Slic3r::GUI::Camera::EType::Ortho,
-                                                                                                          Slic3r::GUI::Camera::ViewAngleType::Top_Plate, true, true);
-                                                    break;
-                                                }
-                                            case Slic3r::GUI::OpenGLManager::EFramebufferType::Ext:
-                                                {
-                                                    BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: EXT");
-                                                    Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer_ext(*top_thumbnail,
-                                                       thumbnail_width, thumbnail_height, thumbnail_params,
-                                                                                                          partplate_list, model.objects, glvolume_collection, colors_out, shader,
-                                                                                                          Slic3r::GUI::Camera::EType::Ortho,
-                                                                                                          Slic3r::GUI::Camera::ViewAngleType::Top_Plate, false);
-                                                    Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer_ext(*picking_thumbnail,
-                                                       thumbnail_width, thumbnail_height, thumbnail_params, partplate_list, model.objects,
-                                                                                                              glvolume_collection, colors_out, shader,
-                                                                                                              Slic3r::GUI::Camera::EType::Ortho,
-                                                                                                              Slic3r::GUI::Camera::ViewAngleType::Top_Plate,
-                                                                                                              true,true);
-                                                    break;
-                                                }
-                                            default:
-                                                BOOST_LOG_TRIVIAL(info) << boost::format("framebuffer_type: unknown");
-                                                break;
-                                        }
+                                        if (!thumbnail_renderer->render(*top_thumbnail, thumbnail_width, thumbnail_height, thumbnail_params, partplate_list,
+                                                                        model.objects, glvolume_collection, colors_out, shader, true, false, false))
+                                            BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%'s top thumbnail render skipped by renderer backend") % (i + 1);
+                                        if (!thumbnail_renderer->render(*picking_thumbnail, thumbnail_width, thumbnail_height, thumbnail_params,
+                                                                        partplate_list, model.objects, glvolume_collection, colors_out, shader, true, true,
+                                                                        true))
+                                            BOOST_LOG_TRIVIAL(warning) << boost::format("plate %1%'s pick thumbnail render skipped by renderer backend") % (i + 1);
                                         plate_data->top_file = "valid_top";
                                         plate_data->pick_file = "valid_pick";
                                         BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%'s top_thumbnail,finished rendering")%(i+1);
