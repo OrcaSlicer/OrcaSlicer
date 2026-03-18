@@ -25,3 +25,22 @@ This rule is enforced at CMake configure-time by `cmake/CheckPortabilityIncludes
 ## Current implementation focus: iOS-first
 
 The active implementation target is iOS portability modules under `src/portability/platform/ios/` and `src/portability/render/ios/`. Android modules should start only after iOS adapters are integrated end-to-end.
+
+
+## Feature parity matrix
+
+Status legend:
+- ✅ Implemented and workflow-validated
+- 🟡 Shell/partial (present but not workflow-complete)
+- ⚪ Not started
+
+| Capability | Desktop (current) | iOS shell (current) | Android | Notes |
+|---|---|---|---|---|
+| Project import/export | ✅ | 🟡 | ⚪ | iOS shell routes exist, but end-to-end import/export workflow validation is still pending. |
+| Slicing | ✅ | 🟡 | ⚪ | Shared slicing engine is portable; mobile-triggered slice job flow is not yet closed end-to-end. |
+| Viewport interaction | ✅ | 🟡 | ⚪ | Root viewport shell exists; interaction parity (selection/gizmos/deep controls) is not yet complete. |
+| Preview rendering | ✅ | 🟡 | ⚪ | iOS backend currently validates launch-time viewport rendering but not full renderer parity. |
+| Printer connectivity | ✅ | ⚪ | ⚪ | Mobile adapter path exists, but production printer connectivity workflow is not yet implemented. |
+| Cloud login | ✅ | ⚪ | ⚪ | Credential storage scaffolding exists on iOS, but full cloud auth/user flow remains pending. |
+
+Important: iOS screenshot CI passing confirms scene bring-up and deterministic capture only; it must not be interpreted as end-to-end feature parity.
