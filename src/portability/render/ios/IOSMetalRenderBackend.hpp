@@ -25,7 +25,7 @@ public:
     void             resize(int width, int height) override;
     void             render_frame() override;
     // Stores the latest portable scene state used by desktop and mobile renderers.
-    void submit_scene_state(const RenderSceneState& scene_state);
+    void             submit_scene_state(const RenderSceneState& scene_state) override;
 
     void             shutdown() override;
 
