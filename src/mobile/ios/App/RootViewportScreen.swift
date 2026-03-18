@@ -31,7 +31,7 @@ struct RootViewportScreen: View {
                     .allowsHitTesting(false)
             }
 
-            VStack {
+            topSafeAreaPinnedOverlay {
                 HStack {
                     ProjectStatusChip(
                         projectName: appSession.recentProjectNames.first ?? "No project loaded",
@@ -50,7 +50,6 @@ struct RootViewportScreen: View {
                 .padding(.top, 56)
                 Spacer()
             }
-            .safeAreaPadding(.top, 12)
             .allowsHitTesting(false)
 
             FloatingControlOverlay(
@@ -98,9 +97,9 @@ struct RootViewportScreen: View {
         let modelName = appSession.recentProjectNames.first ?? "Current project"
         appSession.beginSlicing(message: "Starting slice for \(modelName)")
 
-        let started = OrcaSlicerAppService.sharedService().startSlice(
+        let started = OrcaSlicerAppService.shared().startSlice(
             withModelName: modelName,
-            qualityPreset: sliceSettingsState.qualityPreset,
+            qualityPreset: sliceSettingsState.qualityPreset.serviceValue,
             infillPercent: sliceSettingsState.infillPercent,
             supportsEnabled: sliceSettingsState.supportsEnabled,
             progressHandler: { progressPercent, message in
@@ -151,7 +150,7 @@ struct RootViewportScreen: View {
             return
         }
 
-        OrcaSlicerAppService.sharedService().cancelSlice()
+        OrcaSlicerAppService.shared().cancelSlice()
     }
 
     private func applyScreenshotRouteIfNeeded() {
@@ -200,6 +199,17 @@ struct RootViewportScreen: View {
         case .project, .tools, .sliceSettings, .printer, .view, .appSettings:
             viewportSession.resetPreviewMetadata()
             appSession.lastActionStatus = "Screenshot scene: \(screenshotLaunch.requestedScene.rawValue)"
+        }
+    }
+
+    @ViewBuilder
+    private func topSafeAreaPinnedOverlay<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content()
+                .safeAreaPadding(.top, 12)
+        } else {
+            content()
+                .padding(.top, 12)
         }
     }
 }

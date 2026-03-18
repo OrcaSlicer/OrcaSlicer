@@ -25,6 +25,10 @@ final class SliceSettingsState: ObservableObject {
             case .quality: return "quality"
             }
         }
+
+        var serviceValue: String {
+            presetID
+        }
     }
 
     @Published var qualityPreset: QualityPreset = .balanced
