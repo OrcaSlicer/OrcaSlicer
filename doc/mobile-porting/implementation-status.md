@@ -147,6 +147,8 @@ Post-success cleanup applied:
 
 The repository now includes `.github/workflows/ios_ui_screenshot.yml`, a dedicated follow-on workflow to `ios_simulator_smoke`. It configures and builds the native `OrcaSlicerIOS` app target for the iOS simulator with the Xcode generator (no code signing), uses iOS deployment target `16.0` to match the current SwiftUI shell APIs, boots a simulator device, installs the app once, then relaunches it in deterministic screenshot mode for each current shell scene/menu (`benchy-preview`, `benchy-sliced`, `root`, `project`, `tools`, `slice-settings`, `printer`, `view`, and `app-settings`). Each pass captures a portrait screenshot to `artifacts/ios-screenshots/<scene>.png`, records outputs in `artifacts/ios-screenshots/manifest.txt`, and uploads the full directory as a single `ios-ui-screenshot` artifact.
 
+The workflow now also verifies simulator logs for explicit app-side render markers (`OrcaSlicerIOS root appeared...` and `screenshot route ready for scene=...`) before accepting each screenshot. This turns previously silent "captured image exists but UI never rendered/routed" regressions into hard CI failures with process logs attached.
+
 For non-PR runs, the same workflow can also publish the latest screenshot set into branch `ios-ui-screenshot-latest` under `ios-ui-screenshot/latest/` (controlled by `workflow_dispatch` input `publish_latest_to_repo`, default `true`).
 
 Validation scope: this confirms that the native SwiftUI shell app can be built, installed, launched, and rendered on a simulator in CI across all current scene/menu entry points. It does **not** validate end-to-end slicing workflows, deep UI interaction automation, or renderer feature parity beyond launch-time viewport shell bring-up.

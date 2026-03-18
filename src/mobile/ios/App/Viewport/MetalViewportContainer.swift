@@ -10,12 +10,20 @@ struct MetalViewportContainer: UIViewRepresentable {
     func makeUIView(context: Context) -> OrcaMetalViewportView {
         let view = OrcaMetalViewportView(frame: .zero)
         context.coordinator.attach(to: view)
+        viewportSession.updateRendererAvailability(
+            isAvailable: view.isRendererReady(),
+            statusText: view.rendererInitializationSummary()
+        )
         syncCamera(view)
         return view
     }
 
     func updateUIView(_ uiView: OrcaMetalViewportView, context: Context) {
         context.coordinator.viewportSession = viewportSession
+        viewportSession.updateRendererAvailability(
+            isAvailable: uiView.isRendererReady(),
+            statusText: uiView.rendererInitializationSummary()
+        )
         syncCamera(uiView)
     }
 

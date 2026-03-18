@@ -6,6 +6,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setCameraWithViewMatrix:(const double *)viewMatrix projectionMatrix:(const double *)projectionMatrix isLookingDownward:(BOOL)lookingDownward;
 - (void)setLookingDownward:(BOOL)lookingDownward;
+- (BOOL)isRendererReady;
+- (NSString *)rendererInitializationSummary;
 
 @end
 

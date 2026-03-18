@@ -12,6 +12,10 @@ struct RootViewportScreen: View {
     @State private var hasAppliedScreenshotRoute = false
 
     private var shouldShowStaticViewportOverlay: Bool {
+        if !viewportSession.isRendererAvailable {
+            return true
+        }
+
         guard screenshotLaunch.enabled else {
             return false
         }
@@ -66,6 +70,13 @@ struct RootViewportScreen: View {
         }
         .onAppear(perform: applyScreenshotRouteIfNeeded)
         .onChange(of: appSession.activeProjectName, perform: applyProjectPreviewState)
+        .onChange(of: viewportSession.isRendererAvailable) { isRendererAvailable in
+            if isRendererAvailable {
+                NSLog("OrcaSlicerIOS viewport renderer available")
+            } else {
+                NSLog("OrcaSlicerIOS viewport renderer unavailable: %@", viewportSession.rendererStatusText)
+            }
+        }
     }
 
     @ViewBuilder
@@ -154,6 +165,12 @@ struct RootViewportScreen: View {
     }
 
     private func applyScreenshotRouteIfNeeded() {
+        NSLog(
+            "OrcaSlicerIOS root appeared (screenshotMode=%@ rendererAvailable=%@ rendererStatus=%@)",
+            screenshotLaunch.enabled ? "true" : "false",
+            viewportSession.isRendererAvailable ? "true" : "false",
+            viewportSession.rendererStatusText
+        )
         guard screenshotLaunch.enabled, !hasAppliedScreenshotRoute else {
             return
         }
@@ -238,7 +255,8 @@ private struct ViewportPlaceholderOverlay: View {
                     GridPattern(
                         modelName: viewportSession.previewModelName,
                         statusText: viewportSession.previewStatusText,
-                        detailText: viewportSession.previewDetailText
+                        detailText: viewportSession.previewDetailText,
+                        rendererStatusText: viewportSession.rendererStatusText
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
@@ -252,6 +270,7 @@ private struct GridPattern: View {
     let modelName: String
     let statusText: String
     let detailText: String
+    let rendererStatusText: String
 
     var body: some View {
         GeometryReader { proxy in
@@ -297,6 +316,9 @@ private struct GridPattern: View {
                 Text(detailText)
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.45))
+                Text(rendererStatusText)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.5))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

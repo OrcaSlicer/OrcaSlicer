@@ -10,6 +10,8 @@ struct ViewportCameraState {
 
 final class ViewportSession: ObservableObject {
     @Published var isLookingDownward = true
+    @Published var isRendererAvailable: Bool = true
+    @Published var rendererStatusText: String = "Metal renderer ready"
     @Published var previewModelName: String = "No model loaded"
     @Published var previewStatusText: String = "Load a project to preview"
     @Published var previewDetailText: String = "Portable Metal renderer bridge active"
@@ -142,6 +144,11 @@ final class ViewportSession: ObservableObject {
         previewModelName = "No model loaded"
         previewStatusText = "Load a project to preview"
         previewDetailText = "Portable Metal renderer bridge active"
+    }
+
+    func updateRendererAvailability(isAvailable: Bool, statusText: String) {
+        isRendererAvailable = isAvailable
+        rendererStatusText = statusText
     }
 
     func configurePreviewLoaded(projectName: String) {
