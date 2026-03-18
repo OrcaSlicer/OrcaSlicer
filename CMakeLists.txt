@@ -56,9 +56,14 @@ You can do this in Environment Variables settings.
 endif ()
 
 if (APPLE)
-    # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 11.3
+    # Set Apple deployment target defaults only when not explicitly provided.
+    set(_orcaslicer_default_apple_deployment_target "11.3")
+    if (CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_OSX_SYSROOT MATCHES "iphoneos|iphonesimulator")
+        set(_orcaslicer_default_apple_deployment_target "13.0")
+    endif ()
+
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "11.3" CACHE STRING "Minimum OS X deployment version" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_orcaslicer_default_apple_deployment_target}" CACHE STRING "Minimum OS X deployment version" FORCE)
     endif ()
     message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif ()
