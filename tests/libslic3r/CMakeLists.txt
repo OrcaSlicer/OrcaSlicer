@@ -9,6 +9,7 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp
+    test_desktop_platform_services.cpp
     test_elephant_foot_compensation.cpp
     test_geometry.cpp
     test_placeholder_parser.cpp
@@ -30,7 +31,7 @@ if (TARGET OpenVDB::openvdb)
     target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)
 endif()
 
-target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+target_link_libraries(${_TEST_NAME}_tests test_common libslic3r orcaslicer_platform_desktop Catch2::Catch2WithMain)
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 

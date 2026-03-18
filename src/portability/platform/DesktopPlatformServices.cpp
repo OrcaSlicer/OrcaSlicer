@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <filesystem>
-#include <future>
+#include <thread>
 
 namespace Slic3r::portability::platform {
 
@@ -50,10 +50,10 @@ void DesktopPlatformServices::post_to_main_thread(std::function<void()> task)
 
 void DesktopPlatformServices::post_background(std::function<void()> task)
 {
-    std::async(std::launch::async, [task = std::move(task)] {
+    std::thread([task = std::move(task)] {
         if (task)
             task();
-    });
+    }).detach();
 }
 
 ICredentialStore& DesktopPlatformServices::credential_store()
