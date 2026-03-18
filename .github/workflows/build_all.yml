@@ -126,6 +126,44 @@ jobs:
         with:
           name: unit-test-logs
           path: build/tests/**/*.log
+      - name: Publish latest unit test logs to main branch folder
+        if: ${{ failure() && github.event_name != 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_BRANCH: main
+          PUBLISH_DIR: ci-logbook/unit-tests-latest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tmpdir="$(mktemp -d)"
+          cleanup() { rm -rf "${tmpdir}"; }
+          trap cleanup EXIT
+
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --depth 1 --branch "${TARGET_BRANCH}" "${REPO_URL}" "${tmpdir}/repo"
+
+          mkdir -p "${tmpdir}/repo/${PUBLISH_DIR}"
+          rsync -a --delete \
+            --include='*/' \
+            --include='*.log' \
+            --exclude='*' \
+            "build/tests/" "${tmpdir}/repo/${PUBLISH_DIR}/"
+          printf '%s\n' "${GITHUB_SHA}" > "${tmpdir}/repo/${PUBLISH_DIR}/source-commit.txt"
+
+          pushd "${tmpdir}/repo" >/dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${PUBLISH_DIR}"
+
+          if git diff --cached --quiet; then
+            echo "No unit test log changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Update unit test logs for ${GITHUB_SHA}"
+          git push origin HEAD:"${TARGET_BRANCH}"
+          popd >/dev/null
       - name: Publish Test Results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2

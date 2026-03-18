@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_latest_to_repo:
-        description: 'Publish latest simulator screenshots to branch ios-ui-screenshot-latest'
+        description: 'Publish latest simulator screenshots to the main branch folder ci-screenshot-gallery/ios-ui-latest'
         required: false
         type: boolean
         default: true
@@ -200,12 +200,12 @@ jobs:
           path: artifacts/ios-screenshots/
           if-no-files-found: error
 
-      - name: Publish latest screenshots to repository branch
+      - name: Publish latest screenshots to main branch folder
         if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish_latest_to_repo) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISH_BRANCH: ios-ui-screenshot-latest
-          PUBLISH_DIR: ios-ui-screenshot/latest
+          TARGET_BRANCH: main
+          PUBLISH_DIR: ci-screenshot-gallery/ios-ui-latest
         shell: bash
         run: |
           set -euo pipefail
@@ -216,18 +216,15 @@ jobs:
 
           REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          if git ls-remote --exit-code --heads "${REPO_URL}" "${PUBLISH_BRANCH}" >/dev/null 2>&1; then
-            git clone --depth 1 --branch "${PUBLISH_BRANCH}" "${REPO_URL}" "${tmpdir}/repo"
-          else
-            git clone --depth 1 "${REPO_URL}" "${tmpdir}/repo"
-            pushd "${tmpdir}/repo" >/dev/null
-            git checkout --orphan "${PUBLISH_BRANCH}"
-            git rm -rf . >/dev/null 2>&1 || true
-            popd >/dev/null
-          fi
+          git clone --depth 1 --branch "${TARGET_BRANCH}" "${REPO_URL}" "${tmpdir}/repo"
 
           mkdir -p "${tmpdir}/repo/${PUBLISH_DIR}"
-          rsync -a --delete "artifacts/ios-screenshots/" "${tmpdir}/repo/${PUBLISH_DIR}/"
+          rsync -a --delete \
+            --include='*/' \
+            --include='*.png' \
+            --include='manifest.txt' \
+            --exclude='*' \
+            "artifacts/ios-screenshots/" "${tmpdir}/repo/${PUBLISH_DIR}/"
           printf '%s\n' "${GITHUB_SHA}" > "${tmpdir}/repo/${PUBLISH_DIR}/source-commit.txt"
 
           pushd "${tmpdir}/repo" >/dev/null
@@ -241,7 +238,7 @@ jobs:
           fi
 
           git commit -m "Update iOS UI screenshots for ${GITHUB_SHA}"
-          git push origin HEAD:"${PUBLISH_BRANCH}"
+          git push origin HEAD:"${TARGET_BRANCH}"
           popd >/dev/null
 
       - name: Cleanup simulator
