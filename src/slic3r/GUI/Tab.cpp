@@ -1593,7 +1593,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_NO) {
                 DynamicPrintConfig new_conf = *m_config;
-                new_conf.set_key_value("precise_z_height", new ConfigOptionBool(false));
+                new_conf.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
                 m_config_manipulation.apply(m_config, &new_conf);
             }
             wxGetApp().plater()->update();
