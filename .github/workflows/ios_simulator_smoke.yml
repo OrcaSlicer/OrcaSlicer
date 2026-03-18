@@ -1,0 +1,56 @@
+name: iOS Simulator Smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'src/portability/**'
+      - 'src/slic3r/**'
+      - '**/CMakeLists.txt'
+      - '.github/workflows/ios_simulator_smoke.yml'
+  push:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'src/portability/**'
+      - 'src/slic3r/**'
+      - '**/CMakeLists.txt'
+      - '.github/workflows/ios_simulator_smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios_simulator_smoke:
+    name: Build iOS simulator smoke target
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: 'true'
+
+      - name: Setup CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28.0"
+
+      - name: Configure iOS simulator portability build
+        run: |
+          cmake -S . -B build-ios-sim -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphonesimulator \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DORCASLICER_BUILD_IOS_PORTABILITY=ON \
+            -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON
+
+      - name: Build orcaslicer_ios_smoke
+        run: |
+          cmake --build build-ios-sim --target orcaslicer_ios_smoke --config Release --parallel
