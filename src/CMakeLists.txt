@@ -18,10 +18,17 @@ target_sources(orcaslicer_portability_render_interface INTERFACE
 target_include_directories(orcaslicer_portability_render_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Compatibility target: preserve existing portability API dependency shape.
+add_library(orcaslicer_portability_app_interface INTERFACE)
+target_sources(orcaslicer_portability_app_interface INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/portability/app/IAppService.hpp
+)
+target_include_directories(orcaslicer_portability_app_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_library(orcaslicer_portability_api INTERFACE)
 target_link_libraries(orcaslicer_portability_api INTERFACE
     orcaslicer_portability_platform_interface
     orcaslicer_portability_render_interface
+    orcaslicer_portability_app_interface
 )
 target_include_directories(orcaslicer_portability_api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

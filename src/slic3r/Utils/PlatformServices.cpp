@@ -1,14 +1,19 @@
 #include "PlatformServices.hpp"
 
-#include <wx/stdpaths.h>
+#include "DesktopAppServiceAdapter.hpp"
 
-namespace Slic3r {
-namespace GUI {
+#include <string>
+
+namespace Slic3r { namespace GUI {
+
+DesktopPlatformServices::DesktopPlatformServices() : m_app_service(std::make_unique<DesktopAppServiceAdapter>()) {}
+
+DesktopPlatformServices::~DesktopPlatformServices() = default;
 
 wxString DesktopPlatformServices::executable_path() const
 {
-    return wxStandardPaths::Get().GetExecutablePath();
+    const std::string path = m_app_service->executable_path();
+    return wxString::FromUTF8(path.c_str());
 }
 
-} // namespace GUI
-} // namespace Slic3r
+}} // namespace Slic3r::GUI
