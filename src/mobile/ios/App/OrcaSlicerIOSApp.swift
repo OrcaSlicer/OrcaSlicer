@@ -20,6 +20,10 @@ struct OrcaSlicerIOSApp: App {
                 machineProfileState: machineProfileState
             )
             .preferredColorScheme(.dark)
+            .onOpenURL { sharedFileURL in
+                appSession.handleSharedFile(sharedFileURL)
+                panelRouter.present(.project)
+            }
         }
     }
 }
