@@ -1,85 +1,79 @@
 # Mobile Porting Implementation Status
 
-## Status snapshot
-The repository now has a portability scaffold under `src/portability/`, desktop scene-state adaptation extracted from `GLCanvas3D`, and an initial iOS module entry-point consuming the same portable scene contract. Current work is intentionally iOS-first with interfaces shared for Android follow-up.
-
-## Current state vs target state
-| Area | Current state | Target state | Migration status |
-|---|---|---|---|
-| Platform service contract | `src/portability/platform/IPlatformServices.hpp` and `ICredentialStore.hpp` | Keep contracts in `src/portability/platform/` | In progress |
-| Desktop platform adapter | `src/portability/platform/DesktopPlatformServices.*` + `DesktopInMemoryCredentialStore.*` | Keep as desktop adapter implementation | In progress |
-| iOS platform adapter | `src/portability/platform/ios/IOSPlatformServices.mm` now bridges Foundation + GCD for paths/thread dispatch and uses `IOSKeychainCredentialStore` for credentials | Harden Apple API integration edge-cases and extend lifecycle coverage for app/background transitions | In progress |
-| Renderer contract | `src/portability/render/IRenderBackend.hpp` + `ISceneRenderer.hpp` (`SceneState` now stores portable camera matrices instead of `GUI::Camera`) | Keep backend-neutral API in `src/portability/render/` with no GUI namespace dependencies | In progress |
-| Desktop scene-state adapter | `src/slic3r/GUI/DesktopSceneStateAdapter.*` now builds `portability::render::SceneState` from desktop `Camera` + `GLVolumeCollection` | Keep desktop-to-portability translation outside `GLCanvas3D` render loop plumbing | In progress |
-| Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | Canonical portability graph (`orcaslicer_portability_api`, `orcaslicer_platform_desktop`, `orcaslicer_render_null`, plus iOS targets on iOS toolchains) | Scaffolded |
-| iOS renderer adapter | `src/portability/render/ios/IOSMetalRenderBackend.mm` initializes Metal device/queue/layer, supports rebinding externally owned `CAMetalLayer` instances after initialization, resizes drawable, and submits a basic clear render pass | Integrate scene command submission/resources and harden frame/layer lifecycle | In progress |
-| Build integration | `src/CMakeLists.txt` + `src/portability/CMakeLists.txt` | iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`) built only for iOS toolchains | Scaffolded |
-
-## What landed in this phase
-- Normalized portability interfaces and namespaces under `Slic3r::portability::*` with renderer APIs and scene integration standardized on `Slic3r::portability::render`.
-- Added iOS platform services module implementing `IPlatformServices` with Foundation/GCD bridging and a Keychain-backed `ICredentialStore` (`IOSKeychainCredentialStore`).
-- Added iOS Metal renderer module implementing `IRenderBackend` with device/queue/layer setup, post-initialize layer rebinding support, and portable `SceneState` intake used during frame rendering.
-- Added iOS-specific CMake subtargets gated by iOS toolchain detection.
-
-## Temporary/legacy placement note
-Some desktop integration still exists in `src/slic3r/Utils` for launch/process and wx-bound application wiring. This is temporary and should be migrated behind `src/portability/**` contracts as we move additional services out of GUI-coupled modules.
-
-## Next iOS-focused steps
-1. Extend `IOSMetalRenderBackend` from scene-state intake to full scene command submission/upload lifecycle so Metal draws real model content rather than clear-only frames.
-2. Continue hardening iOS platform/renderer lifecycle handling (suspend/resume and thread handoff edge-cases) across `IOSPlatformServices` and `IOSMetalRenderBackend` now that layer rebind behavior is in place.
-3. Expand smoke/CI coverage for iOS portability targets (including credential-store and renderer bring-up paths) to catch regressions earlier.
-
-## Engine + module completion plan (target: 100% before iOS UI)
-
-The iOS UI should start only after shared-engine and portability modules are functionally complete and stable. Use the checklist below as the release gate.
-
-### Gate 1: Shared engine portability complete (100%)
-- [ ] Ensure `orcaslicer_core`-candidate code paths are free of direct wx/OpenGL/UI includes and runtime dependencies.
-- [ ] Verify deterministic slicing output parity against desktop baseline fixtures (`tests/data/**`) for representative FFF/SLA scenarios.
-- [ ] Confirm project/profile load-save and gcode generation behavior parity for mobile-targeted workflows.
-
-### Gate 2: Application service modules complete (100%)
-- [ ] Move remaining mobile-relevant orchestration from `src/slic3r/Utils/**` into portability-safe service boundaries.
-- [ ] Replace wx event-loop assumptions with platform-neutral async/task abstractions consumed through `IPlatformServices`.
-- [ ] Finalize error/reporting/progress contracts so native UI consumes stable view-state APIs instead of internal engine types.
-
-### Gate 3: iOS portability adapters complete (100%)
-- [ ] Complete `IOSPlatformServices` lifecycle handling: foreground/background transitions, cancellation, and thread handoff correctness.
-- [ ] Complete `IOSKeychainCredentialStore` edge-case handling (missing keys, migration/update semantics, failure propagation).
-- [ ] Complete `IOSMetalRenderBackend` scene submission path (mesh upload, camera updates, frame synchronization, resource teardown).
-
-### Gate 4: Build + validation readiness complete (100%)
-- [ ] Keep iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`, `orcaslicer_ios_smoke`) green in CI/toolchain smoke builds.
-- [ ] Add/expand unit and smoke coverage for portability APIs and adapter bring-up paths.
-- [ ] Document known limitations as explicit blockers; require zero P0/P1 portability regressions before UI kickoff.
-
-### UI kickoff criteria
-Start iOS UI implementation only when all four gates are checked and the team can demonstrate:
-- successful end-to-end flow (load model -> slice -> preview -> export) through portability adapters,
-- reproducible iOS smoke build success,
-- no unresolved critical coupling to desktop-only modules.
-
-## Deferred until after iOS milestone
-- Android adapter implementation (JNI + Vulkan/GLES backend).
-- Android build composition and packaging automation.
-
-## iOS smoke target invocation
-Canonical portability targets exported from `src/CMakeLists.txt` are:
+## Status snapshot (repo truth)
+The iOS-first portability scaffold is present in-tree and compiles behind iOS toolchain detection. The scaffolded target names are already established and should remain stable:
 
 - `orcaslicer_portability_api`
 - `orcaslicer_platform_desktop`
 - `orcaslicer_render_null`
+- `orcaslicer_portability` (compatibility meta-target)
+- `orcaslicer_platform_ios` (iOS only)
+- `orcaslicer_render_ios_metal` (iOS only)
+- `orcaslicer_ios_smoke` (iOS only)
 
-`orcaslicer_portability` remains as an interface compatibility meta-target that only forwards to the canonical targets above (no duplicated compilation units).
+Current state: contracts + build graph + basic adapters are landed; full mobile runtime behavior and real 3D draw submission are not.
 
-When configuring with an iOS toolchain (for example `-DCMAKE_SYSTEM_NAME=iOS` or an iPhone OS/simulator sysroot), CMake adds `orcaslicer_ios_smoke`, a minimal smoke target in `src/portability/` that links:
+## What is landed
 
-- `libslic3r`
-- `orcaslicer_portability_api`
-- `orcaslicer_platform_ios`
-- `orcaslicer_render_ios_metal`
+### 1) Portability contracts and canonical namespaces
+- `IPlatformServices` and `ICredentialStore` exist under `src/portability/platform/` as platform-neutral contracts.
+- `IRenderBackend` and `ISceneRenderer` exist under `src/portability/render/` with canonical namespace `Slic3r::portability::render`.
+- `SceneState` is GUI-independent and carries portable camera/model state.
 
-Expected invocation:
+### 2) Desktop adapter baseline
+- `DesktopPlatformServices` + `DesktopInMemoryCredentialStore` implement the platform service contracts for desktop builds.
+- `DesktopOpenGLSceneRenderer` bridges portable scene-state calls into existing desktop render callbacks.
+- `DesktopSceneStateAdapter` converts `Camera` + `GLVolumeCollection` into portability `SceneState` and is wired into `GLCanvas3D` rendering flow.
+
+### 3) iOS scaffold modules (preserve names)
+- `IOSPlatformServices` and `IOSKeychainCredentialStore` are implemented and built as `orcaslicer_platform_ios`.
+- `IOSMetalRenderBackend` is implemented and built as `orcaslicer_render_ios_metal`.
+- iOS targets are enabled only when iOS toolchain detection is active (`ORCASLICER_IOS_TOOLCHAIN_ACTIVE`).
+
+### 4) Smoke integration
+- `orcaslicer_ios_smoke` links `libslic3r` + iOS portability targets and performs minimal symbol-level/runtime bring-up checks.
+- This is a link/bring-up smoke check, not an end-to-end app workflow.
+
+## What remains stubbed or partial
+
+### Renderer path
+- `IOSMetalRenderBackend::render_frame()` currently performs a clear pass and viewport setup only.
+- No mesh upload, draw command generation, material pipeline, depth handling, selection/gizmo passes, or parity with desktop object rendering is implemented in the iOS backend yet.
+- `submit_scene_state()` currently stores state but does not drive real scene rendering.
+
+### Platform/runtime behavior
+- `IOSPlatformServices` currently provides basic path lookup + async dispatch, but app lifecycle semantics (foreground/background transitions, cancellation rules, ownership boundaries across threads) are not fully formalized/tested.
+- `IOSKeychainCredentialStore` handles read/write/remove basics, but migration/error-policy hardening for production UX remains to be codified.
+- `DesktopPlatformServices::post_to_main_thread()` executes inline (synchronous shortcut), which is acceptable as a desktop stub but not representative of mobile main-thread scheduling semantics.
+
+### Build + validation coverage
+- iOS smoke target validates linkage and basic object construction only.
+- There is no full CI-proven end-to-end mobile flow yet (`load model -> slice -> preview -> export`) through portability adapters.
+
+## UI start gate (must be true before iOS UI work begins)
+Start iOS UI implementation only after all of the following are complete:
+
+1. **Shared engine portability closure**
+   - Core slicing/project/export paths required by mobile flows run without desktop UI/event-loop coupling.
+   - Deterministic output parity is verified against desktop baselines for representative workloads.
+
+2. **Portability service closure**
+   - Remaining mobile-relevant orchestration still in desktop-coupled modules is moved behind portability-facing contracts.
+   - Async/progress/error semantics exposed to UI are stable and platform-neutral.
+
+3. **iOS adapter closure**
+   - `orcaslicer_render_ios_metal` renders real scene content from portable scene state (not clear-only frames).
+   - `orcaslicer_platform_ios` lifecycle and credential-store edge cases are validated for production behavior.
+
+4. **Validation closure**
+   - `orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`, and `orcaslicer_ios_smoke` remain green in repeatable iOS toolchain builds.
+   - Portability tests/smoke checks cover adapter bring-up + critical failure paths.
+
+## Deferred until after iOS milestone
+- Android platform adapters and renderer backend implementation.
+- Android build/packaging automation and mobile UI integration work.
+
+## Canonical iOS smoke invocation
 
 ```bash
 cmake -S . -B build-ios \
@@ -89,7 +83,4 @@ cmake -S . -B build-ios \
 cmake --build build-ios --target orcaslicer_ios_smoke --config Release
 ```
 
-Configure-time status output explicitly reports whether iOS portability detection is active and whether the smoke target is enabled.
-## Namespace contract
-- Renderer-facing portability interfaces use `Slic3r::portability::render` as the canonical namespace (`IRenderBackend`, `ISceneRenderer`, `DesktopOpenGLSceneRenderer`, and GUI integration call sites).
-- Compatibility aliases were not retained; callers should migrate directly to the canonical namespace.
+Configure-time output reports whether iOS toolchain detection is active and whether iOS portability targets are enabled.
