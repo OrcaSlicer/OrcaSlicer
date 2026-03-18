@@ -5,6 +5,8 @@
 
 namespace Slic3r::portability::render {
 
+struct RenderSceneState;
+
 enum class BackendType : uint8_t
 {
     OpenGL,
@@ -22,6 +24,7 @@ public:
     virtual std::string_view backend_name() const = 0;
     virtual BackendType      backend_type() const = 0;
     virtual bool             initialize() = 0;
+    virtual void             submit_scene_state(const RenderSceneState& scene_state) = 0;
     virtual void             resize(int width, int height) = 0;
     virtual void             render_frame() = 0;
     virtual void             shutdown() = 0;
