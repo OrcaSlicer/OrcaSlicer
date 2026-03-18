@@ -598,12 +598,15 @@ target_link_libraries(libslic3r
         libslic3r_cgal
         mcut
         noise::noise
-        PNG::PNG
         qhull
         qoi
         semver
         ZLIB::ZLIB
     )
+
+if (NOT ORCASLICER_IS_IOS_BUILD)
+    target_link_libraries(libslic3r PRIVATE PNG::PNG)
+endif()
 
 if (NOT ORCASLICER_IS_IOS_BUILD)
     target_link_libraries(libslic3r PRIVATE OpenSSL::Crypto)

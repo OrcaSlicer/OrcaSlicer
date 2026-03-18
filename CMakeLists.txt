@@ -728,7 +728,9 @@ if (NOT EXPAT_FOUND)
     set(EXPAT_LIBRARIES expat)
 endif ()
 
-find_package(PNG REQUIRED)
+if(NOT ORCASLICER_IS_IOS_BUILD)
+    find_package(PNG REQUIRED)
+endif()
 
 if (SLIC3R_GUI)
     set(OpenGL_GL_PREFERENCE "LEGACY")
