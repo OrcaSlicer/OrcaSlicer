@@ -633,6 +633,9 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/PlatformServices.cpp
     Utils/PlatformServices.hpp
+    ../portability/app/IAppService.hpp
+    Utils/DesktopAppServiceAdapter.cpp
+    Utils/DesktopAppServiceAdapter.hpp
     Utils/Process.cpp
     Utils/Process.hpp
     Utils/ProfileDescription.hpp
