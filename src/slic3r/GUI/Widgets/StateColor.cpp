@@ -44,7 +44,7 @@ static std::map<wxColour, wxColour> gDarkColors{
     {"#D9D9D9", "#2D2D32"}, // rgb(217, 217, 217)  Sidebar > Toggle button track color
     //{"#F0F0F0", "#4C4C54"},
     // ORCA
-    {"#BFE1DE", "#223C3C"}, // rgb(191, 225, 222)  Dropdown checked item background color > ORCA color with %25 opacity
+    {"#BFE1DE", "#ab1d1d"}, // rgb(191, 225, 222)  Dropdown checked item background color > ORCA color with %25 opacity
     {"#E5F0EE", "#283232"}, // rgb(229, 240, 238)  Combo / Dropdown focused background color > ORCA color with %10 opacity
 };
 

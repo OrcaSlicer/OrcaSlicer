@@ -270,8 +270,8 @@ AboutDialog::AboutDialog()
     text_sizer_horiz->Add( 0, 0, 0, wxLEFT, FromDIP(20));
 
     std::vector<wxString> text_list;
-    text_list.push_back(_L("GingerSlicer is based on GingerSlicer, BambuStudio, PrusaSlicer, and SuperSlicer."));
-    text_list.push_back(_L("GingerSlicer is originally based on GingerSlicer by SoftFever."));
+    text_list.push_back(_L("GingerSlicer is based on OrcasSlicer, BambuStudio, PrusaSlicer, and SuperSlicer."));
+    text_list.push_back(_L("GingerSlicer is originally based on OrcaSlicer by SoftFever."));
     text_list.push_back(_L("BambuStudio is originally based on PrusaSlicer by PrusaResearch."));
     text_list.push_back(_L("PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."));
     text_list.push_back(_L("Slic3r was created by Alessandro Ranellucci with the help of many other contributors."));
@@ -316,7 +316,7 @@ AboutDialog::AboutDialog()
 
     copyright_hor_sizer->Add(copyright_ver_sizer, 0, wxLEFT, FromDIP(20));
 
-    wxStaticText *html_text = new wxStaticText(this, wxID_ANY, "Copyright(C) 2022-2025 Li Jiang All Rights Reserved", wxDefaultPosition, wxDefaultSize);
+    wxStaticText *html_text = new wxStaticText(this, wxID_ANY, "Copyright(C) 2024-2026 Ginger Additive All Rights Reserved", wxDefaultPosition, wxDefaultSize);
     html_text->SetForegroundColour(wxColour(107, 107, 107));
 
     copyright_ver_sizer->Add(html_text, 0, wxALL , 0);
@@ -333,7 +333,7 @@ AboutDialog::AboutDialog()
               (boost::format(
               "<html>"
               "<body>"
-              "<p style=\"text-align:left\"><a style=\"color:#009789\" href=\"https://github.com/SoftFever/GingerSlicer\">https://github.com/SoftFever/GingerSlicer</ a></p>"
+              "<p style=\"text-align:left\"><a style=\"color:#009789\" href=\"https://github.com/gingeradditive/gingerslicer\">https://github.com/gingeradditive/gingerslicer</ a></p>"
               "</body>"
               "</html>")
             ).str());
