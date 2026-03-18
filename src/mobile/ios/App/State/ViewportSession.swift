@@ -98,4 +98,25 @@ final class ViewportSession: ObservableObject {
         )
         store.updateViewPreview(updated)
     }
+
+    func applySliceOutput(
+        modelName: String,
+        statusText: String,
+        detailText: String,
+        layerCount: Int,
+        toolpathCount: Int,
+        estimatedPrintTimeSeconds: Int
+    ) {
+        previewModelName = modelName
+        previewStatusText = statusText
+
+        let hours = estimatedPrintTimeSeconds / 3600
+        let minutes = (estimatedPrintTimeSeconds % 3600) / 60
+        let timeSummary = hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
+        previewDetailText = "\(detailText) • \(toolpathCount) toolpaths • ETA \(timeSummary)"
+
+        if layerCount <= 0 || toolpathCount <= 0 {
+            previewDetailText = "Slice output incomplete. Check diagnostics."
+        }
+    }
 }

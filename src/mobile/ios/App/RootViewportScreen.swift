@@ -34,7 +34,8 @@ struct RootViewportScreen: View {
             FloatingControlOverlay(
                 appSession: appSession,
                 panelRouter: panelRouter,
-                onSliceTapped: startSlice
+                onSliceTapped: startSlice,
+                onCancelSliceTapped: cancelSlice
             )
         }
         .sheet(item: $panelRouter.presentedPanel) { panel in
@@ -67,8 +68,68 @@ struct RootViewportScreen: View {
     }
 
     private func startSlice() {
-        appSession.lastActionStatus = "Slice settings ready"
-        panelRouter.present(.sliceSettings)
+        guard !appSession.isSliceRunning else {
+            appSession.lastActionStatus = "Slicing is already running"
+            return
+        }
+
+        let modelName = appSession.recentProjectNames.first ?? "Current project"
+        appSession.beginSlicing(message: "Starting slice for \(modelName)")
+
+        let started = OrcaSlicerAppService.sharedService().startSlice(
+            withModelName: modelName,
+            qualityPreset: sliceSettingsState.qualityPreset,
+            infillPercent: sliceSettingsState.infillPercent,
+            supportsEnabled: sliceSettingsState.supportsEnabled,
+            progressHandler: { progressPercent, message in
+                appSession.updateSlicingProgress(percent: progressPercent, message: message)
+            },
+            completionHandler: { output, failure, cancelled in
+                if cancelled {
+                    appSession.cancelSlicing()
+                    return
+                }
+
+                if let failure {
+                    let actionable = "Slice failed: \(failure.message). Check diagnostics for details."
+                    appSession.failSlicing(message: actionable, diagnosticsLog: failure.diagnosticLog)
+                    panelRouter.present(.sliceSettings)
+                    return
+                }
+
+                guard let output else {
+                    let fallback = "Slice failed: no output was produced."
+                    appSession.failSlicing(message: fallback, diagnosticsLog: "slice.failure: missing output and failure payload")
+                    panelRouter.present(.sliceSettings)
+                    return
+                }
+
+                appSession.completeSlicingSuccessfully(summary: "Slice complete for \(modelName)", diagnosticsLog: output.diagnosticLog)
+                viewportSession.applySliceOutput(
+                    modelName: modelName,
+                    statusText: output.statusText,
+                    detailText: output.detailText,
+                    layerCount: output.layerCount,
+                    toolpathCount: output.toolpathCount,
+                    estimatedPrintTimeSeconds: output.estimatedPrintTimeSeconds
+                )
+            }
+        )
+
+        if !started {
+            appSession.failSlicing(
+                message: "Slice request ignored because another slice is in progress.",
+                diagnosticsLog: "slice.failure: startSlice returned false"
+            )
+        }
+    }
+
+    private func cancelSlice() {
+        guard appSession.isSliceRunning else {
+            return
+        }
+
+        OrcaSlicerAppService.sharedService().cancelSlice()
     }
 
     private func applyScreenshotRouteIfNeeded() {
@@ -147,7 +208,7 @@ private struct ViewportPlaceholderOverlay: View {
                         statusText: viewportSession.previewStatusText,
                         detailText: viewportSession.previewDetailText
                     )
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 120)
@@ -231,11 +292,12 @@ private struct ProjectStatusChip: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.black.opacity(0.55))
+        .foregroundStyle(.white)
+        .background(Color.black.opacity(0.28))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

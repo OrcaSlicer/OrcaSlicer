@@ -1,6 +1,13 @@
 import Foundation
 import Combine
 
+enum SliceRunState {
+    case idle
+    case running
+    case success
+    case failure
+}
+
 final class AppSession: ObservableObject {
     struct UserFacingMessage: Identifiable {
         let id = UUID()
@@ -44,6 +51,12 @@ final class AppSession: ObservableObject {
     @Published var userMessage: UserFacingMessage?
     @Published var lastExportResult: ExportResultMetadata?
 
+    @Published var slicingState: SliceRunState = .idle
+    @Published var slicingProgressPercent: Double = 0
+    @Published var slicingMessage: String = ""
+    @Published var slicingDiagnosticsLog: String = ""
+
+    let buildSummary: String = "iOS shell scaffold"
     @Published private(set) var buildSummary: String
     @Published private(set) var runtimeSummary: String
     @Published private(set) var renderBackend: String
@@ -57,6 +70,49 @@ final class AppSession: ObservableObject {
     private let store: ProjectProfileStore
     private var cancellables: Set<AnyCancellable> = []
 
+    var isSliceRunning: Bool {
+        slicingState == .running
+    }
+
+    func beginSlicing(message: String) {
+        slicingState = .running
+        slicingProgressPercent = 0
+        slicingMessage = message
+        slicingDiagnosticsLog = ""
+        lastActionStatus = message
+    }
+
+    func updateSlicingProgress(percent: Double, message: String) {
+        slicingProgressPercent = max(0, min(percent, 100))
+        slicingMessage = message
+        lastActionStatus = "Slicing: \(Int(slicingProgressPercent))%"
+    }
+
+    func completeSlicingSuccessfully(summary: String, diagnosticsLog: String) {
+        slicingState = .success
+        slicingProgressPercent = 100
+        slicingMessage = summary
+        slicingDiagnosticsLog = diagnosticsLog
+        lastActionStatus = summary
+    }
+
+    func failSlicing(message: String, diagnosticsLog: String) {
+        slicingState = .failure
+        slicingMessage = message
+        slicingDiagnosticsLog = diagnosticsLog
+        lastActionStatus = message
+    }
+
+    func cancelSlicing() {
+        slicingState = .idle
+        slicingProgressPercent = 0
+        slicingMessage = "Slicing cancelled"
+        lastActionStatus = "Slicing cancelled"
+    }
+
+    func handleSharedFile(_ fileURL: URL) {
+        let fileName = fileURL.lastPathComponent
+        let fileExtension = fileURL.pathExtension.lowercased()
     init(store: ProjectProfileStore) {
         self.store = store
         buildSummary = store.diagnostics.buildSummary
