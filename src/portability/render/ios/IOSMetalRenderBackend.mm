@@ -8,6 +8,10 @@
 
 namespace Slic3r::portability::render::ios {
 
+namespace {
+constexpr MTLPixelFormat kPreferredPixelFormat = MTLPixelFormatBGRA8Unorm;
+}
+
 struct IOSMetalRenderBackend::MetalBackendState
 {
     id<MTLDevice>       device = nil;
@@ -34,9 +38,6 @@ BackendType IOSMetalRenderBackend::backend_type() const
 
 void IOSMetalRenderBackend::bind_metal_layer(CAMetalLayer *layer)
 {
-    if (m_initialized)
-        return;
-
     if (m_state->metal_layer == layer)
         return;
 
@@ -45,8 +46,11 @@ void IOSMetalRenderBackend::bind_metal_layer(CAMetalLayer *layer)
             [m_state->metal_layer release];
 
         m_state->metal_layer = layer;
-        if (m_state->metal_layer != nil)
+        if (m_state->metal_layer != nil) {
             [m_state->metal_layer retain];
+            if (m_initialized)
+                configure_layer_for_current_state(m_state->metal_layer);
+        }
     }
 }
 
@@ -67,18 +71,26 @@ bool IOSMetalRenderBackend::initialize()
         if (m_state->command_queue == nil)
             return false;
 
-        if (m_state->metal_layer == nil) {
+        if (m_state->metal_layer == nil)
             m_state->metal_layer = [[CAMetalLayer layer] retain];
-        }
 
-        m_state->metal_layer.device = m_state->device;
-        m_state->metal_layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-        m_state->metal_layer.framebufferOnly = YES;
-        m_state->metal_layer.drawableSize = CGSizeMake(std::max(m_width, 1), std::max(m_height, 1));
+        configure_layer_for_current_state(m_state->metal_layer);
     }
 
     m_initialized = true;
     return true;
+}
+
+
+void IOSMetalRenderBackend::configure_layer_for_current_state(CAMetalLayer *layer)
+{
+    if (layer == nil || m_state->device == nil)
+        return;
+
+    layer.device = m_state->device;
+    layer.pixelFormat = kPreferredPixelFormat;
+    layer.framebufferOnly = YES;
+    layer.drawableSize = CGSizeMake(std::max(m_width, 1), std::max(m_height, 1));
 }
 
 void IOSMetalRenderBackend::resize(int width, int height)
@@ -89,7 +101,7 @@ void IOSMetalRenderBackend::resize(int width, int height)
     if (!m_initialized || m_state->metal_layer == nil)
         return;
 
-    m_state->metal_layer.drawableSize = CGSizeMake(std::max(m_width, 1), std::max(m_height, 1));
+    configure_layer_for_current_state(m_state->metal_layer);
 }
 
 void IOSMetalRenderBackend::render_frame()
