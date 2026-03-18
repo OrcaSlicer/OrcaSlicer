@@ -42,6 +42,7 @@ add_executable(OrcaSlicerIOS
 
 target_compile_features(OrcaSlicerIOS PRIVATE cxx_std_17)
 set_target_properties(OrcaSlicerIOS PROPERTIES
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-iOS.plist.in"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.softfever3d.orcaslicer.ios"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1"
