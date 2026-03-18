@@ -1504,7 +1504,7 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     }
 
     if (m_print_status != status) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": update_status: " << status << "(" << PrePrintChecker::get_print_status_info(status) << ")";
+        BOOST_LOG_TRIVIAL(info) << ": update_status: " << status << "(" << PrePrintChecker::get_print_status_info(status) << ")";
     }
     m_print_status = status;
 
@@ -2305,7 +2305,7 @@ bool SelectMachineDialog::is_enable_external_change_assist(std::vector<FilamentI
 
 void SelectMachineDialog::load_option_vals(MachineObject *obj)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " start"
+    BOOST_LOG_TRIVIAL(info) << " start"
                             << ", dev_id = " << (obj ? obj->get_dev_id() : "NULL")
                             << ", sending mode= " << m_is_in_sending_mode;
 
@@ -2392,7 +2392,7 @@ void SelectMachineDialog::on_send_print()
     assert(obj_->get_dev_id() == m_printer_last_select);
     if (obj_ == nullptr) { return; }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", print_job: for send task, current printer id =  " << m_printer_last_select << std::endl;
+    BOOST_LOG_TRIVIAL(info) << ", print_job: for send task, current printer id =  " << m_printer_last_select << std::endl;
     show_status(PrintDialogStatus::PrintStatusSending);
 
     m_status_bar->reset();
@@ -2841,7 +2841,7 @@ void SelectMachineDialog::update_user_printer()
         m_printer_box->GetPrinterComboBox()->SetTextLabel("");
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "for send task, current printer id =  " << m_printer_last_select << std::endl;
 }
 
 void SelectMachineDialog::on_rename_click(wxMouseEvent& event)
@@ -3013,7 +3013,7 @@ void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
             m_printer_last_select = m_list[i]->get_dev_id();
             obj = m_list[i];
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
+            BOOST_LOG_TRIVIAL(info) << "for send task, current printer id =  " << m_printer_last_select << std::endl;
             break;
         }
     }

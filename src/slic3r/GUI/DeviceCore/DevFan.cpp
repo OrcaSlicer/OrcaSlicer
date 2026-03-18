@@ -82,7 +82,7 @@ int Slic3r::DevFan::command_control_fan_new(int fan_id, int val)
 int Slic3r::DevFan::command_handle_response(const json &response)
 {
     if (!response.contains("sequence_id")) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ", error reponse.";
+        BOOST_LOG_TRIVIAL(warning) << ", error reponse.";
         return -1;
     }
 

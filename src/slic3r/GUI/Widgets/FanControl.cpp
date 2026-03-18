@@ -922,7 +922,7 @@ void FanControlPopupNew::on_show(wxShowEvent& evt)
 
 void FanControlPopupNew::command_control_air_duct(int mode_id, int submode)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", control air duct, id = " << mode_id;
+    BOOST_LOG_TRIVIAL(info) << ", control air duct, id = " << mode_id;
     if (m_obj) {
         m_obj->GetFan()->command_control_air_duct(mode_id, submode, [](const json& reply) {});
 

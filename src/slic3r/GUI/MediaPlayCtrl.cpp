@@ -143,7 +143,7 @@ MediaPlayCtrl::~MediaPlayCtrl()
         wxEventLoopBase::GetActive()->Yield();
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": " << this;
+    BOOST_LOG_TRIVIAL(info) << ": " << this;
 }
 
 void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
@@ -341,7 +341,7 @@ void MediaPlayCtrl::Play()
         agent->get_camera_url(m_machine + "|" + m_dev_ver + "|" + protocols[m_remote_proto],
                 [this, m = m_machine, v = agent_version, dv = m_dev_ver, token = std::weak_ptr(m_token)](std::string url) {
             if (token.expired()) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": token has been expired";
+                BOOST_LOG_TRIVIAL(info) << ": token has been expired";
                 return;
             }
 

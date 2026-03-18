@@ -130,7 +130,6 @@ public:
 
         std::unordered_map<Vec3f, CostItems, VecHash> results;
         BOOST_LOG_TRIVIAL(info) << CostItems::field_names();
-        std::cout << CostItems::field_names() << std::endl;
         for (int i = 0; i < orientations.size();i++) {
             Vec3f orientation = -orientations[i];
 
@@ -143,7 +142,6 @@ public:
             results[orientation] = cost_items;
 
             BOOST_LOG_TRIVIAL(info) << std::fixed << std::setprecision(4) << "orientation:" << orientation.transpose() << ", cost:" << std::fixed << std::setprecision(4) << cost_items.field_values();
-            std::cout << std::fixed << std::setprecision(4) << "orientation:" << orientation.transpose() << ", cost:" << std::fixed << std::setprecision(4) << cost_items.field_values() << std::endl;
         }
         if (progressind)
             progressind(60);
@@ -173,7 +171,6 @@ public:
         }
 
         BOOST_LOG_TRIVIAL(info) << std::fixed << std::setprecision(6) << "best:" << best_orientation.transpose() << ", costs:" << results_vector[0].second.field_values();
-        std::cout << std::fixed << std::setprecision(6) << "best:" << best_orientation.transpose() << ", costs:" << results_vector[0].second.field_values() << std::endl;
 
         return best_orientation.cast<double>();
     }

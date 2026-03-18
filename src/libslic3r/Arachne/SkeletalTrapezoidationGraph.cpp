@@ -246,7 +246,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
                 edge_from_3->twin->to = quad_mid->from;
                 if (count > 50)
                 {
-                    std::cerr << edge_from_3->from->p << " - " << edge_from_3->to->p << '\n';
+                    BOOST_LOG_TRIVIAL(error) << edge_from_3->from->p << " - " << edge_from_3->to->p;
                 }
                 if (++count > 1000) 
                 {

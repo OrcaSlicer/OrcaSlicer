@@ -47,7 +47,7 @@ public:
         catch (const nlohmann::json::exception& e)
         {
             assert(0 && __FUNCTION__);
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+            BOOST_LOG_TRIVIAL(error) << ": " << e.what();
         }
 
         return default_val;
@@ -63,7 +63,7 @@ public:
         catch (const nlohmann::json::exception& e)
         {
             assert(0 && __FUNCTION__);
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+            BOOST_LOG_TRIVIAL(error) << ": " << e.what();
         }
     }
 
@@ -77,7 +77,7 @@ public:
         catch (const nlohmann::json::exception& e)
         {
             assert(0 && __FUNCTION__);
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+            BOOST_LOG_TRIVIAL(error) << ": " << e.what();
         }
     }
 

@@ -408,11 +408,11 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
         wxString url = wxFileSystem::FileNameToURL(fn);
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "File exists and load url " << url.ToStdString();
+        BOOST_LOG_TRIVIAL(debug)<< "File exists and load url " << url.ToStdString();
         m_webview->LoadURL(url);
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "Successfully loaded url: " << url.ToStdString();
+        BOOST_LOG_TRIVIAL(debug)<< "Successfully loaded url: " << url.ToStdString();
     } else {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "WipingDialog.html not exist at path: " << filepath.string();
+        BOOST_LOG_TRIVIAL(error)<< "WipingDialog.html not exist at path: " << filepath.string();
     }
 
     main_sizer->SetSizeHints(this);
@@ -431,7 +431,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
 
     m_webview->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
         std::string message = evt.GetString().ToStdString();
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "Received message: " << message;
+        BOOST_LOG_TRIVIAL(debug)<< "Received message: " << message;
         try {
             json j = json::parse(message);
             if (j["msg"].get<std::string>() == "init") {
@@ -443,7 +443,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
                     wxString script2 = wxString::Format("buildText(%s)", text_obj_str);
                     bool result = m_webview->RunScript(script2);
                     if (!result) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to run buildText, retry without multi language";
+                        BOOST_LOG_TRIVIAL(error)<< "Failed to run buildText, retry without multi language";
                         wxString script3 = wxString::Format("buildText(%s)", BuildTextObjStr(false));
                         m_webview->RunScript(script3);
                     }
@@ -493,7 +493,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
             }
         }
         catch (...) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to parse json message: " << message;
+            BOOST_LOG_TRIVIAL(error)<< "Failed to parse json message: " << message;
         }
         });
 

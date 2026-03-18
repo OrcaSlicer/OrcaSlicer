@@ -102,7 +102,7 @@ const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, G
 		++ c;
 
     if (m_verbose)
-        std::cout << gline.m_raw << std::endl;
+        BOOST_LOG_TRIVIAL(trace) << gline.m_raw << std::endl;
 
     return c;
 }
@@ -198,9 +198,9 @@ bool GCodeReader::parse_file_internal(const std::string &filename, ParseLineCall
 
 bool GCodeReader::parse_file(const std::string &file, callback_t callback)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  before parse_file %1%") % file.c_str();
+    BOOST_LOG_TRIVIAL(info) << boost::format(":  before parse_file %1%") % file.c_str();
     auto ret = this->parse_file_internal(file, callback, [](size_t) {});
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  finished parse_file %1%") % file.c_str();
+    BOOST_LOG_TRIVIAL(info) << boost::format(":  finished parse_file %1%") % file.c_str();
 
     return ret;
 }
@@ -208,9 +208,9 @@ bool GCodeReader::parse_file(const std::string &file, callback_t callback)
 bool GCodeReader::parse_file(const std::string &file, callback_t callback, std::vector<size_t> &lines_ends)
 {
     lines_ends.clear();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  before parse_file %1%") % file.c_str();
+    BOOST_LOG_TRIVIAL(info) << boost::format(":  before parse_file %1%") % file.c_str();
     auto ret = this->parse_file_internal(file, callback, [&lines_ends](size_t file_pos){ lines_ends.emplace_back(file_pos); });
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  finished parse_file %1%") % file.c_str();
+    BOOST_LOG_TRIVIAL(info) << boost::format(":  finished parse_file %1%") % file.c_str();
 
     return ret;
 }

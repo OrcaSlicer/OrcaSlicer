@@ -68,7 +68,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     }
 
     if (version.empty()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": version is required but not provided";
+        BOOST_LOG_TRIVIAL(error) << ": version is required but not provided";
         set_load_error(
             "Network library version not specified",
             "A version must be specified to load the network library",
@@ -96,7 +96,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
             try {
                 boost::filesystem::copy(legacy_path, versioned_path);
             } catch (const std::exception& e) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to copy legacy library: " << e.what();
+                BOOST_LOG_TRIVIAL(error) << ": failed to copy legacy library: " << e.what();
             }
         }
     }
@@ -136,7 +136,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     m_networking_module = dlopen(library.c_str(), RTLD_LAZY);
     if (!m_networking_module) {
         char* dll_error = dlerror();
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": dlopen failed: " << (dll_error ? dll_error : "unknown error");
+        BOOST_LOG_TRIVIAL(error) << ": dlopen failed: " << (dll_error ? dll_error : "unknown error");
         set_load_error(
             "Failed to load network library",
             dll_error ? std::string(dll_error) : "Unknown dlopen error",
@@ -227,13 +227,13 @@ std::string BBLNetworkPlugin::get_version() const
 #endif
     }
     if (!consistent) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", inconsistent library, return 00.00.00.00!");
+        BOOST_LOG_TRIVIAL(warning) << boost::format(", inconsistent library, return 00.00.00.00!");
         return "00.00.00.00";
     }
     if (m_get_version) {
         return m_get_version();
     }
-    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", get_version not supported, return 00.00.00.00!");
+    BOOST_LOG_TRIVIAL(warning) << boost::format(", get_version not supported, return 00.00.00.00!");
     return "00.00.00.00";
 }
 
@@ -443,7 +443,7 @@ std::vector<std::string> BBLNetworkPlugin::scan_plugin_versions()
     boost::system::error_code ec;
     for (auto& entry : boost::filesystem::directory_iterator(plugin_folder, ec)) {
         if (ec) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": error iterating directory: " << ec.message();
+            BOOST_LOG_TRIVIAL(warning) << ": error iterating directory: " << ec.message();
             break;
         }
         if (!boost::filesystem::is_regular_file(entry.status()))

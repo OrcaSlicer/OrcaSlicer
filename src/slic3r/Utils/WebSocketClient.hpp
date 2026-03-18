@@ -29,7 +29,7 @@ public:
             // Close the WebSocket connection
             ws_.close(websocket::close_code::normal);
         } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
+            BOOST_LOG_TRIVIAL(error) << "Error: " << e.what() << std::endl;
         }
     }
     void connect(const std::string& host, const std::string& port, const std::string& path="/"){

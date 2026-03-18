@@ -1515,7 +1515,7 @@ void WipingExtrusions::set_extruder_override(const ExtrusionEntity* entity, cons
     copies_vector.resize(num_of_copies, -1);
 
     if (copies_vector[copy_id] != -1)
-        std::cout << "ERROR: Entity extruder overriden multiple times!!!\n";    // A debugging message - this must never happen.
+        BOOST_LOG_TRIVIAL(fatal) << "ERROR: Entity extruder overriden multiple times!!!";    // A debugging message - this must never happen.
 
     copies_vector[copy_id] = extruder;
 }

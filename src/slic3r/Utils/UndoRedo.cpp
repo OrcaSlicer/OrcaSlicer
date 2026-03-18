@@ -966,7 +966,7 @@ void StackImpl::take_snapshot(const std::string& snapshot_name, const Slic3r::Mo
 	std::cout << "After snapshot" << std::endl;
 	this->print();
 #endif /* SLIC3R_UNDOREDO_DEBUG */
-	BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("snapshot name %1%") % snapshot_name;
+	BOOST_LOG_TRIVIAL(debug) << boost::format("snapshot name %1%") % snapshot_name;
 	plate_list.print();
 }
 
@@ -1038,7 +1038,7 @@ void StackImpl::load_snapshot(size_t timestamp, Slic3r::Model& model, Slic3r::GU
 	}
 	m_reusable_objects.clear();
 
-	BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("snapshot name %1%") % it_snapshot->name;
+	BOOST_LOG_TRIVIAL(debug) << boost::format("snapshot name %1%") % it_snapshot->name;
 	plate_list.print();
 }
 
@@ -1080,7 +1080,7 @@ bool StackImpl::has_redo_snapshot() const
 
 bool StackImpl::undo(Slic3r::Model &model, const Slic3r::GUI::Selection &selection, Slic3r::GUI::GLGizmosManager &gizmos, Slic3r::GUI::PartPlateList& plate_list, const SnapshotData &snapshot_data, size_t time_to_load)
 {
-	BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":time_to_load %1%") % time_to_load;
+	BOOST_LOG_TRIVIAL(debug) << boost::format(":time_to_load %1%") % time_to_load;
 	assert(this->valid());
 	if (time_to_load == SIZE_MAX) {
 		auto it_current = std::lower_bound(m_snapshots.begin(), m_snapshots.end(), Snapshot(m_active_snapshot_time));
@@ -1121,7 +1121,7 @@ bool StackImpl::undo(Slic3r::Model &model, const Slic3r::GUI::Selection &selecti
 
 bool StackImpl::redo(Slic3r::Model& model, Slic3r::GUI::GLGizmosManager& gizmos, Slic3r::GUI::PartPlateList& plate_list, size_t time_to_load)
 {
-	BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":time_to_load %1%") % time_to_load;
+	BOOST_LOG_TRIVIAL(debug) << boost::format(":time_to_load %1%") % time_to_load;
 	assert(this->valid());
 	if (time_to_load == SIZE_MAX) {
 		auto it_current = std::lower_bound(m_snapshots.begin(), m_snapshots.end(), Snapshot(m_active_snapshot_time));

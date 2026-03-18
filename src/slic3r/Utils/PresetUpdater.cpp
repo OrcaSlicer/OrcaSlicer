@@ -631,7 +631,7 @@ void PresetUpdater::priv::sync_resources(std::string http_url, std::map<std::str
                 c.close();
             }
             catch(std::exception &err) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": save to "<<changelog_file<<" got a generic exception, reason = " << err.what();
+                BOOST_LOG_TRIVIAL(error)<< ": save to "<<changelog_file<<" got a generic exception, reason = " << err.what();
             }
 
             resource_it.second = resource_update->second;
@@ -832,10 +832,10 @@ bool PresetUpdater::priv::get_cached_plugins_version(std::string& cached_version
             if (j.contains("force"))
                 force = j["force"];
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": cached_version = "<<cached_version<<", force = " << force;
+            BOOST_LOG_TRIVIAL(info)<< ": cached_version = "<<cached_version<<", force = " << force;
         }
         catch(nlohmann::detail::parse_error &err) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<changelog_file<<" got a nlohmann::detail::parse_error, reason = " << err.what();
+            BOOST_LOG_TRIVIAL(error)<< ": parse "<<changelog_file<<" got a nlohmann::detail::parse_error, reason = " << err.what();
             //throw ConfigurationError(format("Failed loading json file \"%1%\": %2%", file_path, err.what()));
         }
     }

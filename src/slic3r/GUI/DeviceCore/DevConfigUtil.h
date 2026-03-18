@@ -108,7 +108,7 @@ public:
                 }
             }
         }
-        catch (...) { assert(0 && "get_value_from_config failed"); BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed"; }// there are file errors 
+        catch (...) { assert(0 && "get_value_from_config failed"); BOOST_LOG_TRIVIAL(error) << " failed"; }// there are file errors
         return T();
     };
 
@@ -125,7 +125,7 @@ public:
         }
         catch (...)
         {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to get " << item1 << ", " << item2;
+            BOOST_LOG_TRIVIAL(error) << " failed to get " << item1 << ", " << item2;
         }
 
         return T();
@@ -160,7 +160,7 @@ public:
                 }
             }
         }
-        catch (...) { assert(0 && "get_json_from_config failed"); BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed"; }// there are file errors 
+        catch (...) { assert(0 && "get_json_from_config failed"); BOOST_LOG_TRIVIAL(error) << " failed"; }// there are file errors
         return nlohmann::json();
     }
 
@@ -196,7 +196,7 @@ static std::string _parse_printer_type(const std::string& type_str)
         }
     }
 
-    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Unsupported printer type: " << type_str;
+    BOOST_LOG_TRIVIAL(error) << " Unsupported printer type: " << type_str;
     return type_str;
 }
 

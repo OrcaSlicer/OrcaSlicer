@@ -1145,7 +1145,7 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
         return;
 
     EMode translation_type = m_mode;
-    //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
+    //BOOST_LOG_TRIVIAL(debug) << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
 
     set_caches();
     for (unsigned int i : m_list) {
@@ -1620,8 +1620,8 @@ void Selection::translate(unsigned int object_idx, const Vec3d& displacement)
     if (!m_valid)
         return;
 
-    //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": obj %1%") % object_idx;
-    //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
+    //BOOST_LOG_TRIVIAL(debug) << boost::format(": obj %1%") % object_idx;
+    //BOOST_LOG_TRIVIAL(debug) << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
     for (unsigned int i : m_list) {
         GLVolume& v = *(*m_volumes)[i];
         if (v.object_idx() == (int)object_idx)
@@ -1664,8 +1664,8 @@ void Selection::translate(unsigned int object_idx, unsigned int instance_idx, co
     if (!m_valid)
         return;
 
-    //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": obj %1%, instance %2%") % object_idx % instance_idx;
-    //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
+    //BOOST_LOG_TRIVIAL(debug) << boost::format(": obj %1%, instance %2%") % object_idx % instance_idx;
+    //BOOST_LOG_TRIVIAL(debug) << boost::format(": %1%, displacement {%2%, %3%, %4%}") % __LINE__ % displacement(X) % displacement(Y) % displacement(Z);
     for (unsigned int i : m_list) {
         GLVolume& v = *(*m_volumes)[i];
         if (v.object_idx() == (int)object_idx && v.instance_idx() == (int)instance_idx)

@@ -1095,7 +1095,7 @@ bool MachineObject::is_filament_installed()
 bool MachineObject::is_makeworld_subtask()
 {
     if (model_task && model_task->design_id > 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " model task id: " << model_task->task_id << " is makeworld model";
+        BOOST_LOG_TRIVIAL(info) << " model task id: " << model_task->task_id << " is makeworld model";
         return true;
     }
     return false;
@@ -2451,7 +2451,7 @@ bool MachineObject::is_info_ready(bool check_version) const
 {
     if (check_version && module_vers.empty())
     {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": not ready, failed to check version";
+        BOOST_LOG_TRIVIAL(info) << ": not ready, failed to check version";
         return false;
     }
 
@@ -2461,7 +2461,7 @@ bool MachineObject::is_info_ready(bool check_version) const
         return true;
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+    BOOST_LOG_TRIVIAL(info)
         << ": not ready, m_full_msg_count=" << m_full_msg_count
         << ", m_push_count=" << m_push_count
         << ", diff.count()=" << diff.count()
@@ -2696,7 +2696,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 const auto& [first_type, first_time_stamp, first_delay] = message_delay.front();
                 const auto& [last_type, last_time_stap, last_delay] = message_delay.back();
 
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ", message delay, last time stamp: " << last_time_stap;
+                BOOST_LOG_TRIVIAL(debug) << ", message delay, last time stamp: " << last_time_stap;
                 if (last_time_stap - first_time_stamp >= MINUTE_30) {
                     // record, excluding current data
                     int total = message_delay.size();
@@ -2729,7 +2729,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         }
                     }
 
-                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ", message delay, message total: " << total;
+                    BOOST_LOG_TRIVIAL(debug) << ", message delay, message total: " << total;
 
                     message_delay.clear();
                     message_delay.shrink_to_fit();
@@ -4398,11 +4398,11 @@ void MachineObject::update_model_task()
     if (!model_task) return;
     if (!subtask_) return;
     if (model_task->task_id != subtask_->task_id) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " times: " << request_model_result << " model_task_id !=subtask_id";
+        BOOST_LOG_TRIVIAL(info) << " times: " << request_model_result << " model_task_id !=subtask_id";
         return;
     }
     if (model_task->instance_id <= 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " times: " << request_model_result << " instance_id <= 0";
+        BOOST_LOG_TRIVIAL(info) << " times: " << request_model_result << " instance_id <= 0";
         return;
     }
 
@@ -5266,7 +5266,7 @@ void MachineObject::update_filament_list()
 
 void MachineObject::update_printer_preset_name()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << "start update preset_name";
+    BOOST_LOG_TRIVIAL(info) << "start update preset_name";
     PresetBundle *     preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
     if (!preset_bundle) return;
     auto               printer_model = DevPrinterConfigUtil::get_printer_display_name(this->printer_type);
@@ -5285,7 +5285,7 @@ void MachineObject::update_printer_preset_name()
             m_nozzle_filament_data[nozzle_diameter_str] = data;
         }
         else
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " update printer preset name failed: "<< "printer_type: " << printer_type << "nozzle_diameter_str" << nozzle_diameter_str;
+            BOOST_LOG_TRIVIAL(info) << " update printer preset name failed: "<< "printer_type: " << printer_type << "nozzle_diameter_str" << nozzle_diameter_str;
     }
 
     for (auto iter = m_nozzle_filament_data.begin(); iter != m_nozzle_filament_data.end();)
@@ -5332,13 +5332,13 @@ void MachineObject::check_ams_filament_valid()
                     char     col_buf[10];
                     sprintf(col_buf, "%02X%02X%02XFF", (int) color.Red(), (int) color.Green(), (int) color.Blue());
                     try {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " ams settings_id is not exist in filament_list and reset, ams_id: " << ams_id << " tray_id"
+                        BOOST_LOG_TRIVIAL(info) << " ams settings_id is not exist in filament_list and reset, ams_id: " << ams_id << " tray_id"
                                                 << slot_id << "filament_id: " << curr_tray->setting_id;
 
                         command_ams_filament_settings(std::stoi(ams_id), std::stoi(slot_id), "", "", std::string(col_buf), "", 0, 0);
                         continue;
                     } catch (...) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " stoi error and ams_id: " << ams_id << " tray_id" << slot_id;
+                        BOOST_LOG_TRIVIAL(info) << " stoi error and ams_id: " << ams_id << " tray_id" << slot_id;
                     }
                 }
             }
@@ -5352,7 +5352,7 @@ void MachineObject::check_ams_filament_valid()
                                                                                                                                curr_tray->nozzle_temp_min,
                                                                                                                                curr_tray->nozzle_temp_max, preset_setting_id);
                         if (!is_equation) {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " ams filament is not match min max temp and reset, ams_id: " << ams_id << " tray_id"
+                            BOOST_LOG_TRIVIAL(info) << " ams filament is not match min max temp and reset, ams_id: " << ams_id << " tray_id"
                                                     << slot_id << "filament_id: " << curr_tray->setting_id;
 
 
@@ -5396,7 +5396,7 @@ void MachineObject::check_ams_filament_valid()
                     command_ams_filament_settings(vt_id, 0, "", "", std::string(col_buf), "", 0, 0);
                     continue;
                 } catch (...) {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " stoi error and tray_id" << vt_tray.id;
+                    BOOST_LOG_TRIVIAL(info) << " stoi error and tray_id" << vt_tray.id;
                 }
             }
         }
@@ -5415,7 +5415,7 @@ void MachineObject::check_ams_filament_valid()
                                                                                                                            vt_tray.tag_uid, vt_tray.nozzle_temp_min,
                                                                                                                            vt_tray.nozzle_temp_max, preset_setting_id);
                     if (!is_equation) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__
+                        BOOST_LOG_TRIVIAL(info)
                                                 << " vt_tray filament is not match min max temp and reset, filament_id: " << vt_tray.setting_id;
                         command_ams_filament_settings(vt_id, 0, vt_tray.setting_id, preset_setting_id, vt_tray.color, vt_tray.m_fila_type, std::stoi(vt_tray.nozzle_temp_min),
                                                           std::stoi(vt_tray.nozzle_temp_max));

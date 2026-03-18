@@ -106,7 +106,7 @@ void OrientJob::prepare_partplate() {
     if (plate->empty())
     {
         //no instances on this plate
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": no instances in current plate!");
+        BOOST_LOG_TRIVIAL(info) << boost::format(": no instances in current plate!");
 
         return;
     }

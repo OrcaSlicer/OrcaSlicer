@@ -64,7 +64,7 @@ void GridCellIconRenderer::Draw(wxGrid& grid,
     if (table) {
         ObjectGridTable::ObjectGridCol* grid_col = table->get_grid_col(col);
         if (!grid_col || !grid_col->b_icon) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": cell (%1%, %2%) not icon type") %row %col;
+            BOOST_LOG_TRIVIAL(error) << boost::format(": cell (%1%, %2%) not icon type") %row %col;
             return;
         }
         ObjectGridTable::ObjectGridRow* grid_row = table->get_grid_row(row - 1);
@@ -101,7 +101,7 @@ void GridCellIconRenderer::Draw(wxGrid& grid,
     }
     else {
         //should not happen
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no table found, should not happen" << std::endl;
+        BOOST_LOG_TRIVIAL(error) << ": no table found, should not happen" << std::endl;
     }
 }
 
@@ -977,7 +977,7 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
     wxString buf = text_data.GetText();
     int clip_size = buf.size();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", clip_size %1%, pasted_data %2%") %clip_size %buf;
+    BOOST_LOG_TRIVIAL(info) << boost::format(", clip_size %1%, pasted_data %2%") %clip_size %buf;
     if (clip_size <= 0)
         return;
     int src_top_row = m_selected_block.GetTopRow();
@@ -995,7 +995,7 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
         // No selection, copy just the current cell.
         if (m_currentCellCoords == wxGridNoCellCoords)
         {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", no selection and no current , can not paste");
+            BOOST_LOG_TRIVIAL(info) << boost::format(", no selection and no current , can not paste");
             return;
         }
 
@@ -1076,7 +1076,7 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
 			split(buf, string_array);
 			wxString source_string = string_array[0];
 			if (string_array.GetCount() <= 0) {
-				BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not split pasted data %1%") % buf;
+				BOOST_LOG_TRIVIAL(error) << boost::format(", can not split pasted data %1%") % buf;
 				return;
 			}
 			for (int i = 0; i < dst_row_cnt; i++)
@@ -1097,7 +1097,7 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
             split(buf, string_array);
             int count = string_array.GetCount();
             if ((count <= 0) || (count != src_row_cnt* src_col_cnt )){
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not split pasted data %1%, count %2%, src_row_cnt %3%, src_col_cnt %4%")%buf %count %src_row_cnt %src_col_cnt;
+                BOOST_LOG_TRIVIAL(error) << boost::format(", can not split pasted data %1%, count %2%, src_row_cnt %3%, src_col_cnt %4%")%buf %count %src_row_cnt %src_col_cnt;
                 return;
             }
             for ( int i = 0; i < src_row_cnt; i++ )
@@ -1181,7 +1181,7 @@ std::string ObjectGridTable::plate_outside = L("Outside");
 
 ObjectGridTable::~ObjectGridTable()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", this %1%, row_data size %2%") %this % m_grid_data.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(", this %1%, row_data size %2%") %this % m_grid_data.size();
     for ( int index = 0; index < m_grid_data.size(); index++ )
     {
         if (m_grid_data[index])
@@ -1225,7 +1225,7 @@ wxString ObjectGridTable::GetTypeName(int row, int col)
             break;
     }
 
-    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", unknown column");
+    BOOST_LOG_TRIVIAL(error) << boost::format(", unknown column");
     return wxEmptyString;
 }
 
@@ -1411,7 +1411,7 @@ wxString ObjectGridTable::GetValue (int row, int col)
             }
         }
         catch(...) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("row %1%, col %2%, type %3% ")%row %col %grid_col->type;
+            BOOST_LOG_TRIVIAL(error) << boost::format("row %1%, col %2%, type %3% ")%row %col %grid_col->type;
             return wxString();
         }
     }
@@ -1495,10 +1495,10 @@ void ObjectGridTable::update_value_to_object(Model* model, ObjectGridRow* grid_r
     std::string name_value;
 
     if (!object) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", object_id %1%, volume_id %2%, can not find modelObject anymore!")%grid_row->object_id %grid_row->volume_id;
+        BOOST_LOG_TRIVIAL(error) << boost::format(", object_id %1%, volume_id %2%, can not find modelObject anymore!")%grid_row->object_id %grid_row->volume_id;
         return;
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", object_id %1%, volume_id %2%, col %3%, row_type %4%")%grid_row->object_id %grid_row->volume_id %col %grid_row->row_type;
+    BOOST_LOG_TRIVIAL(info) << boost::format(", object_id %1%, volume_id %2%, col %3%, row_type %4%")%grid_row->object_id %grid_row->volume_id %col %grid_row->row_type;
 
     if (grid_row->row_type != row_object) {
         volume = object->volumes[grid_row->volume_id];
@@ -1526,12 +1526,12 @@ void ObjectGridTable::update_value_to_object(Model* model, ObjectGridRow* grid_r
             object_volume_id.volume = nullptr;
             object_volume_ids.push_back(object_volume_id);
             wxGetApp().obj_list()->printable_state_changed(object_volume_ids);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", change object %1%'s printable to %2%")%object->module_name %object->printable;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", change object %1%'s printable to %2%")%object->module_name %object->printable;
         }
     }
 
     if ((name_ptr) && (*name_ptr != name_value)) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", change name from %1% to %2%!")%name_ptr->c_str() %name_value.c_str();
+        BOOST_LOG_TRIVIAL(info) << boost::format(", change name from %1% to %2%!")%name_ptr->c_str() %name_value.c_str();
         *name_ptr = name_value;
         //notify object list
         wxGetApp().obj_list()->update_name_for_items();
@@ -1924,7 +1924,7 @@ void ObjectGridTable::construct_object_configs(ObjectGrid *object_grid)
 
     if (!m_panel->m_model)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "found invalid m_model, should not happen" << std::endl;
+        BOOST_LOG_TRIVIAL(error) << "found invalid m_model, should not happen" << std::endl;
         return;
     }
     int object_count = m_panel->m_model->objects.size();
@@ -2039,7 +2039,7 @@ void ObjectGridTable::construct_object_configs(ObjectGrid *object_grid)
 
 void ObjectGridTable::SetSelection(int object_id, int volume_id)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", set selection to object %1% part %2%") %object_id %volume_id;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", set selection to object %1% part %2%") %object_id %volume_id;
     //invalid object, skip
     if ((object_id == -1)&&(volume_id == -1))
         return;
@@ -2051,12 +2051,12 @@ void ObjectGridTable::SetSelection(int object_id, int volume_id)
             if ((volume_id == -1) || ((volume_id == row->volume_id)&&(row->row_type == row_volume))) {
                 m_panel->m_object_grid->SelectRow(index+1);
                 m_panel->m_object_grid->MakeCellVisible(index + 1, 0);
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", found row %1%") %index;
+                BOOST_LOG_TRIVIAL(debug) << boost::format(", found row %1%") %index;
                 break;
             }
         }
     }
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", can not find row");
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", can not find row");
 }
 
 void ObjectGridTable::reload_object_data(ObjectGridRow* grid_row, const std::string& category, DynamicPrintConfig&  global_config)
@@ -2329,7 +2329,7 @@ void ObjectGridTable::sort_row_data(compare_row_func sort_func)
     if (!size)
         return;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, this %1%, row_data size %2%") %this % m_grid_data.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(" enter, this %1%, row_data size %2%") %this % m_grid_data.size();
     std::list<ObjectGridRow*> new_grid_rows;
     for ( auto it = m_grid_data.begin(); it != m_grid_data.end(); it++ )
     {
@@ -2363,7 +2363,7 @@ void ObjectGridTable::sort_row_data(compare_row_func sort_func)
     new_grid_rows.clear();
 
     //update_row_properties();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" finished, this %1%, row_data size %2%") %this % m_grid_data.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(" finished, this %1%, row_data size %2%") %this % m_grid_data.size();
 }
 
 void ObjectGridTable::sort_by_col(int col)
@@ -2810,7 +2810,7 @@ int ObjectTablePanel::init_filaments_and_colors()
     const std::vector<std::string> filament_presets = wxGetApp().preset_bundle->filament_presets;
     m_filaments_count = filament_presets.size();
     if (m_filaments_count <= 0) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not get filaments, count: %1%, set to default") %m_filaments_count;
+        BOOST_LOG_TRIVIAL(error) << boost::format(", can not get filaments, count: %1%, set to default") %m_filaments_count;
         set_default_filaments_and_colors();
         return -1;
     }
@@ -2824,7 +2824,7 @@ int ObjectTablePanel::init_filaments_and_colors()
     m_filaments_name.resize(m_filaments_count);
     unsigned int color_count = filament_opt->values.size();
     if (color_count != m_filaments_count) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", invalid color count:%1%, extruder count: %2%") %color_count %m_filaments_count;
+        BOOST_LOG_TRIVIAL(warning) << boost::format(", invalid color count:%1%, extruder count: %2%") %color_count %m_filaments_count;
     }
 
     unsigned int i = 0;
@@ -2858,7 +2858,7 @@ void ObjectTablePanel::load_data()
 {
     int rows, cols;
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", enter");
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", enter");
     m_object_grid_table->construct_object_configs(m_object_grid);
     m_object_grid->AssignTable(m_object_grid_table);
 
@@ -3124,7 +3124,7 @@ void ObjectTablePanel::load_data()
 
 
     m_object_grid->SetGridLineColour(*wxWHITE);
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", finished, got %1% rows, %2% cols") %m_object_grid_table->GetNumberRows() %m_object_grid_table->GetNumberCols() ;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", finished, got %1% rows, %2% cols") %m_object_grid_table->GetNumberRows() %m_object_grid_table->GetNumberCols() ;
 }
 
 void ObjectTablePanel::SetSelection(int object_id, int volume_id)
@@ -3205,7 +3205,7 @@ void ObjectTablePanel::OnSelectCell( wxGridEvent& ev )
         return;
     }
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("cell (%1%, %2%) selected") %row %col;
+    BOOST_LOG_TRIVIAL(debug) << boost::format("cell (%1%, %2%) selected") %row %col;
     m_object_grid_table->OnSelectCell(row, col);
 
     m_cur_row = row;
@@ -3220,7 +3220,7 @@ void ObjectTablePanel::OnCellValueChanged( wxGridEvent& ev )
 
     m_object_grid_table->OnCellValueChanged(row, col);
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("cell (%1%, %2%) changed from %3% to %4%") %row %col %ev.GetString() % m_object_grid->GetCellValue(row, col);
+    BOOST_LOG_TRIVIAL(debug) << boost::format("cell (%1%, %2%) changed from %3% to %4%") %row %col %ev.GetString() % m_object_grid->GetCellValue(row, col);
 
     ev.Skip();
 }
@@ -3349,7 +3349,7 @@ ObjectTableDialog::ObjectTableDialog(wxWindow* parent, Plater* platerObj, Model 
     Bind(wxEVT_CHAR_HOOK, &ObjectTableDialog::OnText, this);
 
     //this->Layout();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", created, this %1%, m_obj_panel %2%") %this % m_obj_panel;
+    BOOST_LOG_TRIVIAL(info) << boost::format(", created, this %1%, m_obj_panel %2%") %this % m_obj_panel;
 
     m_main_sizer->Add(m_obj_panel, 1, wxEXPAND|wxLEFT,FromDIP(10));
     SetSizer(m_main_sizer);

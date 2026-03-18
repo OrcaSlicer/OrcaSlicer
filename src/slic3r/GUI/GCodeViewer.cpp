@@ -701,7 +701,7 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
     try
     {
         m_file.open(boost::filesystem::path(m_filename));
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": mapping file " << m_filename;
+        BOOST_LOG_TRIVIAL(info) << ": mapping file " << m_filename;
     }
     catch (...)
     {
@@ -901,7 +901,7 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
     //BBS: add log to trace the gcode file issue
     if (m_file.is_open()) {
         m_file.close();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
+        BOOST_LOG_TRIVIAL(info) << ": finished mapping file " << m_filename;
     }
 }
 void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
@@ -998,7 +998,7 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
     m_view_type_sel = (it != view_type_items.end()) ? std::distance(view_type_items.begin(), it) : 0;
     set_view_type(libvgcode::EViewType::FeatureType);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished");
+    BOOST_LOG_TRIVIAL(info) << boost::format(": finished");
 }
 
 void GCodeViewer::on_change_color_mode(bool is_dark) {
@@ -1081,7 +1081,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // avoid processing if called with the same gcode_result
     if (m_last_result_id == gcode_result.id && wxGetApp().is_editor()) {
         //BBS: add logs
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": the same id %1%, return directly, result %2% ") % m_last_result_id % (&gcode_result);
+        BOOST_LOG_TRIVIAL(info) << boost::format(": the same id %1%, return directly, result %2% ") % m_last_result_id % (&gcode_result);
 
         // collect tool colors
         libvgcode::Palette tools_colors;
@@ -1103,7 +1103,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
 
     //BBS: add logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": gcode result %1%, new id %2%, gcode file %3% ") % (&gcode_result) % m_last_result_id % gcode_result.filename;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": gcode result %1%, new id %2%, gcode file %3% ") % (&gcode_result) % m_last_result_id % gcode_result.filename;
 
     // release gpu memory, if used
     reset();
@@ -1114,7 +1114,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     //BBS: add safe check
     if (gcode_result.moves.size() == 0) {
         //result cleaned before slicing ,should return here
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": gcode result reset before, return directly!");
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": gcode result reset before, return directly!");
         gcode_result.unlock();
         wxGetApp().plater()->schedule_background_process();
         return;
@@ -1454,7 +1454,7 @@ void GCodeViewer::reset_shell()
 void GCodeViewer::reset()
 {
     //BBS: should also reset the result id
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current result id %1% ")%m_last_result_id;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": current result id %1% ")%m_last_result_id;
     m_last_result_id = -1;
     //BBS: add only gcode mode
     m_only_gcode_in_preview = false;
@@ -2090,13 +2090,13 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
 
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
     if ((print.id().id == m_shells.print_id)&&(print.get_modified_count() == m_shells.print_modify_count)) {
         //BBS: update force previewing logic
         if (force_previewing)
             m_shells.previewing = force_previewing;
         //already loaded
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": already loaded, print=%1% print_id=%2%, print_modify_count=%3%, force_previewing %4%")%(&print) %m_shells.print_id %m_shells.print_modify_count %force_previewing;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": already loaded, print=%1% print_id=%2%, print_modify_count=%3%, force_previewing %4%")%(&print) %m_shells.print_id %m_shells.print_modify_count %force_previewing;
         return;
     }
 
@@ -2200,7 +2200,7 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
     m_shells.print_id = print.id().id;
     m_shells.print_modify_count = print.get_modified_count();
     m_shells.previewing = true;
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": shell loaded, id change to %1%, modify_count %2%, object count %3%, glvolume count %4%")
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": shell loaded, id change to %1%, modify_count %2%, object count %3%, glvolume count %4%")
         % m_shells.print_id % m_shells.print_modify_count % object_count %m_shells.volumes.volumes.size();
 }
 

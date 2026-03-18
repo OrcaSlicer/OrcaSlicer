@@ -473,6 +473,8 @@ set(lisbslic3r_sources
     GCode/ToolOrderUtils.cpp
     FlushVolPredictor.hpp
     FlushVolPredictor.cpp
+    Logging/CacheSink.hpp
+    Logging/LoggingExtensions.hpp
 )
 
 if (APPLE)
@@ -631,6 +633,7 @@ if(SLIC3R_PROFILE)
     target_link_libraries(libslic3r PRIVATE Shiny)
 endif()
 
+add_common_pch(libslic3r)
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)
 endif ()

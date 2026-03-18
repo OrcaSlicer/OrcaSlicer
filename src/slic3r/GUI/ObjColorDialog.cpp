@@ -739,7 +739,7 @@ void ObjColorPanel::deal_algo(char cluster_number, bool redraw_ui)
         m_cluster_colours.emplace_back(convert_to_wxColour(m_cluster_colors_from_algo[i]));
     }
     if (m_cluster_colours.size() == 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ",m_cluster_colours.size() = 0\n";
+        BOOST_LOG_TRIVIAL(info) << ",m_cluster_colours.size() = 0\n";
         return;
     }
     m_cluster_map_filaments.resize(m_cluster_colors_from_algo.size());
@@ -885,7 +885,7 @@ bool ObjColorPanel::deal_add_btn()
     }
     if (is_exceed) {
         deal_approximate_match_btn();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ",Waring:The count of newly added and \n current extruders exceeds 32.";
+        BOOST_LOG_TRIVIAL(info) << ",Waring:The count of newly added and \n current extruders exceeds 32.";
         return true;
     }
     return false;

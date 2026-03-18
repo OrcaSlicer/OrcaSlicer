@@ -244,7 +244,7 @@ int PresetComboBox::update_ams_color()
         auto &ams_list = wxGetApp().preset_bundle->filament_ams_list;
         auto  iter     = ams_list.find(idx);
         if (iter == ams_list.end()) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": ams %1% out of range %2%") % idx % ams_list.size();
+            BOOST_LOG_TRIVIAL(warning) << boost::format(": ams %1% out of range %2%") % idx % ams_list.size();
             return -1;
         }
         color = iter->second.opt_string("filament_colour", 0u);
@@ -521,7 +521,7 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
             std::string filament_id = tray.opt_string("filament_id", 0u);
             auto        name        = tray.opt_string("tray_name", 0u);
             if (filament_id.empty()) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  %1% 's filament_id is empty.") % name;
+                BOOST_LOG_TRIVIAL(info) << boost::format(":  %1% 's filament_id is empty.") % name;
                 continue;
             }
             auto iter = std::find_if(filaments.begin(), filaments.end(),
@@ -535,7 +535,7 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
                 }
             }
             if (iter == filaments.end()) {
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
+                BOOST_LOG_TRIVIAL(warning) << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
                 continue;
             }
             const_cast<Preset&>(*iter).is_visible = true;
@@ -1439,12 +1439,12 @@ FilamentColor PlaterPresetComboBox::get_cur_color_info()
     std::vector<std::string> filament_color_type = Slic3r::GUI::wxGetApp().plater()->get_filament_color_render_type();
 
     if (m_filament_idx < 0 || m_filament_idx >= static_cast<int>(filaments_multi_color.size())) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": m_filament_idx %1% out of range %2%") % m_filament_idx % filaments_multi_color.size();
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": m_filament_idx %1% out of range %2%") % m_filament_idx % filaments_multi_color.size();
         return FilamentColor();
     }
 
     if (m_filament_idx >= static_cast<int>(filament_color_type.size())) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": m_filament_idx %1% out of range for color_type %2%") % m_filament_idx % filament_color_type.size();
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": m_filament_idx %1% out of range for color_type %2%") % m_filament_idx % filament_color_type.size();
         return FilamentColor();
     }
     std::string filament_color_info = filaments_multi_color[m_filament_idx];

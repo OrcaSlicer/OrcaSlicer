@@ -152,7 +152,7 @@ void SimplyPrint::load_oauth_credential()
             cred["access_token"] = j["access_token"];
             cred["refresh_token"] = j["refresh_token"];
         } catch (std::exception& err) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << cred_file << " failed, reason = " << err.what();
+            BOOST_LOG_TRIVIAL(error) << ": parse " << cred_file << " failed, reason = " << err.what();
             cred.clear();
         }
     }

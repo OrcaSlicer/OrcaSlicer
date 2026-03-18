@@ -953,7 +953,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             } else {
                 wxGetApp().stop_sync_user_preset();
             }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
+            BOOST_LOG_TRIVIAL(info) << " sync_user_preset: " << (sync ? "true" : "false");
         }
 
         #ifdef __WXMSW__

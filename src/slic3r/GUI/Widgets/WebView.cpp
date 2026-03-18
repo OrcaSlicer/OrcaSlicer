@@ -253,7 +253,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
     url2.Replace("\\", "/");
 #endif
     if (!url2.empty()) { url2 = wxURI(url2).BuildURI(); }
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": " << url2.ToUTF8();
+    BOOST_LOG_TRIVIAL(trace) << ": " << url2.ToUTF8();
 
 #ifdef __WIN32__
     wxWebView* webView = new WebViewEdge;
@@ -295,12 +295,12 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         Slic3r::GUI::WKWebView_setTransparentBackground(wkWebView);
 #endif
         auto addScriptMessageHandler = [] (wxWebView *webView) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": begin to add script message handler for wx.";
+            BOOST_LOG_TRIVIAL(info) << ": begin to add script message handler for wx.";
             Slic3r::GUI::wxGetApp().set_adding_script_handler(true);
             if (!webView->AddScriptMessageHandler("wx"))
                 wxLogError("Could not add script message handler");
             Slic3r::GUI::wxGetApp().set_adding_script_handler(false);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished add script message handler for wx.";
+            BOOST_LOG_TRIVIAL(info) << ": finished add script message handler for wx.";
         };
 #ifndef __WIN32__
         webView->CallAfter([webView, addScriptMessageHandler] {
@@ -320,7 +320,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 #endif
         webView->EnableContextMenu(true);
     } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": failed. Use fake web view.";
+        BOOST_LOG_TRIVIAL(info) << ": failed. Use fake web view.";
         webView = new FakeWebView;
     }
     webView->SetRefData(new WebViewRef(webView));
@@ -347,7 +347,7 @@ void WebView::LoadUrl(wxWebView * webView, wxString const &url)
     url2.Replace("\\", "/");
 #endif
     if (!url2.empty()) { url2 = wxURI(url2).BuildURI(); }
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << url2.ToUTF8();
+    BOOST_LOG_TRIVIAL(trace) << url2.ToUTF8();
     webView->LoadURL(url2);
 }
 

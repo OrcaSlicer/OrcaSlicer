@@ -16,7 +16,7 @@ void create_dir(const std::string& filePath)
             try {
                 boost::filesystem::create_directories(dir);
             } catch (const boost::filesystem::filesystem_error& e) {
-                std::cerr << e.what() << std::endl;
+                BOOST_LOG_TRIVIAL(error) << e.what() << std::endl;
             }
         }
     }

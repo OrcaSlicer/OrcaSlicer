@@ -62,10 +62,10 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
 
 PrinterWebView::~PrinterWebView()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Start";
+    BOOST_LOG_TRIVIAL(info) << " Start";
     SetEvtHandlerEnabled(false);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " End";
+    BOOST_LOG_TRIVIAL(info) << " End";
 }
 
 
@@ -173,7 +173,7 @@ void PrinterWebView::OnError(wxWebViewEvent &evt)
         e = "wxWEBVIEW_NAV_ERR_OTHER";
         break;
       }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": error loading page %1% %2% %3% %4%") %evt.GetURL() %evt.GetTarget() %e %evt.GetString();
+    BOOST_LOG_TRIVIAL(info)<< boost::format(": error loading page %1% %2% %3% %4%") %evt.GetURL() %evt.GetTarget() %e %evt.GetString();
 }
 
 void PrinterWebView::OnLoaded(wxWebViewEvent &evt)

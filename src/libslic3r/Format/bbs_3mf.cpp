@@ -924,7 +924,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (obj_parse_error) {
                     //already add_error inside
                     //top_importer->add_error(object_parse_error_message());
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Found error while extrace object %1%\n")%object_path;
+                    BOOST_LOG_TRIVIAL(error) << boost::format(", Found error while extrace object %1%\n")%object_path;
                     return false;
                 }
                 return true;
@@ -1460,7 +1460,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::string name(stat.m_filename);
                 std::replace(name.begin(), name.end(), '\\', '/');
 
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("extract %1%th file %2%, total=%3%\n")%(i+1)%name%num_entries;
+                BOOST_LOG_TRIVIAL(info) << boost::format("extract %1%th file %2%, total=%3%\n")%(i+1)%name%num_entries;
 
                 if (boost::algorithm::iequals(name, BBS_PROJECT_CONFIG_FILE)) {
                     // extract slic3r print config file
@@ -1532,8 +1532,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     return mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, pixels.data(), pixels.size(), 0);
                 });
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", plate %1%, thumbnail_file=%2%, no_light_thumbnail_file=%3%")%it->first %plate->thumbnail_file %plate->no_light_thumbnail_file;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", top_thumbnail_file=%1%, pick_thumbnail_file=%2%")%plate->top_file %plate->pick_file;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", plate %1%, thumbnail_file=%2%, no_light_thumbnail_file=%3%")%it->first %plate->thumbnail_file %plate->no_light_thumbnail_file;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", top_thumbnail_file=%1%, pick_thumbnail_file=%2%")%plate->top_file %plate->pick_file;
             it++;
         }
 
@@ -1576,7 +1576,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         //BBS progress point
         // prepare restore
         if (m_load_restore) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_RESTORE\n");
+            BOOST_LOG_TRIVIAL(info) << boost::format("import 3mf IMPORT_STAGE_RESTORE\n");
             if (proFn) {
                 proFn(IMPORT_STAGE_RESTORE, 0, 1, cb_cancel);
                 if (cb_cancel)
@@ -1585,7 +1585,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_OPEN, m_load_restore=%1%\n")%m_load_restore;
+        BOOST_LOG_TRIVIAL(info) << boost::format("import 3mf IMPORT_STAGE_OPEN, m_load_restore=%1%\n")%m_load_restore;
         if (proFn) {
             proFn(IMPORT_STAGE_OPEN, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -1621,7 +1621,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_name = boost::filesystem::path(filename).stem().string();
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_READ_FILES\n");
+        BOOST_LOG_TRIVIAL(info) << boost::format("import 3mf IMPORT_STAGE_READ_FILES\n");
         if (proFn) {
             proFn(IMPORT_STAGE_READ_FILES, 0, 3, cb_cancel);
             if (cb_cancel)
@@ -1656,7 +1656,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 }
                 else
                     ++index;
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", read %1%th sub model file %2%\n")%index %path;
+                BOOST_LOG_TRIVIAL(info) << boost::format(", read %1%th sub model file %2%\n")%index %path;
                 m_sub_model_path = path;
                 if (!_extract_from_archive(archive, path, [this] (mz_zip_archive& archive, const mz_zip_archive_file_stat& stat) {
                     return _extract_model_from_archive(archive, stat);
@@ -1689,7 +1689,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             );
 
             if (!object_load_result) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", loading sub-objects error\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format(", loading sub-objects error\n");
                 return false;
             }
 
@@ -1772,10 +1772,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::string name(stat.m_filename);
                 std::replace(name.begin(), name.end(), '\\', '/');
 
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("extract %1%th file %2%, total=%3%")%(i+1)%name%num_entries;
+                BOOST_LOG_TRIVIAL(info) << boost::format("extract %1%th file %2%, total=%3%")%(i+1)%name%num_entries;
 
                 if (name.find("/../") != std::string::npos) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", find file path including /../, not valid, skip it\n");
+                    BOOST_LOG_TRIVIAL(warning) << boost::format(", find file path including /../, not valid, skip it\n");
                     continue;
                 }
 
@@ -1871,7 +1871,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     _extract_file_from_archive(archive, stat);
                 }
                 else {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", %1% skipped, already parsed or a directory or not supported\n")%name;
+                    BOOST_LOG_TRIVIAL(info) << boost::format(", %1% skipped, already parsed or a directory or not supported\n")%name;
                 }
             }
         }
@@ -1881,7 +1881,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (!m_is_bbl_3mf) {
             // if the 3mf was not produced by OrcaSlicer and there is more than one instance,
             // split the object in as many objects as instances
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", found 3mf from other vendor, split as instance");
+            BOOST_LOG_TRIVIAL(info) << boost::format(", found 3mf from other vendor, split as instance");
             for (const IdToModelObjectMap::value_type& object : m_objects) {
                 if (object.second >= int(m_model->objects.size())) {
                     add_error("3rd 3mf, invalid object, id: "+std::to_string(object.first.second));
@@ -1923,7 +1923,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", process group colors, size %1%\n")%m_group_id_to_color.size();
+        BOOST_LOG_TRIVIAL(info) << boost::format(", process group colors, size %1%\n")%m_group_id_to_color.size();
         std::map<int, int> color_group_id_to_extruder_id_map;
         std::map<std::string, int> color_to_extruder_id_map;
         int extruder_id = 0;
@@ -1938,7 +1938,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", begin to assemble objects, size %1%\n")%m_objects.size();
+        BOOST_LOG_TRIVIAL(info) << boost::format(", begin to assemble objects, size %1%\n")%m_objects.size();
         //only load objects in plate_id
         PlateData* current_plate_data = nullptr;
         if ((plate_id > 0) && (plate_id <= m_plater_data.size())) {
@@ -1956,7 +1956,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::map<int, std::pair<int, int>>::iterator it = current_plate_data->obj_inst_map.find(object.first.second);
                 if (it == current_plate_data->obj_inst_map.end()) {
                     //not in current plate, skip
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", could not find object %1% in plate %2%, skip it\n")%object.first.second %plate_id;
+                    BOOST_LOG_TRIVIAL(info) << boost::format(", could not find object %1% in plate %2%, skip it\n")%object.first.second %plate_id;
                     continue;
                 }
             }
@@ -2138,7 +2138,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 //        model.adjust_min_z();
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_LOADING_PLATES, m_plater_data size %1%, m_backup_path %2%\n")%m_plater_data.size() %m_backup_path;
+        BOOST_LOG_TRIVIAL(info) << boost::format("import 3mf IMPORT_STAGE_LOADING_PLATES, m_plater_data size %1%, m_backup_path %2%\n")%m_plater_data.size() %m_backup_path;
         if (proFn) {
             proFn(IMPORT_STAGE_LOADING_PLATES, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -2183,8 +2183,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             plate_data_list[it->first-1]->config = it->second->config;
 
             current_plate_data = plate_data_list[it->first - 1];
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", plate %1%, thumbnail_file=%2%, no_light_thumbnail_file=%3%")%it->first %plate_data_list[it->first-1]->thumbnail_file %plate_data_list[it->first-1]->no_light_thumbnail_file;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", top_thumbnail_file=%1%, pick_thumbnail_file=%2%")%plate_data_list[it->first-1]->top_file %plate_data_list[it->first-1]->pick_file;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", plate %1%, thumbnail_file=%2%, no_light_thumbnail_file=%3%")%it->first %plate_data_list[it->first-1]->thumbnail_file %plate_data_list[it->first-1]->no_light_thumbnail_file;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", top_thumbnail_file=%1%, pick_thumbnail_file=%2%")%plate_data_list[it->first-1]->top_file %plate_data_list[it->first-1]->pick_file;
             it++;
 
             //update the arrange order
@@ -2193,7 +2193,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 int obj_index, obj_id = map_it->first, inst_index = map_it->second.first;
                 IndexToPathMap::iterator index_iter = m_index_paths.find(obj_id);
                 if (index_iter == m_index_paths.end()) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__
+                    BOOST_LOG_TRIVIAL(warning)
                         << boost::format(", can not find object from plate's obj_map, id=%1%, skip this object")%obj_id;
                     map_it++;
                     continue;
@@ -2201,7 +2201,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 Id temp_id = std::make_pair(index_iter->second, index_iter->first);
                 IdToModelObjectMap::iterator object_item = m_objects.find(temp_id);
                 if (object_item == m_objects.end()) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__
+                    BOOST_LOG_TRIVIAL(warning)
                         << boost::format(", can not find object from plate's obj_map, ID <%1%, %2%>, skip this object")%index_iter->second %index_iter->first;
                     map_it++;
                     continue;
@@ -2209,13 +2209,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 obj_index = object_item->second;
 
                 if (obj_index >= m_model->objects.size()) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__ << boost::format("invalid object id %1%\n")%obj_index;
+                    BOOST_LOG_TRIVIAL(warning) << boost::format("invalid object id %1%\n")%obj_index;
                     map_it++;
                     continue;
                 }
                 ModelObject* obj =  m_model->objects[obj_index];
                 if (inst_index >= obj->instances.size()) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__ << boost::format("invalid instance id %1%\n")%inst_index;
+                    BOOST_LOG_TRIVIAL(warning) << boost::format("invalid instance id %1%\n")%inst_index;
                     map_it++;
                     continue;
                 }
@@ -2241,7 +2241,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_FINISH\n");
+        BOOST_LOG_TRIVIAL(info) << boost::format("import 3mf IMPORT_STAGE_FINISH\n");
         if (proFn) {
             proFn(IMPORT_STAGE_FINISH, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -2514,7 +2514,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::string dest_file = temp_path + std::string("/") + "_temp_3.config";;
             std::string dest_zip_file = encode_path(dest_file.c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract project config file to file");
                 return;
@@ -2526,7 +2526,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 add_error("Error load config from json:"+reason);
                 return;
             }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", load project config file successfully from %1%\n") %dest_file;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", load project config file successfully from %1%\n") %dest_file;
         }
     }
 
@@ -2543,7 +2543,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::string dest_file = m_backup_path + std::string("/") + "_temp_2.config";;
             std::string dest_zip_file = encode_path(dest_file.c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
                 return;
@@ -2555,7 +2555,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::string reason;
             ConfigSubstitutions config_substitutions = use_json? config.load_from_json(dest_file, Enable, key_values, reason) : config.load_from_ini(dest_file, Enable);
             if (!reason.empty()) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", load project embedded config from  %1% failed\n") % dest_file;
+                BOOST_LOG_TRIVIAL(error) << boost::format(", load project embedded config from  %1% failed\n") % dest_file;
                 //skip this file
                 return;
             }
@@ -2565,7 +2565,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (type == Preset::TYPE_PRINT) {
                 print_name = dynamic_cast < ConfigOptionString* > (config.option("print_settings_id"));
                 if (!print_name) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not found print_settings_id from  %1%\n") % dest_file;
+                    BOOST_LOG_TRIVIAL(error) << boost::format(", can not found print_settings_id from  %1%\n") % dest_file;
                     //skip this file
                     return;
                 }
@@ -2574,7 +2574,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else if (type == Preset::TYPE_FILAMENT) {
                 filament_names = dynamic_cast < ConfigOptionStrings* > (config.option("filament_settings_id"));
                 if (!filament_names) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not found filament_settings_id from  %1%\n") % dest_file;
+                    BOOST_LOG_TRIVIAL(error) << boost::format(", can not found filament_settings_id from  %1%\n") % dest_file;
                     //skip this file
                     return;
                 }
@@ -2583,14 +2583,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else if (type == Preset::TYPE_PRINTER) {
                 print_name = dynamic_cast < ConfigOptionString* > (config.option("printer_settings_id"));
                 if (!print_name) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not found printer_settings_id from  %1%\n") % dest_file;
+                    BOOST_LOG_TRIVIAL(error) << boost::format(", can not found printer_settings_id from  %1%\n") % dest_file;
                     //skip this file
                     return;
                 }
                 preset_name = print_name->value;
             }
             else {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", invalid type  %1% from file %2%\n")% Preset::get_type_string(type) % dest_file;
+                BOOST_LOG_TRIVIAL(error) << boost::format(", invalid type  %1% from file %2%\n")% Preset::get_type_string(type) % dest_file;
                 //skip this file
                 return;
             }
@@ -2624,13 +2624,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             project_presets.push_back(preset);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create one project embedded preset: %1% from %2%, type %3%\n") % preset_name % dest_file %Preset::get_type_string(type);
+            BOOST_LOG_TRIVIAL(info) << boost::format(", create one project embedded preset: %1% from %2%, type %3%\n") % preset_name % dest_file %Preset::get_type_string(type);
         }
     }
 
     void _BBS_3MF_Importer::_extract_auxiliary_file_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, Model& model)
     {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", stat.m_uncomp_size is %1%")%stat.m_uncomp_size;
+        BOOST_LOG_TRIVIAL(info) << boost::format(", stat.m_uncomp_size is %1%")%stat.m_uncomp_size;
         if (stat.m_uncomp_size > 0) {
             std::string dest_file;
             if (stat.m_is_utf8) {
@@ -2660,7 +2660,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             dest_file = dir.string() + std::string("/") + dest_file;
             std::string dest_zip_file = encode_path(dest_file.c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
                 return;
@@ -2677,7 +2677,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             boost::filesystem::path dest_path = boost::filesystem::path(m_backup_path + "/" + src_file);
             std::string dest_zip_file = encode_path(dest_path.string().c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_path % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(info) << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_path % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract file to temp directory");
                 return;
@@ -4301,14 +4301,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 m_curr_instance.object_id = -1;
                 IndexToPathMap::iterator index_iter = m_index_paths.find(obj_id);
                 if (index_iter == m_index_paths.end()) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__
+                    BOOST_LOG_TRIVIAL(warning)
                         << boost::format(", can not find object for plate's item, id=%1%, skip this object")%obj_id;
                     return true;
                 }
                 Id temp_id = std::make_pair(index_iter->second, index_iter->first);
                 IdToModelObjectMap::iterator object_item = m_objects.find(temp_id);
                 if (object_item == m_objects.end()) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__
+                    BOOST_LOG_TRIVIAL(warning)
                         << boost::format(", can not find object for plate's item, ID <%1%, %2%>, skip this object")%index_iter->second %index_iter->first;
                     return true;
                 }
@@ -4713,7 +4713,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         //add the shared mesh logic
                         shared_mesh_id = ::atoi(metadata.value.c_str());
                         found_count++;
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, shared_mesh_id %2%")%__LINE__%shared_mesh_id;
+                        BOOST_LOG_TRIVIAL(info) << boost::format("shared_mesh_id %1%")%shared_mesh_id;
                     }
 
                     if (found_count >= 2)
@@ -4727,12 +4727,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             ModelVolume* volume = nullptr;
             ModelVolume *shared_volume = nullptr;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, subobject_id %2%, shared_mesh_id %3%")%__LINE__ %sub_object->id %shared_mesh_id;
+            BOOST_LOG_TRIVIAL(info) << boost::format("subobject_id %1%, shared_mesh_id %2%")%sub_object->id %shared_mesh_id;
             if (shared_mesh_id != -1) {
                 std::map<int, ModelVolume*>::iterator iter = m_shared_meshes.find(shared_mesh_id);
                 if (iter != m_shared_meshes.end()) {
                     shared_volume = iter->second;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, found shared mesh, id %2%, mesh %3%")%__LINE__%shared_mesh_id%shared_volume;
+                    BOOST_LOG_TRIVIAL(info) << boost::format("found shared mesh, id %1%, mesh %2%")%shared_mesh_id%shared_volume;
                 }
             }
             else {
@@ -4740,7 +4740,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::map<int, ModelVolume*>::iterator iter = m_shared_meshes.find(sub_object->id);
                 if (iter != m_shared_meshes.end()) {
                     shared_volume = iter->second;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, already loaded copy-share mesh before, id %2%, mesh %3%")%__LINE__%sub_object->id%shared_volume;
+                    BOOST_LOG_TRIVIAL(info) << boost::format("already loaded copy-share mesh before, id %1%, mesh %2%")%sub_object->id%shared_volume;
                 }
             }
 
@@ -4804,7 +4804,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else {
                 //create volume to use shared mesh
                 volume = object.add_volume_with_shared_mesh(*shared_volume);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, create volume using shared_mesh %2%")%__LINE__%shared_volume;
+                BOOST_LOG_TRIVIAL(info) << boost::format("create volume using shared_mesh %1%")%shared_volume;
             }
             // stores the volume matrix taken from the metadata, if present
             if (has_transform)
@@ -5755,7 +5755,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         boost::filesystem::remove(filepath_tmp, ec);
         if (!open_zip_writer(&archive, filepath_tmp)) {
             add_error("Unable to open the file"+filepath_tmp);
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to open the file\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to open the file\n");
             return false;
         }
 
@@ -5816,7 +5816,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool cb_cancel = false;
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ <<
+        BOOST_LOG_TRIVIAL(info)  <<
                 boost::format(",before open zip writer, m_skip_static %1%, m_save_gcode %2%, m_use_loaded_id %3%")%m_skip_static %m_save_gcode %m_use_loaded_id;
         if (proFn) {
             proFn(EXPORT_STAGE_OPEN_3MF, 0, 1, cb_cancel);
@@ -5826,7 +5826,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!open_zip_writer(&archive, filename)) {
             add_error("Unable to open the file"+filename);
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to open the file\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to open the file\n");
             return false;
         }
 
@@ -5844,7 +5844,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         } lock{ archive, &filename};
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", before add _add_content_types_file_to_archive\n");
+        BOOST_LOG_TRIVIAL(info)  << boost::format(", before add _add_content_types_file_to_archive\n");
         if (proFn) {
             proFn(EXPORT_STAGE_CONTENT_TYPES, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -5858,8 +5858,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(",before add thumbnails, count %1%") % thumbnail_data.size();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",top&&pick thumbnails, count %1%")%top_thumbnail_data.size();
+        BOOST_LOG_TRIVIAL(info) << boost::format(",before add thumbnails, count %1%") % thumbnail_data.size();
+        BOOST_LOG_TRIVIAL(info)  << boost::format(",top&&pick thumbnails, count %1%")%top_thumbnail_data.size();
 
         //BBS: add thumbnail for each plate
         if (!m_skip_static) {
@@ -5869,27 +5869,27 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<bool> pick_thumbnail_status(plate_data_list.size(), false);
 
             if ((thumbnail_data.size() > 0)&&(thumbnail_data.size() > plate_data_list.size())) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", thumbnail_data size %1% > plate count %2%")
+                BOOST_LOG_TRIVIAL(error) << boost::format(", thumbnail_data size %1% > plate count %2%")
                     % thumbnail_data.size() %plate_data_list.size();
                 return false;
             }
             if ((no_light_thumbnail_data.size() > 0) && (no_light_thumbnail_data.size() > plate_data_list.size())) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", no_light_thumbnail_data size %1% > plate count %2%") %
+                BOOST_LOG_TRIVIAL(error) << boost::format(", no_light_thumbnail_data size %1% > plate count %2%") %
                     no_light_thumbnail_data.size() % plate_data_list.size();
                 return false;
             }
             if ((top_thumbnail_data.size() > 0)&&(top_thumbnail_data.size() > plate_data_list.size())) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", top_thumbnail_data size %1% > plate count %2%")
+                BOOST_LOG_TRIVIAL(error) << boost::format(", top_thumbnail_data size %1% > plate count %2%")
                     % top_thumbnail_data.size() %plate_data_list.size();
                 return false;
             }
             if ((pick_thumbnail_data.size() > 0)&&(pick_thumbnail_data.size() > plate_data_list.size())) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", pick_thumbnail_data size %1% > plate count %2%")
+                BOOST_LOG_TRIVIAL(error) << boost::format(", pick_thumbnail_data size %1% > plate count %2%")
                     % pick_thumbnail_data.size() %plate_data_list.size();
                 return false;
             }
             if (top_thumbnail_data.size() != pick_thumbnail_data.size()) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", top_thumbnail_data size %1% != pick_thumbnail_data size %2%")
+                BOOST_LOG_TRIVIAL(error) << boost::format(", top_thumbnail_data size %1% != pick_thumbnail_data size %2%")
                     % top_thumbnail_data.size() %pick_thumbnail_data.size();
                 return false;
             }
@@ -5908,7 +5908,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                     }
 
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",add thumbnail %1%'s data into 3mf")%(index+1);
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(",add thumbnail %1%'s data into 3mf")%(index+1);
                     thumbnail_status[index] = true;
                 }
             }
@@ -5919,7 +5919,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                     }
 
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(",add no light thumbnail %1%'s data into 3mf") % (index + 1);
+                    BOOST_LOG_TRIVIAL(info) << boost::format(",add no light thumbnail %1%'s data into 3mf") % (index + 1);
                     thumbnail_status[index] = true;
                 }
             }
@@ -5928,7 +5928,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             {
                 if (top_thumbnail_data[index]->is_valid())
                 {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",add top thumbnail %1%'s data into 3mf")%(index+1);
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(",add top thumbnail %1%'s data into 3mf")%(index+1);
                     if (!_add_thumbnail_file_to_archive(archive, *top_thumbnail_data[index], "Metadata/top", index)) {
                         return false;
                     }
@@ -5937,7 +5937,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                 if (pick_thumbnail_data[index]->is_valid())
                 {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",add pick thumbnail %1%'s data into 3mf")%(index+1);
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(",add pick thumbnail %1%'s data into 3mf")%(index+1);
                     if (!_add_thumbnail_file_to_archive(archive, *pick_thumbnail_data[index], "Metadata/pick", index)) {
                         return false;
                     }
@@ -5950,20 +5950,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                 if (!thumbnail_status[i] && !plate_data->thumbnail_file.empty() && (boost::filesystem::exists(plate_data->thumbnail_file))){
                     std::string dst_in_3mf = (boost::format("Metadata/plate_%1%.png") % (i + 1)).str();
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", add thumbnail %1% from file %2%") % (i+1) %plate_data->thumbnail_file;
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(", add thumbnail %1% from file %2%") % (i+1) %plate_data->thumbnail_file;
 
                     if (!_add_file_to_archive(archive, dst_in_3mf, plate_data->thumbnail_file)) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", add thumbnail %1% from file %2% failed\n") % (i+1) %plate_data->thumbnail_file;
+                        BOOST_LOG_TRIVIAL(error) << boost::format(", add thumbnail %1% from file %2% failed\n") % (i+1) %plate_data->thumbnail_file;
                         return false;
                     }
                 }
 
                 if (!no_light_thumbnail_status[i] && !plate_data->no_light_thumbnail_file.empty() && (boost::filesystem::exists(plate_data->no_light_thumbnail_file))){
                     std::string dst_in_3mf = (boost::format("Metadata/plate_no_light_%1%.png") % (i + 1)).str();
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", add no light thumbnail %1% from file %2%") % (i+1) %plate_data->no_light_thumbnail_file;
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(", add no light thumbnail %1% from file %2%") % (i+1) %plate_data->no_light_thumbnail_file;
 
                     if (!_add_file_to_archive(archive, dst_in_3mf, plate_data->no_light_thumbnail_file)) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", add no light thumbnail %1% from file %2% failed\n") % (i+1) %plate_data->no_light_thumbnail_file;
+                        BOOST_LOG_TRIVIAL(error) << boost::format(", add no light thumbnail %1% from file %2% failed\n") % (i+1) %plate_data->no_light_thumbnail_file;
                         return false;
                     }
                 }
@@ -5971,9 +5971,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (!top_thumbnail_status[i] && !plate_data->top_file.empty() && (boost::filesystem::exists(plate_data->top_file))){
                     std::string dst_in_3mf = (boost::format("Metadata/top_%1%.png") % (i + 1)).str();
 
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", add top thumbnail %1% from file %2%") % (i+1) %plate_data->top_file;
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(", add top thumbnail %1% from file %2%") % (i+1) %plate_data->top_file;
                     if (!_add_file_to_archive(archive, dst_in_3mf, plate_data->top_file)) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", add top thumbnail %1% failed") % (i+1);
+                        BOOST_LOG_TRIVIAL(error) << boost::format(", add top thumbnail %1% failed") % (i+1);
                         return false;
                     }
                     top_thumbnail_status[i] = true;
@@ -5982,9 +5982,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 if (!pick_thumbnail_status[i] && !plate_data->pick_file.empty() && (boost::filesystem::exists(plate_data->pick_file))){
                     std::string dst_in_3mf = (boost::format("Metadata/pick_%1%.png") % (i + 1)).str();
 
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", add pick thumbnail %1% from file %2%") % (i+1) %plate_data->pick_file;
+                    BOOST_LOG_TRIVIAL(info)  << boost::format(", add pick thumbnail %1% from file %2%") % (i+1) %plate_data->pick_file;
                     if (!_add_file_to_archive(archive, dst_in_3mf, plate_data->pick_file)) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", add pick thumbnail %1% failed") % (i+1);
+                        BOOST_LOG_TRIVIAL(error) << boost::format(", add pick thumbnail %1% failed") % (i+1);
                         return false;
                     }
                     pick_thumbnail_status[i] = true;
@@ -5997,7 +5997,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",before add calibration thumbnails, count %1%\n")%calibration_data.size();
+        BOOST_LOG_TRIVIAL(info)  << boost::format(",before add calibration thumbnails, count %1%\n")%calibration_data.size();
         //BBS add calibration thumbnail for each plate
         if (!m_skip_static && calibration_data.size() > 0) {
             // Adds the file Metadata/calibration_p[X].png.
@@ -6019,7 +6019,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",before add calibration boundingbox, count %1%\n")%id_bboxes.size();
+        BOOST_LOG_TRIVIAL(info)  << boost::format(",before add calibration boundingbox, count %1%\n")%id_bboxes.size();
         if (!m_skip_static && id_bboxes.size() > 0) {
             // Adds the file Metadata/calibration_p[X].png.
             for (unsigned int index = 0; index < id_bboxes.size(); index++)
@@ -6035,7 +6035,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", before add models\n");
+        BOOST_LOG_TRIVIAL(info)  << boost::format(", before add models\n");
         if (proFn) {
             proFn(EXPORT_STAGE_ADD_MODELS, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -6058,7 +6058,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             // BBS progress point
-            /*BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format("export 3mf EXPORT_STAGE_ADD_LAYER_RANGE\n");
+            /*BOOST_LOG_TRIVIAL(info)  << boost::format("export 3mf EXPORT_STAGE_ADD_LAYER_RANGE\n");
             if (proFn) {
                 proFn(EXPORT_STAGE_ADD_LAYER_RANGE, 0, 1, cb_cancel);
                 if (cb_cancel)
@@ -6079,7 +6079,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             // BBS progress point
-            /*BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format("export 3mf EXPORT_STAGE_ADD_SUPPORT\n");
+            /*BOOST_LOG_TRIVIAL(info)  << boost::format("export 3mf EXPORT_STAGE_ADD_SUPPORT\n");
             if (proFn) {
                 proFn(EXPORT_STAGE_ADD_SUPPORT, 0, 1, cb_cancel);
                 if (cb_cancel)
@@ -6098,7 +6098,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }*/
 
             // BBS progress point
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", before add custom gcodes\n");
+            BOOST_LOG_TRIVIAL(info) << boost::format(", before add custom gcodes\n");
             if (proFn) {
                 proFn(EXPORT_STAGE_ADD_CUSTOM_GCODE, 0, 1, cb_cancel);
                 if (cb_cancel) return false;
@@ -6109,7 +6109,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (!_add_custom_gcode_per_print_z_file_to_archive(archive, model, config)) { return false; }
 
             // BBS progress point
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", before add project_settings\n");
+            BOOST_LOG_TRIVIAL(info) << boost::format(", before add project_settings\n");
             if (proFn) {
                 proFn(EXPORT_STAGE_ADD_PRINT_CONFIG, 0, 1, cb_cancel);
                 if (cb_cancel) return false;
@@ -6124,7 +6124,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             // BBS progress point
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", before add project embedded settings\n");
+            BOOST_LOG_TRIVIAL(info) << boost::format(", before add project embedded settings\n");
             if (proFn) {
                 proFn(EXPORT_STAGE_ADD_CONFIG_FILE, 0, 1, cb_cancel);
                 if (cb_cancel) return false;
@@ -6135,7 +6135,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // BBS: add project embedded preset files
                 _add_project_embedded_presets_to_archive(archive, model, project_presets);
 
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", finished add project embedded settings, size %1%\n")%project_presets.size();
+                BOOST_LOG_TRIVIAL(info) << boost::format(", finished add project embedded settings, size %1%\n")%project_presets.size();
                 if (proFn) {
                     proFn(EXPORT_STAGE_ADD_PROJECT_CONFIG, 0, 1, cb_cancel);
                     if (cb_cancel) return false;
@@ -6168,7 +6168,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     std::string target_file    = (boost::format("Metadata/plate_%1%.gcode.md5") % (plate_data->plate_index + 1)).str();
                     if (!mz_zip_writer_add_mem(&archive, target_file.c_str(), (const void *) plate_data->gcode_file_md5.c_str(), plate_data->gcode_file_md5.length(),
                                                MZ_DEFAULT_COMPRESSION)) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__
+                        BOOST_LOG_TRIVIAL(error)
                                                  << boost::format(", store  gcode md5 to 3mf's %1%,  length %2%, failed\n") %target_file %plate_data->gcode_file_md5.length();
                         return false;
                     }
@@ -6180,7 +6180,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Before _add_model_config_file_to_archive, because we modify plate_data
         //if (!m_skip_static && !_add_gcode_file_to_archive(archive, model, plate_data_list, proFn)) {
         if (!m_skip_static && m_save_gcode && !_add_gcode_file_to_archive(archive, model, plate_data_list, proFn)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", _add_gcode_file_to_archive failed\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", _add_gcode_file_to_archive failed\n");
             return false;
         }
 
@@ -6189,17 +6189,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // As there is just a single Indexed Triangle Set data stored per ModelObject, offsets of volumes into their respective Indexed Triangle Set data
         // is stored here as well.
         if (!_add_model_config_file_to_archive(archive, model, plate_data_list, objects_data, *config, export_plate_idx, m_save_gcode, m_use_loaded_id)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", _add_model_config_file_to_archive failed\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", _add_model_config_file_to_archive failed\n");
             return false;
         }
 
         if (!_add_cut_information_file_to_archive(archive, model)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", _add_cut_information_file_to_archive failed\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", _add_cut_information_file_to_archive failed\n");
             return false;
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", before add sliced info to 3mf\n");
+        BOOST_LOG_TRIVIAL(info)  << boost::format(", before add sliced info to 3mf\n");
         if (proFn) {
             proFn(EXPORT_STAGE_ADD_SLICE_INFO, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -6209,12 +6209,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // Adds sliced info of plate file ("Metadata/slice_info.config")
         // This file contains all sliced info of all plates
         if (!_add_slice_info_config_file_to_archive(archive, model, plate_data_list, objects_data, *config)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", _add_slice_info_config_file_to_archive failed\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", _add_slice_info_config_file_to_archive failed\n");
             return false;
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", before add auxiliary dir to 3mf\n");
+        BOOST_LOG_TRIVIAL(info)  << boost::format(", before add auxiliary dir to 3mf\n");
         if (proFn) {
             proFn(EXPORT_STAGE_ADD_AUXILIARIES, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -6222,12 +6222,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         if (!m_skip_static && !_add_auxiliary_dir_to_archive(archive, model.get_auxiliary_file_temp_path(), temp_data)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", _add_auxiliary_dir_to_archive failed\n");
+            BOOST_LOG_TRIVIAL(error)  << boost::format(", _add_auxiliary_dir_to_archive failed\n");
             return false;
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", before add relation file to 3mf\n");
+        BOOST_LOG_TRIVIAL(info)  << boost::format(", before add relation file to 3mf\n");
         if (proFn) {
             proFn(EXPORT_STAGE_ADD_RELATIONS, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -6238,18 +6238,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // The content of this file is the same for each OrcaSlicer 3mf.
         // The relationshis file contains a reference to the geometry file "3D/3dmodel.model", the name was chosen to be compatible with CURA.
         if (!_add_relationships_file_to_archive(archive, {}, {}, {}, temp_data, export_plate_idx)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", _add_relationships_file_to_archive failed\n");
+            BOOST_LOG_TRIVIAL(error)  << boost::format(", _add_relationships_file_to_archive failed\n");
             return false;
         }
 
         if (!mz_zip_writer_finalize_archive(&archive)) {
             add_error("Unable to finalize the archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to finalize the archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to finalize the archive\n");
             return false;
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", finished exporting 3mf\n");
+        BOOST_LOG_TRIVIAL(info)  << boost::format(", finished exporting 3mf\n");
         if (proFn) {
             proFn(EXPORT_STAGE_FINISH, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -6276,9 +6276,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 #endif
         if (!result) {
             add_error("Unable to add file " + src_file_path + " to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", Unable to add file %1% to archive %2%\n") % src_file_path % path_in_zip;
+            BOOST_LOG_TRIVIAL(error)  << boost::format(", Unable to add file %1% to archive %2%\n") % src_file_path % path_in_zip;
         } else {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", add file %1% to archive %2%\n") % src_file_path % path_in_zip;
+            BOOST_LOG_TRIVIAL(info)  << boost::format(", add file %1% to archive %2%\n") % src_file_path % path_in_zip;
         }
         return result;
     }
@@ -6298,7 +6298,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!mz_zip_writer_add_mem(&archive, CONTENT_TYPES_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add content types file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add content types file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add content types file to archive\n");
             return false;
         }
 
@@ -6319,7 +6319,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!res) {
             add_error("Unable to add thumbnail file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add thumbnail file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add thumbnail file to archive\n");
         }
 
         if (generate_small_thumbnail && thumbnail_data.is_valid()) {
@@ -6364,7 +6364,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             if (!res) {
                 add_error("Unable to add small thumbnail file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add small thumbnail file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add small thumbnail file to archive\n");
             }
         }
 
@@ -6385,7 +6385,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!res) {
             add_error("Unable to add thumbnail file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add thumbnail file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add thumbnail file to archive\n");
         }*/
 
         return res;
@@ -6401,7 +6401,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string json_file_name = (boost::format(PATTERN_CONFIG_FILE_FORMAT) % (index + 1)).str();
         if (!mz_zip_writer_add_mem(&archive, json_file_name.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add json file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add json file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add json file to archive\n");
             return false;
         }
 
@@ -6474,7 +6474,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!mz_zip_writer_add_mem(&archive, from.empty() ? RELATIONSHIPS_FILE.c_str() : from.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add relationships file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add relationships file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add relationships file to archive\n");
             return false;
         }
 
@@ -6503,7 +6503,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool sub_model = !objects_data.empty();
         bool write_object = sub_model || !m_split_model;
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", filename %1%, m_split_model %2%,  sub_model %3%")%filename % m_split_model % sub_model;
+        BOOST_LOG_TRIVIAL(info) << boost::format(", filename %1%, m_split_model %2%,  sub_model %3%")%filename % m_split_model % sub_model;
 
 #if WRITE_ZIP_LANGUAGE_ENCODING
         auto & zip_filename = filename;
@@ -6526,7 +6526,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             nullptr, nullptr, 0, MZ_DEFAULT_COMPRESSION, extra.c_str(), extra.length(), extra.c_str(), extra.length())) {
 #endif
             add_error("Unable to add model file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add model file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add model file to archive\n");
             return false;
         }
 
@@ -6630,7 +6630,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::string buf = stream.str();
             if (! buf.empty() && ! mz_zip_writer_add_staged_data(&context, buf.data(), buf.size())) {
                 add_error("Unable to add model file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add model file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add model file to archive\n");
                 return false;
             }
         }
@@ -6718,7 +6718,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // object_id will be increased to point to the 1st instance of the next ModelObject.
                     if (!_add_object_to_model_stream(context, object_it->second)) {
                         add_error("Unable to add object to archive");
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add object to archive\n");
+                        BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add object to archive\n");
                         return false;
                     }
                 }
@@ -6754,7 +6754,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // Store the transformations of all the ModelInstances of all ModelObjects, indexed in a linear fashion.
             if (!_add_build_to_model_stream(stream, build_items)) {
                 add_error("Unable to add build to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add build to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add build to archive\n");
                 return false;
             }
 
@@ -6765,7 +6765,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if ((! buf.empty() && ! mz_zip_writer_add_staged_data(&context, buf.data(), buf.size())) ||
                 ! mz_zip_writer_add_staged_finish(&context)) {
                 add_error("Unable to add model file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add model file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add model file to archive\n");
                 return false;
             }
         }
@@ -6813,7 +6813,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if ((force && !buf.empty()) || buf.size() >= 65536 * 16) {
                 if (!mz_zip_writer_add_staged_data(&context, buf.data(), buf.size())) {
                     add_error("Error during writing or compression");
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Error during writing or compression\n");
+                    BOOST_LOG_TRIVIAL(error) << boost::format(", Error during writing or compression\n");
                     return false;
                 }
                 buf.clear();
@@ -6822,7 +6822,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         };
         if (!_add_mesh_to_object_stream(flush, object_data)) {
             add_error("Unable to add mesh to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add mesh to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add mesh to archive\n");
             return false;
         }
 
@@ -6907,7 +6907,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if ((force && ! output_buffer.empty()) || output_buffer.size() >= 65536 * 16) {
                 if (! mz_zip_writer_add_staged_data(&context, output_buffer.data(), output_buffer.size())) {
                     add_error("Error during writing or compression");
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Error during writing or compression\n");
+                    BOOST_LOG_TRIVIAL(error) << boost::format(", Error during writing or compression\n");
                     return false;
                 }
                 output_buffer.clear();
@@ -6972,7 +6972,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             const indexed_triangle_set &its = volume->mesh().its;
             if (its.vertices.empty()) {
                 add_error("Found invalid mesh");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Found invalid mesh\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format(", Found invalid mesh\n");
                 return false;
             }
 
@@ -7264,7 +7264,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (!out.empty()) {
             if (!mz_zip_writer_add_mem(&archive, BBS_LAYER_HEIGHTS_PROFILE_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
                 add_error("Unable to add layer heights profile file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add layer heights profile file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format("Unable to add layer heights profile file to archive\n");
                 return false;
             }
         }
@@ -7323,7 +7323,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (!out.empty()) {
             if (!mz_zip_writer_add_mem(&archive, LAYER_CONFIG_RANGES_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
                 add_error("Unable to add layer heights profile file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add layer heights profile file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format("Unable to add layer heights profile file to archive\n");
                 return false;
             }
         }
@@ -7395,7 +7395,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             if (!mz_zip_writer_add_mem(&archive, SLA_SUPPORT_POINTS_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
                 add_error("Unable to add sla support points file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add sla support points file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format("Unable to add sla support points file to archive\n");
                 return false;
             }
         }
@@ -7447,7 +7447,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             if (!mz_zip_writer_add_mem(&archive, SLA_DRAIN_HOLES_FILE.c_str(), static_cast<const void*>(out.data()), out.length(), mz_uint(MZ_DEFAULT_COMPRESSION))) {
                 add_error("Unable to add sla support points file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add sla support points file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format("Unable to add sla support points file to archive\n");
                 return false;
             }
         }
@@ -7468,7 +7468,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (!out.empty()) {
             if (!mz_zip_writer_add_mem(&archive, BBS_PRINT_CONFIG_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
                 add_error("Unable to add print config file to archive");
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add print config file to archive\n");
+                BOOST_LOG_TRIVIAL(error) << boost::format("Unable to add print config file to archive\n");
                 return false;
             }
         }
@@ -7787,13 +7787,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         ModelObject* obj = NULL;
                         ModelInstance* inst = NULL;
                         if (obj_id >= model.objects.size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__ << boost::format("invalid object id %1%\n")%obj_id;
+                            BOOST_LOG_TRIVIAL(warning) << boost::format("invalid object id %1%\n")%obj_id;
                         }
                         else
                             obj =  model.objects[obj_id];
 
                         if (obj && (inst_id >= obj->instances.size())) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__ << boost::format("invalid instance id %1%\n")%inst_id;
+                            BOOST_LOG_TRIVIAL(warning) << boost::format("invalid instance id %1%\n")%inst_id;
                         }
                         else if (obj){
                             inst =  obj->instances[inst_id];
@@ -7855,7 +7855,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         std::string out = stream.str();
         if (!mz_zip_writer_add_mem(&archive, BBS_MODEL_CONFIG_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format("Unable to add model config file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format("Unable to add model config file to archive\n");
             add_error("Unable to add model config file to archive");
             return false;
         }
@@ -7944,13 +7944,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         ModelObject* obj = NULL;
                         ModelInstance* inst = NULL;
                         if (obj_id >= model.objects.size()) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__ << boost::format("invalid object id %1%\n")%obj_id;
+                            BOOST_LOG_TRIVIAL(warning) << boost::format("invalid object id %1%\n")%obj_id;
                             continue;
                         }
                         obj =  model.objects[obj_id];
 
                         if (obj && (inst_id >= obj->instances.size())) {
-                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ":" << __LINE__ << boost::format("invalid instance id %1%\n")%inst_id;
+                            BOOST_LOG_TRIVIAL(warning) << boost::format("invalid instance id %1%\n")%inst_id;
                             continue;
                         }
                         inst =  obj->instances[inst_id];
@@ -8011,7 +8011,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
         if (!mz_zip_writer_add_mem(&archive, SLICE_INFO_CONFIG_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add model config file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", store  slice-info to 3mf,  length %1%, failed\n") % out.length();
+            BOOST_LOG_TRIVIAL(error) << boost::format(", store  slice-info to 3mf,  length %1%, failed\n") % out.length();
             return false;
         }
 
@@ -8075,7 +8075,7 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
                 mz_zip_writer_add_from_zip_reader(&root_archive, &archive, 0);
             }
             mz_zip_reader_end(&archive);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", store  %1% to 3mf %2%\n") % src_gcode_file % gcode_in_3mf;
+            BOOST_LOG_TRIVIAL(info)  << boost::format(", store  %1% to 3mf %2%\n") % src_gcode_file % gcode_in_3mf;
         }
     });
     return result;
@@ -8130,7 +8130,7 @@ bool _BBS_3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive(mz_zip_arc
     if (!out.empty()) {
         if (!mz_zip_writer_add_mem(&archive, CUSTOM_GCODE_PER_PRINT_Z_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add custom Gcodes per print_z file to archive");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":" << __LINE__ << boost::format(", Unable to add custom Gcodes per print_z file to archive\n");
+            BOOST_LOG_TRIVIAL(error) << boost::format(", Unable to add custom Gcodes per print_z file to archive\n");
             return false;
         }
     }
@@ -8300,12 +8300,12 @@ public:
 
     void set_interval(long n) {
         boost::lock_guard lock(m_mutex);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry, and last interval is: " << m_interval;
+        BOOST_LOG_TRIVIAL(info) << " entry, and last interval is: " << m_interval;
         m_next_backup -= boost::posix_time::seconds(m_interval);
         m_interval = n;
         m_next_backup += boost::posix_time::seconds(m_interval);
         m_cond.notify_all();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " exit, and new interval is: " << m_interval;
+        BOOST_LOG_TRIVIAL(info) << " exit, and new interval is: " << m_interval;
     }
 
     void put_other_changes()
@@ -8383,7 +8383,7 @@ private:
     };
 private:
     _BBS_Backup_Manager() {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inital and interval = " << m_interval;
+        BOOST_LOG_TRIVIAL(info) << " inital and interval = " << m_interval;
         m_next_backup = boost::get_system_time() + boost::posix_time::seconds(m_interval);
         boost::unique_lock lock(m_mutex);
         m_thread = std::move(boost::thread(boost::ref(*this)));

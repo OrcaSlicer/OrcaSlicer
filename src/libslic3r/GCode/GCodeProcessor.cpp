@@ -1588,7 +1588,7 @@ void GCodeProcessorResult::reset() {
     //BBS: add mutex for protection of gcode result
     unlock();
     //BBS: add logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: this=%2% reset finished")%__LINE__%this;
+    BOOST_LOG_TRIVIAL(info) << boost::format("this=%1% reset finished")%this;
 }
 
 const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProcessor::Producers = {
@@ -5900,7 +5900,7 @@ void GCodeProcessor::update_slice_warnings()
         int filament_extruder_id = m_filament_maps[used_filaments[idx]];
         int extruder_hrc = nozzle_hrc_lists[filament_extruder_id];
 
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": Check HRC: filament:%1%, hrc=%2%, extruder:%3%, hrc:%4%") % used_filaments[idx] % filament_hrc % filament_extruder_id % extruder_hrc;
+        BOOST_LOG_TRIVIAL(debug) << boost::format(": Check HRC: filament:%1%, hrc=%2%, extruder:%3%, hrc:%4%") % used_filaments[idx] % filament_hrc % filament_extruder_id % extruder_hrc;
 
         if (extruder_hrc!=0 && extruder_hrc < filament_hrc)
             warning.params.push_back(std::to_string(used_filaments[idx]));

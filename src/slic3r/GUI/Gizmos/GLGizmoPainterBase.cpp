@@ -1337,12 +1337,12 @@ void TriangleSelectorPatch::render(ImGuiWrapper* imgui, const Transform3d& matri
     bool  show_wireframe = false;
     if (wxGetApp().plater()->is_wireframe_enabled()) {
         if (m_need_wireframe && wxGetApp().plater()->is_show_wireframe()) {
-            //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", show_wireframe on");
+            //BOOST_LOG_TRIVIAL(info) << boost::format(", show_wireframe on");
             shader->set_uniform("show_wireframe", true);
             show_wireframe = true;
         }
         else {
-            //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", show_wireframe off");
+            //BOOST_LOG_TRIVIAL(info) << boost::format(", show_wireframe off");
             shader->set_uniform("show_wireframe", false);
         }
     }
@@ -1372,7 +1372,7 @@ void TriangleSelectorPatch::render(ImGuiWrapper* imgui, const Transform3d& matri
 
 void TriangleSelectorPatch::update_triangles_per_type()
 {
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", enter");
+    //BOOST_LOG_TRIVIAL(info) << boost::format(", enter");
     m_triangle_patches.resize((int)EnforcerBlockerType::ExtruderMax + 1);
     for (int i = 0; i < m_triangle_patches.size(); i++) {
         auto& patch = m_triangle_patches[i];
@@ -1392,7 +1392,7 @@ void TriangleSelectorPatch::update_triangles_per_type()
         for (int i = 0; i < 3; ++i) {
             int j = triangle.verts_idxs[i];
             int index = using_wireframe?int(patch.patch_vertices.size()/6) : int(patch.patch_vertices.size()/3);
-            //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: i=%2%, j=%3%, index=%4%, v[%5%,%6%,%7%]")%__LINE__%i%j%index%m_vertices[j].v(0)%m_vertices[j].v(1)%m_vertices[j].v(2);
+            //BOOST_LOG_TRIVIAL(info) << boost::format(", Line %1%: i=%2%, j=%3%, index=%4%, v[%5%,%6%,%7%]")%__LINE__%i%j%index%m_vertices[j].v(0)%m_vertices[j].v(1)%m_vertices[j].v(2);
             patch.patch_vertices.emplace_back(m_vertices[j].v(0));
             patch.patch_vertices.emplace_back(m_vertices[j].v(1));
             patch.patch_vertices.emplace_back(m_vertices[j].v(2));
@@ -1415,9 +1415,9 @@ void TriangleSelectorPatch::update_triangles_per_type()
             }
             patch.triangle_indices.emplace_back( index);
         }
-        //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: state=%2%, vertice size=%3%, triangle size %4%")%__LINE__%state%patch.patch_vertices.size()%patch.triangle_indices.size();
+        //BOOST_LOG_TRIVIAL(info) << boost::format(", Line %1%: state=%2%, vertice size=%3%, triangle size %4%")%__LINE__%state%patch.patch_vertices.size()%patch.triangle_indices.size();
     }
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("exit");
+    //BOOST_LOG_TRIVIAL(info) << boost::format("exit");
 }
 
 void TriangleSelectorPatch::update_selector_triangles()
@@ -1568,7 +1568,7 @@ void TriangleSelectorPatch::set_filter_state(bool is_filter_state)
 
 void TriangleSelectorPatch::update_render_data()
 {
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", m_paint_changed=%1%, m_triangle_patches.size %2%")%m_paint_changed%m_triangle_patches.size();
+    //BOOST_LOG_TRIVIAL(info) << boost::format(", m_paint_changed=%1%, m_triangle_patches.size %2%")%m_paint_changed%m_triangle_patches.size();
     if (m_paint_changed || (m_triangle_patches.size() == 0)) {
         this->release_geometry();
 
@@ -1589,9 +1589,9 @@ void TriangleSelectorPatch::update_render_data()
         m_paint_changed = false;
     }
 
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", before paint_contour");
+    //BOOST_LOG_TRIVIAL(info) << boost::format(", before paint_contour");
     update_paint_contour();
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", exit");
+    //BOOST_LOG_TRIVIAL(info) << boost::format(", exit");
 }
 
 void TriangleSelectorPatch::render(int triangle_indices_idx, bool show_wireframe)
@@ -1647,7 +1647,7 @@ void TriangleSelectorPatch::render(int triangle_indices_idx, bool show_wireframe
         glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->m_triangle_indices_VBO_ids[triangle_indices_idx]));
         glsafe(::glDrawElements(GL_TRIANGLES, GLsizei(this->m_triangle_indices_sizes[triangle_indices_idx]), GL_UNSIGNED_INT, nullptr));
         glsafe(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-        //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: triangle_indices_idx %2%, bind indices vbo, buffer id %3%")%__LINE__%triangle_indices_idx%this->m_triangle_indices_VBO_ids[triangle_indices_idx];
+        //BOOST_LOG_TRIVIAL(info) << boost::format(", Line %1%: triangle_indices_idx %2%, bind indices vbo, buffer id %3%")%__LINE__%triangle_indices_idx%this->m_triangle_indices_VBO_ids[triangle_indices_idx];
     }
 
     if (position_id != -1)
@@ -1684,7 +1684,7 @@ void TriangleSelectorPatch::release_geometry()
     }
     this->clear();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: released geometry")%__LINE__;
+    BOOST_LOG_TRIVIAL(info) << "released geometry";
 }
 
 void TriangleSelectorPatch::finalize_vertices()
@@ -1720,7 +1720,7 @@ void TriangleSelectorPatch::finalize_triangle_indices()
             glsafe(::glBindBuffer(GL_ARRAY_BUFFER, m_vertices_VBO_ids[buffer_idx]));
             glsafe(::glBufferData(GL_ARRAY_BUFFER, patch_vertices.size() * sizeof(float), patch_vertices.data(), GL_STATIC_DRAW));
             glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
-            //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: buffer_idx %2%, vertices size %3%, buffer id %4%")%__LINE__%buffer_idx%patch_vertices.size()%m_vertices_VBO_ids[buffer_idx];
+            //BOOST_LOG_TRIVIAL(info) << boost::format(", Line %1%: buffer_idx %2%, vertices size %3%, buffer id %4%")%__LINE__%buffer_idx%patch_vertices.size()%m_vertices_VBO_ids[buffer_idx];
             patch_vertices.clear();
         }
 
@@ -1731,7 +1731,7 @@ void TriangleSelectorPatch::finalize_triangle_indices()
             glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_triangle_indices_VBO_ids[buffer_idx]));
             glsafe(::glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangle_indices.size() * sizeof(int), triangle_indices.data(), GL_STATIC_DRAW));
             glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-            //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: buffer_idx %2%, vertices size %3%, buffer id %4%")%__LINE__%buffer_idx%triangle_indices.size()%m_triangle_indices_VBO_ids[buffer_idx];
+            //BOOST_LOG_TRIVIAL(info) << boost::format(", Line %1%: buffer_idx %2%, vertices size %3%, buffer id %4%")%__LINE__%buffer_idx%triangle_indices.size()%m_triangle_indices_VBO_ids[buffer_idx];
             triangle_indices.clear();
         }
     }

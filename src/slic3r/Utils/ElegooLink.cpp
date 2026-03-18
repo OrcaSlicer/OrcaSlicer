@@ -689,15 +689,13 @@ namespace Slic3r {
                                             "From":1
                                         }
                                     })";
-                    std::cout << "send: " << jsonString << std::endl;
-                    BOOST_LOG_TRIVIAL(info) << "start print, param: " << jsonString;
+                    BOOST_LOG_TRIVIAL(trace) << "send start print, JSON: " << jsonString;
                     client.send(jsonString);
                     // wait 30s
                     auto start_time = std::chrono::steady_clock::now();
                     do{
                         std::string response = client.receive();
-                        std::cout << "Received: " << response << std::endl;
-                        BOOST_LOG_TRIVIAL(info) << "Received: " << response;
+                        BOOST_LOG_TRIVIAL(trace) << "Received: " << response;
 
                         //sample response
                         // {"Id":"979d4C788A4a78bC777A870F1A02867A","Data":{"Cmd":128,"Data":{"Ack":1},"RequestID":"5223de52cc7642ae8d7924f9dd46f6ad","MainboardID":"1c7319d30105041800009c0000000000","TimeStamp":1735032553},"Topic":"sdcp/response/1c7319d30105041800009c0000000000"}  
@@ -775,7 +773,6 @@ namespace Slic3r {
                         error_fn(_L("Start print timeout"));
                     }
             } catch (const std::exception& e) {
-                std::cerr << "Error: " << e.what() << std::endl;
                 BOOST_LOG_TRIVIAL(error) << "start print error: " << e.what();
                 error_fn(_L("Start print failed") +"\n" +GUI::from_u8(e.what()));
                 res=false;
@@ -853,7 +850,6 @@ namespace Slic3r {
                 error_fn(_L("Start print timeout"));
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
             BOOST_LOG_TRIVIAL(error) << "start print error: " << e.what();
             error_fn(_L("Start print failed") + "\n" + GUI::from_u8(e.what()));
             res = false;

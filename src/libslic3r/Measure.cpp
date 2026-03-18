@@ -646,9 +646,6 @@ Measuring::~Measuring() {}
 
 std::optional<SurfaceFeature> Measuring::get_feature(size_t face_idx, const Vec3d &point, const Transform3d &world_tran, bool only_select_plane) const
 {
-    if (face_idx == 7516 || face_idx == 7517) {
-        std::cout << "";
-    }
     return priv->get_feature(face_idx, point, world_tran, only_select_plane);
 }
 

@@ -92,7 +92,7 @@ public:
             best_cluster = num_cluster;
         else {
             best_cluster = compute_num_colors(image8UC3);
-            std::cout << "num of image color is " << best_cluster << ", less than custom number " << num_cluster << std::endl;
+            BOOST_LOG_TRIVIAL(debug) << "num of image color is " << best_cluster << ", less than custom number " << num_cluster << std::endl;
         }
 
         cv::Mat centers32FC3;

@@ -2055,7 +2055,7 @@ void Tab::cache_config_diff(const std::vector<std::string>& selected_options, co
 void Tab::apply_config_from_cache()
 {
     bool was_applied = false;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": enter");
+    BOOST_LOG_TRIVIAL(info)<<boost::format(": enter");
     // check and apply extruders count for printer preset
     if (m_type == Preset::TYPE_PRINTER)
         was_applied = static_cast<TabPrinter*>(this)->apply_extruder_cnt_from_cache();
@@ -2070,7 +2070,7 @@ void Tab::apply_config_from_cache()
 
     if (was_applied)
         update_dirty();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": exit, was_applied=%1%")%was_applied;
+    BOOST_LOG_TRIVIAL(info)<<boost::format(": exit, was_applied=%1%")%was_applied;
 }
 
 // Call a callback to update the selection of presets on the plater:
@@ -5420,7 +5420,7 @@ void Tab::reactive_preset_combo_box()
 // Initialize the UI from the current preset
 void Tab::load_current_preset()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": enter, m_type %1%")%Preset::get_type_string(m_type);
+    BOOST_LOG_TRIVIAL(info)<<boost::format(": enter, m_type %1%")%Preset::get_type_string(m_type);
     const Preset& preset = m_presets->get_edited_preset();
     std::vector<std::string> prev_variant_list;
     int prev_extruder_count = 0;
@@ -5584,7 +5584,7 @@ void Tab::load_current_preset()
 #if 0
     );
 #endif
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": exit");
+    BOOST_LOG_TRIVIAL(info)<<boost::format(": exit");
 }
 
 //Regerenerate content of the page tree.
@@ -5969,7 +5969,7 @@ bool Tab::select_preset(
                 preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
                 preset_bundle->filaments.select_preset_by_name(old_filament_name, true);
                 preset_bundle->prints.select_preset_by_name(old_process_name, true);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " old filament name is:" << old_filament_name << " old process name is: " << old_process_name;
+                BOOST_LOG_TRIVIAL(info) << " old filament name is:" << old_filament_name << " old process name is: " << old_process_name;
 
             });
         }
@@ -6231,7 +6231,7 @@ bool Tab::tree_sel_change_delayed(wxCommandEvent& event)
     //BBS: GUI refactor
     if (page == nullptr)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("can not find page with current selection %1%\n") % selection;
+        BOOST_LOG_TRIVIAL(error) << boost::format("can not find page with current selection %1%\n") % selection;
         return false;
     }
     void* item_data = m_tabctrl->GetItemData(sel_item);
@@ -6944,7 +6944,7 @@ void Tab::set_just_edit(bool just_edit)
 
 void Tab::update_extruder_variants(int extruder_id)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << extruder_id;
+    BOOST_LOG_TRIVIAL(info) << extruder_id;
     if (m_extruder_switch) {
         auto    nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
         int extruder_nums = m_preset_bundle->get_printer_extruder_count();

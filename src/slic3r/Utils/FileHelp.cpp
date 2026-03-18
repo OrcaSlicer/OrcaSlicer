@@ -13,7 +13,7 @@ bool is_file_too_large(std::string file_path, bool &try_ok)
         if (fileSizeMB > STL_SVG_MAX_FILE_SIZE_MB) { return true; }
     } catch (boost::filesystem::filesystem_error &e) {
         try_ok = false;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " error message: " << e.what();
+        BOOST_LOG_TRIVIAL(info) << " error message: " << e.what();
     }
     return false;
 }

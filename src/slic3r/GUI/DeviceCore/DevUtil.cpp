@@ -15,11 +15,11 @@ int DevUtil::get_flag_bits(std::string str, int start, int count)
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        BOOST_LOG_TRIVIAL(error) << ": " << e.what();
     }
     catch (...)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed";
+        BOOST_LOG_TRIVIAL(error) << ": failed";
     }
 
     return 0;
@@ -49,11 +49,11 @@ int DevUtil::get_flag_bits(int num, int start, int count, int base)
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        BOOST_LOG_TRIVIAL(error) << ": " << e.what();
     }
     catch (...)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed";
+        BOOST_LOG_TRIVIAL(error) << ": failed";
     }
 
     return 0;
@@ -69,11 +69,11 @@ float DevUtil::string_to_float(const std::string& str_value)
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        BOOST_LOG_TRIVIAL(error) << ": " << e.what();
     }
     catch (...)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed";
+        BOOST_LOG_TRIVIAL(error) << ": failed";
     }
 
     return value;
@@ -101,11 +101,11 @@ std::string DevJsonValParser::get_longlong_val(const nlohmann::json& j)
     }
     catch (const nlohmann::json::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        BOOST_LOG_TRIVIAL(error) << ": " << e.what();
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        BOOST_LOG_TRIVIAL(error) << ": " << e.what();
     }
 
     return std::string();

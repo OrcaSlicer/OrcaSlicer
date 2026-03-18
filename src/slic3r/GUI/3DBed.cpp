@@ -291,7 +291,7 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
         return false;
 
     //BBS: add part plate logic, apply position to bed shape
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":current position {%1%,%2%}, new position {%3%, %4%}") % m_position.x() % m_position.y() % position.x() % position.y();
+    BOOST_LOG_TRIVIAL(info) << boost::format(":current position {%1%,%2%}, new position {%3%, %4%}") % m_position.x() % m_position.y() % position.x() % position.y();
     m_position = position;
     m_bed_shape = printable_area;
     m_extruder_shapes = extruder_areas;
@@ -663,7 +663,7 @@ void Bed3D::update_bed_triangles()
     }
     ExPolygon poly{ Polygon::new_scale(new_bed_shape) };
     if (!init_model_from_poly(m_triangles, poly, GROUND_Z)) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to update plate triangles\n";
+        BOOST_LOG_TRIVIAL(error) << ":Unable to update plate triangles\n";
     }
     // update extended bounding box
     const_cast<BoundingBoxf3 &>(m_printable_bounding_box) = calc_printable_bounding_box();

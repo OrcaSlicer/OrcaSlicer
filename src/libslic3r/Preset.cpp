@@ -69,7 +69,7 @@ Semver get_version_from_json(std::string file_path)
         }
     }
     catch(nlohmann::detail::parse_error &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file_path<<" got a nlohmann::detail::parse_error, reason = " << err.what();
+        BOOST_LOG_TRIVIAL(error)<< ": parse "<<file_path<<" got a nlohmann::detail::parse_error, reason = " << err.what();
         return Semver();
         //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file_path, err.what()));
     }
@@ -92,7 +92,7 @@ int get_values_from_json(std::string file_path, std::vector<std::string>& keys, 
         }
     }
     catch(nlohmann::detail::parse_error &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file_path<<" got a nlohmann::detail::parse_error, reason = " << err.what();
+        BOOST_LOG_TRIVIAL(error)<< ": parse "<<file_path<<" got a nlohmann::detail::parse_error, reason = " << err.what();
         //throw ConfigurationError(format("Failed loading json file \"%1%\": %2%", file_path, err.what()));
         return 0;
     }
@@ -496,7 +496,7 @@ void Preset::load_info(const std::string& file)
             }
             else if (v.first.compare("base_id") == 0) {
                 this->base_id = v.second.get_value<std::string>();
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " load info from: " << file << " and base_id: " << this->base_id;
+                BOOST_LOG_TRIVIAL(info) << " load info from: " << file << " and base_id: " << this->base_id;
                 if (this->base_id.compare("null") == 0)
                     this->base_id.clear();
             }
@@ -623,7 +623,7 @@ void Preset::save(DynamicPrintConfig* parent_config)
     } else {
         this->config.save_to_json(this->file, this->name, from_str, this->version.to_string());
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
+    BOOST_LOG_TRIVIAL(info) << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
 
     fs::path idx_file(this->file);
     idx_file.replace_extension(".info");
@@ -715,7 +715,7 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
             return PlaceholderParser::evaluate_boolean_expression(condition, active_printer.preset.config, extra_config);
         } catch (const std::runtime_error &err) {
             //FIXME in case of an error, return "compatible with everything".
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": parsing error of compatible_printers_condition %1%: %2%")%active_printer.preset.name %err.what();
+            BOOST_LOG_TRIVIAL(warning) << boost::format(": parsing error of compatible_printers_condition %1%: %2%")%active_printer.preset.name %err.what();
             return true;
         }
     }
@@ -738,7 +738,7 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
 void Preset::set_visible_from_appconfig(const AppConfig &app_config)
 {
     //BBS: add config related log
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": name %1%, is_visible %2%")%name % is_visible;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": name %1%, is_visible %2%")%name % is_visible;
     if (vendor == nullptr) { return; }
 
     if (type == TYPE_PRINTER) {
@@ -763,7 +763,7 @@ void Preset::set_visible_from_appconfig(const AppConfig &app_config)
 	    }
     }
     //BBS: add config related log
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": name %1%, is_visible set to %2%")%name % is_visible;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": name %1%, is_visible set to %2%")%name % is_visible;
 }
 
 std::string Preset::get_filament_type(std::string &display_filament_type)
@@ -1220,7 +1220,7 @@ void PresetCollection::load_presets(
     }
 
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, load presets from %1%, current type %2%")%dir %Preset::get_type_string(m_type);
+    BOOST_LOG_TRIVIAL(info) << boost::format(" enter, load presets from %1%, current type %2%")%dir %Preset::get_type_string(m_type);
     //BBS do not parse folder if not exists
     m_dir_path = dir.string();
     if (!fs::exists(dir)) {
@@ -1328,7 +1328,7 @@ void PresetCollection::load_presets(
                         preset.config.apply(std::move(config));
                         extend_default_config_length(preset.config, true, default_preset.config);
                     }
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " load preset: " << name << " and filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
+                    BOOST_LOG_TRIVIAL(info) << " load preset: " << name << " and filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
 
                     Preset::normalize(preset.config);
                     // Report configuration fields, which are misplaced into a wrong group.
@@ -1347,7 +1347,7 @@ void PresetCollection::load_presets(
                             if (at_pos != std::string::npos && at_pos + 1 < name.length()) {
                                 compatible_printers->values.push_back(name.substr(at_pos + 1));
                                 preset.save(nullptr);
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " added compatible_printers for preset: " << name;
+                                BOOST_LOG_TRIVIAL(info) << " added compatible_printers for preset: " << name;
                             }
                         }
                     }
@@ -1357,7 +1357,7 @@ void PresetCollection::load_presets(
                     if ((!preset.setting_id.empty())&&(preset.setting_id == preset.base_id))
                         preset.setting_id.clear();
                     //BBS: add config related logs
-                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", preset type %1%, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_visible;
+                    BOOST_LOG_TRIVIAL(debug) << boost::format(", preset type %1%, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_visible;
                     // add alias for custom filament preset
                     set_custom_preset_alias(preset);
                 } catch (const std::ifstream::failure &err) {
@@ -1383,7 +1383,7 @@ void PresetCollection::load_presets(
                 }
 
                 presets_loaded.emplace_back(preset);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " load config successful and preset name is:" << preset.name;
+                BOOST_LOG_TRIVIAL(info) << " load config successful and preset name is:" << preset.name;
             } catch (const std::runtime_error &err) {
                 errors_cummulative += err.what();
                 errors_cummulative += "\n";
@@ -1394,7 +1394,7 @@ void PresetCollection::load_presets(
         m_presets.insert(m_presets.end(), std::make_move_iterator(presets_loaded.begin()), std::make_move_iterator(presets_loaded.end()));
     sort_presets();
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": loaded %1% presets from %2%, type %3%")%presets_loaded.size() %dir %Preset::get_type_string(m_type);
+    BOOST_LOG_TRIVIAL(info) << boost::format(": loaded %1% presets from %2%, type %3%")%presets_loaded.size() %dir %Preset::get_type_string(m_type);
     //this->select_preset(first_visible_idx());
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
@@ -1465,7 +1465,7 @@ Preset* PresetCollection::get_preset_differed_for_save(Preset& preset)
 int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std::string, std::string>& key_values)
 {
     if (preset.is_system || preset.is_default || preset.is_project_embedded) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" Error: not a user preset! Should not happen, name %1%") %preset.name;
+        BOOST_LOG_TRIVIAL(error) << boost::format(" Error: not a user preset! Should not happen, name %1%") %preset.name;
         ++m_errors;
         return -1;
     }
@@ -1504,7 +1504,7 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
             key_values[BBL_JSON_KEY_FILAMENT_ID] = preset.filament_id;
         }
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " uploading user preset name is: " << preset.name << "and create filament_id is: " << preset.filament_id
+    BOOST_LOG_TRIVIAL(info) << " uploading user preset name is: " << preset.name << "and create filament_id is: " << preset.filament_id
                             << " and base_id is: " << preset.base_id;
     key_values[ORCA_JSON_KEY_UPDATE_TIME] = std::to_string(preset.updated_time);
     key_values[BBL_JSON_KEY_TYPE] = Preset::get_iot_type_string(preset.type);
@@ -1520,7 +1520,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
     std::deque<Preset> presets_loaded;
     std::vector<Preset*>::iterator it;
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, type %1% , total preset counts %2%")%Preset::get_type_string(m_type) %project_presets.size();
+    BOOST_LOG_TRIVIAL(debug) << boost::format(" enter, type %1% , total preset counts %2%")%Preset::get_type_string(m_type) %project_presets.size();
     std::string extruder_id_name, extruder_variant_name;
     std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
     Preset::get_extruder_names_and_keysets(m_type, extruder_id_name, extruder_variant_name, &key_set1, &key_set2);
@@ -1579,7 +1579,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
             }
             preset->loaded = true;
             presets_loaded.emplace_back(*preset);
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", %1% got preset, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset->name %preset->file %preset->is_system %preset->is_default %preset->is_visible;
+            BOOST_LOG_TRIVIAL(debug) << boost::format(", %1% got preset, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset->name %preset->file %preset->is_system %preset->is_default %preset->is_visible;
         } catch (const std::runtime_error &err) {
             errors_cummulative += err.what();
             errors_cummulative += "\n";
@@ -1592,7 +1592,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
     //this->select_preset(first_visible_idx());
     unlock();
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, %1% got %2% presets, errors_cummulative %3%")%Preset::get_type_string(m_type) %presets_loaded.size() %errors_cummulative;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(" finished, %1% got %2% presets, errors_cummulative %3%")%Preset::get_type_string(m_type) %presets_loaded.size() %errors_cummulative;
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
 }
@@ -1613,7 +1613,7 @@ std::vector<Preset*> PresetCollection::get_project_embedded_presets()
             project_presets.push_back(new_preset);
     }
     unlock();
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, type %1% , total preset counts %2%")%Preset::get_type_string(m_type) %project_presets.size();
+    BOOST_LOG_TRIVIAL(debug) << boost::format(" enter, type %1% , total preset counts %2%")%Preset::get_type_string(m_type) %project_presets.size();
     return project_presets;
 }
 
@@ -1630,7 +1630,7 @@ bool PresetCollection::reset_project_embedded_presets()
         count++;
         //if (preset.type != Preset::get_type_from_string(type)) continue;
         if (it->is_project_embedded) {
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" type %1% , delete preset %2%")%Preset::get_type_string(m_type) % it->name;
+            BOOST_LOG_TRIVIAL(debug) << boost::format(" type %1% , delete preset %2%")%Preset::get_type_string(m_type) % it->name;
             if ((!re_select) && (m_idx_selected == count))
                 re_select = true;
             if (m_idx_selected > count) {
@@ -1744,7 +1744,7 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
         std::string inherits = Preset::inherits(preset->config);
         if (inherits.empty()) {
             // We support custom root preset now
-            //BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" can not find inherits for %1% , should not happen")%preset->name;
+            //BOOST_LOG_TRIVIAL(error) << boost::format(" can not find inherits for %1% , should not happen")%preset->name;
             //// BBS add sync info
             //preset->sync_info = "delete";
             //need_to_delete_list.push_back(preset->setting_id);
@@ -1755,13 +1755,13 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
         Preset* parent_preset = this->find_preset(inherits, false, true);
         if (!parent_preset) {
             ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" can not find parent preset for %1% , inherits %2%")%preset->name %inherits;
+            BOOST_LOG_TRIVIAL(error) << boost::format(" can not find parent preset for %1% , inherits %2%")%preset->name %inherits;
             continue;
         }
 
         if (preset->base_id.empty())
             preset->base_id = parent_preset->setting_id;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << preset->name << " filament_id: " << preset->filament_id << " base_id: " << preset->base_id;
+        BOOST_LOG_TRIVIAL(info) << " " << preset->name << " filament_id: " << preset->filament_id << " base_id: " << preset->base_id;
         preset->save(&(parent_preset->config));
     }
 
@@ -1783,23 +1783,23 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
     //std::deque<Preset> presets_loaded;
     int count = 0;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, name %1% , total value counts %2%")%name %preset_values.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(" enter, name %1% , total value counts %2%")%name %preset_values.size();
 
     //if the version is not matching, skip it
     if (preset_values.find(BBL_JSON_KEY_VERSION) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find version, not loading for user preset %1%")%name;
+        BOOST_LOG_TRIVIAL(warning) << boost::format("can not find version, not loading for user preset %1%")%name;
         return false;
     }
     std::string version_str = preset_values[BBL_JSON_KEY_VERSION];
     boost::optional<Semver> cloud_version = Semver::parse(version_str);
     if (!cloud_version) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("invalid version %1%, not loading for user preset %2%")%version_str %name;
+        BOOST_LOG_TRIVIAL(warning) << boost::format("invalid version %1%, not loading for user preset %2%")%version_str %name;
         return false;
     }
 
     //setting_id
     if (preset_values.find(BBL_JSON_KEY_SETTING_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find setting_id, not loading for user preset %1%")%name;
+        BOOST_LOG_TRIVIAL(warning) << boost::format("can not find setting_id, not loading for user preset %1%")%name;
         return false;
     }
     std::string cloud_setting_id = preset_values[BBL_JSON_KEY_SETTING_ID];
@@ -1812,7 +1812,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
 
     //user_id
     if (preset_values.find(BBL_JSON_KEY_USER_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find user_id, not loading for user preset %1%")%name;
+        BOOST_LOG_TRIVIAL(warning) << boost::format("can not find user_id, not loading for user preset %1%")%name;
         return false;
     }
     std::string cloud_user_id = preset_values[BBL_JSON_KEY_USER_ID];
@@ -1834,7 +1834,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             fs::path idx_file(iter->file);
             idx_file.replace_extension(".info");
             iter->save_info(idx_file.string());
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("preset %1%'s update_time is eqaul or newer, cloud  update_time %2%, local update_time %3%")%name %cloud_update_time %iter->updated_time;
+            BOOST_LOG_TRIVIAL(info) << boost::format("preset %1%'s update_time is eqaul or newer, cloud  update_time %2%, local update_time %3%")%name %cloud_update_time %iter->updated_time;
             unlock();
             return false;
         }
@@ -1846,7 +1846,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
 
     // base_id
     if (preset_values.find(BBL_JSON_KEY_BASE_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find base_id, not loading for user preset %1%") % name;
+        BOOST_LOG_TRIVIAL(warning) << boost::format("can not find base_id, not loading for user preset %1%") % name;
         unlock();
         return false;
     }
@@ -1856,7 +1856,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
     std::string cloud_filament_id;
     if ((m_type == Preset::TYPE_FILAMENT) && preset_values.find(BBL_JSON_KEY_FILAMENT_ID) != preset_values.end()) {
         cloud_filament_id = preset_values[BBL_JSON_KEY_FILAMENT_ID];
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << name << " filament_id: " << cloud_filament_id << " base_id: " << cloud_base_id;
+        BOOST_LOG_TRIVIAL(info) << " " << name << " filament_id: " << cloud_filament_id << " base_id: " << cloud_base_id;
     }
 
     DynamicPrintConfig new_config, cloud_config;
@@ -1890,7 +1890,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
             if (inherits_config2 && !inherits_config2->value.empty()) {
                 //we should skip this preset here
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, just skip")%name;
+                BOOST_LOG_TRIVIAL(warning) << boost::format(", can not find inherit preset for user preset %1%, just skip")%name;
                 unlock();
                 return false;
             }
@@ -1933,7 +1933,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             iter->base_id = cloud_base_id;
             iter->filament_id = cloud_filament_id;
             //presets_loaded.emplace_back(*it->second);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", update the user preset %1% from cloud, type %2%, setting_id %3%, base_id %4%, sync_info %5% inherits %6%, filament_id %7%")
+            BOOST_LOG_TRIVIAL(info) << boost::format(", update the user preset %1% from cloud, type %2%, setting_id %3%, base_id %4%, sync_info %5% inherits %6%, filament_id %7%")
                % iter->name %Preset::get_type_string(m_type) %iter->setting_id %iter->base_id %iter->sync_info %iter->inherits() % iter->filament_id;
         }
         else {
@@ -1953,11 +1953,11 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             size_t cur_index = iter - m_presets.begin();
             m_presets.insert(iter, preset);
             //m_presets.emplace_back (preset);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", insert a new user preset %1%, type %2%, setting_id %3%, base_id %4%, sync_info %5% inherits %6%, filament_id %7%")
+            BOOST_LOG_TRIVIAL(info) << boost::format(", insert a new user preset %1%, type %2%, setting_id %3%, base_id %4%, sync_info %5% inherits %6%, filament_id %7%")
                %preset.name %Preset::get_type_string(m_type) %preset.setting_id %preset.base_id %preset.sync_info %preset.inherits() %preset.filament_id;
             if (cur_index <= m_idx_selected) {
                 m_idx_selected ++;
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", increase m_idx_selected to %1%, due to user preset inserted")%m_idx_selected;
+                BOOST_LOG_TRIVIAL(debug) << boost::format(", increase m_idx_selected to %1%, due to user preset inserted")%m_idx_selected;
             }
         }
     } catch (const std::runtime_error &err) {
@@ -1970,7 +1970,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, load user preset %1% , type %2%, errors_cummulative %3%")%name %Preset::get_type_string(m_type) %errors_cummulative;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(" finished, load user preset %1% , type %2%, errors_cummulative %3%")%name %Preset::get_type_string(m_type) %errors_cummulative;
     return (need_update)?false:true;
 }
 
@@ -1979,11 +1979,11 @@ void PresetCollection::update_after_user_presets_loaded()
 {
     lock();
     std::string     selected_name = get_selected_preset_name();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", before sort, type %1%, selected_idx %2%, selected_name %3%") %m_type %m_idx_selected %selected_name;
+    BOOST_LOG_TRIVIAL(info) << boost::format(", before sort, type %1%, selected_idx %2%, selected_name %3%") %m_type %m_idx_selected %selected_name;
     sort_presets();
     this->select_preset_by_name(selected_name, false);
     unlock();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", after sort, type %1%, selected_idx %2%") %m_type %m_idx_selected;
+    BOOST_LOG_TRIVIAL(info) << boost::format(", after sort, type %1%, selected_idx %2%") %m_type %m_idx_selected;
 
     return;
 }
@@ -2002,18 +2002,18 @@ bool PresetCollection::validate_preset(const std::string &preset_name, std::stri
             it    = this->find_preset_internal(inherit_name);
             found = it != m_presets.end() && it->name == inherit_name && (it->is_system || it->is_default);
             if (found)
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": preset_name %1%, inherit_name %2%, found inherit in list")%preset_name %inherit_name;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": preset_name %1%, inherit_name %2%, found inherit in list")%preset_name %inherit_name;
             else
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": preset_name %1%, inherit_name %2%, can not found preset and inherit in list")%preset_name %inherit_name;
+                BOOST_LOG_TRIVIAL(warning) << boost::format(": preset_name %1%, inherit_name %2%, can not found preset and inherit in list")%preset_name %inherit_name;
         }
         else {
             //inherit is null , should not happen , just consider it as valid
             found = false;
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": preset_name %1%, no inherit, set to not found")%preset_name;
+            BOOST_LOG_TRIVIAL(warning) << boost::format(": preset_name %1%, no inherit, set to not found")%preset_name;
         }
     }
     else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": preset_name %1%, found in list")%preset_name;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": preset_name %1%, found in list")%preset_name;
     }
 
     return found;
@@ -2094,17 +2094,17 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         auto iter = this->find_preset_internal(inherits);
         if (iter != m_presets.end() && iter->name == inherits) {
             //std::vector<std::string> dirty_options = cfg.diff(iter->config);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": change preset %1% inherit %2% 's value to %3% 's values")%original_name %inherits %path;
+            BOOST_LOG_TRIVIAL(info) << boost::format(": change preset %1% inherit %2% 's value to %3% 's values")%original_name %inherits %path;
             cfg.update_non_diff_values_to_base_config(iter->config, keys, different_settings_list, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
         }
     }
     else if (found && it->is_system && (different_settings_list.size() > 0)) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": change preset %1% 's value to %2% 's values")%original_name %path;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": change preset %1% 's value to %2% 's values")%original_name %path;
         cfg.update_non_diff_values_to_base_config(it->config, keys, different_settings_list, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
     }
 
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, type %1% , path %2%, name %3%, original_name %4%, inherits %5%")%Preset::get_type_string(m_type) %path %name %original_name %inherits;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(" enter, type %1% , path %2%, name %3%, original_name %4%, inherits %5%")%Preset::get_type_string(m_type) %path %name %original_name %inherits;
     if (select == LoadAndSelect::Never) {
         // Some filament profile has been selected and modified already.
         // Check whether this profile is equal to the modified edited profile.
@@ -2112,7 +2112,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         if ((edited.name == original_name || edited.name == inherits) && profile_print_params_same(edited.config, cfg)) {
             // Just point to that already selected and edited profile.
             //BBS: add config related logs
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" Just point to that already selected and edited profile %1%")%edited.name;
+            BOOST_LOG_TRIVIAL(debug) << boost::format(" Just point to that already selected and edited profile %1%")%edited.name;
             return std::make_pair(&(*this->find_preset_internal(edited.name)), false);
         }
     }
@@ -2136,7 +2136,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
         }
         //BBS: add config related logs
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset exists and it matches the values stored inside config. using original_name %1%")%original_name;
+        BOOST_LOG_TRIVIAL(debug) << boost::format(" The preset exists and it matches the values stored inside config. using original_name %1%")%original_name;
         return std::make_pair(&(*it), false);
     }
     if (! found && select != LoadAndSelect::Never && ! inherits.empty()) {
@@ -2157,7 +2157,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
             }
             //BBS: add config related logs
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset exists and it matches the values stored inside config. using inherits %1%")%inherits;
+            BOOST_LOG_TRIVIAL(debug) << boost::format(" The preset exists and it matches the values stored inside config. using inherits %1%")%inherits;
             return std::make_pair(&(*it), false);
         }
     }
@@ -2182,7 +2182,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
             }
             //BBS: add config related logs
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" Select the existing preset %1% and override it with new values")%it->name;
+            BOOST_LOG_TRIVIAL(debug) << boost::format(" Select the existing preset %1% and override it with new values")%it->name;
             return std::make_pair(&(*it), this->get_edited_preset().is_dirty);
         }
 
@@ -2243,7 +2243,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             if (select == LoadAndSelect::Always)
                 this->select_preset(it - m_presets.begin());
             //BBS: add config related logs
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset %1% exists and it matches the values stored inside config.")%new_name;
+            BOOST_LOG_TRIVIAL(debug) << boost::format(" The preset %1% exists and it matches the values stored inside config.")%new_name;
             return std::make_pair(&(*it), false);
         }
         // Form another profile name.
@@ -2269,7 +2269,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 preset.filament_id = parent->filament_id;
         }
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << preset.name << " filament_id: " << preset.filament_id << " base_id: " << preset.base_id;
+    BOOST_LOG_TRIVIAL(info) << " " << preset.name << " filament_id: " << preset.filament_id << " base_id: " << preset.base_id;
     if (from_project) {
         preset.is_project_embedded = true;
     }
@@ -2284,7 +2284,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         this->get_edited_preset().is_external = true;
 
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", type %1% added a preset, name %2%, path %3%, is_system %4%, is_default %5% is_external %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_external;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", type %1% added a preset, name %2%, path %3%, is_system %4%, is_default %5% is_external %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_external;
     return std::make_pair(&preset, false);
 }
 
@@ -2311,7 +2311,7 @@ Preset& PresetCollection::load_preset(const std::string &path, const std::string
         this->select_preset_by_name(name, true);
     unlock();
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", preset type %1%, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_visible;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", preset type %1%, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_visible;
     return preset;
 }
 
@@ -2381,7 +2381,7 @@ bool PresetCollection::clone_presets_for_printer(std::vector<Preset const *> con
             preset.is_visible           = true;
             if (type == Preset::TYPE_FILAMENT) {
                 preset.filament_id = create_filament_id(prefix);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << preset.name << " create filament_id: " << preset.filament_id;
+                BOOST_LOG_TRIVIAL(info) << preset.name << " create filament_id: " << preset.filament_id;
             }
     }, force_rewritten);
 }
@@ -2403,10 +2403,10 @@ bool PresetCollection::clone_presets_for_filament(Preset const *const &     pres
             preset.filament_id = filament_id;
             auto compatible = dynamic_cast<ConfigOptionStrings *>(preset.config.option("compatible_printers"));
             if (compatible->values.empty()) {
-                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " " << __LINE__ << preset.name << " apply compatible_printer failed";
+                BOOST_LOG_TRIVIAL(error) << preset.name << " apply compatible_printer failed";
                 compatible->values.push_back(compatible_printers);
             }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << preset.name << " is cloned and filament_id: " << filament_id;
+            BOOST_LOG_TRIVIAL(info) << preset.name << " is cloned and filament_id: " << filament_id;
          }
         },
         force_rewritten);
@@ -2458,7 +2458,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
 			preset.alias.clear();
 			preset.renamed_from.clear();
             preset.m_excluded_from.clear();
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": save preset %1% , with detach")%new_name;
+            BOOST_LOG_TRIVIAL(warning) << boost::format(": save preset %1% , with detach")%new_name;
         }
         //BBS: add lock logic for sync preset in background
 
@@ -2490,7 +2490,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         if (detach) {
         	// Clear the link to the parent profile.
         	inherits.clear();
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": save preset %1% , with detach")%new_name;
+            BOOST_LOG_TRIVIAL(warning) << boost::format(": save preset %1% , with detach")%new_name;
         } else if (is_base_preset(preset)) {
             inherits = old_name;
         }
@@ -2528,7 +2528,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         parent_preset = this->find_preset(final_inherits, false, true);
         if (parent_preset && this->get_selected_preset().base_id.empty()) {
             this->get_selected_preset().base_id = parent_preset->setting_id;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base_id: " << parent_preset->setting_id;
+            BOOST_LOG_TRIVIAL(info) << " base_id: " << parent_preset->setting_id;
         }
     }
     if (parent_preset)
@@ -2712,7 +2712,7 @@ bool PresetCollection::is_alias_exist(const std::string &alias, Preset* preset)
         if (m_printer_hold_alias.end() != printer_iter) {
             auto alias_iter = m_printer_hold_alias[printer_name].find(alias);
             if (m_printer_hold_alias[printer_name].end() != alias_iter) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << " The alias already exists: " << alias << " and the preset name: " << preset->name;
+                BOOST_LOG_TRIVIAL(info) << " " << " The alias already exists: " << alias << " and the preset name: " << preset->name;
                 return true;
             }
         }
@@ -2751,7 +2751,7 @@ Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/
                 preset                = find_preset2(alter_name, false);
                 // print preset file name
                 if (preset != nullptr) {
-                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << "Failed to find: " << name
+                    BOOST_LOG_TRIVIAL(debug) << " " << "Failed to find: " << name
                                                << ". fallback to library preset: " << preset->file;
                 }
             }
@@ -2860,9 +2860,9 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
     int some_compatible = 0;
 
     if (active_print)
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": active printer %1%, print %2%, unselect_if_incompatible %3%")%active_printer.preset.name %active_print->preset.name % (int)unselect_if_incompatible;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": active printer %1%, print %2%, unselect_if_incompatible %3%")%active_printer.preset.name %active_print->preset.name % (int)unselect_if_incompatible;
     else
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": active printer %1%, unselect_if_incompatible %2%")%active_printer.preset.name % (int)unselect_if_incompatible;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": active printer %1%, unselect_if_incompatible %2%")%active_printer.preset.name % (int)unselect_if_incompatible;
     for (size_t idx_preset = m_num_default_presets; idx_preset < m_presets.size(); ++ idx_preset) {
         bool    selected        = idx_preset == m_idx_selected;
         Preset &preset_selected = m_presets[idx_preset];
@@ -2878,7 +2878,7 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
         if (! preset_edited.is_compatible && selected &&
             (unselect_if_incompatible == PresetSelectCompatibleType::Always || (unselect_if_incompatible == PresetSelectCompatibleType::OnlyIfWasCompatible && was_compatible)))
         {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":  type %1% , previous selected %2% becomes uncompatible, will select later")%Preset::get_type_string(m_type) %m_idx_selected;
+            BOOST_LOG_TRIVIAL(info) << boost::format(":  type %1% , previous selected %2% becomes uncompatible, will select later")%Preset::get_type_string(m_type) %m_idx_selected;
             m_idx_selected = size_t(-1);
         }
         if (selected)
@@ -2893,7 +2893,7 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
         }
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": type %1% returned m_idx_selected %2%, some_compatible %3%")%Preset::get_type_string(m_type) %m_idx_selected %some_compatible;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": type %1% returned m_idx_selected %2%, some_compatible %3%")%Preset::get_type_string(m_type) %m_idx_selected %some_compatible;
     return m_idx_selected;
 }
 
@@ -3082,7 +3082,7 @@ std::vector<std::string> PresetCollection::dirty_options_without_option_list(con
 Preset& PresetCollection::select_preset(size_t idx)
 {
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1% try to select preset %2%")%Preset::get_type_string(m_type) %idx;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": %1% try to select preset %2%")%Preset::get_type_string(m_type) %idx;
     for (Preset &preset : m_presets)
         preset.is_dirty = false;
     if (idx >= m_presets.size())
@@ -3096,18 +3096,18 @@ Preset& PresetCollection::select_preset(size_t idx)
 
     //set this preset to true
     if (!m_presets[idx].is_visible) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1% set %2%, idx %3% to visible") % Preset::get_type_string(m_type) % m_presets[idx].name % idx;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": %1% set %2%, idx %3% to visible") % Preset::get_type_string(m_type) % m_presets[idx].name % idx;
         m_presets[idx].is_visible = true;
     }
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1% select success, m_idx_selected %2%, name %3%, is_system %4%, is_default %5%")%Preset::get_type_string(m_type) % m_idx_selected % m_edited_preset.name % m_edited_preset.is_system % m_edited_preset.is_default;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": %1% select success, m_idx_selected %2%, name %3%, is_system %4%, is_default %5%")%Preset::get_type_string(m_type) % m_idx_selected % m_edited_preset.name % m_edited_preset.is_system % m_edited_preset.is_default;
     return m_presets[idx];
 }
 
 bool PresetCollection::select_preset_by_name(const std::string &name_w_suffix, bool force)
 {
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, try to select by name %2%, force %3%")%Preset::get_type_string(m_type) %name_w_suffix %force;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, try to select by name %2%, force %3%")%Preset::get_type_string(m_type) %name_w_suffix %force;
     std::string name = Preset::remove_suffix_modified(name_w_suffix);
     // 1) Try to find the preset by its name.
     auto it = this->find_preset_internal(name);
@@ -3129,22 +3129,22 @@ bool PresetCollection::select_preset_by_name(const std::string &name_w_suffix, b
     if (m_idx_selected != idx || force) {
         this->select_preset(idx);
         //BBS: add config related logs
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, select %2%, success")%Preset::get_type_string(m_type) %name_w_suffix;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, select %2%, success")%Preset::get_type_string(m_type) %name_w_suffix;
         return true;
     }
 
     //BBS: add config related logs
     if (m_idx_selected == idx)
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, already selected before") % Preset::get_type_string(m_type);
+        BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, already selected before") % Preset::get_type_string(m_type);
     else
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, select %2%, failed")%Preset::get_type_string(m_type) %name_w_suffix;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, select %2%, failed")%Preset::get_type_string(m_type) %name_w_suffix;
     return false;
 }
 
 bool PresetCollection::select_preset_by_name_strict(const std::string &name)
 {
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, try to select by name %2%")%Preset::get_type_string(m_type) %name;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, try to select by name %2%")%Preset::get_type_string(m_type) %name;
     // 1) Try to find the preset by its name.
     auto it = this->find_preset_internal(name);
 
@@ -3156,12 +3156,12 @@ bool PresetCollection::select_preset_by_name_strict(const std::string &name)
     if (idx != (size_t)-1) {
         this->select_preset(idx);
         //BBS: add config related logs
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, select %2%, success")%Preset::get_type_string(m_type) %name;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, select %2%, success")%Preset::get_type_string(m_type) %name;
         return true;
     }
     m_idx_selected = idx;
     //BBS: add config related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, select %2%, failed")%Preset::get_type_string(m_type) %name;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, select %2%, failed")%Preset::get_type_string(m_type) %name;
     return false;
 }
 
@@ -3316,7 +3316,7 @@ void PresetCollection::set_printer_hold_alias(const std::string &alias, Preset &
                 }
             }
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << " preset name : " << preset.name << " remove action: " << remove << " insert success: "
+        BOOST_LOG_TRIVIAL(info) << " " << " preset name : " << preset.name << " remove action: " << remove << " insert success: "
                                 << insert_success << " remove success: " << remove_success << " alias: " << alias;
     }
 }

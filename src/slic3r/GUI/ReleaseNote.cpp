@@ -210,7 +210,7 @@ void UpdatePluginDialog::update_info(std::string json_path)
         description_str = j["description"];
     }
     catch (nlohmann::detail::parse_error& err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " got a nlohmann::detail::parse_error, reason = " << err.what();
+        BOOST_LOG_TRIVIAL(error) << ": parse " << json_path << " got a nlohmann::detail::parse_error, reason = " << err.what();
         return;
     }
 

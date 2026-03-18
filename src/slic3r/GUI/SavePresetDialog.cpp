@@ -127,7 +127,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     bool is_project_embedded = m_presets->get_edited_preset().is_project_embedded;
     m_radio_group->SetSelection(is_project_embedded ? 1 : 0);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", create item: type" << Preset::get_type_string(m_type) << ", preset " << m_preset_name
+    BOOST_LOG_TRIVIAL(info) << ", create item: type" << Preset::get_type_string(m_type) << ", preset " << m_preset_name
                             << ", is_project_embedded = " << is_project_embedded;
     update();
 }

@@ -77,7 +77,7 @@ void session::read_next_line()
 
             if (line.length() == 0) {
                 if (headers.content_length() == 0) {
-                    std::cout << "Request received: " << headers.method << " " << headers.get_url();
+                    BOOST_LOG_TRIVIAL(debug) << "Request received: " << headers.method << " " << headers.get_url();
                     if (headers.method == "OPTIONS") {
                         // Ignore http OPTIONS
                         server.stop(self);
@@ -91,7 +91,7 @@ void session::read_next_line()
                     std::shared_ptr<std::string> str = std::make_shared<std::string>(ssOut.str());
                     async_write(socket, boost::asio::buffer(str->c_str(), str->length()),
                                 [this, self, str](const boost::beast::error_code& e, std::size_t s) {
-                        std::cout << "done" << std::endl;
+                        BOOST_LOG_TRIVIAL(debug) << "done";
                         server.stop(self);
                     });
                 } else {

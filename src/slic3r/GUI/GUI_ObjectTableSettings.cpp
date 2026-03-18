@@ -122,7 +122,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
 
     //get the category and settings
     if (category_settings.size() == 0) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "can not find settings for category " <<category <<", display all the modified settings instead!!!" << std::endl;
+        BOOST_LOG_TRIVIAL(info) << "can not find settings for category " <<category <<", display all the modified settings instead!!!" << std::endl;
         //return false;
         cat_options = SettingsFactory::get_all_visible_options(!is_object);
         std::map<std::string, std::vector<SimpleSettingData>>::iterator it1 = cat_options.begin();
@@ -138,7 +138,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
                     it2 = settings.erase(it2);
                 }
                 else {
-                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" category %1% , keep option %2%")%it1->first % it2->name;
+                    BOOST_LOG_TRIVIAL(debug) << boost::format(" category %1% , keep option %2%")%it1->first % it2->name;
                     it2++;
                 }
             }

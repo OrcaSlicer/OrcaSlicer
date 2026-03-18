@@ -66,7 +66,7 @@ public:
         ssRequestLine >> url;
         ssRequestLine >> version;
 
-        std::cout << "request for resource: " << url << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "request for resource: " << url;
     }
 };
 

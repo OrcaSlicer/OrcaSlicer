@@ -485,7 +485,7 @@ bool GLTexture::generate_from_text(const std::string &text_str, wxFont &font, wx
 {
     if (text_str.empty())
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":no text string, should not happen\n";
+        BOOST_LOG_TRIVIAL(error) << ":no text string, should not happen\n";
         return false;
     }
 
@@ -558,7 +558,7 @@ bool GLTexture::generate_texture_from_text(const std::string& text_str, wxFont& 
 {
     if (text_str.empty())
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":no text string, should not happen\n";
+        BOOST_LOG_TRIVIAL(error) << ":no text string, should not happen\n";
         return false;
     }
 

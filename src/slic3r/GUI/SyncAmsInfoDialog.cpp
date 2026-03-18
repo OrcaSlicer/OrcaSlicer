@@ -46,7 +46,7 @@ wxDEFINE_EVENT(EVT_PRINT_JOB_CANCEL, wxCommandEvent);
 #define SYNC_FLEX_GRID_COL 7
 bool SyncAmsInfoDialog::Show(bool show)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " SyncAmsInfoDialog begin show";
+    BOOST_LOG_TRIVIAL(info) << " SyncAmsInfoDialog begin show";
     if (show) {
         if (m_two_image_panel) {
             m_two_image_panel->SetBackgroundColor(wxGetApp().dark_mode() ? wxColour(48, 48, 48, 100) : wxColour(246, 246, 246, 100));
@@ -101,7 +101,7 @@ bool SyncAmsInfoDialog::Show(bool show)
     Fit();
     CenterOnScreen();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " SyncAmsInfoDialog finish show";
+    BOOST_LOG_TRIVIAL(info) << " SyncAmsInfoDialog finish show";
     return DPIDialog::Show(show);
 }
 
@@ -212,7 +212,7 @@ void SyncAmsInfoDialog::deal_ok()
                 temp.slot_id = m_ams_mapping_result[i].slot_id;
             }
             else{
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error:  m_result.sync_maps:" << temp_idx;
+                BOOST_LOG_TRIVIAL(info) << "check error:  m_result.sync_maps:" << temp_idx;
             }
         }
     }
@@ -1188,7 +1188,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
 {
     m_back_ams_mapping_result = result;
     if (result.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping result is empty";
+        BOOST_LOG_TRIVIAL(info) << "ams_mapping result is empty";
         for (auto it = m_materialList.begin(); it != m_materialList.end(); it++) {
             wxString ams_id  = "Ext";
             wxColour ams_col = wxColour(0xCE, 0xCE, 0xCE);
@@ -1197,7 +1197,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
         return;
     }
     for (auto f = result.begin(); f != result.end(); f++) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "ams_mapping f id = " << f->id << ", tray_id = " << f->tray_id << ", color = " << f->color << ", type = " << f->type;
+        BOOST_LOG_TRIVIAL(info) << "ams_mapping f id = " << f->id << ", tray_id = " << f->tray_id << ", color = " << f->color << ", type = " << f->type;
 
         MaterialHash::iterator iter = m_materialList.begin();
         while (iter != m_materialList.end()) {
@@ -1243,7 +1243,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
 bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
 {
     if (!obj_) return false;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " begin do_ams_mapping result";
+    BOOST_LOG_TRIVIAL(info) << " begin do_ams_mapping result";
     obj_->get_ams_colors(m_cur_colors_in_thumbnail);
     // try color and type mapping
 
@@ -1341,7 +1341,7 @@ void SyncAmsInfoDialog::show_thumbnail_page()
 
 bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "m_ams_mapping_result.size:" << m_ams_mapping_result.empty();
+    BOOST_LOG_TRIVIAL(info) << "m_ams_mapping_result.size:" << m_ams_mapping_result.empty();
     if (m_ams_mapping_result.empty())
         return false;
 
@@ -1355,10 +1355,10 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
     }
 
     if (invalid_count == m_ams_mapping_result.size()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "invalid_count == m_ams_mapping_result.size()";
+        BOOST_LOG_TRIVIAL(info) << "invalid_count == m_ams_mapping_result.size()";
         return false;
     } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check mapping_v0_json";
+        BOOST_LOG_TRIVIAL(info) << "check mapping_v0_json";
         json mapping_v0_json   = json::array();
         json mapping_v1_json   = json::array();
         json mapping_info_json = json::array();
@@ -1424,7 +1424,7 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
         mapping_array_str2 = mapping_v1_json.dump();
 
         ams_mapping_info = mapping_info_json.dump();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "mapping_array_str:" << mapping_array_str;
+        BOOST_LOG_TRIVIAL(info) << "mapping_array_str:" << mapping_array_str;
         return valid_mapping_result;
     }
     return true;
@@ -1592,7 +1592,7 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             }
         }
         else {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "check error:array bound in map_extruders" << it->first;
+            BOOST_LOG_TRIVIAL(error) << "check error:array bound in map_extruders" << it->first;
             return false;
         }
     }
@@ -2604,7 +2604,6 @@ void SyncAmsInfoDialog::set_default(bool hide_some)
 
 void SyncAmsInfoDialog::reset_and_sync_ams_list()
 {
-    BOOST_LOG_TRIVIAL(info) <<__FUNCTION__;
     // for black list
     std::vector<std::string> materials;
     std::vector<std::string> brands;

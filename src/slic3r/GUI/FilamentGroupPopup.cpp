@@ -30,7 +30,7 @@ static FilamentMapMode get_prefered_map_mode()
     std::string                             mode_str      = app_config->get("prefered_filament_map_mode");
     auto                                    iter          = enum_keys_map.find(mode_str);
     if (iter == enum_keys_map.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("Could not get prefered_filament_map_mode from app config, use AutoForFlsuh mode");
+        BOOST_LOG_TRIVIAL(warning) << boost::format("Could not get prefered_filament_map_mode from app config, use AutoForFlsuh mode");
         return FilamentMapMode::fmmAutoForFlush;
     }
     return FilamentMapMode(iter->second);
@@ -43,7 +43,7 @@ static void set_prefered_map_mode(FilamentMapMode mode)
     std::string                           mode_str;
     if (mode < enum_values.size()) mode_str = enum_values[mode];
 
-    if (mode_str.empty()) BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("Set empty prefered_filament_map_mode to app config");
+    if (mode_str.empty()) BOOST_LOG_TRIVIAL(warning) << boost::format("Set empty prefered_filament_map_mode to app config");
     app_config->set("prefered_filament_map_mode", mode_str);
 }
 

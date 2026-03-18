@@ -2638,7 +2638,7 @@ public:
     {
         ConfigOption* opt = this->optptr(opt_key, create);
         if (opt != nullptr && opt->type() != TYPE::static_type()) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": attempt to access option with wrong type: " << opt_key;
+            BOOST_LOG_TRIVIAL(warning) << ": attempt to access option with wrong type: " << opt_key;
             return nullptr;
         }
         return static_cast<TYPE*>(opt);

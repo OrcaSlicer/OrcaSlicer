@@ -110,7 +110,7 @@ PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transfor
 
 PrintObject::~PrintObject()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, m_shared_object %2%")%this%m_shared_object;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": this=%1%, m_shared_object %2%")%this%m_shared_object;
     if (m_shared_regions && -- m_shared_regions->m_ref_cnt == 0) delete m_shared_regions;
     clear_layers();
     clear_support_layers();

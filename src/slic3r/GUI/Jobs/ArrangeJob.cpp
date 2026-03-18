@@ -158,7 +158,7 @@ void ArrangeJob::prepare_selected() {
                 m_locked.emplace_back(std::move(ap));
                 if (inst_sel[i])
                     selected_is_locked = true;
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": skip locked instance, obj_id %1%, instance_id %2%, name %3%") % oidx % i % mo->name;
+                BOOST_LOG_TRIVIAL(debug) << boost::format(": skip locked instance, obj_id %1%, instance_id %2%, name %3%") % oidx % i % mo->name;
                 }
             }
         }
@@ -226,7 +226,7 @@ void ArrangeJob::prepare_all() {
                 ap.itemid = m_locked.size();
                 m_locked.emplace_back(std::move(ap));
                 selected_is_locked = true;
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": skip locked instance, obj_id %1%, instance_id %2%") % oidx % i;
+                BOOST_LOG_TRIVIAL(debug) << boost::format(": skip locked instance, obj_id %1%, instance_id %2%") % oidx % i;
             }
         }
     }
@@ -377,7 +377,7 @@ void ArrangeJob::prepare_partplate() {
     if (plate->empty())
     {
         //no instances on this plate
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": no instances in current plate!");
+        BOOST_LOG_TRIVIAL(info) << boost::format(": no instances in current plate!");
 
         return;
     }
@@ -413,7 +413,7 @@ void ArrangeJob::prepare_partplate() {
                 //skip this object due to be not in current plate, treated as locked
                 ap.itemid = m_locked.size();
                 m_locked.emplace_back(std::move(ap));
-                //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": skip locked instance, obj_id %1%, name %2%") % oidx % mo->name;
+                //BOOST_LOG_TRIVIAL(debug) << boost::format(": skip locked instance, obj_id %1%, name %2%") % oidx % mo->name;
             }
         }
     }
@@ -644,7 +644,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
 
         beds = std::max(ap.bed_idx, beds);
 
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": arrange selected %4%: bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
+        BOOST_LOG_TRIVIAL(debug) << boost::format(": arrange selected %4%: bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
     }
 
     //BBS: adjust the bed_index, create new plates, get the max bed_index
@@ -658,7 +658,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
             plate_list.postprocess_bed_index_for_unselected(ap);
 
         beds = std::max(ap.bed_idx, beds);
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":arrange unselected %4%: bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
+        BOOST_LOG_TRIVIAL(debug) << boost::format(":arrange unselected %4%: bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
     }
 
     for (ArrangePolygon& ap : m_locked) {
@@ -696,7 +696,7 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
         plate_list.postprocess_arrange_polygon(ap, true);
 
         ap.apply();
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":arrange m_unprintable: name: %4%, bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
+        BOOST_LOG_TRIVIAL(debug) << boost::format(":arrange m_unprintable: name: %4%, bed_id %1%, trans {%2%,%3%}") % ap.bed_idx % unscale<double>(ap.translation(X)) % unscale<double>(ap.translation(Y)) % ap.name;
     }
 
     m_plater->update();

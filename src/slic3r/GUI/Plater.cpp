@@ -703,13 +703,13 @@ std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, si
     int machine_enabled_level = 0;
     if (enable_long_retraction_when_cut_opt) {
         machine_enabled_level = enable_long_retraction_when_cut_opt->value;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get enable_long_retraction_when_cut from config, value=%1%")%machine_enabled_level;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": get enable_long_retraction_when_cut from config, value=%1%")%machine_enabled_level;
     }
     const ConfigOptionBools* long_retractions_when_cut_opt = full_config.option<ConfigOptionBools>("long_retractions_when_cut");
     bool machine_activated = false;
     if (long_retractions_when_cut_opt) {
         machine_activated = long_retractions_when_cut_opt->values[nozzle_id] == 1;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get long_retractions_when_cut from config, value=%1%, activated=%2%")%long_retractions_when_cut_opt->values[0] %machine_activated;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": get long_retractions_when_cut from config, value=%1%, activated=%2%")%long_retractions_when_cut_opt->values[0] %machine_activated;
     }
 
     size_t filament_size = full_config.option<ConfigOptionFloats>("filament_diameter")->values.size();
@@ -718,19 +718,19 @@ std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, si
     const ConfigOptionFloats* filament_retraction_distances_when_cut_opt = full_config.option<ConfigOptionFloats>("filament_retraction_distances_when_cut");
     if (filament_retraction_distances_when_cut_opt) {
         filament_retraction_distance_when_cut = filament_retraction_distances_when_cut_opt->values;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get filament_retraction_distance_when_cut from config, size=%1%, values=%2%")%filament_retraction_distance_when_cut.size() %filament_retraction_distances_when_cut_opt->serialize();
+        BOOST_LOG_TRIVIAL(info) << boost::format(": get filament_retraction_distance_when_cut from config, size=%1%, values=%2%")%filament_retraction_distance_when_cut.size() %filament_retraction_distances_when_cut_opt->serialize();
     }
 
     const ConfigOptionFloats* printer_retraction_distance_when_cut_opt = full_config.option<ConfigOptionFloats>("retraction_distances_when_cut");
     if (printer_retraction_distance_when_cut_opt) {
         printer_retraction_distance_when_cut = printer_retraction_distance_when_cut_opt->values;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get retraction_distances_when_cut from config, size=%1%, values=%2%")%printer_retraction_distance_when_cut.size() %printer_retraction_distance_when_cut_opt->serialize();
+        BOOST_LOG_TRIVIAL(info) << boost::format(": get retraction_distances_when_cut from config, size=%1%, values=%2%")%printer_retraction_distance_when_cut.size() %printer_retraction_distance_when_cut_opt->serialize();
     }
 
     const ConfigOptionBools* filament_long_retractions_when_cut_opt = full_config.option<ConfigOptionBools>("filament_long_retractions_when_cut");
     if (filament_long_retractions_when_cut_opt) {
         filament_long_retractions_when_cut = filament_long_retractions_when_cut_opt->values;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get filament_long_retractions_when_cut from config, size=%1%, values=%2%")%filament_long_retractions_when_cut.size() %filament_long_retractions_when_cut_opt->serialize();
+        BOOST_LOG_TRIVIAL(info) << boost::format(": get filament_long_retractions_when_cut from config, size=%1%, values=%2%")%filament_long_retractions_when_cut.size() %filament_long_retractions_when_cut_opt->serialize();
     }
 
     for (size_t idx = 0; idx < filament_size; ++idx) {
@@ -1263,7 +1263,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
 {
     MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
     auto           printer_name = plater->get_selected_printer_name_in_combox();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " begin sync_extruder_list";
+    BOOST_LOG_TRIVIAL(info) << " begin sync_extruder_list";
     if (obj == nullptr) {
         plater->pop_warning_and_go_to_device_page(printer_name, Plater::PrinterWarningType::NOT_CONNECTED, _L("Sync printer information"));
         return false;
@@ -1274,7 +1274,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
     //}
 
     if (!plater->check_printer_initialized(obj)) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " check_printer_initialized fail";
+        BOOST_LOG_TRIVIAL(info) << " check_printer_initialized fail";
         return false;
     }
 
@@ -1283,7 +1283,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
     std::string target_model_id  = preset_bundle->printers.get_selected_preset().get_printer_type(preset_bundle);
     Preset* machine_preset = get_printer_preset(obj);
     if (!machine_preset) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
+        BOOST_LOG_TRIVIAL(info) << "check error: machine_preset empty";
         return false;
     }
     if (machine_print_name != target_model_id) {
@@ -1301,7 +1301,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
             printer_tab->select_preset(machine_preset->name);
         });
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " go on sync_extruder_list";
+    BOOST_LOG_TRIVIAL(info) << " go on sync_extruder_list";
     const Preset &cur_preset  = preset_bundle->printers.get_selected_preset();
     int extruder_nums = preset_bundle->get_printer_extruder_count();
     std::vector<int> extruder_map(extruder_nums);
@@ -1375,7 +1375,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
         is_switching_diameter = false;
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " finish sync_extruder_list";
+    BOOST_LOG_TRIVIAL(info) << " finish sync_extruder_list";
     return true;
 }
 
@@ -2453,7 +2453,7 @@ void Sidebar::update_all_preset_comboboxes()
                     set_bed_type_accord_combox(bed_type);
                 }
             } else {
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":no need reset_bed_type_combox_choices";
+                BOOST_LOG_TRIVIAL(debug) << ":no need reset_bed_type_combox_choices";
             }
         }
     } else {
@@ -2493,7 +2493,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     const auto print_tech = preset_bundle.printers.get_edited_preset().printer_technology();
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, preset_type %1%")%preset_type;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": enter, preset_type %1%")%preset_type;
     switch (preset_type) {
     case Preset::TYPE_FILAMENT:
     {
@@ -2648,7 +2648,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
     // Synchronize config.ini with the current selections.
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": exit.");
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": exit.");
 }
 
 //BBS
@@ -2656,7 +2656,7 @@ void Sidebar::update_presets_from_to(Slic3r::Preset::Type preset_type, std::stri
 {
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, preset_type %1%, from %2% to %3%")%preset_type %from %to;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": enter, preset_type %1%, from %2% to %3%")%preset_type %from %to;
 
     switch (preset_type) {
     case Preset::TYPE_FILAMENT:
@@ -2679,7 +2679,7 @@ void Sidebar::update_presets_from_to(Slic3r::Preset::Type preset_type, std::stri
     // Synchronize config.ini with the current selections.
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": exit!");
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": exit!");
 }
 
 BedType Sidebar::get_cur_select_bed_type() {
@@ -3383,7 +3383,7 @@ void Sidebar::load_ams_list(MachineObject* obj)
         p->ams_list_device = device;
         device_change      = true;
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1% items") % filament_ams_list.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(": %1% items") % filament_ams_list.size();
     if (wxGetApp().preset_bundle->filament_ams_list == filament_ams_list && !device_change)
     {
         return;
@@ -3467,7 +3467,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         return;
     auto sync_result = m_sync_dlg->get_result();
     if (!sync_result.is_same_printer) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error: sync_result.is_same_printer value is false";
+        BOOST_LOG_TRIVIAL(info) << "check error: sync_result.is_same_printer value is false";
         return;
     }
     list2.resize(list.size());
@@ -3525,9 +3525,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         dlg.ShowModal();
     }
     if (!sync_color_only) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "on_filament_count_change";
+        BOOST_LOG_TRIVIAL(info) << "on_filament_count_change";
         wxGetApp().plater()->on_filament_count_change(n);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish on_filament_count_change";
+        BOOST_LOG_TRIVIAL(info) << "finish on_filament_count_change";
     }
     for (auto& c : p->combos_filament)
         c->update();
@@ -3584,7 +3584,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             }
         }
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "prepare enable_merge_color_by_sync_ams";
+    BOOST_LOG_TRIVIAL(info) << "prepare enable_merge_color_by_sync_ams";
     if (!merge_info.is_empty() && wxGetApp().app_config->get_bool("enable_merge_color_by_sync_ams")) { // merge same color and preset filament//use same ams
         auto reduce_index = [](MergeFilamentInfo &merge_info,int value) {
             for (size_t i = 0; i < merge_info.merges.size(); i++) {
@@ -3621,7 +3621,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
                     auto &c = p->combos_filament[i];
                     badge_combox_filament(c);
                 } else {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: p->combos_filament array out of bound";
+                    BOOST_LOG_TRIVIAL(info) << "check error: p->combos_filament array out of bound";
                 }
             }
         }
@@ -3637,9 +3637,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             }
         }
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "begin pop_finsish_sync_ams_dialog";
+    BOOST_LOG_TRIVIAL(info) << "begin pop_finsish_sync_ams_dialog";
     pop_finsish_sync_ams_dialog();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
+    BOOST_LOG_TRIVIAL(info) << "finish pop_finsish_sync_ams_dialog";
 }
 
 bool Sidebar::should_show_SEMM_buttons()
@@ -3797,7 +3797,7 @@ template<typename T> void setup_dialog_position(T& info)
 }
 
 void Sidebar::pop_sync_nozzle_and_ams_dialog() {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " begin pop_sync_nozzle_and_ams_dialog";
+    BOOST_LOG_TRIVIAL(info) << " begin pop_sync_nozzle_and_ams_dialog";
     wxTheApp->CallAfter([this]() {
         SyncNozzleAndAmsDialog::InputInfo temp_na_info;
         wxPoint                           big_btn_pt;
@@ -5376,7 +5376,7 @@ void Plater::priv::update(unsigned int flags)
 void Plater::priv::select_view(const std::string& direction)
 {
     if (current_panel == view3D) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "select view3D";
+        BOOST_LOG_TRIVIAL(info) << "select view3D";
         view3D->select_view(direction);
         wxGetApp().update_ui_from_settings();
     }
@@ -5498,9 +5498,9 @@ void Plater::priv::apply_free_camera_correction(bool apply/* = true*/)
 void Plater::priv::select_view_3D(const std::string& name, bool no_slice)
 {
     if (name == "3D") {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "select view3D";
+        BOOST_LOG_TRIVIAL(info) << "select view3D";
         if (q->only_gcode_mode() || q->using_exported_file()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("goto preview page when loading gcode/exported_3mf");
+            BOOST_LOG_TRIVIAL(info) << boost::format("goto preview page when loading gcode/exported_3mf");
         }
         set_current_panel(view3D, no_slice);
     }
@@ -5755,7 +5755,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     bool imperial_units = strategy & LoadStrategy::ImperialUnits;
     bool silence = strategy & LoadStrategy::Silence;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": load_model %1%, load_config %2%, input_files size %3%")%load_model %load_config %input_files.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(": load_model %1%, load_config %2%, input_files size %3%")%load_model %load_config %input_files.size();
 
     const auto loading = _L("Loading") + dots;
     ProgressDialog dlg(loading, "", 100, find_toplevel_parent(q), wxPD_AUTO_HIDE | wxPD_CAN_ABORT | wxPD_APP_MODAL);
@@ -5816,7 +5816,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         int  progress_percent = static_cast<int>(100.0f * static_cast<float>(i) / static_cast<float>(input_files.size()));
         const auto real_filename    = (strategy & LoadStrategy::Restore) ? input_files[++i].filename() : filename;
         const auto dlg_info         = _L("Loading file") + ": " + from_path(real_filename);
-        BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(": load file %1%") % filename;
+        BOOST_LOG_TRIVIAL(trace) << boost::format(": load file %1%") % filename;
         dlg_cont = dlg.Update(progress_percent, dlg_info);
         if (!dlg_cont) return empty_result;
 
@@ -5834,7 +5834,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         }
         if (load_config) strategy = strategy | LoadStrategy::CheckVersion;
         bool is_project_file = false;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": is_project_file %1%, type_3mf %2%") % is_project_file % type_3mf;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": is_project_file %1%, type_3mf %2%") % is_project_file % type_3mf;
         try {
             if (type_3mf) {
                 DynamicPrintConfig config;
@@ -5863,7 +5863,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                  if (cancel)
                                                                      is_user_cancel = cancel;
                                                              });
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
+                    BOOST_LOG_TRIVIAL(info)
                                             << boost::format(", plate_data.size %1%, project_preset.size %2%, is_bbs_3mf %3%, file_version %4% \n") % plate_data.size() %
                                                    project_presets.size() % (en_3mf_file_type == En3mfType::From_BBS) % file_version.to_string();
 
@@ -6020,7 +6020,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                     // plate data
                     if (plate_data.size() > 0) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", import 3mf UPDATE_GCODE_RESULT \n");
+                        BOOST_LOG_TRIVIAL(info) << boost::format(", import 3mf UPDATE_GCODE_RESULT \n");
                         wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
                         dlg_cont     = dlg.Update(progress_percent, msg);
                         if (!dlg_cont) {
@@ -6065,7 +6065,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
 
                     if (load_config && !config_loaded.empty()) {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", import 3mf IMPORT_LOAD_CONFIG \n");
+                        BOOST_LOG_TRIVIAL(info) << boost::format(", import 3mf IMPORT_LOAD_CONFIG \n");
                         wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
                         dlg_cont     = dlg.Update(progress_percent, msg);
                         if (!dlg_cont) {
@@ -6081,9 +6081,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         config += std::move(config_loaded);
                         std::map<std::string, std::string> validity = config.validate();
                         if (!validity.empty()) {
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("Param values in 3mf error: ");
+                            BOOST_LOG_TRIVIAL(info) << boost::format("Param values in 3mf error: ");
                             for (std::map<std::string, std::string>::iterator it=validity.begin(); it!=validity.end(); ++it)
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("%1%: %2%")%it->first %it->second;
+                                BOOST_LOG_TRIVIAL(info) << boost::format("%1%: %2%")%it->first %it->second;
                             //
                             NotificationManager *notify_manager = q->get_notification_manager();
                             std::string error_message = L("Invalid values found in the 3MF:");
@@ -6565,7 +6565,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 model_object->center_around_origin(false);
 
             // BBS
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_LOAD_MODEL_OBJECTS \n");
+            BOOST_LOG_TRIVIAL(info) << boost::format("import 3mf IMPORT_LOAD_MODEL_OBJECTS \n");
             wxString msg = wxString::Format("Loading file: %s", from_path(real_filename));
             model_idx++;
             dlg_cont = dlg.Update(progress_percent, msg);
@@ -6598,11 +6598,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 q->model().load_from(model);
                 load_auxiliary_files();
             }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", before load_model_objects, count %1%")%model.objects.size();
+            BOOST_LOG_TRIVIAL(info) << boost::format(", before load_model_objects, count %1%")%model.objects.size();
             auto loaded_idxs = load_model_objects(model.objects, is_project_file);
             obj_idxs.insert(obj_idxs.end(), loaded_idxs.begin(), loaded_idxs.end());
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", finished load_model_objects");
+            BOOST_LOG_TRIVIAL(info) << boost::format(", finished load_model_objects");
             wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
             dlg_cont     = dlg.Update(progress_percent, msg);
             if (!dlg_cont) {
@@ -6614,7 +6614,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             for (const ModelObject *model_object : model.objects) {
                 new_model->add_object(*model_object);
 
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << boost::format(", added object %1%")%model_object->name;
+                BOOST_LOG_TRIVIAL(debug) << boost::format(", added object %1%")%model_object->name;
                 wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
                 dlg_cont     = dlg.Update(progress_percent, msg);
                 if (!dlg_cont) {
@@ -6882,7 +6882,7 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
         }
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", loaded objects, begin to auto placement");
+    BOOST_LOG_TRIVIAL(info) << boost::format(", loaded objects, begin to auto placement");
 #ifdef AUTOPLACEMENT_ON_LOAD
 #if 0
     // FIXME distance should be a config value /////////////////////////////////
@@ -6927,7 +6927,7 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
     //        _L("Object too large?"));
     //}
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", finished auto placement, before add_objects_to_list");
+    BOOST_LOG_TRIVIAL(info) << boost::format(", finished auto placement, before add_objects_to_list");
     notification_manager->close_notification_of_type(NotificationType::UpdatedItemsInfo);
 
     if (obj_idxs.size() > 1) {
@@ -6939,7 +6939,7 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
     else
         wxGetApp().obj_list()->add_objects_to_list(obj_idxs);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", after add_objects_to_list");
+    BOOST_LOG_TRIVIAL(info) << boost::format(", after add_objects_to_list");
     update();
     // Update InfoItems in ObjectList after update() to use of a correct value of the GLCanvas3D::is_sinking(),
     // which is updated after a view3D->reload_scene(false, flags & (unsigned int)UpdateParams::FORCE_FULL_SCREEN_REFRESH) call
@@ -7159,7 +7159,7 @@ void Plater::priv::object_list_changed()
     // BBS
     //sidebar->enable_buttons(!model.objects.empty() && !export_in_progress && model_fits && part_plate->has_printable_instances());
     bool can_slice = !model.objects.empty() && !export_in_progress && model_fits && part_plate->has_printable_instances();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": can_slice %1%, model_fits= %2%, export_in_progress %3%, has_printable_instances %4% ")%can_slice %model_fits %export_in_progress %part_plate->has_printable_instances();
+    BOOST_LOG_TRIVIAL(info) << boost::format(": can_slice %1%, model_fits= %2%, export_in_progress %3%, has_printable_instances %4% ")%can_slice %model_fits %export_in_progress %part_plate->has_printable_instances();
     main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, can_slice);
 
     wxGetApp().params_panel()->notify_object_config_changed();
@@ -7286,7 +7286,7 @@ void Plater::priv::reset(bool apply_presets_change)
     clear_warnings();
 
     set_project_filename("");
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: empty";
+    BOOST_LOG_TRIVIAL(info) << " call set_project_filename: empty";
 
     if (view3D->is_layers_editing_enabled())
         view3D->get_canvas3d()->force_main_toolbar_left_action(view3D->get_canvas3d()->get_main_toolbar_item_id("layersediting"));
@@ -7647,7 +7647,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     // Apply new config to the possibly running background task.
     bool               was_running = background_process.running();
     //BBS: add the switch print logic before Print::Apply
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": enter, force_validation=%1% postpone_error_messages=%2%, switch_print=%3%, was_running=%4%")%force_validation %postpone_error_messages %switch_print %was_running;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": enter, force_validation=%1% postpone_error_messages=%2%, switch_print=%3%, was_running=%4%")%force_validation %postpone_error_messages %switch_print %was_running;
     if (switch_print)
     {
         //BBS: update the current print to the current plate
@@ -7673,7 +7673,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         q->set_only_gcode(false);
 
     //BBS: add slicing related logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": background process apply result=%1%")%invalidated;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": background process apply result=%1%")%invalidated;
     if (background_process.empty())
         view3D->get_canvas3d()->reset_sequential_print_clearance();
 
@@ -7718,7 +7718,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         StringObjectException err = background_process.validate(&warning, &polygons, &height_polygons);
         // update string by type
         q->post_process_string_object_exception(err);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warning=%2%")%err.string%warning.string;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": validate err=%1%, warning=%2%")%err.string%warning.string;
 
         if (err.string.empty()) {
             this->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -7772,8 +7772,8 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         process_completed_with_error = -1;
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: was_running = %2%, running %3%, invalidated=%4%, return_state=%5%, internal_cancel=%6%")
-        % __LINE__ % was_running % this->background_process.running() % invalidated % return_state % this->background_process.is_internal_cancelled();
+    BOOST_LOG_TRIVIAL(info) << boost::format("was_running = %1%, running %2%, invalidated=%3%, return_state=%4%, internal_cancel=%5%")
+        % was_running % this->background_process.running() % invalidated % return_state % this->background_process.is_internal_cancelled();
     if (was_running && ! this->background_process.running() && (return_state & UPDATE_BACKGROUND_PROCESS_RESTART) == 0) {
         if (invalidated != Print::APPLY_STATUS_UNCHANGED || this->background_process.is_internal_cancelled())
         {
@@ -7781,7 +7781,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             // Post the "canceled" callback message, so that it will be processed after any possible pending status bar update messages.
             SlicingProcessCompletedEvent evt(EVT_PROCESS_COMPLETED, 0,
                 SlicingProcessCompletedEvent::Cancelled, nullptr);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%, post an EVT_PROCESS_COMPLETED to main, status %2%")%__LINE__ %evt.status();
+            BOOST_LOG_TRIVIAL(info) << boost::format("post an EVT_PROCESS_COMPLETED to main, status %1%") %evt.status();
             wxQueueEvent(q, evt.Clone());
         }
     }
@@ -7793,7 +7793,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         this->main_frame->update_slice_print_status(MainFrame::eEventSliceUpdate, false);
 
         process_completed_with_error = partplate_list.get_curr_plate_index();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: set to process_completed_with_error, return_state=%2%")%__LINE__%return_state;
+        BOOST_LOG_TRIVIAL(info) << boost::format("set to process_completed_with_error, return_state=%1%")%return_state;
     }
     else
     {
@@ -7803,7 +7803,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
             notification_manager->set_slicing_progress_hidden();
 
         //BBS: add slice&&print status update logic
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: background data valid, return_state=%2%")%__LINE__%return_state;
+        BOOST_LOG_TRIVIAL(info) << boost::format("background data valid, return_state=%1%")%return_state;
         PartPlate* cur_plate = background_process.get_current_plate();
         if (background_process.finished() && cur_plate && cur_plate->is_slice_result_valid())
         {
@@ -7846,7 +7846,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 #endif
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: exit, return_state=%2%")%__LINE__%return_state;
+    BOOST_LOG_TRIVIAL(info) << boost::format("exit, return_state=%1%")%return_state;
     return return_state;
 }
 
@@ -7855,7 +7855,7 @@ bool Plater::priv::restart_background_process(unsigned int state)
 {
     if (!m_worker.is_idle()) {
         // Avoid a race condition
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: ui jobs running, return false")%__LINE__;
+        BOOST_LOG_TRIVIAL(warning) << "ui jobs running, return false";
         return false;
     }
 
@@ -7864,12 +7864,12 @@ bool Plater::priv::restart_background_process(unsigned int state)
          ( ((state & UPDATE_BACKGROUND_PROCESS_FORCE_RESTART) != 0 && ! this->background_process.finished()) ||
            (state & UPDATE_BACKGROUND_PROCESS_FORCE_EXPORT) != 0 ||
            (state & UPDATE_BACKGROUND_PROCESS_RESTART) != 0 ) ) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: print is valid, try to start it now")%__LINE__;
+        BOOST_LOG_TRIVIAL(info) << "print is valid, try to start it now";
         // The print is valid and it can be started.
         if (this->background_process.start()) {
             if (!show_warning_dialog)
                 on_slicing_began();
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: start successfully")%__LINE__;
+            BOOST_LOG_TRIVIAL(info) << "start successfully";
             return true;
         }
     }
@@ -7879,12 +7879,12 @@ bool Plater::priv::restart_background_process(unsigned int state)
             if (this->background_process.start()) {
                 if (!show_warning_dialog)
                     on_slicing_began();
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: start successfully")%__LINE__;
+                BOOST_LOG_TRIVIAL(info) << "start successfully";
                 return true;
             }
         }
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: not started")%__LINE__;
+    BOOST_LOG_TRIVIAL(info) << "not started";
     return false;
 }
 
@@ -7960,7 +7960,7 @@ unsigned int Plater::priv::update_restart_background_process(bool force_update_s
     if ((partplate_list.get_plate_count() > 1) && !this->background_process.can_switch_print())
     {
         //can not switch print currently
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": plate count %1%, can not switch") % partplate_list.get_plate_count();
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": plate count %1%, can not switch") % partplate_list.get_plate_count();
         switch_print = false;
     }
     // bitmask of UpdateBackgroundProcessReturnState
@@ -8253,21 +8253,21 @@ void Plater::priv::replace_all_with_stl()
 
         if (new_path == input_path) {
             status += boost::str(boost::format(_L("✖ Skipped %1%: same file.\n").ToStdString()) % volume_name);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " skipping replace volume : same filename " << new_path;
+            BOOST_LOG_TRIVIAL(info) << " skipping replace volume : same filename " << new_path;
             continue;
         }
 
         if (!fs::exists(new_path)) {
             status += boost::str(boost::format(_L("✖ Skipped %1%: file does not exist.\n").ToStdString()) % volume_name);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : filen does not exist " << new_path;
+            BOOST_LOG_TRIVIAL(info) << " cannot replace volume : filen does not exist " << new_path;
             continue;
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " replacing volume : " << input_path << " with " << new_path;
+        BOOST_LOG_TRIVIAL(info) << " replacing volume : " << input_path << " with " << new_path;
 
         if (!replace_volume_with_stl(object_idx, volume_idx, new_path, "Replace with 3D file")) {
             status += boost::str(boost::format(_L("✖ Skipped %1%: failed to replace.\n").ToStdString()) % volume_name);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : failed to replace with " << new_path;
+            BOOST_LOG_TRIVIAL(info) << " cannot replace volume : failed to replace with " << new_path;
             continue;
         }
 
@@ -8313,7 +8313,7 @@ void Plater::priv::reload_from_disk()
 #if ENABLE_RELOAD_FROM_DISK_REWORK
     // collect selected reloadable ModelVolumes
     std::vector<std::pair<int, int>> selected_volumes = reloadable_volumes(model, get_selection());
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry, and reloadable volumes number is: " << selected_volumes.size();
+    BOOST_LOG_TRIVIAL(info) << " entry, and reloadable volumes number is: " << selected_volumes.size();
     // nothing to reload, return
     if (selected_volumes.empty())
         return;
@@ -8742,7 +8742,7 @@ void Plater::priv::reload_from_disk()
         view3D->get_canvas3d()->update_instance_printable_state_for_object(i);
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " finish.";
+    BOOST_LOG_TRIVIAL(info) << " finish.";
 }
 
 void Plater::priv::reload_all_from_disk()
@@ -8771,7 +8771,7 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
     if (std::find(panels.begin(), panels.end(), panel) == panels.end())
         return;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current_panel %1%, new_panel %2%")%current_panel%panel;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": current_panel %1%, new_panel %2%")%current_panel%panel;
 #ifdef __WXMAC__
     bool force_render = (current_panel != nullptr);
 #endif // __WXMAC__
@@ -8791,7 +8791,7 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
             if (current_plate->is_slice_result_valid() && this->model.objects.empty() && !current_has_print_instances)
                 only_has_gcode_need_preview = true;
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": from set_current_panel, no_slice %1%, export_in_progress %2%, model_fits %3%, m_is_slicing %4%")%no_slice%export_in_progress%model_fits%m_is_slicing;
+            BOOST_LOG_TRIVIAL(info) << boost::format(": from set_current_panel, no_slice %1%, export_in_progress %2%, model_fits %3%, m_is_slicing %4%")%no_slice%export_in_progress%model_fits%m_is_slicing;
 
             if (!no_slice && !this->model.objects.empty() && !export_in_progress && model_fits && current_has_print_instances)
             {
@@ -8836,11 +8836,11 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
 
             // keeps current gcode preview, if any
             if (this->m_slice_all) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": slicing all, just reload shells");
+                BOOST_LOG_TRIVIAL(info) << boost::format(": slicing all, just reload shells");
                 this->update_fff_scene_only_shells();
             }
             else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": single slice, reload print");
+                BOOST_LOG_TRIVIAL(info) << boost::format(": single slice, reload print");
                 if (model_fits)
                     this->preview->reload_print(); // TODO
                 else
@@ -8874,7 +8874,7 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
         if (!q->only_gcode_mode() && (current_panel == preview) && (wxGetApp().is_editor())) {
             do_reslice();
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": the same panel, exit");
+        BOOST_LOG_TRIVIAL(info) << boost::format(": the same panel, exit");
         return;
     }
 
@@ -9055,7 +9055,7 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
 
     current_panel->SetFocusFromKbd();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": successfully, exit");
+    BOOST_LOG_TRIVIAL(info) << boost::format(": successfully, exit");
 }
 
 // BBS
@@ -9307,7 +9307,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 
 void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": event_type %1%, percent %2%, text %3%") % evt.GetEventType() % evt.status.percent % evt.status.text;
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": event_type %1%, percent %2%, text %3%") % evt.GetEventType() % evt.status.percent % evt.status.text;
     //BBS: add slice project logic
     std::string title_text = _u8L("Slicing");
     evt.status.text = title_text + evt.status.text;
@@ -9385,15 +9385,15 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
             }
         }
     }
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("exit.");
+    BOOST_LOG_TRIVIAL(debug) << boost::format("exit.");
 }
 
 void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": event_type %1%, string %2%") % evt.GetEventType() % evt.GetString();
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": event_type %1%, string %2%") % evt.GetEventType() % evt.GetString();
     //BBS: add slice project logic
     if (m_slice_all && (m_cur_slice_plate < (partplate_list.get_plate_count() - 1))) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("slicing all, finished plate %1%, will continue next.")%m_cur_slice_plate;
+        BOOST_LOG_TRIVIAL(debug) << boost::format("slicing all, finished plate %1%, will continue next.")%m_cur_slice_plate;
         return;
     }
 
@@ -9408,7 +9408,7 @@ void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
         else
             this->update_sla_scene();
     }
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format("exit.");
+    BOOST_LOG_TRIVIAL(debug) << boost::format("exit.");
 }
 
 void Plater::priv::on_export_began(wxCommandEvent& evt)
@@ -9505,12 +9505,12 @@ bool Plater::priv::warnings_dialog()
 //BBS: add project slice logic
 void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
+    BOOST_LOG_TRIVIAL(debug) << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
     //BBS:ignore cancel event for some special case
     if (m_ignore_event)
     {
         m_ignore_event = false;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": ignore this event %1%") % evt.status();
+        BOOST_LOG_TRIVIAL(info) << boost::format(": ignore this event %1%") % evt.status();
         return;
     }
     //BBS: add project slice logic
@@ -9574,7 +9574,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         is_finished = true;
     }
     if (evt.cancelled()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", cancel event, status: %1%") % evt.status();
+        BOOST_LOG_TRIVIAL(info) << boost::format(", cancel event, status: %1%") % evt.status();
         this->notification_manager->set_slicing_progress_canceled(_u8L("Slicing Canceled"));
         is_finished = true;
     }
@@ -9675,7 +9675,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 
     if (is_finished)
     {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":finished, reload print soon");
+        BOOST_LOG_TRIVIAL(info) << boost::format(":finished, reload print soon");
         m_is_slicing = false;
         this->preview->reload_print(false);
         /* BBS if in publishing progress */
@@ -9692,7 +9692,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     }
     else
     {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":slicing all, plate %1% finished, start next slice...")%m_cur_slice_plate;
+        BOOST_LOG_TRIVIAL(info) << boost::format(":slicing all, plate %1% finished, start next slice...")%m_cur_slice_plate;
         m_cur_slice_plate++;
 
         q->Freeze();
@@ -9700,7 +9700,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         partplate_list.select_plate_view();
         int ret = q->start_next_slice();
         if (ret) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":slicing all, plate %1% can not be sliced, will stop")%m_cur_slice_plate;
+            BOOST_LOG_TRIVIAL(info) << boost::format(":slicing all, plate %1% can not be sliced, will stop")%m_cur_slice_plate;
             m_is_slicing = false;
         }
         //not the last plate
@@ -9719,7 +9719,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         schedule_auto_reslice_if_needed();
     }
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", exit.");
+    BOOST_LOG_TRIVIAL(debug) << boost::format(", exit.");
 }
 
 void Plater::priv::on_action_add(SimpleEvent&)
@@ -9769,7 +9769,7 @@ void Plater::priv::on_action_open_project(SimpleEvent&)
 void Plater::priv::on_action_slice_plate(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice plate event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received slice plate event\n" ;
         //BBS update extruder params and speed table before slicing
         const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         auto& print = q->get_partplate_list().get_current_fff_print();
@@ -9788,7 +9788,7 @@ void Plater::priv::on_action_slice_plate(SimpleEvent&)
 void Plater::priv::on_action_slice_all(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice project event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received slice project event\n" ;
         //BBS update extruder params and speed table before slicing
         const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         auto& print = q->get_partplate_list().get_current_fff_print();
@@ -9826,7 +9826,7 @@ void Plater::priv::on_action_publish(wxCommandEvent &event)
             if (partplate_list.is_all_slice_results_valid()) {
                 q->publish_project();
             } else {
-                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice project in background event\n";
+                BOOST_LOG_TRIVIAL(debug) << ":received slice project in background event\n";
                 SimpleEvent evt = SimpleEvent(EVT_GLTOOLBAR_SLICE_ALL);
                 this->on_action_slice_all(evt);
             }
@@ -9840,7 +9840,7 @@ void Plater::priv::on_action_publish(wxCommandEvent &event)
 void Plater::priv::on_action_print_plate(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received print plate event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received print plate event\n" ;
     }
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
@@ -9867,7 +9867,7 @@ void Plater::priv::on_action_send_to_multi_machine(SimpleEvent&)
 void Plater::priv::on_action_print_plate_from_sdcard(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received print plate event\n";
+        BOOST_LOG_TRIVIAL(debug) << ":received print plate event\n";
     }
 
     //BBS
@@ -9933,7 +9933,7 @@ void Plater::priv::on_action_send_to_printer(bool isall)
 void Plater::priv::on_action_select_sliced_plate(wxCommandEvent &evt)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received select sliced plate event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received select sliced plate event\n" ;
     }
     q->select_sliced_plate(evt.GetInt());
 }
@@ -9941,7 +9941,7 @@ void Plater::priv::on_action_select_sliced_plate(wxCommandEvent &evt)
 void Plater::priv::on_action_print_all(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received print all event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received print all event\n" ;
     }
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
@@ -9960,7 +9960,7 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
 void Plater::priv::on_action_export_gcode(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export gcode event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received export gcode event\n" ;
         q->export_gcode(false);
     }
 }
@@ -9968,7 +9968,7 @@ void Plater::priv::on_action_export_gcode(SimpleEvent&)
 void Plater::priv::on_action_send_gcode(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export gcode event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received export gcode event\n" ;
         q->send_gcode_legacy();
     }
 }
@@ -9976,7 +9976,7 @@ void Plater::priv::on_action_send_gcode(SimpleEvent&)
 void Plater::priv::on_action_export_sliced_file(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export sliced file event\n" ;
+        BOOST_LOG_TRIVIAL(debug) << ":received export sliced file event\n" ;
         q->export_gcode_3mf();
     }
 }
@@ -9984,7 +9984,7 @@ void Plater::priv::on_action_export_sliced_file(SimpleEvent&)
 void Plater::priv::on_action_export_all_sliced_file(SimpleEvent &)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export all sliced file event\n";
+        BOOST_LOG_TRIVIAL(debug) << ":received export all sliced file event\n";
         q->export_gcode_3mf(true);
     }
 }
@@ -9992,7 +9992,7 @@ void Plater::priv::on_action_export_all_sliced_file(SimpleEvent &)
 void Plater::priv::on_action_export_to_sdcard(SimpleEvent&)
 {
 	if (q != nullptr) {
-		BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export sliced file event\n";
+		BOOST_LOG_TRIVIAL(debug) << ":received export sliced file event\n";
 		q->send_to_printer();
 	}
 }
@@ -10000,7 +10000,7 @@ void Plater::priv::on_action_export_to_sdcard(SimpleEvent&)
 void Plater::priv::on_action_export_to_sdcard_all(SimpleEvent&)
 {
     if (q != nullptr) {
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export sliced file event\n";
+        BOOST_LOG_TRIVIAL(debug) << ":received export sliced file event\n";
         q->send_to_printer(true);
     }
 }
@@ -10008,13 +10008,13 @@ void Plater::priv::on_action_export_to_sdcard_all(SimpleEvent&)
 //BBS: add plate select logic
 void Plater::priv::on_plate_selected(SimpleEvent&)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received plate selected event\n" ;
+    BOOST_LOG_TRIVIAL(debug) << ":received plate selected event\n" ;
     sidebar->obj_list()->on_plate_selected(partplate_list.get_curr_plate_index());
 }
 
 void Plater::priv::on_action_request_model_id(wxCommandEvent& evt)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received import model id event\n" ;
+    BOOST_LOG_TRIVIAL(debug) << ":received import model id event\n" ;
     if (q != nullptr) {
         q->import_model_id(evt.GetString());
     }
@@ -10022,7 +10022,7 @@ void Plater::priv::on_action_request_model_id(wxCommandEvent& evt)
 
 void Plater::priv::on_action_download_project(wxCommandEvent& evt)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received download project event\n" ;
+    BOOST_LOG_TRIVIAL(debug) << ":received download project event\n" ;
     if (q != nullptr) {
         q->download_project(evt.GetString());
     }
@@ -10031,7 +10031,7 @@ void Plater::priv::on_action_download_project(wxCommandEvent& evt)
 //BBS: add slice button status update logic
 void Plater::priv::on_slice_button_status(bool enable)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": enable = "<<enable<<"\n";
+    BOOST_LOG_TRIVIAL(debug) << ": enable = "<<enable<<"\n";
     if (!background_process.running())
         main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, enable);
 }
@@ -10418,7 +10418,7 @@ wxString Plater::priv::get_project_name()
 //BBS
 void Plater::priv::set_project_name(const wxString& project_name)
 {
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " project is:" << project_name;
+    BOOST_LOG_TRIVIAL(trace) << " project is:" << project_name;
     m_project_name = project_name;
     //update topbar title
 #ifdef __APPLE__
@@ -10469,7 +10469,7 @@ void Plater::priv::set_project_filename(const wxString& filename)
     full_path.replace_extension("");
 
     m_project_folder = full_path.parent_path();
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " project folder is:" << m_project_folder.string();
+    BOOST_LOG_TRIVIAL(trace) << " project folder is:" << m_project_folder.string();
 
     //BBS
     wxString project_name = from_u8(full_path.filename().string());
@@ -10939,7 +10939,7 @@ void Plater::priv::update_publish_dialog_status(wxString &msg, int percent)
 
 bool Plater::priv::show_publish_dlg(bool show)
 {
-    if (q != nullptr) { BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":recevied publish event\n"; }
+    if (q != nullptr) { BOOST_LOG_TRIVIAL(debug) << ":recevied publish event\n"; }
 
     if (!m_publish_dlg) m_publish_dlg = new PublishDialog(q);
     if (show) {
@@ -11565,7 +11565,7 @@ void Plater::priv::bring_instance_forward() const
 //BBS: popup object table
 bool Plater::priv::PopupObjectTable(int object_id, int volume_id, const wxPoint& position)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, create ObjectTableDialog");
+    BOOST_LOG_TRIVIAL(info) << boost::format(" enter, create ObjectTableDialog");
     int max_width{1920}, max_height{1080};
 
     max_width = q->GetMaxWidth();
@@ -11576,10 +11576,10 @@ bool Plater::priv::PopupObjectTable(int object_id, int volume_id, const wxPoint&
     wxRect rect = sidebar->GetRect();
     wxPoint pos = sidebar->ClientToScreen(wxPoint(rect.x, rect.y));
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": show ObjectTableDialog");
+    BOOST_LOG_TRIVIAL(info) << boost::format(": show ObjectTableDialog");
     table_dialog.Popup(object_id, volume_id, pos);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" finished, will destroy ObjectTableDialog");
+    BOOST_LOG_TRIVIAL(info) << boost::format(" finished, will destroy ObjectTableDialog");
     return true;
 }
 
@@ -11714,8 +11714,8 @@ void Plater::load_project(wxString const& filename2,
     model().calib_pa_pattern.reset(nullptr);
     model().plates_custom_gcodes.clear();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "filename is: " << filename2 << "and originfile is: " << originfile;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__;
+    BOOST_LOG_TRIVIAL(info) << "filename is: " << filename2 << "and originfile is: " << originfile;
+    BOOST_LOG_TRIVIAL(info);
     auto filename = filename2;
     auto check = [&filename, this] (bool yes_or_no) {
         if (!yes_or_no && !wxGetApp().check_and_save_current_preset_changes(_L("Load project"),
@@ -11738,7 +11738,7 @@ void Plater::load_project(wxString const& filename2,
     if (m_loading_project) {
         //some error cases happens
         //return directly
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": current loading other project, return directly");
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": current loading other project, return directly");
         return;
     }
     else
@@ -11791,7 +11791,7 @@ void Plater::load_project(wxString const& filename2,
 
     // if res is empty no data has been loaded
     if (!res.empty() && (load_restore || !(strategy & LoadStrategy::Silence))) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: " << (load_restore ? originfile : filename);
+        BOOST_LOG_TRIVIAL(info) << " call set_project_filename: " << (load_restore ? originfile : filename);
         p->set_project_filename(load_restore ? originfile : filename);
         if (load_restore && originfile.IsEmpty()) {
         p->set_project_name(_L("Untitled"));
@@ -11799,7 +11799,7 @@ void Plater::load_project(wxString const& filename2,
 
     } else {
         if (using_exported_file()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " using ecported set project filename: " << filename;
+            BOOST_LOG_TRIVIAL(info) << " using ecported set project filename: " << filename;
             p->set_project_filename(filename);
         }
 
@@ -11835,7 +11835,7 @@ void Plater::load_project(wxString const& filename2,
     auto       has_modify = is_flush_config_modified();
     sidebar().set_flushing_volume_warning(has_modify);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " load project done";
+    BOOST_LOG_TRIVIAL(info) << " load project done";
     m_loading_project = false;
 }
 
@@ -11869,7 +11869,7 @@ int Plater::save_project(bool saveAs)
     Slic3r::remove_backup(model(), false);
 
     p->set_project_filename(filename);
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " call set_project_filename: " << filename;
+    BOOST_LOG_TRIVIAL(trace) << " call set_project_filename: " << filename;
 
     up_to_date(true, false);
     up_to_date(true, true);
@@ -11893,7 +11893,7 @@ int Plater::save_project(bool saveAs)
 //BBS import model by model id
 void Plater::import_model_id(wxString download_info)
 {
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " download info: " << download_info;
+    BOOST_LOG_TRIVIAL(trace) << " download info: " << download_info;
 
     wxString download_origin_url = download_info;
     wxString download_url;
@@ -13194,8 +13194,8 @@ void Plater::load_gcode()
 //BBS: remove GCodeViewer as seperate APP logic
 void Plater::load_gcode(const wxString& filename)
 {
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " entry and filename: " << filename;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__;
+    BOOST_LOG_TRIVIAL(trace) << " entry and filename: " << filename;
+    BOOST_LOG_TRIVIAL(info);
     if (! is_gcode_file(into_u8(filename))
         || (m_last_loaded_gcode == filename && m_only_gcode)
         )
@@ -13778,9 +13778,9 @@ bool Plater::load_files(const wxArrayString& filenames)
             continue;
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": normal_paths %1%, gcode_paths %2%")%normal_paths.size() %gcode_paths.size();
+    BOOST_LOG_TRIVIAL(info) << boost::format(": normal_paths %1%, gcode_paths %2%")%normal_paths.size() %gcode_paths.size();
     if (normal_paths.empty() && gcode_paths.empty()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": can not find valid path, return directly");
+        BOOST_LOG_TRIVIAL(error) << boost::format(": can not find valid path, return directly");
         // Likely no supported files
         return false;
     }
@@ -14002,7 +14002,7 @@ int Plater::get_3mf_file_count(std::vector<fs::path> paths)
 
 void Plater::add_file()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " entry";
+    BOOST_LOG_TRIVIAL(info) << " entry";
     wxArrayString input_files;
     wxGetApp().import_model(this, input_files);
     if (input_files.empty()) return;
@@ -15181,10 +15181,10 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     const std::string path_u8 = into_u8(path);
     wxBusyCursor wait;
 
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << boost::format(": path=%1%, backup=%2%, export_plate_idx=%3%, SaveStrategy=%4%")
+    BOOST_LOG_TRIVIAL(trace) << boost::format(": path=%1%, backup=%2%, export_plate_idx=%3%, SaveStrategy=%4%")
         %output_path.string()%(strategy & SaveStrategy::Backup)%export_plate_idx %(unsigned int)strategy;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": path=%1%, backup=%2%, export_plate_idx=%3%, SaveStrategy=%4%")
+    BOOST_LOG_TRIVIAL(info) << boost::format(": path=%1%, backup=%2%, export_plate_idx=%3%, SaveStrategy=%4%")
         % std::string("") % (strategy & SaveStrategy::Backup) % export_plate_idx % (unsigned int)strategy;
 
     //BBS: add plate logic for thumbnail generate
@@ -15200,10 +15200,10 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             ThumbnailData* thumbnail_data = &p->partplate_list.get_plate(i)->thumbnail_data;
             if (p->partplate_list.get_plate(i)->thumbnail_data.is_valid() &&  using_exported_file()) {
                 //no need to generate thumbnail
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": non need to re-generate thumbnail for gcode/exported mode of plate %1%")%i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": non need to re-generate thumbnail for gcode/exported mode of plate %1%")%i;
             }
             else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": re-generate thumbnail for plate %1%") % i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": re-generate thumbnail for plate %1%") % i;
                 const ThumbnailsParams thumbnail_params = { {}, false, true, true, true, i };
                 p->generate_thumbnail(p->partplate_list.get_plate(i)->thumbnail_data, THUMBNAIL_SIZE_3MF.first, THUMBNAIL_SIZE_3MF.second,
                                     thumbnail_params, Camera::EType::Ortho);
@@ -15213,9 +15213,9 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             ThumbnailData *no_light_thumbnail_data = &p->partplate_list.get_plate(i)->no_light_thumbnail_data;
             if (p->partplate_list.get_plate(i)->no_light_thumbnail_data.is_valid() && using_exported_file()) {
                 // no need to generate thumbnail
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": non need to re-generate thumbnail for gcode/exported mode of plate %1%") % i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": non need to re-generate thumbnail for gcode/exported mode of plate %1%") % i;
             } else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": re-generate thumbnail for plate %1%") % i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": re-generate thumbnail for plate %1%") % i;
                 const ThumbnailsParams thumbnail_params = {{}, false, true, true, true, i};
                 p->generate_thumbnail(p->partplate_list.get_plate(i)->no_light_thumbnail_data, THUMBNAIL_SIZE_3MF.first, THUMBNAIL_SIZE_3MF.second, thumbnail_params,
                                       Camera::EType::Ortho,  Camera::ViewAngleType::Iso, false, true);
@@ -15230,10 +15230,10 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             ThumbnailData* top_thumbnail = &p->partplate_list.get_plate(i)->top_thumbnail_data;
             if (top_thumbnail->is_valid() &&  using_exported_file()) {
                 //no need to generate thumbnail
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": non need to re-generate top_thumbnail for gcode/exported mode of plate %1%")%i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": non need to re-generate top_thumbnail for gcode/exported mode of plate %1%")%i;
             }
             else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": re-generate top_thumbnail for plate %1%") % i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": re-generate top_thumbnail for plate %1%") % i;
                 const ThumbnailsParams thumbnail_params = { {}, false, true, false, true, i };
                 p->generate_thumbnail(p->partplate_list.get_plate(i)->top_thumbnail_data, THUMBNAIL_SIZE_3MF.first, THUMBNAIL_SIZE_3MF.second, thumbnail_params,
                                       Camera::EType::Ortho, Camera::ViewAngleType::Top_Plate, false);
@@ -15243,10 +15243,10 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             ThumbnailData* picking_thumbnail = &p->partplate_list.get_plate(i)->pick_thumbnail_data;
             if (picking_thumbnail->is_valid() &&  using_exported_file()) {
                 //no need to generate thumbnail
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": non need to re-generate pick_thumbnail for gcode/exported mode of plate %1%")%i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": non need to re-generate pick_thumbnail for gcode/exported mode of plate %1%")%i;
             }
             else {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": re-generate pick_thumbnail for plate %1%") % i;
+                BOOST_LOG_TRIVIAL(info) << boost::format(": re-generate pick_thumbnail for plate %1%") % i;
                 const ThumbnailsParams thumbnail_params = { {}, false, true, false, true, i };
                 p->generate_thumbnail(p->partplate_list.get_plate(i)->pick_thumbnail_data, THUMBNAIL_SIZE_3MF.first, THUMBNAIL_SIZE_3MF.second, thumbnail_params,
                                       Camera::EType::Ortho, Camera::ViewAngleType::Top_Plate, true,true);
@@ -15355,7 +15355,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         if (!(store_params.strategy & SaveStrategy::Silence)) {
             // Success
             p->set_project_filename(path);
-            BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " call set_project_filename: " << path;
+            BOOST_LOG_TRIVIAL(trace) << " call set_project_filename: " << path;
         }
     }
     else {
@@ -15461,11 +15461,11 @@ bool Plater::is_multi_extruder_ams_empty()
 //BBS: add multiple plate reslice logic
 void Plater::reslice()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter, process_completed_with_error=%2%")%__LINE__ %p->process_completed_with_error;
+    BOOST_LOG_TRIVIAL(info) << boost::format("enter, process_completed_with_error=%1%") %p->process_completed_with_error;
     // There is "invalid data" button instead "slice now"
     if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index())
     {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": process_completed_with_error, return directly");
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": process_completed_with_error, return directly");
         reset_gcode_toolpaths();
         return;
     }
@@ -15506,11 +15506,11 @@ void Plater::reslice()
     //BBS: jusdge the result
     bool result = this->p->restart_background_process(state | priv::UPDATE_BACKGROUND_PROCESS_FORCE_RESTART);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: restart background,state=%2%, result=%3%")%__LINE__%state %result;
+    BOOST_LOG_TRIVIAL(info) << boost::format("restart background,state=%1%, result=%2%")%state %result;
     if ((state & priv::UPDATE_BACKGROUND_PROCESS_INVALID) != 0)
     {
         //BBS: add logs
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": state %1% is UPDATE_BACKGROUND_PROCESS_INVALID, can not slice") % state;
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": state %1% is UPDATE_BACKGROUND_PROCESS_INVALID, can not slice") % state;
         p->update_fff_scene_only_shells();
         return;
     }
@@ -15518,7 +15518,7 @@ void Plater::reslice()
     if ((!result) && p->m_slice_all && (p->m_cur_slice_plate < (p->partplate_list.get_plate_count() - 1)))
     {
         //slice next
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": in slicing all, current plate %1% already sliced, skip to next") % p->m_cur_slice_plate ;
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": in slicing all, current plate %1% already sliced, skip to next") % p->m_cur_slice_plate ;
         SlicingProcessCompletedEvent evt(EVT_PROCESS_COMPLETED, 0,
             SlicingProcessCompletedEvent::Finished, nullptr);
         // Post the "complete" callback message, so that it will slice the next plate soon
@@ -15539,13 +15539,13 @@ void Plater::reslice()
     {
         //p->ready_to_slice = false;
         p->main_frame->update_slice_print_status(MainFrame::eEventSliceUpdate, false);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": background process is running, m_is_slicing is true");
+        BOOST_LOG_TRIVIAL(info) << boost::format(": background process is running, m_is_slicing is true");
     }
     else if (!p->background_process.empty() && !p->background_process.idle()) {
         //p->show_action_buttons(true);
         //p->ready_to_slice = true;
         p->main_frame->update_slice_print_status(MainFrame::eEventSliceUpdate, true);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": background process changes to not_idle, set ready_to_slice back to true");
+        BOOST_LOG_TRIVIAL(info) << boost::format(": background process changes to not_idle, set ready_to_slice back to true");
     }
     else {
         //BBS: add reset logic for empty plate
@@ -15560,7 +15560,7 @@ void Plater::reslice()
             current_plate->update_slice_result_valid_state(true);
         }
         p->main_frame->update_slice_print_status(MainFrame::eEventSliceUpdate, false);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": background process in idle state, use previous result, clean_gcode_toolpaths=%1%")%clean_gcode_toolpaths;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": background process in idle state, use previous result, clean_gcode_toolpaths=%1%")%clean_gcode_toolpaths;
     }
 
     if (clean_gcode_toolpaths)
@@ -15568,7 +15568,7 @@ void Plater::reslice()
 
     p->preview->reload_print();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished, started slicing for plate %1%") % p->partplate_list.get_curr_plate_index();
+    BOOST_LOG_TRIVIAL(info) << boost::format(": finished, started slicing for plate %1%") % p->partplate_list.get_curr_plate_index();
 
     record_slice_preset("slicing");
 }
@@ -15653,10 +15653,10 @@ int Plater::start_next_slice()
     if (state & priv::UPDATE_BACKGROUND_PROCESS_REFRESH_SCENE)
         this->p->view3D->reload_scene(false);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": update_background_process returns %1%")%state;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": update_background_process returns %1%")%state;
     if (!p->partplate_list.get_curr_plate()->can_slice()) {
         p->process_completed_with_error = p->partplate_list.get_curr_plate_index();
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": found invalidated apply in update_background_process.");
+        BOOST_LOG_TRIVIAL(warning) << boost::format(": found invalidated apply in update_background_process.");
         return -1;
     }
 
@@ -15670,7 +15670,7 @@ int Plater::start_next_slice()
         // Post the "complete" callback message, so that it will slice the next plate soon
         wxQueueEvent(this, evt.Clone());
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": restart_background_process returns %1%")%result;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": restart_background_process returns %1%")%result;
 
     return 0;
 }
@@ -17003,7 +17003,7 @@ void Plater::apply_background_progress()
     else
         invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false));
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: plate %2%, after apply, invalidated= %3%, previous result_valid %4% ") % __LINE__ % plate_index % invalidated % result_valid;
+    BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, after apply, invalidated= %2%, previous result_valid %3% ") % plate_index % invalidated % result_valid;
     if (invalidated & PrintBase::APPLY_STATUS_INVALIDATED)
     {
         part_plate->update_slice_result_valid_state(false);
@@ -17016,7 +17016,7 @@ void Plater::apply_background_progress()
 int Plater::select_plate(int plate_index, bool need_slice)
 {
     int ret;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: plate %2%, need_slice %3% ")%__LINE__ %plate_index  %need_slice;
+    BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, need_slice %2% ")%plate_index  %need_slice;
     take_snapshot("select partplate!");
     ret = p->partplate_list.select_plate(plate_index);
     if (!ret) {
@@ -17049,7 +17049,7 @@ int Plater::select_plate(int plate_index, bool need_slice)
             invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false));
         bool model_fits, validate_err;
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: plate %2%, after apply, invalidated= %3%, previous result_valid %4% ")%__LINE__ %plate_index  %invalidated %result_valid;
+        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, after apply, invalidated= %2%, previous result_valid %3% ")%plate_index  %invalidated %result_valid;
         if (result_valid)
         {
             if (is_preview_shown())
@@ -17166,7 +17166,7 @@ int Plater::select_plate(int plate_index, bool need_slice)
     SimpleEvent event(EVT_GLCANVAS_PLATE_SELECT);
     p->on_plate_selected(event);
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: plate %2%, return %3%")%__LINE__ %plate_index %ret;
+    BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, return %2%") %plate_index %ret;
     return ret;
 }
 
@@ -17224,7 +17224,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
         StringObjectException err = p->background_process.validate(&warning, &polygons, &height_polygons);
         // update string by type
         post_process_string_object_exception(err);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warning=%2%, model_fits %3%")%err.string%warning.string %model_fits;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": validate err=%1%, warning=%2%, model_fits %3%")%err.string%warning.string %model_fits;
 
         if (err.string.empty()) {
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -17327,7 +17327,7 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
             update_project_dirty_from_presets();
             set_plater_dirty(true);
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select bed type %1% for plate %2% at plate side") % bt_sel % plate_index;
+        BOOST_LOG_TRIVIAL(info) << boost::format("select bed type %1% for plate %2% at plate side") % bt_sel % plate_index;
 
         if (dlg.get_first_layer_print_seq_choice() != 0)
             curr_plate->set_first_layer_print_sequence(dlg.get_first_layer_print_seq());
@@ -17358,7 +17358,7 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
 
         update_project_dirty_from_presets();
         set_plater_dirty(true);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select print sequence %1% for plate %2% at plate side") % ps_sel % plate_index;
+        BOOST_LOG_TRIVIAL(info) << boost::format("select print sequence %1% for plate %2% at plate side") % ps_sel % plate_index;
         auto plate_config = *(curr_plate->config());
         wxGetApp().plater()->config_change_notification(plate_config, std::string("print_sequence"));
         update();
@@ -17437,7 +17437,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     plate_index = hover_id / PartPlate::GRABBER_COUNT;
     action      = isModidyPlateName ? PartPlate::PLATE_NAME_HOVER_ID : hover_id % PartPlate::GRABBER_COUNT;
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": enter, hover_id %1%, plate_index %2%, action %3%")%hover_id % plate_index %action;
+    BOOST_LOG_TRIVIAL(info) << boost::format(": enter, hover_id %1%, plate_index %2%, action %3%")%hover_id % plate_index %action;
     if (action == 0)
     {
         //select plate
@@ -17472,7 +17472,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             bool model_fits, validate_err;
             validate_current_plate(model_fits, validate_err);
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: after apply, invalidated= %2%, previous result_valid %3% ")%__LINE__ % invalidated %result_valid;
+            BOOST_LOG_TRIVIAL(info) << boost::format("after apply, invalidated= %1%, previous result_valid %2% ") % invalidated %result_valid;
             if (result_valid)
             {
                 if (invalidated & PrintBase::APPLY_STATUS_INVALIDATED)
@@ -17513,12 +17513,12 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
                 if (model_fits && part_plate->has_printable_instances())
                 {
                     //p->view3D->get_canvas3d()->post_event(Event<bool>(EVT_GLCANVAS_ENABLE_ACTION_BUTTONS, true));
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": will set can_slice to true");
+                    BOOST_LOG_TRIVIAL(info) << boost::format(": will set can_slice to true");
                     p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, true);
                 }
                 else
                 {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": will set can_slice to false, has_printable_instances %1%")%part_plate->has_printable_instances();
+                    BOOST_LOG_TRIVIAL(info) << boost::format(": will set can_slice to false, has_printable_instances %1%")%part_plate->has_printable_instances();
                     //p->view3D->get_canvas3d()->post_event(Event<bool>(EVT_GLCANVAS_ENABLE_ACTION_BUTTONS, false));
                     p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, false);
                 }
@@ -17542,7 +17542,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         }
         else
         {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            BOOST_LOG_TRIVIAL(error) << "can not select plate %1%" << plate_index;
             ret = -1;
         }
     }
@@ -17560,7 +17560,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         }
         else
         {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            BOOST_LOG_TRIVIAL(error) << "can not select plate %1%" << plate_index;
             ret = -1;
         }
     }
@@ -17582,7 +17582,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
 
             this->schedule_background_process();
         } else {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            BOOST_LOG_TRIVIAL(error) << "can not select plate %1%" << plate_index;
             ret = -1;
         }
     }
@@ -17595,7 +17595,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             evt.SetEventObject(this);
             wxPostEvent(this, evt);
         } else {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            BOOST_LOG_TRIVIAL(error) << "can not select plate %1%" << plate_index;
             ret = -1;
         }
     }
@@ -17615,7 +17615,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
                 curr_plate->set_plate_name(dlg_plate_name.ToUTF8().data());
             }
         } else {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "can not select plate %1%" << plate_index;
+            BOOST_LOG_TRIVIAL(error) << "can not select plate %1%" << plate_index;
             ret = -1;
         }
     } else if ((action == 7) && (!right_click)) {
@@ -17632,11 +17632,11 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
 
     else
     {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "invalid action %1%, with right_click=%2%" << action << right_click;
+        BOOST_LOG_TRIVIAL(error) << "invalid action %1%, with right_click=%2%" << action << right_click;
         ret = -1;
     }
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: return %2%")%__LINE__ % ret;
+    BOOST_LOG_TRIVIAL(info) << boost::format("return %1%") % ret;
     return ret;
 }
 
@@ -17925,7 +17925,7 @@ void Plater::update_preview_bottom_toolbar()
 void Plater::reset_gcode_toolpaths()
 {
     //BBS: add some logs
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": reset the gcode viewer's toolpaths");
+    BOOST_LOG_TRIVIAL(info) << boost::format(": reset the gcode viewer's toolpaths");
     p->reset_gcode_toolpaths();
 }
 

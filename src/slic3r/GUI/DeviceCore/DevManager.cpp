@@ -92,7 +92,7 @@ namespace Slic3r
 
     void DeviceManager::set_agent(NetworkAgent* agent)
     {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": updating agent for "
+        BOOST_LOG_TRIVIAL(info) << ": updating agent for "
                                 << localMachineList.size() << " local and "
                                 << userMachineList.size() << " user machines";
         m_agent = agent;
@@ -215,7 +215,7 @@ namespace Slic3r
                     it->second->bind_sec_link       = sec_link;
                     it->second->dev_connection_type = connect_type;
                     it->second->bind_ssdp_version   = ssdp_version;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " UpdateUserMachineInfo"
+                    BOOST_LOG_TRIVIAL(info) << " UpdateUserMachineInfo"
                         << ", dev_id= " << dev_id
                         << ", ip = "  <<dev_ip
                         << ", printer_name= " << dev_name
@@ -261,7 +261,7 @@ namespace Slic3r
                         obj->bind_ssdp_version != ssdp_version ||
                         obj->printer_type != _parse_printer_type(printer_type_str))
                     {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " UpdateLocalMachineInfo"
+                        BOOST_LOG_TRIVIAL(info) << " UpdateLocalMachineInfo"
                             << ", dev_id= " << dev_id
                             << ", ip = " << dev_ip
                             << ", printer_name= " << dev_name
@@ -270,7 +270,7 @@ namespace Slic3r
                     }
                     else
                     {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " UpdateLocalMachineInfo_WIFI"
+                        BOOST_LOG_TRIVIAL(info) << " UpdateLocalMachineInfo_WIFI"
                             << ", dev_id= " << dev_id
                             << ", ip = "  << dev_ip
                             << ", printer_name= " << dev_name
@@ -322,7 +322,7 @@ namespace Slic3r
                 Slic3r::GUI::wxGetApp().app_config->set_str("ip_address", obj->dev_id, obj->dev_ip);
                 Slic3r::GUI::wxGetApp().app_config->save();
                 }*/
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " New Machine, dev_id= " << dev_id
+                BOOST_LOG_TRIVIAL(info) << " New Machine, dev_id= " << dev_id
                     << ", ip = " << dev_ip <<", printer_name = " << dev_name
                     << ", con_type= " << connect_type <<", signal= " << printer_signal << ", bind_state= " << bind_state;
             }
@@ -714,7 +714,7 @@ namespace Slic3r
             json j = json::parse(body);
 
 #if !BBL_RELEASE_TO_PUBLIC
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": " << j;
+            BOOST_LOG_TRIVIAL(info) << ": " << j;
 #endif
 
             if (j.contains("devices") && !j["devices"].is_null())
@@ -802,7 +802,7 @@ namespace Slic3r
         }
         catch (std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " exception=" << e.what();
+            BOOST_LOG_TRIVIAL(error) << " exception=" << e.what();
         }
     }
 

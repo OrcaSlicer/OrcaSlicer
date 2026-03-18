@@ -12,16 +12,19 @@
 #include "Platform.hpp"
 #include "Time.hpp"
 #include "libslic3r.h"
+#include "Logging/CacheSink.hpp"
+
 
 #ifdef __APPLE__
 #include "MacUtils.hpp"
 #endif
 
-#ifdef WIN32
+#if defined(WIN32)
 	#include <windows.h>
 	#include <psapi.h>
 	#include <direct.h>  // for mkdir
 	#include <io.h>  // for _access
+    #include <shlobj_core.h>
 #else
 	#include <unistd.h>
 	#include <sys/types.h>
@@ -47,11 +50,15 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/support/date_time.hpp>
+#include <boost/phoenix/bind/bind_function.hpp>
+#include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 
 #include <boost/locale.hpp>
 
@@ -159,15 +166,27 @@ unsigned get_logging_level()
     }
 }
 
-boost::shared_ptr<boost::log::sinks::synchronous_sink<boost::log::sinks::text_file_backend>> g_log_sink;
+boost::shared_ptr<sinks::synchronous_sink<CacheSink>> g_cache_sink;
+boost::shared_ptr<sinks::synchronous_sink<sinks::text_file_backend>> g_file_log_sink;
+boost::shared_ptr<sinks::synchronous_sink<sinks::basic_text_ostream_backend<char>>> g_console_log_sink;
+
+// Set up a sink that captures all log messages from early in the program
+// Once the appconfig is initialized, the captured messages will be replayed
+// to the actual log sinks
+void setup_cache_sink()
+{
+    auto backend = boost::make_shared<CacheSink>();
+    g_cache_sink = boost::make_shared<sinks::synchronous_sink<CacheSink>>(backend);
+    logging::core::get()->add_sink(g_cache_sink);
+	logging::add_common_attributes();
+}
 
 // Force set_logging_level(<=error) after loading of the DLL.
 // This is currently only needed if libslic3r is loaded as a shared library into Perl interpreter
 // to perform unit and integration tests.
 static struct RunOnInit {
     RunOnInit() {
-        set_logging_level(2);
-
+        setup_cache_sink();
     }
 } g_RunOnInit;
 
@@ -290,6 +309,67 @@ const std::string& data_dir()
     return g_data_dir;
 }
 
+void auto_set_data_dir()
+{
+    // Check for "data_dir" folder alongside the executable
+    auto program_folder = boost::dll::program_location().parent_path();
+    auto datadir_by_app = program_folder / "data_dir";
+    if (boost::filesystem::exists(datadir_by_app)) {
+        set_data_dir(datadir_by_app.string());
+        return;
+    }
+
+    // Get user config dir
+    // Source from wxWidgets wxStandardPaths::GetUserConfigDir, reimplemented using std strings
+#ifdef _WIN32
+    TCHAR buf[MAX_PATH];
+
+    HRESULT hr = E_FAIL;
+
+    // Query the system for the %APPDATA% folder
+    hr = ::SHGetFolderPath
+            (
+            NULL,               // parent window, not used
+            CSIDL_APPDATA,      // Get appdata folder
+            NULL,               // access token (current user)
+            SHGFP_TYPE_CURRENT, // current path, not just default value
+            buf
+            );
+
+    // somewhat incredibly, the error code in the Unicode version is
+    // different from the one in ASCII version for this function
+#if UNICODE
+    if ( hr == E_FAIL )
+#else
+    if ( hr == S_FALSE )
+#endif
+    {
+        // directory doesn't exist, maybe we can get its default value?
+        hr = ::SHGetFolderPath
+                (
+                NULL,
+                CSIDL_APPDATA,
+                NULL,
+                SHGFP_TYPE_DEFAULT,
+                buf
+                );
+    }
+
+    auto data_dir_path = boost::filesystem::path(buf) / SLIC3R_APP_NAME;
+    set_data_dir(data_dir_path.string());
+#elif defined(__APPLE__)
+    set_data_dir(boost::nowide::narrow(GetUserConfigDir()));
+#else
+    // Since version 2.3, config dir on Linux is in ${XDG_CONFIG_HOME}.
+    // https://github.com/prusa3d/PrusaSlicer/issues/2911
+    std::string config_home = std::getenv("XDG_CONFIG_HOME");
+    if (config_home.empty())
+        config_home = std::string(std::getenv("HOME")) + "/.config";
+    auto data_dir_path = boost::filesystem::path(config_home) / SLIC3R_APP_NAME;
+    set_data_dir(data_dir_path.string());
+#endif
+}
+
 std::string custom_shapes_dir()
 {
     return (boost::filesystem::path(g_data_dir) / "shapes").string();
@@ -332,7 +412,39 @@ namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
-void set_log_path_and_level(const std::string& file, unsigned int level)
+
+std::string format_severity(logging::record_view const& rec)
+{
+    static constexpr int padding_size = 10;
+    auto severity = rec[logging::trivial::severity];
+    std::string ret;
+    ret.append("[").append(logging::trivial::to_string(severity.get())).append("]");
+    if (ret.size() < padding_size)
+        ret.insert(ret.end(), padding_size - ret.size(), ' ');
+    return ret;
+}
+
+std::string add_message(logging::record_view const& rec)
+{
+    auto message = rec[expr::smessage];
+    if (!message)
+        return {};
+    if (boost::starts_with(*message, ":") || boost::starts_with(*message, ",")) {
+        auto substr = message->substr(2);
+        boost::trim(substr);
+        return substr;
+    }
+    return boost::trim_copy(*message);
+}
+
+logging::formatting_ostream& operator<< (logging::formatting_ostream& strm, logging::to_log_manip<int, logging_tags::line_number> const& ln)
+{
+    if (const auto ln_int = ln.get(); ln_int != -1)
+        strm << ln_int;
+    return strm;
+}
+
+void init_log(const std::string& source, unsigned int level, bool log_to_console)
 {
 #ifdef __APPLE__
 	//currently on old macos, the boost::log::add_file_log will crash
@@ -342,40 +454,125 @@ void set_log_path_and_level(const std::string& file, unsigned int level)
 	}
 #endif
 
+    set_logging_level(level);
+    g_cache_sink->locked_backend()->set_log_level(logSeverity);
+
 	//BBS log file at C:\\Users\\[yourname]\\AppData\\Roaming\\OrcaSlicer\\log\\[log_filename].log
 	auto log_folder = boost::filesystem::path(g_data_dir) / "log";
 	if (!boost::filesystem::exists(log_folder)) {
 		boost::filesystem::create_directory(log_folder);
 	}
-	auto full_path = (log_folder / file).make_preferred();
 
-	g_log_sink = boost::log::add_file_log(
-		keywords::file_name = full_path.string() + ".%N",
+	boost::filesystem::path log_file_path = log_folder;
+	{
+		using namespace std::chrono;
+		auto time = system_clock::to_time_t(system_clock::now());
+		std::ostringstream ss;
+		ss << source;
+		ss << std::put_time(std::localtime(&time), "_%F_%H%M%S_");
+		ss << get_current_pid();
+		ss << ".log";
+		log_file_path /= ss.str();
+	}
+
+
+    auto format = (
+        expr::stream << boost::phoenix::bind(format_severity, boost::phoenix::placeholders::_1)
+                                << expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d %H:%M:%S.%f") << " [Thread "
+                                << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "] "
+                                << expr::attr<std::string>("FunctionName")
+#ifdef SLIC3R_DEV
+                                // When working on a dev build, output {FileName}:{LineNumber} for hyperlinks to source files
+                                << ": " << expr::attr<std::string>("FileName")
+#endif
+                                << ":" << expr::attr<int, logging_tags::line_number>("LineNumber") << ": "
+                                << boost::phoenix::bind(add_message, boost::phoenix::placeholders::_1));
+
+
+    g_file_log_sink = boost::log::add_file_log(
+        keywords::file_name = log_file_path,
 		keywords::rotation_size = 100 * 1024 * 1024,
-		keywords::format =
-		(
-			expr::stream
-			<< "[" << expr::attr< logging::trivial::severity_level >("Severity") << "]\t"
-			<< expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S.%f")
-			<<"[Thread " << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
-			<< ":" << expr::smessage
-		),
+		keywords::format = format,
 		keywords::auto_flush = true
 	);
+    g_cache_sink->locked_backend()->forward_records(*g_file_log_sink);
 
-	logging::add_common_attributes();
+    // Try to delete all the old "latest" files
+    int last_int = -1;
+    for (auto& el : boost::filesystem::directory_iterator(log_folder)) {
+        namespace fs = boost::filesystem;
+        namespace ip = boost::interprocess;
+        if (!fs::is_regular_file(el) || !boost::starts_with(el.path().filename().string(), "latest"))
+            continue;
+        ip::file_lock lock = el.path().c_str();
+        if (auto lg = boost::unique_lock(lock, boost::try_to_lock)) {
+            // No other process is using the latest file, delete it
+            boost::system::error_code ec;
+            fs::remove(el.path(), ec);
+            if (ec) {
+                BOOST_LOG_TRIVIAL(debug) << "Failed to delete \"" << el.path().filename().string()
+                                           << "\": If multiple processes are running, this is normal";
+                std::string int_str = el.path().filename().stem().string().substr(7 /*CHANGE IF LATEST FILE PREFIX CHANGES*/);
+                if (int_str.empty()) {
+                    // The first log has no number
+                    last_int = std::max(0, last_int);
+                    continue;
+                }
+                try {
+                    last_int = std::max(last_int, std::stoi(int_str));
+                } catch (...) {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to parse latest log ID number. File name: " << el.path().filename().string();
+                }
+            }
+        }
+    }
 
-	set_logging_level(level);
+    // Find an unused name for the latest log
+    boost::filesystem::path latest_log;
+    if (last_int == -1) {
+        latest_log = log_folder / "latest.log";
+    } else {
+        for (int i = last_int + 1; i < last_int + 10; ++i) {
+            std::string log_name = "latest" + std::to_string(i) + ".log";
+            auto path = log_folder / log_name;
+            if (!boost::filesystem::exists(log_name)) {
+                latest_log = path;
+                break;
+            }
+        }
+    }
 
-	return;
+	// Create hardlink to the regular file log
+    if (!latest_log.empty()) {
+        g_file_log_sink->locked_backend()->set_open_handler(
+            [log_file_path = std::move(log_file_path), latest_log = std::move(latest_log)](auto&) {
+            boost::system::error_code ec;
+            boost::filesystem::create_hard_link(log_file_path, latest_log, ec);
+            if (ec) {
+                BOOST_LOG_TRIVIAL(warning) << "Failed to create latest log hardlink to " << log_file_path << " Error: " << ec.message();
+            } else {
+                // Open the hardlinked file to notify the OS that the file should be locked from deletion
+                // Unfortunately, using boost::interprocess::file_lock is not sufficient
+                // This will be locked for the duration of the program and is automatically released at exit
+                open(latest_log.string().c_str(), std::ios::in);
+            }
+        });
+    }
+
+    if (log_to_console) {
+        g_console_log_sink = logging::add_console_log(std::cout, keywords::format = format, keywords::auto_flush = true);
+        g_cache_sink->locked_backend()->forward_records(*g_console_log_sink);
+    }
+
+    logging::core::get()->remove_sink(g_cache_sink);
 }
 
 void flush_logs()
 {
-	if (g_log_sink)
-		g_log_sink->flush();
-
-	return;
+	if (g_file_log_sink)
+		g_file_log_sink->flush();
+    if (g_console_log_sink)
+        g_console_log_sink->flush();
 }
 
 #ifdef _WIN32
@@ -530,7 +727,7 @@ namespace WindowsSupport
 		if (! from_handle)
 		{
 			auto err_code = map_windows_error(GetLastError());
-			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("can not open file %1%, error: %2%") % from.c_str() % err_code.message();
+			BOOST_LOG_TRIVIAL(error) << boost::format("can not open file %1%, error: %2%") % from.c_str() % err_code.message();
 			return err_code;
 		}
 
@@ -554,7 +751,7 @@ namespace WindowsSupport
 		  		return errcode;
 
 			//BBS: add some log for error tracing
-			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(",first rename file from %1% to %2% failed, reason: %3%") % from.c_str() % to.c_str() % errcode.message();
+			BOOST_LOG_TRIVIAL(error) << boost::format(",first rename file from %1% to %2% failed, reason: %3%") % from.c_str() % to.c_str() % errcode.message();
 			// The destination file probably exists and is currently open in another
 			// process, either because the file was opened without FILE_SHARE_DELETE or
 			// it is mapped into memory (e.g. using MemoryBuffer). Rename it in order to
@@ -571,7 +768,7 @@ namespace WindowsSupport
 					continue;
 
 				//BBS: add some log for error tracing
-				BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(",open dest file %1% failed, reason: %2%") % to.c_str() % errcode.message();
+				BOOST_LOG_TRIVIAL(error) << boost::format(",open dest file %1% failed, reason: %2%") % to.c_str() % errcode.message();
 				return errcode;
 			}
 
@@ -595,7 +792,7 @@ namespace WindowsSupport
 							if (errcode == std::errc::no_such_file_or_directory)
 						  		break;
 							//BBS: add some log for error tracing
-							BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", line %1%, error: %2%") % __LINE__ % errcode.message();
+							BOOST_LOG_TRIVIAL(error) << boost::format("error: %1%") % errcode.message();
 							return errcode;
 						}
 						BY_HANDLE_FILE_INFORMATION FI2;
@@ -606,7 +803,7 @@ namespace WindowsSupport
 						continue;
 					}
 					//BBS: add some log for error tracing
-					BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", line %1%, error: %2%") % __LINE__ % errcode.message();
+					BOOST_LOG_TRIVIAL(error) << boost::format("error: %1%") % errcode.message();
 					return errcode;
 				}
 				break;
@@ -620,7 +817,7 @@ namespace WindowsSupport
 
 		// The most likely root cause.
 		//BBS: add some log for error tracing
-		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", line %1%, error in the end, permission_denied") % __LINE__;
+		BOOST_LOG_TRIVIAL(error) << "error in the end, permission_denied";
 		return std::make_error_code(std::errc::permission_denied);
 	}
 } // namespace WindowsSupport
@@ -921,7 +1118,7 @@ bool copy_framework(const std::string &from, const std::string &to)
     boost::filesystem::path src(from), dst(to);
     try {
         if (!boost::filesystem::is_directory(src)) {
-            std::cerr << "Error: Source is not a directory: " << src << std::endl;
+            BOOST_LOG_TRIVIAL(error) << "Error: Source is not a directory: " << src << std::endl;
             return false;
         }
         boost::filesystem::create_directories(dst);
@@ -939,7 +1136,7 @@ bool copy_framework(const std::string &from, const std::string &to)
         }
         return true;
     } catch (const boost::filesystem::filesystem_error &e) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Filesystem error: " << e.what();
+        BOOST_LOG_TRIVIAL(error) << "Filesystem error: " << e.what();
     }
     return false;
 }

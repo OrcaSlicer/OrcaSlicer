@@ -226,7 +226,7 @@ void CrealityPrint::start_print(const std::string &filename) const
 
         ws.close(websocket::close_code::normal);
     } catch(std::exception const& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        BOOST_LOG_TRIVIAL(error) << "Error: " << e.what() << std::endl;
     }
     
 }

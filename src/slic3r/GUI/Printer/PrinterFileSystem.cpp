@@ -1809,7 +1809,7 @@ static void* get_function(const char* name)
 #endif
 
     if (!function) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find function %1%") % name;
+        BOOST_LOG_TRIVIAL(warning) << boost::format(", can not find function %1%") % name;
     }
     return function;
 }
@@ -1829,7 +1829,7 @@ StaticBambuLib &StaticBambuLib::get(BambuLib *copy)
     }
 
     if (!module) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", can not Load Library";
+        BOOST_LOG_TRIVIAL(info) << ", can not Load Library";
     }
 
     GET_FUNC(Bambu_Create);

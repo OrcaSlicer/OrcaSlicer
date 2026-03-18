@@ -86,7 +86,7 @@ void wxMediaCtrl2::Load(wxURI url)
         wxString clsid;
         if (key2.Exists())
             key2.QueryRawValue("Source Filter", clsid);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": clsid %1% path %2%") % clsid % path;
+        BOOST_LOG_TRIVIAL(info) << boost::format(": clsid %1% path %2%") % clsid % path;
 
         std::string             data_dir_str = Slic3r::data_dir();
         boost::filesystem::path data_dir_path(data_dir_str);

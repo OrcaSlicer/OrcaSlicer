@@ -1676,7 +1676,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
         {
             case Slic3r::GUI::OpenGLManager::EFramebufferType::Arb:
             {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": framebuffer_type: ARB");
+                BOOST_LOG_TRIVIAL(info)<< boost::format(": framebuffer_type: ARB");
                 Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer(*thumbnail_data,
                    thumbnail_width, thumbnail_height, thumbnail_params,
                    partplate_list, model->objects, glvolume_collection, colors_out, shader, Slic3r::GUI::Camera::EType::Ortho);
@@ -1684,14 +1684,14 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
             }
             case Slic3r::GUI::OpenGLManager::EFramebufferType::Ext:
             {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": framebuffer_type: EXT");
+                BOOST_LOG_TRIVIAL(info)<< boost::format(": framebuffer_type: EXT");
                 Slic3r::GUI::GLCanvas3D::render_thumbnail_framebuffer_ext(*thumbnail_data,
                    thumbnail_width, thumbnail_height, thumbnail_params,
                    partplate_list, model->objects, glvolume_collection, colors_out, shader, Slic3r::GUI::Camera::EType::Ortho);
                 break;
             }
             default:{
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": framebuffer_type: others");
+                BOOST_LOG_TRIVIAL(info)<< boost::format(": framebuffer_type: others");
                 Slic3r::GUI::GLCanvas3D::render_thumbnail_legacy(*thumbnail_data, thumbnail_width, thumbnail_height, thumbnail_params, partplate_list, model->objects, glvolume_collection, colors_out, shader, Slic3r::GUI::Camera::EType::Ortho);
                 break;
             }

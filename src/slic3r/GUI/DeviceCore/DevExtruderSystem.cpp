@@ -99,7 +99,7 @@ namespace Slic3r
         if (extder_id >= m_extders.size())
         {
             assert(false && "Invalid extruder ID");
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "No extruder found for " << extder_id;
+            BOOST_LOG_TRIVIAL(error) << "No extruder found for " << extder_id;
             return std::nullopt;
         }
 

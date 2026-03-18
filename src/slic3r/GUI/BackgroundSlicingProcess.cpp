@@ -147,7 +147,7 @@ bool BackgroundSlicingProcess::can_switch_print()
 		//if (m_current_plate->is_slice_result_valid())
 		{
 			result = false;
-			BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": slicing plate's plate_id %1%, on slicing, can not switch print") % m_current_plate->get_index();
+			BOOST_LOG_TRIVIAL(info) << boost::format(": slicing plate's plate_id %1%, on slicing, can not switch print") % m_current_plate->get_index();
 		}
 	}
 
@@ -159,7 +159,7 @@ bool BackgroundSlicingProcess::select_technology(PrinterTechnology tech)
 {
 	bool changed = false;
 	if (m_printer_tech != tech) {
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": change the printer technology from %1% to %2%") % m_printer_tech % tech;
+		BOOST_LOG_TRIVIAL(info) << boost::format(": change the printer technology from %1% to %2%") % m_printer_tech % tech;
 		m_printer_tech = tech;
 		if (m_print != nullptr)
 			this->reset();
@@ -199,7 +199,7 @@ void BackgroundSlicingProcess::process_fff()
     m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
 	//BBS: add the logic to process from an existed gcode file
 	if (m_print->finished()) {
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file")%__LINE__;
+		BOOST_LOG_TRIVIAL(info) << "skip slicing, to process previous gcode file";
 		m_fff_print->set_status(80, _utf8(L("Processing G-code from Previous file...")));
 		wxCommandEvent evt(m_event_slicing_completed_id);
 		// Post the Slicing Finished message for the G-code viewer to update.
@@ -209,7 +209,7 @@ void BackgroundSlicingProcess::process_fff()
 
 		m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
 		if (! m_export_path.empty()) {
-			BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: export gcode from %2% directly to %3%")%__LINE__%m_temp_output_path %m_export_path;
+			BOOST_LOG_TRIVIAL(info) << boost::format("export gcode from %1% directly to %2%")%m_temp_output_path %m_export_path;
 		}
 		else {
             if (m_upload_job.empty()) {
@@ -217,18 +217,18 @@ void BackgroundSlicingProcess::process_fff()
                     return this->render_thumbnails(params);
                 });
             }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: export_gcode_from_previous_file from %2% finished")%__LINE__ % m_temp_output_path;
+            BOOST_LOG_TRIVIAL(info) << boost::format("export_gcode_from_previous_file from %1% finished") % m_temp_output_path;
 		}
 	}
 	else {
 		//BBS: reset the gcode before reload_print in slicing_completed event processing
 		//FIX the gcode rename failed issue
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: will start slicing, reset gcode_result %2% firstly")%__LINE__%m_gcode_result;
+		BOOST_LOG_TRIVIAL(info) << boost::format("will start slicing, reset gcode_result %1% firstly")%m_gcode_result;
 		m_gcode_result->reset();
 
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process")%__LINE__;
+		BOOST_LOG_TRIVIAL(info) << "gcode_result reseted, will start print::process";
 		m_print->process();
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: after print::process, send slicing complete event to gui...")%__LINE__;
+		BOOST_LOG_TRIVIAL(info) << "after print::process, send slicing complete event to gui...";
         if (m_current_plate->get_real_filament_map_mode(preset_bundle.project_config) < FilamentMapMode::fmmManual) {
             std::vector<int> f_maps = m_fff_print->get_filament_maps();
             m_current_plate->set_filament_maps(f_maps);
@@ -245,7 +245,7 @@ void BackgroundSlicingProcess::process_fff()
 		if(m_fff_print->is_BBL_printer())
 			run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
 
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
+		BOOST_LOG_TRIVIAL(info) << boost::format(": export gcode finished");
 	}
 	if (this->set_step_started(bspsGCodeFinalize)) {
 	    if (! m_export_path.empty()) {
@@ -342,14 +342,14 @@ void BackgroundSlicingProcess::thread_proc()
 		m_print->finalize();
 		lck.lock();
 		m_state = m_print->canceled() ? STATE_CANCELED : STATE_FINISHED;
-		BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": process finished, state %1%, print cancel_status %2%")%m_state %m_print->cancel_status();
+		BOOST_LOG_TRIVIAL(debug) << boost::format(": process finished, state %1%, print cancel_status %2%")%m_state %m_print->cancel_status();
 		if (m_print->cancel_status() != Print::CANCELED_INTERNAL) {
 			// Only post the canceled event, if canceled by user.
 			// Don't post the canceled event, if canceled from Print::apply().
 			SlicingProcessCompletedEvent evt(m_event_finished_id, 0,
 				(m_state == STATE_CANCELED) ? SlicingProcessCompletedEvent::Cancelled :
 				exception ? SlicingProcessCompletedEvent::Error : SlicingProcessCompletedEvent::Finished, exception);
-			BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": send SlicingProcessCompletedEvent to main, status %1%")%evt.status();
+			BOOST_LOG_TRIVIAL(info) << boost::format(": send SlicingProcessCompletedEvent to main, status %1%")%evt.status();
 			wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, evt.Clone());
 		}
 		else {
@@ -448,10 +448,10 @@ void BackgroundSlicingProcess::call_process(std::exception_ptr &ex) throw()
 		// Canceled, this is all right.
 		assert(m_print->canceled());
 		ex = std::current_exception();
-		BOOST_LOG_TRIVIAL(error) <<__FUNCTION__ << ":got cancelled exception" << std::endl;
+		BOOST_LOG_TRIVIAL(error)  << ":got cancelled exception" << std::endl;
 	} catch (...) {
 		ex = std::current_exception();
-		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":got other exception" << std::endl;
+		BOOST_LOG_TRIVIAL(error) << ":got other exception" << std::endl;
 	}
 }
 
@@ -545,7 +545,7 @@ bool BackgroundSlicingProcess::start()
 // To be called on the UI thread.
 bool BackgroundSlicingProcess::stop()
 {
-	BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ", enter"<<std::endl;
+	BOOST_LOG_TRIVIAL(info)<< ", enter"<<std::endl;
 	// m_print->state_mutex() shall NOT be held. Unfortunately there is no interface to test for it.
 	std::unique_lock<std::mutex> lck(m_mutex);
 	if (m_state == STATE_INITIAL) {
@@ -567,7 +567,7 @@ bool BackgroundSlicingProcess::stop()
 		m_state = STATE_IDLE;
 		m_print->set_cancel_callback([](){});
 	}
-	BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ", exit"<<std::endl;
+	BOOST_LOG_TRIVIAL(info)<< ", exit"<<std::endl;
 //	m_export_path.clear();
 	return true;
 }
@@ -588,7 +588,7 @@ bool BackgroundSlicingProcess::reset()
 // This function shall not trigger any UI update through the wxWidgets event.
 void BackgroundSlicingProcess::stop_internal()
 {
-	BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ", enter"<<std::endl;
+	BOOST_LOG_TRIVIAL(info)<< ", enter"<<std::endl;
 	// m_print->state_mutex() shall be held. Unfortunately there is no interface to test for it.
 	if (m_state == STATE_IDLE)
 		// The worker thread is waiting on m_mutex/m_condition for wake up. The following lock of the mutex would block.
@@ -612,7 +612,7 @@ void BackgroundSlicingProcess::stop_internal()
 	// In the "Canceled" state. Reset the state to "Idle".
 	m_state = STATE_IDLE;
 	m_print->set_cancel_callback([](){});
-	BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ", exit"<<std::endl;
+	BOOST_LOG_TRIVIAL(info)<< ", exit"<<std::endl;
 }
 
 // Execute task from background thread on the UI thread. Returns true if processed, false if cancelled.
@@ -708,7 +708,7 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const Dyn
 		// Some FFF status was invalidated, and the G-code was not exported yet.
 		// Let the G-code preview UI know that the final G-code preview is not valid.
 		// In addition, this early memory deallocation reduces memory footprint.
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": invalide gcode result %1%, will reset soon")%m_gcode_result;
+		BOOST_LOG_TRIVIAL(info) << boost::format(": invalide gcode result %1%, will reset soon")%m_gcode_result;
 		if (m_gcode_result != nullptr)
 			m_gcode_result->reset();
 	}

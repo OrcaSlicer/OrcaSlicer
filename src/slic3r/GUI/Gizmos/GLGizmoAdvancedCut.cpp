@@ -694,7 +694,7 @@ void GLGizmoAdvancedCut::perform_cut(const Selection& selection)
 
                         auto model_name = new_objects[i]->name;
                         if (!fix_and_update_progress(new_objects[i], j, model_name, progress_dlg, succes_models, failed_models)) {
-                            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "run fix_and_update_progress error";
+                            BOOST_LOG_TRIVIAL(error) << "run fix_and_update_progress error";
                         };
                     };
                 }
