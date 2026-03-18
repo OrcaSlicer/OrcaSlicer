@@ -163,7 +163,7 @@ msgstr "Очистить всё"
 msgid "Highlight overhang areas"
 msgstr "Выделить зоны нависания"
 
-# Аналогичная строка "Gap Fill" используется в меню поддержек и раскраски в значении "Заливка вкраплений/Устранение вкраплений", но эта строка выводится только в таблице анализа линии (расширенный просмотр печати слоя) в значении "тип: заполнение щели" (Feature type: Gap fill). Не путать!
+# Эта строка выводится только в таблице анализа линии (расширенный просмотр печати слоя) в значении "тип: заполнение щели" (Feature type: Gap fill). Аналогичная строка "Gap Fill" используется в меню поддержек и раскраски в значении "Заливка вкраплений/Устранение вкраплений". Не путать!
 msgid "Gap fill"
 msgstr "Заполнение щели"
 
@@ -201,7 +201,7 @@ msgstr "Заливка вкраплений"
 
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
-msgstr "Позволяет рисовать на выбранных гранях, используя: \"%1%\""
+msgstr "Ограничить область работы инструмента настройкой «%1%»"
 
 msgid "Highlight faces according to overhang angle."
 msgstr "Выделение граней по углу нависания."
@@ -610,7 +610,7 @@ msgid "Confirm connectors"
 msgstr "Готово"
 
 msgid "Flip cut plane"
-msgstr "Перевернуть секущую плоскость"
+msgstr "Сменить направление"
 
 msgid "Groove change"
 msgstr "Изменить паз"
@@ -1169,8 +1169,9 @@ msgstr ""
 msgid "Select from True Type Collection."
 msgstr "Выберите шрифт True Type."
 
+# Это, по сути, просто встроенный инструмент вращения, тут автоматически задаётся поворот в градусах по трём осям
 msgid "Set text to face camera"
-msgstr "Разместить параллельно экрану"
+msgstr "Повернуть к экрану"
 
 msgid "Orient the text towards the camera."
 msgstr "Выровнять текст по направлению к камере"
@@ -2270,8 +2271,7 @@ msgid "Restore to meters"
 msgstr "Восстановить в миллиметры"
 
 msgid "Assemble the selected objects to an object with multiple parts"
-msgstr ""
-"Объединение выбранных объектов в модель, состоящую из нескольких частей"
+msgstr "Объединение выбранных объектов в модель, состоящую из нескольких частей"
 
 msgid "Assemble the selected objects to an object with single part"
 msgstr "Объединение выбранных моделей в единую"
@@ -2820,6 +2820,7 @@ msgstr "Пауза"
 msgid "Template"
 msgstr "Шаблон"
 
+# Тянется из 9 мест: группировка материалов: Auto/Custom, Форма стола: %s, тип линии: %s, калибровка температуры – Тип материала: %s (тут колонки узкие, но место вроде есть),). Причём местами должно согласоваться с разными родами (форма: пользов.). Лучше сократить до Пользов.
 msgid "Custom"
 msgstr "Пользовательский"
 
@@ -2857,7 +2858,7 @@ msgid "Insert custom G-code at the beginning of this layer."
 msgstr "Вставить пользовательский G-код в начале этого слоя."
 
 msgid "Add Custom Template"
-msgstr "Добавить шаблон пользовательского G-кода"
+msgstr "Добавить шаблон"
 
 msgid "Insert template custom G-code at the beginning of this layer."
 msgstr "Вставить шаблон пользовательского G-кода в начале этого слоя."
@@ -4166,9 +4167,9 @@ msgstr "Удалить"
 msgid "Not found:"
 msgstr "Не найдено:"
 
-# Используется в 7 местах
+# Используется в 7 местах – сокращаем, т.к. из-за длины растягивается окно с информацией о печати
 msgid "Model"
-msgstr "3D-модель"
+msgstr "Модель"
 
 msgid "Choose an STL file to import bed shape from:"
 msgstr "Выберите файл STL для импорта формы стола:"
@@ -4362,7 +4363,7 @@ msgid ""
 "seam_slope_start_height need to be smaller than layer_height.\n"
 "Reset to 0."
 msgstr ""
-"seam_slope_start_height должна быть меньше высоты слоя.\n"
+"Начальная высота не должна превышать высоту слоя.\n"
 "Значение сброшено на 0."
 
 #, fuzzy, c-format, boost-format
@@ -5076,7 +5077,7 @@ msgstr "Видимость"
 
 # в результате нарезки это, в профиле прутка
 msgid "Flushed"
-msgstr "Очистка"
+msgstr "Прочистка"
 
 msgid "Tower"
 msgstr "Башня"
@@ -5481,7 +5482,7 @@ msgstr "Выйти из сборки"
 msgid "Return"
 msgstr "Назад"
 
-# Не нашёл в интерфейсе, в коде GLCanvas3D.cpp, 8485 строка (на момент февраля 2026)
+# Не нашёл в интерфейсе, в коде GLCanvas3D.cpp, 8485 строка (на момент февраля 2026). Похоже, это внутреннее название кнопки с панелью управления визуалом пространства моделей.
 msgid "Canvas Toolbar"
 msgstr ""
 
@@ -5560,34 +5561,35 @@ msgstr "Траектория перемещения в G-коде выходит
 msgid "Not support printing 2 or more TPU filaments."
 msgstr "Печать двумя и более прутками TPU не поддерживается."
 
-# Подставляется ID экструдера
+# Подставляется ID экструдера. Используется для двухэкструдерных Bambu и тулченджеров. Чтобы не мешать в одном месте "инструмент-насадка", лучше взять более универсальное "экструдер". Подставляется в последующее сообщение.
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr "Инструмент %d"
+msgstr "%d экструдер"
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
-msgstr ""
+msgstr "%s назначен на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
-msgstr ""
+msgstr "%s назначены на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
+# Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при превышении высоты через подъём при откате оно не выводится. Квадратные скобки – костыль для обхода кривизны системы локализации.
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
-msgstr ""
+msgstr "%s назначен на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
-msgstr ""
+msgstr "%s назначены на %s, но итоговый G-код выходит за его предел высоты печати [%s]."
 
 msgid "Open wiki for more information."
 msgstr "Подробнее на Вики."
@@ -5597,12 +5599,12 @@ msgstr "При редактировании другие модели скрыв
 
 #, c-format, boost-format
 msgid "Filaments %s cannot be printed directly on the surface of this plate."
-msgstr ""
+msgstr "Для печати %s требуется подложка или основание из другого материала."
 
 msgid ""
 "PLA and PETG filaments detected in the mixture. Adjust parameters according "
 "to the Wiki to ensure print quality."
-msgstr ""
+msgstr "Обнаружено совместное использование PLA и PETG. Для повышения качества рекомендуется настроить параметры в соответствии с руководством."
 
 msgid "The prime tower extends beyond the plate boundary."
 msgstr "Башня очистки выходит за пределы области печати."
@@ -5623,7 +5625,7 @@ msgstr ""
 "в цветной модели. Рекомендуется изменить настройки прочистки:"
 
 msgid "Click Wiki for help."
-msgstr "Подробнее на Wiki"
+msgstr "Открыть руководство"
 
 msgid "Click here to regroup"
 msgstr "Перегруппировать"
@@ -5740,6 +5742,7 @@ msgstr "Авторизация"
 msgid "Prepare"
 msgstr "Подготовка"
 
+# Предпросмотр – так места хватает, чтобы в split-режиме на экране целиком умещалась кнопка нарезки
 msgid "Preview"
 msgstr "Просмотр нарезки"
 
@@ -5761,8 +5764,9 @@ msgstr "Нет"
 msgid "will be closed before creating a new model. Do you want to continue?"
 msgstr "будет закрыт перед созданием новой модели. Хотите продолжить?"
 
+# Возможно, имеет смысл убрать тут "стол". Подавляющее большинство проектов – это размещение моделей и их печать на одном столе, поэтому намёк на работу с несколькими столами тут выглядит излишним. А в режиме работы с несколькими столами по противопоставлению "Нарезать/Нарезать все" и так понятно, что к чему относится. Преимущества – это экономит немного места для соседней кнопки, которая сейчас не видна в split-режиме окон слайсера на некоторых экранах (ноутбуки с оптимальным масштабированием).
 msgid "Slice plate"
-msgstr "Нарезать стол"
+msgstr "Нарезать"
 
 msgid "Print plate"
 msgstr "Распечатать стол"
@@ -5770,7 +5774,7 @@ msgstr "Распечатать стол"
 msgid "Export G-code file"
 msgstr "Экспорт в G-код"
 
-# ??????? Используется в двух местах или уже исправили? – Судя по коду, вызывается аж в четырёх местах (Felix)
+# ??????? Используется в двух местах или уже исправили? – Судя по коду, вызывается аж в четырёх местах (Felix) UPD: уже в 5
 msgid "Send"
 msgstr "Отправить"
 
@@ -6080,14 +6084,14 @@ msgstr "Коэффициент PA"
 
 # Хотя бы в скобках, но отсылаем к калибровке потока, а не расхода (баг #6970)
 msgid "Pass 1"
-msgstr "Первый проход (примерный подбор потока)"
+msgstr "Первый проход (примерный подбор)"
 
 # Описание для диктора? Подсказка для других систем? Не нашёл, где выводится в Windows. 
 msgid "Flow rate test - Pass 1"
 msgstr "Тест потока - 1-ый проход"
 
 msgid "Pass 2"
-msgstr "Второй проход (точный подбор потока)"
+msgstr "Второй проход (точный подбор)"
 
 # Описание для диктора? Подсказка для других систем? Не нашёл, где выводится в Windows. 
 msgid "Flow rate test - Pass 2"
@@ -6834,8 +6838,9 @@ msgstr "Применимо только во время печати"
 msgid "Silent"
 msgstr "Тихий"
 
+# Подставляется в "%s экструдер"; используется везде совместно с "High flow" (Обычный режим/Высокий расход)
 msgid "Standard"
-msgstr "Стандартный"
+msgstr "Обычный"
 
 msgid "Sport"
 msgstr "Спортивный"
@@ -6848,7 +6853,7 @@ msgid ""
 "monitoring, like spaghetti detection. Please choose carefully."
 msgstr ""
 "Будьте осторожны, выключение освещения в процессе работы приведёт к отказу "
-"систем интеллектуального отслеживания (например, обнаружения слетевших "
+"систем интеллектуального отслеживания (например, обнаружения отрыва "
 "моделей)."
 
 msgid "Keep it On"
@@ -7369,7 +7374,7 @@ msgid "Brass"
 msgstr "Латунь"
 
 msgid "High flow"
-msgstr ""
+msgstr "Высокий расход"
 
 msgid "No wiki link available for this printer."
 msgstr "Ссылка на руководство по этому принтеру отсутствует."
@@ -7442,14 +7447,15 @@ msgstr "Внимание: «%s» экструдер не может печата
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Совмещение %1% с %2% при печати не рекомендуется.\n"
 
-# подстановка в составные уведомления. Часто речь идёт именно об экструдере, а не о сопле, плюс "экструдер" лучше согласуется.
+# подстановка в составные уведомления (напр.: "0.2mm Стандартный nozzle"). Часто речь идёт именно об экструдере, а не о сопле, плюс "экструдер" лучше согласуется.
 msgid " nozzle"
 msgstr " экструдер"
 
+# Очень кривая подстановка (nozzle_diameter, volume_type), поэтому такой вариант. Например, сейчас получается: "Не рекомендуется одновременно использовать сопло 0.2mm Стандартный экструдер и Bambu PETG Transparent"
 #, boost-format
 msgid ""
 "It is not recommended to print the following filament(s) with %1%: %2%\n"
-msgstr "Соплом %1% не рекомендуется печатать %2%\n"
+msgstr "Не рекомендуется одновременно использовать сопло %1% и %2%\n"
 
 msgid ""
 "It is not recommended to use the following nozzle and filament "
@@ -7758,6 +7764,7 @@ msgstr ""
 "Во избежание повреждения принтера убедитесь, что G-код в этих профилях "
 "безопасен!"
 
+# Проверить, где используется (кроме окна сохранения профиля) – может лучше переименовать в "Новый профиль"? Чтобы упростить понимание действия совершаемого слайсером действия.
 msgid "Customized Preset"
 msgstr "Пользовательский профиль"
 
@@ -8491,7 +8498,7 @@ msgid "Ask When Relevant"
 msgstr "автовыбор"
 
 msgid "Always Ask"
-msgstr "выбор действия"
+msgstr "окно выбора"
 
 msgid "Load Geometry Only"
 msgstr "3D-модели"
@@ -8516,7 +8523,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr "Сохранять STL/STEP в списке последних"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "Отключить предупреждение при загрузке 3MF с модифицированным G-кодом"
+msgstr "Не предупреждать при загрузке 3MF с модифицированным G-кодом"
 
 msgid "Show options when importing STEP file"
 msgstr "Показывать настройки импорта STEP"
@@ -9078,8 +9085,9 @@ msgstr "Пожалуйста, введите значение слоя (>= 2)."
 msgid "Plate name"
 msgstr "Имя стола"
 
+# Длинно и не понятно, зачем – это в настройках столов, переопределение типа покрытия
 msgid "Same as Global Plate Type"
-msgstr "Аналогично глобальному типу пластины"
+msgstr "По умолчанию"
 
 msgid "Bed type"
 msgstr "Покрытие"
@@ -9126,7 +9134,7 @@ msgid "Packing project data into 3MF file"
 msgstr "Упаковка данных проекта в файл формата 3mf"
 
 msgid "Uploading 3MF"
-msgstr "Отправка 3mf"
+msgstr "Отправка 3MF"
 
 msgid "Jump to model publish web page"
 msgstr "Перейти на веб-страницу публикации модели"
@@ -10833,17 +10841,17 @@ msgstr ""
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr "Оригинальные"
+msgstr "Исходные"
 
 msgid "After mapping"
-msgstr ""
+msgstr "После назначения"
 
 msgid "After overwriting"
-msgstr ""
+msgstr "После переназначения"
 
 msgctxt "Sync_AMS"
 msgid "Plate"
-msgstr ""
+msgstr "Стол"
 
 msgid ""
 "The connected printer does not match the currently selected printer. Please "
@@ -10851,10 +10859,10 @@ msgid ""
 msgstr ""
 
 msgid "Mapping"
-msgstr ""
+msgstr "Назначение"
 
 msgid "Overwriting"
-msgstr ""
+msgstr "Переназначение"
 
 msgid "Reset all filament mapping"
 msgstr ""
@@ -10901,7 +10909,7 @@ msgid "Advanced settings"
 msgstr "Расширенные настройки"
 
 msgid "Add unused AMS filaments to filaments list."
-msgstr ""
+msgstr "Добавить незадействованные материалы из AMS в список"
 
 msgid "Automatically merge the same colors in the model after mapping."
 msgstr ""
@@ -11032,7 +11040,7 @@ msgid ""
 "changed or filaments changed. You could disable the auto-calculate in Orca "
 "Slicer > Preferences"
 msgstr ""
-"Программа будет пересчитывать значения при каждом изменении цвета или смены "
+"Значения будут пересчитываться при каждом изменении цвета или смене "
 "материала. Это можно отключить в настройках."
 
 msgid "Flushing volume (mm³) for each filament pair."
@@ -11930,15 +11938,14 @@ msgid ""
 "The Wipe Tower is currently only supported with the relative extruder "
 "addressing (use_relative_e_distances=1)."
 msgstr ""
-"В настоящее время для режима черновой башни поддерживаются только "
-"относительные координаты экструдера (use_relative_e_distances=1)."
+"Черновая башня пока работает только с относительными координатами экструдера (use_relative_e_distances=1)."
 
 msgid ""
 "Ooze prevention is only supported with the wipe tower when "
 "'single_extruder_multi_material' is off."
 msgstr ""
 "Предотвращение течи материала с помощью черновой башни возможно только при "
-"отключении печати через общий экструдер (Настройки принтера → Материалы → "
+"отключении печати через общий экструдер (Настройки принтера → Многоцвет → "
 "Общий экструдер)"
 
 msgid ""
@@ -12347,7 +12354,7 @@ msgid "Password"
 msgstr "Пароль"
 
 msgid "Ignore HTTPS certificate revocation checks"
-msgstr "Игнорировать проверки отзыва сертификата HTTPS"
+msgstr "Игнорировать проверки отзыва сертификата"
 
 msgid ""
 "Ignore HTTPS certificate revocation checks in case of missing or offline "
@@ -13406,14 +13413,13 @@ msgstr ""
 msgid "Thick external bridges"
 msgstr "Толстые внешние мосты"
 
+# Более точно было бы "Переключение модели расчёта потока линии моста с обычной приплюснутой на линию с круглым сечением", но лучше упростить технические кодерские аспекты.
 msgid ""
 "If enabled, bridges are more reliable, can bridge longer distances, but may "
 "look worse. If disabled, bridges look better but are reliable just for "
 "shorter bridged distances."
 msgstr ""
-"Если включено, мосты печатаются более надёжные и на большие расстояния, но "
-"могут выглядеть хуже. Если отключено, мосты выглядят лучше, но они надёжны "
-"только на коротких расстояниях."
+"Рассматривать мосты как линии с круглым сечением, равным диаметру сопла. Поскольку мосты не имеют опоры, такой подход позволяет более точно расчитывать необходимый поток и надёжнее печатать их на бóльшие расстояния, однако без донастройки их внешний вид может ухудшиться. Если отключено, используется классический вариант мостов с заниженным потоком (приплюснутое сечение линии), что улучшает их внешний вид и точность размеров, но делает их эффективными лишь на коротких расстояниях."
 
 msgid "Thick internal bridges"
 msgstr "Толстые внутренние мосты"
@@ -13423,9 +13429,7 @@ msgid ""
 "have this feature turned on. However, consider turning it off if you are "
 "using large nozzles."
 msgstr ""
-"Если включено, будут использоваться толстые внутренние мосты. Обычно "
-"рекомендуется включить эту функцию. Однако при использовании сопел больших "
-"диаметров рекомендуется отключить эту опцию."
+"Рассматривать мосты как линии с круглым сечением, равным диаметру сопла."
 
 msgid "Extra bridge layers (beta)"
 msgstr "Двухслойные мосты (beta)"
@@ -13827,6 +13831,7 @@ msgstr ""
 "внешней поверхности. Кроме того, это может приводить к тому, что заполнение "
 "будет просвечиваться через внешнюю поверхность детали.."
 
+# См. https://github.com/OrcaSlicer/OrcaSlicer/pull/12669
 msgid "Wall loop direction"
 msgstr "Направление печати периметров"
 
@@ -14192,14 +14197,10 @@ msgid ""
 "3. To avoid printing at speeds which cause VFAs (fine artifacts) on the "
 "external walls"
 msgstr ""
-"Если включено, то скорость печати внешних периметров не будет снижаться, "
-"чтобы уложиться в минимальное время печати слоя. Это особенно полезно при "
-"следующих сценариях:\n"
-"1. Чтобы при печати глянцевыми материалами избежать изменения блеска\n"
-"2. Чтобы избежать появления небольших дефектов, которые возникают при "
-"изменении скорости и выглядят как горизонтальные полосы\n"
-"3. Чтобы избежать печати на скоростях, при которых на внешних периметрах "
-"возникают вертикальные артефакты (VFA)"
+"Замедлять только внутреннюю часть модели при попытке уложиться в минимальное время, необходимое для охлаждения слоя. Это позволяет сохранить скорость печати внешнего периметра постоянной и может помочь:\n"
+"1. улучшить однородность блеска при печати глянцевыми материалами;\n"
+"2. избежать неоднородностей на стыке разных скоростей;\n"
+"3. избавить поверхность от ряби (при правильной настройке скорости)."
 
 msgid "Layer time"
 msgstr "Время слоя"
@@ -14537,12 +14538,13 @@ msgid ""
 msgstr ""
 
 msgid "Tower ironing area"
-msgstr ""
+msgstr "Разглаживание черновой башни"
 
+# У H2D не требует, на Вики при этом написано, что требует... В баганном порте "улучшений" башни вообще не работает ни при каких обстоятельствах.
 msgid ""
 "Ironing area for prime tower interface layer (where different materials "
 "meet)."
-msgstr ""
+msgstr "Площадь разглаживания области на стыке двух разных материалов. Снижает риск столкновения сопла с торчащими кончиками линий при дальнейшей прочистке.\n\nПримечание: эта функция требует включения защитных окон черновой башни."
 
 msgid "mm²"
 msgstr "мм²"
@@ -15762,7 +15764,7 @@ msgstr ""
 "Внимание: не все шаблоны поддерживают поворот."
 
 msgid "Skeleton infill density"
-msgstr "Плотность внутреннего заполнения"
+msgstr "Плотность зигзага"
 
 msgid ""
 "The remaining part of the model contour after removing a certain depth from "
@@ -15776,7 +15778,7 @@ msgstr ""
 "умолчанию равно плотности заполнения."
 
 msgid "Skin infill density"
-msgstr "Плотность оболочки зигзага"
+msgstr "Плотность оболочки"
 
 msgid ""
 "The portion of the model's outer surface within a certain depth range is "
@@ -15795,7 +15797,7 @@ msgid "The parameter sets the depth of skin."
 msgstr "Задаёт глубину создания внутренней оболочки."
 
 msgid "Infill lock depth"
-msgstr "Перекрытие заполнения"
+msgstr "Перекрытие зигзага"
 
 msgid "The parameter sets the overlapping depth between the interior and skin."
 msgstr "Задаёт ширину взаимного перекрытия зигзага и его оболочки."
@@ -16468,7 +16470,7 @@ msgid "Nozzle volume"
 msgstr "Объём сопла"
 
 msgid "Volume of nozzle between the cutter and the end of nozzle."
-msgstr "Объём сопла между ножом и кончиком сопла."
+msgstr "Объём остатка материала между ножом и кончиком сопла."
 
 msgid "Cooling tube position"
 msgstr "Позиция охлаждающей трубки"
@@ -16670,7 +16672,7 @@ msgid "Printer variant"
 msgstr "Модификация принтера"
 
 msgid "Raft contact Z distance"
-msgstr "Зазор между подложкой и моделью"
+msgstr "Зазор под моделью"
 
 msgid "Z gap between object and raft. Ignored for soluble interface."
 msgstr ""
@@ -16724,7 +16726,7 @@ msgstr ""
 "эффекта низкополигональной модели."
 
 msgid "Travel distance threshold"
-msgstr "Порог перемещения для отката"
+msgstr "Порог перемещения"
 
 msgid ""
 "Only trigger retraction when the travel distance is longer than this "
@@ -16953,26 +16955,26 @@ msgid ""
 "This experimental setting uses G10 and G11 commands to have the firmware "
 "handle the retraction. This is only supported in recent Marlin."
 msgstr ""
-"Эта экспериментальная опция использует команды G10 и G11, чтобы сама "
-"прошивка обрабатывала откаты. Не поддерживается в старых версиях Marlin."
+"Использовать команды G10 и G11 для динамического управления расстоянием отката/подачи на уровне прошивки. Не поддерживается в старых версиях Marlin.\n\nВнимание: несовместимо с «Очисткой сопла при откате»."
 
 msgid "Show auto-calibration marks"
 msgstr "Отображать на столе линии автокалибровки"
 
+# Не отправлять оценку времени, Не маркировать прогресс печати, Отключить маркировку прогресса печати
 msgid "Disable set remaining print time"
-msgstr "Откл. генерацию оставшегося времени печати"
+msgstr "Не отмечать прогресс"
 
 msgid ""
 "Disable generating of the M73: Set remaining print time in the final G-code."
 msgstr ""
-"Отключение генерации команды M73 - вывода оставшегося времени печати в "
-"конечный G-код."
+"Отключить вставку в G-код команд для вывода прогресса печати и оставшегося времени."
 
+# "Позиция швов"? Технически швов бывает несколько – внешний, внутренний, комбинации обычного/косого и несколько отдельных швов на моделях со сложной геометрией.
 msgid "Seam position"
 msgstr "Позиция шва"
 
 msgid "The start position to print each part of outer wall."
-msgstr "Начальная позиция для печати каждой части внешнего периметра."
+msgstr "Расположение точек начала печати внешних периметров.\n\n• Ближайшая – самый быстрый вариант с экономией перемещений.\n• В углах – маскировка шва в выступах и впадинах.\n• В углах сзади – маскировка с приоритетом в задней части.\n• Сзади – размещение шва на максимальной координате по Y.\n• Случайная – распределение шва по всей поверхности."
 
 msgid "Nearest"
 msgstr "Ближайшая"
@@ -17325,15 +17327,14 @@ msgstr ""
 "охлаждения этих слоёв."
 
 msgid "Minimum sparse infill threshold"
-msgstr "Мин. порог разреженного заполнения"
+msgstr "Заполнять области менее"
 
 #, fuzzy
 msgid ""
 "Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
-"Область с разреженным заполнением, размер которого меньше этого порогового "
-"значения, заменяется сплошным заполнением."
+"Заполнять целиком области внутри слоя с площадью меньше указанного значения."
 
 msgid "Solid infill"
 msgstr "Сплошное заполнение"
@@ -17650,16 +17651,16 @@ msgid "Tree (manual)"
 msgstr "[Р] древовидная"
 
 msgid "Support/object XY distance"
-msgstr "Зазор между моделью и поддержкой по XY"
+msgstr "Отступ от модели"
 
 msgid "XY separation between an object and its support."
-msgstr "Зазор между моделью и поддержкой по осям XY."
+msgstr "Расстояние между поддержкой и моделью по горизонтали."
 
 msgid "Support/object first layer gap"
-msgstr "Зазор между моделью и поддержкой на первом слое"
+msgstr "Отступ на первом слое"
 
 msgid "XY separation between an object and its support at the first layer."
-msgstr "Зазор между моделью и поддержкой по осям XY на первом слое."
+msgstr "Расстояние между поддержкой и моделью по горизонтали на первом слое."
 
 msgid "Pattern angle"
 msgstr "Угол шаблона поддержки"
@@ -17682,8 +17683,8 @@ msgid ""
 "Only create support for critical regions including sharp tail, cantilever, "
 "etc."
 msgstr ""
-"Создание поддержек только для критических областей, включая острые концы, "
-"консоли (горизонтально выступающие элементы) и т.д."
+"Создавать поддержки только для критических областей (острые концы, "
+"выступы, явные нависания и т.п.)"
 
 msgid "Ignore small overhangs"
 msgstr "Игнорировать небольшие нависания"
@@ -17866,7 +17867,7 @@ msgstr ""
 "Горизонтальное расширение (+) или сужение (-) поддержки в плоскости XY."
 
 msgid "Speed of support."
-msgstr "Скорость печати поддержки."
+msgstr "Ограничение линейной скорости при печати поддержки."
 
 msgid ""
 "Style and shape of the support. For normal support, projecting the supports "
@@ -17918,8 +17919,9 @@ msgstr ""
 "времени печати. Опция неактивна, когда включена черновая башня."
 
 msgid "Threshold angle"
-msgstr "Порог нависания"
+msgstr "Максимальный угол"
 
+# На случай, если #12367 не объединят: "Создавать поддержки для поверхностей с указанным или более острым углом нависания над столом. С понижением угла повышается допустимый наклон поверхности для печати без поддержки.\n\nПримечание: используйте 0° для переключения обычных поддержек в режим обнаружения нависаний по проценту выноса линии. Древовидные поддержки при этом будут использовать угол по умолчанию (30°)" ВНИМАНИЕ: последнее предложение – особенность PR
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the "
 "threshold."
@@ -17929,7 +17931,7 @@ msgstr ""
 
 # ??? Порог перекрытия периметров
 msgid "Threshold overlap"
-msgstr "Порог перекрытия"
+msgstr "Минимальный вынос"
 
 # ????? Если «Пороговый угол поддержки» равен нулю, поддержка будет создаваться только там, где верхний слой висит в воздухе слишком сильно, т.е. его перекрытие с нижним слоем меньше заданного тут порога. Чем меньше значение, тем более крутые нависания можно печатать без поддержек.
 msgid ""
@@ -17937,7 +17939,7 @@ msgid ""
 "overlap is below the threshold. The smaller this value is, the steeper the "
 "overhang that can be printed without support."
 msgstr ""
-"Задаёт порог перекрытия периметров для генерации поддержки.\n"
+"Пороговое значение для печати периметров без поддержки.\n"
 "Если «Порог нависания» равен нулю, поддержка будет создаваться для "
 "нависающих участков, где верхний периметр опирается на нижний менее чем на "
 "заданный процент своей ширины. Чем меньше значение этого параметра, тем "
@@ -18288,13 +18290,13 @@ msgid ""
 msgstr ""
 "Выполнять откат совместно с небольшим движением вдоль напечатанной линии, "
 "чтобы очистить сопло от подтёков материала. Это может уменьшить «паутину» и "
-"дефекты переэкструзии при печати новой линии после холостого перемещения."
+"дефекты переэкструзии при печати новой линии после холостого перемещения.\n\nВнимание: несовместимо с «Откатом на уровне прошивки»."
 
 # Как выяснилось в чате K3D, "Расстояние очистки" вводит людей в заблуждение, т.к. из-за путаницы в старой терминологии люди думали, что очистка здесь – это откат (его часть).
 msgid "Wipe Distance"
 msgstr "Длина движения очистки"
 
-# Очень кривая формулировка с "retraction move" – в другой настройке в оригинале так назван непосредственно откат, что вводит в заблуждение. Тут имеется ввиду именнт движение при откате, при котором остатки пластика вытираются об линию. Зачем это дублируется здесь – без понятия, эта же информация в другой формулировке сообщается пользователю в предыдущей настройке. Удалено последнее предложение – оно не имеет ничего общего с реальностью и вводит в заблуждение (см. описание первичного отката)
+# Очень кривая формулировка с "retraction move" – в другой настройке в оригинале так назван непосредственно откат, что вводит в заблуждение. Тут имеется ввиду именно движение при откате, при котором остатки пластика вытираются об линию. Зачем это дублируется здесь – без понятия, эта же информация в другой формулировке сообщается пользователю в предыдущей настройке.
 msgid ""
 "Describe how long the nozzle will move along the last path when retracting.\n"
 "\n"
@@ -18307,9 +18309,9 @@ msgid ""
 msgstr ""
 "Расстояние перемещения при выполнении движения очистки.\n"
 "\n"
-"В зависимости от длительности очистки, скорости и длины отката настройка "
-"перемещения может потребоваться, чтобы лучше очищать подтёки материала из "
-"сопла."
+"В зависимости от длительности очистки, скорости и длины отката эта настройка "
+"может понадобиться, чтобы лучше очищать подтёки материала из "
+"сопла.\n\nВнимание: процент первичного отката будет увеличен, если длины очистки окажется недостаточно при текущей скорости отката (или из-за иных ограничений)."
 
 msgid ""
 "The wiping tower can be used to clean up the residue on the nozzle and "
@@ -18325,8 +18327,7 @@ msgstr "Внутренние рёбра"
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
 msgstr ""
-"Создавать внутренние рёбра жёсткости для повышения стабильности печати "
-"черновой башни."
+"Создавать внутренние опоры на протяжении всей высоты башни для повышения её устойчивости. Если отключено, опоры создаются только под слоями прочистки материала.\n\nПримечание: влияет только на принтеры Bambu, в остальных случаях башня автоматически сужается по необходимости."
 
 # ??? настройка отключена в коде
 msgid "Purging volumes"
@@ -18443,9 +18444,9 @@ msgstr ""
 "3. Рёбра жёсткости, которые добавляются по четырём углам черновой башни для "
 "повышения устойчивости."
 
-# Тянется из "Форма стола" и "Форма черновой башни"
+# Тянется из "Форма стола" (в создании принтера) и "Форма черновой башни"
 msgid "Rectangle"
-msgstr "Прямоугольник"
+msgstr "Прямоугольная"
 
 msgid "Rib"
 msgstr "Усиленная"
@@ -18681,9 +18682,10 @@ msgid ""
 "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the "
 "following format: \"XxY, XxY, ...\""
 msgstr ""
-"Размеры изображения, которые будут сохранены в файлах .sl1 / .sl1s в "
-"следующем формате: \"XxY, XxY, ...\""
+"Параметры изображений для сохранения в файлах .gcode, .sl1 и .sl1s. Задаются в "
+"следующем виде: \"XxY/PNG, XxY/PNG, ...\".\nПоддерживаются форматы JPG, PNG, QOI, BTT_TFT и COLPIC."
 
+# Легаси, сейчас формат задаётся отдельно для каждого отдельного изображения внутри файла.
 msgid "Format of G-code thumbnails"
 msgstr "Формат эскизов G-кода"
 
@@ -18714,15 +18716,13 @@ msgid ""
 "very thin areas is used gap-fill. Arachne engine produces walls with "
 "variable extrusion width."
 msgstr ""
-"Движок классического генератора периметров создаёт их с постоянной шириной "
-"экструзии, а для очень тонких участков используется параметр «Заполнять "
-"щели».\n"
+"Классический генератор создаёт периметры с постоянной шириной линии, "
+"а для очень тонких участков используется заполнение щелей.\n"
 "\n"
-"Движок Arachne же создаёт периметры с переменной шириной экструзии, что "
-"позволяет печатать без щелей, лучше пропечатывать мелкие элементы (при "
-"условии, что у вас правильно откалиброван LA/PA). Этот параметр также влияет "
-"на концентрическое заполнение."
+"Генератор Arachne создаёт периметры с адаптивной шириной линии, что при правильно настроенном Pressure Advance "
+"позволяет избегать образования щелей и лучше печатать мелкие элементы."
 
+# Исторически переводим по названию движка, а так по контексту тут новичкам было бы полнятнее "Адаптивный" генератор.
 msgid "Arachne"
 msgstr "Arachne"
 
@@ -20600,7 +20600,7 @@ msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
 msgstr ""
-"Совет: установите значение затухания (Damp) равным 0\n"
+"Совет: установите значение затухания (Damp) равным 0 "
 "для использования значения из прошивки принтера."
 
 msgid ""
@@ -20613,7 +20613,7 @@ msgstr ""
 msgid "Please input a valid damping factor (0 < Damping/zeta factor <= 1)"
 msgstr ""
 "Введите допустимый коэффициент затухания (0 < Затухание/коэффициент "
-"затухания <= 1)"
+"затухания ≤ 1)"
 
 msgid "Input shaping Damp test"
 msgstr "Тест затухания Input shaping"
@@ -20640,14 +20640,13 @@ msgid ""
 "Please input valid values:\n"
 "(0 < Freq < 500)"
 msgstr ""
-"Введите допустимые значения:\n"
-"(0 < Частота < 500)"
+"Введите допустимое значение:\n"
+"(0 < частота < 500)"
 
 msgid ""
 "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr ""
-"Введите допустимый коэффициент затухания (0 <= DampingStart < DampingEnd <= "
-"1)"
+"Введите допустимый коэффициент затухания (0 ≤ начало < конец ≤ 1)"
 
 msgid "Cornering test"
 msgstr "Тест прохождения углов"
@@ -20667,12 +20666,13 @@ msgstr "Тестируемый диапазон"
 msgid "Note: Lower values = sharper corners but slower speeds."
 msgstr "Примечание: чем ниже значения, тем острее и медленнее печатаются углы."
 
+# Junction Deviation – a, c, e и o заменены на кириллические для обхода бага с расчётом ширины текста для переноса строк (чтобы текст не обрезался, короче).
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
 "To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
 "0."
 msgstr ""
-"Внимание: тестируется работа Junction Deviation.\n"
+"Внимание: тестируется Junсtiоn Dеviаtiоn.\n"
 "Для тестирования рывков необходимо обнулить его значение (профиль принтера → "
 "ограничения → рывки → Макс. значение Junction Deviation)."
 
@@ -21514,14 +21514,13 @@ msgstr "Веб-интерфейс хоста печати на вкладке «
 msgid "Replace the BambuLab's device tab with print host webui"
 msgstr "Заменить вкладку принтера BambuLab на веб-интерфейс хоста печати"
 
-# Слишком мало места, текст срезается. Костылим с неразрывными пробелами.
+# HTTPS – на кириллице, чтобы обойти баг с переносом.
 msgid ""
 "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-"
 "signed certificate."
 msgstr ""
-"Файл корневого сертификата HTTPS необходим только при\n"
-"использовании HTTPS с самоподписанным сертификатом.\n"
-" "
+"Файл корневого сертификата НТТРS необходим только при использовании\n"
+"НТТРS с самоподписанным сертификатом."
 
 msgid "Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*"
 msgstr "Файлы сертификатов (*.crt, *.pem)|*.crt;*.pem|Все файлы|*.*"
@@ -22288,7 +22287,7 @@ msgid "We will slice according to this grouping method:"
 msgstr "Осуществлять нарезку в соответствии с этой группировкой:"
 
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
-msgstr "Совет: для назначения материала можно перетащить его в нужное поле."
+msgstr "Совет: для назначения материала перетащите его в нужное поле."
 
 msgid ""
 "The filament grouping method for current plate is determined by the dropdown "
