@@ -117,7 +117,7 @@ jobs:
           path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.zip
 
       - name: Upload Ubuntu artifacts
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && !env.ACT
         env:
           ubuntu-ver: '2404'
         uses: actions/upload-artifact@v6
