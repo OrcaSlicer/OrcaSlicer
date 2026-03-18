@@ -13,7 +13,6 @@ struct IOSMetalRenderBackend::MetalBackendState
     id<MTLDevice>       device = nil;
     id<MTLCommandQueue> command_queue = nil;
     CAMetalLayer       *metal_layer = nil;
-    bool                owns_layer = false;
 };
 
 IOSMetalRenderBackend::IOSMetalRenderBackend() : m_state(std::make_unique<MetalBackendState>()) {}
@@ -33,13 +32,22 @@ BackendType IOSMetalRenderBackend::backend_type() const
     return BackendType::Metal;
 }
 
-void IOSMetalRenderBackend::bind_metal_layer(void *layer_handle, bool take_ownership)
+void IOSMetalRenderBackend::bind_metal_layer(CAMetalLayer *layer)
 {
     if (m_initialized)
         return;
 
-    m_state->metal_layer = (__bridge CAMetalLayer *) layer_handle;
-    m_state->owns_layer = take_ownership;
+    if (m_state->metal_layer == layer)
+        return;
+
+    @autoreleasepool {
+        if (m_state->metal_layer != nil)
+            [m_state->metal_layer release];
+
+        m_state->metal_layer = layer;
+        if (m_state->metal_layer != nil)
+            [m_state->metal_layer retain];
+    }
 }
 
 bool IOSMetalRenderBackend::initialize()
@@ -61,7 +69,6 @@ bool IOSMetalRenderBackend::initialize()
 
         if (m_state->metal_layer == nil) {
             m_state->metal_layer = [[CAMetalLayer layer] retain];
-            m_state->owns_layer = true;
         }
 
         m_state->metal_layer.device = m_state->device;
@@ -134,10 +141,11 @@ void IOSMetalRenderBackend::shutdown()
         m_state->command_queue = nil;
         m_state->device = nil;
 
-        if (m_state->owns_layer) {
+        if (m_state->metal_layer != nil) {
             [m_state->metal_layer release];
-            m_state->metal_layer = nil;
         }
+
+        m_state->metal_layer = nil;
     }
 
     m_initialized = false;
