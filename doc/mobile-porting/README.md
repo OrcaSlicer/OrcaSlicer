@@ -44,3 +44,12 @@ Status legend:
 | Cloud login | ✅ | ⚪ | ⚪ | Credential storage scaffolding exists on iOS, but full cloud auth/user flow remains pending. |
 
 Important: iOS screenshot CI passing confirms scene bring-up and deterministic capture only; it must not be interpreted as end-to-end feature parity.
+
+
+## Related docs
+
+- Root project overview: [`README.md`](../../README.md)
+- Repository operator guide and markdown map: [`AGENTS.md`](../../AGENTS.md)
+- Point-in-time engineering review: [`doc/2026-03-18-in-depth-file-search-and-code-review.md`](../2026-03-18-in-depth-file-search-and-code-review.md)
+
+> Note: portability and mobile status can change quickly; always verify target names and workflow files against the current tree before applying this plan to new work.

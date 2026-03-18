@@ -1,265 +1,79 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for automation agents and contributors using Claude-oriented workflows in this repository.
 
-## Overview
+## Repository Overview
 
-OrcaSlicer is an open-source 3D slicer application forked from Bambu Studio, built using C++ with wxWidgets for the GUI and CMake as the build system. The project uses a modular architecture with separate libraries for core slicing functionality, GUI components, and platform-specific code.
+OrcaSlicer is a C++17 project built with CMake.
+
+Key first-party areas:
+
+- `src/libslic3r/`: slicing engine and geometry processing.
+- `src/slic3r/`: desktop app and wxWidgets GUI.
+- `src/libvgcode/`: G-code visualization/viewer support.
+- `src/portability/`: platform/render portability contracts and adapters.
+- `src/mobile/ios/`: iOS shell/app target files.
+- `tests/`: Catch2 suites.
 
 ## Build Commands
 
-### Building on Windows
-**Always use this command to build the project when testing build issues on Windows.**
+### Standard desktop configure + build
+
 ```bash
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target OrcaSlicer --config Release --parallel
 ```
 
-### Building on macOS
-**Always use this command to build the project when testing build issues on macOS.**
+### Build tests
+
+`BUILD_TESTS` defaults to `OFF` in root `CMakeLists.txt`; enable it explicitly:
+
 ```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+cmake --build build --target tests --config Release --parallel
+ctest --test-dir build --output-on-failure
 ```
 
-### Building on Linux
- **Always use this command to build the project when testing build issues on Linux.**
-```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
+### Linux helper flow
 
-```
-### Build test:
-
-**Always use this command to build the project when testing build issues on Windows.**
 ```bash
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+./build_linux.sh -u
+./build_linux.sh -dsi
 ```
 
-### Building on macOS
-**Always use this command to build the project when testing build issues on macOS.**
+Use `./build_linux.sh -h` for current script flags.
+
+### iOS portability smoke flow
+
 ```bash
-cmake --build build/arm64 --config RelWithDebInfo --target all --
+cmake -S . -B build-ios -DCMAKE_SYSTEM_NAME=iOS -DORCASLICER_BUILD_IOS_PORTABILITY=ON
+cmake --build build-ios --target orcaslicer_ios_smoke --config Release
 ```
 
-### Building on Linux
- **Always use this command to build the project when testing build issues on Linux.**
-```bash
-cmake --build build --config RelWithDebInfo --target all --
+## Architecture Notes
 
-```
+- Core slicing logic should remain in shared engine modules (`libslic3r`) without desktop GUI dependencies.
+- `src/portability/**` is reserved for platform-agnostic contracts and adapter implementations.
+- Avoid desktop UI includes in portability code (`<wx/...>`, desktop OpenGL headers).
 
+## Testing Notes
 
-### Build System
-- Uses CMake with minimum version 3.13 (maximum 3.31.x on Windows)
-- Primary build directory: `build/`
-- Dependencies are built in `deps/build/`
-- The build process is split into dependency building and main application building
-- Windows builds use Visual Studio generators
-- macOS builds use Xcode by default, Ninja with -x flag
-- Linux builds use Ninja generator
+- Framework: Catch2 (in-repo under `tests/catch2`).
+- Main suites:
+  - `tests/libslic3r`
+  - `tests/fff_print`
+  - `tests/sla_print`
+  - `tests/libnest2d`
+  - `tests/slic3rutils`
 
-### Testing
-Tests are located in the `tests/` directory and use the Catch2 testing framework. Test structure:
-- `tests/libslic3r/` - Core library tests (21 test files)
-  - Geometry processing, algorithms, file formats (STL, 3MF, AMF)
-  - Polygon operations, clipper utilities, Voronoi diagrams
-- `tests/fff_print/` - Fused Filament Fabrication tests (12 test files)
-  - Slicing algorithms, G-code generation, print mechanics
-  - Fill patterns, extrusion, support material
-- `tests/sla_print/` - Stereolithography tests (4 test files)
-  - SLA-specific printing algorithms, support generation
-- `tests/libnest2d/` - 2D nesting algorithm tests
-- `tests/slic3rutils/` - Utility function tests
-- `tests/sandboxes/` - Experimental/sandbox test code
+For detailed testing conventions and Catch pitfalls, see `tests/CLAUDE.md`.
 
-Run all tests after building:
-```bash
-cd build && ctest
-```
+## Mobile Portability Docs of Record
 
-Run tests with verbose output:
-```bash
-cd build && ctest --output-on-failure
-```
-
-Run individual test suites:
-```bash
-# From build directory
-ctest --test-dir ./tests/libslic3r/libslic3r_tests
-ctest --test-dir ./tests/fff_print/fff_print_tests
-ctest --test-dir ./tests/sla_print/sla_print_tests
-# and so on
-```
-
-## Architecture
-
-### Core Libraries
-- **libslic3r/**: Core slicing engine and algorithms (platform-independent)
-  - Main slicing logic, geometry processing, G-code generation
-  - Key classes: Print, PrintObject, Layer, GCode, Config
-  - Modular design with specialized subdirectories:
-    - `GCode/` - G-code generation, cooling, pressure equalization, thumbnails
-    - `Fill/` - Infill pattern implementations (gyroid, honeycomb, lightning, etc.)
-    - `Support/` - Tree supports and traditional support generation
-    - `Geometry/` - Advanced geometry operations, Voronoi diagrams, medial axis
-    - `Format/` - File I/O for 3MF, AMF, STL, OBJ, STEP formats
-    - `SLA/` - SLA-specific print processing and support generation
-    - `Arachne/` - Advanced wall generation using skeletal trapezoidation
-
-- **src/slic3r/**: Main application framework and GUI
-  - GUI application built with wxWidgets
-  - Integration between libslic3r core and user interface
-  - Located in `src/slic3r/GUI/`
-  - Desktop GUI code lives in `src/slic3r/GUI/`
-
-- **Portability layer (`src/portability/`)**: platform adapters and renderer abstraction
-  - `src/portability/platform/` contains platform adapter interfaces and implementations for desktop/mobile split work
-  - `src/portability/render/` contains renderer abstraction interfaces used to decouple platform-specific rendering paths
-
-- **libvgcode (`src/libvgcode/`)**: shared G-code visualization/geometry library used by rendering and preview paths
-
-### Key Algorithmic Components
-- **Arachne Wall Generation**: Variable-width perimeter generation using skeletal trapezoidation
-- **Tree Supports**: Organic support generation algorithm  
-- **Lightning Infill**: Sparse infill optimization for internal structures
-- **Adaptive Slicing**: Variable layer height based on geometry
-- **Multi-material**: Multi-extruder and soluble support processing
-- **G-code Post-processing**: Cooling, fan control, pressure advance, conflict checking
-
-### File Format Support
-- **3MF/BBS_3MF**: Native format with extensions for multi-material and metadata
-- **STL**: Standard tessellation language for 3D models
-- **AMF**: Additive Manufacturing Format with color/material support  
-- **OBJ**: Wavefront OBJ with material definitions
-- **STEP**: CAD format support for precise geometry
-- **G-code**: Output format with extensive post-processing capabilities
-
-### External Dependencies
-- **Clipper2**: Advanced 2D polygon clipping and offsetting
-- **libigl**: Computational geometry library for mesh operations
-- **TBB**: Intel Threading Building Blocks for parallelization
-- **wxWidgets**: Cross-platform GUI framework
-- **OpenGL**: 3D graphics rendering and visualization
-- **CGAL**: Computational Geometry Algorithms Library (selective use)
-- **OpenVDB**: Volumetric data structures for advanced operations
-- **Eigen**: Linear algebra library for mathematical operations
-
-## Mobile Porting Docs of Record
+- `doc/mobile-porting/README.md`
+- `doc/mobile-porting/reference-map.md`
 - `doc/mobile-porting/ios-android-porting-plan.md`
 - `doc/mobile-porting/file-edit-plan.md`
 - `doc/mobile-porting/implementation-status.md`
 
-Use the files above as the source of truth for iOS-first modularization (portability interfaces, platform adapters, renderer abstraction, and desktop/mobile split).
-
-## File Organization
-
-### Resources and Configuration
-- `resources/profiles/` - Printer and material profiles organized by manufacturer
-- `resources/printers/` - Printer-specific configurations and G-code templates  
-- `resources/images/` - UI icons, logos, calibration images
-- `resources/calib/` - Calibration test patterns and data
-- `resources/handy_models/` - Built-in test models (benchy, calibration cubes)
-
-### Internationalization and Localization  
-- `localization/i18n/` - Source translation files (.pot, .po)
-- `resources/i18n/` - Runtime language resources
-- Translation managed via `scripts/run_gettext.sh` / `scripts/run_gettext.bat`
-
-### Platform-Specific Code
-- `src/portability/platform/` - platform adapter code for desktop/mobile split
-- `src/portability/render/` - renderer abstraction surfaces shared across platforms
-- `src/slic3r/GUI/` - desktop wxWidgets UI layer
-- `src/libvgcode/` - rendering/preview support library shared by UI paths
-- `src/libslic3r/MacUtils.mm` - macOS-specific utility implementation (Objective-C++)
-- `scripts/linux.d/` - Linux distribution integration scripts
-
-### Build and Development Tools
-- `cmake/modules/` - Custom CMake find modules and utilities
-- `scripts/` - Python utilities for profile generation and validation  
-- `tools/` - Windows build tools (gettext utilities)
-- `deps/` - External dependency build configurations
-
-### Mobile-porting docs of record
-- `doc/mobile-porting/ios-android-porting-plan.md`
-- `doc/mobile-porting/file-edit-plan.md`
-- `doc/mobile-porting/implementation-status.md`
-
-Use these documents as the source of truth for platform adapter boundaries, renderer abstraction direction, and desktop/mobile split milestones. Keep this `CLAUDE.md` guidance high-level and defer detailed architectural decisions to those docs to avoid divergence.
-
-## Development Workflow
-
-### Code Style and Standards
-- **C++17 standard** with selective C++20 features
-- **Naming conventions**: PascalCase for classes, snake_case for functions/variables
-- **Header guards**: Use `#pragma once` 
-- **Memory management**: Prefer smart pointers, RAII patterns
-- **Thread safety**: Use TBB for parallelization, be mindful of shared state
-
-### Common Development Tasks
-
-#### Adding New Print Settings
-1. Define setting in `PrintConfig.cpp` with proper bounds and defaults
-2. Add UI controls in appropriate GUI components  
-3. Update serialization in config save/load
-4. Add tooltips and help text for user guidance
-5. Test with different printer profiles
-
-#### Modifying Slicing Algorithms  
-1. Core algorithms live in `libslic3r/` subdirectories
-2. Performance-critical code should be profiled and optimized
-3. Consider multi-threading implications (TBB integration)
-4. Validate changes don't break existing profiles
-5. Add regression tests where appropriate
-
-#### GUI Development
-1. GUI code resides in `src/slic3r/GUI/`
-1. Desktop GUI code resides in `src/slic3r/GUI/`
-2. Use existing wxWidgets patterns and custom controls
-3. Support both light and dark themes
-4. Consider DPI scaling on high-resolution displays
-5. Maintain cross-platform compatibility
-
-#### Portability and Mobile-Readiness Changes
-1. Keep shared domain logic in `src/libslic3r/` and avoid introducing UI/platform assumptions there
-2. Implement platform-specific behavior behind adapters in `src/portability/platform/`
-3. Route rendering integration through abstractions in `src/portability/render/` and shared primitives in `src/libvgcode/`
-4. Preserve the desktop/mobile split by keeping wxWidgets-specific behavior in `src/slic3r/GUI/`
-5. For concrete file-level decisions and sequencing, follow `doc/mobile-porting/` docs of record
-
-#### Adding Printer Support
-1. Create JSON profile in `resources/profiles/[manufacturer].json`
-2. Add printer-specific start/end G-code templates
-3. Configure build volume, capabilities, and material compatibility
-4. Test thoroughly with actual hardware when possible
-5. Follow existing profile structure and naming conventions
-
-### Dependencies and Build System
-- **CMake-based** with separate dependency building phase
-- **Dependencies** built once in `deps/build/`, then linked to main application  
-- **Cross-platform** considerations and platform adapter boundaries are important for all changes
-- **Resource files** embedded at build time, platform-specific handling
-
-### Performance Considerations
-- **Slicing algorithms** are CPU-intensive, profile before optimizing
-- **Memory usage** can be substantial with complex models
-- **Multi-threading** extensively used via TBB
-- **File I/O** optimized for large 3MF files with embedded textures
-- **Real-time preview** requires efficient mesh processing
-
-## Important Development Notes
-
-### Codebase Navigation
-- Use search tools extensively - codebase has 500k+ lines
-- Key entry points: `src/OrcaSlicer.cpp` for application startup
-- Core slicing: `libslic3r/Print.cpp` orchestrates the slicing pipeline
-- Configuration: `PrintConfig.cpp` defines all print/printer/material settings
-
-### Compatibility and Stability
-- **Backward compatibility** maintained for project files and profiles
-- **Cross-platform** support essential (Windows/macOS/Linux)  
-- **File format** changes require careful version handling
-- **Profile migrations** needed when settings change significantly
-
-### Quality and Testing
-- **Regression testing** important due to algorithm complexity
-- **Performance benchmarks** help catch performance regressions
-- **Memory leak** detection important for long-running GUI application
-- **Cross-platform** testing required before releases
+Use these as the source of truth for mobile/portability status and planned sequencing.
