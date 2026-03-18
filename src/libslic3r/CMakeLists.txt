@@ -603,8 +603,11 @@ target_link_libraries(libslic3r
         qoi
         semver
         ZLIB::ZLIB
-        OpenSSL::Crypto
     )
+
+if (NOT ORCASLICER_IS_IOS_BUILD)
+    target_link_libraries(libslic3r PRIVATE OpenSSL::Crypto)
+endif()
 
 if (NOT ORCASLICER_IS_IOS_BUILD)
     target_link_libraries(libslic3r PRIVATE TBB::tbb TBB::tbbmalloc)

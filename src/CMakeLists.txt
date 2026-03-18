@@ -134,6 +134,11 @@ if (SLIC3R_GUI)
     add_subdirectory(slic3r)
 endif()
 
+if (ORCASLICER_IS_IOS_BUILD AND ORCASLICER_BUILD_IOS_PORTABILITY AND ORCASLICER_BUILD_IOS_SMOKE_TARGET)
+    message(STATUS "iOS smoke mode: skipping desktop app/executable target configuration")
+    return()
+endif()
+
 if(ORCA_TOOLS)
     # OrcaSlicer_profile_validator
     if(APPLE)

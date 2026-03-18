@@ -65,6 +65,12 @@ endif ()
 
 project(OrcaSlicer)
 
+# Shared iOS toolchain detection used by smoke/portability CMake paths.
+set(ORCASLICER_IS_IOS_BUILD OFF)
+if(APPLE AND (CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_OSX_SYSROOT MATCHES "iphoneos|iphonesimulator"))
+    set(ORCASLICER_IS_IOS_BUILD ON)
+endif()
+
 # Backward compatibility for old CMake versions
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_VERSION VERSION_LESS "3.25")
     set(LINUX ON CACHE BOOL "" FORCE)
@@ -135,6 +141,11 @@ option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
 # If SLIC3R_FHS is 1 -> SLIC3R_DESKTOP_INTEGRATION is always 0, othrewise variable.
 CMAKE_DEPENDENT_OPTION(SLIC3R_DESKTOP_INTEGRATION "Allow performing desktop integration during runtime" 1 "NOT SLIC3R_FHS" 0)
+
+if (ORCASLICER_IS_IOS_BUILD AND ORCASLICER_BUILD_IOS_PORTABILITY)
+    set(SLIC3R_GUI OFF CACHE BOOL "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" FORCE)
+    set(SLIC3R_DESKTOP_INTEGRATION OFF CACHE BOOL "Allow performing desktop integration during runtime" FORCE)
+endif ()
 
 set(OPENVDB_FIND_MODULE_PATH "" CACHE PATH "Path to OpenVDB installation's find modules.")
 
@@ -585,11 +596,6 @@ endif()
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
-set(ORCASLICER_IS_IOS_BUILD OFF)
-if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_OSX_SYSROOT MATCHES "iphoneos|iphonesimulator")
-    set(ORCASLICER_IS_IOS_BUILD ON)
-endif()
-
 if(NOT ORCASLICER_IS_IOS_BUILD)
     set(Boost_NO_SYSTEM_PATHS TRUE)
     find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
@@ -650,29 +656,34 @@ endif()
 # The Intel TBB library will use the std::exception_ptr feature of C++11.
 # add_definitions(-DTBB_USE_CAPTURED_EXCEPTION=0)
 
-find_package(OpenSSL REQUIRED)
-find_package(CURL REQUIRED)
+if(NOT ORCASLICER_IS_IOS_BUILD)
+    find_package(OpenSSL REQUIRED)
+    find_package(CURL REQUIRED)
+endif()
 find_package(Freetype REQUIRED)
 
-
 add_library(libcurl INTERFACE)
-target_link_libraries(libcurl INTERFACE CURL::libcurl)
+if(NOT ORCASLICER_IS_IOS_BUILD)
+    target_link_libraries(libcurl INTERFACE CURL::libcurl)
+endif()
 
 find_package(ZLIB REQUIRED)
-target_link_libraries(libcurl INTERFACE ZLIB::ZLIB)
+if(NOT ORCASLICER_IS_IOS_BUILD)
+    target_link_libraries(libcurl INTERFACE ZLIB::ZLIB)
+endif()
 
 # Fixing curl's cmake config script bugs
-if (NOT WIN32)
+if (NOT WIN32 AND NOT ORCASLICER_IS_IOS_BUILD)
     # Required by libcurl
     #find_package(ZLIB REQUIRED)
     #target_link_libraries(libcurl INTERFACE ZLIB::ZLIB)
     #find_package(Libssh2 REQUIRED)
     #target_link_libraries(libcurl INTERFACE Libssh2::libssh2)
-else()
+elseif (WIN32)
     target_link_libraries(libcurl INTERFACE crypt32)
 endif()
 
-if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_CURL)
+if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_CURL AND NOT ORCASLICER_IS_IOS_BUILD)
     if (NOT APPLE)
         # libcurl is always linked dynamically to the system libcurl on OSX.
         # On other systems, libcurl is linked statically if SLIC3R_STATIC is set.
@@ -719,24 +730,26 @@ endif ()
 
 find_package(PNG REQUIRED)
 
-set(OpenGL_GL_PREFERENCE "LEGACY")
-find_package(OpenGL REQUIRED)
+if (SLIC3R_GUI)
+    set(OpenGL_GL_PREFERENCE "LEGACY")
+    find_package(OpenGL REQUIRED)
 
-if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
-    set(OPENGL_LIBRARIES "-framework OpenGL" CACHE STRING "OpenGL framework" FORCE)
+    if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+        set(OPENGL_LIBRARIES "-framework OpenGL" CACHE STRING "OpenGL framework" FORCE)
+    endif()
+
+    set(GLEW_ROOT "${CMAKE_PREFIX_PATH}")
+    message("GLEW_ROOT: ${GLEW_ROOT}")
+    # Find glew or use bundled version
+    if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_GLEW)
+        set(GLEW_USE_STATIC_LIBS ON)
+        set(GLEW_VERBOSE ON)
+    endif()
+
+    find_package(GLEW REQUIRED)
+
+    find_package(glfw3 REQUIRED)
 endif()
-
-set(GLEW_ROOT "${CMAKE_PREFIX_PATH}")
-message("GLEW_ROOT: ${GLEW_ROOT}")
-# Find glew or use bundled version
-if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_GLEW)
-    set(GLEW_USE_STATIC_LIBS ON)
-    set(GLEW_VERBOSE ON)
-endif()
-
-find_package(GLEW REQUIRED)
-
-find_package(glfw3 REQUIRED)
 
 # Find the Cereal serialization library
 find_package(cereal REQUIRED)
