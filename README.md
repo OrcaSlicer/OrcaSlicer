@@ -76,6 +76,7 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 # Engineering reviews
 
 - [In-Depth File Search and Code Review (2026-03-18)](doc/2026-03-18-in-depth-file-search-and-code-review.md)
+- [Developer Workflow: Local Pre-commit Validation](doc/developer-workflows/precommit-validation.md)
 - [Mobile Porting Documentation Index](doc/mobile-porting/README.md)
 - [Repository Operator Guide and Markdown Inventory](AGENTS.md)
 
@@ -173,6 +174,23 @@ Linux developers can also use `build_linux.sh` for dependency setup and build or
 ./build_linux.sh -u
 ./build_linux.sh -dsi
 ```
+
+### Optional: local pre-commit validation
+
+To automatically run local validation before each commit:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+Manual validation runs:
+
+```bash
+./scripts/precommit-validate.sh
+RUN_TESTS=1 ./scripts/precommit-validate.sh
+```
+
+This flow configures and builds OrcaSlicer locally, and optionally builds/runs tests when `RUN_TESTS=1`.
 
 # Klipper Note
 

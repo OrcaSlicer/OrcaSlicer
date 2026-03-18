@@ -45,6 +45,21 @@ ctest --test-dir build --output-on-failure
 
 Use `./build_linux.sh -h` for the current flag reference.
 
+### Local pre-commit validation hook flow
+
+Use the repository-managed git hook path and validator script to run local build checks before commit:
+
+```bash
+./scripts/install-git-hooks.sh
+./scripts/precommit-validate.sh
+RUN_TESTS=1 ./scripts/precommit-validate.sh
+```
+
+Notes:
+- `scripts/install-git-hooks.sh` configures `core.hooksPath` to `.githooks`.
+- `.githooks/pre-commit` runs `scripts/precommit-validate.sh` from repository root.
+- `RUN_TESTS=1` enables test target build and `ctest` execution.
+
 ### iOS portability smoke flow
 
 ```bash
@@ -96,6 +111,7 @@ Current workflow files are under `.github/workflows/`, including:
 - Do not modify files in `deps/` or `deps_src/` casually; these are vendored snapshots.
 - Keep docs aligned with implementation reality, especially for mobile portability status.
 - Prefer concrete statements over roadmap speculation unless explicitly labeled as planned.
+- When new tools, scripts, workflows, or file locations are introduced, update impacted first-party Markdown docs (for example `AGENTS.md`, `README.md`, and related `doc/**` indexes) in the same change whenever practical.
 
 ## Markdown File Inventory
 
@@ -154,6 +170,11 @@ Status legend:
   **Purpose:** Point-in-time engineering review and findings snapshot.  
   **Audience:** Maintainers, reviewers.  
   **Status:** partially stale (dated snapshot by design).
+
+- **Path:** `doc/developer-workflows/precommit-validation.md`
+  **Purpose:** Documents local pre-commit validation hook installation, behavior, and troubleshooting expectations.
+  **Audience:** Contributors and automation agents validating changes before commit.
+  **Status:** current.
 
 - **Path:** `doc/mobile-porting/README.md`  
   **Purpose:** Index and scope framing for mobile porting documents.  
