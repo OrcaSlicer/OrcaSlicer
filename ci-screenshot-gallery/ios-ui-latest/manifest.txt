@@ -1,0 +1,9 @@
+benchy-preview artifacts/ios-screenshots/benchy-preview.png
+benchy-sliced artifacts/ios-screenshots/benchy-sliced.png
+root artifacts/ios-screenshots/root.png
+project artifacts/ios-screenshots/project.png
+tools artifacts/ios-screenshots/tools.png
+slice-settings artifacts/ios-screenshots/slice-settings.png
+printer artifacts/ios-screenshots/printer.png
+view artifacts/ios-screenshots/view.png
+app-settings artifacts/ios-screenshots/app-settings.png
