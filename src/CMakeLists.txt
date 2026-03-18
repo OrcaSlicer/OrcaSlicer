@@ -58,6 +58,10 @@ target_link_libraries(orcaslicer_portability INTERFACE
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
 add_subdirectory(portability)
+# iOS-native SwiftUI shell that reuses portability render/platform modules.
+if (ORCASLICER_IS_IOS_BUILD)
+    add_subdirectory(mobile/ios)
+endif ()
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
