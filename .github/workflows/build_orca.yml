@@ -89,6 +89,12 @@ jobs:
           echo "date: ${{ env.date }} version: ${{ env.ver }}"
         shell: pwsh
 
+      - name: Prepare CI build log directory
+        shell: bash
+        run: |
+          mkdir -p "${{ github.workspace }}/ci-build-logs"
+          echo "CI_BUILD_LOG_DIR=${{ github.workspace }}/ci-build-logs" >> "$GITHUB_ENV"
+
 #   Mac
       - name: Install tools mac
         if: contains(inputs.os, 'macos') && !inputs.macos-combine-only
@@ -111,7 +117,7 @@ jobs:
         if: contains(inputs.os, 'macos') && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15 2>&1 | tee "${CI_BUILD_LOG_DIR}/build-macos-${{ inputs.arch }}.log"
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: contains(inputs.os, 'macos') && !inputs.macos-combine-only
@@ -154,7 +160,7 @@ jobs:
         if: contains(inputs.os, 'macos') && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15
+          ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a universal -t 10.15 2>&1 | tee "${CI_BUILD_LOG_DIR}/build-macos-universal.log"
 
       - name: Delete intermediate per-arch artifacts
         if: contains(inputs.os, 'macos') && inputs.macos-combine-only
@@ -292,7 +298,8 @@ jobs:
         env:
           WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
           WindowsSDKVersion: '10.0.26100.0\'
-        run: .\build_release_vs.bat slicer
+        run: .\build_release_vs.bat slicer 2>&1 | Tee-Object -FilePath "$env:CI_BUILD_LOG_DIR/build-windows.log"
+        shell: pwsh
 
       - name: Create installer Win
         if: inputs.os == 'windows-latest'
@@ -386,7 +393,7 @@ jobs:
         env:
           ubuntu-ver-str: ${{ (inputs.os == 'ubuntu-24.04' && '_Ubuntu2404') || '' }}
         run: |
-          ./build_linux.sh -istr
+          ./build_linux.sh -istr 2>&1 | tee "${CI_BUILD_LOG_DIR}/build-linux.log"
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           chmod +x ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           tar -cvpf build_tests.tar build/tests
@@ -464,6 +471,16 @@ jobs:
           asset_name: OrcaSlicer_profile_validator_Linux${{ env.ubuntu-ver-str }}_nightly
           asset_content_type: application/octet-stream
           max_releases: 1
+
+
+      - name: Upload CI build logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-build-logs-${{ inputs.os }}-${{ inputs.arch || 'default' }}
+          path: ${{ env.CI_BUILD_LOG_DIR }}
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Deploy orca_custom_preset_tests
         if: ${{ github.repository == 'OrcaSlicer/OrcaSlicer' && ! env.ACT && github.ref == 'refs/heads/main' && inputs.os == 'ubuntu-24.04' }}
