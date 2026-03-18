@@ -4656,6 +4656,21 @@ void TabPrinter::build_fff()
             optgroup->append_line(preset_line);
         }
 
+        {
+            ConfigOptionsGroupShp og_initial = page->new_optgroup(wxEmptyString, L"param_gcode", 0);
+            og_initial->wrap_in_collapsible_pane   = true;
+            og_initial->collapsible_pane_label     = _L("Additional initial plate change G-code");
+            og_initial->m_on_change                = [this](const t_config_option_key& opt_key, const boost::any& value) {
+                validate_custom_gcode_cb(this, _L("Additional initial plate change G-code"), opt_key, value);
+            };
+            og_initial->edit_custom_gcode = edit_custom_gcode_fn;
+            Option opt_initial            = og_initial->get_option("additional_initial_plate_change_gcode");
+            opt_initial.opt.full_width    = true;
+            opt_initial.opt.is_code       = true;
+            opt_initial.opt.height        = gcode_field_height;
+            og_initial->append_single_option_line(opt_initial, "printer_machine_gcode#additional-initial-plate-change-gcode");
+        }
+
         optgroup = page->new_optgroup(L("Timelapse G-code"), L"param_gcode", 0);
         optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, optgroup_title, opt_key, value);

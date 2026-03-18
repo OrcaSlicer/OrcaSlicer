@@ -1508,9 +1508,9 @@ void SelectMachineDialog::prepare(int print_plate_idx, bool use_plate_changer_al
 {
     m_print_plate_idx = print_plate_idx;
     m_use_plate_changer_all = use_plate_changer_all;
-    // Show "Start with new plate?" / "End with new plate?" only when using plate changer and printer has plate_change_gcode
-    bool show_plate_changer_opts = use_plate_changer_all && wxGetApp().preset_bundle &&
-                                  !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+    // Show start/end toggles whenever Machine G-code defines plate_change_gcode (single or multi-plate).
+    bool show_plate_changer_opts = wxGetApp().preset_bundle &&
+        !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
     if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
     if (m_panel_plate_changer_opts) m_panel_plate_changer_opts->Show(show_plate_changer_opts);
     if (m_scroll_area && m_scroll_area->GetSizer()) m_scroll_area->GetSizer()->Layout();

@@ -70,8 +70,9 @@ This matches setups like swapmod/swaplist.app where a small, **start-only wrappe
   - **`build_plate_changer_merged_gcode()`** – static helper that:
     - Takes the list of plate data, the print config, and two booleans: `start_with_new_plate`, `end_with_new_plate`.
     - Reads **`plate_change_gcode`** from the config.
-    - Concatenates each plate’s G-code file and inserts `plate_change_gcode` between plates; if `start_with_new_plate` is true, prepends it once before the first plate; if `end_with_new_plate` is true, appends it once after the last plate.
-  - The result is written as a single logical plate (e.g. `Metadata/plate_1.gcode`) so the printer sees one job.
+    - **Multiple sliced plates:** concatenates each plate’s G-code and inserts `plate_change_gcode` between plates; optional prepend/append when start/end toggles are on.
+    - **Single plate:** if either toggle is on, builds one file: optional prepend + that plate’s G-code + optional append (normal print with swap bookends).
+  - The merged result is written as a single logical plate (e.g. `Metadata/plate_1.gcode`) when merging applies.
 
 ### Export pipeline (flags)
 
@@ -91,16 +92,17 @@ This matches setups like swapmod/swaplist.app where a small, **start-only wrappe
 ### GUI: where the toggles live
 
 - **Send to Printer (LAN):** **`src/slic3r/GUI/SendToPrinter.cpp`** / **`.hpp`**
-  - **prepare(print_plate_idx, use_plate_changer_all)** – shows or hides the separator and the “Start with new plate?” / “End with new plate?” checkboxes based on `use_plate_changer_all` and whether the current printer preset has **Plate change G-code**.
+  - **prepare(...)** – shows the start/end toggles whenever the printer preset has non-empty **Plate change G-code** (single-plate print or print-all).
   - When sending, the checkbox states are read and passed into **`send_gcode()`** and **`export_config_3mf()`**.
 
 - **Select Machine (cloud):** **`src/slic3r/GUI/SelectMachine.cpp`** / **`.hpp`**
-  - Same pattern: **prepare(print_plate_idx, use_plate_changer_all)** controls visibility of the plate-changer option section.
+  - Same visibility rule as Send to Printer.
   - On Print, the checkbox states are passed into **`send_gcode()`** and **`export_config_3mf()`**.
 
-### Config key
+### Config keys
 
 - **`plate_change_gcode`** – printer preset option (e.g. in **PrintConfig** / **PrinterSettings**). Used to decide whether plate-changer actions and start/end toggles are available, and as the exact block inserted at each position (start, between plates, end) when building merged G-code.
+- **`additional_initial_plate_change_gcode`** – optional; editable under **Printer settings → Machine G-code**, directly under **Plate change G-code**, in a **collapsible section** (collapsed by default). Intended to run before **`plate_change_gcode`** when **Start with new plate?** is used (merge behavior is wired separately).
 
 ---
 
@@ -112,5 +114,5 @@ This matches setups like swapmod/swaplist.app where a small, **start-only wrappe
 | **Merge helper** | **`build_plate_changer_merged_gcode()`** in **`bbs_3mf.cpp`** |
 | **StoreParams** | **`use_plate_changer_all`**, **`start_with_new_plate`**, **`end_with_new_plate`** |
 | **Send/Export** | **Plater::export_3mf**, **export_config_3mf**, **send_gcode** carry the flags |
-| **Dialogs** | **SendToPrinter**, **SelectMachine**: separator + two checkboxes, shown only when plate changer is used and preset has **plate_change_gcode** |
+| **Dialogs** | **SendToPrinter**, **SelectMachine**: separator + two checkboxes whenever preset has **plate_change_gcode** |
 | **Limitation** | One G-code string for start, between plates, and end (no separate start/end sequences) |

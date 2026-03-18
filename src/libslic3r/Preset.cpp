@@ -411,6 +411,13 @@ void Preset::normalize(DynamicPrintConfig &config)
         }
     }
 
+    // Backfill new printer Machine G-code keys for older presets (avoids missing opt in edited config).
+    if (config.def() && config.def()->get("additional_initial_plate_change_gcode") != nullptr &&
+        !config.has("additional_initial_plate_change_gcode")) {
+        config.option<ConfigOptionString>("additional_initial_plate_change_gcode", true)->value =
+            FullPrintConfig::defaults().additional_initial_plate_change_gcode.value;
+    }
+
     handle_legacy_sla(config);
 }
 
