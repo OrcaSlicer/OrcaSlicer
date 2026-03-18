@@ -10,6 +10,24 @@ if (NOT APPLE)
     return()
 endif ()
 
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS" AND CMAKE_OSX_SYSROOT MATCHES "iphonesimulator")
+    set(_orcaslicer_swift_target_arch "${CMAKE_OSX_ARCHITECTURES}")
+    if (_orcaslicer_swift_target_arch MATCHES ";")
+        list(GET _orcaslicer_swift_target_arch 0 _orcaslicer_swift_target_arch)
+    endif ()
+    if (NOT _orcaslicer_swift_target_arch)
+        set(_orcaslicer_swift_target_arch "${CMAKE_SYSTEM_PROCESSOR}")
+    endif ()
+
+    if (NOT CMAKE_Swift_COMPILER_TARGET)
+        set(CMAKE_Swift_COMPILER_TARGET
+            "${_orcaslicer_swift_target_arch}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}-simulator"
+            CACHE STRING "Swift compiler target triple" FORCE)
+    endif ()
+
+    message(STATUS "Using Swift compiler target for iOS simulator: ${CMAKE_Swift_COMPILER_TARGET}")
+endif ()
+
 enable_language(Swift)
 
 set(ORCASLICER_IOS_SHELL_SOURCES
