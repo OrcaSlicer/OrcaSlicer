@@ -189,6 +189,22 @@ jobs:
             echo "${LAUNCH_OUTPUT}"
             sleep 2
 
+            ROOT_LOGS="$(xcrun simctl spawn "${DEVICE_UDID}" log show --style compact --last 90s \
+              --predicate 'process == "OrcaSlicerIOS" AND eventMessage CONTAINS "OrcaSlicerIOS root appeared"' 2>/dev/null || true)"
+            if [[ -z "${ROOT_LOGS}" ]]; then
+              echo "Missing root composition log marker for scene=${scene}. This usually means the SwiftUI shell never rendered."
+              xcrun simctl spawn "${DEVICE_UDID}" log show --style compact --last 120s --predicate 'process == "OrcaSlicerIOS"' | tail -n 200 || true
+              exit 1
+            fi
+
+            ROUTE_LOGS="$(xcrun simctl spawn "${DEVICE_UDID}" log show --style compact --last 90s \
+              --predicate "process == \"OrcaSlicerIOS\" AND eventMessage CONTAINS \"scene=${scene}\"" 2>/dev/null || true)"
+            if [[ -z "${ROUTE_LOGS}" ]]; then
+              echo "Missing screenshot route-ready log marker for scene=${scene}. Routing or environment propagation likely failed."
+              xcrun simctl spawn "${DEVICE_UDID}" log show --style compact --last 120s --predicate 'process == "OrcaSlicerIOS"' | tail -n 200 || true
+              exit 1
+            fi
+
             xcrun simctl io "${DEVICE_UDID}" screenshot "${output}"
 
             if [[ ! -s "${output}" ]]; then

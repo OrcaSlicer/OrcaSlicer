@@ -14,6 +14,8 @@
     CADisplayLink *_displayLink;
     Slic3r::portability::render::RenderSceneState _sceneState;
     BOOL _sceneStateDirty;
+    BOOL _rendererReady;
+    NSString *_rendererInitializationSummary;
 }
 @end
 
@@ -35,15 +37,26 @@
 
     _sceneState = Slic3r::portability::render::RenderSceneState{};
     _sceneStateDirty = YES;
+    _rendererReady = NO;
+    _rendererInitializationSummary = @"renderer not initialized";
 
     _backend = std::make_unique<Slic3r::portability::render::ios::IOSMetalRenderBackend>();
     auto *layer = (CAMetalLayer *) self.layer;
     _backend->bind_metal_layer(layer);
-    _backend->initialize();
-    _backend->resize((int) CGRectGetWidth(self.bounds), (int) CGRectGetHeight(self.bounds));
+    const bool initialized = _backend->initialize();
+    if (initialized) {
+        _rendererReady = YES;
+        _rendererInitializationSummary = @"renderer ready";
+        _backend->resize((int) CGRectGetWidth(self.bounds), (int) CGRectGetHeight(self.bounds));
 
-    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderFrame)];
-    [_displayLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
+        _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderFrame)];
+        [_displayLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
+        NSLog(@"[OrcaMetal] viewport renderer ready");
+    } else {
+        _rendererInitializationSummary = @"renderer init failed";
+        self.backgroundColor = [UIColor colorWithRed:0.10 green:0.08 blue:0.14 alpha:1.0];
+        NSLog(@"[OrcaMetal] viewport renderer initialization failed; keeping static fallback background");
+    }
 
     return self;
 }
@@ -86,7 +99,7 @@
 
 - (void)renderFrame
 {
-    if (_backend == nullptr)
+    if (_backend == nullptr || !_rendererReady)
         return;
 
     if (_sceneStateDirty) {
@@ -96,5 +109,9 @@
 
     _backend->render_frame();
 }
+
+- (BOOL)isRendererReady { return _rendererReady; }
+
+- (NSString *)rendererInitializationSummary { return _rendererInitializationSummary ?: @"renderer status unknown"; }
 
 @end
