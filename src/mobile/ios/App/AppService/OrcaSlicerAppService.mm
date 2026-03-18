@@ -71,32 +71,42 @@
         [completionHandler](std::unique_ptr<Slic3r::portability::app::SliceSuccess> success,
                             std::unique_ptr<Slic3r::portability::app::SliceFailure> failure,
                             bool cancelled) {
+            OrcaSlicerSliceFailure *preparedFailure = nil;
+            OrcaSlicerSliceOutput  *preparedOutput  = nil;
+            BOOL                    wasCancelled    = cancelled ? YES : NO;
+
+            if (failure != nullptr) {
+                preparedFailure               = [OrcaSlicerSliceFailure new];
+                preparedFailure.message       = [NSString stringWithUTF8String:failure->user_message.c_str()] ?: @"Slice failed.";
+                preparedFailure.diagnosticLog = [NSString stringWithUTF8String:failure->diagnostic_log.c_str()] ?: @"";
+            }
+
+            if (success != nullptr) {
+                preparedOutput                          = [OrcaSlicerSliceOutput new];
+                preparedOutput.layerCount               = success->layer_count;
+                preparedOutput.toolpathCount            = success->toolpath_count;
+                preparedOutput.estimatedPrintTimeSeconds = success->estimated_print_time_seconds;
+                preparedOutput.statusText               = [NSString stringWithUTF8String:success->status_text.c_str()] ?: @"Slice complete";
+                preparedOutput.detailText               = [NSString stringWithUTF8String:success->detail_text.c_str()] ?: @"";
+                preparedOutput.diagnosticLog            = [NSString stringWithUTF8String:success->diagnostic_log.c_str()] ?: @"";
+            }
+
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (completionHandler == nil)
                     return;
 
-                if (cancelled) {
+                if (wasCancelled) {
                     completionHandler(nil, nil, YES);
                     return;
                 }
 
-                if (failure != nullptr) {
-                    OrcaSlicerSliceFailure *sliceFailure = [OrcaSlicerSliceFailure new];
-                    sliceFailure.message                 = [NSString stringWithUTF8String:failure->user_message.c_str()] ?: @"Slice failed.";
-                    sliceFailure.diagnosticLog           = [NSString stringWithUTF8String:failure->diagnostic_log.c_str()] ?: @"";
-                    completionHandler(nil, sliceFailure, NO);
+                if (preparedFailure != nil) {
+                    completionHandler(nil, preparedFailure, NO);
                     return;
                 }
 
-                if (success != nullptr) {
-                    OrcaSlicerSliceOutput *output = [OrcaSlicerSliceOutput new];
-                    output.layerCount             = success->layer_count;
-                    output.toolpathCount          = success->toolpath_count;
-                    output.estimatedPrintTimeSeconds = success->estimated_print_time_seconds;
-                    output.statusText             = [NSString stringWithUTF8String:success->status_text.c_str()] ?: @"Slice complete";
-                    output.detailText             = [NSString stringWithUTF8String:success->detail_text.c_str()] ?: @"";
-                    output.diagnosticLog          = [NSString stringWithUTF8String:success->diagnostic_log.c_str()] ?: @"";
-                    completionHandler(output, nil, NO);
+                if (preparedOutput != nil) {
+                    completionHandler(preparedOutput, nil, NO);
                     return;
                 }
 
