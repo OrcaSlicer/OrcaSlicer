@@ -176,6 +176,13 @@ set(SLIC3R_GUI_SOURCES
     GUI/GLCanvas3D.hpp
     GUI/DesktopSceneStateAdapter.cpp
     GUI/DesktopSceneStateAdapter.hpp
+    GUI/IThumbnailRenderer.hpp
+    GUI/DesktopOpenGLThumbnailRenderer.cpp
+    GUI/DesktopOpenGLThumbnailRenderer.hpp
+    GUI/IOSStubThumbnailRenderer.cpp
+    GUI/IOSStubThumbnailRenderer.hpp
+    GUI/ThumbnailRendererFactory.cpp
+    GUI/ThumbnailRendererFactory.hpp
     ../portability/render/ISceneRenderer.hpp
     ../portability/render/DesktopOpenGLSceneRenderer.cpp
     ../portability/render/DesktopOpenGLSceneRenderer.hpp
@@ -730,6 +737,10 @@ else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+
+if (APPLE AND (CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_OSX_SYSROOT MATCHES "iphoneos|iphonesimulator"))
+    target_compile_definitions(libslic3r_gui PRIVATE ORCASLICER_TARGET_IOS=1)
+endif ()
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
