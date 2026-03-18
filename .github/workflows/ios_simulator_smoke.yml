@@ -50,7 +50,8 @@ jobs:
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
             -DORCASLICER_BUILD_IOS_PORTABILITY=ON \
-            -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON
+            -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON \
+            -DORCASLICER_BUILD_IOS_UI_SHELL=OFF
 
       - name: Build orcaslicer_ios_smoke
         run: |

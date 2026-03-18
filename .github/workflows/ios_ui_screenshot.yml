@@ -1,0 +1,168 @@
+name: iOS UI Screenshot
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'src/mobile/ios/**'
+      - 'src/portability/**'
+      - '**/CMakeLists.txt'
+      - '.github/workflows/ios_ui_screenshot.yml'
+  push:
+    branches:
+      - main
+      - release/*
+    paths:
+      - 'src/mobile/ios/**'
+      - 'src/portability/**'
+      - '**/CMakeLists.txt'
+      - '.github/workflows/ios_ui_screenshot.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios_ui_screenshot:
+    name: Build, launch, and screenshot OrcaSlicerIOS in Simulator
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          lfs: 'true'
+
+      - name: Setup CMake
+        uses: lukka/get-cmake@v4.2.3
+        with:
+          cmakeVersion: "~3.28.0"
+
+      - name: Select simulator runtime and device type
+        id: simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY' > simulator-env.txt
+          import json
+          import subprocess
+
+          runtimes = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "runtimes", "--json"]))["runtimes"]
+          candidates = [
+              r for r in runtimes
+              if r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS")
+          ]
+          if not candidates:
+              raise SystemExit("No available iOS simulator runtimes found on runner")
+
+          candidates.sort(key=lambda r: r.get("version", "0"))
+          runtime_id = candidates[-1]["identifier"]
+
+          devicetypes = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devicetypes", "--json"]))["devicetypes"]
+          preferred = ["iPhone 16", "iPhone 15", "iPhone 14"]
+          device_type_id = None
+
+          for name in preferred:
+              for dt in devicetypes:
+                  if dt.get("name") == name:
+                      device_type_id = dt.get("identifier")
+                      break
+              if device_type_id:
+                  break
+
+          if not device_type_id:
+              for dt in devicetypes:
+                  if "iPhone" in dt.get("name", ""):
+                      device_type_id = dt.get("identifier")
+                      break
+
+          if not device_type_id:
+              raise SystemExit("No iPhone simulator device type found on runner")
+
+          print(f"RUNTIME_ID={runtime_id}")
+          print(f"DEVICE_TYPE_ID={device_type_id}")
+          PY
+
+          cat simulator-env.txt >> "$GITHUB_ENV"
+          cat simulator-env.txt
+
+      - name: Configure iOS simulator app build (Xcode generator)
+        run: |
+          cmake -S . -B build-ios-ui -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphonesimulator \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=16.0 \
+            -DORCASLICER_BUILD_IOS_PORTABILITY=ON \
+            -DORCASLICER_BUILD_IOS_SMOKE_TARGET=ON \
+            -DORCASLICER_BUILD_IOS_UI_SHELL=ON
+
+      - name: Build OrcaSlicerIOS app target
+        run: |
+          cmake --build build-ios-ui --config Release --target OrcaSlicerIOS --parallel
+
+      - name: Boot simulator, install app, launch, and capture screenshot
+        env:
+          APP_BUNDLE_ID: com.softfever3d.orcaslicer.ios
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_BUNDLE="$(find build-ios-ui -type d -name OrcaSlicerIOS.app | head -n 1)"
+          if [[ -z "${APP_BUNDLE}" || ! -d "${APP_BUNDLE}" ]]; then
+            echo "Failed to locate OrcaSlicerIOS.app under build-ios-ui"
+            find build-ios-ui -maxdepth 5 -type d -name '*.app' -print || true
+            exit 1
+          fi
+
+          ACTUAL_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP_BUNDLE}/Info.plist")"
+          if [[ -z "${ACTUAL_BUNDLE_ID}" ]]; then
+            echo "Could not read CFBundleIdentifier from ${APP_BUNDLE}/Info.plist"
+            exit 1
+          fi
+
+          if [[ "${ACTUAL_BUNDLE_ID}" != "${APP_BUNDLE_ID}" ]]; then
+            echo "Bundle identifier mismatch: expected ${APP_BUNDLE_ID}, got ${ACTUAL_BUNDLE_ID}"
+            exit 1
+          fi
+
+          DEVICE_UDID="$(xcrun simctl create 'OrcaSlicerIOS CI' "${DEVICE_TYPE_ID}" "${RUNTIME_ID}")"
+          echo "DEVICE_UDID=${DEVICE_UDID}" >> "$GITHUB_ENV"
+
+          xcrun simctl boot "${DEVICE_UDID}"
+          xcrun simctl bootstatus "${DEVICE_UDID}" -b
+
+          xcrun simctl install "${DEVICE_UDID}" "${APP_BUNDLE}"
+
+          LAUNCH_OUTPUT="$(xcrun simctl launch "${DEVICE_UDID}" "${APP_BUNDLE_ID}" 2>&1)" || {
+            echo "Failed to launch ${APP_BUNDLE_ID}"
+            echo "${LAUNCH_OUTPUT}"
+            exit 1
+          }
+          echo "${LAUNCH_OUTPUT}"
+
+          sleep 10
+
+          mkdir -p artifacts/ios-screenshots
+          xcrun simctl io "${DEVICE_UDID}" screenshot "artifacts/ios-screenshots/orcaslicer-ios-root-portrait.png"
+
+      - name: Upload iOS UI screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ui-screenshot
+          path: artifacts/ios-screenshots/
+          if-no-files-found: error
+
+      - name: Cleanup simulator
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${DEVICE_UDID:-}" ]]; then
+            xcrun simctl shutdown "${DEVICE_UDID}" || true
+            xcrun simctl delete "${DEVICE_UDID}" || true
+          fi

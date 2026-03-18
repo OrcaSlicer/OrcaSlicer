@@ -50,6 +50,13 @@ endif ()
 
 enable_language(Swift)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    if (CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "16.0")
+        message(FATAL_ERROR "OrcaSlicerIOS UI shell requires iOS deployment target 16.0 or newer (NavigationStack/presentationDetents usage).")
+    endif ()
+endif ()
+
+
 set(ORCASLICER_IOS_SHELL_SOURCES
     App/OrcaSlicerIOSApp.swift
     App/RootViewportScreen.swift
@@ -89,6 +96,9 @@ set_target_properties(OrcaSlicerIOS PROPERTIES
     XCODE_ATTRIBUTE_CLANG_ENABLE_MODULES "YES"
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.9"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}"
+    XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
+    # Prevent global C/C++ warning flags from being forwarded to SwiftDriver in Xcode mixed-language builds.
+    XCODE_ATTRIBUTE_OTHER_SWIFT_FLAGS ""
     SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
 )
 
