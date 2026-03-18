@@ -23,7 +23,8 @@ if (ORCASLICER_IOS_TOOLCHAIN_ACTIVE)
         target_link_libraries(orcaslicer_ios_smoke
             PRIVATE
                 libslic3r
-                orcaslicer_portability_api
+                orcaslicer_portability_platform_interface
+                orcaslicer_portability_render_interface
                 orcaslicer_platform_ios
                 orcaslicer_render_ios_metal
         )

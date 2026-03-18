@@ -5,7 +5,7 @@ add_library(orcaslicer_render_ios_metal STATIC
 
 target_link_libraries(orcaslicer_render_ios_metal
     PUBLIC
-        orcaslicer_portability_api
+        orcaslicer_portability_render_interface
     PRIVATE
         "-framework Metal"
         "-framework QuartzCore"

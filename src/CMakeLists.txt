@@ -4,11 +4,24 @@ project(OrcaSlicer-native)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(orcaslicer_portability_api INTERFACE)
-target_sources(orcaslicer_portability_api INTERFACE
+add_library(orcaslicer_portability_platform_interface INTERFACE)
+target_sources(orcaslicer_portability_platform_interface INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/platform/ICredentialStore.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/platform/IPlatformServices.hpp
+)
+target_include_directories(orcaslicer_portability_platform_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(orcaslicer_portability_render_interface INTERFACE)
+target_sources(orcaslicer_portability_render_interface INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/render/IRenderBackend.hpp
+)
+target_include_directories(orcaslicer_portability_render_interface INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Compatibility target: preserve existing portability API dependency shape.
+add_library(orcaslicer_portability_api INTERFACE)
+target_link_libraries(orcaslicer_portability_api INTERFACE
+    orcaslicer_portability_platform_interface
+    orcaslicer_portability_render_interface
 )
 target_include_directories(orcaslicer_portability_api INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -18,14 +31,14 @@ add_library(orcaslicer_platform_desktop STATIC
     portability/platform/DesktopPlatformServices.hpp
     portability/platform/DesktopPlatformServices.cpp
 )
-target_link_libraries(orcaslicer_platform_desktop PUBLIC orcaslicer_portability_api)
+target_link_libraries(orcaslicer_platform_desktop PUBLIC orcaslicer_portability_platform_interface)
 target_include_directories(orcaslicer_platform_desktop PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(orcaslicer_render_null INTERFACE)
 target_sources(orcaslicer_render_null INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/portability/render/NullRenderBackend.hpp
 )
-target_link_libraries(orcaslicer_render_null INTERFACE orcaslicer_portability_api)
+target_link_libraries(orcaslicer_render_null INTERFACE orcaslicer_portability_render_interface)
 target_include_directories(orcaslicer_render_null INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(orcaslicer_portability INTERFACE)

@@ -7,7 +7,7 @@ add_library(orcaslicer_platform_ios STATIC
 
 target_link_libraries(orcaslicer_platform_ios
     PUBLIC
-        orcaslicer_portability_api
+        orcaslicer_portability_platform_interface
         "-framework Foundation"
         "-framework Security"
 )
