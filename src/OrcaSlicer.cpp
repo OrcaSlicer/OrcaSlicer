@@ -72,11 +72,9 @@ using namespace nlohmann;
 #include "libslic3r/ObjColorUtils.hpp"
 
 #include "OrcaSlicer.hpp"
+#include "OrcaSlicer_bootstrap.hpp"
 //BBS: add exception handler for win32
 #include <wx/stdpaths.h>
-#ifdef WIN32
-#include "dev-utils/BaseException.h"
-#endif
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
@@ -7394,36 +7392,7 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
     return EXCEPTION_CONTINUE_SEARCH;
 }*/
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
-extern "C" {
-    __declspec(dllexport) int __stdcall orcaslicer_main(int argc, wchar_t **argv)
-    {
-        // Convert wchar_t arguments to UTF8.
-        std::vector<std::string> 	argv_narrow;
-        std::vector<char*>			argv_ptrs(argc + 1, nullptr);
-        for (size_t i = 0; i < argc; ++ i)
-            argv_narrow.emplace_back(boost::nowide::narrow(argv[i]));
-        for (size_t i = 0; i < argc; ++ i)
-            argv_ptrs[i] = argv_narrow[i].data();
-
-//BBS: register default exception handler
-#if BBL_RELEASE_TO_PUBLIC
-        SET_DEFULTER_HANDLER();
-#else
-        //AddVectoredExceptionHandler(1, CBaseException::UnhandledExceptionFilter);
-        SET_DEFULTER_HANDLER();
-#endif
-        std::set_new_handler([]() {
-            int *a = nullptr;
-            *a     = 0;
-            });
-        // Call the UTF8 main.
-        return CLI().run(argc, argv_ptrs.data());
-    }
-}
-#else /* _MSC_VER */
-int main(int argc, char **argv)
+int run_orcaslicer_bootstrap(int argc, char **argv)
 {
     return CLI().run(argc, argv);
 }
-#endif /* _MSC_VER */
