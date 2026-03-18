@@ -68,6 +68,7 @@ set(ORCASLICER_IOS_SHELL_SOURCES
     App/Panels/PrinterPanelView.swift
     App/Panels/ViewPanelView.swift
     App/Panels/AppSettingsPanelView.swift
+    App/Panels/IOSFileActionSheets.swift
     App/State/AppSession.swift
     App/State/ViewportSession.swift
     App/State/PanelRouter.swift
@@ -75,6 +76,7 @@ set(ORCASLICER_IOS_SHELL_SOURCES
     App/State/SliceSettingsState.swift
     App/State/MachineProfileState.swift
     App/State/ScreenshotLaunchConfiguration.swift
+    App/State/ProjectFileAccessService.swift
     App/Viewport/MetalViewportContainer.swift
     App/OrcaSlicerIOS-Bridging-Header.h
     App/AppService/OrcaSlicerAppService.h

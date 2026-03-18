@@ -22,7 +22,7 @@ struct RootViewportScreen: View {
 
             VStack {
                 ProjectStatusChip(
-                    projectName: appSession.recentProjectNames.first ?? "No project loaded",
+                    projectName: appSession.activeProjectName,
                     printerName: machineProfileState.printerName
                 )
                 .padding(.top, 56)
@@ -44,6 +44,7 @@ struct RootViewportScreen: View {
                 .presentationDragIndicator(.visible)
         }
         .onAppear(perform: applyScreenshotRouteIfNeeded)
+        .onChange(of: appSession.activeProjectName, perform: applyProjectPreviewState)
     }
 
     @ViewBuilder
@@ -150,6 +151,15 @@ struct RootViewportScreen: View {
         }
     }
 
+    private func applyProjectPreviewState(_ projectName: String) {
+        guard projectName != "No model loaded" else {
+            viewportSession.resetPreviewMetadata()
+            return
+        }
+
+        viewportSession.configurePreviewLoaded(projectName: projectName)
+    }
+
     private func applyScreenshotSceneState() {
         switch screenshotLaunch.requestedScene {
         case .root:
@@ -157,10 +167,12 @@ struct RootViewportScreen: View {
             appSession.lastActionStatus = "Screenshot scene: root"
         case .benchyPreview:
             viewportSession.configureBenchyPreviewLoaded()
+            appSession.activeProjectName = "3DBenchy.3mf"
             appSession.recentProjectNames = ["3DBenchy.3mf", "PhoneStand.stl"]
             appSession.lastActionStatus = "Loaded 3DBenchy.3mf into preview"
         case .benchySliced:
             viewportSession.configureBenchyPreviewSliced()
+            appSession.activeProjectName = "3DBenchy.3mf"
             appSession.recentProjectNames = ["3DBenchy.3mf", "PhoneStand.stl"]
             appSession.lastActionStatus = "Slice complete for 3DBenchy.3mf"
         case .project, .tools, .sliceSettings, .printer, .view, .appSettings:

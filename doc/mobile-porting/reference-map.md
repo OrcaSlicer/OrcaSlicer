@@ -85,3 +85,24 @@ Search clusters:
 
 5. iOS-first scope: add iOS adapters in `src/portability/platform/ios` and `src/portability/render/ios` before Android work starts.
 6. Renderer scene contracts in `src/portability/render/**` must remain GUI-free (no `GUI::Camera` or other GUI namespace types).
+
+
+## iOS native shell entry points (current concrete map)
+
+Use these as concrete anchors when tracing shell-to-renderer wiring:
+
+- `RootViewportScreen`
+  - Swift/SwiftUI root shell scene that owns primary viewport route composition.
+- Panel views (SwiftUI scene/panel entry surfaces):
+  - Project panel view
+  - Tools panel view
+  - Slice settings panel view
+  - Printer panel view
+  - View panel view
+  - App settings panel view
+- `OrcaMetalViewportView`
+  - UIKit/Swift bridge view that hosts `CAMetalLayer` presentation for the iOS viewport surface.
+- `IOSMetalRenderBackend`
+  - ObjC++/C++ backend entry used by the portability render contract to submit and render scene state.
+
+Tracing intent: `RootViewportScreen`/panel views drive shell navigation; `OrcaMetalViewportView` hosts Metal presentation; `IOSMetalRenderBackend` provides renderer backend behavior behind portability contracts.
