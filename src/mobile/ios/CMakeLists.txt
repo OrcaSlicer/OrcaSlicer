@@ -97,6 +97,8 @@ set_target_properties(OrcaSlicerIOS PROPERTIES
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.9"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}"
     XCODE_ATTRIBUTE_SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
+    # Prevent global C/C++ warning flags from being forwarded to SwiftDriver in Xcode mixed-language builds.
+    XCODE_ATTRIBUTE_OTHER_SWIFT_FLAGS ""
     SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
 )
 
