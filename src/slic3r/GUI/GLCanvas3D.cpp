@@ -34,7 +34,6 @@
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
 #include "portability/render/DesktopOpenGLSceneRenderer.hpp"
-#include "DesktopSceneStateAdapter.hpp"
 
 #include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -1231,8 +1230,8 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
             renderer_camera.set_viewport(x, y, width, height);
             renderer_camera.apply_viewport();
         },
-        [](const portability::render::SceneState&) {},
-        [this](const portability::render::SceneState& scene_state) {
+        [](const portability::render::RenderSceneState&) {},
+        [this](const portability::render::RenderSceneState& scene_state) {
             if (scene_state.render_opaque)
                 _render_objects(GLVolumeCollection::ERenderType::Opaque, !scene_state.gizmos_running);
             if (scene_state.render_transparent)
@@ -2057,7 +2056,20 @@ void GLCanvas3D::render(bool only_init)
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         //BBS: add outline logic
         if (m_scene_renderer) {
-            portability::render::SceneState scene_state = DesktopSceneStateAdapter::make_scene_state(camera, m_volumes, m_gizmos.is_running(), true, false);
+            portability::render::RenderSceneState scene_state;
+            scene_state.camera.view_matrix = camera.get_view_matrix();
+            scene_state.camera.projection_matrix = camera.get_projection_matrix();
+            scene_state.camera.is_looking_downward = camera.is_looking_downward();
+            scene_state.model_states.reserve(m_volumes.volumes.size());
+            for (const GLVolume* volume : m_volumes.volumes) {
+                portability::render::RenderModelState model_state;
+                model_state.transform = volume->world_matrix();
+                model_state.is_visible = volume->is_active && !volume->disabled;
+                scene_state.model_states.emplace_back(std::move(model_state));
+            }
+            scene_state.render_opaque = true;
+            scene_state.render_transparent = false;
+            scene_state.gizmos_running = m_gizmos.is_running();
             m_scene_renderer->submit_scene_state(scene_state);
             m_scene_renderer->render_frame();
         } else {

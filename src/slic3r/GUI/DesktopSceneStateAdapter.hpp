@@ -12,7 +12,7 @@ class GLVolumeCollection;
 class DesktopSceneStateAdapter
 {
 public:
-    static portability::render::SceneState make_scene_state(const Camera& camera,
+    static portability::render::RenderSceneState make_scene_state(const Camera& camera,
                                                             const GLVolumeCollection& volumes,
                                                             bool gizmos_running,
                                                             bool render_opaque,
