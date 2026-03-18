@@ -73,6 +73,10 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 - **[Access the wiki here](https://www.orcaslicer.com/wiki)**
 - **[Contribute to the wiki](https://www.orcaslicer.com/wiki/How-to-wiki)**
 
+# Engineering reviews
+
+- [In-Depth File Search and Code Review (2026-03-18)](doc/2026-03-18-in-depth-file-search-and-code-review.md)
+
 # Download
 
 ## Stable Release
