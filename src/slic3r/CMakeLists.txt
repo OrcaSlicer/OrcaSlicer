@@ -183,9 +183,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/IOSStubThumbnailRenderer.hpp
     GUI/ThumbnailRendererFactory.cpp
     GUI/ThumbnailRendererFactory.hpp
-    ../portability/render/ISceneRenderer.hpp
-    ../portability/render/DesktopOpenGLSceneRenderer.cpp
-    ../portability/render/DesktopOpenGLSceneRenderer.hpp
     GUI/GLModel.cpp
     GUI/GLModel.hpp
     GUI/GLSelectionRectangle.cpp
@@ -669,6 +666,16 @@ set(SLIC3R_GUI_SOURCES
     Utils/FileTransferUtils.hpp
 )
 
+set(SLIC3R_GUI_PORTABILITY_SOURCES
+    ../portability/render/ISceneRenderer.hpp
+    ../portability/render/DesktopOpenGLSceneRenderer.cpp
+    ../portability/render/DesktopOpenGLSceneRenderer.hpp
+)
+
+list(APPEND SLIC3R_GUI_SOURCES ${SLIC3R_GUI_PORTABILITY_SOURCES})
+set(SLIC3R_GUI_LOCAL_SOURCES ${SLIC3R_GUI_SOURCES})
+list(REMOVE_ITEM SLIC3R_GUI_LOCAL_SOURCES ${SLIC3R_GUI_PORTABILITY_SOURCES})
+
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)
 
@@ -747,7 +754,12 @@ if (WIN32)
     target_link_libraries(libslic3r_gui Advapi32)
 endif()
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_LOCAL_SOURCES})
+source_group(
+    TREE ${CMAKE_CURRENT_SOURCE_DIR}/..
+    PREFIX "portability"
+    FILES ${SLIC3R_GUI_PORTABILITY_SOURCES}
+)
 
 encoding_check(libslic3r_gui)
 

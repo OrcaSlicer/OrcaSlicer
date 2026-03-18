@@ -212,13 +212,13 @@ if (APPLE)
 #    add_compile_options(-stdlib=libc++)
 #    add_definitions(-DBOOST_THREAD_DONT_USE_CHRONO -DBOOST_NO_CXX11_RVALUE_REFERENCES -DBOOST_THREAD_USES_MOVE)
     # -liconv: boost links to libiconv by default
-    target_link_libraries(OrcaSlicer "-liconv -framework IOKit" "-framework CoreFoundation" "-framework AVFoundation" "-framework AVKit" "-framework CoreMedia" "-framework VideoToolbox" -lc++)
+    target_link_libraries(OrcaSlicer PRIVATE "-liconv -framework IOKit" "-framework CoreFoundation" "-framework AVFoundation" "-framework AVKit" "-framework CoreMedia" "-framework VideoToolbox" -lc++)
 elseif (MSVC)
     # Manifest is provided through OrcaSlicer.rc, don't generate your own.
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /MANIFEST:NO")
 else ()
     # Boost on Raspberry-Pi does not link to pthreads explicitly.
-    target_link_libraries(OrcaSlicer ${CMAKE_DL_LIBS} -lstdc++ Threads::Threads pangoft2-1.0)
+    target_link_libraries(OrcaSlicer PRIVATE ${CMAKE_DL_LIBS} -lstdc++ Threads::Threads pangoft2-1.0)
 endif ()
 
 # Add the Slic3r GUI library, libcurl, OpenGL and GLU libraries.
@@ -227,13 +227,13 @@ if (SLIC3R_GUI)
     if (MSVC)
         # Generate debug symbols even in release mode.
         target_link_options(OrcaSlicer PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
-        target_link_libraries(OrcaSlicer user32.lib Setupapi.lib)
+        target_link_libraries(OrcaSlicer PRIVATE user32.lib Setupapi.lib)
     elseif (MINGW)
-        target_link_libraries(OrcaSlicer ws2_32 uxtheme setupapi)
+        target_link_libraries(OrcaSlicer PRIVATE ws2_32 uxtheme setupapi)
     elseif (APPLE)
-        target_link_libraries(OrcaSlicer "-framework OpenGL")
+        target_link_libraries(OrcaSlicer PRIVATE "-framework OpenGL")
     else ()
-        target_link_libraries(OrcaSlicer -ldl)
+        target_link_libraries(OrcaSlicer PRIVATE -ldl)
     endif ()
     #if (WIN32)
     #    find_library(PSAPI_LIB NAMES Psapi)
