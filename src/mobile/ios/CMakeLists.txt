@@ -89,6 +89,8 @@ set_target_properties(OrcaSlicerIOS PROPERTIES
     XCODE_ATTRIBUTE_CLANG_ENABLE_MODULES "YES"
     XCODE_ATTRIBUTE_SWIFT_VERSION "5.9"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}"
+    # Keep Swift compile flags isolated from global C/C++ compile options in mixed-language Xcode builds.
+    XCODE_ATTRIBUTE_OTHER_SWIFT_FLAGS ""
     SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/App/OrcaSlicerIOS-Bridging-Header.h"
 )
 
