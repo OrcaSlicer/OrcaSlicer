@@ -156,8 +156,11 @@ bool IOSMetalRenderBackend::initialize()
         }
 
         if (![m_state->device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v1]) {
-            NSLog(@"[OrcaMetal] initialize failed: device '%@' does not support iOS_GPUFamily1_v1.", m_state->device.name);
-            return false;
+            // Some recent simulator/runtime combinations report newer Metal families but do not
+            // advertise this legacy feature set constant. Keep initialization permissive so the
+            // viewport still presents instead of failing hard at launch.
+            NSLog(@"[OrcaMetal] initialize warning: device '%@' does not report iOS_GPUFamily1_v1; continuing with best-effort Metal bring-up.",
+                  m_state->device.name);
         }
 
         m_state->command_queue = [m_state->device newCommandQueue];
