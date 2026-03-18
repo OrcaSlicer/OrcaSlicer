@@ -19,25 +19,13 @@ if (CMAKE_SYSTEM_NAME STREQUAL "iOS" AND CMAKE_OSX_SYSROOT MATCHES "iphonesimula
         set(_orcaslicer_swift_target_arch "${CMAKE_SYSTEM_PROCESSOR}")
     endif ()
 
-    set(_orcaslicer_swift_compiler_target
-        "${_orcaslicer_swift_target_arch}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}-simulator")
-
-    set(CMAKE_Swift_COMPILER_TARGET
-        "${_orcaslicer_swift_compiler_target}"
-        CACHE STRING "Swift compiler target triple" FORCE)
-
-    if (NOT CMAKE_Swift_FLAGS MATCHES "(^| )-target ")
-        string(APPEND CMAKE_Swift_FLAGS " -target ${_orcaslicer_swift_compiler_target}")
+    if (NOT CMAKE_Swift_COMPILER_TARGET)
+        set(CMAKE_Swift_COMPILER_TARGET
+            "${_orcaslicer_swift_target_arch}-apple-ios${CMAKE_OSX_DEPLOYMENT_TARGET}-simulator"
+            CACHE STRING "Swift compiler target triple" FORCE)
     endif ()
 
-    if (NOT CMAKE_TRY_COMPILE_PLATFORM_VARIABLES MATCHES "(^|;)CMAKE_Swift_COMPILER_TARGET($|;)")
-        list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CMAKE_Swift_COMPILER_TARGET)
-    endif ()
-    if (NOT CMAKE_TRY_COMPILE_PLATFORM_VARIABLES MATCHES "(^|;)CMAKE_Swift_FLAGS($|;)")
-        list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES CMAKE_Swift_FLAGS)
-    endif ()
-
-    message(STATUS "Using Swift compiler target for iOS simulator: ${_orcaslicer_swift_compiler_target}")
+    message(STATUS "Using Swift compiler target for iOS simulator: ${CMAKE_Swift_COMPILER_TARGET}")
 endif ()
 
 enable_language(Swift)
