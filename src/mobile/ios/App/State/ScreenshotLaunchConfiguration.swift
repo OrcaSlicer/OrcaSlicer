@@ -7,6 +7,8 @@ struct ScreenshotLaunchConfiguration {
 
     enum RequestedScene: String, CaseIterable {
         case root
+        case benchyPreview = "benchy-preview"
+        case benchySliced = "benchy-sliced"
         case project
         case tools
         case sliceSettings = "slice-settings"
@@ -17,6 +19,10 @@ struct ScreenshotLaunchConfiguration {
         var panel: PanelKind? {
             switch self {
             case .root:
+                return nil
+            case .benchyPreview:
+                return nil
+            case .benchySliced:
                 return nil
             case .project:
                 return .project

@@ -1,6 +1,10 @@
 # File Edit Plan for iOS-first / Android-ready Port
 
+Last updated: 2026-03-18
+
 This is a **planning list** of files likely needing edits to modularize platform and renderer concerns.
+
+> Note: some items in this checklist may already be partially landed. Use `implementation-status.md` as the canonical status source and this file as a scoping reference.
 
 ## 1) Build system and target split
 

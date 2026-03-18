@@ -1,5 +1,7 @@
 # OrcaSlicer Reference Map (for iOS/Android portability work)
 
+Last updated: 2026-03-18
+
 ## Top-level orientation
 - `src/libslic3r/` — slicing engine, model processing, gcode generation (core candidate).
 - `src/slic3r/` — GUI, app orchestration, platform utilities (currently mixed concerns).
