@@ -41,11 +41,18 @@ public:
         if (status != errSecSuccess)
             return {IOSKeychainStatus::error, std::nullopt};
 
-        NSData* data = (__bridge_transfer NSData*) result;
-        if (data == nil)
+        CFDataRef data = static_cast<CFDataRef>(result);
+        if (data == nullptr)
             return {IOSKeychainStatus::error, std::nullopt};
 
-        return {IOSKeychainStatus::success, std::string(static_cast<const char*>(data.bytes), data.length)};
+        const UInt8* bytes = CFDataGetBytePtr(data);
+        const CFIndex length = CFDataGetLength(data);
+        std::string secret;
+        if (bytes != nullptr && length > 0)
+            secret.assign(reinterpret_cast<const char*>(bytes), static_cast<size_t>(length));
+
+        CFRelease(data);
+        return {IOSKeychainStatus::success, secret};
     }
 
     IOSKeychainStatus update(const std::string& service, const std::string& account, const std::string& secret) override
