@@ -1,5 +1,7 @@
 # OrcaSlicer Mobile Port Plan (iOS-first, Android-ready)
 
+Last updated: 2026-03-18
+
 ## Goal
 Port OrcaSlicer so the **slicing engine remains shared** and only platform/runtime layers swap per target (desktop, iOS, Android).
 
@@ -101,3 +103,7 @@ Then keep desktop OpenGL code as the first implementation of this API.
 2. Headless mobile-safe library builds with no wx/OpenGL includes.
 3. iOS demo app can load project + run slice + render preview via adapter.
 4. Android prototype reuses same C++ APIs with only platform/render replacements.
+
+## Out of scope for this planning set
+- Product-roadmap decisions, UX prioritization, or release dates.
+- Any migration that requires modifying vendored third-party code under `deps/` or `deps_src/`.

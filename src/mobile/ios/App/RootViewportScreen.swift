@@ -16,7 +16,7 @@ struct RootViewportScreen: View {
             MetalViewportContainer(viewportSession: viewportSession)
                 .ignoresSafeArea()
 
-            ViewportPlaceholderOverlay()
+            ViewportPlaceholderOverlay(viewportSession: viewportSession)
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
 
@@ -79,18 +79,39 @@ struct RootViewportScreen: View {
         let delay = Double(screenshotLaunch.settleDelayMilliseconds) / 1000
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            applyScreenshotSceneState()
             if let panel = screenshotLaunch.requestedScene.panel {
                 panelRouter.present(panel)
             } else {
                 panelRouter.dismiss()
             }
-            appSession.lastActionStatus = "Screenshot scene: \(screenshotLaunch.requestedScene.rawValue)"
             NSLog("OrcaSlicerIOS screenshot route ready for scene=%@", screenshotLaunch.requestedScene.rawValue)
+        }
+    }
+
+    private func applyScreenshotSceneState() {
+        switch screenshotLaunch.requestedScene {
+        case .root:
+            viewportSession.resetPreviewMetadata()
+            appSession.lastActionStatus = "Screenshot scene: root"
+        case .benchyPreview:
+            viewportSession.configureBenchyPreviewLoaded()
+            appSession.recentProjectNames = ["3DBenchy.3mf", "PhoneStand.stl"]
+            appSession.lastActionStatus = "Loaded 3DBenchy.3mf into preview"
+        case .benchySliced:
+            viewportSession.configureBenchyPreviewSliced()
+            appSession.recentProjectNames = ["3DBenchy.3mf", "PhoneStand.stl"]
+            appSession.lastActionStatus = "Slice complete for 3DBenchy.3mf"
+        case .project, .tools, .sliceSettings, .printer, .view, .appSettings:
+            viewportSession.resetPreviewMetadata()
+            appSession.lastActionStatus = "Screenshot scene: \(screenshotLaunch.requestedScene.rawValue)"
         }
     }
 }
 
 private struct ViewportPlaceholderOverlay: View {
+    @ObservedObject var viewportSession: ViewportSession
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -109,7 +130,11 @@ private struct ViewportPlaceholderOverlay: View {
                         .fill(Color.black.opacity(0.25))
                 )
                 .overlay {
-                    GridPattern()
+                    GridPattern(
+                        modelName: viewportSession.previewModelName,
+                        statusText: viewportSession.previewStatusText,
+                        detailText: viewportSession.previewDetailText
+                    )
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 }
                 .padding(.horizontal, 20)
@@ -119,6 +144,10 @@ private struct ViewportPlaceholderOverlay: View {
 }
 
 private struct GridPattern: View {
+    let modelName: String
+    let statusText: String
+    let detailText: String
+
     var body: some View {
         GeometryReader { proxy in
             Path { path in
@@ -154,9 +183,15 @@ private struct GridPattern: View {
                 Text("Viewport placeholder")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.72))
-                Text("Portable Metal renderer bridge active")
+                Text(modelName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.cyan.opacity(0.78))
+                Text(statusText)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
+                Text(detailText)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.45))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
