@@ -17,7 +17,10 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 @interface OrcaSlicerAppService : NSObject
-+ (instancetype)sharedService;
++ (instancetype)sharedService NS_SWIFT_NAME(shared());
+
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
 
 - (BOOL)startSliceWithModelName:(NSString *)modelName
                   qualityPreset:(NSString *)qualityPreset
