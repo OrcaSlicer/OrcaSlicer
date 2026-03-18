@@ -29,6 +29,36 @@ Some desktop integration still exists in `src/slic3r/Utils` for launch/process a
 2. Harden iOS platform/renderer lifecycle handling (layer ownership, suspend/resume, and thread handoff edge-cases) across `IOSPlatformServices` and `IOSMetalRenderBackend`.
 3. Expand smoke/CI coverage for iOS portability targets (including credential-store and renderer bring-up paths) to catch regressions earlier.
 
+## Engine + module completion plan (target: 100% before iOS UI)
+
+The iOS UI should start only after shared-engine and portability modules are functionally complete and stable. Use the checklist below as the release gate.
+
+### Gate 1: Shared engine portability complete (100%)
+- [ ] Ensure `orcaslicer_core`-candidate code paths are free of direct wx/OpenGL/UI includes and runtime dependencies.
+- [ ] Verify deterministic slicing output parity against desktop baseline fixtures (`tests/data/**`) for representative FFF/SLA scenarios.
+- [ ] Confirm project/profile load-save and gcode generation behavior parity for mobile-targeted workflows.
+
+### Gate 2: Application service modules complete (100%)
+- [ ] Move remaining mobile-relevant orchestration from `src/slic3r/Utils/**` into portability-safe service boundaries.
+- [ ] Replace wx event-loop assumptions with platform-neutral async/task abstractions consumed through `IPlatformServices`.
+- [ ] Finalize error/reporting/progress contracts so native UI consumes stable view-state APIs instead of internal engine types.
+
+### Gate 3: iOS portability adapters complete (100%)
+- [ ] Complete `IOSPlatformServices` lifecycle handling: foreground/background transitions, cancellation, and thread handoff correctness.
+- [ ] Complete `IOSKeychainCredentialStore` edge-case handling (missing keys, migration/update semantics, failure propagation).
+- [ ] Complete `IOSMetalRenderBackend` scene submission path (mesh upload, camera updates, frame synchronization, resource teardown).
+
+### Gate 4: Build + validation readiness complete (100%)
+- [ ] Keep iOS targets (`orcaslicer_platform_ios`, `orcaslicer_render_ios_metal`, `orcaslicer_ios_smoke`) green in CI/toolchain smoke builds.
+- [ ] Add/expand unit and smoke coverage for portability APIs and adapter bring-up paths.
+- [ ] Document known limitations as explicit blockers; require zero P0/P1 portability regressions before UI kickoff.
+
+### UI kickoff criteria
+Start iOS UI implementation only when all four gates are checked and the team can demonstrate:
+- successful end-to-end flow (load model -> slice -> preview -> export) through portability adapters,
+- reproducible iOS smoke build success,
+- no unresolved critical coupling to desktop-only modules.
+
 ## Deferred until after iOS milestone
 - Android adapter implementation (JNI + Vulkan/GLES backend).
 - Android build composition and packaging automation.
