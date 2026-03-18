@@ -811,7 +811,11 @@ foreach(po_file ${BBL_L10N_PO_FILES})
     )
 endforeach()
 
-find_package(NLopt 1.4 REQUIRED)
+if(NOT ORCASLICER_IS_IOS_BUILD)
+    find_package(NLopt 1.4 REQUIRED)
+else()
+    message(STATUS "Skipping NLopt package discovery for iOS build")
+endif()
 
 
 if(SLIC3R_STATIC)
