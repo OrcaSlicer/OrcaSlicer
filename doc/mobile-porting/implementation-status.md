@@ -98,3 +98,11 @@ cmake --build build-ios --target orcaslicer_ios_smoke --config Release
 ```
 
 Configure-time output reports whether iOS toolchain detection is active and whether iOS portability targets are enabled.
+
+## iOS simulator smoke CI baseline
+
+The `.github/workflows/ios_simulator_smoke.yml` pipeline intentionally uses the same simulator smoke target and configure flags as the local smoke path (`orcaslicer_ios_smoke`, iOS simulator sysroot, `arm64`, deployment target `13.0`, and `ORCASLICER_BUILD_IOS_PORTABILITY/SMOKE_TARGET=ON`).
+
+Post-success cleanup applied:
+- Pin CMake setup action to `lukka/get-cmake@v4.2.3` (instead of floating `@latest`) to keep the workflow stable during GitHub Actions runtime transitions.
+- Drop the no-op `--config Release` argument from the Ninja build command; single-config Ninja still uses the existing `-DCMAKE_BUILD_TYPE=Release` configure behavior.

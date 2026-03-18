@@ -37,7 +37,7 @@ jobs:
           lfs: 'true'
 
       - name: Setup CMake
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@v4.2.3
         with:
           cmakeVersion: "~3.28.0"
 
@@ -54,4 +54,4 @@ jobs:
 
       - name: Build orcaslicer_ios_smoke
         run: |
-          cmake --build build-ios-sim --target orcaslicer_ios_smoke --config Release --parallel
+          cmake --build build-ios-sim --target orcaslicer_ios_smoke --parallel
