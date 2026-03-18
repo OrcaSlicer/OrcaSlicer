@@ -1,6 +1,12 @@
 name: iOS UI Screenshot
 
 on:
+  workflow_call:
+    inputs:
+      publish_latest_to_repo:
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       publish_latest_to_repo:
