@@ -250,7 +250,7 @@ jobs:
           path: ${{ github.workspace }}/OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
 
       - name: Upload OrcaSlicer_profile_validator DMG mac
-        if: runner.os == 'macOS' && inputs.macos-combine-only
+        if: runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_profile_validator_Mac_universal_DMG_${{ env.ver }}
@@ -311,7 +311,7 @@ jobs:
         run: '"C:/Program Files/7-Zip/7z.exe" a -tzip OrcaSlicer_Windows_${{ env.ver }}_portable.zip ${{ github.workspace }}/build/OrcaSlicer'
 
       - name: Pack PDB
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}/build/src/Release
         shell: cmd
         run: '"C:/Program Files/7-Zip/7z.exe" a -m0=lzma2 -mx9 Debug_PDB_${{ env.ver }}_for_developers_only.7z  *.pdb'
@@ -331,14 +331,14 @@ jobs:
           path: ${{ github.workspace }}/build/OrcaSlicer*.exe
 
       - name: Upload artifacts Win PDB
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v6
         with:
           name: PDB
           path: ${{ github.workspace }}/build/src/Release/Debug_PDB_${{ env.ver }}_for_developers_only.7z
 
       - name: Upload OrcaSlicer_profile_validator Win
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_profile_validator_Windows_${{ env.ver }}
@@ -388,7 +388,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          ./build_linux.sh -istr
+          ./build_linux.sh -istrlL
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           chmod +x ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           tar -cvpf build_tests.tar build/tests
@@ -406,7 +406,7 @@ jobs:
           if-no-files-found: error
 
       - name: Build orca_custom_preset_tests
-        if: github.ref == 'refs/heads/main' && runner.os == 'Linux'
+        if: github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}/build/src/Release
         shell: bash
         run: |
@@ -422,7 +422,7 @@ jobs:
           path: './build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage'
 
       - name: Upload OrcaSlicer_profile_validator Ubuntu
-        if: ${{ ! env.ACT && runner.os == 'Linux' }}
+        if: ${{ ! env.ACT && runner.os == 'Linux' && !vars.SELF_HOSTED }}
         uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_profile_validator_Linux_ubuntu_${{ env.ubuntu-ver }}_${{ env.ver }}
