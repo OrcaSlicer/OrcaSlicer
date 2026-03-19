@@ -49,13 +49,7 @@ struct ScreenshotLaunchConfiguration {
     }
 
     static func fromEnvironment(_ environment: [String: String] = ProcessInfo.processInfo.environment) -> ScreenshotLaunchConfiguration {
-        NSLog(
-            "ScreenshotLaunchConfiguration.fromEnvironment mode=%@ scene=%@ settle=%@ diagnosticMode=%@",
-            environment[modeEnvironmentKey] ?? "<unset>",
-            environment[sceneEnvironmentKey] ?? "<unset>",
-            environment[settleMillisecondsEnvironmentKey] ?? "<unset>",
-            environment["ORCASLICER_IOS_DIAGNOSTIC_UI_MODE"] ?? "<unset>"
-        )
+        print("[OrcaIOS] ScreenshotLaunchConfiguration.fromEnvironment mode=\(environment[modeEnvironmentKey] ?? "<unset>") scene=\(environment[sceneEnvironmentKey] ?? "<unset>") settle=\(environment[settleMillisecondsEnvironmentKey] ?? "<unset>") diagnosticMode=\(environment["ORCASLICER_IOS_DIAGNOSTIC_UI_MODE"] ?? "<unset>")")
         guard isTruthy(environment[modeEnvironmentKey]) else {
             return .disabled
         }

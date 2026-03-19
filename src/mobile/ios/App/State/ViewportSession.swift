@@ -57,7 +57,7 @@ final class ViewportSession: ObservableObject {
 
     init(store: ProjectProfileStore) {
         self.store = store
-        NSLog("ViewportSession.init store=%p", Unmanaged.passUnretained(store).toOpaque())
+        print("[OrcaIOS] ViewportSession.init")
 
         store.$viewPreview
             .receive(on: DispatchQueue.main)

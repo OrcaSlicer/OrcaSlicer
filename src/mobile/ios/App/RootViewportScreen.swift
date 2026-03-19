@@ -29,14 +29,7 @@ struct RootViewportScreen: View {
     }
 
     var body: some View {
-        let _ = NSLog(
-            "RootViewportScreen.body diagnosticMode=%@ screenshotMode=%@ panel=%@ rendererAvailable=%@ rendererStatus=%@",
-            isDiagnosticUIModeEnabled ? "true" : "false",
-            screenshotLaunch.enabled ? "true" : "false",
-            panelRouter.presentedPanel?.rawValue ?? "<none>",
-            viewportSession.isRendererAvailable ? "true" : "false",
-            viewportSession.rendererStatusText
-        )
+        let _ = print("[OrcaIOS] RootViewportScreen.body diagnosticMode=\(isDiagnosticUIModeEnabled) screenshotMode=\(screenshotLaunch.enabled) panel=\(panelRouter.presentedPanel?.rawValue ?? "<none>") rendererAvailable=\(viewportSession.isRendererAvailable) rendererStatus=\(viewportSession.rendererStatusText)")
         ZStack {
             if isDiagnosticUIModeEnabled {
                 DiagnosticRootSurface(
@@ -89,17 +82,17 @@ struct RootViewportScreen: View {
         }
         .onAppear(perform: applyScreenshotRouteIfNeeded)
         .onAppear {
-            NSLog("RootViewportScreen.onAppear panel=%@", panelRouter.presentedPanel?.rawValue ?? "<none>")
+            print("[OrcaIOS] RootViewportScreen.onAppear panel=\(panelRouter.presentedPanel?.rawValue ?? "<none>")")
         }
         .onChange(of: appSession.activeProjectName, perform: applyProjectPreviewState)
         .onChange(of: panelRouter.presentedPanel) { panel in
-            NSLog("RootViewportScreen.panelRouting presentedPanel=%@", panel?.rawValue ?? "<none>")
+            print("[OrcaIOS] RootViewportScreen.panelRouting presentedPanel=\(panel?.rawValue ?? "<none>")")
         }
         .onChange(of: viewportSession.isRendererAvailable) { isRendererAvailable in
             if isRendererAvailable {
-                NSLog("OrcaSlicerIOS viewport renderer available")
+                print("[OrcaIOS] OrcaSlicerIOS viewport renderer available")
             } else {
-                NSLog("OrcaSlicerIOS viewport renderer unavailable: %@", viewportSession.rendererStatusText)
+                print("[OrcaIOS] OrcaSlicerIOS viewport renderer unavailable: \(viewportSession.rendererStatusText)")
             }
         }
     }
@@ -190,13 +183,7 @@ struct RootViewportScreen: View {
     }
 
     private func applyScreenshotRouteIfNeeded() {
-        NSLog(
-            "OrcaSlicerIOS root appeared (screenshotMode=%@ diagnosticNoMetal=%@ rendererAvailable=%@ rendererStatus=%@)",
-            screenshotLaunch.enabled ? "true" : "false",
-            shouldForceSwiftUIDiagnosticMarker ? "true" : "false",
-            viewportSession.isRendererAvailable ? "true" : "false",
-            viewportSession.rendererStatusText
-        )
+        print("[OrcaIOS] OrcaSlicerIOS root appeared screenshotMode=\(screenshotLaunch.enabled) rendererAvailable=\(viewportSession.isRendererAvailable) rendererStatus=\(viewportSession.rendererStatusText)")
         guard screenshotLaunch.enabled, !hasAppliedScreenshotRoute else {
             return
         }
@@ -205,14 +192,14 @@ struct RootViewportScreen: View {
         let delay = Double(screenshotLaunch.settleDelayMilliseconds) / 1000
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            NSLog("RootViewportScreen.screenshotRoute applying scene=%@ delayMs=%d", screenshotLaunch.requestedScene.rawValue, screenshotLaunch.settleDelayMilliseconds)
+            print("[OrcaIOS] RootViewportScreen.screenshotRoute applying scene=\(screenshotLaunch.requestedScene.rawValue) delayMs=\(screenshotLaunch.settleDelayMilliseconds)")
             applyScreenshotSceneState()
             if let panel = screenshotLaunch.requestedScene.panel {
                 panelRouter.present(panel)
             } else {
                 panelRouter.dismiss()
             }
-            NSLog("OrcaSlicerIOS screenshot route ready for scene=%@", screenshotLaunch.requestedScene.rawValue)
+            print("[OrcaIOS] OrcaSlicerIOS screenshot route ready for scene=\(screenshotLaunch.requestedScene.rawValue)")
         }
     }
 
