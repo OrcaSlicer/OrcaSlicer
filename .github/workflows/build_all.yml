@@ -124,7 +124,7 @@ jobs:
           tar -xvf build_tests.tar
           scripts/run_unit_tests.sh
       - name: Upload Test Logs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: unit-test-logs
@@ -218,7 +218,7 @@ jobs:
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
