@@ -10,8 +10,8 @@ struct ViewportCameraState {
 
 final class ViewportSession: ObservableObject {
     @Published var isLookingDownward = true
-    @Published var isRendererAvailable: Bool = true
-    @Published var rendererStatusText: String = "Metal renderer ready"
+    @Published var isRendererAvailable: Bool = false
+    @Published var rendererStatusText: String = "Metal renderer initializing"
     @Published var previewModelName: String = "No model loaded"
     @Published var previewStatusText: String = "Load a project to preview"
     @Published var previewDetailText: String = "Portable Metal renderer bridge active"
