@@ -2,6 +2,7 @@
 
 set -e
 set -o pipefail
+SECONDS=0
 
 while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
   case "${opt}" in
@@ -342,3 +343,6 @@ fi
 if [ "1." == "$PACK_DEPS". ]; then
     pack_deps
 fi
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))

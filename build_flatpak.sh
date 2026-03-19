@@ -5,6 +5,7 @@
 # Based on the GitHub Actions workflow in .github/workflows/build_all.yml
 
 set -e
+SECONDS=0
 
 # Colors for output
 RED='\033[0;31m'
@@ -371,3 +372,6 @@ if [[ "$FORCE_CLEAN" != true ]]; then
     echo -e "• To force a clean build: $0 -f"
     echo -e "• To clean cache manually: rm -rf $CACHE_DIR"
 fi
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))
