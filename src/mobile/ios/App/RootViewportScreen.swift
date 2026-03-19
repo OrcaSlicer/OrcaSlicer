@@ -11,7 +11,16 @@ struct RootViewportScreen: View {
 
     @State private var hasAppliedScreenshotRoute = false
 
+    private var shouldForceSwiftUIDiagnosticMarker: Bool {
+        let flag = ProcessInfo.processInfo.environment["ORCA_IOS_DIAGNOSTIC_DISABLE_METAL"]?.lowercased() ?? ""
+        return flag == "1" || flag == "true" || flag == "yes"
+    }
+
     private var shouldShowStaticViewportOverlay: Bool {
+        if shouldForceSwiftUIDiagnosticMarker {
+            return false
+        }
+
         if !viewportSession.isRendererAvailable {
             return true
         }
@@ -26,8 +35,13 @@ struct RootViewportScreen: View {
 
     var body: some View {
         ZStack {
-            MetalViewportContainer(viewportSession: viewportSession)
-                .ignoresSafeArea()
+            if shouldForceSwiftUIDiagnosticMarker {
+                SwiftUIDiagnosticMarker(rendererStatusText: viewportSession.rendererStatusText)
+                    .ignoresSafeArea()
+            } else {
+                MetalViewportContainer(viewportSession: viewportSession)
+                    .ignoresSafeArea()
+            }
 
             if shouldShowStaticViewportOverlay {
                 ViewportPlaceholderOverlay(viewportSession: viewportSession)
@@ -166,8 +180,9 @@ struct RootViewportScreen: View {
 
     private func applyScreenshotRouteIfNeeded() {
         NSLog(
-            "OrcaSlicerIOS root appeared (screenshotMode=%@ rendererAvailable=%@ rendererStatus=%@)",
+            "OrcaSlicerIOS root appeared (screenshotMode=%@ diagnosticNoMetal=%@ rendererAvailable=%@ rendererStatus=%@)",
             screenshotLaunch.enabled ? "true" : "false",
+            shouldForceSwiftUIDiagnosticMarker ? "true" : "false",
             viewportSession.isRendererAvailable ? "true" : "false",
             viewportSession.rendererStatusText
         )
@@ -228,6 +243,30 @@ struct RootViewportScreen: View {
             content()
                 .padding(.top, 12)
         }
+    }
+}
+
+private struct SwiftUIDiagnosticMarker: View {
+    let rendererStatusText: String
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.78, green: 0.08, blue: 0.14)
+            VStack(spacing: 14) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 64, weight: .bold))
+                Text("SwiftUI Diagnostic Marker")
+                    .font(.title2.weight(.bold))
+                Text("Metal viewport disabled")
+                    .font(.headline.weight(.semibold))
+                Text(rendererStatusText)
+                    .font(.footnote.monospaced())
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+            .foregroundStyle(.white)
+        }
+        .accessibilityIdentifier("swiftui-diagnostic-marker")
     }
 }
 
