@@ -63,10 +63,14 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 		int num_segments = int(std::ceil(length_mm / resolution_mm));
 		Vec2d delta = line.vector();
 
-		for (int i = 0; i < num_segments+1; i++) {
-			Vec2d p = p1d + delta*i/num_segments;
+        if (num_segments == 0) {
+            continue;
+        }
 
-			coordf_t x = p.x();
+        for (int i = 0; i < num_segments + 1; i++) {
+            Vec2d p = p1d + delta * i / num_segments;
+
+            coordf_t x = p.x();
 			coordf_t y = p.y();
 
 			sla::IndexedMesh::hit_result hit_up = mesh.query_ray_hit({x, y, mesh_z}, {0.0, 0.0, 1.0});
@@ -116,24 +120,22 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 				was_contoured = true;
 			}
 
-			Vec3d new_point = {p.x(), p.y(), d};
+            Vec3d new_point = {p.x(), p.y(), d};
 
-			if (contoured_points.size() > 2) {
-				double dist = Linef3::distance_to_infinite_squared(
-					contoured_points[contoured_points.size() - 2], 
-					contoured_points[contoured_points.size() - 1], 
-					new_point);
-				if (dist < EPSILON) {
-					contoured_points[contoured_points.size() - 1] = new_point;
-					continue;
-				}
-			}
+            if (contoured_points.size() >= 2) {
+                double dist = Linef3::distance_to_infinite_squared(new_point, contoured_points[contoured_points.size() - 2],
+                                                                   contoured_points[contoured_points.size() - 1]);
+                if (dist < EPSILON * EPSILON) {
+                    contoured_points[contoured_points.size() - 1] = new_point;
+                    continue;
+                }
+            }
 
-			contoured_points.push_back(new_point);
-		}
-	}
+            contoured_points.push_back(new_point);
+        }
+    }
 
-	if (!was_contoured) {
+    if (!was_contoured) {
 		return false;
 	}
 

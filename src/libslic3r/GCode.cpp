@@ -6760,10 +6760,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         if (z < 0.1) {
                             throw RuntimeError("GCode: very low z");
                         }
-                        gcode += m_writer.extrude_to_xyz(
-                            Vec3d(dest2d.x(), dest2d.y(), z),
-                            e,
-                            tempDescription + "; z_diff " + std::to_string(z_diff) + " " + ExtrusionEntity::role_to_string(path.role()) + "; eratio " + std::to_string(extrusion_ratio));
+                        gcode += m_writer.extrude_to_xyz(Vec3d(dest2d.x(), dest2d.y(), z), e,
+                                                         GCodeWriter::full_gcode_comment ? tempDescription : "");
 
                     } else if (sloped == nullptr) {
                         // Normal extrusion

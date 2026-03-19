@@ -732,7 +732,8 @@ void PrintObject::contour_z()
     ModelInstance *inst = m_model_object->instances.front();
     Point                    center_offset = this->center_offset();
     Geometry::Transformation trans = inst->get_transformation();
-    double                   z             = trans.get_offset().z() - unscale<double>(this->height()) / 2;
+
+    double z = this->m_model_object->min_z();
     trans.set_offset(Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
     mesh.transform(trans.get_matrix());
 
