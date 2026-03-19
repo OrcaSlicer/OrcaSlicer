@@ -130,27 +130,20 @@ jobs:
           name: OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}
           path: ${{ github.workspace }}/OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}.tar.gz
 
-      - name: Download macOS arm64 app bundle
+      - name: Download macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only
         uses: actions/download-artifact@v7
         with:
-          name: OrcaSlicer_Mac_bundle_arm64_${{ github.sha }}
-          path: ${{ github.workspace }}/mac_bundles/arm64
-
-      - name: Download macOS x86_64 app bundle
-        if: runner.os == 'macOS' && inputs.macos-combine-only
-        uses: actions/download-artifact@v7
-        with:
-          name: OrcaSlicer_Mac_bundle_x86_64_${{ github.sha }}
-          path: ${{ github.workspace }}/mac_bundles/x86_64
+          pattern: OrcaSlicer_Mac_bundle_*_${{ github.sha }}
+          path: ${{ github.workspace }}/mac_bundles
 
       - name: Extract macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
           mkdir -p build/arm64 build/x86_64
-          arm_bundle=$(find "${{ github.workspace }}/mac_bundles/arm64" -name '*.tar.gz' -print -quit)
-          x86_bundle=$(find "${{ github.workspace }}/mac_bundles/x86_64" -name '*.tar.gz' -print -quit)
+          arm_bundle=$(find "${{ github.workspace }}/mac_bundles/OrcaSlicer_Mac_bundle_arm64_${{ github.sha }}" -name '*.tar.gz' -print -quit)
+          x86_bundle=$(find "${{ github.workspace }}/mac_bundles/OrcaSlicer_Mac_bundle_x86_64_${{ github.sha }}" -name '*.tar.gz' -print -quit)
           tar -xzvf "$arm_bundle" -C "${{ github.workspace }}/build/arm64"
           tar -xzvf "$x86_bundle" -C "${{ github.workspace }}/build/x86_64"
 
