@@ -46,7 +46,9 @@ jobs:
 
       - uses: lukka/get-cmake@latest
         with:
-          cmakeVersion: "~3.28.0"  # use most recent 3.28.x version
+          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
+          useLocalCache: true         # <--= Use the local cache (default is 'false').
+          useCloudCache: true
 
       - name: setup dev on Windows
         if: runner.os == 'Windows'
