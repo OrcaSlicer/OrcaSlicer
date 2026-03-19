@@ -132,7 +132,7 @@ jobs:
 
       - name: Download macOS app bundles
         if: runner.os == 'macOS' && inputs.macos-combine-only
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: OrcaSlicer_Mac_bundle_*_${{ github.sha }}
           path: ${{ github.workspace }}/mac_bundles
