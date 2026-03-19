@@ -4,7 +4,7 @@
 # as the CI (build_all.yml).
 #
 # Usage:
-#   ./scripts/build_flatpak_with_docker.sh [--arch <x86_64|aarch64>] [--no-debug-info]
+#   ./scripts/build_flatpak_with_docker.sh [--arch <x86_64|aarch64>] [--no-debug-info] [--pull]
 #
 # Requirements:
 #   - Docker (or Podman with docker compatibility)
@@ -12,6 +12,7 @@
 # The resulting .flatpak bundle is placed in the project root.
 
 set -euo pipefail
+SECONDS=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -19,9 +20,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # ---------- defaults ----------
 ARCH="$(uname -m)"
 NO_DEBUG_INFO=false
-NO_PULL=false
+FORCE_PULL=false
 FORCE_CLEAN=true
-PRIVILEGED=false
 CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-49"
 
 normalize_arch() {
@@ -45,16 +45,18 @@ while [[ $# -gt 0 ]]; do
             ARCH="$2"; shift 2 ;;
         --no-debug-info)
             NO_DEBUG_INFO=true; shift ;;
+        --pull)
+            FORCE_PULL=true; shift ;;
         --no-pull)
-            NO_PULL=true; shift ;;
+            FORCE_PULL=false; shift ;;  # kept for backward compat (now default)
         --keep-build)
             FORCE_CLEAN=false; shift ;;
-        --privileged)
-            PRIVILEGED=true; shift ;;
         --image)
             CONTAINER_IMAGE="$2"; shift 2 ;;
         -h|--help)
-            echo "Usage: $0 [--arch <x86_64|aarch64>] [--no-debug-info] [--no-pull] [--keep-build] [--privileged] [--image <image>]"
+            echo "Usage: $0 [--arch <x86_64|aarch64>] [--no-debug-info] [--pull] [--keep-build] [--image <image>]"
+            echo "  --pull         Force pull the container image (default: use cached, auto-pull if missing)"
+            echo "  --no-pull      Do not force pull (default, kept for backward compat)"
             exit 0 ;;
         *)
             echo "Unknown option: $1" >&2; exit 1 ;;
@@ -91,7 +93,7 @@ echo "  Arch:       ${ARCH}"
 echo "  Image:      ${CONTAINER_IMAGE}"
 echo "  Bundle:     ${BUNDLE_NAME}"
 echo "  Debug info: $([ "$NO_DEBUG_INFO" = true ] && echo "disabled" || echo "enabled")"
-echo "  Privileged: $([ "$PRIVILEGED" = true ] && echo "enabled" || echo "disabled")"
+echo "  Pull mode:  $([ "$FORCE_PULL" = true ] && echo "force" || echo "auto (cached if available)")"
 echo "  ccache:     enabled"
 echo ""
 
@@ -123,9 +125,14 @@ sed "/name: OrcaSlicer/{
 # ---------- run build in Docker ----------
 DOCKER="${DOCKER:-docker}"
 
-if [ "$NO_PULL" = false ]; then
-    echo "=== Pulling container image ==="
+if [ "$FORCE_PULL" = true ]; then
+    echo "=== Pulling container image (--pull requested) ==="
     "$DOCKER" pull "$CONTAINER_IMAGE"
+elif ! "$DOCKER" image inspect "$CONTAINER_IMAGE" &>/dev/null; then
+    echo "=== Pulling container image (not found locally) ==="
+    "$DOCKER" pull "$CONTAINER_IMAGE"
+else
+    echo "=== Using cached container image (use --pull to update) ==="
 fi
 
 FORCE_CLEAN_FLAG=""
@@ -133,10 +140,7 @@ if [ "$FORCE_CLEAN" = true ]; then
     FORCE_CLEAN_FLAG="--force-clean"
 fi
 
-DOCKER_RUN_ARGS=(run --rm)
-if [ "$PRIVILEGED" = true ]; then
-    DOCKER_RUN_ARGS+=(--privileged)
-fi
+DOCKER_RUN_ARGS=(run --rm -i --privileged)
 
 # Pass build parameters as env vars so the inner script doesn't need
 # variable expansion from the outer shell (avoids quoting issues).
@@ -216,3 +220,6 @@ echo "  ${PROJECT_ROOT}/${BUNDLE_NAME}"
 echo ""
 echo "Install with:"
 echo "  flatpak install --user ${BUNDLE_NAME}"
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))
