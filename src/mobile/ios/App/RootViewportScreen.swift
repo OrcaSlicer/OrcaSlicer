@@ -25,7 +25,11 @@ struct RootViewportScreen: View {
             return true
         }
 
-        return screenshotLaunch.enabled
+        if screenshotLaunch.enabled {
+            return true
+        }
+
+        return !viewportSession.hasSceneContent
     }
 
     var body: some View {

@@ -15,6 +15,7 @@ final class ViewportSession: ObservableObject {
     @Published var previewModelName: String = "No model loaded"
     @Published var previewStatusText: String = "Load a project to preview"
     @Published var previewDetailText: String = "Portable Metal renderer bridge active"
+    @Published var hasSceneContent: Bool = false
 
     @Published private(set) var cameraYawRadians: Double = 0
     @Published private(set) var cameraPitchRadians: Double = 0.95
@@ -145,6 +146,7 @@ final class ViewportSession: ObservableObject {
         previewModelName = "No model loaded"
         previewStatusText = "Load a project to preview"
         previewDetailText = "Portable Metal renderer bridge active"
+        hasSceneContent = false
     }
 
     func updateRendererAvailability(isAvailable: Bool, statusText: String) {

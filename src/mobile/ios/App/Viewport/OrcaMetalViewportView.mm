@@ -49,10 +49,7 @@
         _rendererReady = YES;
         _rendererInitializationSummary = @"renderer ready";
         _backend->resize((int) CGRectGetWidth(self.bounds), (int) CGRectGetHeight(self.bounds));
-
-        _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderFrame)];
-        [_displayLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
-        NSLog(@"[OrcaMetal] viewport renderer ready");
+        NSLog(@"[OrcaMetal] viewport renderer ready (display link deferred until layout)");
     } else {
         _rendererInitializationSummary = @"renderer init failed";
         self.backgroundColor = [UIColor colorWithRed:0.10 green:0.08 blue:0.14 alpha:1.0];
@@ -80,6 +77,13 @@
 
     if (_backend != nullptr)
         _backend->resize((int) CGRectGetWidth(self.bounds), (int) CGRectGetHeight(self.bounds));
+
+    if (_rendererReady && _displayLink == nil &&
+        CGRectGetWidth(self.bounds) > 0 && CGRectGetHeight(self.bounds) > 0) {
+        _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderFrame)];
+        [_displayLink addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
+        NSLog(@"[OrcaMetal] display link started after layout bounds=%@", NSStringFromCGRect(self.bounds));
+    }
 }
 
 - (void)setCameraWithViewMatrix:(const double *)viewMatrix projectionMatrix:(const double *)projectionMatrix isLookingDownward:(BOOL)lookingDownward
