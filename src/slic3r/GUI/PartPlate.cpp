@@ -3755,11 +3755,6 @@ void PartPlateList::init()
 	m_plate_cols = 1;
 	m_current_plate = 0;
 
-	if (m_plater) {
-        // In GUI mode
-        set_default_wipe_tower_pos_for_plate(0);
-    }
-
 	select_plate(0);
 	unprintable_plate.set_index(1);
 
@@ -4058,7 +4053,7 @@ void PartPlateList::release_icon_textures()
     }
 }
 
-void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx)
+void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool init_pos)
 {
     DynamicConfig &     proj_cfg     = wxGetApp().preset_bundle->project_config;
     ConfigOptionFloats *wipe_tower_x = proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x");
@@ -4068,19 +4063,69 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx)
 
     auto printer_structure_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
     // set the default position, the same with print config(left top)
-    ConfigOptionFloat wt_x_opt(WIPE_TOWER_DEFAULT_X_POS);
-    ConfigOptionFloat wt_y_opt(WIPE_TOWER_DEFAULT_Y_POS);
+    float x = WIPE_TOWER_DEFAULT_X_POS;
+    float y = WIPE_TOWER_DEFAULT_Y_POS;
     if (printer_structure_opt && printer_structure_opt->value == PrinterStructure::psI3) {
-        wt_x_opt = ConfigOptionFloat(I3_WIPE_TOWER_DEFAULT_X_POS);
-        wt_y_opt = ConfigOptionFloat(I3_WIPE_TOWER_DEFAULT_Y_POS);
+        x = I3_WIPE_TOWER_DEFAULT_X_POS;
+        y = I3_WIPE_TOWER_DEFAULT_Y_POS;
     }
-    // Clamp default position to fit within the actual plate dimensions so the wipe tower
-    // doesn't start outside the bed for printers smaller than the hardcoded defaults.
-    const double wt_default_margin  = 2.;
-    const double wt_estimated_width = 60.; // conservative estimate matching prime_tower_width default
-    const double wt_estimated_depth = 20.; // conservative depth estimate
-    wt_x_opt.value = std::max(wt_default_margin, std::min(wt_x_opt.value, m_plate_width  - wt_estimated_width - wt_default_margin));
-    wt_y_opt.value = std::max(wt_default_margin, std::min(wt_y_opt.value, m_plate_depth  - wt_estimated_depth - wt_default_margin));
+
+    PartPlate *part_plate = get_plate(plate_idx);
+    Vec3d plate_origin = part_plate->get_origin();
+    BoundingBoxf3 plate_bbox = part_plate->get_bounding_box();
+    BoundingBoxf plate_bbox_2d(Vec2d(plate_bbox.min(0), plate_bbox.min(1)), Vec2d(plate_bbox.max(0), plate_bbox.max(1)));
+    const std::vector<Pointfs> &extruder_areas = part_plate->get_extruder_areas();
+    for (const Pointfs &points : extruder_areas) {
+        BoundingBoxf bboxf(points);
+        plate_bbox_2d.min = plate_bbox_2d.min(0) >= bboxf.min(0) ? plate_bbox_2d.min : bboxf.min;
+        plate_bbox_2d.max = plate_bbox_2d.max(0) <= bboxf.max(0) ? plate_bbox_2d.max : bboxf.max;
+    }
+
+    coordf_t plate_bbox_x_min_local_coord = plate_bbox_2d.min(0) - plate_origin(0);
+    coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
+    coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
+
+    std::vector<int> filament_maps = part_plate->get_real_filament_maps(proj_cfg);
+    DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config(false, filament_maps);
+    const DynamicPrintConfig &print_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    float w = dynamic_cast<const ConfigOptionFloat *>(print_cfg.option("prime_tower_width"))->value;
+    float v = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_volume"))->value;
+    bool enable_wrapping = false;
+    const ConfigOptionBool *wrapping_opt = dynamic_cast<const ConfigOptionBool *>(full_config.option("enable_wrapping_detection"));
+    if (wrapping_opt) enable_wrapping = wrapping_opt->value;
+    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+    Vec3d wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, init_pos ? 2 : 0, false, enable_wrapping);
+
+    if (!init_pos && (is_approx(wipe_tower_size(0), 0.0) || is_approx(wipe_tower_size(1), 0.0))) {
+        wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, 2, false, enable_wrapping);
+    }
+
+    // Compute brim-aware margin: brim extends outward from tower position
+    float brim_width = 0.f;
+    const ConfigOptionFloat *brim_opt = print_cfg.option<ConfigOptionFloat>("prime_tower_brim_width");
+    if (brim_opt) {
+        brim_width = brim_opt->value;
+        if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
+    }
+    const float margin = WIPE_TOWER_MARGIN + brim_width;
+
+    // clamp wipe tower position within plate boundaries
+    {
+        if (x + margin + wipe_tower_size(0) > plate_bbox_x_max_local_coord) {
+            x = plate_bbox_x_max_local_coord - wipe_tower_size(0) - margin;
+        } else if (x < margin + plate_bbox_x_min_local_coord) {
+            x = margin + plate_bbox_x_min_local_coord;
+        }
+
+        if (y + margin + wipe_tower_size(1) > plate_bbox_y_max_local_coord) {
+            y = plate_bbox_y_max_local_coord - wipe_tower_size(1) - margin;
+        } else if (y < margin) {
+            y = margin;
+        }
+    }
+
+    ConfigOptionFloat wt_x_opt(x);
+    ConfigOptionFloat wt_y_opt(y);
     dynamic_cast<ConfigOptionFloats *>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_idx, 0);
     dynamic_cast<ConfigOptionFloats *>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_idx, 0);
 }
@@ -4191,6 +4236,11 @@ void PartPlateList::reinit()
 	//re-calc the bounding boxes
 	calc_bounding_boxes();
 
+	if (m_plater) {
+        // In GUI mode
+        set_default_wipe_tower_pos_for_plate(0, true);
+    }
+
 	return;
 }
 
@@ -4262,7 +4312,7 @@ int PartPlateList::create_plate(bool adjust_position)
 	// update wipe tower config
 	if (m_plater) {
 		// In GUI mode
-        set_default_wipe_tower_pos_for_plate(new_index);
+        set_default_wipe_tower_pos_for_plate(new_index, true);
 	}
 
 	unprintable_plate.set_index(new_index+1);

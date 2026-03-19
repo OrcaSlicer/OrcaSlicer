@@ -10505,10 +10505,15 @@ void Plater::priv::init_notification_manager()
 
 void Plater::priv::update_objects_position_when_select_preset(const std::function<void()> &select_prest)
 {
-    // TODO: Orca hack
     select_prest();
 
     wxGetApp().obj_list()->update_object_list_by_printer_technology();
+
+    // Re-clamp wipe tower positions to new bed boundaries after preset change
+    PartPlateList &cur_plate_list = this->partplate_list;
+    for (size_t plate_id = 0; plate_id < cur_plate_list.get_plate_list().size(); ++plate_id) {
+        cur_plate_list.set_default_wipe_tower_pos_for_plate(plate_id);
+    }
 
     update();
 }
