@@ -297,7 +297,7 @@ jobs:
         run: .\build_release_vs.bat slicer
 
       - name: Create installer Win
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}/build
         run: |
           cpack -G NSIS
@@ -322,7 +322,7 @@ jobs:
           path: ${{ github.workspace }}/build/OrcaSlicer
 
       - name: Upload artifacts Win installer
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_Windows_${{ env.ver }}
