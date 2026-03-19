@@ -57,6 +57,7 @@ final class ViewportSession: ObservableObject {
 
     init(store: ProjectProfileStore) {
         self.store = store
+        print("[OrcaIOS] ViewportSession.init")
 
         store.$viewPreview
             .receive(on: DispatchQueue.main)

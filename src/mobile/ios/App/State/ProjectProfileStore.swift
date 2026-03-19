@@ -104,6 +104,7 @@ final class ProjectProfileStore: ObservableObject {
     #endif
 
     init() {
+        print("[OrcaIOS] ProjectProfileStore.init")
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
         let buildNumber = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
 

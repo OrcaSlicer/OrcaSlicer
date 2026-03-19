@@ -11,23 +11,35 @@ struct RootViewportScreen: View {
 
     @State private var hasAppliedScreenshotRoute = false
 
+    private var isDiagnosticUIModeEnabled: Bool {
+        let value = ProcessInfo.processInfo.environment["ORCASLICER_IOS_DIAGNOSTIC_UI_MODE"]?.lowercased() ?? ""
+        return value == "1" || value == "true" || value == "yes"
+    }
+
     private var shouldShowStaticViewportOverlay: Bool {
+        if isDiagnosticUIModeEnabled {
+            return false
+        }
+
         if !viewportSession.isRendererAvailable {
             return true
         }
 
-        guard screenshotLaunch.enabled else {
-            return false
-        }
-
-        let flag = ProcessInfo.processInfo.environment["ORCA_IOS_FORCE_STATIC_VIEWPORT_OVERLAY"]?.lowercased() ?? ""
-        return flag == "1" || flag == "true" || flag == "yes"
+        return screenshotLaunch.enabled
     }
 
     var body: some View {
+        let _ = print("[OrcaIOS] RootViewportScreen.body diagnosticMode=\(isDiagnosticUIModeEnabled) screenshotMode=\(screenshotLaunch.enabled) panel=\(panelRouter.presentedPanel?.rawValue ?? "<none>") rendererAvailable=\(viewportSession.isRendererAvailable) rendererStatus=\(viewportSession.rendererStatusText)")
         ZStack {
-            MetalViewportContainer(viewportSession: viewportSession)
+            if isDiagnosticUIModeEnabled {
+                DiagnosticRootSurface(
+                    sceneName: screenshotLaunch.requestedScene.rawValue
+                )
                 .ignoresSafeArea()
+            } else {
+                MetalViewportContainer(viewportSession: viewportSession)
+                    .ignoresSafeArea()
+            }
 
             if shouldShowStaticViewportOverlay {
                 ViewportPlaceholderOverlay(viewportSession: viewportSession)
@@ -69,12 +81,18 @@ struct RootViewportScreen: View {
                 .presentationDragIndicator(.visible)
         }
         .onAppear(perform: applyScreenshotRouteIfNeeded)
+        .onAppear {
+            print("[OrcaIOS] RootViewportScreen.onAppear panel=\(panelRouter.presentedPanel?.rawValue ?? "<none>")")
+        }
         .onChange(of: appSession.activeProjectName, perform: applyProjectPreviewState)
+        .onChange(of: panelRouter.presentedPanel) { panel in
+            print("[OrcaIOS] RootViewportScreen.panelRouting presentedPanel=\(panel?.rawValue ?? "<none>")")
+        }
         .onChange(of: viewportSession.isRendererAvailable) { isRendererAvailable in
             if isRendererAvailable {
-                NSLog("OrcaSlicerIOS viewport renderer available")
+                print("[OrcaIOS] OrcaSlicerIOS viewport renderer available")
             } else {
-                NSLog("OrcaSlicerIOS viewport renderer unavailable: %@", viewportSession.rendererStatusText)
+                print("[OrcaIOS] OrcaSlicerIOS viewport renderer unavailable: \(viewportSession.rendererStatusText)")
             }
         }
     }
@@ -165,12 +183,7 @@ struct RootViewportScreen: View {
     }
 
     private func applyScreenshotRouteIfNeeded() {
-        NSLog(
-            "OrcaSlicerIOS root appeared (screenshotMode=%@ rendererAvailable=%@ rendererStatus=%@)",
-            screenshotLaunch.enabled ? "true" : "false",
-            viewportSession.isRendererAvailable ? "true" : "false",
-            viewportSession.rendererStatusText
-        )
+        print("[OrcaIOS] OrcaSlicerIOS root appeared screenshotMode=\(screenshotLaunch.enabled) rendererAvailable=\(viewportSession.isRendererAvailable) rendererStatus=\(viewportSession.rendererStatusText)")
         guard screenshotLaunch.enabled, !hasAppliedScreenshotRoute else {
             return
         }
@@ -179,13 +192,14 @@ struct RootViewportScreen: View {
         let delay = Double(screenshotLaunch.settleDelayMilliseconds) / 1000
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            print("[OrcaIOS] RootViewportScreen.screenshotRoute applying scene=\(screenshotLaunch.requestedScene.rawValue) delayMs=\(screenshotLaunch.settleDelayMilliseconds)")
             applyScreenshotSceneState()
             if let panel = screenshotLaunch.requestedScene.panel {
                 panelRouter.present(panel)
             } else {
                 panelRouter.dismiss()
             }
-            NSLog("OrcaSlicerIOS screenshot route ready for scene=%@", screenshotLaunch.requestedScene.rawValue)
+            print("[OrcaIOS] OrcaSlicerIOS screenshot route ready for scene=\(screenshotLaunch.requestedScene.rawValue)")
         }
     }
 
@@ -227,6 +241,37 @@ struct RootViewportScreen: View {
         } else {
             content()
                 .padding(.top, 12)
+        }
+    }
+}
+
+private struct DiagnosticRootSurface: View {
+    let sceneName: String
+    private let timestamp: String = ISO8601DateFormatter().string(from: Date())
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Color(red: 0.98, green: 0.15, blue: 0.28)
+                Rectangle()
+                    .stroke(Color.yellow, lineWidth: 12)
+                    .padding(20)
+                VStack(spacing: 18) {
+                    Text("SWIFTUI ROOT ALIVE")
+                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                    Text("scene=\(sceneName)\n\(timestamp)\nbounds=\(Int(proxy.size.width))x\(Int(proxy.size.height))")
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(28)
+                .background(Color.white.opacity(0.8))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(24)
+            }
+            .accessibilityIdentifier("ORCASLICER_SWIFTUI_ROOT_DIAGNOSTIC_SURFACE")
         }
     }
 }

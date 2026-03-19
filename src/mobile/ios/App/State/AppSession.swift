@@ -78,6 +78,7 @@ final class AppSession: ObservableObject {
     ) {
         self.store = store
         self.fileAccessService = fileAccessService
+        print("[OrcaIOS] AppSession.init fileAccessService=\(String(describing: type(of: fileAccessService)))")
 
         let diagnostics = store.diagnostics
         buildSummary = diagnostics.buildSummary
