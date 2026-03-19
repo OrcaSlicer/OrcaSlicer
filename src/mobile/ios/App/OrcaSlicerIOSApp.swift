@@ -14,6 +14,7 @@ struct OrcaSlicerIOSApp: App {
     private let screenshotLaunch: ScreenshotLaunchConfiguration
 
     init() {
+        NSLog("OrcaSlicerIOSApp.init begin")
         let store = ProjectProfileStore()
         _projectProfileStore = StateObject(wrappedValue: store)
         _appSession = StateObject(wrappedValue: AppSession(store: store))
@@ -24,6 +25,12 @@ struct OrcaSlicerIOSApp: App {
 
         let launchConfig = ScreenshotLaunchConfiguration.fromEnvironment()
         screenshotLaunch = launchConfig
+        NSLog(
+            "OrcaSlicerIOSApp.init screenshot config enabled=%@ scene=%@ delayMs=%d",
+            launchConfig.enabled ? "true" : "false",
+            launchConfig.requestedScene.rawValue,
+            launchConfig.settleDelayMilliseconds
+        )
         if launchConfig.enabled {
             UIView.setAnimationsEnabled(false)
         }
@@ -31,6 +38,7 @@ struct OrcaSlicerIOSApp: App {
 
     var body: some Scene {
         WindowGroup {
+            let _ = NSLog("OrcaSlicerIOSApp.WindowGroup body entry")
             RootViewportScreen(
                 appSession: appSession,
                 viewportSession: viewportSession,

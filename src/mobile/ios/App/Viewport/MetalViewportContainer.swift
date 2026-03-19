@@ -8,17 +8,32 @@ struct MetalViewportContainer: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> OrcaMetalViewportView {
+        NSLog("MetalViewportContainer.makeUIView")
         let view = OrcaMetalViewportView(frame: .zero)
         context.coordinator.attach(to: view)
         viewportSession.updateRendererAvailability(
             isAvailable: view.isRendererReady(),
             statusText: view.rendererInitializationSummary()
         )
+        NSLog(
+            "MetalViewportContainer.makeUIView rendererReady=%@ status=%@ bounds=%@ scale=%.2f",
+            view.isRendererReady() ? "true" : "false",
+            view.rendererInitializationSummary(),
+            String(describing: view.bounds),
+            view.contentScaleFactor
+        )
         syncCamera(view)
         return view
     }
 
     func updateUIView(_ uiView: OrcaMetalViewportView, context: Context) {
+        NSLog(
+            "MetalViewportContainer.updateUIView rendererReady=%@ status=%@ bounds=%@ scale=%.2f",
+            uiView.isRendererReady() ? "true" : "false",
+            uiView.rendererInitializationSummary(),
+            String(describing: uiView.bounds),
+            uiView.contentScaleFactor
+        )
         context.coordinator.viewportSession = viewportSession
         viewportSession.updateRendererAvailability(
             isAvailable: uiView.isRendererReady(),
