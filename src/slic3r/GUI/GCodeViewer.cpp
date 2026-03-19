@@ -28,9 +28,8 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "MsgDialog.hpp"
 
-#if ENABLE_ACTUAL_SPEED_DEBUG
 #define IMGUI_DEFINE_MATH_OPERATORS
-#endif // ENABLE_ACTUAL_SPEED_DEBUG
+
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>
