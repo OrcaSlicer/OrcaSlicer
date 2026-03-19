@@ -134,8 +134,28 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: "ctest_results.xml"
+  flatpak_matrix:
+    name: "Flatpak matrix"
+    # Don't run scheduled builds on forks
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - name: Build matrix
+      id: set-matrix
+      run: |
+        if [ -n "$SELF_HOSTED" ]; then
+          # Self-hosted: only x86_64 (no ARM self-hosted runner available)
+          echo 'matrix={"variant":[{"arch":"x86_64","runner":"orca-lnx-server"}]}' >> $GITHUB_OUTPUT
+        else
+          echo 'matrix={"variant":[{"arch":"x86_64","runner":"ubuntu-24.04"},{"arch":"aarch64","runner":"ubuntu-24.04-arm"}]}' >> $GITHUB_OUTPUT
+        fi
+      env:
+        SELF_HOSTED: ${{ vars.SELF_HOSTED }}
   flatpak:
     name: "Flatpak"
+    needs: [flatpak_matrix]
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
@@ -147,36 +167,20 @@ jobs:
         - /opt/hostedtoolcache:/opt/hostedtoolcache1
     strategy:
       fail-fast: false
-      matrix:
-        variant:
-          - arch: x86_64
-            runner: ubuntu-24.04
-            self-hosted-runner: orca-lnx-server
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
-    # Don't run scheduled builds on forks
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    # When SELF_HOSTED is set, use self-hosted runner if available, otherwise fall back to
-    # cheapest GitHub runner (variant will be skipped via step conditions anyway)
-    runs-on: ${{ vars.SELF_HOSTED && (matrix.variant.self-hosted-runner || 'ubuntu-24.04') || matrix.variant.runner }}
+      matrix: ${{ fromJson(needs.flatpak_matrix.outputs.matrix) }}
+    if: ${{ !cancelled() && needs.flatpak_matrix.result == 'success' }}
+    runs-on: ${{ matrix.variant.runner }}
     env:
       date:
       ver:
       ver_pure:
     steps:
-    - name: Check if variant should run
-      id: should-run
-      run: echo "skip=true" >> $GITHUB_OUTPUT
-      shell: bash
-      if: ${{ vars.SELF_HOSTED && !matrix.variant.self-hosted-runner }}
     - name: "Remove unneeded stuff to free disk space"
-      if: ${{ steps.should-run.outputs.skip != 'true' && !vars.SELF_HOSTED }}
+      if: ${{ !vars.SELF_HOSTED }}
       run:
         rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
     - uses: actions/checkout@v6
-      if: ${{ steps.should-run.outputs.skip != 'true' }}
     - name: Get the version and date
-      if: ${{ steps.should-run.outputs.skip != 'true' }}
       run: |
         ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -193,33 +197,30 @@ jobs:
       shell: bash
     # Manage flatpak-builder cache externally so PRs restore but never upload
     - name: Restore flatpak-builder cache
-      if: ${{ steps.should-run.outputs.skip != 'true' && github.event_name == 'pull_request' }}
+      if: github.event_name == 'pull_request'
       uses: actions/cache/restore@v4
       with:
         path: .flatpak-builder
         key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Save/restore flatpak-builder cache
-      if: ${{ steps.should-run.outputs.skip != 'true' && github.event_name != 'pull_request' }}
+      if: github.event_name != 'pull_request'
       uses: actions/cache@v4
       with:
         path: .flatpak-builder
         key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Disable debug info for faster CI builds
-      if: ${{ steps.should-run.outputs.skip != 'true' }}
       run: |
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
       shell: bash
     - name: Inject git commit hash into Flatpak manifest
-      if: ${{ steps.should-run.outputs.skip != 'true' }}
       run: |
         sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
           scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
-      if: ${{ steps.should-run.outputs.skip != 'true' }}
       with:
         bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         manifest-path: scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
@@ -227,13 +228,12 @@ jobs:
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
-      if: ${{ steps.should-run.outputs.skip != 'true' }}
       uses: actions/upload-artifact@v6
       with:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
     - name: Deploy Flatpak to nightly release
-      if: ${{ steps.should-run.outputs.skip != 'true' && github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && !vars.SELF_HOSTED }}
+      if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && !vars.SELF_HOSTED
       uses: WebFreak001/deploy-nightly@v3.2.0
       with:
         upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
