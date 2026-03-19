@@ -134,28 +134,8 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: "ctest_results.xml"
-  flatpak_matrix:
-    name: "Flatpak matrix"
-    # Don't run scheduled builds on forks
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    runs-on: ubuntu-24.04
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-    - name: Build matrix
-      id: set-matrix
-      run: |
-        if [ -n "$SELF_HOSTED" ]; then
-          # Self-hosted: only x86_64 (no ARM self-hosted runner available)
-          echo 'matrix={"variant":[{"arch":"x86_64","runner":"orca-lnx-server"}]}' >> $GITHUB_OUTPUT
-        else
-          echo 'matrix={"variant":[{"arch":"x86_64","runner":"ubuntu-24.04"},{"arch":"aarch64","runner":"ubuntu-24.04-arm"}]}' >> $GITHUB_OUTPUT
-        fi
-      env:
-        SELF_HOSTED: ${{ vars.SELF_HOSTED }}
   flatpak:
     name: "Flatpak"
-    needs: [flatpak_matrix]
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
@@ -167,8 +147,14 @@ jobs:
         - /opt/hostedtoolcache:/opt/hostedtoolcache1
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.flatpak_matrix.outputs.matrix) }}
-    if: ${{ !cancelled() && needs.flatpak_matrix.result == 'success' }}
+      matrix:
+        variant:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    # Don't run scheduled builds on forks; skip entirely on self-hosted runners
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     runs-on: ${{ matrix.variant.runner }}
     env:
       date:
@@ -176,7 +162,6 @@ jobs:
       ver_pure:
     steps:
     - name: "Remove unneeded stuff to free disk space"
-      if: ${{ !vars.SELF_HOSTED }}
       run:
         rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
     - uses: actions/checkout@v6
@@ -233,7 +218,7 @@ jobs:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
     - name: Deploy Flatpak to nightly release
-      if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && !vars.SELF_HOSTED
+      if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main'
       uses: WebFreak001/deploy-nightly@v3.2.0
       with:
         upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
@@ -242,13 +227,4 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
-    - name: Clean up and fix ownership on self-hosted runners
-      if: ${{ always() && vars.SELF_HOSTED }}
-      run: |
-        # Remove disposable dirs (re-downloaded/regenerated on next run)
-        rm -rf .flatpak-builder/build .flatpak-builder/downloads .flatpak-builder/rofiles
-        # Fix ownership of cache dirs so the runner user can access them
-        runner_uid=$(stat -c '%u' .)
-        chown -R "$runner_uid:$runner_uid" .flatpak-builder
-      shell: bash
 
