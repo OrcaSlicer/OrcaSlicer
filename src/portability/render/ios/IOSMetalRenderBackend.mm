@@ -246,6 +246,7 @@ bool IOSMetalRenderBackend::initialize()
     }
 
     m_initialized = true;
+    NSLog(@"[OrcaMetal] initialize success device='%@' layer=%p", m_state->device.name, m_state->metal_layer);
     return true;
 }
 
@@ -276,6 +277,8 @@ void IOSMetalRenderBackend::resize(int width, int height)
 {
     m_width = std::max(width, 0);
     m_height = std::max(height, 0);
+    const CGSize drawable_size = m_state->metal_layer != nil ? m_state->metal_layer.drawableSize : CGSizeZero;
+    NSLog(@"[OrcaMetal] resize width=%d height=%d drawableSize=%.1fx%.1f", m_width, m_height, drawable_size.width, drawable_size.height);
 
     if (!m_initialized || m_state->metal_layer == nil)
         return;
@@ -291,8 +294,14 @@ void IOSMetalRenderBackend::render_frame()
 
     @autoreleasepool {
         id<CAMetalDrawable> drawable = [m_state->metal_layer nextDrawable];
-        if (drawable == nil)
+        if (drawable == nil) {
+            static int drawable_nil_log_count = 0;
+            if (drawable_nil_log_count < 10) {
+                NSLog(@"[OrcaMetal] render_frame nextDrawable=nil bounds=%dx%d drawableSize=%.1fx%.1f", m_width, m_height, m_state->metal_layer.drawableSize.width, m_state->metal_layer.drawableSize.height);
+                drawable_nil_log_count += 1;
+            }
             return;
+        }
 
         MTLRenderPassDescriptor *render_pass_descriptor = [MTLRenderPassDescriptor renderPassDescriptor];
         render_pass_descriptor.colorAttachments[0].texture = drawable.texture;

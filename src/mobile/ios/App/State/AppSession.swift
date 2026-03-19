@@ -78,6 +78,7 @@ final class AppSession: ObservableObject {
     ) {
         self.store = store
         self.fileAccessService = fileAccessService
+        NSLog("AppSession.init store=%p fileAccessService=%@", Unmanaged.passUnretained(store).toOpaque(), String(describing: type(of: fileAccessService)))
 
         let diagnostics = store.diagnostics
         buildSummary = diagnostics.buildSummary
