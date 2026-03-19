@@ -116,7 +116,7 @@ jobs:
         with:
           cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
           useLocalCache: true         # <--= Use the local cache (default is 'false').
-          useCloudCache: false        # <--= Ditch the cloud cache (default is 'true').
+          useCloudCache: true
       - name: Unpackage and Run Unit Tests
         timeout-minutes: 20
         run: |
