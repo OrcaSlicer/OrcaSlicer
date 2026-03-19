@@ -34,7 +34,7 @@ jobs:
         id: set_outputs
         env:
           # Keep macOS cache keys and paths architecture-specific.
-          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && 'windows' || 'linux') }}
+          cache-os: ${{ runner.os == 'macOS' && format('macos-{0}', inputs.arch) || (runner.os == 'Windows' && 'windows' || 'linux-clang') }}
           dep-folder-name: ${{ runner.os == 'macOS' && format('/{0}', inputs.arch) || '/OrcaSlicer_dep' }}
           output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
