@@ -382,14 +382,13 @@ class GLCanvas3D
         ToolHeightOutside,
         TPUPrintableError,
         FilamentPrintableError,
-        LeftExtruderPrintableError,         // before slice
-        RightExtruderPrintableError,        // before slice
-        MultiExtruderPrintableError,        // after slice
-        MultiExtruderHeightOutside,         // after slice
+        LeftExtruderPrintableError, // before slice
+        RightExtruderPrintableError, // before slice
+        MultiExtruderPrintableError,      // after slice
+        MultiExtruderHeightOutside,       // after slice
         FilamentUnPrintableOnFirstLayer,
         MixUsePLAAndPETG,
-        PrimeTowerOutside,                  // after slice
-        PreviewPrimeTowerOutside,           // before slice 
+        PrimeTowerOutside,
         NozzleFilamentIncompatible,
         MixtureFilamentIncompatible,
         FlushingVolumeZero

@@ -16208,7 +16208,7 @@ msgstr ""
 
 #, fuzzy
 msgid "Detect overhang walls"
-msgstr "Túlnyúló fal felismerése"
+msgstr "Túlnyúló falak felismerése"
 
 #, c-format, boost-format
 msgid ""
@@ -16909,8 +16909,8 @@ msgid ""
 "Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
-"A küszöbérték alatti ritkás kitöltési terület belső szilárd kitöltéssel "
-"kerül leváltásra"
+"Az ennél a küszöbértéknél kisebb ritka kitöltési területek belső "
+"tömör kitöltéssel helyettesítődnek."
 
 msgid "Solid infill"
 msgstr "Tömör kitöltés"
@@ -17685,15 +17685,15 @@ msgstr "Fúvóka hőmérséklete az első réteg után"
 
 #, fuzzy
 msgid "Detect thin walls"
-msgstr "Vékony fal felismerése"
+msgstr "Vékony falak felismerése"
 
 #, fuzzy
 msgid ""
 "Detect thin walls which can't contain two line widths, and use single line "
 "to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
-"Felismeri a vékony falat, amit nem lehet két vonalnyi szélességgel "
-"nyomtatni, és egyetlen vonallal nyomtatja"
+"Felismeri a vékony falakat, amellyeket nem lehet két vonalnyi szélességgel "
+"nyomtatni, és egyetlen vonalt használ. Lehet nem jó a nyomat minősége, mert nem zárt hurok."
 
 msgid ""
 "This G-code is inserted when filament is changed, including T commands to "
@@ -18326,7 +18326,7 @@ msgstr ""
 
 #, fuzzy
 msgid "Detect narrow internal solid infills"
-msgstr "Keskeny belső szilárd kitöltés felismerése"
+msgstr "Keskeny belső szilárd kitöltések felismerése"
 
 msgid ""
 "This option will auto-detect narrow internal solid infill areas. If enabled, "
