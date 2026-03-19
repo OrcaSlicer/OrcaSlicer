@@ -15411,7 +15411,7 @@ msgstr "Superfici superiori"
 msgid "Topmost surface"
 msgstr "Superficie superiore più alta"
 
-msgid "All solid layer"
+msgid "All solid layers"
 msgstr "Tutti gli strati solidi"
 
 msgid "Ironing Pattern"
@@ -15945,7 +15945,8 @@ msgstr ""
 "una forma conica. Un valore pari a 0 riempirà tutti i fori nella base del "
 "modello."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Rileva parete sporgente"
 
 #, c-format, boost-format
@@ -16651,8 +16652,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Soglia minima riempimento sparso"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "L'area del riempimento sparso che è inferiore al valore di soglia, viene "
@@ -17422,12 +17424,13 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Temperatura dell'ugello per gli strati successivi a quello iniziale."
 
-msgid "Detect thin wall"
+msgid "Detect thin walls"
 msgstr "Rileva pareti sottili"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Rileva le pareti sottili che non possono contenere due linee di larghezza, "
 "utilizzandone quindi una sola per la stampa. Potrebbe non essere stampato "
@@ -18044,7 +18047,8 @@ msgstr ""
 "spessa quanto l'elemento stesso. Questo valore è espresso come percentuale "
 "rispetto al diametro dell'ugello."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Rileva riempimento solido interno stretto"
 
 msgid ""

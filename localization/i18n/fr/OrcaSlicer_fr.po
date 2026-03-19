@@ -15465,7 +15465,8 @@ msgstr "Surfaces supérieures"
 msgid "Topmost surface"
 msgstr "Surface la plus élevée"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Toutes les couches pleines"
 
 msgid "Ironing Pattern"
@@ -16001,7 +16002,8 @@ msgstr ""
 "par un matériau conique. Une valeur de 0 remplira tous les trous dans la "
 "base du modèle."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Détecter une paroi en surplomb"
 
 #, c-format, boost-format
@@ -16704,8 +16706,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Seuil minimum de remplissage"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "La zone de remplissage inférieure à la valeur seuil est remplacée par un "
@@ -17475,12 +17478,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Température de la buse pour les couches après la première"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Détecter les parois fines"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Détecte les parois fines qui ne peuvent pas contenir deux largeurs de ligne. "
 "Et utilisez une seule ligne pour imprimer. Peut ne pas être très bien "
@@ -18098,7 +18103,8 @@ msgstr ""
 "l'élément lui-même. Elle est exprimée en pourcentage par rapport au diamètre "
 "de la buse"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Détecter un remplissage plein interne étroit"
 
 msgid ""

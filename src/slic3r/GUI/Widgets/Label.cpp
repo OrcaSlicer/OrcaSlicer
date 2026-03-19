@@ -5,6 +5,9 @@
 #include <wx/dcclient.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#ifdef __linux__
+#include <fontconfig/fontconfig.h>
+#endif
 
 
 wxFont Label::sysFont(int size, bool bold)
@@ -58,27 +61,46 @@ wxFont Label::Body_10;
 wxFont Label::Body_9;
 wxFont Label::Body_8;
 
+// Check if a font family is already available via fontconfig.
+#ifdef __linux__
+static bool fc_font_available(const char *family_name)
+{
+    FcPattern *pat = FcPatternCreate();
+    if (!pat)
+        return false;
+    FcPatternAddString(pat, FC_FAMILY, (const FcChar8 *) family_name);
+    FcResult res;
+    FcPattern *match = FcFontMatch(nullptr, pat, &res);
+    bool available = false;
+    if (match) {
+        FcChar8 *matched_family = nullptr;
+        if (FcPatternGetString(match, FC_FAMILY, 0, &matched_family) == FcResultMatch && matched_family)
+            available = (strcasecmp((const char *) matched_family, family_name) == 0);
+        FcPatternDestroy(match);
+    }
+    FcPatternDestroy(pat);
+    return available;
+}
+#endif
+
 void Label::initSysFont()
 {
 #if defined(__linux__) || defined(_WIN32)
-    const std::string &resource_path = Slic3r::resources_dir();
-    wxString font_path = wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Bold.ttf");
-    bool result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of HarmonyOS_Sans_SC_Bold returns %1%")%result;
-    // printf("add font of HarmonyOS_Sans_SC_Bold returns %d\n", result);
-    font_path = wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Regular.ttf");
-    result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of HarmonyOS_Sans_SC_Regular returns %1%")%result;
-    // printf("add font of HarmonyOS_Sans_SC_Regular returns %d\n", result);
-    // Adding NanumGothic Regular and Bold
-    font_path = wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf");
-    result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of NanumGothic-Regular returns %1%")%result;
-    // printf("add font of NanumGothic-Regular returns %d\n", result);
-    font_path = wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Bold.ttf");
-    result = wxFont::AddPrivateFont(font_path);
-    // BOOST_LOG_TRIVIAL(info) << boost::format("add font of NanumGothic-Bold returns %1%")%result;
-    // printf("add font of NanumGothic-Bold returns %d\n", result);
+    // On Linux, skip AddPrivateFont for fonts already known to fontconfig
+    // (e.g. installed system-wide in a Flatpak).  Calling AddPrivateFont
+    // triggers a Pango crash in ensure_faces() on Pango >= 1.48 (GNOME 49+),
+    // because FcConfigAppFontAddFile invalidates Pango's cached font map.
+    bool load_fonts = true;
+#ifdef __linux__
+    load_fonts = !fc_font_available("HarmonyOS Sans SC") || !fc_font_available("NanumGothic");
+#endif
+    if (load_fonts) {
+        const std::string &resource_path = Slic3r::resources_dir();
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Bold.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Regular.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Bold.ttf"));
+    }
 #endif
     Head_48 = Label::sysFont(48, true);
     Head_32 = Label::sysFont(32, true);

@@ -14694,7 +14694,8 @@ msgstr "頂面"
 msgid "Topmost surface"
 msgstr "最頂面"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "所有實心層"
 
 msgid "Ironing Pattern"
@@ -15174,7 +15175,8 @@ msgstr ""
 "模型底部的孔洞在被圓錐形材料填充前所允許的最大面積。值為 0 將填充模型底部的所"
 "有孔洞。"
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "檢測懸空外牆"
 
 #, c-format, boost-format
@@ -15786,8 +15788,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "稀疏填充最小臨界值"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr "小於設定閾值的稀疏填充區域將替換為內部實心填充"
 
@@ -16482,12 +16485,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "除首層外的其它層的噴嘴溫度"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "檢查薄壁"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "檢查無法容納兩條走線的薄壁。使用單條走線列印。可能會打地不是很好，因為走線不"
 "再閉合"
@@ -17045,7 +17050,8 @@ msgstr ""
 "設定替代模型中細薄特徵（依據最小特徵尺寸）的牆體寬度。若最小牆寬小於特徵厚"
 "度，牆體將與特徵的厚度一致。此值以噴嘴直徑的百分比表示"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "識別狹窄內部實心填充"
 
 msgid ""

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e # Exit immediately if a command exits with a non-zero status.
+SECONDS=0
 
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
@@ -265,5 +266,8 @@ if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
     fi
     popd > /dev/null # build
 fi
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))
 
 popd > /dev/null # ${SCRIPT_PATH}

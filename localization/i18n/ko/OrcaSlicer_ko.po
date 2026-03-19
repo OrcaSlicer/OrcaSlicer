@@ -14809,7 +14809,8 @@ msgstr "상단 표면"
 msgid "Topmost surface"
 msgstr "최상단 표면"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "모든 꽉찬 레이어"
 
 msgid "Ironing Pattern"
@@ -15303,7 +15304,8 @@ msgstr ""
 "원뿔형 재료로 채워지기 전에 모델 베이스에 있는 구멍의 최대 면적입니다. 값이 0"
 "이면 모델 베이스의 모든 구멍이 채워집니다."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "오버행 벽 감지"
 
 #, c-format, boost-format
@@ -15962,8 +15964,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "최소 드문 채우기 임계값"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr "임계값보다 작은 드문 채우기 영역은 꽉찬 내부 채우기로 대체됩니다"
 
@@ -16671,12 +16674,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "초기 레이어 이후의 노즐 온도"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "얇은 벽 감지"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "두개의 선 너비를 포함할 수 없는 얇은 벽을 감지합니다. 그리고 한 선으로 출력합"
 "니다. 폐쇄 루프가 아니기 때문에 출력이 잘 되지 않을 수 있습니다"
@@ -17246,7 +17251,8 @@ msgstr ""
 "비가 형상의 두께보다 얇은 경우 벽은 형상 자체만큼 두꺼워집니다. 노즐 직경에 "
 "대한 백분율로 표시됩니다"
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "좁은 꽉찬 내부 채우기 감지"
 
 msgid ""
