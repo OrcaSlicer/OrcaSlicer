@@ -191,8 +191,9 @@ struct RootViewportScreen: View {
 
     private func applyScreenshotRouteIfNeeded() {
         NSLog(
-            "OrcaSlicerIOS root appeared (screenshotMode=%@ rendererAvailable=%@ rendererStatus=%@)",
+            "OrcaSlicerIOS root appeared (screenshotMode=%@ diagnosticNoMetal=%@ rendererAvailable=%@ rendererStatus=%@)",
             screenshotLaunch.enabled ? "true" : "false",
+            shouldForceSwiftUIDiagnosticMarker ? "true" : "false",
             viewportSession.isRendererAvailable ? "true" : "false",
             viewportSession.rendererStatusText
         )
