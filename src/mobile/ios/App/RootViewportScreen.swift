@@ -11,13 +11,13 @@ struct RootViewportScreen: View {
 
     @State private var hasAppliedScreenshotRoute = false
 
-    private var shouldForceSwiftUIDiagnosticMarker: Bool {
-        let flag = ProcessInfo.processInfo.environment["ORCA_IOS_DIAGNOSTIC_DISABLE_METAL"]?.lowercased() ?? ""
-        return flag == "1" || flag == "true" || flag == "yes"
+    private var isDiagnosticUIModeEnabled: Bool {
+        let value = ProcessInfo.processInfo.environment["ORCASLICER_IOS_DIAGNOSTIC_UI_MODE"]?.lowercased() ?? ""
+        return value == "1" || value == "true" || value == "yes"
     }
 
     private var shouldShowStaticViewportOverlay: Bool {
-        if shouldForceSwiftUIDiagnosticMarker {
+        if isDiagnosticUIModeEnabled {
             return false
         }
 
@@ -25,19 +25,24 @@ struct RootViewportScreen: View {
             return true
         }
 
-        guard screenshotLaunch.enabled else {
-            return false
-        }
-
-        let flag = ProcessInfo.processInfo.environment["ORCA_IOS_FORCE_STATIC_VIEWPORT_OVERLAY"]?.lowercased() ?? ""
-        return flag == "1" || flag == "true" || flag == "yes"
+        return screenshotLaunch.enabled
     }
 
     var body: some View {
+        let _ = NSLog(
+            "RootViewportScreen.body diagnosticMode=%@ screenshotMode=%@ panel=%@ rendererAvailable=%@ rendererStatus=%@",
+            isDiagnosticUIModeEnabled ? "true" : "false",
+            screenshotLaunch.enabled ? "true" : "false",
+            panelRouter.presentedPanel?.rawValue ?? "<none>",
+            viewportSession.isRendererAvailable ? "true" : "false",
+            viewportSession.rendererStatusText
+        )
         ZStack {
-            if shouldForceSwiftUIDiagnosticMarker {
-                SwiftUIDiagnosticMarker(rendererStatusText: viewportSession.rendererStatusText)
-                    .ignoresSafeArea()
+            if isDiagnosticUIModeEnabled {
+                DiagnosticRootSurface(
+                    sceneName: screenshotLaunch.requestedScene.rawValue
+                )
+                .ignoresSafeArea()
             } else {
                 MetalViewportContainer(viewportSession: viewportSession)
                     .ignoresSafeArea()
@@ -83,7 +88,13 @@ struct RootViewportScreen: View {
                 .presentationDragIndicator(.visible)
         }
         .onAppear(perform: applyScreenshotRouteIfNeeded)
+        .onAppear {
+            NSLog("RootViewportScreen.onAppear panel=%@", panelRouter.presentedPanel?.rawValue ?? "<none>")
+        }
         .onChange(of: appSession.activeProjectName, perform: applyProjectPreviewState)
+        .onChange(of: panelRouter.presentedPanel) { panel in
+            NSLog("RootViewportScreen.panelRouting presentedPanel=%@", panel?.rawValue ?? "<none>")
+        }
         .onChange(of: viewportSession.isRendererAvailable) { isRendererAvailable in
             if isRendererAvailable {
                 NSLog("OrcaSlicerIOS viewport renderer available")
@@ -194,6 +205,7 @@ struct RootViewportScreen: View {
         let delay = Double(screenshotLaunch.settleDelayMilliseconds) / 1000
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            NSLog("RootViewportScreen.screenshotRoute applying scene=%@ delayMs=%d", screenshotLaunch.requestedScene.rawValue, screenshotLaunch.settleDelayMilliseconds)
             applyScreenshotSceneState()
             if let panel = screenshotLaunch.requestedScene.panel {
                 panelRouter.present(panel)
@@ -246,27 +258,34 @@ struct RootViewportScreen: View {
     }
 }
 
-private struct SwiftUIDiagnosticMarker: View {
-    let rendererStatusText: String
+private struct DiagnosticRootSurface: View {
+    let sceneName: String
+    private let timestamp: String = ISO8601DateFormatter().string(from: Date())
 
     var body: some View {
-        ZStack {
-            Color(red: 0.78, green: 0.08, blue: 0.14)
-            VStack(spacing: 14) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 64, weight: .bold))
-                Text("SwiftUI Diagnostic Marker")
-                    .font(.title2.weight(.bold))
-                Text("Metal viewport disabled")
-                    .font(.headline.weight(.semibold))
-                Text(rendererStatusText)
-                    .font(.footnote.monospaced())
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+        GeometryReader { proxy in
+            ZStack {
+                Color(red: 0.98, green: 0.15, blue: 0.28)
+                Rectangle()
+                    .stroke(Color.yellow, lineWidth: 12)
+                    .padding(20)
+                VStack(spacing: 18) {
+                    Text("SWIFTUI ROOT ALIVE")
+                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                    Text("scene=\(sceneName)\n\(timestamp)\nbounds=\(Int(proxy.size.width))x\(Int(proxy.size.height))")
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(28)
+                .background(Color.white.opacity(0.8))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(24)
             }
-            .foregroundStyle(.white)
+            .accessibilityIdentifier("ORCASLICER_SWIFTUI_ROOT_DIAGNOSTIC_SURFACE")
         }
-        .accessibilityIdentifier("swiftui-diagnostic-marker")
     }
 }
 

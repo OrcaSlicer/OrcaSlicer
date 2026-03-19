@@ -42,6 +42,7 @@
 
     _backend = std::make_unique<Slic3r::portability::render::ios::IOSMetalRenderBackend>();
     auto *layer = (CAMetalLayer *) self.layer;
+    NSLog(@"[OrcaMetal] OrcaMetalViewportView.initWithFrame frame=%@ bounds=%@ scale=%.2f", NSStringFromCGRect(frame), NSStringFromCGRect(self.bounds), self.contentScaleFactor);
     _backend->bind_metal_layer(layer);
     const bool initialized = _backend->initialize();
     if (initialized) {
@@ -75,6 +76,7 @@
 - (void)layoutSubviews
 {
     [super layoutSubviews];
+    NSLog(@"[OrcaMetal] OrcaMetalViewportView.layoutSubviews bounds=%@ scale=%.2f", NSStringFromCGRect(self.bounds), self.contentScaleFactor);
 
     if (_backend != nullptr)
         _backend->resize((int) CGRectGetWidth(self.bounds), (int) CGRectGetHeight(self.bounds));
@@ -108,6 +110,11 @@
     }
 
     _backend->render_frame();
+    static int render_log_count = 0;
+    if (render_log_count < 5) {
+        NSLog(@"[OrcaMetal] OrcaMetalViewportView.renderFrame #%d bounds=%@ ready=%@", render_log_count + 1, NSStringFromCGRect(self.bounds), _rendererReady ? @"true" : @"false");
+        render_log_count += 1;
+    }
 }
 
 - (BOOL)isRendererReady { return _rendererReady; }

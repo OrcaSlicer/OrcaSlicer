@@ -104,6 +104,7 @@ final class ProjectProfileStore: ObservableObject {
     #endif
 
     init() {
+        NSLog("ProjectProfileStore.init")
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
         let buildNumber = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
 
