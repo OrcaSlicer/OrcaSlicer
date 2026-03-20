@@ -44,6 +44,8 @@ protected:
     // username and password for HTTP Digest Authentization (RFC RFC2617)
 	std::string m_api_username;
     std::string m_api_password;
+
+	bool makeGriffinCompatible(std::string filepath) const;
    
 private:
 	enum class ConnectionType { rrf, dsf, error };
