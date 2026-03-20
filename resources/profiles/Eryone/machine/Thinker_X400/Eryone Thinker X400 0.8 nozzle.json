@@ -1,0 +1,28 @@
+{
+    "type": "machine",
+    "from": "system",
+    "name": "Eryone Thinker X400 0.8 nozzle",
+    "inherits": "fdm_machine_eryone_Thinker_X400_common",
+    "setting_id": "GM003228",
+    "instantiation": "true",
+    "printer_variant": "0.8",
+    "printer_model": "Eryone Thinker X400",
+    "default_print_profile": "0.35mm Standard @Eryone Thinker X400 0.8 nozzle",
+    "default_filament_profile": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF;",
+    "machine_start_gcode": "M117 Heating\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nPRINT_START \nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S0\nM140 S[bed_temperature_initial_layer_single] ; set bed temp\nM117 Heating\nM190 S[bed_temperature_initial_layer_single]\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\n;QUAD_GANTRY_LEVEL\nCLEAN_N S=[first_layer_temperature] X=240 Y=-3 A=0 D=0.4\nM117 Quad Level\n_QUAD_GANTRY_LEVEL  horizontal_move_z=10 retry_tolerance=1 LIFT_SPEED=5\nG28 Z\nM117 Quad Level\n_QUAD_GANTRY_LEVEL  horizontal_move_z=5 retry_tolerance=0.05 LIFT_SPEED=5\nM117 Bed Mesh Level\nG1 X132.5 Y197.5\nG28 N\nBED_MESH_CALIBRATE\nM117 Heating\nG1 X275.0 Y0.0 Z0.3 F1500 ; move print head up\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nM117 .\nINTRO_LINE D=0.8 ;intro line with 0.8 mm nozzle",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.16"
+    ],
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "retraction_length": [
+        "2.5"
+    ],
+    "retraction_minimum_travel": [
+        "3"
+    ]
+}

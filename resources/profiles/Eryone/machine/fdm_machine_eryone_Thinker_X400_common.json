@@ -1,18 +1,9 @@
 {
     "type": "machine",
-    "name": "Thinker X400 0.4 nozzle",
+    "name": "fdm_machine_eryone_Thinker_X400_common",
     "from": "system",
-    "setting_id": "GM003",
-    "instantiation": "true",
-    "printer_model": "Thinker X400",
-    "default_print_profile": "0.20mm Standard @Thinker X400",
-    "default_filament_profile": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF;",
+    "instantiation": "false",
     "auxiliary_fan": "0",
-    "bed_custom_model": "",
-    "bed_custom_texture": "",
-    "bed_exclude_area": [
-        "0x0"
-    ],
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "best_object_pos": "0.5,0.5",
     "change_filament_gcode": "",
@@ -136,7 +127,7 @@
     ],
     "printable_height": "400",
     "printer_notes": "",
-    "printer_settings_id": "Thinker X400 0.4 nozzle",
+    "printer_settings_id": "Eryone Thinker X400 common",
     "printer_structure": "undefine",
     "printer_technology": "FFF",
     "printer_variant": "0.4",
@@ -187,13 +178,10 @@
     "support_air_filtration": "1",
     "support_chamber_temp_control": "1",
     "template_custom_gcode": "",
-    "thumbnails": [
-        "250x250"
-    ],
+    "thumbnails": "48x48/PNG, 300x300/PNG",
     "thumbnails_format": "PNG",
     "time_cost": "0",
     "time_lapse_gcode": "",
-    "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
     "wipe": [
