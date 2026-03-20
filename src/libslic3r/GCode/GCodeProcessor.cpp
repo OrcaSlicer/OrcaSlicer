@@ -5403,9 +5403,9 @@ void GCodeProcessor::init_filament_maps_and_nozzle_type_when_import_only_gcode()
 
 void GCodeProcessor::process_filament_change(int id)
 {
+    assert(id < m_result.filaments_count);
     if (id < 0 || id >= m_result.filaments_count)//Safeguard against invalid filament id, TODO: find the root cause of this issue.
         return;
-    assert(id < m_result.filaments_count);
     int prev_extruder_id = get_extruder_id(false);
     int prev_filament_id = get_filament_id(false);
     int next_extruder_id = m_filament_maps[id];
