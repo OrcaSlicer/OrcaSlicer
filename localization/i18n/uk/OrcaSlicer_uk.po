@@ -5840,26 +5840,26 @@ msgstr "Випередження тиску (PA)"
 msgid "Pass 1"
 msgstr "Прохід 1"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Тест потоку - Прохід 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "Тест коефіцієнта потоку - Прохід 1"
 
 msgid "Pass 2"
 msgstr "Прохід 2"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Тест потоку - Прохід 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "Тест коефіцієнта потоку - Прохід 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Рекомендоване)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Калібрування потоку Orca YOLO, крок 0.01"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Калібрування коефіцієнта потоку Orca YOLO, крок 0.01"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (версія перфекціоніста)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Калібрування потоку Orca YOLO, крок 0.005"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Калібрування коефіцієнта потоку Orca YOLO, крок 0.005"
 
 msgid "Retraction test"
 msgstr "Тест на втягування"

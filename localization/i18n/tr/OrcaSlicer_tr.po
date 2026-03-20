@@ -5639,26 +5639,26 @@ msgstr "Basınç avansı oranı"
 msgid "Pass 1"
 msgstr "Geçiş 1"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Akış hızı testi - Başarılı 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "Akış oranı testi - Geçiş 1"
 
 msgid "Pass 2"
 msgstr "Geçiş 2"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Akış hızı testi - Geçiş 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "Akış oranı testi - Geçiş 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Önerilen)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Orca YOLO akış hızı kalibrasyonu, 0,01 adım"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Orca YOLO akış oranı kalibrasyonu, 0,01 adım"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (Mükemmeliyetçi)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Orca YOLO akış hızı kalibrasyonu, 0,005 adım"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Orca YOLO akış oranı kalibrasyonu, 0,005 adım"
 
 msgid "Retraction test"
 msgstr "Geri çekme testi"

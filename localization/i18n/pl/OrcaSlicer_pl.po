@@ -5843,26 +5843,26 @@ msgstr "Wzrost ciśnienia (PA)"
 msgid "Pass 1"
 msgstr "Procedura 1"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Test natężenia przepływu - Procedura 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "Test współczynnika przepływu - Procedura 1"
 
 msgid "Pass 2"
 msgstr "Procedura 2"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Test natężenia przepływu - Procedura 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "Test współczynnika przepływu - Procedura 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Zalecane)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Orca YOLO-kalibracja przepływu, krok 0.01"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Orca YOLO-kalibracja współczynnika przepływu, krok 0.01"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (wersja perfekcjonistyczna)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Orca YOLO-kalibracja przepływu, krok 0.005"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Orca YOLO-kalibracja współczynnika przepływu, krok 0.005"
 
 msgid "Retraction test"
 msgstr "Test retrakcji"

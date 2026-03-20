@@ -5858,26 +5858,26 @@ msgstr "Filamento tiekimas posūkio metu"
 msgid "Pass 1"
 msgstr "1 fazė"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Srauto testas - 1 fazė"
+msgid "Flow ratio test - Pass 1"
+msgstr "Srauto santykio testas - 1 fazė"
 
 msgid "Pass 2"
 msgstr "2 fazė"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Srauto testas - 2 fazė"
+msgid "Flow ratio test - Pass 2"
+msgstr "Srauto santykio testas - 2 fazė"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (rekomenduojama)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "„Orca YOLO“ srauto kalibravimas, 0,01 žingsnis"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,01 žingsnis"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (perfekcionistinė versija)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "„Orca YOLO“ srauto kalibravimas, 0,005 žingsnis"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,005 žingsnis"
 
 msgid "Retraction test"
 msgstr "Įtraukimo testas"

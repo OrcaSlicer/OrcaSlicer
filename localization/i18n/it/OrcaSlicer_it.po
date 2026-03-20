@@ -5879,25 +5879,25 @@ msgstr "Anticipo di pressione"
 msgid "Pass 1"
 msgstr "Passaggio 1"
 
-msgid "Flow rate test - Pass 1"
+msgid "Flow ratio test - Pass 1"
 msgstr "Test flusso di stampa - Passaggio 1"
 
 msgid "Pass 2"
 msgstr "Passaggio 2"
 
-msgid "Flow rate test - Pass 2"
+msgid "Flow ratio test - Pass 2"
 msgstr "Test flusso di stampa - Passaggio 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Consigliato)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
 msgstr "Calibrazione del flusso di stampa Orca YOLO, incrementi di 0,01"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (versione per perfezionisti)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
 msgstr "Calibrazione del flusso di stampa Orca YOLO, incrementi di 0,005"
 
 msgid "Retraction test"

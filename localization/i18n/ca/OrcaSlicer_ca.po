@@ -5853,26 +5853,26 @@ msgstr "Avanç de Pressió Lineal (Pressure advance)"
 msgid "Pass 1"
 msgstr "Pas 1"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Test de Flux - Pas 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "Test de relació de flux - Pas 1"
 
 msgid "Pass 2"
 msgstr "Pas 2"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Test de Flux - Pas 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "Test de relació de flux - Pas 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Recomanat)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Calibració del flux de material YOLO d'Orca, pas de 0,01"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Calibració de relació de flux YOLO d'Orca, pas de 0,01"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (versió perfeccionista)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Calibració del flux de material YOLO d'Orca, pas de 0,005"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Calibració de relació de flux YOLO d'Orca, pas de 0,005"
 
 msgid "Retraction test"
 msgstr "Prova de retracció"

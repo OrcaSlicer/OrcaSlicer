@@ -5945,25 +5945,25 @@ msgstr "Nyomáselőtolás (PA)"
 msgid "Pass 1"
 msgstr "1. menet"
 
-msgid "Flow rate test - Pass 1"
+msgid "Flow ratio test - Pass 1"
 msgstr "Anyagáramlás teszt - 1. menet"
 
 msgid "Pass 2"
 msgstr "2. menet"
 
-msgid "Flow rate test - Pass 2"
+msgid "Flow ratio test - Pass 2"
 msgstr "Anyagáramlás teszt - 2. menet"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Ajánlott)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
 msgstr "Orca YOLO anyagáramlás-kalibrálás, 0.01-es lépésköz"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (perfekcionista verzió)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
 msgstr "Orca YOLO anyagáramlás-kalibrálás, 0.005-ös lépésköz"
 
 msgid "Retraction test"

@@ -6087,28 +6087,28 @@ msgid "Pass 1"
 msgstr "Первый проход (примерный подбор)"
 
 # Описание для диктора? Подсказка для других систем? Не нашёл, где выводится в Windows. 
-msgid "Flow rate test - Pass 1"
-msgstr "Тест потока - 1-ый проход"
+msgid "Flow ratio test - Pass 1"
+msgstr "Тест коэффициента потока - 1-ый проход"
 
 msgid "Pass 2"
 msgstr "Второй проход (точный подбор)"
 
 # Описание для диктора? Подсказка для других систем? Не нашёл, где выводится в Windows. 
-msgid "Flow rate test - Pass 2"
-msgstr "Тест потока - 2-ой проход"
+msgid "Flow ratio test - Pass 2"
+msgstr "Тест коэффициента потока - 2-ой проход"
 
 # YOLO – калибровка "с первого раза", "Одним махом", You Only Look Once (https://github.com/OrcaSlicer/OrcaSlicer/pull/6479)
 msgid "YOLO (Recommended)"
 msgstr "Экспресс-калибровка потока (YOLO, шаг 0.01, рекомендуется)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Калибровка потока YOLO (шаг 0.01)"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Калибровка коэффициента потока YOLO (шаг 0.01)"
 
 msgid "YOLO (perfectionist version)"
 msgstr "Точная экспресс-калибровка (YOLO, шаг 0.005, для перфекционистов)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Калибровка потока YOLO (шаг 0.005)"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Калибровка коэффициента потока YOLO (шаг 0.005)"
 
 msgid "Retraction test"
 msgstr "Тест откатов"

@@ -5799,26 +5799,26 @@ msgstr "Pressure advance"
 msgid "Pass 1"
 msgstr "Průchod 1"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Test průtoku – Průchod 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "Test poměru průtoku – Průchod 1"
 
 msgid "Pass 2"
 msgstr "Průchod 2"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Test průtoku – Průchod 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "Test poměru průtoku – Průchod 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (doporučeno)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Orca YOLO kalibrace rychlosti průtoku, krok 0,01"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Orca YOLO kalibrace poměru průtoku, krok 0,01"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (perfekcionistická verze)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Orca YOLO kalibrace rychlosti průtoku, krok 0,005"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Orca YOLO kalibrace poměru průtoku, krok 0,005"
 
 msgid "Retraction test"
 msgstr "Test retrakce"

@@ -5745,26 +5745,26 @@ msgstr "프레셔 어드밴스"
 msgid "Pass 1"
 msgstr "1차 테스트"
 
-msgid "Flow rate test - Pass 1"
-msgstr "압출량 테스트 - 1차"
+msgid "Flow ratio test - Pass 1"
+msgstr "압출량 비율 테스트 - 1차"
 
 msgid "Pass 2"
 msgstr "2차 테스트"
 
-msgid "Flow rate test - Pass 2"
-msgstr "압출량 테스트 - 2차"
+msgid "Flow ratio test - Pass 2"
+msgstr "압출량 비율 테스트 - 2차"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (권장)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Orca YOLO 압출량 보정, 0.01 단계"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Orca YOLO 압출량 비율 보정, 0.01 단계"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (완벽주의자 버전)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Orca YOLO 압출량 보정, 0.005 단계"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Orca YOLO 압출량 비율 보정, 0.005 단계"
 
 msgid "Retraction test"
 msgstr "후퇴 테스트"

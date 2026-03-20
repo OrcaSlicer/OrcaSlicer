@@ -5771,26 +5771,26 @@ msgstr "Pressure advance"
 msgid "Pass 1"
 msgstr "Lần 1"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Kiểm tra flow rate - Lần 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "Kiểm tra Tỷ lệ lưu lượng - Lần 1"
 
 msgid "Pass 2"
 msgstr "Lần 2"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Kiểm tra flow rate - Lần 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "Kiểm tra Tỷ lệ lưu lượng - Lần 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (Khuyến nghị)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Hiệu chỉnh flowrate Orca YOLO, bước 0.01"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Hiệu chỉnh Tỷ lệ lưu lượng Orca YOLO, bước 0.01"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (phiên bản cầu toàn)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Hiệu chỉnh flowrate Orca YOLO, bước 0.005"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Hiệu chỉnh Tỷ lệ lưu lượng Orca YOLO, bước 0.005"
 
 msgid "Retraction test"
 msgstr "Kiểm tra retraction"

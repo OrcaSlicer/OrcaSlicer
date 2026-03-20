@@ -5721,26 +5721,26 @@ msgstr "压力提前"
 msgid "Pass 1"
 msgstr "粗调"
 
-msgid "Flow rate test - Pass 1"
-msgstr "流量测试 - 通过 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "流量比例测试 - 通过 1"
 
 msgid "Pass 2"
 msgstr "细调"
 
-msgid "Flow rate test - Pass 2"
-msgstr "流量测试 - 通过 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "流量比例测试 - 通过 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO（推荐）"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Orca YOLO流量校准，0.01步长"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Orca YOLO流量比例校准，0.01步长"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO（完美主义者版本）"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Orca YOLO流量校准，0.005步长"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Orca YOLO流量比例校准，0.005步长"
 
 msgid "Retraction test"
 msgstr "回抽测试"

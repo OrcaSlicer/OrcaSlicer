@@ -5658,25 +5658,25 @@ msgstr ""
 msgid "Pass 1"
 msgstr ""
 
-msgid "Flow rate test - Pass 1"
+msgid "Flow ratio test - Pass 1"
 msgstr ""
 
 msgid "Pass 2"
 msgstr ""
 
-msgid "Flow rate test - Pass 2"
+msgid "Flow ratio test - Pass 2"
 msgstr ""
 
 msgid "YOLO (Recommended)"
 msgstr ""
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
 msgstr ""
 
 msgid "YOLO (perfectionist version)"
 msgstr ""
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
 msgstr ""
 
 msgid "Retraction test"
