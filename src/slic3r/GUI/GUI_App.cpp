@@ -523,34 +523,34 @@ bool static check_old_linux_datadir(const wxString& app_name) {
 #endif
 
 struct FileWildcards {
-    std::string_view              title;
+    const char*                 title_id;
     std::vector<std::string_view> file_extensions;
 };
 
 static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
-    /* FT_STEP */    { "STEP files"sv,      { ".stp"sv, ".step"sv } },
-    /* FT_STL */     { "STL files"sv,       { ".stl"sv } },
-    /* FT_OBJ */     { "OBJ files"sv,       { ".obj"sv } },
-    /* FT_AMF */     { "AMF files"sv,       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
-    /* FT_3MF */     { "3MF files"sv,       { ".3mf"sv } },
-    /* FT_GCODE_3MF */ {"Gcode 3MF files"sv, {".gcode.3mf"sv}},
-    /* FT_GCODE */   { "G-code files"sv,    { ".gcode"sv} },
+    /* FT_STEP */    { L("STEP files"),      { ".stp"sv, ".step"sv } },
+    /* FT_STL */     { L("STL files"),       { ".stl"sv } },
+    /* FT_OBJ */     { L("OBJ files"),       { ".obj"sv } },
+    /* FT_AMF */     { L("AMF files"),       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
+    /* FT_3MF */     { L("3MF files"),       { ".3mf"sv } },
+    /* FT_GCODE_3MF */ {L("Gcode 3MF files"), {".gcode.3mf"sv}},
+    /* FT_GCODE */   { L("G-code files"),    { ".gcode"sv} },
 #ifdef __APPLE__
     /* FT_MODEL */
-    {"Supported files"sv, {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".usd"sv, ".usda"sv, ".usdc"sv, ".usdz"sv, ".abc"sv, ".ply"sv, ".drc"sv}},
 #else
     /* FT_MODEL */
-    {"Supported files"sv, {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".drc"sv}},
+    {L("Supported files"), {".3mf"sv, ".stl"sv, ".oltp"sv, ".stp"sv, ".step"sv, ".svg"sv, ".amf"sv, ".obj"sv, ".drc"sv}},
 #endif
-    /* FT_ZIP */     { "ZIP files"sv,       { ".zip"sv } },
-    /* FT_PROJECT */ { "Project files"sv,   { ".3mf"sv} },
-    /* FT_GALLERY */ { "Known files"sv,     { ".stl"sv, ".obj"sv } },
+    /* FT_ZIP */     { L("ZIP files"),       { ".zip"sv } },
+    /* FT_PROJECT */ { L("Project files"),   { ".3mf"sv} },
+    /* FT_GALLERY */ { L("Known files"),     { ".stl"sv, ".obj"sv } },
 
-    /* FT_INI */     { "INI files"sv,       { ".ini"sv } },
-    /* FT_SVG */     { "SVG files"sv,       { ".svg"sv } },
-    /* FT_TEX */     { "Texture"sv,         { ".png"sv, ".svg"sv } },
-    /* FT_SL1 */     { "Masked SLA files"sv, { ".sl1"sv, ".sl1s"sv } },
-    /* FT_DRC */     { "Draco files"sv,     { ".drc"sv } },
+    /* FT_INI */     { L("INI files"),       { ".ini"sv } },
+    /* FT_SVG */     { L("SVG files"),       { ".svg"sv } },
+    /* FT_TEX */     { L("Texture"),         { ".png"sv, ".svg"sv } },
+    /* FT_SL1 */     { L("Masked SLA files"), { ".sl1"sv, ".sl1s"sv } },
+    /* FT_DRC */     { L("Draco files"),     { ".drc"sv } },
 };
 
 // This function produces a Win32 file dialog file template mask to be consumed by wxWidgets on all platforms.
@@ -605,7 +605,8 @@ wxString file_wildcards(FileType file_type, const std::string &custom_extension)
             mask += ";*";
             mask += boost::to_upper_copy(std::string(ext));
         }
-    return GUI::format_wxstr("%s (%s)|%s", data.title, title, mask);
+    const wxString translated_title = Slic3r::GUI::I18N::translate(data.title_id);
+    return GUI::format_wxstr("%s (%s)|%s", translated_title, title, mask);
 }
 
 static std::string libslic3r_translate_callback(const char *s) { return wxGetTranslation(wxString(s, wxConvUTF8)).utf8_str().data(); }
@@ -872,7 +873,9 @@ void GUI_App::post_init()
     }
     if (!switch_to_3d) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
+#ifndef __linux__
         mainframe->Freeze();
+#endif
         plater_->canvas3D()->enable_render(false);
         mainframe->select_tab(size_t(MainFrame::tp3DEditor));
         plater_->select_view_3D("3D");
@@ -909,7 +912,9 @@ void GUI_App::post_init()
             mainframe->select_tab(size_t(0));
         if (app_config->get("default_page") == "1")
             mainframe->select_tab(size_t(1));
+#ifndef __linux__
         mainframe->Thaw();
+#endif
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
     }
 
@@ -1717,7 +1722,7 @@ bool GUI_App::hot_reload_network_plugin()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": starting hot reload";
 
     wxBusyCursor busy;
-    wxBusyInfo info(_L("Reloading network plugin..."), mainframe);
+    wxBusyInfo info(_L("Reloading network plug-in..."), mainframe);
     wxYield();
     wxWindowDisabler disabler;
 
@@ -1860,7 +1865,7 @@ void GUI_App::show_network_plugin_download_dialog(bool is_update)
             app_config->set_network_plugin_version(selected);
             app_config->save();
 
-            DownloadProgressDialog download_dlg(_L("Downloading Network Plugin"));
+            DownloadProgressDialog download_dlg(_L("Downloading Network Plug-in"));
             download_dlg.ShowModal();
         }
         break;
@@ -2695,6 +2700,18 @@ bool GUI_App::on_init_inner()
     // TODO: Find workaround for GTK4
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
     g_object_set (gtk_settings_get_default (), "gtk-menu-images", TRUE, NULL);
+#endif
+
+#if defined(__WXGTK20__) || defined(__WXGTK3__)
+    // Suppress harmless GTK critical warnings from the GTK3/wxWidgets interaction.
+    // These include widget allocation on hidden widgets and events on unrealized widgets.
+    g_log_set_handler("Gtk", G_LOG_LEVEL_CRITICAL,
+        [](const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+            if (message && (strstr(message, "gtk_widget_set_allocation") ||
+                            strstr(message, "WIDGET_REALIZED_FOR_EVENT")))
+                return;
+            g_log_default_handler(log_domain, log_level, message, user_data);
+        }, nullptr);
 #endif
 
 #ifdef WIN32
@@ -4389,7 +4406,7 @@ wxString GUI_App::transition_tridid(int trid_id) const
     if (trid_id == VIRTUAL_TRAY_MAIN_ID || trid_id == VIRTUAL_TRAY_DEPUTY_ID)
     {
         assert(0);
-        return wxString("Ext");
+        return _L("Ext");
     }
 
     wxString maping_dict[] = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
@@ -5516,7 +5533,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                            "2. Enable Developer mode\n\n"
                            "Developer mode allows the printer to work exclusively through local network access, "
                            "enabling full functionality with OrcaSlicer."),
-                        _L("Network Plugin Restriction"), wxAPPLY | wxOK);
+                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
             m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
             m_show_error_msgdlg = false;
@@ -6182,7 +6199,7 @@ static const wxLanguageInfo* linux_get_existing_locale_language(const wxLanguage
         if (! it->empty()) {
             const std::string &locale = *it;
             const wxLanguageInfo* lang = wxLocale::FindLanguageInfo(from_u8(locale));
-            if (wxLocale::IsAvailable(lang->Language))
+            if (lang != nullptr && wxLocale::IsAvailable(lang->Language))
                 return lang;
         }
     return language;
@@ -6224,7 +6241,10 @@ bool GUI_App::select_language()
     names.Alloc(language_infos.size());
 
     // Some valid language should be selected since the application start up.
-    const wxLanguage current_language = wxLanguage(m_wxLocale->GetLanguage());
+    const wxString active_language_code = current_language_code();
+    const wxLanguageInfo* active_language_info = wxLocale::FindLanguageInfo(active_language_code);
+    const wxLanguage current_language = active_language_info != nullptr ? wxLanguage(active_language_info->Language) : wxLanguage(m_wxLocale->GetLanguage());
+    const wxString active_lang_prefix = active_language_code.BeforeFirst('_');
     int 		     init_selection   		= -1;
     int 			 init_selection_alt     = -1;
     int 			 init_selection_default = -1;
@@ -6232,9 +6252,9 @@ bool GUI_App::select_language()
         if (wxLanguage(language_infos[i]->Language) == current_language)
         	// The dictionary matches the active language and country.
             init_selection = i;
-        else if ((language_infos[i]->CanonicalName.BeforeFirst('_') == m_wxLocale->GetCanonicalName().BeforeFirst('_')) ||
+        else if ((language_infos[i]->CanonicalName.BeforeFirst('_') == active_lang_prefix) ||
         		 // if the active language is Slovak, mark the Czech language as active.
-        	     (language_infos[i]->CanonicalName.BeforeFirst('_') == "cs" && m_wxLocale->GetCanonicalName().BeforeFirst('_') == "sk"))
+        	     (language_infos[i]->CanonicalName.BeforeFirst('_') == "cs" && active_lang_prefix == "sk"))
         	// The dictionary matches the active language, it does not necessarily match the country.
         	init_selection_alt = i;
         if (language_infos[i]->CanonicalName.BeforeFirst('_') == "en")
@@ -6352,7 +6372,10 @@ bool GUI_App::load_language(wxString language, bool initial)
 			language_info = wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_US);
     }
 
-	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % language_info->CanonicalName.ToUTF8().data();
+    const wxLanguageInfo *translation_language_info = language_info;
+    const wxString requested_language_code = translation_language_info->CanonicalName;
+    const wxLanguageInfo *locale_language_info = translation_language_info;
+    BOOST_LOG_TRIVIAL(trace) << boost::format("Requested translation language %1%") % requested_language_code.ToUTF8().data();
 
     // Select language for locales. This language may be different from the language of the dictionary.
     //if (language_info == m_language_info_best || language_info == m_language_info_system) {
@@ -6365,8 +6388,8 @@ bool GUI_App::load_language(wxString language, bool initial)
     //    language_info = m_language_info_system;
 
     // Alternate language code.
-    wxLanguage language_dict = wxLanguage(language_info->Language);
-    if (language_info->CanonicalName.BeforeFirst('_') == "sk") {
+    wxLanguage language_dict = wxLanguage(translation_language_info->Language);
+    if (translation_language_info->CanonicalName.BeforeFirst('_') == "sk") {
     	// Slovaks understand Czech well. Give them the Czech translation.
     	language_dict = wxLANGUAGE_CZECH;
 		BOOST_LOG_TRIVIAL(info) << "Using Czech dictionaries for Slovak language";
@@ -6375,19 +6398,34 @@ bool GUI_App::load_language(wxString language, bool initial)
 #ifdef __linux__
     // If we can't find this locale , try to use different one for the language
     // instead of just reporting that it is impossible to switch.
-    if (! wxLocale::IsAvailable(language_info->Language) && m_language_info_system) {
-        std::string original_lang = into_u8(language_info->CanonicalName);
-        language_info = linux_get_existing_locale_language(language_info, m_language_info_system);
-        BOOST_LOG_TRIVIAL(info) << boost::format("Can't switch language to %1% (missing locales). Using %2% instead.")
-                                    % original_lang % language_info->CanonicalName.ToUTF8().data();
+    if (!wxLocale::IsAvailable(locale_language_info->Language) && m_language_info_system) {
+        std::string original_lang = into_u8(locale_language_info->CanonicalName);
+        locale_language_info = linux_get_existing_locale_language(locale_language_info, m_language_info_system);
+        if (locale_language_info != nullptr && locale_language_info != translation_language_info) {
+            BOOST_LOG_TRIVIAL(info) << boost::format("Can't use locale %1% directly (missing locales). Using locale %2% instead.")
+                                        % original_lang % locale_language_info->CanonicalName.ToUTF8().data();
+        }
+    }
+
+    if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
+        auto try_locale = [](const wxLanguageInfo* candidate) -> const wxLanguageInfo* {
+            return (candidate && wxLocale::IsAvailable(candidate->Language)) ? candidate : nullptr;
+        };
+        const wxLanguageInfo* fallback_locale_info =
+            try_locale(m_wxLocale ? wxLocale::GetLanguageInfo(wxLanguage(m_wxLocale->GetLanguage())) : nullptr);
+        if (!fallback_locale_info) fallback_locale_info = try_locale(m_language_info_system);
+        if (!fallback_locale_info) fallback_locale_info = try_locale(m_language_info_best);
+        if (!fallback_locale_info) fallback_locale_info = try_locale(wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_US));
+        if (!fallback_locale_info) fallback_locale_info = try_locale(wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_UK));
+        if (fallback_locale_info != nullptr) {
+            BOOST_LOG_TRIVIAL(info) << boost::format("Using fallback locale %1% while keeping translation dictionary %2%.")
+                                        % fallback_locale_info->CanonicalName.ToUTF8().data() % requested_language_code.ToUTF8().data();
+            locale_language_info = fallback_locale_info;
+        }
     }
 #endif
 
-    if (! wxLocale::IsAvailable(language_info->Language)&&initial) {
-        language_info = wxLocale::GetLanguageInfo(wxLANGUAGE_ENGLISH_UK);
-        app_config->set("language", language_info->CanonicalName.ToUTF8().data());
-    }
-    else if (initial) {
+    if (initial) {
         // bbs supported languages
         //TODO: use a global one with Preference
         //wxLanguage supported_languages[]{
@@ -6421,9 +6459,11 @@ bool GUI_App::load_language(wxString language, bool initial)
         //}
     }
 
-    if (! wxLocale::IsAvailable(language_info->Language)) {
+	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_language_info->CanonicalName.ToUTF8().data();
+
+    if (!wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
-    	wxString message = "Switching Orca Slicer to language " + language_info->CanonicalName + " failed.";
+	    wxString message = "Switching Orca Slicer to language " + requested_language_code + " failed.";
 #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux system
         message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
@@ -6441,12 +6481,13 @@ bool GUI_App::load_language(wxString language, bool initial)
     //FIXME wxWidgets cause havoc if the current locale is deleted. We just forget it causing memory leaks for now.
     m_wxLocale.release();
     m_wxLocale = Slic3r::make_unique<wxLocale>();
-    m_wxLocale->Init(language_info->Language);
+    m_wxLocale->Init(locale_language_info->Language);
     // Override language at the active wxTranslations class (which is stored in the active m_wxLocale)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
     m_wxLocale->AddCatalog(SLIC3R_APP_KEY);
-    m_imgui->set_language(into_u8(language_info->CanonicalName));
+    m_active_language_code = requested_language_code;
+    m_imgui->set_language(into_u8(requested_language_code));
 
     //FIXME This is a temporary workaround, the correct solution is to switch to "C" locale during file import / export only.
     //wxSetlocale(LC_NUMERIC, "C");
@@ -6734,49 +6775,57 @@ void  GUI_App::show_ip_address_enter_dialog_handler(wxCommandEvent& evt)
 
 void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
 {
-    bool app_layout_changed = false;
+    bool need_recreate_gui = false;
+    std::string pending_language;
     {
         // the dialog needs to be destroyed before the call to recreate_GUI()
         // or sometimes the application crashes into wxDialogBase() destructor
         // so we put it into an inner scope
         PreferencesDialog dlg(mainframe, open_on_tab, highlight_option);
         dlg.ShowModal();
-        this->plater_->get_current_canvas3D()->force_set_focus();
-        // BBS
-        //app_layout_changed = dlg.settings_layout_changed();
+        need_recreate_gui = dlg.recreate_GUI();
+        pending_language = dlg.pending_language();
+        if (!need_recreate_gui) {
+            this->plater_->get_current_canvas3D()->force_set_focus();
 #if ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-        if (dlg.seq_top_layer_only_changed() || dlg.seq_seq_top_gcode_indices_changed())
+            if (dlg.seq_top_layer_only_changed() || dlg.seq_seq_top_gcode_indices_changed())
 #else
-        if (dlg.seq_top_layer_only_changed())
+            if (dlg.seq_top_layer_only_changed())
 #endif // ENABLE_GCODE_LINES_ID_IN_H_SLIDER
-            this->plater_->reload_print();
+                this->plater_->reload_print();
 #ifdef _WIN32
-        if (is_editor()) {
-            if (app_config->get("associate_3mf") == "true")
-                associate_files(L"3mf");
-            if (app_config->get("associate_stl") == "true")
-                associate_files(L"stl");
-            if (app_config->get("associate_step") == "true") {
-                associate_files(L"step");
-                associate_files(L"stp");
+            if (is_editor()) {
+                if (app_config->get("associate_3mf") == "true")
+                    associate_files(L"3mf");
+                if (app_config->get("associate_stl") == "true")
+                    associate_files(L"stl");
+                if (app_config->get("associate_step") == "true") {
+                    associate_files(L"step");
+                    associate_files(L"stp");
+                }
+                associate_url(L"orcaslicer");
             }
-            associate_url(L"orcaslicer");
-        }
-        else {
-            if (app_config->get("associate_gcode") == "true")
-                associate_files(L"gcode");
-        }
+            else {
+                if (app_config->get("associate_gcode") == "true")
+                    associate_files(L"gcode");
+            }
 #endif // _WIN32
+        }
     }
 
-    // BBS
-    /*
-    if (app_layout_changed) {
-        // hide full main_sizer for mainFrame
-        mainframe->GetSizer()->Show(false);
-        mainframe->update_layout();
-        mainframe->select_tab(size_t(0));
-    }*/
+    if (!pending_language.empty()) {
+        const std::string previous_language = app_config->get("language");
+        app_config->set("language", pending_language);
+        if (!load_language(wxString::FromUTF8(pending_language), false)) {
+            app_config->set("language", previous_language);
+            if (this->plater_)
+                this->plater_->get_current_canvas3D()->force_set_focus();
+            return;
+        }
+    }
+
+    if (need_recreate_gui)
+        recreate_GUI(_L("Changing application language"));
 }
 
 bool GUI_App::has_unsaved_preset_changes() const

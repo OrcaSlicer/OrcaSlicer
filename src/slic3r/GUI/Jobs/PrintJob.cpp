@@ -13,6 +13,7 @@
 #include "slic3r/GUI/DeviceCore/DevUtil.h"
 
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -228,7 +229,15 @@ void PrintJob::process(Ctl &ctl)
             ftp_ok = result == 0;
         }
         if (!emmc_ok && !ftp_ok) {
-            BOOST_LOG_TRIVIAL(error) << "access code is invalid";
+            bool legacy_mode = BBLNetworkPlugin::instance().use_legacy_network();
+            BOOST_LOG_TRIVIAL(error) << "LAN connection verification failed:"
+                << " emmc_ok=" << emmc_ok
+                << ", ftp_ok=" << ftp_ok
+                << ", ftp_result=" << result
+                << ", dev_ip=" << m_dev_ip
+                << ", dev_id=" << m_dev_id
+                << ", password_length=" << m_access_code.size()
+                << ", legacy_mode=" << (legacy_mode ? "true" : "false");
             m_enter_ip_address_fun_fail();
             m_job_finished = true;
             return;

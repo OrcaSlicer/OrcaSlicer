@@ -181,13 +181,13 @@ void PublishDialog::SetPublishStep(PublishStep step, bool yield, int percent)
         else
             m_progress->SetValue(0);
     } else if (step == PublishStep::STEP_PACKING) {
-        m_text_progress->SetLabelText(_L("Packing data to 3mf"));
+        m_text_progress->SetLabelText(_L("Packing data to 3MF"));
         if (percent > 0)
             m_progress->SetValue(percent);
         else
             m_progress->SetValue(70);
     } else if (step == PublishStep::STEP_UPLOADING) {
-        m_text_progress->SetLabelText(_L("Packing data to 3mf"));
+        m_text_progress->SetLabelText(_L("Uploading data"));
         if (percent > 0)
             m_progress->SetValue(percent);
         else

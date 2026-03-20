@@ -639,7 +639,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     ai_refine_sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
 
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    text_spaghetti_detection_caption0 = new Label(ai_refine_panel, _L("Detect spaghetti failure(scattered lose filament)."));
+    text_spaghetti_detection_caption0 = new Label(ai_refine_panel, _L("Detect spaghetti failures (scattered lose filament)."));
     text_spaghetti_detection_caption0->SetFont(Label::Body_12);
     text_spaghetti_detection_caption0->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_spaghetti_detection_caption0->Wrap(-1);
