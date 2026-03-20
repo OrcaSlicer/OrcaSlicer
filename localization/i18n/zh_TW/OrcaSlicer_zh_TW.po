@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-20 23:26+0800\n"
+"POT-Creation-Date: 2026-03-20 23:39+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -2614,7 +2614,6 @@ msgstr "新增高度範圍"
 msgid "Invalid numeric."
 msgstr "數值錯誤。"
 
-#, fuzzy
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "一個單元格僅能被複製到同一列的一個或多個單元格"
 
@@ -4153,7 +4152,7 @@ msgstr ""
 "重設為 0。seam_slope_start_height 必須小於 layer_height。\n"
 "重設為 0。"
 
-#, fuzzy, c-format, boost-format
+#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -7605,7 +7604,6 @@ msgstr "儲存專案"
 msgid "Importing Model"
 msgstr "正在匯入模型"
 
-#, fuzzy
 msgid "Preparing 3MF file..."
 msgstr "正在準備 3MF 檔案..."
 
@@ -13860,11 +13858,10 @@ msgstr "首層的線寬。如果以 % 表示，它將以噴嘴直徑為基準來
 msgid "First layer height"
 msgstr "首層層高"
 
-#, fuzzy
 msgid ""
 "Height of the first layer. Making the first layer height thicker can improve "
 "build plate adhesion."
-msgstr "首層層高"
+msgstr "首層層高。加厚首層層高有助於提高列印板附著力。"
 
 msgid "Speed of the first layer except the solid infill part."
 msgstr "首層除實心填充之外的其他部分的列印速度"
@@ -14708,7 +14705,6 @@ msgstr "頂面"
 msgid "Topmost surface"
 msgstr "最頂面"
 
-#, fuzzy
 msgid "All solid layers"
 msgstr "所有實心層"
 
@@ -15189,7 +15185,6 @@ msgstr ""
 "模型底部的孔洞在被圓錐形材料填充前所允許的最大面積。值為 0 將填充模型底部的所"
 "有孔洞。"
 
-#, fuzzy
 msgid "Detect overhang walls"
 msgstr "檢測懸空外牆"
 
@@ -15802,7 +15797,6 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "稀疏填充最小臨界值"
 
-#, fuzzy
 msgid ""
 "Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
@@ -16518,11 +16512,9 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "除首層外的其它層的噴嘴溫度"
 
-#, fuzzy
 msgid "Detect thin walls"
 msgstr "檢查薄壁"
 
-#, fuzzy
 msgid ""
 "Detect thin walls which can't contain two line widths, and use single line "
 "to print. Maybe not printed very well, because it's not a closed loop."
@@ -17083,7 +17075,6 @@ msgstr ""
 "設定替代模型中細薄特徵（依據最小特徵尺寸）的牆體寬度。若最小牆寬小於特徵厚"
 "度，牆體將與特徵的厚度一致。此值以噴嘴直徑的百分比表示"
 
-#, fuzzy
 msgid "Detect narrow internal solid infills"
 msgstr "識別狹窄內部實心填充"
 
