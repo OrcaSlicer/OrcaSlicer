@@ -7001,7 +7001,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Network plug-in v%s (%s)"
-msgstr "Netzwerk Plug-In v%s (%s)""
+msgstr "Netzwerk Plug-In v%s (%s)"
 
 msgid "Don't show again"
 msgstr "Nicht erneut anzeigen"
