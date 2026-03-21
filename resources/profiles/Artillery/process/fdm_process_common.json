@@ -23,6 +23,7 @@
     "bridge_no_support": "0",
     "draft_shield": "disabled",
     "elefant_foot_compensation": "0.15",
+    
     "outer_wall_line_width": "0.4",
     "wall_infill_order": "inner wall/outer wall/infill",
     "line_width": "0.4",
@@ -102,4 +103,5 @@
     "gap_infill_speed": "30",
     "travel_speed": "200",
     "enable_arc_fitting": "0"
+
 }

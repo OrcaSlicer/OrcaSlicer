@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "name": "Artillery Sidewinder X3 Pro 0.4 nozzle",
-    "inherits": "fdm_machine_common",
-    "from": "system",
     "setting_id": "GM004",
+    "name": "Artillery Sidewinder X3 Pro 0.4 nozzle",
+    "from": "system",
     "instantiation": "true",
+    "inherits": "fdm_machine_common",
     "printer_model": "Artillery Sidewinder X3 Pro",
     "default_print_profile": "0.20mm Standard @Artillery Genius",
     "printer_settings_id": "Artillery X3 Pro 0.4 nozzle",
@@ -12,8 +12,8 @@
         "0.4"
     ],
     "default_filament_profile": [
-        "Artillery PLA Basic"
-    ],
+		"Artillery PLA Basic"
+	],
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "0",
     "bbl_use_printhost": "0",
@@ -212,7 +212,7 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "0",
-    "version": "2.0.2.0",
+    "version": "3.0.0.0",
     "wipe": [
         "0"
     ],
@@ -226,4 +226,5 @@
         "Normal Lift"
     ],
     "z_offset": "0"
-}
+  }
+  
