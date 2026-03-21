@@ -425,6 +425,8 @@ public:
     void*				m_hDeviceNotify { nullptr };
     uint32_t  			m_ulSHChangeNotifyRegister { 0 };
 	static constexpr int WM_USER_MEDIACHANGED { 0x7FFF }; // WM_USER from 0x0400 to 0x7FFF, picking the last one to not interfere with wxWidgets allocation
+    bool                m_is_in_move_or_resize { false };
+    ULONGLONG           m_last_resize_layout_ms { 0 };
 #endif // _WIN32
 
 #ifdef __WXGTK__
