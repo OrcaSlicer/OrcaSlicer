@@ -47,6 +47,39 @@ static void set_prefered_map_mode(FilamentMapMode mode)
     app_config->set("prefered_filament_map_mode", mode_str);
 }
 
+bool play_dual_extruder_slice_video()
+{
+    const wxString video_url = "https://e.bambulab.com/t?c=HDB24RlwSmt77YFH";
+    if (wxLaunchDefaultBrowser(video_url)) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Video is being played using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
+bool play_dual_extruder_print_tpu_video()
+{
+    const wxString video_url = "https://e.bambulab.com/t?c=fwWqpBg37Liel92N";
+    if (wxLaunchDefaultBrowser(video_url)){
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Print Tpu Video is being played using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
+bool open_filament_group_wiki()
+{
+    const wxString wiki_url = "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9";
+    if (wxLaunchDefaultBrowser(wiki_url)) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Wiki is being displayed using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
 void FilamentGroupPopup::CreateBmps()
 {
     checked_bmp = create_scaled_bitmap("radio_on", nullptr, 16);; // ORCA match icons
@@ -147,10 +180,29 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
     {
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-        const std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html"; // NEEDFIX this link is broken
+        auto* video_sizer = new wxBoxSizer(wxHORIZONTAL);
+        video_link = new wxStaticText(this, wxID_ANY, _L("Video tutorial"));
+        video_link->SetBackgroundColour(BackGroundColor);
+        video_link->SetForegroundColour(GreenColor);
+        video_link->SetFont(Label::Body_12.Underlined());
+        video_link->SetCursor(wxCursor(wxCURSOR_HAND));
+        video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&)
+            {
+                play_dual_extruder_slice_video();
+                wxGetApp().app_config->set("play_slicing_video", "false");
+            });
+        video_sizer->Add(video_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
+        button_sizer->Add(video_sizer, 0, wxLEFT, horizontal_margin);
+        button_sizer->AddStretchSpacer();
+
 
         auto* wiki_sizer = new wxBoxSizer(wxHORIZONTAL);
-        wiki_link = new HyperLink(this, _L("Wiki Guide"), wxString(wiki_path.c_str())); // ORCA
+        wiki_link = new wxStaticText(this, wxID_ANY, _L("Learn more"));
+        wiki_link->SetBackgroundColour(BackGroundColor);
+        wiki_link->SetForegroundColour(GreenColor);
+        wiki_link->SetFont(Label::Body_12.Underlined());
+        wiki_link->SetCursor(wxCursor(wxCURSOR_HAND));
+        wiki_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { open_filament_group_wiki(); });
         wiki_sizer->Add(wiki_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
 
         button_sizer->Add(wiki_sizer, 0, wxLEFT, horizontal_margin);
