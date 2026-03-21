@@ -1589,22 +1589,25 @@ msgid "Assemble"
 msgstr "Zusammenbauen"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
-msgstr ""
+msgstr "Bitte bestätigen Sie das Explosionsverhältnis = 1 und wählen Sie mindestens zwei Volumen aus."
 
 msgid "Please select at least two volumes."
-msgstr ""
+msgstr "Bitte wählen Sie mindestens zwei Volumen aus."
 
 msgid "(Moving)"
-msgstr ""
+msgstr "(Bewegen)"
 
 msgid "Point and point assembly"
-msgstr ""
+msgstr "Punkt-zu-Punkt-Montage"
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
+"Es wird empfohlen, die Objekte zuerst zusammenzubauen,\n"
+"da die Objekte auf das Druckbett beschränkt sind \n"
+"und nur Teile angehoben werden können."
 
 msgid "Face and face assembly"
 msgstr ""
@@ -1651,52 +1654,52 @@ msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Basierend auf PrusaSlicer und BambuStudio"
 
 msgid "STEP files"
-msgstr ""
+msgstr "SETP Dateien"
 
 msgid "STL files"
-msgstr ""
+msgstr "STL Dateien"
 
 msgid "OBJ files"
-msgstr ""
+msgstr "OBJ Dateien"
 
 msgid "AMF files"
-msgstr ""
+msgstr "AMF Dateien"
 
 msgid "3MF files"
-msgstr ""
+msgstr "3MF Dateien"
 
 msgid "Gcode 3MF files"
-msgstr ""
+msgstr "Gcode 3MF Dateien"
 
 msgid "G-code files"
-msgstr ""
+msgstr "G-code Dateien"
 
 msgid "Supported files"
-msgstr ""
+msgstr "Unterstützte Dateien"
 
 msgid "ZIP files"
-msgstr ""
+msgstr "ZIP Dateien"
 
 msgid "Project files"
-msgstr ""
+msgstr "Projektdateien"
 
 msgid "Known files"
-msgstr ""
+msgstr "Bekannte Dateien"
 
 msgid "INI files"
-msgstr ""
+msgstr "INI Dateien"
 
 msgid "SVG files"
-msgstr ""
+msgstr "SVG Dateien"
 
 msgid "Texture"
 msgstr "Textur"
 
 msgid "Masked SLA files"
-msgstr ""
+msgstr "Maskierte SLA Dateien"
 
 msgid "Draco files"
-msgstr ""
+msgstr "Draco Dateien"
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -2147,10 +2150,10 @@ msgstr ""
 "Nein - Ändern Sie diese Einstellungen nicht für mich"
 
 msgid "Suggestion"
-msgstr ""
+msgstr "Vorschlag"
 
 msgid "Text"
-msgstr "T"
+msgstr "Text"
 
 msgid "Height range Modifier"
 msgstr "Höhen Modifizieren"
@@ -2783,7 +2786,7 @@ msgstr "Linientyp"
 
 #, c-format, boost-format
 msgid "1x1 Grid: %d mm"
-msgstr ""
+msgstr "1x1 Netz %d mm"
 
 msgid "More"
 msgstr "Mehr"
@@ -3343,22 +3346,22 @@ msgstr ""
 "einen normalen Speicher, bevor Sie etwas an den Drucker senden."
 
 msgid "Bad input data for EmbossCreateObjectJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für EmbossCreateObjectJob."
 
 msgid "Add Emboss text object"
-msgstr ""
+msgstr "Füge Emboss-Textobjekt hinzu"
 
 msgid "Bad input data for EmbossUpdateJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für EmbossUpdateJob."
 
 msgid "Created text volume is empty. Change text or font."
-msgstr ""
+msgstr "Erstelltes Textvolumen ist leer. Ändern Sie den Text oder die Schriftart."
 
 msgid "Bad input data for CreateSurfaceVolumeJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für CreateSurfaceVolumeJob."
 
 msgid "Bad input data for UseSurfaceJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für UseSurfaceJob."
 
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
