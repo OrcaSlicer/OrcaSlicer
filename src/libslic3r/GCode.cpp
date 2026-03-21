@@ -2478,7 +2478,24 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     if (!print.config().small_area_infill_flow_compensation_model.empty())
         m_small_area_infill_flow_compensator = make_unique<SmallAreaInfillFlowCompensator>(print.config());
-    
+
+    // Auto-Slice Optimization: analyze all layers and compute per-layer optimal parameters
+    {
+        AutoSliceConfig auto_slice_config = AutoSliceOptimizer::build_config(m_config);
+        if (auto_slice_config.enabled) {
+            m_auto_slice_optimizer = make_unique<AutoSliceOptimizer>(auto_slice_config);
+            // Run optimization on each object's layers
+            for (const PrintObject* object : print.objects()) {
+                // Convert const Layer* to Layer* for optimizer (analysis is read-only)
+                std::vector<Layer*> layers;
+                layers.reserve(object->layers().size());
+                for (const Layer* layer : object->layers())
+                    layers.push_back(const_cast<Layer*>(layer));
+                m_auto_slice_optimizer->optimize(layers);
+            }
+        }
+    }
+
     // Process file_start_gcode - written at the very top of the file, before any header
     {
         std::string top_gcode_template = print.config().file_start_gcode.value;
@@ -4447,6 +4464,43 @@ LayerResult GCode::process_layer(
     gcode += this->change_layer(print_z);  // this will increase m_layer_index
     m_layer = &layer;
     m_object_layer_over_raft = false;
+
+    // Auto-Slice Optimization: apply per-layer parameter adjustments
+    if (m_auto_slice_optimizer && m_auto_slice_optimizer->is_active()) {
+        const auto& opt_params = m_auto_slice_optimizer->get_layer_params(layer.id());
+        if (opt_params.is_modified) {
+            // Emit optimization comment for debugging/analysis
+            gcode += m_auto_slice_optimizer->generate_layer_comment(layer.id());
+
+            // Apply temperature adjustment
+            if (opt_params.nozzle_temperature > 0) {
+                gcode += m_writer.set_temperature(opt_params.nozzle_temperature, false, m_writer.filament()->id());
+            }
+
+            // Apply fan speed adjustment
+            if (opt_params.fan_speed >= 0) {
+                // Emit fan speed as M106 command
+                char fan_buf[64];
+                int fan_pwm = static_cast<int>(opt_params.fan_speed * 255.0 / 100.0);
+                sprintf(fan_buf, "M106 S%d ; auto-slice fan adjustment\n", fan_pwm);
+                gcode += fan_buf;
+            }
+
+            // Speed and flow multipliers are applied via M220/M221 override commands
+            if (std::abs(opt_params.speed_multiplier - 1.0) > 0.01) {
+                char speed_buf[64];
+                sprintf(speed_buf, "M220 S%d ; auto-slice speed adjustment\n",
+                        static_cast<int>(opt_params.speed_multiplier * 100.0));
+                gcode += speed_buf;
+            }
+            if (std::abs(opt_params.flow_multiplier - 1.0) > 0.005) {
+                char flow_buf[64];
+                sprintf(flow_buf, "M221 S%d ; auto-slice flow adjustment\n",
+                        static_cast<int>(opt_params.flow_multiplier * 100.0));
+                gcode += flow_buf;
+            }
+        }
+    }
 
     if (!m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
         DynamicConfig config;

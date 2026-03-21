@@ -71,6 +71,8 @@ set(lisbslic3r_sources
     Arachne/WallToolPaths.hpp
     ArcFitter.cpp
     ArcFitter.hpp
+    AutoSliceOptimizer.cpp
+    AutoSliceOptimizer.hpp
     Arrange.cpp
     Arrange.hpp
     BlacklistedLibraryCheck.cpp

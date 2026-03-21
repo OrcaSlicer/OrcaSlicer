@@ -1576,6 +1576,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoint,               bed_mesh_probe_distance))
     ((ConfigOptionFloat,               adaptive_bed_mesh_margin))
 
+    // Auto-Slice Optimization
+    ((ConfigOptionBool,                auto_slice_optimization))
+    ((ConfigOptionFloat,               auto_slice_quality_target))
 
 )
 

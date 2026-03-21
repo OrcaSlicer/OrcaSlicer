@@ -2120,6 +2120,29 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    // Auto-Slice Optimization: dynamic per-layer parameter tuning
+    def = this->add("auto_slice_optimization", coBool);
+    def->label = L("Auto-slice optimization");
+    def->tooltip = L("Enable automatic per-layer optimization of print parameters. "
+                     "The optimizer analyzes each layer's geometry, thermal load, overhangs, and bridges "
+                     "to dynamically adjust nozzle temperature, print speed, flow rate, line width, and fan speed "
+                     "on a per-layer basis for stronger parts with minimal failure risk.");
+    def->category = L("Quality");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("auto_slice_quality_target", coFloat);
+    def->label = L("Auto-slice quality target");
+    def->tooltip = L("Controls the aggressiveness of auto-slice optimization. "
+                     "0.0 = minimal adjustments (speed priority), 1.0 = maximum adjustments (quality priority). "
+                     "Higher values produce stronger parts but may increase print time.");
+    def->category = L("Quality");
+    def->sidetext = "";
+    def->min = 0;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.8));
+
     def = this->add("grab_length",coFloats);
     def->label = L("Grab length");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation

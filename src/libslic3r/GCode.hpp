@@ -26,6 +26,8 @@
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
 // ORCA: post processor below used for Dynamic Pressure advance
 #include "GCode/AdaptivePAProcessor.hpp"
+// Auto-Slice Optimization: per-layer dynamic parameter tuning
+#include "AutoSliceOptimizer.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
 
@@ -595,7 +597,10 @@ private:
     std::unique_ptr<WipeTowerIntegration> m_wipe_tower;
 
     std::unique_ptr<SmallAreaInfillFlowCompensator> m_small_area_infill_flow_compensator;
-    
+
+    // Auto-Slice Optimizer: per-layer dynamic parameter tuning
+    std::unique_ptr<AutoSliceOptimizer> m_auto_slice_optimizer;
+
     // Heights (print_z) at which the skirt has already been extruded.
     std::vector<coordf_t>               m_skirt_done;
     // Has the brim been extruded already? Brim is being extruded only for the first object of a multi-object print.
