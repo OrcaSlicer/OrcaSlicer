@@ -484,6 +484,37 @@ private:
 };
 
 #ifdef __linux__
+static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_dir_path)
+{
+    if(!boost::filesystem::exists("/.flatpak-info"))
+        return; // Not running as a Flatpak, nothing to migrate.
+    
+    namespace fs = boost::filesystem;
+
+    if (fs::exists(data_dir_path)){
+        std::cerr << "New Flatpak data dir: " << data_dir_path << std::endl;
+        return;
+    }
+    std::cerr << "Migrating Flatpak data dir: " << data_dir_path << std::endl;
+
+    std::string legacy_data_dir_str = data_dir_path.string();
+    boost::replace_first(legacy_data_dir_str, "com.orcaslicer.OrcaSlicer", "io.github.orcaslicer.OrcaSlicer");
+    const fs::path legacy_data_dir(legacy_data_dir_str);
+
+    std::cerr << "Legacy Flatpak data dir: " << legacy_data_dir << std::endl;
+
+    if ( ! fs::exists(legacy_data_dir) || ! fs::is_directory(legacy_data_dir))
+        return;
+    std::cerr << "Legacy Flatpak data dir exists: " << legacy_data_dir << std::endl;
+
+    try {
+        std::cerr << "Migrating Flatpak data dir from " << legacy_data_dir << " to " << data_dir_path << std::endl;
+        copy_directory_recursively(legacy_data_dir, data_dir_path);
+    } catch (const std::exception &ex) {
+        std::cerr << "Failed to migrate Flatpak data dir from " << legacy_data_dir << " to " << data_dir_path << ": " << ex.what() << std::endl;
+    }
+}
+
 bool static check_old_linux_datadir(const wxString& app_name) {
     // If we are on Linux and the datadir does not exist yet, look into the old
     // location where the datadir was before version 2.3. If we find it there,
@@ -2401,8 +2432,9 @@ void GUI_App::init_app_config()
                 wxString dir;
                 if (! wxGetEnv(wxS("XDG_CONFIG_HOME"), &dir) || dir.empty() )
                     dir = wxFileName::GetHomeDir() + wxS("/.config");
-                set_data_dir((dir + "/" + GetAppName()).ToUTF8().data());
-                data_dir_path = boost::filesystem::path(data_dir());
+                data_dir_path = boost::filesystem::path((dir + "/" + GetAppName()).ToUTF8().data());
+                migrate_flatpak_legacy_datadir(data_dir_path);
+                set_data_dir(data_dir_path.string());
             #endif
             if (!boost::filesystem::exists(data_dir_path)){
                 boost::filesystem::create_directory(data_dir_path);
