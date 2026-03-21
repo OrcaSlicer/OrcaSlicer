@@ -971,7 +971,12 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             // Merge all brims into a single continuous area
             all_brims_merged = union_ex(all_brims_merged);
 
-            // Generate infill once for the merged brim area
+            // Apply a tiny morphological cleanup to reduce boolean-union micro-artifacts
+            // on near-touching boundaries while preserving the unified shape.
+            const float brim_cleanup_delta = std::max(float(scaled_resolution), float(SCALED_EPSILON));
+            all_brims_merged = offset2_ex(all_brims_merged, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
+
+            // Generate infill once for the merged brim area.
             ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
 
             // In unified mode, we need to assign the merged brim to only one object
