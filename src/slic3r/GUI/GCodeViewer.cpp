@@ -2771,29 +2771,6 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
     };
 
-    auto link_filament_group_wiki = [&](const std::string& label) {
-        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
-
-        ImColor HyperColor = ImColor(0, 150, 136, 255).Value;
-        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
-        imgui.text(label.c_str());
-        ImGui::PopStyleColor();
-
-        // underline
-        ImVec2 lineEnd = ImGui::GetItemRectMax();
-        lineEnd.y -= 2.0f;
-        ImVec2 lineStart = lineEnd;
-        lineStart.x = ImGui::GetItemRectMin().x;
-        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
-        // click behavior
-        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html";
-                wxLaunchDefaultBrowser(wxString(wiki_path.c_str()));
-            }
-        }
-    };
-
     auto draw_dash_line = [&](ImDrawList* draw_list, int dash_length = 5, int gap_length = 3) {
         ImVec2 p1 = ImGui::GetCursorScreenPos();
         ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
@@ -2998,6 +2975,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         ImGui::SameLine();
         ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize("Tips").x);
         link_filament_group_wiki(_u8L("Tips"));
+        imgui.text(_u8L("Tips"));
 
         ImGui::EndChild();
     }
