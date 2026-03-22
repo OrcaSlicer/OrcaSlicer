@@ -81,7 +81,7 @@
     "skirt_height": "1",
     "brim_width": "5",
     "brim_object_gap": "0.1",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "prime_tower_width": "60",
     "wipe_tower_no_sparse_layers": "0",
     "print_sequence": "by layer",

@@ -1,14 +1,13 @@
 {
-    "version": "1.0.0.0",
-	"instantiation": "false",
+    "type": "process",
+    "name": "cubicon common @base",
+    "inherits": "fdm_process_common_klipper",
+    "instantiation": "false",
     "compatible_printers": [
         "Cubicon xCeler-I 0.4 nozzle",
         "Cubicon xCeler-Plus 0.4 nozzle"
     ],
-    "inherits": "fdm_process_common_klipper",
-    "name": "cubicon common @base",
     "print_settings_id": "cubicon common @base",
-    
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "100",
     "bridge_angle": "0",
@@ -21,7 +20,7 @@
     "percise_outer_wall": "1",
     "percise_z_height": "0.2",
     "enable_overhang_speed": "1",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "enable_support": "0",
     "exclude_object": "0",
     "filename_format": "{input_filename_base}_{layer_height}mm_{filament_type[initial_tool]}_{printer_model}_{print_time}.gcode",
@@ -83,7 +82,6 @@
     "top_solid_infill_flow_ratio": "0.9",
     "travel_speed": "500",
     "support_threshold_angle": "15",
-    "type": "process",
     "wall_loops": "2",
     "thick_bridges": "0",
     "extra_perimeters_on_overhangs": "1",
@@ -110,7 +108,6 @@
     "slowdown_for_curled_perimeters": "0",
     "bridge_speed": "50",
     "internal_bridge_speed": "150%",
-    "is_custom_defined": "0",
     "overhang_1_4_speed": "0",
     "overhang_2_4_speed": "50",
     "overhang_3_4_speed": "30",

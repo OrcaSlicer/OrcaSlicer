@@ -1,6 +1,6 @@
 {
     "name": "Afinia",
-    "version": "02.03.02.51",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "Afinia configurations",
     "machine_model_list": [
@@ -17,6 +17,26 @@
         {
             "name": "fdm_process_afinia_common",
             "sub_path": "process/fdm_process_afinia_common.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.18_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.18_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.24_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.24_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.30_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.30_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.36_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.36_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.42_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.42_nozzle_0.6.json"
         },
         {
             "name": "fdm_process_afinia_HS_common",
@@ -41,26 +61,6 @@
         {
             "name": "0.28mm Extra Draft @Afinia H+1(HS)",
             "sub_path": "process/0.28mm Extra Draft @Afinia H+1(HS).json"
-        },
-        {
-            "name": "fdm_process_afinia_0.18_nozzle_0.6",
-            "sub_path": "process/fdm_process_afinia_0.18_nozzle_0.6.json"
-        },
-        {
-            "name": "fdm_process_afinia_0.24_nozzle_0.6",
-            "sub_path": "process/fdm_process_afinia_0.24_nozzle_0.6.json"
-        },
-        {
-            "name": "fdm_process_afinia_0.30_nozzle_0.6",
-            "sub_path": "process/fdm_process_afinia_0.30_nozzle_0.6.json"
-        },
-        {
-            "name": "fdm_process_afinia_0.36_nozzle_0.6",
-            "sub_path": "process/fdm_process_afinia_0.36_nozzle_0.6.json"
-        },
-        {
-            "name": "fdm_process_afinia_0.42_nozzle_0.6",
-            "sub_path": "process/fdm_process_afinia_0.42_nozzle_0.6.json"
         },
         {
             "name": "fdm_process_afinia_0.18_nozzle_0.6_HS",
@@ -113,24 +113,16 @@
             "sub_path": "filament/fdm_filament_common.json"
         },
         {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
             "name": "fdm_filament_abs",
             "sub_path": "filament/fdm_filament_abs.json"
         },
         {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
             "name": "fdm_filament_tpu",
             "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "Afinia PLA",
-            "sub_path": "filament/Afinia PLA.json"
-        },
-        {
-            "name": "Afinia Value PLA",
-            "sub_path": "filament/Afinia Value PLA.json"
         },
         {
             "name": "Afinia ABS",
@@ -141,32 +133,40 @@
             "sub_path": "filament/Afinia ABS+.json"
         },
         {
-            "name": "Afinia Value ABS",
-            "sub_path": "filament/Afinia Value ABS.json"
-        },
-        {
-            "name": "Afinia TPU",
-            "sub_path": "filament/Afinia TPU.json"
-        },
-        {
-            "name": "Afinia PLA@HS",
-            "sub_path": "filament/Afinia PLA@HS.json"
-        },
-        {
-            "name": "Afinia Value PLA@HS",
-            "sub_path": "filament/Afinia Value PLA@HS.json"
+            "name": "Afinia ABS+@HS",
+            "sub_path": "filament/Afinia ABS+@HS.json"
         },
         {
             "name": "Afinia ABS@HS",
             "sub_path": "filament/Afinia ABS@HS.json"
         },
         {
+            "name": "Afinia Value ABS",
+            "sub_path": "filament/Afinia Value ABS.json"
+        },
+        {
             "name": "Afinia Value ABS@HS",
             "sub_path": "filament/Afinia Value ABS@HS.json"
         },
         {
-            "name": "Afinia ABS+@HS",
-            "sub_path": "filament/Afinia ABS+@HS.json"
+            "name": "Afinia PLA",
+            "sub_path": "filament/Afinia PLA.json"
+        },
+        {
+            "name": "Afinia PLA@HS",
+            "sub_path": "filament/Afinia PLA@HS.json"
+        },
+        {
+            "name": "Afinia Value PLA",
+            "sub_path": "filament/Afinia Value PLA.json"
+        },
+        {
+            "name": "Afinia Value PLA@HS",
+            "sub_path": "filament/Afinia Value PLA@HS.json"
+        },
+        {
+            "name": "Afinia TPU",
+            "sub_path": "filament/Afinia TPU.json"
         },
         {
             "name": "Afinia TPU@HS",
