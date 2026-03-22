@@ -256,14 +256,13 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             ExtrusionLoop *eloop = static_cast<ExtrusionLoop*>(coll.entities[idx.first]);
             coll.entities[idx.first] = nullptr;
 
-            if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == loop.is_contour)
+            if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == (loop.is_contour || reverse_thin_wall_hole))
                 eloop->make_counter_clockwise();
             else
                 eloop->make_clockwise();
 
-            // Orca: Reverse thin wall holes (the only child of a single contour) to avoid dragging hot plastic.
-            if (reverse_thin_wall_hole && !loop.is_contour) {
-                eloop->reverse();
+            // Orca: Reverse print order for thin wall holes.
+            if (reverse_thin_wall_hole) {
                 std::reverse(out.entities.begin(), out.entities.end());
             }
 
@@ -524,14 +523,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
-                if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == pg_extrusion.is_contour)
+                if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
+                    (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
                 else
-                    extrusion_loop.make_clockwise();
-                // Orca: Detect thin wall holes, to prevent drag hot plastic while changing direction. We define thin wall hole as a hole with only one perimeter.
-                const bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
-                if (thin_wall_hole)
-                    extrusion_loop.reverse();
+                    extrusion_loop.make_clockwise();  
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
@@ -539,9 +535,9 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 assert(extrusion_loop.paths.front().first_point() == extrusion_loop.paths.back().last_point());
-
                 extrusion_coll.append(std::move(extrusion_loop));
-                // Orca: Reverse the order of paths for thin wall holes.
+                // Orca: Reverse the order of paths for thin wall holes. We define thin wall hole as a hole with only one perimeter.
+                const bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
                 if (thin_wall_hole && perimeter_generator.config->wall_sequence != WallSequence::OuterInner)
                     std::reverse(extrusion_coll.entities.begin(), extrusion_coll.entities.end());
             }
@@ -1442,7 +1438,7 @@ void PerimeterGenerator::process_classic()
                 steep_overhang_contour = true;
                 steep_overhang_hole    = true;
             }
-			ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole, false);
+            ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole, false);
             // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
             if (config->overhang_reverse) {
                 reorient_perimeters(entities, steep_overhang_contour, steep_overhang_hole,
