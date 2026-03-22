@@ -945,7 +945,7 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             };
         }
     } else {
-        // Orca: Unified brim mode (single material, non-sequential printing)
+        // Orca: Unified brim mode (non-sequential printing)
         ExPolygons            all_brims_merged;
         std::vector<ObjectID> brim_object_ids;
 
