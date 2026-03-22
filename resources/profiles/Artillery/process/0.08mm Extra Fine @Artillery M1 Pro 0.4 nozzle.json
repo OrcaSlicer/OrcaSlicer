@@ -1,13 +1,14 @@
 {
+    "type": "process",
+    "name": "0.08mm Extra Fine @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "fdm_process_common",
+    "from": "system",
     "instantiation": "true",
     "default_acceleration": "10000",
     "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_M1Pro.gcode",
-    "from": "system",
     "gap_infill_speed": "350",
     "initial_layer_infill_speed": "80",
     "inner_wall_speed": "350",
-    "is_custom_defined": "0",
-    "name": "0.08mm Extra Fine @Artillery M1 Pro 0.4 nozzle",
     "outer_wall_speed": "200",
     "print_settings_id": "0.08mm Extra Fine @Artillery M1 Pro 0.4 nozzle",
     "slow_down_layers": "3",
@@ -17,7 +18,6 @@
     "top_surface_pattern": "monotonicline",
     "travel_speed": "500",
     "tree_support_branch_diameter_double_wall": "1",
-    "version": "3.0.0.0",
     "wall_generator": "classic",
     "initial_layer_print_height": "0.2",
     "internal_solid_infill_line_width": "0.42",
@@ -25,7 +25,6 @@
     "outer_wall_line_width": "0.42",
     "support_line_width": "0.42",
     "top_surface_line_width": "0.42",
-	"inherits": "fdm_process_common",
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "50%",
     "alternate_extra_wall": "0",
@@ -281,7 +280,6 @@
     ],
     "xy_contour_compensation": "0",
     "xy_hole_compensation": "0",
-	"top_bottom_infill_wall_overlap":"15%",
-	"wipe_tower_wall_type": "rib"
-
+    "top_bottom_infill_wall_overlap": "15%",
+    "wipe_tower_wall_type": "rib"
 }

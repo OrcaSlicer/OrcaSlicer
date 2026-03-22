@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery PVA @Artillery M1 Pro 0.2 nozzle",
+    "from": "system",
+    "filament_id": "P8163162",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -99,7 +103,6 @@
     "filament_flow_ratio": [
         "0.98"
     ],
-    "filament_id": "P8163162",
     "filament_is_support": [
         "0"
     ],
@@ -211,7 +214,6 @@
     "filament_z_hop_types": [
         "nil"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "0"
     ],
@@ -224,8 +226,6 @@
     "idle_temperature": [
         "0"
     ],
-    "is_custom_defined": "0",
-    "name": "Artillery PVA @Artillery M1 Pro 0.2 nozzle",
     "nozzle_temperature": [
         "220"
     ],
@@ -282,6 +282,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "45"
-    ],
-    "version": "3.0.0.0"
+    ]
 }

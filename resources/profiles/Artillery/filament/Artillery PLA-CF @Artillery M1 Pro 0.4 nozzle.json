@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
     "instantiation": "true",
     "complete_print_exhaust_fan_speed": [
         "0"
@@ -30,24 +34,20 @@
     "filament_type": [
         "PLA-CF"
     ],
-    "from": "system",
-    "is_custom_defined": "0",
-    "name": "Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "220"
     ],
     "nozzle_temperature_initial_layer": [
         "220"
     ],
-	"nozzle_temperature_range_high": [
+    "nozzle_temperature_range_high": [
         "240"
     ],
     "slow_down_layer_time": [
         "10"
     ],
-    "version": "3.0.0.0",
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
         "0.8"
@@ -64,41 +64,40 @@
     "filament_z_hop": [
         "0.4"
     ],
-    "inherits": "Artillery Generic PLA",
     "temperature_vitrification": [
         "60"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"hot_plate_temp": [
+    "hot_plate_temp": [
         "50"
     ],
     "hot_plate_temp_initial_layer": [
         "50"
     ],
-	"cool_plate_temp_initial_layer": [
-	    "50"
-	],
-	"cool_plate_temp": [
-		"50"
-	],
-	"textured_plate_temp_initial_layer": [
-		"50"
-	],
-	"textured_plate_temp": [
-		"50"
-	],
-	"slow_down_min_speed": [
+    "cool_plate_temp_initial_layer": [
+        "50"
+    ],
+    "cool_plate_temp": [
+        "50"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "50"
+    ],
+    "textured_plate_temp": [
+        "50"
+    ],
+    "slow_down_min_speed": [
         "20"
     ],
-	"filament_retract_lift_below": [
+    "filament_retract_lift_below": [
         "259"
     ],
-	"filament_deretraction_speed": [
+    "filament_deretraction_speed": [
         "30"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.032"
     ]
 }
