@@ -1,8 +1,8 @@
 {
     "type": "filament",
-    "name": "Artillery ABS @Artillery M1 Pro 0.2 nozzle",
+    "name": "Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle",
     "from": "system",
-    "filament_id": "P39db358",
+    "filament_id": "P284941e",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -23,22 +23,22 @@
         "0"
     ],
     "additional_cooling_fan_speed": [
-        "0"
-    ],
-    "chamber_temperature": [
         "50"
     ],
+    "chamber_temperature": [
+        "0"
+    ],
     "close_fan_the_first_x_layers": [
-        "3"
+        "2"
     ],
     "compatible_printers": [
-        "Artillery M1 Pro 0.2 nozzle"
+        "Artillery M1 Pro 0.6 nozzle"
     ],
     "compatible_printers_condition": "",
     "compatible_prints": [],
     "compatible_prints_condition": "",
     "complete_print_exhaust_fan_speed": [
-        "0"
+        "100"
     ],
     "default_filament_colour": [
         ""
@@ -47,7 +47,7 @@
         "0"
     ],
     "during_print_exhaust_fan_speed": [
-        "0"
+        "100"
     ],
     "enable_overhang_bridge_fan": [
         "1"
@@ -62,13 +62,13 @@
         "0"
     ],
     "fan_cooling_layer_time": [
-        "30"
+        "80"
     ],
     "fan_max_speed": [
-        "60"
+        "100"
     ],
     "fan_min_speed": [
-        "10"
+        "100"
     ],
     "filament_cooling_final_speed": [
         "3.4"
@@ -110,7 +110,7 @@
         "nil"
     ],
     "filament_max_volumetric_speed": [
-        "2"
+        "16"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"
@@ -161,7 +161,7 @@
         "40"
     ],
     "filament_settings_id": [
-        "Artillery ABS @Artillery M1 Pro 0.2 nozzle"
+        "Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle"
     ],
     "filament_shrink": [
         "100%"
@@ -179,13 +179,13 @@
         "0"
     ],
     "filament_start_gcode": [
-        ""
+        "; filament start gcode "
     ],
     "filament_toolchange_delay": [
         "0"
     ],
     "filament_type": [
-        "ABS"
+        "PETG Basic"
     ],
     "filament_unloading_speed": [
         "90"
@@ -212,31 +212,31 @@
         "0"
     ],
     "hot_plate_temp": [
-        "100"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
-        "100"
+        "70"
     ],
     "idle_temperature": [
         "0"
     ],
     "nozzle_temperature": [
-        "260"
+        "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "260"
+        "250"
     ],
     "nozzle_temperature_range_high": [
-        "270"
+        "250"
     ],
     "nozzle_temperature_range_low": [
-        "240"
+        "230"
     ],
     "overhang_fan_speed": [
-        "80"
+        "90"
     ],
     "overhang_fan_threshold": [
-        "25%"
+        "10%"
     ],
     "pellet_flow_coefficient": [
         "0.4157"
@@ -254,7 +254,7 @@
         "1"
     ],
     "slow_down_layer_time": [
-        "12"
+        "8"
     ],
     "slow_down_min_speed": [
         "10"
@@ -272,15 +272,15 @@
         "40"
     ],
     "textured_plate_temp": [
-        "100"
+        "70"
     ],
     "textured_plate_temp_initial_layer": [
-        "100"
+        "70"
     ],
     "cool_plate_temp": [
-        "100"
+        "70"
     ],
     "cool_plate_temp_initial_layer": [
-        "100"
+        "70"
     ]
 }

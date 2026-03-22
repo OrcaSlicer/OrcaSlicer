@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "name": "Artillery PET @Artillery M1 Pro 0.4 nozzle",
+    "name": "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle",
     "inherits": "Artillery Generic PLA",
     "from": "system",
     "instantiation": "true",
-    "chamber_temperature": [
-        "0"
+    "close_fan_the_first_x_layers": [
+        "3"
     ],
     "complete_print_exhaust_fan_speed": [
         "0"
@@ -13,32 +13,20 @@
     "during_print_exhaust_fan_speed": [
         "60"
     ],
-    "fan_cooling_layer_time": [
-        "30"
-    ],
-    "fan_max_speed": [
-        "90"
-    ],
-    "fan_min_speed": [
-        "40"
-    ],
     "filament_max_volumetric_speed": [
         "12"
     ],
     "additional_cooling_fan_speed": [
-        "50"
+        "0"
+    ],
+    "filament_density": [
+        "1.27"
     ],
     "filament_settings_id": [
-        "Artillery PET @Artillery M1 Pro 0.4 nozzle"
+        "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_start_gcode": [
         "; filament start gcode "
-    ],
-    "filament_type": [
-        "PET"
-    ],
-    "slow_down_layer_time": [
-        "12"
     ],
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
@@ -49,6 +37,12 @@
     "filament_retraction_speed": [
         "30"
     ],
+    "filament_deretraction_speed": [
+        "30"
+    ],
+    "filament_type": [
+        "PETG-CF"
+    ],
     "filament_vendor": [
         "Artillery"
     ],
@@ -56,60 +50,69 @@
         "0.4"
     ],
     "hot_plate_temp": [
-        "80"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
-        "80"
+        "70"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "cool_plate_temp": [
+        "70"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "70"
     ],
     "nozzle_temperature": [
-        "240"
+        "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "240"
+        "250"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "enable_pressure_advance": [
+        "1"
     ],
     "nozzle_temperature_range_high": [
         "270"
     ],
     "nozzle_temperature_range_low": [
-        "230"
-    ],
-    "temperature_vitrification": [
-        "70"
-    ],
-    "close_fan_the_first_x_layers": [
-        "3"
-    ],
-    "overhang_fan_threshold": [
-        "10%"
-    ],
-    "enable_pressure_advance": [
-        "1"
-    ],
-    "pressure_advance": [
-        "0.08"
-    ],
-    "textured_plate_temp": [
-        "80"
-    ],
-    "textured_plate_temp_initial_layer": [
-        "80"
-    ],
-    "cool_plate_temp": [
-        "80"
-    ],
-    "cool_plate_temp_initial_layer": [
-        "80"
+        "220"
     ],
     "filament_flow_ratio": [
-        "0.97"
+        "0.95"
     ],
     "slow_down_min_speed": [
         "20"
     ],
-    "overhang_fan_speed": [
-        "100"
+    "filament_retract_before_wipe": [
+        "0%"
     ],
-    "filament_deretraction_speed": [
-        "30"
+    "pressure_advance": [
+        "0.063"
     ]
 }

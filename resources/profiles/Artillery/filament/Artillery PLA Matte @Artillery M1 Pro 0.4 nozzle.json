@@ -23,7 +23,7 @@
         "1"
     ],
     "filament_max_volumetric_speed": [
-        "27"
+        "21"
     ],
     "additional_cooling_fan_speed": [
         "50"
@@ -34,7 +34,6 @@
     "filament_type": [
         "PLA Matte"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "220"
     ],
@@ -56,12 +55,11 @@
     "slow_down_layer_time": [
         "6"
     ],
-    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.3"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "40"
