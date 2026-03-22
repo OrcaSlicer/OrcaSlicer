@@ -253,10 +253,6 @@
         {
             "name": "0.40mm Standard @Anycubic Kobra 3 0.8 nozzle",
             "sub_path": "process/0.40mm Standard @Anycubic Kobra 3 0.8 nozzle.json"
-        },
-        {
-            "name": "0.4 Layer @Anycubic Kobra Neo 0.6 nozzle",
-            "sub_path": "process/0.4 Layer @Anycubic Kobra Neo 0.6 nozzle.json"
         }
     ],
     "filament_list": [
