@@ -2886,6 +2886,14 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::raft_and_intermediate_supp
             size_t        n_layers_extra = size_t(ceil(dist / m_slicing_params.max_suport_layer_height)); 
             assert(n_layers_extra > 0);
             coordf_t      step   = dist / coordf_t(n_layers_extra);
+            // Snap to multiples of the object layer height to reduce accumulated z drift
+            // while keeping support layers coarse (faster) when independent_support_layer_height is enabled.
+            const coordf_t q = m_slicing_params.layer_height;
+            if (q > 0) {
+                const coordf_t snapped = std::round(step / q) * q;
+                if (snapped >= q - EPSILON)
+                    step = std::min(snapped, m_slicing_params.max_suport_layer_height);
+            }
             if (extr1 != nullptr && extr1->layer_type == SupporLayerType::TopContact &&
                 extr1->print_z + m_support_params.support_layer_height_min > extr1->bottom_z + step) {
                 // The bottom extreme is a bottom of a top surface. Ensure that the gap 
@@ -2903,6 +2911,14 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::raft_and_intermediate_supp
                     continue;
                 // Continue printing the other layers up to extr2z.
                 step = dist / coordf_t(n_layers_extra);
+                {
+                    const coordf_t q = m_slicing_params.layer_height;
+                    if (q > 0) {
+                        const coordf_t snapped = std::round(step / q) * q;
+                        if (snapped >= q - EPSILON)
+                            step = std::min(snapped, m_slicing_params.max_suport_layer_height);
+                    }
+                }
             }
             if (! m_slicing_params.soluble_interface && extr2->layer_type == SupporLayerType::TopContact) {
                 // This is a top interface layer, which does not have a height assigned yet. Do it now.
