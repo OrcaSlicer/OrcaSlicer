@@ -85,6 +85,7 @@ extern unsigned get_logging_level();
 extern void trace(unsigned int level, const char *message);
 // Format memory allocated, separate thousands by comma.
 extern std::string format_memsize_MB(size_t n);
+extern std::string format_memsize(size_t bytes, unsigned int decimals = 1);
 // Return string to be added to the boost::log output to inform about the current process memory allocation.
 // The string is non-empty if the loglevel >= info (3) or ignore_loglevel==true.
 // Latter is used to get the memory info from SysInfoDialog.
@@ -168,6 +169,9 @@ const std::string& sys_shapes_dir();
 
 // Return a full path to the custom shapes gallery directory.
 std::string custom_shapes_dir();
+
+// Return a full path to the handy models directory.
+std::string handy_models_dir();
 
 // Set a path with shapes gallery files.
 void set_custom_gcodes_dir(const std::string &path);

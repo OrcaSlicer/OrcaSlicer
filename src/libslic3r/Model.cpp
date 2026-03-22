@@ -14,6 +14,7 @@
 
 #include "Format/AMF.hpp"
 #include "Format/svg.hpp"
+#include "Format/DRC.hpp"
 // BBS
 #include "FaceDetector.hpp"
 
@@ -311,6 +312,8 @@ Model Model::read_from_file(const std::string&                                  
         result = load_svg(input_file.c_str(), &model, message);
     //BBS: remove the old .amf.xml files
     //else if (boost::algorithm::iends_with(input_file, ".amf") || boost::algorithm::iends_with(input_file, ".amf.xml"))
+    else if (boost::algorithm::iends_with(input_file, ".drc"))
+        result = load_drc(input_file.c_str(), &model);
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
@@ -1167,7 +1170,7 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
     this->sla_support_points          = std::move(rhs.sla_support_points);
     this->sla_points_status           = std::move(rhs.sla_points_status);
     this->sla_drain_holes             = std::move(rhs.sla_drain_holes);
-    this->brim_points                 = std::move(brim_points);
+    this->brim_points                 = std::move(rhs.brim_points);
     this->layer_config_ranges         = std::move(rhs.layer_config_ranges);
     this->layer_height_profile        = std::move(rhs.layer_height_profile);
     this->printable                   = std::move(rhs.printable);

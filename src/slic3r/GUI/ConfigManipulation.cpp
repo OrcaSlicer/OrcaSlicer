@@ -807,6 +807,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("single_extruder_multi_material", !is_BBL_Printer);
 
     auto bSEMM = preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
+    const bool supports_wipe_tower_2 = !is_BBL_Printer && preset_bundle->printers.get_edited_preset().config.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type2;
 
     toggle_field("ooze_prevention", !bSEMM);
     bool have_ooze_prevention = config->opt_bool("ooze_prevention");
@@ -816,8 +817,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("preheat_steps", have_ooze_prevention && (preheat_steps > 0));
 
     bool have_prime_tower = config->opt_bool("enable_prime_tower");
-    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework"})
+    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
         toggle_line(el, have_prime_tower);
+
+    toggle_line("enable_tower_interface_cooldown_during_tower",
+                have_prime_tower && config->opt_bool("enable_tower_interface_features"));
 
     for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"})
         toggle_line(el, !bSEMM);
@@ -828,17 +832,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
                     "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
                     "wipe_tower_bridging", "wipe_tower_extra_flow",
                     "wipe_tower_no_sparse_layers"})
-      toggle_line(el, have_prime_tower && !is_BBL_Printer);
+            toggle_line(el, have_prime_tower && supports_wipe_tower_2);
 
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
     bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower;
-    toggle_line("wipe_tower_cone_angle", have_prime_tower && !is_BBL_Printer && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
+    toggle_line("wipe_tower_cone_angle", have_prime_tower && supports_wipe_tower_2 && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
     toggle_line("wipe_tower_extra_rib_length", have_rib_wall);
     toggle_line("wipe_tower_rib_width", have_rib_wall);
     toggle_line("wipe_tower_fillet_wall", have_rib_wall);
-    toggle_field("prime_tower_width", have_prime_tower && !(is_BBL_Printer && have_rib_wall));
+    toggle_field("prime_tower_width", have_prime_tower && (supports_wipe_tower_2 || have_rib_wall));
 
-    toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && !is_BBL_Printer);
+    toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 
@@ -862,13 +866,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&!config->opt_int("support_filament"));
 
+    // Get the current fuzzy skin state
+    bool has_fuzzy_skin = config->opt_enum<FuzzySkinType>("fuzzy_skin") != FuzzySkinType::Disabled_fuzzy;
+    
+    // Show fuzzy skin options when fuzzy skin is not disabled
+    for (auto el : {"fuzzy_skin_mode", "fuzzy_skin_noise_type", "fuzzy_skin_point_distance", "fuzzy_skin_thickness", "fuzzy_skin_first_layer"})
+        toggle_line(el, has_fuzzy_skin);
+    
+    // Show noise type specific options with the same logic
     NoiseType fuzzy_skin_noise_type = config->opt_enum<NoiseType>("fuzzy_skin_noise_type");
-    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic);
-    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi);
-    toggle_line("fuzzy_skin_persistence", fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow);
+    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && has_fuzzy_skin);
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
-    for (auto el : { "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
+    for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
         "min_feature_size", "min_length_factor", "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width"})
         toggle_line(el, have_arachne);
     toggle_field("detect_thin_wall", !have_arachne);

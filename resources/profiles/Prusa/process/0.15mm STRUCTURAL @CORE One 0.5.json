@@ -11,7 +11,7 @@
     "support_interface_top_layers": "3",
     "initial_layer_infill_speed": "100",
     "initial_layer_speed": "45",
-    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.5",
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.5",
     "sparse_infill_acceleration": "6000",
     "internal_solid_infill_acceleration": "4000",
     "inner_wall_acceleration": "2500",

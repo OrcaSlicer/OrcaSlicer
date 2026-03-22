@@ -257,8 +257,9 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
             idx++;
         } else {
             if (!is_src(node.front()->front())) {
-                const auto& last = result.back();
-                if (result.empty() || last.get_src_index() != to_src_idx(p)) {
+                if (result.empty() || result.back().get_src_index() != to_src_idx(p)) {
+                //const auto& last = result.back();
+                //if (result.empty() || last.get_src_index() != to_src_idx(p)) {
                     result.emplace_back(to_point(p), false, idx);
                 }
             }
