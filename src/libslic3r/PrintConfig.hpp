@@ -885,6 +885,20 @@ protected: \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_EQUAL, _, PARAMETER_DEFINITION_SEQ))
 
 // This object is mapped to Perl as Slic3r::Config::PrintObject.
+
+enum class ZPinStyle { Stationary, Spiral };
+template<> inline const t_config_enum_values& ConfigOptionEnum<ZPinStyle>::get_enum_values() {
+    static const t_config_enum_values keys_map = {
+        { "stationary", (int)ZPinStyle::Stationary },
+        { "spiral",     (int)ZPinStyle::Spiral     },
+    };
+    return keys_map;
+}
+template<> inline const t_config_enum_names& ConfigOptionEnum<ZPinStyle>::get_enum_names() {
+    static const t_config_enum_names keys_map = { "stationary", "spiral" };
+    return keys_map;
+}
+
 PRINT_CONFIG_CLASS_DEFINE(
     PrintObjectConfig,
 
@@ -1035,6 +1049,19 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
+
+    // Z-Pinning (updated with spiral + dynamic layer height + wall clamping - March 2026)
+    ((ConfigOptionBool,                 enable_z_pins))
+    ((ConfigOptionFloat,                z_pin_spacing))
+    ((ConfigOptionInt,                  z_pin_depth))
+    ((ConfigOptionFloat,                z_pin_diameter))
+    ((ConfigOptionFloat,                z_pin_fill_pct))
+    ((ConfigOptionFloat,                z_pin_feedrate))
+    ((ConfigOptionBool,                 z_pin_stagger))
+    ((ConfigOptionBool,                 z_pin_layer_stagger))
+    ((ConfigOptionInt,                  z_pin_layer_stagger_offset))
+    ((ConfigOptionEnum<ZPinStyle>,      z_pin_style))
+
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1195,6 +1222,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
     ((ConfigOptionFloat,                scarf_joint_flow_ratio))
     ((ConfigOptionPercent,              scarf_overhang_threshold))
+
 )
 
 PRINT_CONFIG_CLASS_DEFINE(

@@ -1586,13 +1586,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         }
         print_object_status_db.clear();
 
-        // BBS
-        for (PrintObject* object : m_objects) {
-            auto ept_iter = std::find(print_diff.begin(), print_diff.end(), "enable_prime_tower");
-            if (/*object->config().adaptive_layer_height &&*/ ept_iter != print_diff.end()) {
-                update_apply_status(object->invalidate_step(posSlice));
-            }
-        }
     }
 
     //BBS: check the config again
@@ -1604,7 +1597,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", i=%1%, key=%2%")%i %new_changed_keys[i];
         }
-
         update_apply_status(false);
 
         // The following call may stop the background processing.

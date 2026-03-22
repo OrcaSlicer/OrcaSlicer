@@ -28,6 +28,8 @@
 #include "GCode/AdaptivePAProcessor.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
+#include "Fill/FillZPin.hpp"
+#include "Print.hpp"
 
 #include <memory>
 #include <map>
@@ -639,6 +641,7 @@ private:
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
+    std::string _z_pin_extrude(const Layer& layer, const ZPinGrid& grid, const PrintObjectConfig& cfg);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);

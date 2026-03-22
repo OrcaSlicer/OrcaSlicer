@@ -3041,10 +3041,13 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     DynamicPrintConfig out;
     out.apply(FullPrintConfig::defaults());
     out.apply(this->prints.get_edited_preset().config);
+
     // Add the default filament preset to have the "filament_preset_id" defined.
 	out.apply(this->filaments.default_preset().config);
 	out.apply(this->printers.get_edited_preset().config);
     out.apply(this->project_config);
+
+
 
     // BBS
     size_t  num_filaments = this->filament_presets.size();
@@ -3312,6 +3315,21 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     add_if_some_non_empty(std::move(different_settings),            "different_settings_to_system");
     add_if_some_non_empty(std::move(print_compatible_printers),     "print_compatible_printers");
     out.option<ConfigOptionStrings>("extruder_ams_count", true)->values   = save_extruder_ams_count_to_string(this->extruder_ams_counts);
+    // Z-pin params: always take final values from the print preset.
+    // Must be last — filament/printer/project configs all contain stale defaults.
+    {
+        static const std::vector<std::string> z_pin_keys = {
+            "enable_z_pins","z_pin_spacing","z_pin_depth","z_pin_diameter",
+            "z_pin_fill_pct","z_pin_feedrate","z_pin_stagger","z_pin_layer_stagger",
+            "z_pin_layer_stagger_offset","z_pin_style"
+        };
+        for (const auto& key : z_pin_keys) {
+            const auto* src = this->prints.get_edited_preset().config.option(key);
+            if (src)
+                out.set_key_value(key, src->clone());
+        }
+    }
+
 
 	out.option<ConfigOptionEnumGeneric>("printer_technology", true)->value = ptFFF;
     return out;

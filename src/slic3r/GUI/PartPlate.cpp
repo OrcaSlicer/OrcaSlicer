@@ -933,15 +933,8 @@ void PartPlate::render_exclude_area(bool force_default_color) {
 	// draw exclude area
 	glsafe(::glDepthMask(GL_FALSE));
 
-	if (m_selected) {
-		glsafe(::glColor4fv(select_color.data()));
-	}
-	else {
-		glsafe(::glColor4fv(unselect_color.data()));
-	}
-
 	m_exclude_triangles.set_color(m_selected ? select_color : unselect_color);
-    m_exclude_triangles.render();
+    if (m_exclude_triangles.is_initialized()) m_exclude_triangles.render();
 	glsafe(::glDepthMask(GL_TRUE));
 }
 

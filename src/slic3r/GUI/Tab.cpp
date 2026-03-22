@@ -2457,6 +2457,18 @@ void TabPrint::build()
         optgroup->append_single_option_line("detect_narrow_internal_solid_infill", "strength_settings_advanced#detect-narrow-internal-solid-infill");
         optgroup->append_single_option_line("ensure_vertical_shell_thickness", "strength_settings_advanced#ensure-vertical-shell-thickness");
 
+        optgroup = page->new_optgroup(L("Z-Pinning"), L"param_advanced");
+        optgroup->append_single_option_line("enable_z_pins",    "strength_settings_z_pinning#enable-z-pinning");
+        optgroup->append_single_option_line("z_pin_spacing",    "strength_settings_z_pinning#z-pin-spacing");
+        optgroup->append_single_option_line("z_pin_depth",      "strength_settings_z_pinning#z-pin-depth");
+        optgroup->append_single_option_line("z_pin_diameter",   "strength_settings_z_pinning#z-pin-diameter");
+        optgroup->append_single_option_line("z_pin_fill_pct",   "strength_settings_z_pinning#z-pin-fill-percentage");
+        optgroup->append_single_option_line("z_pin_feedrate",   "strength_settings_z_pinning#z-pin-feedrate");
+        optgroup->append_single_option_line("z_pin_stagger",              "strength_settings_z_pinning#z-pin-xy-stagger");
+        optgroup->append_single_option_line("z_pin_layer_stagger",        "strength_settings_z_pinning#z-pin-layer-stagger");
+        optgroup->append_single_option_line("z_pin_layer_stagger_offset", "strength_settings_z_pinning#z-pin-layer-stagger-offset");
+        optgroup->append_single_option_line("z_pin_style",                "strength_settings_z_pinning#z-pin-fill-style");
+
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
         optgroup->append_single_option_line("initial_layer_speed", "speed_settings_initial_layer_speed#initial-layer");
@@ -5422,6 +5434,7 @@ void Tab::load_current_preset()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": enter, m_type %1%")%Preset::get_type_string(m_type);
     const Preset& preset = m_presets->get_edited_preset();
+
     std::vector<std::string> prev_variant_list;
     int prev_extruder_count = 0;
 

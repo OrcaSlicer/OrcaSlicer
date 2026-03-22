@@ -141,13 +141,49 @@ PrintBase::ApplyStatus PrintObject::set_instances(PrintInstances &&instances)
 std::vector<std::reference_wrapper<const PrintRegion>> PrintObject::all_regions() const
 {
     std::vector<std::reference_wrapper<const PrintRegion>> out;
-    if(!m_shared_regions)
+    // Prefer the layer-based path: m_shared_regions->all_regions can be
+    // reallocated by apply() while the slicing pipeline is reading it, but
+    // m_layers[0]->m_regions is only written during layer setup and is safe.
+    if (!m_layers.empty()) {
+        out.reserve(m_layers[0]->m_regions.size());
+        for (const LayerRegion *lr : m_layers[0]->m_regions)
+            out.emplace_back(lr->region());
         return out;
-        
+    }
+    if (!m_shared_regions)
+        return out;
     out.reserve(m_shared_regions->all_regions.size());
     for (const std::unique_ptr<Slic3r::PrintRegion> &region : m_shared_regions->all_regions)
         out.emplace_back(*region.get());
     return out;
+}
+
+size_t PrintObject::num_printing_regions() const throw()
+{
+    // Use the layer's region count as the authoritative source.
+    // m_shared_regions->all_regions can become corrupted when apply() runs
+    // concurrently with the slicing pipeline, but m_layers[0]->m_regions is
+    // only ever written during layer setup (make_layers / slice_volumes) and
+    // never touched by apply(), so it is always safe to read here.
+    if (!m_layers.empty())
+        return m_layers[0]->m_regions.size();
+    // Fall back to all_regions only if there are no layers yet (shouldn't
+    // happen during prepare_infill, but keeps the pre-pipeline call sites safe).
+    return m_shared_regions ? m_shared_regions->all_regions.size() : 0;
+}
+
+const PrintRegion& PrintObject::printing_region(size_t idx) const throw()
+{
+    // Go through the LayerRegion's cached pointer rather than through
+    // m_shared_regions->all_regions, whose vector metadata can be corrupted
+    // when apply() modifies m_shared_regions concurrently.  The underlying
+    // PrintRegion objects are heap-allocated and remain alive as long as
+    // m_shared_regions owns them; LayerRegion::m_region is a stable raw
+    // pointer to the same objects and is never touched by apply().
+    if (!m_layers.empty() && idx < m_layers[0]->m_regions.size())
+        return m_layers[0]->m_regions[idx]->region();
+    // Fallback for call sites before layers exist (e.g. early validation).
+    return *m_shared_regions->all_regions[idx].get();
 }
 
 Polygons create_polyholes(const Point center, const coord_t radius, const coord_t nozzle_diameter, bool multiple)
@@ -419,6 +455,13 @@ void PrintObject::make_perimeters()
     // prerequisites
     this->slice();
 
+    // Z-Pinning grid computation (once per object - updated with wall clamping)
+    if (m_config.enable_z_pins.value) {
+        BoundingBoxf3 bb = this->model_object()->raw_bounding_box();
+        double nozzle = this->print()->config().nozzle_diameter.get_at(0);
+        m_z_pin_grid = FillZPin::compute_grid(bb, m_config, nozzle);
+    }
+
     if (! this->set_started(posPerimeters))
         return;
 
@@ -441,69 +484,7 @@ void PrintObject::make_perimeters()
     // but we don't generate any extra perimeter if fill density is zero, as they would be floating
     // inside the object - infill_only_where_needed should be the method of choice for printing
     // hollow objects
-    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
-        const PrintRegion &region = this->printing_region(region_id);
-        //BBS: remove extra_perimeters, always false
-        //if (! region.config().extra_perimeters || region.config().wall_loops == 0 || region.config().sparse_infill_density == 0 || this->layer_count() < 2)
-            continue;
-
-        BOOST_LOG_TRIVIAL(debug) << "Generating extra perimeters for region " << region_id << " in parallel - start";
-        tbb::parallel_for(
-            tbb::blocked_range<size_t>(0, m_layers.size() - 1),
-            [this, &region, region_id](const tbb::blocked_range<size_t>& range) {
-                for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
-                    m_print->throw_if_canceled();
-                    LayerRegion &layerm                     = *m_layers[layer_idx]->get_region(region_id);
-                    const LayerRegion &upper_layerm         = *m_layers[layer_idx+1]->get_region(region_id);
-                    const Polygons upper_layerm_polygons    = to_polygons(upper_layerm.slices.surfaces);
-                    // Filter upper layer polygons in intersection_ppl by their bounding boxes?
-                    // my $upper_layerm_poly_bboxes= [ map $_->bounding_box, @{$upper_layerm_polygons} ];
-                    const double total_loop_length      = total_length(upper_layerm_polygons);
-                    const coord_t perimeter_spacing     = layerm.flow(frPerimeter).scaled_spacing();
-                    const Flow ext_perimeter_flow       = layerm.flow(frExternalPerimeter);
-                    const coord_t ext_perimeter_width   = ext_perimeter_flow.scaled_width();
-                    const coord_t ext_perimeter_spacing = ext_perimeter_flow.scaled_spacing();
-
-                    for (Surface &slice : layerm.slices.surfaces) {
-                        for (;;) {
-                            // compute the total thickness of perimeters
-                            const coord_t perimeters_thickness = ext_perimeter_width/2 + ext_perimeter_spacing/2
-                                + (region.config().wall_loops-1 + slice.extra_perimeters) * perimeter_spacing;
-                            // define a critical area where we don't want the upper slice to fall into
-                            // (it should either lay over our perimeters or outside this area)
-                            const coord_t critical_area_depth = coord_t(perimeter_spacing * 1.5);
-                            const Polygons critical_area = diff(
-                                offset(slice.expolygon, float(- perimeters_thickness)),
-                                offset(slice.expolygon, float(- perimeters_thickness - critical_area_depth))
-                            );
-                            // check whether a portion of the upper slices falls inside the critical area
-                            const Polylines intersection = intersection_pl(to_polylines(upper_layerm_polygons), critical_area);
-                            // only add an additional loop if at least 30% of the slice loop would benefit from it
-                            if (total_length(intersection) <=  total_loop_length*0.3)
-                                break;
-                            /*
-                            if (0) {
-                                require "Slic3r/SVG.pm";
-                                Slic3r::SVG::output(
-                                    "extra.svg",
-                                    no_arrows   => 1,
-                                    expolygons  => union_ex($critical_area),
-                                    polylines   => [ map $_->split_at_first_point, map $_->p, @{$upper_layerm->slices} ],
-                                );
-                            }
-                            */
-                            ++ slice.extra_perimeters;
-                        }
-                        #ifdef DEBUG
-                            if (slice.extra_perimeters > 0)
-                                printf("  adding %d more perimeter(s) at layer %zu\n", slice.extra_perimeters, layer_idx);
-                        #endif
-                    }
-                }
-            });
-        m_print->throw_if_canceled();
-        BOOST_LOG_TRIVIAL(debug) << "Generating extra perimeters for region " << region_id << " in parallel - end";
-    }
+    // BBS: extra_perimeters feature removed; loop above was dead code (always continued).
 
     BOOST_LOG_TRIVIAL(debug) << "Generating perimeters in parallel - start";
     tbb::parallel_for(
@@ -553,7 +534,6 @@ void PrintObject::prepare_infill()
             region->prepare_fill_surfaces();
             m_print->throw_if_canceled();
         }
-
 
     // Add solid fills to ensure the shell vertical thickness.
     this->discover_vertical_shells();
@@ -1332,6 +1312,19 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "flush_into_support") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (
+               opt_key == "enable_z_pins"
+            || opt_key == "z_pin_spacing"
+            || opt_key == "z_pin_depth"
+            || opt_key == "z_pin_diameter"
+            || opt_key == "z_pin_fill_pct"
+            || opt_key == "z_pin_feedrate"
+            || opt_key == "z_pin_stagger"
+            || opt_key == "z_pin_layer_stagger"
+            || opt_key == "z_pin_layer_stagger_offset"
+            || opt_key == "z_pin_style") {
+            steps.emplace_back(posPerimeters);
+            invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
             this->invalidate_all_steps();
@@ -1397,7 +1390,7 @@ bool PrintObject::invalidate_all_steps()
 // If a part of a region is of stBottom and stTop, the stBottom wins.
 void PrintObject::detect_surfaces_type()
 {
-    BOOST_LOG_TRIVIAL(info) << "Detecting solid surfaces..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces...";
 
     // Interface shells: the intersecting parts are treated as self standing objects supporting each other.
     // Each of the objects will have a full number of top / bottom layers, even if these top / bottom layers
@@ -1406,9 +1399,11 @@ void PrintObject::detect_surfaces_type()
     // should be visible.
     bool spiral_mode      = this->print()->config().spiral_mode.value;
     bool interface_shells = ! spiral_mode && m_config.interface_shells.value;
+    const size_t num_regions = this->num_printing_regions();
+    if (num_regions == 0) { m_print->throw_if_canceled(); return; }
     size_t num_layers     = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
 
-    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+    for (size_t region_id = 0; region_id < num_regions; ++ region_id) {
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " in parallel - start";
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
         for (Layer *layer : m_layers)
@@ -1446,6 +1441,11 @@ void PrintObject::detect_surfaces_type()
                     m_print->throw_if_canceled();
                     // BOOST_LOG_TRIVIAL(trace) << "Detecting solid surfaces for region " << region_id << " and layer " << layer->print_z;
                     Layer       *layer  = m_layers[idx_layer];
+                    // Guard: region count may change if apply() fires between throw_if_canceled and here.
+                    if (region_id >= layer->m_regions.size()) {
+                        m_print->throw_if_canceled(); // cancel must be set; this will throw
+                        return; // defensive: should not reach here
+                    }
                     LayerRegion *layerm = layer->m_regions[region_id];
                     // comparison happens against the *full* slices (considering all regions)
                     // unless internal shells are requested
@@ -1621,9 +1621,14 @@ void PrintObject::detect_surfaces_type()
             tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, region_id](const tbb::blocked_range<size_t> &range) {
                 for (size_t i = range.begin(); i < range.end(); ++i) {
                     m_print->throw_if_canceled();
-                    
+
                     // Step 1: Find bridge polygons
                     // Current layer (i): Search for stBottomBridge polygons.
+                    // Guard: region count may change if apply() fires between throw_if_canceled and here.
+                    if (region_id >= m_layers[i]->m_regions.size() || region_id >= m_layers[i + 1]->m_regions.size()) {
+                        m_print->throw_if_canceled();
+                        return;
+                    }
                     const Surfaces &bot_surfs = m_layers[i]->m_regions[region_id]->slices.surfaces;
                     // Next layer (i+1): The layer where stInternal polygons may be re-classified.
                     Surfaces &top_surfs = m_layers[i + 1]->m_regions[region_id]->slices.surfaces;
@@ -1689,16 +1694,18 @@ void PrintObject::detect_surfaces_type()
                     }
                     top_surfs = std::move(new_surfaces);
                 }
-            }
-            );
+            },
+            tbb::simple_partitioner());
             // ==============================================================================================================
             // === ORCA: Interim workaround - for now the new stInternalAfterExternalBridge surfaace is re-classified  ==============
             // === back to a bottom bridge. As a starting point, this improves bridging reliability as it extrudes ==========
             // === two external bridge layers. However, TODO: Implement a new surface type throughout the codebase ==========
             // ==============================================================================================================
-            for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
+            for (size_t region_id = 0; region_id < num_regions; ++region_id) {
                 tbb::parallel_for( tbb::blocked_range<size_t>(0, m_layers.size()), [this, region_id](const tbb::blocked_range<size_t> &range) {
                     for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++idx_layer) {
+                        if (region_id >= m_layers[idx_layer]->m_regions.size())
+                            return;
                         Surfaces &surfs = m_layers[idx_layer]->m_regions[region_id]->slices.surfaces;
                         for (Surface &s : surfs) {
                             if (s.surface_type == stInternalAfterExternalBridge) {
@@ -1706,8 +1713,8 @@ void PrintObject::detect_surfaces_type()
                             }
                         }
                     }
-                }
-              );
+                },
+                tbb::simple_partitioner());
             }
         }
         // ==============================================================================================================
@@ -1721,6 +1728,10 @@ void PrintObject::detect_surfaces_type()
             [this, region_id](const tbb::blocked_range<size_t>& range) {
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
                     m_print->throw_if_canceled();
+                    if (region_id >= m_layers[idx_layer]->m_regions.size()) {
+                        m_print->throw_if_canceled();
+                        return;
+                    }
                     LayerRegion *layerm = m_layers[idx_layer]->m_regions[region_id];
                     layerm->slices_to_fill_surfaces_clipped();
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -1740,12 +1751,15 @@ void PrintObject::process_external_surfaces()
 {
     BOOST_LOG_TRIVIAL(info) << "Processing external surfaces..." << log_memory_info();
 
+    // Snapshot region count to prevent apply() from changing the loop bounds mid-execution.
+    const size_t num_regions = this->num_printing_regions();
+
     // Cached surfaces covered by some extrusion, defining regions, over which the from the surfaces one layer higher are allowed to expand.
     std::vector<Polygons> surfaces_covered;
     // Is there any printing region, that has zero infill? If so, then we don't want the expansion to be performed over the complete voids, but only
     // over voids, which are supported by the layer below.
     bool 				  has_voids = false;
-	for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id)
+	for (size_t region_id = 0; region_id < num_regions; ++ region_id)
 		if (this->printing_region(region_id).config().sparse_infill_density == 0) {
 			has_voids = true;
 			break;
@@ -1797,7 +1811,7 @@ void PrintObject::process_external_surfaces()
 	    BOOST_LOG_TRIVIAL(debug) << "Collecting surfaces covered with extrusions in parallel - end";
 	}
 
-	for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
+	for (size_t region_id = 0; region_id < num_regions; ++region_id) {
         BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces for region " << region_id << " in parallel - start";
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
@@ -1832,9 +1846,11 @@ void PrintObject::discover_vertical_shells()
         Polygons    holes;
     };
     bool     spiral_mode      = this->print()->config().spiral_mode.value;
+    const size_t num_regions  = this->num_printing_regions();
+    if (num_regions == 0) { m_print->throw_if_canceled(); return; }
     size_t   num_layers       = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
     std::vector<DiscoverVerticalShellsCacheEntry> cache_top_botom_regions(num_layers, DiscoverVerticalShellsCacheEntry());
-    bool top_bottom_surfaces_all_regions = this->num_printing_regions() > 1 && ! m_config.interface_shells.value;
+    bool top_bottom_surfaces_all_regions = num_regions > 1 && ! m_config.interface_shells.value;
 //    static constexpr const float top_bottom_expansion_coeff = 1.05f;
     // Just a tiny fraction of an infill extrusion width to merge neighbor regions reliably.
     static constexpr const float top_bottom_expansion_coeff = 0.05f;
@@ -1843,7 +1859,7 @@ void PrintObject::discover_vertical_shells()
         // is calculated over all materials.
         // Is the "ensure vertical wall thickness" applicable to any region?
         bool has_extra_layers = false;
-        for (size_t region_id = 0; region_id < this->num_printing_regions(); ++region_id) {
+        for (size_t region_id = 0; region_id < num_regions; ++region_id) {
             const PrintRegionConfig &config = this->printing_region(region_id).config();
             if (config.ensure_vertical_shell_thickness.value == evstAll) {
                 has_extra_layers = true;
@@ -1858,9 +1874,8 @@ void PrintObject::discover_vertical_shells()
         size_t grain_size = std::max(num_layers / 16, size_t(1));
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
-            [this, &cache_top_botom_regions](const tbb::blocked_range<size_t>& range) {
+            [this, num_regions, &cache_top_botom_regions](const tbb::blocked_range<size_t>& range) {
                 const std::initializer_list<SurfaceType> surfaces_bottom { stBottom, stBottomBridge };
-                const size_t num_regions = this->num_printing_regions();
                 for (size_t idx_layer = range.begin(); idx_layer < range.end(); ++ idx_layer) {
                     m_print->throw_if_canceled();
                     const Layer                      &layer = *m_layers[idx_layer];
@@ -1921,7 +1936,7 @@ void PrintObject::discover_vertical_shells()
         BOOST_LOG_TRIVIAL(debug) << "Discovering vertical shells in parallel - end : cache top / bottom";
     }
 
-    for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+    for (size_t region_id = 0; region_id < num_regions; ++ region_id) {
         const PrintRegion &region = this->printing_region(region_id);
         if (region.config().ensure_vertical_shell_thickness.value != evstAll )
             // This region will be handled by discover_horizontal_shells().
@@ -1976,6 +1991,10 @@ void PrintObject::discover_vertical_shells()
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
                     Layer       	        *layer          = m_layers[idx_layer];
+                    if (region_id >= layer->m_regions.size()) {
+                        m_print->throw_if_canceled();
+                        return;
+                    }
                     LayerRegion 	        *layerm         = layer->m_regions[region_id];
                     const PrintRegionConfig &region_config  = layerm->region().config();
 
