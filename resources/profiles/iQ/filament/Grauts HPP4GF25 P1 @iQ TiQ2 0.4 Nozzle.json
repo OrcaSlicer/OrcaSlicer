@@ -45,7 +45,6 @@
     "idle_temperature": [
         "180"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "220"
     ],
@@ -61,9 +60,6 @@
     "temperature_vitrification": [
         "127"
     ],
-    "version": "2.3.1.10",
-
-
     "activate_air_filtration": [
         "0"
     ],

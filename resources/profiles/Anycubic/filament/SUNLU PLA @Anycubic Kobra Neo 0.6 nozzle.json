@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "SUNLU PLA @Anycubic Kobra Neo 0.6 nozzle",
+    "inherits": "",
+    "from": "User",
+    "filament_id": "P172589e",
     "activate_air_filtration": [
         "0"
     ],
@@ -116,7 +121,6 @@
     "filament_flush_volumetric_speed": [
         "0"
     ],
-    "filament_id": "P172589e",
     "filament_ironing_flow": [
         "nil"
     ],
@@ -258,7 +262,6 @@
     "filament_z_hop_types": [
         "nil"
     ],
-    "from": "User",
     "full_fan_speed_layer": [
         "3"
     ],
@@ -271,7 +274,6 @@
     "idle_temperature": [
         "0"
     ],
-    "inherits": "",
     "internal_bridge_fan_speed": [
         "-1"
     ],
@@ -281,7 +283,6 @@
     "long_retractions_when_ec": [
         "0"
     ],
-    "name": "SUNLU PLA @Anycubic Kobra Neo 0.6 nozzle",
     "nozzle_temperature": [
         "215"
     ],
@@ -348,7 +349,6 @@
     "textured_plate_temp_initial_layer": [
         "45"
     ],
-    "version": "0.0.0.0",
     "volumetric_speed_coefficients": [
         ""
     ]
