@@ -942,10 +942,12 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
         }
     }
 
-    bool is_by_object                 = (print.config().print_sequence == PrintSequence::ByObject);
-    bool is_multimaterial_first_layer = (first_layer_extruders.size() > 1);
+    const bool combine_brims                = print.config().combine_brims.value;
+    const bool is_by_object                 = (print.config().print_sequence == PrintSequence::ByObject);
+    const bool is_multimaterial_first_layer = (first_layer_extruders.size() > 1);
+    const bool can_combine_brims            = combine_brims && !is_by_object && !is_multimaterial_first_layer;
 
-    if (is_multimaterial_first_layer || is_by_object) {
+    if (!can_combine_brims) {
         // Orca: Generate brims separately for each object when multiple extruders are used
         for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
             if (!iter->second.empty()) {
@@ -972,7 +974,6 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             all_brims_merged = union_ex(all_brims_merged);
 
             // Apply a tiny morphological cleanup to reduce boolean-union micro-artifacts
-            // on near-touching boundaries while preserving the unified shape.
             const float brim_cleanup_delta = std::max(float(scaled_resolution), float(SCALED_EPSILON));
             all_brims_merged = offset2_ex(all_brims_merged, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
