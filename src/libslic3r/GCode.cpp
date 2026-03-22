@@ -4993,35 +4993,35 @@ LayerResult GCode::process_layer(
     bool has_insert_wrapping_detection_gcode = false;
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
-    // Orca: Print unified global brim before any object
-    if (first_layer && !print.m_brimMap.empty()) {
-        // Check if we are in unified mode (only one object has brim)
-        bool is_unified_brim   = false;
-        int  objects_with_brim = 0;
-        for (const auto& [obj_id, brim] : print.m_brimMap) {
-            if (!brim.entities.empty())
-                objects_with_brim++;
-        }
-        is_unified_brim = (objects_with_brim == 1 && sequence_by_layer);
-
-        if (is_unified_brim) {
-            // Find the only object that has brim
+    // Orca: Print unified global brim before any object.
+    // Only do this if `combine_brims` is enabled and we are printing by layer.
+    if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
+        const ObjectID unified_object_id = [&]() -> ObjectID {
+            ObjectID id;
+            bool     found = false;
             for (const auto& [obj_id, brim] : print.m_brimMap) {
-                if (!brim.entities.empty()) {
-                    // Print the unified brim once before any object
-                    this->set_origin(0., 0.);
+                const bool has_printable_entities = std::any_of(brim.entities.begin(), brim.entities.end(),
+                                                                [](const ExtrusionEntity* ee) { return ee != nullptr; });
+                if (!has_printable_entities)
+                    continue;
+                if (found)
+                    return ObjectID();
+                id    = obj_id;
+                found = true;
+            }
+            return found ? id : ObjectID();
+        }();
 
-                    for (const ExtrusionEntity* ee : brim.entities) {
+        if (unified_object_id.valid()) {
+            const auto it = print.m_brimMap.find(unified_object_id);
+            if (it != print.m_brimMap.end()) {
+                this->set_origin(0., 0.);
+                for (const ExtrusionEntity* ee : it->second.entities)
+                    if (ee != nullptr)
                         gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
-                    }
 
-                    // Mark all objects as "brim already printed"
-                    for (auto& [id, _] : print.m_brimMap) {
-                        this->m_objsWithBrim.erase(id);
-                    }
-
-                    break;
-                }
+                // Mark brim as printed for this object to avoid per-object brim emission later.
+                this->m_objsWithBrim.erase(unified_object_id);
             }
         }
     }
