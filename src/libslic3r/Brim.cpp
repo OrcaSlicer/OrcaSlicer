@@ -928,24 +928,9 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
-    // Orca: Determine which extruders are actually used in the first layer
-    std::set<unsigned int> first_layer_extruders;
-
-    // Check object extruders used in first layer
-    for (const auto& [obj_id, extruder] : objPrintVec) {
-        const PrintObject* object = print.get_object(obj_id);
-
-        // Verify if this object actually prints on first layer
-        // (has slices on layer 0)
-        if (!object->layers().empty() && !object->layers().front()->lslices.empty()) {
-            first_layer_extruders.insert(extruder);
-        }
-    }
-
-    const bool combine_brims                = print.config().combine_brims.value;
-    const bool is_by_object                 = (print.config().print_sequence == PrintSequence::ByObject);
-    const bool is_multimaterial_first_layer = (first_layer_extruders.size() > 1);
-    const bool can_combine_brims            = combine_brims && !is_by_object && !is_multimaterial_first_layer;
+    const bool combine_brims     = print.config().combine_brims.value;
+    const bool is_by_object      = (print.config().print_sequence == PrintSequence::ByObject);
+    const bool can_combine_brims = combine_brims && !is_by_object;
 
     if (!can_combine_brims) {
         // Orca: Generate brims separately for each object when multiple extruders are used
