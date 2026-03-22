@@ -961,39 +961,44 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
         }
     } else {
         // Orca: Unified brim mode (single material, non-sequential printing)
-        ExPolygons all_brims_merged;
+        ExPolygons            all_brims_merged;
+        std::vector<ObjectID> brim_object_ids;
 
         // Add all object brims
         for (auto& [obj_id, brims] : brimAreaMap) {
-            if (!brims.empty())
+            if (!brims.empty()) {
                 expolygons_append(all_brims_merged, brims);
+                brim_object_ids.push_back(obj_id);
+            }
         }
 
         if (!all_brims_merged.empty()) {
             // Merge all brims into a single continuous area
             all_brims_merged = union_ex(all_brims_merged);
 
-            // Apply a tiny morphological cleanup to reduce boolean-union micro-artifacts
+            // Apply a tiny morphological cleanup to reduce boolean-union micro-artifacts.
             const float brim_cleanup_delta = std::max(float(scaled_resolution), float(SCALED_EPSILON));
             all_brims_merged = offset2_ex(all_brims_merged, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
             // Generate infill once for the merged brim area.
             ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
 
-            // In unified mode, we need to assign the merged brim to only one object
-            if (!objPrintVec.empty()) {
-                // Use the first object in the print order as the carrier for the unified brim
-                ObjectID first_object_id = objPrintVec[0].first;
-
-                // Assign the merged brim to the first object only
-                for (auto& [obj_id, _] : brimAreaMap) {
-                    if (obj_id == first_object_id) {
-                        brimMap[obj_id] = merged_brim;
-                    } else {
-                        brimMap[obj_id] = ExtrusionEntityCollection();
-                    }
+            // In unified mode, assign the merged brim to a deterministic carrier object.
+            // Pick the first object in print order that actually contributed brim area.
+            ObjectID carrier_id;
+            bool     carrier_found = false;
+            for (const auto& [obj_id, _extruder] : objPrintVec) {
+                if (std::find(brim_object_ids.begin(), brim_object_ids.end(), obj_id) != brim_object_ids.end()) {
+                    carrier_id    = obj_id;
+                    carrier_found = true;
+                    break;
                 }
             }
+
+            if (!carrier_found)
+                carrier_id = brim_object_ids.front();
+
+            brimMap[carrier_id] = std::move(merged_brim);
         }
     }
 }
