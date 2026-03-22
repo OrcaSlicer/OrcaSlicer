@@ -435,14 +435,6 @@
         {
             "name": "Generic TPU @Anycubic Kobra 3 0.4 nozzle",
             "sub_path": "filament/Generic TPU @Anycubic Kobra 3 0.4 nozzle.json"
-        },
-        {
-            "name": "SUNLU PETG @Anycubic Kobra Neo 0.6 nozzle",
-            "sub_path": "filament/SUNLU PETG @Anycubic Kobra Neo 0.6 nozzle.json"
-        },
-        {
-            "name": "SUNLU PLA @Anycubic Kobra Neo 0.6 nozzle",
-            "sub_path": "filament/SUNLU PLA @Anycubic Kobra Neo 0.6 nozzle.json"
         }
     ],
     "machine_list": [
@@ -505,10 +497,6 @@
         {
             "name": "Anycubic Kobra Max 0.4 nozzle",
             "sub_path": "machine/Anycubic Kobra Max 0.4 nozzle.json"
-        },
-        {
-            "name": "Anycubic Kobra Neo 0.6 nozzle",
-            "sub_path": "machine/Anycubic Kobra Neo 0.6 nozzle.json"
         },
         {
             "name": "Anycubic Kobra Plus 0.4 nozzle",
