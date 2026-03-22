@@ -1,7 +1,7 @@
 {
     "type": "machine",
     "name": "Anycubic Kobra Neo 0.6 nozzle",
-    "inherits": "",
+    "inherits": "fdm_machine_common",
     "from": "User",
     "adaptive_bed_mesh_margin": "5",
     "auxiliary_fan": "0",
