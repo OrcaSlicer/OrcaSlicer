@@ -296,8 +296,17 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             // The entire polygon is fuzzified
             fuzzy_polyline(fuzzified.points, true, slice_z, r.first);
         } else {
+            // Start from a non-clipped junction so wrapped clipped segments do
+            // not need an artificial reconnection across the seam.
+            auto       ordered           = splitted;
+            const auto first_non_clipped = std::find_if(ordered.begin(), ordered.end(),
+                                                        [](const Algorithm::SplitLineJunction& j) { return !j.clipped; });
+
+            if (first_non_clipped != ordered.end() && first_non_clipped != ordered.begin()) {
+                std::rotate(ordered.begin(), first_non_clipped, ordered.end());
+            }
             Points segment;
-            segment.reserve(splitted.size());
+            segment.reserve(ordered.size());
             fuzzified.points.clear();
 
             const auto fuzzy_current_segment = [&segment, &fuzzified, &r, slice_z]() {
@@ -307,19 +316,19 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
  
                 fuzzy_polyline(segment, false, slice_z, r.first);
                 //Orca: only add non fuzzy point if it's not in the polygon closing point.
-                if (!fuzzified.points.empty()
-                    && fuzzified.points.back() != front) {
+                if (fuzzified.points.empty()
+                    || fuzzified.points.back() != front) {
                     fuzzified.points.push_back(front);
                 }
                 fuzzified.points.insert(fuzzified.points.end(), segment.begin(), segment.end());
                 //Orca: only add non fuzzy point if it's not in the polygon closing point.
-                if (!fuzzified.points.empty() && fuzzified.points.back() != front) {
+                if (!fuzzified.points.empty() && fuzzified.points.back() != back) {
                     fuzzified.points.push_back(back);
                 }
                 segment.clear();
             };
 
-            for (const auto& p : splitted) {
+            for (const auto& p : ordered) {
                 if (p.clipped) {
                     segment.push_back(p.p);
                 } else {
@@ -333,17 +342,12 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             }
             if (!segment.empty()) {
                 // Close the loop
-                segment.push_back(splitted.front().p);
+                segment.push_back(ordered.front().p);
                 fuzzy_current_segment();
             }
         }
     }
- 
-    // Orca: ensure the loop is closed after fuzzification 
-    if (!fuzzified.points.empty() && fuzzified.points.front() != fuzzified.points.back()) {
-        fuzzified.points.back() = fuzzified.points.front();
-    }
- 
+
     return fuzzified;
 }
 
