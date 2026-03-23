@@ -310,21 +310,11 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             fuzzified.points.clear();
 
             const auto fuzzy_current_segment = [&segment, &fuzzified, &r, slice_z]() {
-                // Orca: non fuzzy points to isolate fuzzy region
-                const auto front = segment.front();
-                const auto back  = segment.back();
- 
+                fuzzified.points.push_back(segment.front());
+                const auto back = segment.back();
                 fuzzy_polyline(segment, false, slice_z, r.first);
-                //Orca: only add non fuzzy point if it's not in the polygon closing point.
-                if (fuzzified.points.empty()
-                    || fuzzified.points.back() != front) {
-                    fuzzified.points.push_back(front);
-                }
                 fuzzified.points.insert(fuzzified.points.end(), segment.begin(), segment.end());
-                //Orca: only add non fuzzy point if it's not in the polygon closing point.
-                if (!fuzzified.points.empty() && fuzzified.points.back() != back) {
-                    fuzzified.points.push_back(back);
-                }
+                fuzzified.points.push_back(back);
                 segment.clear();
             };
 
