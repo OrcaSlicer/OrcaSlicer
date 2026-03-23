@@ -56,7 +56,7 @@
     "support_interface_filament": "1",
     "support_interface_pattern": "auto",
     "independent_support_layer_height": "1",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "brim_object_gap": "0.05",
     "support_interface_spacing": "0.2",
     "support_object_xy_distance": "0.04",

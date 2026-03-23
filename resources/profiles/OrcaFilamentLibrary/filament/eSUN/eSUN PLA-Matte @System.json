@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "eSUN PLA-Matte @System",
+    "inherits": "eSUN PLA-Matte @base",
+    "from": "system",
+    "setting_id": "OGFSL05_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

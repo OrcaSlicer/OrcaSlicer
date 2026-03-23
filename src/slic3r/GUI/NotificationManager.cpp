@@ -322,6 +322,13 @@ void NotificationManager::PopNotification::render(GLCanvas3D& canvas, float init
 			render_minimize_button(imgui, win_pos.x, win_pos.y);
         render_close_button(imgui, win_size.x, win_size.y, win_pos.x, win_pos.y); // ORCA draw it after minimize button since its position related to minimize button
 	}
+
+	const bool gcode_window_visible = canvas.get_canvas_type() == GLCanvas3D::ECanvasType::CanvasPreview && wxGetApp().show_gcode_window();
+	if (!gcode_window_visible)
+	{
+		ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+	}
+	
 	imgui.end();
 
 	restore_default_theme();
