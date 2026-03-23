@@ -20,6 +20,7 @@
 #include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
+#include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
 #include "GUI_Preview.hpp"
 #include "libslic3r/Print.hpp"
@@ -2769,8 +2770,20 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
                 }
             }
         }
-    };
-
+        };
+    auto link_filament_group_wiki = [&](const std::string& label) {
+        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
+        ImColor HyperColor = ImColor(0, 174, 66, 255).Value;
+        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
+        imgui.text(label.c_str());
+        ImGui::PopStyleColor();
+        // click behavior
+        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                open_filament_group_wiki();
+            }
+        }
+        };
     auto draw_dash_line = [&](ImDrawList* draw_list, int dash_length = 5, int gap_length = 3) {
         ImVec2 p1 = ImGui::GetCursorScreenPos();
         ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
