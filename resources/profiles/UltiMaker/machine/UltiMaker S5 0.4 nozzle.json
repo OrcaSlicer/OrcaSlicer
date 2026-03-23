@@ -11,11 +11,11 @@
 		"0.4"
 	],
 	"printable_area": [
-		"0x0",
-		"224x0",
-		"224x225",
-		"0x225"
-	],
+        "0x0",
+        "330x0",
+        "330x240",
+        "0x240"
+    ],
 	"printable_height": "300",
 	"extruder_clearance_height_to_rod": "60",
     "extruder_clearance_radius": "61",
@@ -112,6 +112,14 @@
 	"default_filament_profile": [
 		"Generic PLA @System"
 	],
+	"z_hop": [
+        "1"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ],
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n",
+	"fan_speedup_time": "0.5",
     "machine_start_gcode": "; NOTE: Do NOT remove the following header. It is necessary for the UM printer to not crash.\n;START_OF_HEADER\n;HEADER_VERSION:0.1\n;FLAVOR:Griffin\n;GENERATOR.NAME:OrcaSlicer\n;GENERATOR.VERSION:5.11.0\n;GENERATOR.BUILD_DATE:2016-06-23\n;TARGET_MACHINE.NAME:[printer_model]\n;EXTRUDER_TRAIN.[initial_extruder].INITIAL_TEMPERATURE:[first_layer_temperature[initial_extruder]]\n;EXTRUDER_TRAIN.[initial_extruder].MATERIAL.VOLUME_USED:[extruded_volume_total]\n;EXTRUDER_TRAIN.[initial_extruder].MATERIAL.GUID:506c9f0d-e3aa-4bd4-b2d2-23e2425b1aa9\n;EXTRUDER_TRAIN.[initial_extruder].NOZZLE.DIAMETER:[nozzle_diameter[initial_extruder]]\n;EXTRUDER_TRAIN.[initial_extruder].NOZZLE.NAME:AA [nozzle_diameter[initial_extruder]]\n;BUILD_PLATE.INITIAL_TEMPERATURE:[bed_temperature_initial_layer_single]\n;BUILD_VOLUME.TEMPERATURE:28\n;PRINT.TIME:2\n;PRINT.SIZE.MIN.X:0\n;PRINT.SIZE.MIN.Y:0\n;PRINT.SIZE.MIN.Z:0\n;PRINT.SIZE.MAX.X:200\n;PRINT.SIZE.MAX.Y:200\n;PRINT.SIZE.MAX.Z:200\n;END_OF_HEADER\nT[initial_extruder]\n\nM82 ;absolute extrusion mode\nG92 E0\nM190 S[bed_temperature_initial_layer_single] ; Wait for bed temp\nM104 S[first_layer_temperature[initial_extruder]] ; Heat extruder\nM109 S[first_layer_temperature[initial_extruder]] ; Wait for extruder temp\n\n\n; Set the settings we removed in the post-processing (orcaslicer generated header).\nM73 P0 R0 ;TODO change the R value into the total minutes of print\nM201 X[machine_max_acceleration_x] Y[machine_max_acceleration_y] Z[machine_max_acceleration_z] E[machine_max_acceleration_e] ; accel\nM203 X[machine_max_speed_x] Y[machine_max_speed_y] Z[machine_max_speed_z] E[machine_max_speed_e] ; max speed\nM204 S[machine_max_acceleration_extruding] ; starting accel\nM204 P[machine_max_acceleration_extruding] R[machine_max_acceleration_retracting] T[machine_max_acceleration_travel]\nM205 X[machine_max_jerk_x] Y[machine_max_jerk_y] Z[machine_max_jerk_z] E[machine_max_jerk_e] ; jerk limits\n\n\nM107; start with the fan off\n\n; Make the prime blob\nG0 F9000 X-3 Y6 Z2\nG280 ; g280 is UM-specific\nG1 F2700 E-6.5 ;retract\n\nM82; set extruder to absolute mode\n\n; End of the start gcode sequence.\n;LAYER_COUNT:[total_layer_count]",
     "machine_end_gcode": "; Move toolhead out of the way\nG28 X Y\n\nM204 S3000; reset accel\nM107; fan off\n\n; heaters off\nM104 S0\nM104 T1 S0\nM140 S0\n\n; disable motors\nM84\n\n\nM82 ;absolute extrusion mode\n\n;End of Gcode\n",
     "scan_first_layer": "0"

@@ -38,6 +38,8 @@ public:
 	const std::string& get_api_username() const { return m_api_username; }
 	const std::string& get_api_password() const { return m_api_password; }
 
+	int getPrintTime(std::string filepath) const;
+
 protected:
 	std::string m_host;
 	
