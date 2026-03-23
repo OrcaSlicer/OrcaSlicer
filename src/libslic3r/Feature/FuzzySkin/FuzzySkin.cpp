@@ -285,7 +285,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
     // Split the loops into lines with different config, and fuzzy them separately
     fuzzified = polygon;
     for (const auto& r : fuzzified_regions) {
-        const auto splitted = Algorithm::split_line(fuzzified, r.second, true);
+        auto splitted = Algorithm::split_line(fuzzified, r.second, true);
         if (splitted.empty()) {
             // No intersection, skip
             continue;
@@ -298,15 +298,14 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         } else {
             // Start from a non-clipped junction so wrapped clipped segments do
             // not need an artificial reconnection across the seam.
-            auto       ordered           = splitted;
-            const auto first_non_clipped = std::find_if(ordered.begin(), ordered.end(),
-                                                        [](const Algorithm::SplitLineJunction& j) { return !j.clipped; });
-
-            if (first_non_clipped != ordered.end() && first_non_clipped != ordered.begin()) {
-                std::rotate(ordered.begin(), first_non_clipped, ordered.end());
+            const auto first_non_clipped = std::find_if(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) {
+                return !j.clipped;
+            });
+            if (first_non_clipped != splitted.begin()) {
+                std::rotate(splitted.begin(), first_non_clipped, splitted.end());
             }
             Points segment;
-            segment.reserve(ordered.size());
+            segment.reserve(splitted.size());
             fuzzified.points.clear();
 
             const auto fuzzy_current_segment = [&segment, &fuzzified, &r, slice_z]() {
@@ -318,7 +317,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
                 segment.clear();
             };
 
-            for (const auto& p : ordered) {
+            for (const auto& p : splitted) {
                 if (p.clipped) {
                     segment.push_back(p.p);
                 } else {
@@ -332,7 +331,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             }
             if (!segment.empty()) {
                 // Close the loop
-                segment.push_back(ordered.front().p);
+                segment.push_back(splitted.front().p);
                 fuzzy_current_segment();
             }
         }
