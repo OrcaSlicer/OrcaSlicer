@@ -193,7 +193,7 @@ msgstr "Lücken füllen"
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr ""
-"Erlaubt das malen nur auf Seiten, welche ausgewählt wurden durch: \"%1%\""
+"Erlaubt das Malen nur auf Flächen, welche ausgewählt wurden durch: \"%1%\""
 
 msgid "Highlight faces according to overhang angle."
 msgstr "Markieren der Flächen entsprechend dem Überhangwinkel."
@@ -1610,7 +1610,7 @@ msgstr ""
 "und nur Teile angehoben werden können."
 
 msgid "Face and face assembly"
-msgstr "Face und Face Zusammenbau"
+msgstr "Fläche-zu-Fläche-Zusammenbau"
 
 msgid "Notice"
 msgstr "Hinweis"
@@ -2786,7 +2786,7 @@ msgstr "Linientyp"
 
 #, c-format, boost-format
 msgid "1x1 Grid: %d mm"
-msgstr "1x1 Netz %d mm"
+msgstr "1x1 Raster %d mm"
 
 msgid "More"
 msgstr "Mehr"
@@ -3346,22 +3346,22 @@ msgstr ""
 "einen normalen Speicher, bevor Sie etwas an den Drucker senden."
 
 msgid "Bad input data for EmbossCreateObjectJob."
-msgstr "Schlechter Eingabewert für EmbossCreateObjectJob."
+msgstr "Ungültiger Eingabewert für EmbossCreateObjectJob."
 
 msgid "Add Emboss text object"
 msgstr "Füge Emboss-Textobjekt hinzu"
 
 msgid "Bad input data for EmbossUpdateJob."
-msgstr "Schlechter Eingabewert für EmbossUpdateJob."
+msgstr "Ungültiger Eingabewert für EmbossUpdateJob."
 
 msgid "Created text volume is empty. Change text or font."
 msgstr "Erstelltes Textvolumen ist leer. Ändern Sie den Text oder die Schriftart."
 
 msgid "Bad input data for CreateSurfaceVolumeJob."
-msgstr "Schlechter Eingabewert für CreateSurfaceVolumeJob."
+msgstr "Ungültiger Eingabewert für CreateSurfaceVolumeJob."
 
 msgid "Bad input data for UseSurfaceJob."
-msgstr "Schlechter Eingabewert für UseSurfaceJob."
+msgstr "Ungültiger Eingabewert für UseSurfaceJob."
 
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
@@ -3372,7 +3372,7 @@ msgid "Add Emboss text Volume"
 msgstr "Füge Emboss-Textvolumen hinzu"
 
 msgid "Font doesn't have any shape for given text."
-msgstr "Schrift hat keine Form für den angegebenen Text."
+msgstr "Schriftart hat keine Form für den angegebenen Text."
 
 msgid "There is no valid surface for text projection."
 msgstr "Da ist keine gültige Oberfläche für die Textprojektion."
@@ -3387,7 +3387,7 @@ msgid ""
 "The heated bed's thermal preconditioning helps optimize the first layer "
 "print quality. Printing will start once preconditioning is complete."
 msgstr ""
-"Die thermische Vorkonditionierung des beheizten Betts hilft,"
+"Die thermische Vorkonditionierung des Heizbetts hilft,"
 "die Druckqualität der ersten Schicht zu optimieren. Der Druck beginnt,"
 "sobald die Vorkonditionierung abgeschlossen ist."
 
@@ -5613,13 +5613,13 @@ msgstr ""
 "Parameter gemäß dem Wiki an, um die Druckqualität zu gewährleisten."
 
 msgid "The prime tower extends beyond the plate boundary."
-msgstr "Der Prime-Turm ragt über die Begrenzung der Druckplatte hinaus."
+msgstr "Der Reinigungsturms ragt über die Begrenzung der Druckplatte hinaus."
 
 msgid ""
 "Prime tower position exceeded build plate boundaries and was repositioned to "
 "the nearest valid edge."
 msgstr ""
-"Die Position des Prime-Turms überschritt die Grenzen der Druckplatte und "
+"Die Position des Reinigungsturms überschritt die Grenzen der Druckplatte und "
 "wurde an den nächstgelegenen gültigen Rand verschoben."
 
 msgid ""
@@ -6983,7 +6983,7 @@ msgstr ""
 "erfolgreicher Druck dieses Druckprofils erforderlich."
 
 msgid "click to add machine"
-msgstr "Klicken Sie hier, um eine Maschine hinzuzufügen"
+msgstr "Klicken, um einen Drucker hinzuzufügen"
 
 msgid "Status"
 msgstr "Status"
@@ -7077,7 +7077,7 @@ msgid "Update"
 msgstr "Aktualisieren"
 
 msgid "Not for now"
-msgstr "Nicht jetzt"
+msgstr "Vorerst nicht"
 
 msgid "Server Exception"
 msgstr "Server Ausnahme"
@@ -7692,9 +7692,9 @@ msgid ""
 "Smooth mode for timelapse is enabled, but the prime tower is off, which may "
 "cause print defects. Please enable the prime tower, re-slice and print again."
 msgstr ""
-"Der Smooth-Modus für Zeitraffer ist aktiviert, aber der Prime-Turm ist "
-"deaktiviert, was zu Druckfehlern führen kann. Bitte aktivieren Sie den Prime-"
-"Turm, slice das Modell neu und drucken Sie erneut."
+"Der Smooth-Modus für Zeitraffer ist aktiviert, aber der Reinigungsturms ist "
+"deaktiviert, was zu Druckfehlern führen kann. Bitte aktivieren Sie den "
+"Reinigungsturms, slice das Modell neu und drucken Sie es erneut."
 
 msgid "Expand sidebar"
 msgstr "Seitenleiste erweitern"
@@ -10765,10 +10765,10 @@ msgid "Select presets to compare"
 msgstr "Wähle Profile zum Vergleich aus"
 
 msgid "Left Preset Value"
-msgstr "linker Profilwerte"
+msgstr "Linker Profilwert"
 
 msgid "Right Preset Value"
-msgstr "rechter Profilwerte"
+msgstr "Rechter Profilwert"
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."
@@ -14923,7 +14923,7 @@ msgid "Line"
 msgstr "Linie"
 
 msgid "Grid"
-msgstr "Gitternetz"
+msgstr "Raster"
 
 msgid "Tri-hexagon"
 msgstr "Tri-Hexagon"
@@ -17848,7 +17848,7 @@ msgstr ""
 "stattdessen das Rechtwinklige Muster verwendet."
 
 msgid "Rectilinear grid"
-msgstr "Rechtwinkliges Gitter"
+msgstr "Rechtwinkliges Raster"
 
 msgid "Hollow"
 msgstr "Hohl"
@@ -17895,7 +17895,7 @@ msgid ""
 "overhangs."
 msgstr ""
 "Stil und Form der Stützstrukturen. Für normale Stützstrukturen erzeugt die "
-"Projektion der Stützstrukturen in ein regelmäßiges Gitter stabilere "
+"Projektion der Stützstrukturen in ein regelmäßiges Raster stabilere "
 "Stützstrukturen (Standard), während schlanke Stütztürme Material sparen und "
 "Objektverletzungen reduzieren.\n"
 "Für Baumstützen werden die schlanken und organischen Stile die Äste "
@@ -17904,7 +17904,7 @@ msgstr ""
 "unter großen flachen Überhängen erzeugt."
 
 msgid "Default (Grid/Organic)"
-msgstr "Standard (Gitter/Organisch)"
+msgstr "Standard (Raster/Organisch)"
 
 msgid "Snug"
 msgstr "Nahtlos"
@@ -17931,7 +17931,7 @@ msgid ""
 msgstr ""
 "Die Stützschicht verwendet eine unabhängige Schichthöhe im Vergleich zur "
 "Objektschicht. Dadurch kann der Z-Abstand individuell angepasst und "
-"Druckzeit gespart werden. Diese Option ist ungültig, wenn der Prime-Tower "
+"Druckzeit gespart werden. Diese Option ist ungültig, wenn der Reinigungsturms "
 "aktiviert ist."
 
 msgid "Threshold angle"
@@ -20522,7 +20522,7 @@ msgid ""
 "Check your firmware documentation for supported shaper types."
 msgstr ""
 "RepRap-Firmware Version => 3.4.0\n"
-"Überprüfen Sie die Dokumentation Ihrer Firmware auf unterstützte Shaper-Typen."
+"Überprüfen Sie Ihre Firmwaredokumentation auf unterstützte Shaper-Typen."
 
 msgid "Frequency (Start / End): "
 msgstr "Frequenz (Start / Ende): "
@@ -20537,7 +20537,7 @@ msgid "Hz"
 msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap-Firmware verwendet denselben Frequenzbereich für beide Achsen."
+msgstr "RepRap Firmware verwendet denselben Frequenzbereich für beide Achsen."
 
 msgid "Damp: "
 msgstr "Dämpfung: "
@@ -20565,7 +20565,7 @@ msgid "Input shaping Damp test"
 msgstr "Input Shaping Dämpfungstest"
 
 msgid "Check firmware compatibility."
-msgstr "Überprüfen Sie die Firmware-Kompatibilität."
+msgstr "Firmware-Kompatibilität prüfen."
 
 msgid "Frequency: "
 msgstr "Frequenz: "
@@ -22468,7 +22468,7 @@ msgid "Download and Install"
 msgstr "Herunterladen und installieren"
 
 msgid "Skip for Now"
-msgstr "Jetzt überspringen"
+msgstr "Vorerst überspringen"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Eine neue Version des Bambu Network Plug-ins ist verfügbar."
@@ -22478,7 +22478,7 @@ msgid "Current version: %s"
 msgstr "Aktuelle Version: %s"
 
 msgid "Update to version:"
-msgstr "Auf Version aktualisieren:"
+msgstr "Aktualisieren auf Version:"
 
 msgid "Update Now"
 msgstr "Jetzt aktualisieren"
@@ -22523,10 +22523,10 @@ msgstr ""
 "Transformationen, erhöhen jedoch die Verarbeitungszeit."
 
 msgid "Linear Deflection"
-msgstr "Lineare Ablenkung"
+msgstr "Lineare Abweichung"
 
 msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
-msgstr "Bitte geben Sie einen gültigen Wert ein (0,001 < lineare Ablenkung < 0,1)"
+msgstr "Bitte geben Sie einen gültigen Wert ein (0,001 < lineare Abweichung < 0,1)"
 
 msgid "Angle Deflection"
 msgstr "Winkelabweichung"
@@ -22538,7 +22538,7 @@ msgid "Split compound and compsolid into multiple objects"
 msgstr "Teile Verbund- und Komposid-Objekte in mehrere Objekte auf"
 
 msgid "Number of triangular facets"
-msgstr "Anzahl der dreieckigen Facetten"
+msgstr "Anzahl der Dreiecksflächen"
 
 msgid "Calculating, please wait..."
 msgstr "Berechnung läuft, bitte warten..."
