@@ -101,6 +101,81 @@ ThumbnailErrors validate_thumbnails_string(wxString& str, const wxString& def_ex
     return errors;
 }
 
+// Orca
+wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_option_key& id)
+{
+    wxString tooltip = _(opt.tooltip);
+
+    std::string opt_id = id;
+    auto hash_pos = opt_id.find("#");
+    if (hash_pos != std::string::npos) {
+        opt_id.replace(hash_pos, 1,"[");
+        opt_id += "]";
+    }
+
+    tooltip += (tooltip.empty() ? "" : "\n\n") + _(L("parameter name")) + ": " + opt_id;
+
+    // Orca: 
+    // We can't use Orca's default values as-is because they sometimes depend on other values. 
+    // Parent preset configuration values will be used instead.
+    if (const Preset* print_parent_preset = wxGetApp().preset_bundle->prints.get_selected_preset_parent()) {
+        const DynamicPrintConfig& parent_config = print_parent_preset->config;
+
+        if (!parent_config.has(opt_id))
+            return tooltip;
+
+        wxString side_text = from_u8(opt.sidetext);
+
+        // Orca: a small hack for `layers` side text: adding a space before it for better looking text
+        if (opt.sidetext == L("layers"))
+            side_text = " " + _(side_text);
+
+        if (opt.type == coFloat || opt.type == coInt || opt.type == coPercent || opt.type == coFloatOrPercent) {
+            double default_value = 0.;
+
+            if (opt.type == coFloat)
+                default_value = parent_config.option<ConfigOptionFloat>(opt_id)->value;
+            else if (opt.type == coInt)
+                default_value = parent_config.option<ConfigOptionInt>(opt_id)->value;
+            else if (opt.type == coPercent)
+                default_value = parent_config.option<ConfigOptionPercent>(opt_id)->value;
+            else if (opt.type == coFloatOrPercent) {
+                default_value = parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->value;
+                if (parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->percent)
+                    side_text = "%";
+                else if (!side_text.empty()) {
+                    static std::string postfix = " or %";
+                    auto postfix_pos = side_text.find(postfix);
+                    if (postfix_pos != std::string::npos)
+                        side_text.erase(postfix_pos, postfix.length());
+                }
+            }
+
+            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value)) + _(side_text);
+
+            if (opt.min > -FLT_MAX && opt.max < FLT_MAX) {
+                tooltip += "\n" + _(L("Range")) + ": [" + 
+                    _(double_to_string(opt.min)) + _(side_text) + ", " + 
+                    _(double_to_string(opt.max)) + _(side_text) + "]";
+            }
+        } else if (opt.type == coBool || opt.type == coString) {
+            std::string default_value = "";
+
+            if (opt.type == coString)
+                default_value = parent_config.option<ConfigOptionString>(opt_id)->value;
+            else if (opt.type == coBool)
+                default_value = parent_config.option<ConfigOptionBool>(opt_id)->value ? "true" : "false";
+
+            tooltip += "\n\n" + _(L("Default")) + ": " +
+                (default_value.empty() ? _(L("Empty string")) : _(default_value) + _(side_text));
+        }
+    }
+
+    edit_tooltip(tooltip);
+
+    return tooltip;
+}
+
 Field::~Field()
 {
 	if (m_on_kill_focus)
@@ -223,23 +298,9 @@ void Field::toggle(bool en) { en && !m_opt.readonly ? enable() : disable(); }
 
 wxString Field::get_tooltip_text(const wxString &default_string)
 {
-	wxString tooltip_text("");
-#ifdef NDEBUG
-	wxString tooltip = _(m_opt.tooltip);
-    ::edit_tooltip(tooltip);
+    wxString tooltip_text = get_formatted_tooltip_text(m_opt, m_opt_id);
 
-    std::string opt_id = m_opt_id;
-    auto hash_pos = opt_id.find("#");
-    if (hash_pos != std::string::npos) {
-        opt_id.replace(hash_pos, 1,"[");
-        opt_id += "]";
-    }
-
-	if (tooltip.length() > 0)
-        tooltip_text = tooltip + "\n" +
-        _(L("parameter name")) + "\t: " + opt_id;
- #endif
-	return tooltip_text;
+    return tooltip_text.length() > 0 ? tooltip_text : default_string;
 }
 
 bool Field::is_matched(const std::string& string, const std::string& pattern)
@@ -251,9 +312,15 @@ bool Field::is_matched(const std::string& string, const std::string& pattern)
 void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true*/)
 {
 	switch (m_opt.type) {
+    case coInts:
     case coInt: {
         long val = 0;
-        if (!str.ToLong(&val)) {
+
+        bool is_na_value = m_opt.nullable && str == m_na_value;
+
+        if (is_na_value)
+            val = ConfigOptionIntsNullable::nil_value();
+        else if (!str.ToLong(&val)) {
             if (!check_value) {
                 m_value.clear();
                 break;
@@ -261,6 +328,27 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             show_error(m_parent, _(L("Invalid numeric.")));
             set_value(int(val), true);
         }
+
+        if (!m_opt.is_value_valid(double(val))) {
+            if (!check_value) {
+                m_value.clear();
+                break;
+            }
+
+            if (!is_na_value) {
+                // Orca: no need to check ranges for the nil value
+                show_error(m_parent, _L("Value is out of range."));
+
+                int min = static_cast<int>(m_opt.min);
+                int max = static_cast<int>(m_opt.max);
+
+                if (min > val) val = min;
+                if (val > max) val = max;
+
+                set_value(int(val), true);
+            }
+        }
+
         m_value = int(val);
         break;
     }
@@ -309,7 +397,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 show_error(m_parent, _(L("Invalid numeric.")));
                 set_value(double_to_string(val), true);
             }
-            if (m_opt.min > val || val > m_opt.max)
+            if (!m_opt.is_value_valid(val))
             {
                 if (!check_value) {
                     m_value.clear();
@@ -347,7 +435,8 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                         }
                     }
                 }
-                else {
+                else if (!is_na_value) {
+                    // Orca: no need to check ranges for the nil value
                     show_error(m_parent, _L("Value is out of range."));
                     if (m_opt.min > val) val = m_opt.min;
                     if (val > m_opt.max) val = m_opt.max;
@@ -511,7 +600,6 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
         str.Replace(" ", wxEmptyString, true);
         if (!str.IsEmpty()) {
             bool invalid_val = false;
-            bool out_of_range_val = false;
             wxStringTokenizer thumbnails(str, ",");
             while (thumbnails.HasMoreTokens()) {
                 wxString token = thumbnails.GetNextToken();
@@ -522,26 +610,8 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                     if (x_str.ToDouble(&x) && thumbnail.HasMoreTokens()) {
                         wxString y_str = thumbnail.GetNextToken();
                         if (y_str.ToDouble(&y) && !thumbnail.HasMoreTokens()) {
-                            if (m_opt_id == "bed_exclude_area") {
-                                if (0 <= x && x <= 350 && 0 <= y && y <= 350) {
-                                    out_values.push_back(Vec2d(x, y));
-                                    continue;
-                                }
-                            }
-                            else if (m_opt_id == "printable_area") {
-                                if (0 <= x && x <= 1000 && 0 <= y && y <= 1000) {
-                                    out_values.push_back(Vec2d(x, y));
-                                    continue;
-                                }
-                            }
-                            else {
-                                if (0 < x && x < 1000 && 0 < y && y < 1000) {
-                                    out_values.push_back(Vec2d(x, y));
-                                    continue;
-                                }
-                            }
-                            out_of_range_val = true;
-                            break;
+                            out_values.push_back(Vec2d(x, y));
+                            continue;
                         }
                     }
                 }
@@ -549,14 +619,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 break;
             }
 
-            if (out_of_range_val) {
-                wxString text_value;
-                if (!m_value.empty())
-                    text_value = get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));
-                set_value(text_value, true);
-                show_error(m_parent, _L("Value is out of range."));
-            }
-            else if (invalid_val) {
+            if (invalid_val) {
                 wxString text_value;
                 if (!m_value.empty())
                     text_value = get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));
@@ -736,6 +799,13 @@ void TextCtrl::BUILD() {
 		const ConfigOptionStrings *vec = m_opt.get_default_value<ConfigOptionStrings>();
 		if (vec == nullptr || vec->empty()) break; //for the case of empty default value
 		text_value = vec->get_at(m_opt_idx);
+		// For multiline fields, unescape newlines and other escape sequences
+		if (m_opt.multiline) {
+			std::string unescaped_value;
+			if (unescape_string_cstyle(text_value.ToStdString(), unescaped_value)) {
+				text_value = wxString::FromUTF8(unescaped_value);
+			}
+		}
 		break;
 	}
     case coPoint:
@@ -757,7 +827,7 @@ void TextCtrl::BUILD() {
         : builder2.build(m_parent, "", "", "", wxDefaultPosition, size, wxTE_PROCESS_ENTER);
     temp->SetLabel(_L(m_opt.sidetext));
 	auto text_ctrl = m_opt.multiline ? (wxTextCtrl *)temp : ((TextInput *) temp)->GetTextCtrl();
-    text_ctrl->SetLabel(text_value);
+    text_ctrl->SetValue(text_value);
     temp->SetSize(size);
     m_combine_side_text = !m_opt.multiline;
     if (parent_is_custom_ctrl && m_opt.height < 0)
@@ -849,13 +919,18 @@ bool TextCtrl::value_was_changed()
     case coInt:
         return boost::any_cast<int>(m_value) != boost::any_cast<int>(val);
     case coPercent:
-    case coPercents:
+    case coPercents: {
+        if (m_opt.nullable && std::isnan(boost::any_cast<double>(m_value)) &&
+                              std::isnan(boost::any_cast<double>(val)))
+            return false;
+        return boost::any_cast<double>(m_value) != boost::any_cast<double>(val);
+    }
     case coFloats:
     case coFloat: {
         if (m_opt.nullable && std::isnan(boost::any_cast<double>(m_value)) &&
                               std::isnan(boost::any_cast<double>(val)))
             return false;
-        return boost::any_cast<double>(m_value) != boost::any_cast<double>(val);
+        return !is_approx(boost::any_cast<double>(m_value), boost::any_cast<double>(val));
     }
     case coString:
     case coStrings:
@@ -1107,8 +1182,8 @@ void SpinCtrl::BUILD() {
 		break;
 	}
 
-    const int min_val = m_opt.min == INT_MIN ? 0 : m_opt.min;
-	const int max_val = m_opt.max < 2147483647 ? m_opt.max : 2147483647;
+    const int min_val = m_opt.min == -FLT_MAX ? 0 : (int)m_opt.min;
+	const int max_val = m_opt.max < FLT_MAX ? (int)m_opt.max : INT_MAX;
 
     static Builder<SpinInput> builder;
 	auto temp = builder.build(m_parent, "", "", wxDefaultPosition, size,
@@ -1164,7 +1239,7 @@ void SpinCtrl::BUILD() {
         if (!parsed || value < INT_MIN || value > INT_MAX)
             tmp_value = UNDEF_VALUE;
         else {
-            tmp_value = std::min(std::max((int)value, m_opt.min), m_opt.max);
+            tmp_value = std::min(std::max((int)value, temp->GetMin()), temp->GetMax());
 #ifdef __WXOSX__
 #ifdef UNDEFINED__WXOSX__ // BBS
             // Forcibly set the input value for SpinControl, since the value
@@ -1217,7 +1292,7 @@ void SpinCtrl::set_value(const boost::any& value, bool change_event) {
     m_disable_change_event = !change_event;
     m_value = value;
     if (value.empty()) { // BBS: null value
-        dynamic_cast<SpinInput*>(window)->SetValue(m_opt.min);
+        dynamic_cast<SpinInput*>(window)->SetValue(dynamic_cast<SpinInput*>(window)->GetMin());
         dynamic_cast<SpinInput*>(window)->GetTextCtrl()->SetValue("");
     }
     else {
@@ -2158,8 +2233,8 @@ boost::any& PointCtrl::get_value()
         show_error(m_parent, _L("Invalid numeric."));
 	}
 	else
-	if (m_opt.min > x || x > m_opt.max ||
-		m_opt.min > y || y > m_opt.max)
+	if (!m_opt.is_value_valid(x) ||
+		!m_opt.is_value_valid(y))
 	{
 		if (m_opt.min > x) x = m_opt.min;
 		if (x > m_opt.max) x = m_opt.max;
@@ -2218,8 +2293,8 @@ void SliderCtrl::BUILD()
 	auto temp = new wxBoxSizer(wxHORIZONTAL);
 
 	auto def_val = m_opt.get_default_value<ConfigOptionInt>()->value;
-	auto min = m_opt.min == INT_MIN ? 0 : m_opt.min;
-	auto max = m_opt.max == INT_MAX ? 100 : m_opt.max;
+	auto min = m_opt.min == -FLT_MAX ? 0   : (int)m_opt.min;
+	auto max = m_opt.max ==  FLT_MAX ? 100 : INT_MAX;
 
 	m_slider = new wxSlider(m_parent, wxID_ANY, def_val * m_scale,
 							min * m_scale, max * m_scale,

@@ -88,6 +88,7 @@ using namespace nlohmann;
 
 #ifdef __WXGTK__
 #include <X11/Xlib.h>
+#include <unistd.h>
 #endif
 
 #ifdef SLIC3R_GUI
@@ -254,7 +255,7 @@ typedef struct _cli_callback_mgr {
         while(1) {
             lck.lock();
             m_condition.wait(lck, [this](){ return m_data_ready || m_exit; });
-            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": wakup.";
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": wakeup.";
             if (m_data_ready) {
                 notify();
                 m_data_ready = false;
@@ -1186,6 +1187,22 @@ int CLI::run(int argc, char **argv)
     // instruct the window manager to fall back to X server mode.
     ::setenv("GDK_BACKEND", "x11", /* replace */ true);
 
+    // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
+    // (like the Setup Wizard) to render blank or freeze. Disabling compositing
+    // mode forces software rendering, which works reliably on all backends.
+    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+
+    // On Linux dual-GPU systems, request the high-performance discrete GPU.
+    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
+    ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+    // For NVIDIA proprietary driver PRIME render offload, set additional variables.
+    // Only set if the NVIDIA kernel module is loaded to avoid breaking systems without NVIDIA.
+    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+    }
+
     // Also on Linux, we need to tell Xlib that we will be using threads,
     // lest we crash when we fire up GStreamer.
     XInitThreads();
@@ -1221,7 +1238,7 @@ int CLI::run(int argc, char **argv)
 
     PrinterTechnology printer_technology = get_printer_technology(m_config);
 
-    //BBS: remove GCodeViewer as seperate APP logic
+    //BBS: remove GCodeViewer as separate APP logic
     /*bool 							start_as_gcodeviewer =
 #ifdef _WIN32
             false;
@@ -1299,7 +1316,7 @@ int CLI::run(int argc, char **argv)
             params.input_files  = std::move(m_input_files);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", normal mode, input_files size = "<<params.input_files.size();
         }
-        //BBS: remove GCodeViewer as seperate APP logic
+        //BBS: remove GCodeViewer as separate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch OrcaSlicer GUI soon";
@@ -1311,14 +1328,14 @@ int CLI::run(int argc, char **argv)
         return (argc == 0) ? 0 : 1;
 #endif // SLIC3R_GUI
     }
+
+    // Setup logging for CLI
+    const ConfigOptionInt* opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
+    if (opt_loglevel) {
+        set_logging_level(opt_loglevel->value);
+    }
     else {
-        const ConfigOptionInt *opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
-        if (opt_loglevel) {
-            set_logging_level(opt_loglevel->value);
-        }
-        else {
-            set_logging_level(2);
-        }
+        set_logging_level(2);
     }
 
     global_begin_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -2636,7 +2653,7 @@ int CLI::run(int argc, char **argv)
         }
     };
 
-    //update seperate configs into full config
+    //update separate configs into full config
     auto update_full_config = [](DynamicPrintConfig& full_config, const DynamicPrintConfig& config, std::set<std::string>& diff_key_sets, bool variant_count_changed, std::set<std::string>& key_set_1, std::set<std::string>& key_set_2, std::vector<int> variant_index, bool update_all = false, bool skip_gcodes = false) {
         const t_config_option_keys& config_keys = config.keys();
         BOOST_LOG_TRIVIAL(info) << boost::format("update_full_config: config keys count %1%")%config_keys.size();
@@ -4616,7 +4633,7 @@ int CLI::run(int argc, char **argv)
                         y = tower_margin;
                     }
 
-                    //create the options using default if neccessary
+                    //create the options using default if necessary
                     ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
                     ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
                     ConfigOptionFloat* width_option = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true);
@@ -4756,7 +4773,7 @@ int CLI::run(int argc, char **argv)
                         y = WIPE_TOWER_MARGIN;
                     }
 
-                    //create the options using default if neccessary
+                    //create the options using default if necessary
                     ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
                     ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
                     ConfigOptionFloat wt_x_opt(x);
@@ -4913,7 +4930,7 @@ int CLI::run(int argc, char **argv)
                         ConfigOptionFloat wt_x_opt(x);
                         ConfigOptionFloat wt_y_opt(y);
 
-                        //create the options using default if neccessary
+                        //create the options using default if necessary
                         ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
                         ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
                         ConfigOptionFloat* width_option = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true);
@@ -5212,7 +5229,7 @@ int CLI::run(int argc, char **argv)
                     }
 
                     // Move the unprintable items to the last virtual bed.
-                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the orignal bed_idx
+                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the original bed_idx
                     for (ArrangePolygon& ap : unprintable)
                     {
                         ap.bed_idx = bed_idx_max + 1;
@@ -5386,7 +5403,7 @@ int CLI::run(int argc, char **argv)
                     }
 
                     // Move the unprintable items to the last virtual bed.
-                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the orignal bed_idx
+                    // Note ap.apply() moves relatively according to bed_idx, so we need to subtract the original bed_idx
                     for (ArrangePolygon& ap : unprintable)
                     {
                         ap.bed_idx = bed_idx_max + 1;
@@ -6094,7 +6111,7 @@ int CLI::run(int argc, char **argv)
                                         outfile = outfile_dir + "/plate_" + std::to_string(index + 1) + ".gcode";
                                         part_plate->set_tmp_gcode_path(outfile);
                                     }
-                                    BOOST_LOG_TRIVIAL(info) << "process finished, will export gcode temporily to " << outfile << std::endl;
+                                    BOOST_LOG_TRIVIAL(info) << "process finished, will export gcode temporarily to " << outfile << std::endl;
                                     temp_time = (long long)Slic3r::Utils::get_current_time_utc();
                                     outfile = print_fff->export_gcode(outfile, gcode_result, nullptr);
                                     time_using_cache = time_using_cache + ((long long)Slic3r::Utils::get_current_time_utc() - temp_time);
@@ -6396,8 +6413,9 @@ int CLI::run(int argc, char **argv)
             glfwSetErrorCallback(glfw_callback);
             int ret = glfwInit();
             if (ret == GLFW_FALSE) {
-                int code = glfwGetError(NULL);
-                BOOST_LOG_TRIVIAL(error) << "glfwInit return error, code " <<code<< std::endl;
+                const char* error_msg;
+                int code = glfwGetError(&error_msg);
+                BOOST_LOG_TRIVIAL(error) << "glfwInit return error, Error code: " << code << ", Error: " << error_msg << std::endl;
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "glfwInit Success."<< std::endl;
@@ -6417,10 +6435,6 @@ int CLI::run(int argc, char **argv)
                 glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 #endif
 
-#ifdef __linux__
-                glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_OSMESA_CONTEXT_API);
-#endif
-
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
                 if (window == NULL)
                 {
@@ -6432,13 +6446,13 @@ int CLI::run(int argc, char **argv)
 
             //opengl manager related logic
             {
-                Slic3r::GUI::OpenGLManager opengl_mgr;
+                GUI::OpenGLManager opengl_mgr;
                 bool opengl_valid = opengl_mgr.init_gl(false);
                 if (!opengl_valid) {
                     BOOST_LOG_TRIVIAL(error) << "init opengl failed! skip thumbnail generating" << std::endl;
                 }
                 else {
-                    BOOST_LOG_TRIVIAL(info) << "glewInit Sucess." << std::endl;
+                    BOOST_LOG_TRIVIAL(info) << "glewInit Success." << std::endl;
                     GLVolumeCollection glvolume_collection;
                     Model &model = m_models[0];
                     int obj_extruder_id = 1, volume_extruder_id = 1;
@@ -6513,7 +6527,7 @@ int CLI::run(int argc, char **argv)
                                     int dec_ret = decode_png_to_thumbnail(plate_data->thumbnail_file, plate_data->plate_thumbnail);
                                     if (!dec_ret)
                                     {
-                                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem sucess.");
+                                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem success.");
                                     }
                                     else {
                                         BOOST_LOG_TRIVIAL(warning) << boost::format("decode png to mem failed.");
@@ -6752,7 +6766,7 @@ int CLI::run(int argc, char **argv)
                     int dec_ret = decode_png_to_thumbnail(plate_data->thumbnail_file, plate_data->plate_thumbnail);
                     if (!dec_ret)
                     {
-                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem sucess.");
+                        BOOST_LOG_TRIVIAL(info) << boost::format("decode png to mem success.");
                         need_create_thumbnail_group = true;
                     }
                     else {
@@ -7151,7 +7165,7 @@ void CLI::print_help(bool include_print_options, PrinterTechnology printer_techn
 
     boost::nowide::cout
         << std::endl
-        << "Print settings priorites:" << std::endl
+        << "Print setting priorities:" << std::endl
         << "\t1) setting values from the command line (highest priority)"<< std::endl
         << "\t2) setting values loaded with --load_settings and --load_filaments" << std::endl
 	    << "\t3) setting values loaded from 3mf(lowest priority)" << std::endl;

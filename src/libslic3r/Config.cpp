@@ -318,6 +318,24 @@ ConfigOption* ConfigOptionDef::create_default_option() const
     return this->create_empty_option();
 }
 
+bool ConfigOptionDef::is_value_valid(const double value, const int max_precision /*= 4*/) const
+{
+    // Special handling for the nil values
+    // The nil value is a valid one only for nullable options
+    if (std::isnan(value))
+        return this->nullable;
+
+    // Special handling of 0
+    if (this->min == 0.f && value < 0)
+        return false;
+
+    const double ep = std::pow(0.1, max_precision);
+    if (is_approx(value, (double) this->min, ep) || is_approx(value, (double) this->max, ep))
+        return true;
+
+    return this->min <= value && value <= this->max;
+}
+
 // Assignment of the serialization IDs is not thread safe. The Defs shall be initialized from the main thread!
 ConfigOptionDef* ConfigDef::add(const t_config_option_key &opt_key, ConfigOptionType type)
 {
@@ -1701,6 +1719,81 @@ t_config_option_keys DynamicConfig::keys() const
     for (const auto &opt : this->options)
         keys.emplace_back(opt.first);
     return keys;
+}
+
+DynamicConfig::DynamicConfigDifference DynamicConfig::diff_report(const DynamicConfig& rhs) const {
+    DynamicConfig::DynamicConfigDifference result;
+
+    std::set<t_config_option_key> all_keys;
+
+    for (const auto& kvp : this->options) {
+	all_keys.insert(kvp.first);
+    }
+    for (const auto& kvp : rhs.options) {
+	all_keys.insert(kvp.first);
+    }
+
+    for (const auto& key : all_keys) {
+	auto left_it = this->options.find(key);
+	auto right_it = rhs.options.find(key);
+
+	bool left_has = (left_it != this->options.end());
+	bool right_has = (right_it != rhs.options.end());
+
+	if (left_has && right_has) {
+	    if (*left_it->second != *right_it->second) {
+		result.differences[key] = {
+		    left_it->second->serialize(),
+		    right_it->second->serialize()
+		};
+	    }
+	} else if (left_has) {
+	    result.differences[key] = {
+		left_it->second->serialize(),
+		std::nullopt
+	    };
+	} else if (right_has) {
+	    result.differences[key] = {
+		std::nullopt,
+		right_it->second->serialize()
+	    };
+	}
+    }
+    return result;
+}
+
+std::ostream& operator<<(std::ostream& os, const DynamicConfig::DynamicConfigDifference& diff) {
+    if (!diff.is_different()) {
+        os << "Configurations are identical.\n";
+        return os;
+    }
+
+    int missing_right=0, missing_left=0, differ=0;
+    os << "DynamicConfig Differences Found (" << diff.differences.size() << " keys):\n";
+    for (const auto& kvp : diff.differences) {
+        const auto& key = kvp.first;
+        const auto& detail = kvp.second;
+
+        os << "  Key: **" << key << "**\n";
+
+        if (detail.is_missing_key()) {
+            // Determine which side is missing the key
+            if (detail.left_value.has_value()) {
+                os << "    - **Missing in Right**: Key exists in left config. Value: " << detail.left_value.value() << "\n";
+		missing_right++;
+            } else {
+                os << "    - **Missing in Left**: Key exists in right config. Value: " << detail.right_value.value() << "\n";
+		missing_left++;
+            }
+        } else if (detail.is_different_value()) {
+	    differ++;
+            os << "    - **Value Differs**:\n";
+            os << "      -> Left Value:  " << detail.left_value.value() << "\n";
+            os << "      -> Right Value: " << detail.right_value.value() << "\n";
+        }
+    }
+    os << "Summary: " << missing_right << " missing on right, " << missing_left << " missing on left, and " << differ << " have differing values\n";
+    return os;
 }
 
 void StaticConfig::set_defaults()

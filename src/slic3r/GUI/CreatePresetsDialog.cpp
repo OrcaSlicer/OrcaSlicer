@@ -17,6 +17,7 @@
 #include "Tab.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
+#include "Widgets/HyperLink.hpp" // ORCA
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -102,7 +103,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "Creality Hi"}},
      {"DeltaMaker",        {"DeltaMaker 2",   "DeltaMaker 2T",  "DeltaMaker 2XT"}},
      {"Dremel",            {"Dremel 3D20", "Dremel 3D40", "Dremel 3D45"}},
-     {"Elegoo",            {"Elegoo Centauri Carbon",  "Elegoo Centauri",         "Elegoo Neptune",          "Elegoo Neptune X",        "Elegoo Neptune 2",
+     {"Elegoo",            {"Elegoo Centauri Carbon 2", "Elegoo Centauri Carbon",  "Elegoo Centauri",         "Elegoo Neptune",          "Elegoo Neptune X",        "Elegoo Neptune 2",
                             "Elegoo Neptune 2S",       "Elegoo Neptune 2D",       "Elegoo Neptune 3",        "Elegoo Neptune 3 Pro",    "Elegoo Neptune 3 Plus",
                             "Elegoo Neptune 3 Max",    "Elegoo Neptune 4 Pro",    "Elegoo Neptune 4",        "Elegoo Neptune 4 Max",    "Elegoo Neptune 4 Plus",
                             "Elegoo OrangeStorm Giga"}},
@@ -125,7 +126,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
      {"Orca Arena Printer",{"Orca Arena X1 Carbon"}},
      {"Peopoly",           {"Peopoly Magneto X"}},
      {"Positron 3D",       {"The Positron"}},
-     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "MK4IS", "MK4S", "MK4S HF",
+     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "Prusa CORE One L", "Prusa CORE One L HF", "MK4IS", "MK4S", "MK4S HF",
                             "Prusa XL", "Prusa XL 5T", "MK3.5", "MK3S", "MINI", "MINIIS"}},
      {"Qidi",              {"Qidi X-Plus 4",  "Qidi Q1 Pro",    "Qidi X-Max 3",   "Qidi X-Plus 3",  "Qidi X-Smart 3",
                             "Qidi X-Plus",    "Qidi X-Max",     "Qidi X-CF Pro"}},
@@ -2737,7 +2738,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
 
 wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *parent)
 {
-    auto dlg_btns = new DialogButtons(parent, {"Return", "OK", "Cancel"});
+    auto dlg_btns = new DialogButtons(parent, {"Return", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 
     dlg_btns->GetRETURN()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { show_page1(); });
 
@@ -3723,7 +3724,7 @@ wxBoxSizer *ExportConfigsDialog::create_export_config_item(wxWindow *parent)
 
     radioBoxSizer->Add(create_radio_item(m_exprot_type.preset_bundle, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxALL, 0);
     radioBoxSizer->Add(0, 0, 0, wxTOP, FromDIP(6));
-    wxStaticText *static_export_printer_preset_bundle_text = new wxStaticText(parent, wxID_ANY, _L("Printer and all the filament&&process presets that belongs to the printer.\n"
+    wxStaticText *static_export_printer_preset_bundle_text = new wxStaticText(parent, wxID_ANY, _L("Printer and all the filament and process presets that belongs to the printer.\n"
                                                                                                    "Can be shared with others."), wxDefaultPosition, wxDefaultSize);
     static_export_printer_preset_bundle_text->SetFont(Label::Body_12);
     static_export_printer_preset_bundle_text->SetForegroundColour(wxColour("#6B6B6B"));
@@ -4741,9 +4742,9 @@ wxBoxSizer *EditFilamentPresetDialog::create_preset_tree_sizer()
 
 wxWindow *EditFilamentPresetDialog::create_dialog_buttons()
 {
-    auto dlg_btns = new DialogButtons(this, {"Delete", "OK"});
+    auto dlg_btns = new DialogButtons(this, {"Delete", "OK"}, "", 1 /*left_aligned*/);
 
-    dlg_btns->GetButtonFromID(wxID_DELETE)->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) {
+    dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) {
         WarningDialog dlg(this, _L("All the filament presets belong to this filament would be deleted.\n"
                                    "If you are using this filament on your printer, please reset the filament information for that slot."),
                           _L("Delete filament"), wxYES | wxCANCEL | wxCANCEL_DEFAULT | wxCENTRE);
@@ -5027,8 +5028,8 @@ wxPanel *PresetTree::get_child_item(wxPanel *parent, std::shared_ptr<Preset> pre
     bool base_id_error = false;
     if (preset->inherits() == "" && preset->base_id != "") base_id_error = true;
     if (base_id_error) {
-        std::string      wiki_url             = "https://wiki.bambulab.com/en/software/bambu-studio/custom-filament-issue";
-        wxHyperlinkCtrl *m_download_hyperlink = new wxHyperlinkCtrl(panel, wxID_ANY, _L("[Delete Required]"), wiki_url, wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
+        // ORCA standardized HyperLink
+        HyperLink *m_download_hyperlink = new HyperLink(panel, _L("[Delete Required]"), "https://wiki.bambulab.com/en/software/bambu-studio/custom-filament-issue");
         m_download_hyperlink->SetFont(Label::Body_10);
         sizer->Add(m_download_hyperlink, 0, wxEXPAND | wxALL, 5);
     }

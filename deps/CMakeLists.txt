@@ -1,3 +1,7 @@
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+endif()
+
 #
 # This CMake project downloads, configures and builds OrcaSlicer dependencies on Unix and Windows.
 #
@@ -16,8 +20,8 @@
 # On Windows, architecture (64 vs 32 bits) is judged based on the compiler variant.
 # To build dependencies for either 64 or 32 bit OS, use the respective compiler command line.
 #
-# WARNING: On UNIX platforms wxWidgets hardcode the destdir path into its `wx-conffig` utility,
-# therefore, unfortunatelly, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
+# WARNING: On UNIX platforms wxWidgets hardcode the destdir path into its `wx-config` utility,
+# therefore, unfortunately, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
 #
 
 cmake_minimum_required(VERSION 3.2)
@@ -177,13 +181,18 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
         ${_gen}
         CMAKE_ARGS
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_MODULE_PATH:STRING=${PROJECT_SOURCE_DIR}/../cmake/modules
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
+            -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
             -DCMAKE_DEBUG_POSTFIX:STRING=d
             -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
+            -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
+            -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
+            -DCMAKE_MODULE_LINKER_FLAGS:STRING=${CMAKE_MODULE_LINKER_FLAGS}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"
@@ -221,8 +230,10 @@ else()
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
         ${_gen}
         CMAKE_ARGS
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
+            -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"
@@ -330,6 +341,8 @@ include(CGAL/CGAL.cmake)
 include(NLopt/NLopt.cmake)
 include(libnoise/libnoise.cmake)
 
+include(Draco/Draco.cmake)
+
 
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
@@ -393,6 +406,7 @@ set(_dep_list
     ${CURL_PKG}
     ${WXWIDGETS_PKG}
     dep_Cereal
+    dep_Draco
     dep_NLopt
     dep_OpenVDB
     dep_OpenCSG

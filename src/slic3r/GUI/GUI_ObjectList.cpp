@@ -24,6 +24,10 @@
 #include "SingleChoiceDialog.hpp"
 #include "StepMeshDialog.hpp"
 
+
+#include <vector>
+#include <unordered_map>
+#include <functional>
 #include <boost/algorithm/string.hpp>
 #include <wx/progdlg.h>
 #include <wx/listbook.h>
@@ -40,6 +44,7 @@
 #endif /* __WXMSW__ */
 #include "Gizmos/GLGizmoScale.hpp"
 
+#include "libslic3r/TriangleMeshDeal.hpp"
 namespace Slic3r
 {
 namespace GUI
@@ -5337,26 +5342,32 @@ ModelVolume* ObjectList::get_selected_model_volume()
 
 void ObjectList::change_part_type()
 {
-    ModelVolume* volume = get_selected_model_volume();
-    if (!volume)
-        return;
+  wxDataViewItemArray selections;
+  GetSelections(selections);
 
-    const int obj_idx = get_selected_obj_idx();
-    if (obj_idx < 0) return;
+  if (selections.size() <= 1) {
+    int obj_idx = get_selected_obj_idx();
+    if (obj_idx < 0) {
+      return;
+    }
+
+    ModelVolume* volume = get_selected_model_volume();
+    if (!volume) {
+      return;
+    }
 
     const ModelVolumeType type = volume->type();
-    if (type == ModelVolumeType::MODEL_PART)
-    {
-        int model_part_cnt = 0;
-        for (auto vol : (*m_objects)[obj_idx]->volumes) {
-            if (vol->type() == ModelVolumeType::MODEL_PART)
-                ++model_part_cnt;
-        }
+    if (type == ModelVolumeType::MODEL_PART) {
+      int model_part_cnt = 0;
+      for (auto vol : (*m_objects)[obj_idx]->volumes) {
+        if (vol->type() == ModelVolumeType::MODEL_PART)
+          ++model_part_cnt;
+      }
 
-        if (model_part_cnt == 1) {
-            Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
-            return;
-        }
+      if (model_part_cnt == 1) {
+        Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+        return;
+      }
     }
 
     // ORCA: Fix crash when changing type of svg / text modifier
@@ -5365,22 +5376,165 @@ void ObjectList::change_part_type()
     names.Add(_L("Negative Part"));
     names.Add(_L("Modifier"));
     if (!volume->is_svg() && !volume->is_text()) {
-        names.Add(_L("Support Blocker"));
-        names.Add(_L("Support Enforcer"));
+      names.Add(_L("Support Blocker"));
+      names.Add(_L("Support Enforcer"));
     }
 
     SingleChoiceDialog dlg(_L("Type:"), _L("Choose part type"), names, int(type));
     auto new_type = ModelVolumeType(dlg.GetSingleChoiceIndex());
 
-	if (new_type == type || new_type == ModelVolumeType::INVALID)
-        return;
+    if (new_type == type || new_type == ModelVolumeType::INVALID) {
+      return;
+    }
 
     take_snapshot("Change part type");
 
     volume->set_type(new_type);
     wxDataViewItemArray sel = reorder_volumes_and_get_selection(obj_idx, [volume](const ModelVolume* vol) { return vol == volume; });
-    if (!sel.IsEmpty())
-        select_item(sel.front());
+    if (!sel.IsEmpty()) {
+      select_item(sel.front());
+    }
+    
+  return;
+  }
+
+  // --- Multi Selection ---
+  struct Target { int obj_idx; Slic3r::ModelVolume* vol; };
+  std::vector<Target> targets;
+  targets.reserve(selections.size());
+  bool any_text_or_svg = false;
+
+  for (const auto& item : selections) {
+    auto typeMask = m_objects_model->GetItemType(item);
+    if (!(typeMask & itVolume)) {
+      continue;
+    }
+
+    int obj_idx = -1, vol_idx = -1;
+    get_selected_item_indexes(obj_idx, vol_idx, item);
+    if (obj_idx < 0 || vol_idx < 0) {
+      continue;
+    }
+
+    ModelVolume* vol = (*m_objects)[obj_idx]->volumes[vol_idx];
+    if (!vol) {
+      continue;
+    }
+
+    targets.push_back({ obj_idx, vol });
+    if (vol->is_svg() || vol->is_text())
+      any_text_or_svg = true;
+  }
+  
+  if (targets.empty()) {
+    return;
+  }
+
+  wxArrayString names;
+  names.Add(_L("Part"));
+  names.Add(_L("Negative Part"));
+  names.Add(_L("Modifier"));
+  if (!any_text_or_svg) {
+    names.Add(_L("Support Blocker"));
+    names.Add(_L("Support Enforcer"));
+  }
+
+  // Preselect current type of the first selected volume
+  ModelVolumeType initial_type = targets.front().vol->type();
+  SingleChoiceDialog dlg(_L("Type:"), _L("Choose part type"), names, int(initial_type));
+  auto new_type = ModelVolumeType(dlg.GetSingleChoiceIndex());
+  if (new_type == ModelVolumeType::INVALID) {
+    return;
+  }
+
+  if (new_type != ModelVolumeType::MODEL_PART) {
+    // Count initial MODEL_PARTs per object
+    std::unordered_map<int, int> parts_initial;
+    for (const auto& t : targets) {
+      int cnt = 0;
+      for (auto v : (*m_objects)[t.obj_idx]->volumes)
+          if (v->type() == ModelVolumeType::MODEL_PART) ++cnt;
+      parts_initial[t.obj_idx] = cnt;
+    }
+
+    // Count how many selected MODEL_PARTs would be converted away, per object
+    std::unordered_map<int, int> parts_to_remove;
+    for (const auto& t : targets) {
+      if (t.vol->type() == ModelVolumeType::MODEL_PART) {
+        ++parts_to_remove[t.obj_idx];
+      }
+    }
+
+    // If for any object: initial_parts > 0 and removals == initial_parts => would remove all
+    bool would_remove_all_for_any = false;
+    for (const auto& kv : parts_to_remove) {
+      const int obj_idx   = kv.first;
+      const int removing  = kv.second;
+      const int initial   = parts_initial[obj_idx];
+      if (initial > 0 && removing == initial) {
+        would_remove_all_for_any = true;
+        break;
+      }
+    }
+
+    if (would_remove_all_for_any) {
+      Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+      return;
+    }
+  }
+
+  take_snapshot("Change part type (multi)");
+
+  // Apply changes
+  size_t applied = 0, skipped_same = 0;
+  std::unordered_map<int, std::vector<ModelVolume*>> changed_per_object;
+  for (const auto& t : targets) {
+    const auto current = t.vol->type();
+    if (current == new_type) {
+        ++skipped_same;
+        continue;
+    }
+    t.vol->set_type(new_type);
+    changed_per_object[t.obj_idx].push_back(t.vol);
+    ++applied;
+  }
+
+  if (applied == 0) {
+    // Nothing changed; keep the original selection as-is
+    select_items(selections);
+    return;
+  }
+
+ // Reorder per object and rebuild selection to follow changed volumes 
+  wxDataViewItemArray new_selection;
+  for (const auto& kv : changed_per_object) {
+    const int obj_idx = kv.first;
+    const auto& changed_vols = kv.second;
+    
+    std::unordered_set<const ModelVolume*> changed_set;
+    changed_set.reserve(changed_vols.size());
+    for (const auto* v : changed_vols) {
+      changed_set.insert(v);
+    }
+
+    wxDataViewItemArray sel = reorder_volumes_and_get_selection(
+      obj_idx,
+      [&changed_set](const ModelVolume* v) -> bool {
+        return changed_set.find(v) != changed_set.end();
+      }
+    );
+
+    // Append to new_selection
+    for (const auto& it : sel) new_selection.Add(it);
+  }
+
+  if (!new_selection.IsEmpty()) {
+    select_items(new_selection);
+  } else {
+    select_items(selections);
+  }
+
+  return;
 }
 
 void ObjectList::last_volume_is_deleted(const int obj_idx)
@@ -5778,6 +5932,92 @@ void ObjectList::simplify()
     gizmos_mgr.open_gizmo(GLGizmosManager::EType::Simplify);
 }
 
+void GUI::ObjectList::smooth_mesh()
+{
+    wxBusyCursor cursor;
+    auto plater = wxGetApp().plater();
+    if (!plater) { return; }
+    plater->take_snapshot("smooth_mesh");
+    std::vector<int> obj_idxs, vol_idxs;
+    get_selection_indexes(obj_idxs, vol_idxs);
+    auto object_idx = obj_idxs.front();
+    ModelObject *obj{nullptr};
+    auto show_warning_dlg = [this](int cur_face_count,std::string name,bool is_part) {
+        int limit_face_count = 1000000;
+        if (cur_face_count > limit_face_count) {
+            auto name_str = wxString::FromUTF8(name);
+            auto content = wxString::Format(_L("\"%s\" will exceed 1 million faces after this subdivision, which may increase slicing time. Do you want to continue?"), name_str);
+            WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), (is_part ? _L("Part") : _L("Object")) + " " + content, wxEmptyString, wxYES_NO);
+            if (dlg.ShowModal() == wxID_NO) {
+                return true;
+            }
+            return false;
+        }
+        return false;
+    };
+    auto show_smooth_mesh_error_dlg = [this](std::string name) {
+        auto name_str = wxString::FromUTF8(name);
+        auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
+        WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, wxEmptyString, wxOK);
+        dlg.ShowModal();
+    };
+    bool has_show_smooth_mesh_error_dlg = false;
+    if (vol_idxs.empty()) {
+        obj        = object(object_idx);
+        auto             future_face_count = static_cast<int>(obj->facets_count()) * 4;
+        if (show_warning_dlg(future_face_count, obj->name,false)) {
+            return;
+        }
+        for (auto mv : obj->volumes) {
+            bool ok;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok);
+            if (ok) {
+                mv->set_mesh(result_mesh);
+                mv->reset_extra_facets(); // reset paint color
+                mv->calculate_convex_hull();
+                mv->invalidate_convex_hull_2d();
+                mv->set_new_unique_id();
+            } else {
+                if (!has_show_smooth_mesh_error_dlg) {
+                    show_smooth_mesh_error_dlg(mv->name);
+                    has_show_smooth_mesh_error_dlg = true;
+                }
+            }
+        }
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+        plater->changed_mesh(object_idx);
+    } else {
+        obj = object(obj_idxs.front());
+        for (int vol_idx : vol_idxs) {
+            auto mv = obj->volumes[vol_idx];
+            auto future_face_count = static_cast<int>(mv->mesh().facets_count()) * 4;
+            if (show_warning_dlg(future_face_count, mv->name,true)) {
+                return;
+            }
+            bool ok;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(),ok);
+            if (ok) {
+                mv->set_mesh(result_mesh);
+                mv->reset_extra_facets(); // reset paint color
+                mv->calculate_convex_hull();
+                mv->invalidate_convex_hull_2d();
+                mv->set_new_unique_id();
+            } else {
+                if (!has_show_smooth_mesh_error_dlg) {
+                    show_smooth_mesh_error_dlg(mv->name);
+                    has_show_smooth_mesh_error_dlg = true;
+                }
+            }
+        }
+    }
+    if (obj) {
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+        plater->changed_mesh(object_idx);
+    }
+}
+
 void ObjectList::update_item_error_icon(const int obj_idx, const int vol_idx) const
 {
     auto obj = object(obj_idx);
@@ -5974,7 +6214,8 @@ void ObjectList::set_extruder_for_selected_items(const int extruder)
          * So, if Instance is selected, get its Object item and change it
          */
         ItemType sel_item_type = m_objects_model->GetItemType(sel_item);
-        wxDataViewItem item = (sel_item_type & itInstance) ? m_objects_model->GetObject(item) : sel_item;
+        // ORCA: Fix crash when setting filament for instance (item was used uninitialized)
+        wxDataViewItem item = (sel_item_type & itInstance) ? m_objects_model->GetObject(sel_item) : sel_item;
         ItemType type = m_objects_model->GetItemType(item);
         if (type & itVolume) {
             const int obj_idx = m_objects_model->GetObjectIdByItem(item);

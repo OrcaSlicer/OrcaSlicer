@@ -636,7 +636,8 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
         || model_volume->type() == ModelVolumeType::NEGATIVE_VOLUME) {
       auto model_transformation = model_volume->get_matrix();
       indexed_triangle_set model_its = model_volume->mesh().its;
-      its_transform(model_its, model_transformation);
+      // ORCA: Mirrored transforms flip winding, keep normals outward
+      its_transform(model_its, model_transformation, true);
       if (model_volume->type() == ModelVolumeType::MODEL_PART) {
         its_merge(triangle_set, model_its);
       } else {
@@ -656,7 +657,8 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
 
   size_t negative_volumes_start_index = triangle_set.indices.size();
   its_merge(triangle_set, negative_volumes_set);
-  its_transform(triangle_set, obj_transform);
+  // ORCA: Mirroring flips normals, keep them outward for visibility sampling
+  its_transform(triangle_set, obj_transform, true);
   BOOST_LOG_TRIVIAL(debug)
       << "SeamPlacer: decimate: end";
 
@@ -717,11 +719,13 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
       auto model_transformation = obj_transform * mv->get_matrix();
 
       indexed_triangle_set enforcers = mv->seam_facets.get_facets(*mv, EnforcerBlockerType::ENFORCER);
-      its_transform(enforcers, model_transformation);
+      // ORCA: Keep normals outward when mirroring seam enforcers
+      its_transform(enforcers, model_transformation, true);
       its_merge(result.enforcers, enforcers);
 
       indexed_triangle_set blockers = mv->seam_facets.get_facets(*mv, EnforcerBlockerType::BLOCKER);
-      its_transform(blockers, model_transformation);
+      // ORCA: Keep normals outward when mirroring seam blockers
+      its_transform(blockers, model_transformation, true);
       its_merge(result.blockers, blockers);
     }
   }

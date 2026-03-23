@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSR99",
+    "name": "QIDI TPU 95A-HF @Qidi Q2C 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI TPU 95A-HF@Q2C-Series",
+	"compatible_printers": ["Qidi Q2C 0.6 nozzle"]
+}

@@ -551,6 +551,16 @@ void GLModel::reset()
         glsafe(::glDeleteBuffers(1, &m_render_data.vbo_id));
         m_render_data.vbo_id = 0;
     }
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        if (m_render_data.vao_id > 0) {
+            glsafe(::glDeleteVertexArrays(1, &m_render_data.vao_id));
+            m_render_data.vao_id = 0;
+        }
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
 
     m_render_data.vertices_count = 0;
     m_render_data.indices_count  = 0;
@@ -586,12 +596,12 @@ static GLenum get_index_type(const GLModel::Geometry& data)
     }
 }
 
-void GLModel::render()
+void GLModel::render(GLShaderProgram* shader)
 {
-    render(std::make_pair<size_t, size_t>(0, indices_count()));
+    render(std::make_pair<size_t, size_t>(0, indices_count()), shader);
 }
 
-void GLModel::render(const std::pair<size_t, size_t>& range)
+void GLModel::render(const std::pair<size_t, size_t>& range, GLShaderProgram* shader)
 {
     if (m_render_disabled)
         return;
@@ -599,7 +609,9 @@ void GLModel::render(const std::pair<size_t, size_t>& range)
     if (range.second == range.first)
         return;
 
-    GLShaderProgram* shader = wxGetApp().get_current_shader();
+    if (shader == nullptr && wxApp::GetInstance() != nullptr)
+        shader = wxGetApp().get_current_shader();
+
     if (shader == nullptr)
         return;
 
@@ -619,6 +631,14 @@ void GLModel::render(const std::pair<size_t, size_t>& range)
     const bool normal = Geometry::has_normal(data.format);
     const bool tex_coord = Geometry::has_tex_coord(data.format);
 
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glBindVertexArray(m_render_data.vao_id));
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
+    // the following binding is needed to set the vertex attributes
     glsafe(::glBindBuffer(GL_ARRAY_BUFFER, m_render_data.vbo_id));
 
     int position_id = -1;
@@ -661,6 +681,13 @@ void GLModel::render(const std::pair<size_t, size_t>& range)
         glsafe(::glDisableVertexAttribArray(position_id));
 
     glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glBindVertexArray(0));
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
 }
 
 void GLModel::render_instanced(unsigned int instances_vbo, unsigned int instances_count)
@@ -688,6 +715,14 @@ void GLModel::render_instanced(unsigned int instances_vbo, unsigned int instance
         if (!send_to_gpu())
             return;
     }
+
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glBindVertexArray(m_render_data.vao_id));
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
 
     glsafe(::glBindBuffer(GL_ARRAY_BUFFER, instances_vbo));
     const size_t instance_stride = 5 * sizeof(float);
@@ -735,6 +770,13 @@ void GLModel::render_instanced(unsigned int instances_vbo, unsigned int instance
     glsafe(::glDisableVertexAttribArray(offset_id));
 
     glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glBindVertexArray(0));
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
 }
 
 bool GLModel::send_to_gpu()
@@ -749,6 +791,15 @@ bool GLModel::send_to_gpu()
         assert(false);
         return false;
     }
+
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glGenVertexArrays(1, &m_render_data.vao_id));
+        glsafe(::glBindVertexArray(m_render_data.vao_id));
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
 
     // vertices
     glsafe(::glGenBuffers(1, &m_render_data.vbo_id));
@@ -789,6 +840,14 @@ bool GLModel::send_to_gpu()
     }
     m_render_data.indices_count = indices_count;
     data.indices = std::vector<unsigned int>();
+
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glBindVertexArray(0));
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
 
     return true;
 }

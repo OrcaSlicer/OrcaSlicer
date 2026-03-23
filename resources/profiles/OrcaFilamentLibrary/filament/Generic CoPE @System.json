@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Generic CoPE @System",
+    "inherits": "fdm_filament_cope",
+    "from": "system",
+    "setting_id": "OGFSC99_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "FILL3D001SYS",
+    "name": "FILL3D PLA Turbo @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "FILL3D PLA Turbo @base",
+    "compatible_printers": []
+}

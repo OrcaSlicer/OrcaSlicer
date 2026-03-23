@@ -14,6 +14,7 @@
 
 #include "Format/AMF.hpp"
 #include "Format/svg.hpp"
+#include "Format/DRC.hpp"
 // BBS
 #include "FaceDetector.hpp"
 
@@ -311,6 +312,8 @@ Model Model::read_from_file(const std::string&                                  
         result = load_svg(input_file.c_str(), &model, message);
     //BBS: remove the old .amf.xml files
     //else if (boost::algorithm::iends_with(input_file, ".amf") || boost::algorithm::iends_with(input_file, ".amf.xml"))
+    else if (boost::algorithm::iends_with(input_file, ".drc"))
+        result = load_drc(input_file.c_str(), &model);
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
@@ -647,7 +650,6 @@ ModelMaterial* Model::add_material(t_model_material_id material_id, const ModelM
     return material;
 }
 
-// makes sure all objects have at least one instance
 bool Model::add_default_instances()
 {
     // apply a default position to all objects not having one
@@ -1168,7 +1170,7 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
     this->sla_support_points          = std::move(rhs.sla_support_points);
     this->sla_points_status           = std::move(rhs.sla_points_status);
     this->sla_drain_holes             = std::move(rhs.sla_drain_holes);
-    this->brim_points                 = std::move(brim_points);
+    this->brim_points                 = std::move(rhs.brim_points);
     this->layer_config_ranges         = std::move(rhs.layer_config_ranges);
     this->layer_height_profile        = std::move(rhs.layer_height_profile);
     this->printable                   = std::move(rhs.printable);
@@ -1641,17 +1643,31 @@ Polygon ModelObject::convex_hull_2d(const Transform3d& trafo_instance) const
     Points pts;
 
     for (const ModelVolume* v : volumes) {
-        if (v->is_model_part())
+        if (v->is_model_part()) {
             //BBS: use convex hull vertex instead of all
             append(pts, its_convex_hull_2d_above(v->get_convex_hull().its, (trafo_instance * v->get_matrix()).cast<float>(), 0.0f).points);
+	    // The next commented line instead of the previous + the rest of this #if0 section is the same as PrusaSlicer until https://github.com/prusa3d/PrusaSlicer/commit/2f7f3578d531f2d34f7732a64449606d86bb4aaa where it was parallelised.
             //append(pts, its_convex_hull_2d_above(v->mesh().its, (trafo_instance * v->get_matrix()).cast<float>(), 0.0f).points);
+	    // its_convex_hull_2d_above calls its_collect_mesh_projection_points_above
+	    // The latter multiplies each vertex by the full matrix
+	    // For every vector which crosses the Z plane, the intersection is used instead of any point below. Consecutive points below the Z plane are ignored.
+	}
     }
     return Geometry::convex_hull(std::move(pts));
 #else
+    // This seems to differ from PrusaSlicer (and the old code above) in that
+    // points below the Z plane aren't treated specially.
     Points pts;
     for (const ModelVolume *v : this->volumes)
         if (v->is_model_part()) {
             const Polygon& volume_hull = v->get_convex_hull_2d(trafo_instance);
+	    // In comparison to the old code above, get_convex_hull_2d starts with:
+	    // new_matrix = trafo_instance * m_transformation.get_matrix();
+	    // which is the same matrix multiplication as above.
+	    // Then checks caches, maybe calling ModelVolume::calculate_convex_hull_2d(const Geometry::Transformation &) if no hit
+	    // That method accesses v->get_convex_hull().its (also used above).
+	    // It multiplies each point by the matrix w/o translate, then calls convex_hull(pts)
+	    // Then translates polygon in X & Y
 
             pts.insert(pts.end(), volume_hull.points.begin(), volume_hull.points.end());
         }
