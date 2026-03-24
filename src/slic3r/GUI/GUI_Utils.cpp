@@ -243,12 +243,7 @@ bool check_dark_mode() {
         return value <= 0;
     }
 #endif
-#if wxCHECK_VERSION(3,1,3)
     return wxSystemSettings::GetAppearance().IsDark();
-#else
-    const unsigned luma = wxGetApp().get_colour_approx_luma(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-    return luma < 128;
-#endif
 }
 
 
