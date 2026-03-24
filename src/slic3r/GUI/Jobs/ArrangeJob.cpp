@@ -564,7 +564,9 @@ void ArrangeJob::process(Ctl &ctl)
             <<", bbox:"<<get_extents(item.poly).min.transpose()<<","<<get_extents(item.poly).max.transpose();
     }
 
-    arrangement::arrange(m_selected, m_unselected, bedpts, params);
+    // Use portfolio arrangement for sequential printing (evaluates 20 strategies in parallel).
+    // For non-sequential printing, portfolio_arrange() falls back to single arrange() internally.
+    m_portfolio_result = arrangement::portfolio_arrange(m_selected, m_unselected, bedpts, params);
 
     // sort by item id
     std::sort(m_selected.begin(), m_selected.end(), [](auto a, auto b) {return a.itemid < b.itemid; });
@@ -713,6 +715,19 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
             concat_strings(names, "\n")));
     }
     m_plater->get_notification_manager()->close_notification_of_type(NotificationType::ArrangeOngoing);
+
+    // Show portfolio result notification for sequential printing
+    if (m_portfolio_result.has_value()) {
+        static const char* tactic_names[] = {"Center", "MaxXMinY", "MinXMaxY", "MinXMinY", "MaxXMaxY"};
+        static const char* ordering_names[] = {"HeightMinToMax", "HeightMaxToMin", "HeightRandom", "HeightInput"};
+        int ti = static_cast<int>(m_portfolio_result->best_strategy.tactic);
+        int oi = static_cast<int>(m_portfolio_result->best_strategy.ordering);
+        auto msg = (boost::format("Portfolio Arrange: %s + %s — %d plate(s) (best of %d strategies)")
+            % tactic_names[ti] % ordering_names[oi]
+            % m_portfolio_result->num_plates % m_portfolio_result->strategies_evaluated).str();
+        m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
+            NotificationManager::NotificationLevel::RegularNotificationLevel, msg);
+    }
 
     //BBS: reload all objects due to arrange
     if (only_on_partplate) {
