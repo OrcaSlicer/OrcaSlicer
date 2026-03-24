@@ -5107,16 +5107,26 @@ LayerResult GCode::process_layer(
             for (InstanceToPrint &instance_to_print : instances_to_print) {
                 if (print.config().skirt_type == stPerObject && 
                     !instance_to_print.print_object.object_skirt().empty() &&
-                    print.config().print_sequence == PrintSequence::ByLayer
-                    &&
-                    (layer.id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled))
+                    print.config().print_sequence == PrintSequence::ByLayer)
                 {
-                    if (first_layer)
-                        m_skirt_done.clear();
-                    const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
-                    gcode += generate_skirt(print, instance_to_print.print_object.object_skirt(), offset, instance_to_print.print_object.config().skirt_start_angle, layer_tools, layer, extruder_id);
-                    if (instances_to_print.size() > 1 && &instance_to_print != &*(instances_to_print.end() - 1))
-                        m_skirt_done.pop_back();
+                    const LayerToPrint& layer_to_print = layers[instance_to_print.layer_id];
+                    const Layer* skirt_layer = layer_to_print.object_layer;
+                    if (skirt_layer == nullptr && layer_to_print.support_layer != nullptr &&
+                        layer_to_print.support_layer->id() < layer_to_print.support_layer->object()->slicing_parameters().raft_layers()) {
+                        skirt_layer = layer_to_print.support_layer;
+                    }
+
+                    if (skirt_layer != nullptr &&
+                        (skirt_layer->id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled))
+                    {
+                        const bool skirt_first_layer = (skirt_layer->id() == 0 && std::abs(skirt_layer->bottom_z()) < EPSILON);
+                        if (skirt_first_layer)
+                            m_skirt_done.clear();
+                        const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
+                        gcode += generate_skirt(print, instance_to_print.print_object.object_skirt(), offset, instance_to_print.print_object.config().skirt_start_angle, layer_tools, *skirt_layer, extruder_id);
+                        if (instances_to_print.size() > 1 && &instance_to_print != &*(instances_to_print.end() - 1))
+                            m_skirt_done.pop_back();
+                    }
                 }
                 
                 const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
