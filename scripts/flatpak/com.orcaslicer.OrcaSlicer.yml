@@ -97,7 +97,6 @@ modules:
       - -DBUILD_SHARED_LIBS=ON
       - -DwxUSE_MEDIACTRL=ON
       - -DwxUSE_DETECT_SM=OFF
-      - -DwxUSE_UNICODE=ON
       - -DwxUSE_PRIVATE_FONTS=ON
       - -DwxUSE_OPENGL=ON
       - -DwxUSE_GLCANVAS_EGL=OFF
@@ -120,8 +119,9 @@ modules:
       - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
     sources:
       - type: archive
-        url: https://github.com/SoftFever/Orca-deps-wxWidgets/archive/refs/tags/orca-3.1.5-1.tar.gz
-        sha256: 1dc9d3865d899cb71c27a7e549aa5491e832ef6e81a7b6653ccb11f9c37fa99d
+        url: https://github.com/SoftFever/Orca-deps-wxWidgets/archive/refs/heads/v3.3.2.tar.gz
+        # TODO: compute sha256 after the v3.3.2 branch archive is available
+        # sha256: <placeholder>
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
