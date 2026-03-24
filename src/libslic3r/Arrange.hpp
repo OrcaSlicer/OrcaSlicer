@@ -254,6 +254,32 @@ inline void arrange(ArrangePolygons &items, const CircleBed &bed, const ArrangeP
 inline void arrange(ArrangePolygons &items, const Polygon &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
 inline void arrange(ArrangePolygons &items, const InfiniteBed &bed, const ArrangeParams &params = {}) { arrange(items, {}, bed, params); }
 
+/// Result info from portfolio arrangement, reporting which strategy won.
+struct PortfolioResult {
+    ArrangeStrategy best_strategy;
+    int             num_plates;          // number of plates used by best strategy
+    int             strategies_evaluated; // how many strategies completed (may be < 20 on cancel)
+};
+
+/**
+ * \brief Runs multiple arrangement strategies in parallel and picks the best.
+ *
+ * Generates the cartesian product of all PlacementTactics × ObjectOrderings (20 strategies),
+ * runs each in parallel via TBB, and selects the result with the fewest plates.
+ * Falls back to single arrange() if is_seq_print is false or items are empty.
+ *
+ * \param items      Input/output polygons (overwritten with best result).
+ * \param excludes   Fixed exclusion regions (shared, read-only).
+ * \param bed        Bed shape as point set.
+ * \param params     Arrangement parameters. strategy field is ignored (overwritten per run).
+ * \return           Info about which strategy won, or nullopt if fallback was used.
+ */
+std::optional<PortfolioResult> portfolio_arrange(
+    ArrangePolygons &items,
+    const ArrangePolygons &excludes,
+    const Points &bed,
+    const ArrangeParams &params);
+
 }} // namespace Slic3r::arrangement
 
 #endif // MODELARRANGE_HPP

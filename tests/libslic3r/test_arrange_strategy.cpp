@@ -131,3 +131,110 @@ TEST_CASE("Default ArrangeParams backward compatible", "[Arrange][Strategy][Regr
     REQUIRE(params.allow_multi_materials_on_same_plate == true);
     REQUIRE(params.avoid_extrusion_cali_region == true);
 }
+
+// --- Portfolio Runner (ORCA-2) ---
+
+TEST_CASE("PortfolioResult struct is constructible", "[Arrange][Portfolio]") {
+    PortfolioResult r{
+        ArrangeStrategy{PlacementTactic::Center, ObjectOrdering::HeightMinToMax},
+        3,  // num_plates
+        20  // strategies_evaluated
+    };
+    REQUIRE(r.best_strategy.tactic == PlacementTactic::Center);
+    REQUIRE(r.best_strategy.ordering == ObjectOrdering::HeightMinToMax);
+    REQUIRE(r.num_plates == 3);
+    REQUIRE(r.strategies_evaluated == 20);
+}
+
+TEST_CASE("portfolio_arrange falls back for non-sequential print", "[Arrange][Portfolio]") {
+    ArrangePolygons items;
+    ArrangePolygons excludes;
+    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+    ArrangeParams params;
+    params.is_seq_print = false;
+
+    auto result = portfolio_arrange(items, excludes, bed, params);
+    REQUIRE_FALSE(result.has_value()); // fallback, no portfolio result
+}
+
+TEST_CASE("portfolio_arrange falls back for empty items", "[Arrange][Portfolio]") {
+    ArrangePolygons items; // empty
+    ArrangePolygons excludes;
+    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+    ArrangeParams params;
+    params.is_seq_print = true;
+
+    auto result = portfolio_arrange(items, excludes, bed, params);
+    REQUIRE_FALSE(result.has_value()); // fallback, empty input
+}
+
+TEST_CASE("portfolio_arrange returns valid result for sequential print", "[Arrange][Portfolio]") {
+    // Create a simple set of small square polygons
+    ArrangePolygons items;
+    for (int i = 0; i < 5; ++i) {
+        ArrangePolygon ap;
+        coord_t size = scaled(20.0); // 20mm squares
+        ap.poly.contour = {Point(0, 0), Point(size, 0), Point(size, size), Point(0, size)};
+        ap.height = 10.0 + i * 5.0; // varying heights: 10, 15, 20, 25, 30
+        ap.bed_temp = 60;
+        ap.filament_temp_type = 0;
+        ap.extrude_ids = {0};
+        ap.name = "obj_" + std::to_string(i);
+        items.push_back(ap);
+    }
+
+    ArrangePolygons excludes;
+    // 250x210mm bed (Prusa MK3S size)
+    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+
+    ArrangeParams params;
+    params.is_seq_print = true;
+    params.clearance_radius = 50.0; // 50mm clearance
+    params.clearance_height_to_rod = 40.0;
+    params.clearance_height_to_lid = 120.0;
+    params.nozzle_height = 4.0;
+
+    auto result = portfolio_arrange(items, excludes, bed, params);
+
+    // Portfolio should have run and returned a result
+    REQUIRE(result.has_value());
+    REQUIRE(result->strategies_evaluated > 0);
+    REQUIRE(result->strategies_evaluated <= 20);
+    REQUIRE(result->num_plates >= 1);
+
+    // All items should be arranged
+    for (const auto &item : items) {
+        REQUIRE(item.bed_idx != UNARRANGED);
+    }
+}
+
+TEST_CASE("portfolio_arrange respects stopcondition", "[Arrange][Portfolio]") {
+    ArrangePolygons items;
+    for (int i = 0; i < 3; ++i) {
+        ArrangePolygon ap;
+        coord_t size = scaled(20.0);
+        ap.poly.contour = {Point(0, 0), Point(size, 0), Point(size, size), Point(0, size)};
+        ap.height = 10.0;
+        ap.bed_temp = 60;
+        ap.filament_temp_type = 0;
+        ap.extrude_ids = {0};
+        ap.name = "obj_" + std::to_string(i);
+        items.push_back(ap);
+    }
+
+    ArrangePolygons excludes;
+    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+
+    ArrangeParams params;
+    params.is_seq_print = true;
+    params.clearance_radius = 50.0;
+    params.clearance_height_to_rod = 40.0;
+    params.clearance_height_to_lid = 120.0;
+    params.nozzle_height = 4.0;
+    // Cancel immediately
+    params.stopcondition = []() { return true; };
+
+    auto result = portfolio_arrange(items, excludes, bed, params);
+    // May or may not have a result depending on timing, but should not hang
+    // (this test verifies no deadlock on immediate cancel)
+}

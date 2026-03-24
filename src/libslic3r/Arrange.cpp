@@ -12,7 +12,11 @@
 #include <numeric>
 #include <algorithm>
 #include <random>
+#include <atomic>
 #include <ClipperUtils.hpp>
+
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
 
 #include <boost/geometry/index/rtree.hpp>
 
@@ -1208,6 +1212,145 @@ template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, c
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const CircleBed &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const Polygon &bed, const ArrangeParams &params);
 template void arrange(ArrangePolygons &items, const ArrangePolygons &excludes, const InfiniteBed &bed, const ArrangeParams &params);
+
+// --- Portfolio Parallel Runner (ORCA-2) ---
+
+// Score a completed arrangement result: lower is better.
+// Primary: number of plates used. Secondary: total bounding box area of all plates.
+static std::pair<int, double> score_arrangement(const ArrangePolygons &items)
+{
+    std::set<int> used_beds;
+    int unarranged_count = 0;
+    std::map<int, BoundingBox> bed_bboxes;
+
+    for (const auto &item : items) {
+        if (item.bed_idx == UNARRANGED) {
+            unarranged_count++;
+            continue;
+        }
+        used_beds.insert(item.bed_idx);
+        auto poly = item.transformed_poly();
+        auto bb = get_extents(poly);
+        if (bed_bboxes.find(item.bed_idx) == bed_bboxes.end())
+            bed_bboxes[item.bed_idx] = bb;
+        else
+            bed_bboxes[item.bed_idx].merge(bb);
+    }
+
+    int num_plates = static_cast<int>(used_beds.size()) + unarranged_count;
+
+    double total_area = 0;
+    for (const auto &[bed_id, bb] : bed_bboxes)
+        total_area += double(bb.size().x()) * double(bb.size().y());
+
+    return {num_plates, total_area};
+}
+
+std::optional<PortfolioResult> portfolio_arrange(
+    ArrangePolygons &items,
+    const ArrangePolygons &excludes,
+    const Points &bed,
+    const ArrangeParams &params)
+{
+    // Fallback: not sequential print or empty items
+    if (!params.is_seq_print || items.empty()) {
+        arrange(items, excludes, bed, params);
+        return std::nullopt;
+    }
+
+    // Generate all 20 strategies (5 tactics × 4 orderings)
+    static const PlacementTactic all_tactics[] = {
+        PlacementTactic::Center,
+        PlacementTactic::MaxXMinY,
+        PlacementTactic::MinXMaxY,
+        PlacementTactic::MinXMinY,
+        PlacementTactic::MaxXMaxY,
+    };
+    static const ObjectOrdering all_orderings[] = {
+        ObjectOrdering::HeightMinToMax,
+        ObjectOrdering::HeightMaxToMin,
+        ObjectOrdering::HeightRandom,
+        ObjectOrdering::HeightInput,
+    };
+
+    constexpr int NUM_TACTICS  = 5;
+    constexpr int NUM_ORDERINGS = 4;
+    constexpr int NUM_STRATEGIES = NUM_TACTICS * NUM_ORDERINGS;
+
+    // Prepare per-strategy data: item copies and params copies
+    std::vector<ArrangePolygons> results(NUM_STRATEGIES);
+    std::vector<ArrangeParams>   params_per_strategy(NUM_STRATEGIES);
+    std::vector<ArrangeStrategy> strategies(NUM_STRATEGIES);
+
+    for (int i = 0; i < NUM_STRATEGIES; ++i) {
+        results[i] = items; // deep copy
+        params_per_strategy[i] = params;
+        strategies[i] = {all_tactics[i / NUM_ORDERINGS], all_orderings[i % NUM_ORDERINGS]};
+        params_per_strategy[i].strategy = strategies[i];
+        // Disable per-item progress in parallel runs (would be chaotic from 20 threads)
+        params_per_strategy[i].progressind = [](unsigned, std::string) {};
+        // stopcondition is kept — it reads an atomic flag, thread-safe
+    }
+
+    // Track progress at strategy level
+    std::atomic<int> strategies_completed{0};
+
+    // Report portfolio-level progress if caller provided a callback
+    auto portfolio_progress = params.progressind;
+
+    // Run all strategies in parallel
+    tbb::parallel_for(tbb::blocked_range<int>(0, NUM_STRATEGIES),
+        [&](const tbb::blocked_range<int> &range) {
+            for (int i = range.begin(); i < range.end(); ++i) {
+                // Check cancel before starting
+                if (params.stopcondition && params.stopcondition())
+                    return;
+
+                arrange(results[i], excludes, bed, params_per_strategy[i]);
+
+                int done = ++strategies_completed;
+                if (portfolio_progress)
+                    portfolio_progress(done, "Portfolio " + std::to_string(done) + "/" + std::to_string(NUM_STRATEGIES));
+            }
+        });
+
+    // Find best result
+    int best_idx = -1;
+    std::pair<int, double> best_score = {std::numeric_limits<int>::max(), std::numeric_limits<double>::max()};
+
+    for (int i = 0; i < NUM_STRATEGIES; ++i) {
+        // Skip strategies that were canceled before completion
+        bool has_result = false;
+        for (const auto &item : results[i])
+            if (item.bed_idx != UNARRANGED) { has_result = true; break; }
+        if (!has_result && !items.empty()) continue;
+
+        auto score = score_arrangement(results[i]);
+        if (score < best_score) {
+            best_score = score;
+            best_idx = i;
+        }
+    }
+
+    // Fallback if no strategy produced a result
+    if (best_idx < 0) {
+        BOOST_LOG_TRIVIAL(warning) << "portfolio_arrange: all strategies failed, falling back to single arrange";
+        arrange(items, excludes, bed, params);
+        return std::nullopt;
+    }
+
+    // Apply best result
+    items = std::move(results[best_idx]);
+
+    BOOST_LOG_TRIVIAL(info) << "portfolio_arrange: best strategy idx=" << best_idx
+        << " (tactic=" << static_cast<int>(strategies[best_idx].tactic)
+        << ", ordering=" << static_cast<int>(strategies[best_idx].ordering)
+        << ") plates=" << best_score.first
+        << ", area=" << best_score.second
+        << ", strategies_evaluated=" << strategies_completed.load();
+
+    return PortfolioResult{strategies[best_idx], best_score.first, strategies_completed.load()};
+}
 
 } // namespace arr
 } // namespace Slic3r
