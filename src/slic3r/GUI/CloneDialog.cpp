@@ -26,7 +26,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
         ProcessEventLocally(e);
         e.Skip();
     });
-    f_sizer->Add(count_label  , 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    f_sizer->Add(count_label  , 0, wxEXPAND);
     f_sizer->Add(m_count_spin, 0, wxALIGN_CENTER_VERTICAL);
 
     auto arrange_label = new wxStaticText(this, wxID_ANY, _L("Auto arrange plate after cloning") + ":", wxDefaultPosition, wxDefaultSize, 0);
@@ -34,7 +34,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_arrange_cb = new ::CheckBox(this);
     m_arrange_cb->SetValue(m_config->get("auto_arrange") == "true");
 
-    f_sizer->Add(arrange_label, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    f_sizer->Add(arrange_label, 0, wxEXPAND);
     f_sizer->Add(m_arrange_cb , 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(5));
 
     v_sizer->Add(f_sizer, 1, wxEXPAND | wxALL, FromDIP(10));
@@ -46,7 +46,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_progress->SetProgressForedColour(StateColor::darkModeColorFor(wxColour("#DFDFDF")));
     m_progress->SetDoubleBuffered(true);
     m_progress->Hide();
-    bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"Fill", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 

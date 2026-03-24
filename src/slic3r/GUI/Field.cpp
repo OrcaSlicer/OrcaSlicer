@@ -2308,7 +2308,7 @@ void SliderCtrl::BUILD()
 	m_textctrl->SetFont(Slic3r::GUI::wxGetApp().normal_font());
 	m_textctrl->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-	temp->Add(m_slider, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL, 0);
+	temp->Add(m_slider, 1, wxEXPAND, 0);
 	temp->Add(m_textctrl, 0, wxALIGN_CENTER_VERTICAL, 0);
 
 	m_slider->Bind(wxEVT_SLIDER, ([this](wxCommandEvent e) {

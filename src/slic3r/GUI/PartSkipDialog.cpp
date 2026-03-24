@@ -197,9 +197,9 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 #else
     m_dlg_btn_sizer->Add(m_tot_label, 0, wxALIGN_CENTER_VERTICAL, 0);
 #endif
-    m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND, FromDIP(0));
     m_dlg_btn_sizer->Add(m_apply_btn, 0, wxALIGN_CENTER_VERTICAL, FromDIP(0));
-    m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(24));
+    m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND, FromDIP(24));
 
     m_dlg_placeholder = new wxPanel(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
     m_dlg_placeholder->SetMinSize(wxSize(-1, FromDIP(15)));
