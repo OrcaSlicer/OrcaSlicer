@@ -19,9 +19,6 @@
 #include "GUI_Init.hpp"
 
 #ifdef __APPLE__
-// Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-#include <wx/platinfo.h>
-
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
 
@@ -237,26 +234,12 @@ bool OpenGLManager::s_force_power_of_two_textures = false;
 OpenGLManager::EMultisampleState OpenGLManager::s_multisample = OpenGLManager::EMultisampleState::Unknown;
 OpenGLManager::EFramebufferType OpenGLManager::s_framebuffers_type = OpenGLManager::EFramebufferType::Unknown;
 
-#ifdef __APPLE__
-// Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-OpenGLManager::OSInfo OpenGLManager::s_os_info;
-#endif // __APPLE__
-
 OpenGLManager::~OpenGLManager()
 {
     m_shaders_manager.shutdown();
 
-#ifdef __APPLE__
-    // This is an ugly hack needed to solve the crash happening when closing the application on OSX 10.9.5 with newer wxWidgets
-    // The crash is triggered inside wxGLContext destructor
-    if (s_os_info.major != 10 || s_os_info.minor != 9 || s_os_info.micro != 5)
-    {
-#endif //__APPLE__
-        if (m_context != nullptr)
-            delete m_context;
-#ifdef __APPLE__
-    }
-#endif //__APPLE__
+    if (m_context != nullptr)
+        delete m_context;
 }
 
 bool OpenGLManager::init_gl(bool popup_error)
@@ -412,12 +395,6 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
             m_context = new wxGLContext(&canvas, nullptr, &attrs);
         }
 
-#ifdef __APPLE__
-        // Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-        s_os_info.major = wxPlatformInfo::Get().GetOSMajorVersion();
-        s_os_info.minor = wxPlatformInfo::Get().GetOSMinorVersion();
-        s_os_info.micro = wxPlatformInfo::Get().GetOSMicroVersion();
-#endif //__APPLE__
     }
     return m_context;
 }
