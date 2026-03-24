@@ -148,10 +148,6 @@ void on_window_geometry(wxTopLevelWindow *tlw, std::function<void()> callback)
 #endif
 }
 
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-wxDEFINE_EVENT(EVT_DPI_CHANGED_SLICER, DpiChangedEvent);
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
-
 #ifdef _WIN32
 template<class F> typename F::FN winapi_get_function(const wchar_t *dll, const char *fn_name) {
     static HINSTANCE dll_handle = LoadLibraryExW(dll, nullptr, 0);

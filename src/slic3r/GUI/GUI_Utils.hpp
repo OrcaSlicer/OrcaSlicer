@@ -81,24 +81,6 @@ void update_dark_config();
 void update_dark_ui(wxWindow* window);
 #endif
 
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-struct DpiChangedEvent : public wxEvent {
-    int dpi;
-    wxRect rect;
-
-    DpiChangedEvent(wxEventType eventType, int dpi, wxRect rect)
-        : wxEvent(0, eventType), dpi(dpi), rect(rect)
-    {}
-
-    virtual wxEvent *Clone() const
-    {
-        return new DpiChangedEvent(*this);
-    }
-};
-
-wxDECLARE_EVENT(EVT_DPI_CHANGED_SLICER, DpiChangedEvent);
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
-
 extern std::deque<wxDialog*> dialogStack;
 
 template<class P> class DPIAware : public P
@@ -136,26 +118,12 @@ public:
 //        recalc_font();
 
 #ifndef __WXOSX__
-#if wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
         this->Bind(wxEVT_DPI_CHANGED, [this](wxDPIChangedEvent& evt) {
 	            m_scale_factor = (float)evt.GetNewDPI().x / (float)DPI_DEFAULT;
 	            m_new_font_point_size = get_default_font_for_dpi(this, evt.GetNewDPI().x).GetPointSize();
 	            if (m_can_rescale && (m_force_rescale || is_new_scale_factor()))
 	                rescale(wxRect());
             });
-#else
-        this->Bind(EVT_DPI_CHANGED_SLICER, [this](const DpiChangedEvent& evt) {
-            m_scale_factor = (float)evt.dpi / (float)DPI_DEFAULT;
-
-            m_new_font_point_size = get_default_font_for_dpi(this, evt.dpi).GetPointSize();
-
-            if (!m_can_rescale)
-                return;
-
-            if (m_force_rescale || is_new_scale_factor())
-                rescale(evt.rect);
-            });
-#endif // wxVERSION_EQUAL_OR_GREATER_THAN
 #endif // no __WXOSX__
 
         this->Bind(wxEVT_MOVE_START, [this](wxMoveEvent& event)

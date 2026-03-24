@@ -633,24 +633,6 @@ wxString file_wildcards(FileType file_type, const std::string &custom_extension)
 static std::string libslic3r_translate_callback(const char *s) { return wxGetTranslation(wxString(s, wxConvUTF8)).utf8_str().data(); }
 
 #ifdef WIN32
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-static void register_win32_dpi_event()
-{
-    enum { WM_DPICHANGED_ = 0x02e0 };
-
-    wxWindow::MSWRegisterMessageHandler(WM_DPICHANGED_, [](wxWindow *win, WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) {
-        const int dpi = wParam & 0xffff;
-        const auto rect = reinterpret_cast<PRECT>(lParam);
-        const wxRect wxrect(wxPoint(rect->top, rect->left), wxPoint(rect->bottom, rect->right));
-
-        DpiChangedEvent evt(EVT_DPI_CHANGED_SLICER, dpi, wxrect);
-        win->GetEventHandler()->AddPendingEvent(evt);
-
-        return true;
-    });
-}
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
-
 static GUID GUID_DEVINTERFACE_HID = { 0x4D1E55B2, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 };
 
 static void register_win32_device_notification_event()
@@ -3094,9 +3076,6 @@ bool GUI_App::on_init_inner()
     //}
 
 #ifdef WIN32
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-    register_win32_dpi_event();
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
     register_win32_device_notification_event();
 #endif // WIN32
 
