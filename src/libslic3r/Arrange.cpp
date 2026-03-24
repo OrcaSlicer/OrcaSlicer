@@ -10,6 +10,8 @@
 #include <libnest2d/utils/rotcalipers.hpp>
 
 #include <numeric>
+#include <algorithm>
+#include <random>
 #include <ClipperUtils.hpp>
 
 #include <boost/geometry/index/rtree.hpp>
@@ -273,15 +275,33 @@ Points get_shrink_bedpts(const DynamicPrintConfig* print_cfg, const ArrangeParam
 
 // Fill in the placer algorithm configuration with values carefully chosen for
 // Slic3r.
+// Map PlacementTactic to libnest2d Alignment value.
+template<class PConf>
+static typename PConf::Alignment tactic_to_alignment(PlacementTactic tactic)
+{
+    switch (tactic) {
+    case PlacementTactic::Center:   return PConf::Alignment::CENTER;
+    case PlacementTactic::MaxXMinY: return PConf::Alignment::BOTTOM_RIGHT;
+    case PlacementTactic::MinXMaxY: return PConf::Alignment::TOP_LEFT;
+    case PlacementTactic::MinXMinY: return PConf::Alignment::BOTTOM_LEFT;
+    case PlacementTactic::MaxXMaxY: return PConf::Alignment::TOP_RIGHT;
+    default:                        return PConf::Alignment::BOTTOM_LEFT;
+    }
+}
+
 template<class PConf>
 void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
-        if (params.is_seq_print) {
-            // Start placing the items from the center of the print bed
+        if (params.is_seq_print && params.strategy.has_value()) {
+            // Use the strategy's placement tactic for sequential printing
+            pcfg.starting_point = tactic_to_alignment<PConf>(params.strategy->tactic);
+        }
+        else if (params.is_seq_print) {
+            // Default sequential print starting point
             pcfg.starting_point = PConf::Alignment::BOTTOM_LEFT;
         }
         else {
-            // Start placing the items from the center of the print bed
+            // Default non-sequential starting point
             pcfg.starting_point = PConf::Alignment::TOP_RIGHT;
         }
 
@@ -803,15 +823,53 @@ public:
 
         if (stopcond) m_pck.stopCondition(stopcond);
 
-        m_pconf.sortfunc= [&params](Item& i1, Item& i2) {
+        // Determine the object ordering for sequential print mode.
+        // When a strategy is set, use its ordering; otherwise use the default (HeightMinToMax).
+        ObjectOrdering ordering = ObjectOrdering::HeightMinToMax;
+        if (params.is_seq_print && params.strategy.has_value())
+            ordering = params.strategy->ordering;
+
+        m_pconf.sortfunc= [&params, ordering](Item& i1, Item& i2) {
             int p1 = i1.priority(), p2 = i2.priority();
             if (p1 != p2)
                 return p1 > p2;
             if (params.is_seq_print) {
-                return i1.bed_temp != i2.bed_temp                ? (i1.bed_temp > i2.bed_temp) :
-                       i1.height != i2.height                    ? (i1.height < i2.height) :
-                       std::abs(i1.area() / i2.area() - 1) > 0.2 ? (i1.area() > i2.area()) :
-                                                                   i1.extrude_ids.front() < i2.extrude_ids.front();
+                // bed_temp sorting is always applied first (physical necessity)
+                if (i1.bed_temp != i2.bed_temp)
+                    return i1.bed_temp > i2.bed_temp;
+
+                // HeightRandom and HeightInput use sort keys that are independent of height,
+                // so they must be evaluated BEFORE the height comparison to maintain
+                // strict weak ordering (transitivity).
+                if (ordering == ObjectOrdering::HeightRandom) {
+                    // Deterministic pseudo-random ordering based on item geometry hash.
+                    // Uses a combined hash of area and height to create a consistent
+                    // total order that differs from height-based orderings.
+                    auto hash = [](const Item& it) -> size_t {
+                        size_t h = std::hash<double>{}(it.area());
+                        h ^= std::hash<double>{}(it.height) + 0x9e3779b9 + (h << 6) + (h >> 2);
+                        return h;
+                    };
+                    size_t h1 = hash(i1), h2 = hash(i2);
+                    if (h1 != h2) return h1 < h2;
+                    // Hash collision fallback: use area then extruder id
+                }
+                else if (ordering == ObjectOrdering::HeightInput) {
+                    // No height-based reordering — fall through directly to tie-breakers.
+                    // This preserves the input order as much as possible (only priority
+                    // and bed_temp can reorder items above).
+                }
+                else if (i1.height != i2.height) {
+                    // HeightMinToMax and HeightMaxToMin: compare by height
+                    if (ordering == ObjectOrdering::HeightMinToMax)
+                        return i1.height < i2.height;
+                    else // HeightMaxToMin
+                        return i1.height > i2.height;
+                }
+
+                // Tie-breakers: area, then extruder id
+                return std::abs(i1.area() / i2.area() - 1) > 0.2 ? (i1.area() > i2.area()) :
+                                                                    i1.extrude_ids.front() < i2.extrude_ids.front();
             }
             else {
                 return i1.bed_temp != i2.bed_temp ? (i1.bed_temp > i2.bed_temp) :
