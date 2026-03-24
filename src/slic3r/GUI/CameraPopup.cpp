@@ -7,6 +7,7 @@
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
+#include <wx/utils.h>
 #include "GUI_App.hpp"
 #include <slic3r/GUI/StatusPanel.hpp>
 

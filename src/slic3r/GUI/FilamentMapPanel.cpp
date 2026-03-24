@@ -1,6 +1,7 @@
 #include "FilamentMapPanel.hpp"
 #include "GUI_App.hpp"
 #include <wx/dcbuffer.h>
+#include <wx/utils.h>
 #include "wx/graphics.h"
 
 namespace Slic3r { namespace GUI {

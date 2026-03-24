@@ -53,6 +53,7 @@
 #include <wx/settings.h>
 #include <wx/tooltip.h>
 #include <wx/debug.h>
+#include <wx/utils.h>
 #include <wx/fontutil.h>
 // Print now includes tbb, and tbb includes Windows. This breaks compilation of wxWidgets if included before wx.
 #include "libslic3r/Print.hpp"

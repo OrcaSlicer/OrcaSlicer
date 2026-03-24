@@ -4292,8 +4292,10 @@ void GUI_App::force_colors_update()
 #ifdef _MSW_DARK_MODE
 #ifdef __WINDOWS__
     NppDarkMode::SetDarkMode(dark_mode());
+#if wxVERSION_NUMBER < 3300
     if (WXHWND wxHWND = wxToolTip::GetToolTipCtrl())
         NppDarkMode::SetDarkExplorerTheme((HWND)wxHWND);
+#endif
     NppDarkMode::SetDarkTitleBar(mainframe->GetHWND());
 
 

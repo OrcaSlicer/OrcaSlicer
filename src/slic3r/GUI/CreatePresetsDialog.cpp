@@ -8,6 +8,7 @@
 #include <openssl/evp.h>
 #include <wx/dcgraph.h>
 #include <wx/tooltip.h>
+#include <wx/utils.h>
 #include <boost/nowide/cstdio.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "I18N.hpp"
