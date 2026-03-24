@@ -226,38 +226,11 @@ private:
     // check if new scale is differ from previous
     bool    is_new_scale_factor() const { return fabs(m_scale_factor - m_prev_scale_factor) > 0.001; }
 
-    // function for a font scaling of the window
-    void    scale_win_font(wxWindow *window, const int font_point_size)
-    {
-        wxFont new_font(window->GetFont());
-        new_font.SetPointSize(font_point_size);
-        window->SetFont(new_font);
-    }
-
-    // recursive function for scaling fonts for all controls in Window
-    void    scale_controls_fonts(wxWindow *window, const int font_point_size)
-    {
-        auto children = window->GetChildren();
-
-        for (auto child : children) {
-            scale_controls_fonts(child, font_point_size);
-            scale_win_font(child, font_point_size);
-        }
-
-        window->Layout();
-    }
-
     void    rescale(const wxRect &suggested_rect)
     {
         this->Freeze();
 
         m_force_rescale = false;
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-        // rescale fonts of all controls
-        scale_controls_fonts(this, m_new_font_point_size);
-        // rescale current window font
-        scale_win_font(this, m_new_font_point_size);
-#endif // wxVERSION_EQUAL_OR_GREATER_THAN
 
         // set normal application font as a current window font
         m_normal_font = this->GetFont();
