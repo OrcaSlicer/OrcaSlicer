@@ -225,8 +225,8 @@ static void handle_extrusion_collection(LayerRegion *region, const sla::IndexedM
 void Layer::make_contour_z(const sla::IndexedMesh &mesh)
 {
 	for (LayerRegion *region : this->regions()) {
-		handle_extrusion_collection(region, mesh, region->fills, {erTopSolidInfill, erIroning, erExternalPerimeter, erMixed});
-		handle_extrusion_collection(region, mesh, region->perimeters, {erExternalPerimeter, erMixed});
-	}
+        handle_extrusion_collection(region, mesh, region->fills, {erTopSolidInfill, erIroning, erPerimeter, erExternalPerimeter, erMixed});
+        handle_extrusion_collection(region, mesh, region->perimeters, {erPerimeter, erExternalPerimeter, erMixed});
+    }
 }
 } // namespace Slic3r

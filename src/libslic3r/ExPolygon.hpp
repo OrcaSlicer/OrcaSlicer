@@ -192,6 +192,25 @@ inline Linesf to_unscaled_linesf(const ExPolygons &src)
     return lines;
 }
 
+inline Linesf3 to_unscaled_linesf3(const ExPolygons& src)
+{
+    Linesf3 lines;
+    lines.reserve(count_points(src));
+    for (ExPolygons::const_iterator it_expoly = src.begin(); it_expoly != src.end(); ++it_expoly) {
+        for (size_t i = 0; i <= it_expoly->holes.size(); ++i) {
+            const Points& points     = ((i == 0) ? it_expoly->contour : it_expoly->holes[i - 1]).points;
+            Vec2d         unscaled_a = unscaled(points.front());
+            Vec2d         unscaled_b = unscaled_a;
+            for (Points::const_iterator it = points.begin() + 1; it != points.end(); ++it) {
+                unscaled_b = unscaled(*(it));
+                lines.push_back(Linef3(unscaled_a, unscaled_b, 0));
+                unscaled_a = unscaled_b;
+            }
+            lines.push_back(Linef3(unscaled_a, unscaled(points.front()), 0));
+        }
+    }
+    return lines;
+}
 
 inline Points to_points(const ExPolygons &src)
 {

@@ -165,8 +165,8 @@ void estimate_malformations(LayerPtrs &layers, const Params &params)
                                                                                                                  flow_width,
                                                                                                                  params.bridge_distance);
                 for (size_t i = 0; i < annotated_points.size(); ++i) {
-                    const ExtendedPoint &a = i > 0 ? annotated_points[i - 1] : annotated_points[i];
-                    const ExtendedPoint &b = annotated_points[i];
+                    const ExtendedPoint<2>& a = i > 0 ? annotated_points[i - 1] : annotated_points[i];
+                    const ExtendedPoint<2>& b = annotated_points[i];
                     ExtrusionLine line_out{a.position.cast<float>(), b.position.cast<float>(), float((a.position - b.position).norm()),
                                            extrusion};
 

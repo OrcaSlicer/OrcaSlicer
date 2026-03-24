@@ -279,7 +279,7 @@ public:
     Point3(int64_t x, int64_t y, int64_t z = 0) : Vec3crd(coord_t(x), coord_t(y), coord_t(z)) {}
     Point3(double x, double y, double z = 0.0) : Vec3crd(coord_t(std::round(x)), coord_t(std::round(y)), coord_t(std::round(z))) {}
     Point3(const Point3 &rhs) { *this = rhs; }
-    explicit Point3(const Point &rhs, coord_t z = 0) : Vec3crd(rhs.x(), rhs.y(), z) {}
+    explicit Point3(const Vec2crd& vec2crd, coord_t z = 0) : Vec3crd(vec2crd.x(), vec2crd.y(), z) {}
     explicit Point3(const Vec3crd &vec3crd) : Vec3crd(vec3crd) {}
     // This constructor allows you to construct Point from Eigen expressions
     template<typename OtherDerived>

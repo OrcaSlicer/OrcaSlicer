@@ -271,6 +271,7 @@ class Linef3
 public:
     Linef3() : a(Vec3d::Zero()), b(Vec3d::Zero()) {}
     Linef3(const Vec3d& _a, const Vec3d& _b) : a(_a), b(_b) {}
+    Linef3(const Vec2d& _a, const Vec2d& _b, double z) : a(Vec3d(_a.x(), _a.y(), z)), b(Vec3d(_b.x(), _b.y(), z)) {}
 
     Vec3d   intersect_plane(double z) const;
     void    scale(double factor) { this->a *= factor; this->b *= factor; }
@@ -310,6 +311,8 @@ public:
     static const constexpr int Dim = 3;
     using Scalar = Vec3d::Scalar;
 };
+
+using Linesf3 = std::vector<Linef3>;
 
 BoundingBox get_extents(const Lines &lines);
 
