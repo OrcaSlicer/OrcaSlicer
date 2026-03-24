@@ -34,7 +34,6 @@
     "filament_type": [
         "PLA-CF"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "220"
     ],
@@ -47,7 +46,6 @@
     "slow_down_layer_time": [
         "10"
     ],
-    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
@@ -76,6 +74,18 @@
         "50"
     ],
     "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "50"
+    ],
+    "cool_plate_temp": [
+        "50"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "50"
+    ],
+    "textured_plate_temp": [
         "50"
     ],
     "slow_down_min_speed": [

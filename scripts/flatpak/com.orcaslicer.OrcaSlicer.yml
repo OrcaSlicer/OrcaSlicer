@@ -1,10 +1,19 @@
-app-id: io.github.orcaslicer.OrcaSlicer
+app-id: com.orcaslicer.OrcaSlicer
 runtime: org.gnome.Platform
-runtime-version: "48"
+runtime-version: "49"
 sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm21
 command: entrypoint
 separate-locales: true
 rename-icon: OrcaSlicer
+build-options:
+  append-path: /usr/lib/sdk/llvm21/bin
+  prepend-ld-library-path: /usr/lib/sdk/llvm21/lib
+  env:
+    CC: clang
+    CXX: clang++
+    LDFLAGS: "-fuse-ld=lld"
 finish-args:
   - --share=ipc
   - --socket=x11
@@ -15,9 +24,11 @@ finish-args:
   - --filesystem=/run/media
   - --filesystem=/media
   - --filesystem=/run/spnav.sock:ro
+  # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
+  - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
   # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
-  - --talk-name=com.softfever3d.orca-slicer.InstanceCheck.*
-  - --own-name=com.softfever3d.orca-slicer.InstanceCheck.*
+  - --talk-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
+  - --own-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
   - --system-talk-name=org.freedesktop.UDisks2
   - --env=SPNAV_SOCKET=/run/spnav.sock
 
@@ -38,6 +49,8 @@ modules:
         sha256: e305b9f07f52743ca481da0a4e0c76c35efd60adaf1b0694eb3bb021e2137e39
 
   - name: glu
+    build-options:
+      cxxflags: -Wno-register
     config-opts:
       - --disable-static
     sources:
@@ -70,6 +83,9 @@ modules:
   # Config-opts mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON, DEP_WX_GTK3=ON
   - name: wxWidgets
     buildsystem: cmake-ninja
+    build-options:
+      env:
+        CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DwxBUILD_PRECOMP=ON
@@ -99,11 +115,13 @@ modules:
       - -DwxUSE_LIBJPEG=sys
       - -DwxUSE_LIBTIFF=OFF
       - -DwxUSE_EXPAT=sys
+      - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
+      - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
+      - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
     sources:
-      - type: git
-        url: https://github.com/SoftFever/Orca-deps-wxWidgets
-        tag: orca-3.1.5-1
-        commit: 139e4f2a62a9d1c40bdcf36523d94a517b14ca79
+      - type: archive
+        url: https://github.com/SoftFever/Orca-deps-wxWidgets/archive/refs/tags/orca-3.1.5-1.tar.gz
+        sha256: 1dc9d3865d899cb71c27a7e549aa5491e832ef6e81a7b6653ccb11f9c37fa99d
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
@@ -118,7 +136,10 @@ modules:
           -DDEP_DOWNLOAD_DIR=/run/build/orca_deps/external-packages \
           -DCMAKE_PREFIX_PATH=/app \
           -DDESTDIR=/app \
-          -DCMAKE_INSTALL_PREFIX=/app
+          -DCMAKE_INSTALL_PREFIX=/app \
+          -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld"
       - cmake --build $BUILD_DIR --parallel
       - rm -rf /run/build/orca_deps/external-packages
 
@@ -290,7 +311,10 @@ modules:
           -DFLATPAK=ON \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH=/app \
-          -DCMAKE_INSTALL_PREFIX=/app
+          -DCMAKE_INSTALL_PREFIX=/app \
+          -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+          -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld"
       - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
@@ -310,6 +334,11 @@ modules:
 
       - install -Dm644 LICENSE.txt /app/share/licenses/${FLATPAK_ID}/LICENSE.txt
 
+      - | # Install fonts into fontconfig-scanned directory so Pango finds them
+        # before initialization (avoids ensure_faces crash from AddPrivateFont)
+        install -Dm644 -t /app/share/fonts/OrcaSlicer/ resources/fonts/*.ttf
+        fc-cache -f /app/share/fonts/OrcaSlicer/
+
     sources:
       # OrcaSlicer source tree (specific dirs to avoid copying .git from worktree)
       - type: dir
@@ -324,6 +353,9 @@ modules:
       - type: dir
         path: ../../src
         dest: src
+      - type: dir
+        path: ../../localization
+        dest: localization
 
       - type: file
         path: ../../CMakeLists.txt
@@ -337,7 +369,7 @@ modules:
 
       # AppData metainfo for GNOME Software & Co.
       - type: file
-        path: io.github.orcaslicer.OrcaSlicer.metainfo.xml
+        path: com.orcaslicer.OrcaSlicer.metainfo.xml
 
       # Startup script
       - type: file
