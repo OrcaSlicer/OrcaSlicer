@@ -118,7 +118,7 @@ public:
 
     ResizeEdgePanel(MainFrame* frame, Edge edge)
         : wxPanel(frame, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                  wxBORDER_NONE | wxTRANSPARENT_WINDOW)
+                  wxBORDER_NONE)
         , m_frame(frame)
         , m_edge(edge)
     {
@@ -1802,8 +1802,8 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_slice_select = eSlicePlate;
     m_print_select = ePrintPlate;
 
-    auto slice_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize,wxTRANSPARENT_WINDOW);
-    auto print_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize,wxTRANSPARENT_WINDOW);
+    auto slice_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize);
+    auto print_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize);
 
     m_slice_btn = new SideButton(slice_panel, _L("Slice plate"), "");
     m_slice_option_btn = new SideButton(slice_panel, "", "sidebutton_dropdown", 0, 14);
