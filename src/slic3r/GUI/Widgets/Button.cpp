@@ -48,7 +48,7 @@ Button::Button(wxWindow* parent, wxString text, wxString icon, long style, int i
 bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, int iconSize, wxWindowID btn_id)
 {
     StaticBox::Create(parent, btn_id, wxDefaultPosition, wxDefaultSize, style);
-    state_handler.attach({&text_color});
+    state_handler.attach(std::vector<StateColor const*>{&text_color});
     state_handler.update_binds();
     //BBS set default font
     SetFont(Label::Body_14);
