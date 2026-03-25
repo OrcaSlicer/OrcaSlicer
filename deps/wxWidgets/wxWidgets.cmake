@@ -53,6 +53,7 @@ orcaslicer_add_cmake_project(
         -DwxUSE_LIBJPEG=sys
         -DwxUSE_LIBTIFF=OFF
         -DwxUSE_EXPAT=sys
+        -DwxUSE_NANOSVG=OFF
 )
 
 if (MSVC)
