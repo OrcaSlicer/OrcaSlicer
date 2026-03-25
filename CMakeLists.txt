@@ -622,6 +622,7 @@ find_package(TBB REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Freetype REQUIRED)
+find_package(LibGit2 REQUIRED)
 
 
 add_library(libcurl INTERFACE)
