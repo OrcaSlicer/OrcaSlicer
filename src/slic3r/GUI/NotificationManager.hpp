@@ -161,6 +161,7 @@ enum class NotificationType
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
+    SyncConflict,
     NotificationTypeCount
 
 };

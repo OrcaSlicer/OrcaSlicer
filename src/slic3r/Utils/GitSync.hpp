@@ -32,6 +32,7 @@ public:
     void disconnect() override;
     bool is_connected() const override;
     bool test_connection(std::string& error_out) override;
+    bool refresh(std::string& error_out) override;
 
     bool ensure_directory(const std::string& remote_path, std::string& error_out) override;
     bool list_files(const std::string& remote_dir,
@@ -53,6 +54,7 @@ public:
 
     SyncBackendType type() const override { return SyncBackendType::Git; }
     std::string     display_name() const override { return "Git"; }
+    std::string     fingerprint() const override { return "git:" + m_config.repo_url + "#" + m_config.branch; }
     std::string     info_message() const override;
 
     bool commit_and_push(const std::string& message, std::string& error_out);

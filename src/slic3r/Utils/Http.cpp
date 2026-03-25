@@ -875,6 +875,7 @@ Http Http::del(std::string url)
 	return http;
 }
 
+// ORCA: WebDAV methods for self-hosted sync
 Http Http::propfind(std::string url)
 {
 	Http http{ std::move(url) };

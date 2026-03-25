@@ -43,6 +43,8 @@ public:
 
     SyncBackendType type() const override { return SyncBackendType::WebDAV; }
     std::string     display_name() const override { return "WebDAV"; }
+    std::string     remote_prefix() const override { return "orcaslicer-sync/"; }
+    std::string     fingerprint() const override { return "webdav:" + m_config.url; }
     std::string     info_message() const override;
 
     std::string extract_etag(const std::string& headers) const;

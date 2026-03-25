@@ -1,9 +1,8 @@
 #pragma once
 
+#include "libslic3r/Preset.hpp"
 #include <string>
 #include <vector>
-#include <functional>
-#include <memory>
 
 namespace Slic3r {
 
@@ -27,13 +26,14 @@ struct RemoteFileInfo {
 };
 
 struct SyncConflict {
-    std::string path;
+    std::string path;            // remote path (e.g. "presets/filament/Name.json")
+    std::string local_filepath;  // absolute local file path
     std::string local_content;
     long long   local_time{0};
     std::string remote_content;
     long long   remote_time{0};
     std::string remote_etag;
-    int         preset_type{0};     // Preset::Type for merge dialog context
+    Preset::Type         preset_type{Preset::Type::TYPE_INVALID};
 };
 
 enum class ConflictResolution { KeepLocal, KeepRemote, Skip, Merge };
@@ -76,6 +76,16 @@ public:
 
     virtual SyncBackendType type() const = 0;
     virtual std::string     display_name() const = 0;
+
+    // Refresh remote state before a sync cycle (e.g. git pull).
+    // Default is no-op (WebDAV fetches live data on each request).
+    virtual bool refresh(std::string& error_out) { return true; }
+
+    // Path prefix for sync files on this backend.
+    virtual std::string     remote_prefix() const { return ""; }
+
+    // Unique identifier for the sync target (used to invalidate state on config change).
+    virtual std::string     fingerprint() const = 0;
 
     // Optional one-shot message produced after connect (e.g. "branch created").
     // Returns empty string when there is nothing to report.

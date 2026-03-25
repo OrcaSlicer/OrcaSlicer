@@ -122,6 +122,11 @@
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+// ORCA: self-hosted profile sync
+#include "SyncConflictDialog.hpp"
+#include "SyncMergeDialog.hpp"
+#include <condition_variable>
+#include <thread>
 
 //#ifdef WIN32
 //#include "BaseException.h"
@@ -996,6 +1001,9 @@ void GUI_App::post_init()
     } else {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
     }
+
+    // ORCA: Initialize self-hosted profile sync
+    init_profile_sync();
 
     // The extra CallAfter() is needed because of Mac, where this is the only way
     // to popup a modal dialog on start without screwing combo boxes.
@@ -2599,6 +2607,7 @@ bool GUI_App::OnInit()
 int GUI_App::OnExit()
 {
     stop_sync_user_preset();
+    stop_profile_sync(); // ORCA: self-hosted profile sync
 
     if (m_device_manager) {
         delete m_device_manager;
@@ -6133,6 +6142,415 @@ void GUI_App::stop_sync_user_preset()
         else
             m_sync_update_thread.detach();
     }
+}
+
+// ORCA: Self-hosted profile sync methods
+
+void GUI_App::check_and_warn_missing_synced_presets()
+{
+    if (!preset_bundle || !plater() || !plater()->get_notification_manager())
+        return;
+
+    auto show_warnings = [&](PresetCollection& col) {
+        for (const auto& w : col.load_warnings()) {
+            // Format: "preset_name|parent_name"
+            auto sep = w.find('|');
+            std::string preset_name = (sep != std::string::npos) ? w.substr(0, sep) : w;
+            std::string parent_name = (sep != std::string::npos) ? w.substr(sep + 1) : "";
+            std::string msg = _u8L("Synced preset") + " \"" + preset_name + "\" " + _u8L("not loaded");
+            if (!parent_name.empty())
+                msg += ": " + _u8L("parent") + " \"" + parent_name + "\" " + _u8L("not found. Install the system profile first.");
+            plater()->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::WarningNotificationLevel,
+                msg);
+        }
+        col.clear_load_warnings();
+    };
+    show_warnings(preset_bundle->prints);
+    show_warnings(preset_bundle->filaments);
+    show_warnings(preset_bundle->printers);
+}
+
+void GUI_App::init_profile_sync()
+{
+    m_profile_sync_manager = std::make_unique<ProfileSyncManager>();
+    m_profile_sync_manager->load_config_from_appconfig(*app_config);
+
+    // Set conflict resolution callback — runs on main GUI thread
+    m_profile_sync_manager->set_conflict_callback([this](SyncConflict& conflict) -> SyncConflictResult {
+        SyncConflictResult result;
+        result.resolution = ConflictResolution::Skip;
+
+        // Shared state on the heap so CallAfter lambda is safe even if app is closing
+        struct SyncState {
+            std::mutex mtx;
+            std::condition_variable cv;
+            bool done{false};
+        };
+        auto state = std::make_shared<SyncState>();
+
+        CallAfter([this, &conflict, &result, state]() {
+            if (is_closing()) {
+                std::lock_guard<std::mutex> lock(state->mtx);
+                state->done = true;
+                state->cv.notify_one();
+                return;
+            }
+            if (conflict.preset_type != Preset::Type::TYPE_INVALID) {
+                // Preset conflict — show field-level merge dialog
+                GUI::SyncMergeDialog dlg(mainframe, conflict);
+                if (!dlg.has_visible_diffs()) {
+                    // Only metadata keys differ — accept remote silently
+                    result.resolution = ConflictResolution::KeepRemote;
+                } else {
+                    dlg.ShowModal();
+                    result = dlg.get_result();
+                }
+            } else {
+                // Non-preset conflict — show simple conflict dialog
+                GUI::SyncConflictDialog dlg(mainframe, conflict);
+                dlg.ShowModal();
+                result.resolution = dlg.get_resolution();
+            }
+            {
+                std::lock_guard<std::mutex> lock(state->mtx);
+                state->done = true;
+            }
+            state->cv.notify_one();
+        });
+
+        std::unique_lock<std::mutex> lock(state->mtx);
+        state->cv.wait(lock, [&state] { return state->done; });
+        return result;
+    });
+
+    // Set auto-sync execute callback — called by background timer thread
+    m_profile_sync_manager->set_sync_execute_callback([this](bool manual) {
+        auto* mgr = m_profile_sync_manager.get();
+        if (!mgr) return;
+
+        mgr->reset_local_changes_flag();
+
+        std::string error;
+        {
+            std::lock_guard<std::mutex> lock(m_preset_sync_mutex);
+            if (preset_bundle)
+                mgr->sync_presets(*preset_bundle, error);
+            if (app_config)
+                mgr->sync_appconfig(*app_config, error);
+        }
+
+        // Check for deferred conflicts from auto-sync
+        auto pending = mgr->take_pending_conflicts();
+        if (!pending.empty()) {
+            {
+                std::lock_guard<std::mutex> lock(m_deferred_conflicts_mutex);
+                m_deferred_conflicts = std::move(pending);
+                m_deferred_conflicts_time = std::chrono::steady_clock::now();
+            }
+            size_t count;
+            {
+                std::lock_guard<std::mutex> lock(m_deferred_conflicts_mutex);
+                count = m_deferred_conflicts.size();
+            }
+            CallAfter([this, count]() {
+                if (is_closing() || !plater() || !plater()->get_notification_manager())
+                    return;
+                std::string text = std::to_string(count) + " " + _u8L("preset(s) have remote changes") + ".";
+                plater()->get_notification_manager()->push_notification(
+                    NotificationType::SyncConflict,
+                    NotificationManager::NotificationLevel::ImportantNotificationLevel,
+                    text,
+                    _u8L("Review"),
+                    [this](wxEvtHandler*) -> bool {
+                        // Defer to next event loop iteration — we are inside ImGui render
+                        CallAfter([this]() { show_deferred_sync_conflicts(); });
+                        return true;
+                    });
+            });
+        }
+
+        // ORCA: Reload presets on main thread only if sync actually changed local files
+        bool needs_reload = mgr->had_local_changes();
+        if (needs_reload) {
+            CallAfter([this]() {
+                if (is_closing()) return;
+
+                // ORCA: Warn user about unsaved preset changes before sync overwrites them
+                if (has_current_preset_changes()) {
+                    auto res = wxMessageBox(
+                        _L("You have unsaved preset changes. Sync has updated presets on disk.\n\n"
+                           "Save your changes before reloading?"),
+                        _L("Unsaved Changes"),
+                        wxYES_NO | wxCANCEL | wxICON_WARNING, mainframe);
+                    if (res == wxCANCEL)
+                        return; // skip reload entirely
+                    if (res == wxYES)
+                        check_and_save_current_preset_changes(_L("Sync"), _L("Save changes before sync reload"), false);
+                }
+
+                std::lock_guard<std::mutex> lock(m_preset_sync_mutex);
+                if (preset_bundle) {
+                    try {
+                        preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME,
+                            ForwardCompatibilitySubstitutionRule::Enable);
+                    } catch (const std::exception& e) {
+                        BOOST_LOG_TRIVIAL(error) << "Failed to reload user presets after auto-sync: " << e.what();
+                    }
+                    // ORCA: Force re-select so m_edited_preset picks up reloaded config
+                    preset_bundle->prints.select_preset_by_name(preset_bundle->prints.get_selected_preset_name(), true);
+                    preset_bundle->filaments.select_preset_by_name(preset_bundle->filaments.get_selected_preset_name(), true);
+                    preset_bundle->printers.select_preset_by_name(preset_bundle->printers.get_selected_preset_name(), true);
+                    // ORCA: load_current_presets refreshes GUI tabs from in-memory preset objects
+                    if (mainframe) load_current_presets();
+
+                    // ORCA: Warn about synced presets that failed to load (missing parent)
+                    check_and_warn_missing_synced_presets();
+                }
+            });
+        }
+    });
+
+    if (m_profile_sync_manager->get_config().enabled) {
+        start_profile_sync();
+    }
+}
+
+void GUI_App::start_profile_sync()
+{
+    if (!m_profile_sync_manager) return;
+
+    std::string error;
+    if (!m_profile_sync_manager->start(error)) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to start profile sync: " << error;
+    }
+}
+
+void GUI_App::stop_profile_sync()
+{
+    if (m_profile_sync_manual_thread.joinable())
+        m_profile_sync_manual_thread.join();
+    if (m_profile_sync_manager) {
+        m_profile_sync_manager->stop();
+    }
+}
+
+void GUI_App::show_deferred_sync_conflicts()
+{
+    std::vector<SyncConflict> conflicts;
+    {
+        std::lock_guard<std::mutex> lock(m_deferred_conflicts_mutex);
+        conflicts.swap(m_deferred_conflicts);
+    }
+
+    if (conflicts.empty()) {
+        if (plater() && plater()->get_notification_manager())
+            plater()->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::RegularNotificationLevel,
+                _u8L("No sync conflicts pending."));
+        return;
+    }
+
+    auto* mgr = m_profile_sync_manager.get();
+    if (!mgr) return;
+
+    bool any_changes = false;
+
+    for (auto& conflict : conflicts) {
+        SyncConflictResult result;
+        if (conflict.preset_type != Preset::Type::TYPE_INVALID) {
+            GUI::SyncMergeDialog dlg(mainframe, conflict);
+            if (!dlg.has_visible_diffs()) {
+                // Only metadata keys differ — accept remote silently
+                result.resolution = ConflictResolution::KeepRemote;
+            } else {
+                dlg.ShowModal();
+                result = dlg.get_result();
+            }
+        } else {
+            GUI::SyncConflictDialog dlg(mainframe, conflict);
+            dlg.ShowModal();
+            result.resolution = dlg.get_resolution();
+        }
+
+        if (result.resolution == ConflictResolution::Skip)
+            continue;
+
+        std::string error;
+        if (!mgr->apply_conflict_resolution(conflict, result, error)) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to apply conflict resolution: " << error;
+            if (plater() && plater()->get_notification_manager())
+                plater()->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                    _u8L("Sync conflict apply failed: ") + error);
+        } else {
+            any_changes = true;
+        }
+    }
+
+    // For Git backend, commit and push after all resolutions
+    if (any_changes && mgr->get_config().backend_type == SyncBackendType::Git) {
+        auto* git_backend = dynamic_cast<GitSync*>(mgr->get_backend());
+        if (git_backend) {
+            std::string commit_error;
+            if (!git_backend->commit_and_push("OrcaSlicer conflict resolution", commit_error))
+                BOOST_LOG_TRIVIAL(error) << "Git commit/push after conflict resolution failed: " << commit_error;
+        }
+    }
+
+    if (any_changes) {
+        std::lock_guard<std::mutex> lock(m_preset_sync_mutex);
+        if (preset_bundle) {
+            try {
+                preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME,
+                    ForwardCompatibilitySubstitutionRule::Enable);
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "Failed to reload user presets after conflict resolution: " << e.what();
+            }
+            preset_bundle->prints.select_preset_by_name(preset_bundle->prints.get_selected_preset_name(), true);
+            preset_bundle->filaments.select_preset_by_name(preset_bundle->filaments.get_selected_preset_name(), true);
+            preset_bundle->printers.select_preset_by_name(preset_bundle->printers.get_selected_preset_name(), true);
+            if (mainframe) load_current_presets();
+
+            check_and_warn_missing_synced_presets();
+        }
+    }
+}
+
+void GUI_App::trigger_profile_sync_now()
+{
+    if (!m_profile_sync_manager) return;
+
+    m_profile_sync_manager->load_config_from_appconfig(*app_config);
+
+    auto* mgr = m_profile_sync_manager.get();
+    if (!mgr->get_config().enabled) {
+        BOOST_LOG_TRIVIAL(info) << "Profile sync is disabled";
+        return;
+    }
+
+    // Skip if auto-sync is currently running to avoid concurrent access to m_file_states
+    if (mgr->is_syncing()) {
+        BOOST_LOG_TRIVIAL(info) << "Profile sync already in progress, skipping manual trigger";
+        return;
+    }
+
+    // Join previous manual sync thread if still running
+    if (m_profile_sync_manual_thread.joinable())
+        m_profile_sync_manual_thread.join();
+
+    // Clear deferred conflicts — a full re-sync will produce fresh data
+    {
+        std::lock_guard<std::mutex> lock(m_deferred_conflicts_mutex);
+        m_deferred_conflicts.clear();
+    }
+
+    // Perform sync in a background thread (manual mode — shows dialogs for conflicts)
+    m_profile_sync_manual_thread = std::thread([this, mgr]() {
+        mgr->set_manual_sync(true);
+        mgr->clear_pending_conflicts();
+
+        std::string error;
+
+        // Connect if not already
+        if (!mgr->is_running()) {
+            if (!mgr->start(error)) {
+                BOOST_LOG_TRIVIAL(error) << "Profile sync start failed: " << error;
+                CallAfter([this, error]() {
+                    if (!is_closing() && plater() && plater()->get_notification_manager())
+                        plater()->get_notification_manager()->push_notification(
+                            NotificationType::CustomNotification,
+                            NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                            "Profile sync failed: " + error);
+                });
+                return;
+            }
+
+            // Show one-shot info from the backend (e.g. "branch created")
+            std::string info = mgr->backend_info_message();
+            if (!info.empty()) {
+                CallAfter([this, info]() {
+                    if (!is_closing())
+                        wxMessageBox(wxString::FromUTF8(info),
+                                     _L("Self-hosted Sync"), wxOK | wxICON_INFORMATION);
+                });
+            }
+        }
+
+        // Sync presets
+        bool sync_ok = true;
+        {
+            std::lock_guard<std::mutex> lock(m_preset_sync_mutex);
+            if (preset_bundle) {
+                if (!mgr->sync_presets(*preset_bundle, error)) {
+                    BOOST_LOG_TRIVIAL(error) << "Profile sync presets failed: " << error;
+                    sync_ok = false;
+                }
+            }
+
+            // Sync app config
+            if (app_config) {
+                if (!mgr->sync_appconfig(*app_config, error)) {
+                    BOOST_LOG_TRIVIAL(error) << "Profile sync appconfig failed: " << error;
+                    sync_ok = false;
+                }
+            }
+        }
+
+        mgr->set_manual_sync(false);
+
+        bool needs_reload = mgr->had_local_changes();
+
+        // Reload settings on main thread after sync only if files were changed
+        CallAfter([this, sync_ok, needs_reload, error]() {
+            if (is_closing())
+                return;
+            if (!sync_ok && plater() && plater()->get_notification_manager())
+                plater()->get_notification_manager()->push_notification(
+                    NotificationType::CustomNotification,
+                    NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                    "Profile sync error: " + error);
+
+            if (!needs_reload)
+                return;
+
+            // ORCA: Warn user about unsaved preset changes before sync overwrites them
+            if (has_current_preset_changes()) {
+                auto res = wxMessageBox(
+                    _L("You have unsaved preset changes. Sync has updated presets on disk.\n\n"
+                       "Save your changes before reloading?"),
+                    _L("Unsaved Changes"),
+                    wxYES_NO | wxCANCEL | wxICON_WARNING, mainframe);
+                if (res == wxCANCEL)
+                    return;
+                if (res == wxYES)
+                    check_and_save_current_preset_changes(_L("Sync"), _L("Save changes before sync reload"), false);
+            }
+
+            // ORCA: Reload user presets from disk — self-hosted sync writes to user/default/.
+            std::lock_guard<std::mutex> lock(m_preset_sync_mutex);
+            if (preset_bundle) {
+                try {
+                    preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME,
+                                                      ForwardCompatibilitySubstitutionRule::Enable);
+                } catch (const std::exception& e) {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to reload user presets after sync: " << e.what();
+                }
+                // ORCA: Force re-select so m_edited_preset picks up reloaded config
+                preset_bundle->prints.select_preset_by_name(preset_bundle->prints.get_selected_preset_name(), true);
+                preset_bundle->filaments.select_preset_by_name(preset_bundle->filaments.get_selected_preset_name(), true);
+                preset_bundle->printers.select_preset_by_name(preset_bundle->printers.get_selected_preset_name(), true);
+                // ORCA: load_current_presets refreshes GUI tabs from in-memory preset objects
+                if (mainframe)
+                    load_current_presets();
+
+                check_and_warn_missing_synced_presets();
+            }
+        });
+    });
 }
 
 void GUI_App::start_http_server()

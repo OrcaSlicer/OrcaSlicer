@@ -17,13 +17,33 @@
 #include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+// ORCA: self-hosted profile sync
+#include "slic3r/Utils/ProfileSyncManager.hpp"
+#include "slic3r/Utils/WebDAVSync.hpp"
+#include "slic3r/Utils/GitSync.hpp"
 #include "DownloadProgressDialog.hpp"
+#include <memory>
+#include <functional>
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
 #include "dark_mode.hpp"
 #endif // _MSW_DARK_MODE
 #endif //__WINDOWS__
+
+// ORCA: self-hosted sync UI visibility helper.
+// Recursively show/hide all windows inside a sizer tree.
+// wxSizer::ShowItems only sets flags on direct children — for nested sizers
+// the actual wxWindow objects remain visible. This helper walks the tree.
+static void show_sizer_children(wxSizer* sizer, bool show) {
+    for (auto* item : sizer->GetChildren()) {
+        if (item->IsWindow())
+            item->GetWindow()->Show(show);
+        else if (item->IsSizer())
+            show_sizer_children(item->GetSizer(), show);
+        item->Show(show);
+    }
+}
 
 namespace Slic3r { namespace GUI {
 
@@ -509,7 +529,8 @@ wxBoxSizer *PreferencesDialog::create_item_multiple_combobox(
     return m_sizer_tcombox;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange)
+// ORCA: added digits_only param, null-check onchange, save on focus loss
+wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange, bool digits_only)
 {
     wxBoxSizer *sizer_input = new wxBoxSizer(wxHORIZONTAL);
     auto        input_title   = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
@@ -522,9 +543,11 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
-    wxTextValidator validator(wxFILTER_DIGITS);
     input->SetToolTip(tooltip);
-    input->GetTextCtrl()->SetValidator(validator);
+    if (digits_only) {
+        wxTextValidator validator(wxFILTER_DIGITS);
+        input->GetTextCtrl()->SetValidator(validator);
+    }
 
     auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
     second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
@@ -541,14 +564,15 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
         auto value = input->GetTextCtrl()->GetValue();
         app_config->set(param, std::string(value.mb_str()));
         app_config->save();
-        onchange(value);
+        if (onchange) onchange(value);
         e.Skip();
     });
 
     input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [this, param, input, onchange](wxFocusEvent &e) {
         auto value = input->GetTextCtrl()->GetValue();
         app_config->set(param, std::string(value.mb_str()));
-        onchange(value);
+        app_config->save();
+        if (onchange) onchange(value);
         e.Skip();
     });
 
@@ -1255,6 +1279,12 @@ void PreferencesDialog::create()
             m_pref_tabs->SetItemBold(i, i == selection);
             f_sizers[i]->Show(i == selection);
         }
+        // ORCA: Re-apply sync field visibility only when Online tab (index 2) is selected
+        if (selection == 2 && m_sync_visibility_callback && *m_sync_visibility_callback) {
+            auto backend_str = app_config->get("selfhost_sync_backend");
+            int sel = backend_str.empty() ? 0 : std::atoi(backend_str.c_str());
+            (*m_sync_visibility_callback)(sel);
+        }
         Layout();
         Thaw();
     });
@@ -1379,7 +1409,7 @@ void PreferencesDialog::create_items()
         long max = 0;
         if (value.ToLong(&max))
             wxGetApp().mainframe->set_max_recent_count(max);
-    });
+    }, true); // ORCA: digits_only for max recent count
     g_sizer->Add(item_max_recent_count);
 
     auto item_recent_models    = create_item_checkbox(_L("Add STL/STEP files to recent files list"), "", "recent_models");
@@ -1560,6 +1590,215 @@ void PreferencesDialog::create_items()
         "sync_ams_filament_mode",
         {_L("Filament & Color"), _L("Color only")});
     g_sizer->Add(item_filament_sync_mode);
+
+    //// ORCA: ONLINE > Self-hosted Sync
+    g_sizer->Add(create_item_title(_L("Self-hosted Sync")), 1, wxEXPAND);
+
+    // Deferred visibility callback — combobox is created before the fields it controls
+    auto update_sync_backend_visibility = std::make_shared<std::function<void(int)>>();
+
+    auto item_sync_backend = create_item_combobox(
+        _L("Sync backend"),
+        _L("Choose sync backend for self-hosted profile synchronization"),
+        "selfhost_sync_backend",
+        {_L("Disabled"), _L("WebDAV"), _L("Git")},
+        [update_sync_backend_visibility](wxString sel) {
+            if (*update_sync_backend_visibility)
+                (*update_sync_backend_visibility)(wxAtoi(sel));
+        });
+    g_sizer->Add(item_sync_backend);
+
+    // Read initial backend selection early so we can set correct visibility
+    // at creation time (deferred approaches like CallAfter crash on destroy).
+    int initial_sync_backend = 0;
+    {
+        auto backend_str = app_config->get("selfhost_sync_backend");
+        if (!backend_str.empty())
+            initial_sync_backend = std::atoi(backend_str.c_str());
+    }
+
+    // --- WebDAV fields grouped into one sizer ---
+    auto item_webdav_url = create_item_input(
+        _L("WebDAV URL"), _L(""), _L("URL of your WebDAV server (e.g. https://cloud.example.com/remote.php/dav/files/user/)"),
+        "selfhost_sync_webdav_url");
+    auto item_webdav_user = create_item_input(
+        _L("WebDAV username"), _L(""), _L("Username for WebDAV authentication"),
+        "selfhost_sync_webdav_user");
+    auto item_webdav_pass = create_item_input(
+        _L("WebDAV password"), _L(""), _L("Password for WebDAV authentication"),
+        "selfhost_sync_webdav_pass");
+
+    auto* webdav_sizer = new wxBoxSizer(wxVERTICAL);
+    webdav_sizer->Add(item_webdav_url,  0, wxEXPAND);
+    webdav_sizer->Add(item_webdav_user, 0, wxEXPAND);
+    webdav_sizer->Add(item_webdav_pass, 0, wxEXPAND);
+    g_sizer->Add(webdav_sizer, 0, wxEXPAND);
+
+    // --- Git fields grouped into one sizer ---
+    auto item_git_url = create_item_input(
+        _L("Git repository URL"), _L(""), _L("URL of the Git repository (HTTPS or SSH)"),
+        "selfhost_sync_git_url");
+    auto item_git_branch = create_item_input(
+        _L("Git branch"), _L("main"), _L("Branch to sync with"),
+        "selfhost_sync_git_branch");
+    auto item_git_token = create_item_input(
+        _L("Git access token (optional)"), _L(""), _L("Personal access token for private repositories. Leave empty for public repos (read-only)."),
+        "selfhost_sync_git_token");
+
+    auto* git_sizer = new wxBoxSizer(wxVERTICAL);
+    git_sizer->Add(item_git_url,    0, wxEXPAND);
+    git_sizer->Add(item_git_branch, 0, wxEXPAND);
+    git_sizer->Add(item_git_token,  0, wxEXPAND);
+    g_sizer->Add(git_sizer, 0, wxEXPAND);
+
+    // --- Read-only checkbox (visible when backend is enabled) ---
+    auto item_readonly = create_item_checkbox(
+        _L("Read-only (receive changes only)"),
+        _L("Only download presets from the server, never upload local changes. Use this on machines that should follow a master instance."),
+        "selfhost_sync_readonly");
+    g_sizer->Add(item_readonly);
+
+    // --- Always review remote changes checkbox ---
+    auto item_always_review = create_item_checkbox(
+        _L("Always review remote changes"),
+        _L("Show a merge dialog even when only the remote copy has changed, letting you pick which fields to accept."),
+        "selfhost_sync_always_review");
+    g_sizer->Add(item_always_review);
+
+    // Get actual widgets from sizers for Git token → read-only interaction
+    // Sizer layout: [spacer, title, widget, ...]
+    auto* readonly_checkbox = dynamic_cast<::CheckBox*>(item_readonly->GetItem(2)->GetWindow());
+    auto* git_token_input   = dynamic_cast<::TextInput*>(item_git_token->GetItem(2)->GetWindow());
+
+    // Lambda to enforce read-only when Git backend has no token
+    auto update_readonly_for_git = [this, readonly_checkbox, git_token_input](int backend_sel) {
+        if (!readonly_checkbox) return;
+        if (backend_sel == 2 && git_token_input) {
+            // Git backend
+            bool token_empty = git_token_input->GetTextCtrl()->GetValue().IsEmpty();
+            if (token_empty) {
+                readonly_checkbox->SetValue(true);
+                readonly_checkbox->Enable(false);
+                app_config->set_bool("selfhost_sync_readonly", true);
+                app_config->save();
+            } else {
+                readonly_checkbox->Enable(true);
+            }
+        } else if (backend_sel != 0) {
+            // WebDAV or other — always allow toggling
+            readonly_checkbox->Enable(true);
+        }
+    };
+
+    // Bind token text change to update read-only state
+    if (git_token_input) {
+        git_token_input->GetTextCtrl()->Bind(wxEVT_TEXT, [this, update_readonly_for_git](wxCommandEvent&) {
+            auto backend_str = app_config->get("selfhost_sync_backend");
+            int sel = backend_str.empty() ? 0 : std::atoi(backend_str.c_str());
+            update_readonly_for_git(sel);
+        });
+    }
+
+    // --- Common sync options (visible when backend is enabled) ---
+    auto item_selfhost_presets = create_item_checkbox(
+        _L("Sync presets (Printer/Filament/Process)"), _L("Synchronize user presets via self-hosted backend"),
+        "selfhost_sync_presets");
+
+    auto item_selfhost_appconfig = create_item_checkbox(
+        _L("Sync application settings"), _L("Synchronize application preferences"),
+        "selfhost_sync_appconfig");
+
+    auto item_selfhost_projects = create_item_checkbox(
+        _L("Sync .3mf projects"), _L("Synchronize project files"),
+        "selfhost_sync_projects");
+
+    auto item_sync_interval = create_item_combobox(
+        _L("Auto-sync interval"),
+        _L("How often to automatically synchronize. Manual means only when you click Sync."),
+        "selfhost_sync_interval",
+        {_L("Manual"), _L("5 minutes"), _L("15 minutes"), _L("30 minutes"), _L("1 hour")});
+
+    auto item_test_sync = create_item_button(
+        _L("Test connection"), _L("Test"), "",
+        _L("Test the connection to the sync backend"),
+        []() {
+            auto* app = &wxGetApp();
+            auto* mgr = app->get_profile_sync_manager();
+            if (!mgr) return;
+
+            wxWindow* dlg_parent = wxGetActiveWindow();
+            if (!dlg_parent) dlg_parent = wxTheApp->GetTopWindow();
+
+            mgr->load_config_from_appconfig(*app->app_config);
+            std::string error;
+            std::unique_ptr<Slic3r::SyncBackend> sync_backend;
+
+            SyncConfig cfg = mgr->get_config();
+            if (!cfg.enabled) {
+                wxMessageBox(_L("Sync is disabled. Select a backend first."), _L("Self-hosted Sync"), wxOK | wxICON_WARNING, dlg_parent);
+                return;
+            }
+
+            if (cfg.backend_type == SyncBackendType::WebDAV) {
+                if (cfg.webdav_config.url.empty()) {
+                    wxMessageBox(_L("Please enter a WebDAV URL."), _L("Self-hosted Sync"), wxOK | wxICON_WARNING, dlg_parent);
+                    return;
+                }
+                sync_backend = std::make_unique<WebDAVSync>(cfg.webdav_config);
+            } else {
+                if (cfg.git_config.repo_url.empty()) {
+                    wxMessageBox(_L("Please enter a Git repository URL."), _L("Self-hosted Sync"), wxOK | wxICON_WARNING, dlg_parent);
+                    return;
+                }
+                sync_backend = std::make_unique<GitSync>(cfg.git_config);
+            }
+
+            if (sync_backend->test_connection(error)) {
+                wxMessageBox(_L("Connection successful!"), _L("Self-hosted Sync"), wxOK | wxICON_INFORMATION, dlg_parent);
+            } else {
+                wxMessageBox(_L("Connection failed: ") + wxString::FromUTF8(error), _L("Self-hosted Sync"), wxOK | wxICON_ERROR, dlg_parent);
+            }
+        });
+
+    auto item_sync_now = create_item_button(
+        _L("Sync now"), _L("Sync"), "",
+        _L("Trigger an immediate synchronization"),
+        []() {
+            auto* app = &wxGetApp();
+            app->trigger_profile_sync_now();
+        });
+
+    auto* sync_common_sizer = new wxBoxSizer(wxVERTICAL);
+    sync_common_sizer->Add(item_selfhost_presets,   0, wxEXPAND);
+    sync_common_sizer->Add(item_selfhost_appconfig, 0, wxEXPAND);
+    sync_common_sizer->Add(item_selfhost_projects,  0, wxEXPAND);
+    sync_common_sizer->Add(item_sync_interval,      0, wxEXPAND);
+    sync_common_sizer->Add(item_test_sync,          0, wxEXPAND);
+    sync_common_sizer->Add(item_sync_now,           0, wxEXPAND);
+    g_sizer->Add(sync_common_sizer, 0, wxEXPAND);
+
+    // --- Visibility callback ---
+    *update_sync_backend_visibility = [this, g_sizer, webdav_sizer, git_sizer, item_readonly, item_always_review, sync_common_sizer, update_readonly_for_git](int sel) {
+        m_parent->Freeze();
+        show_sizer_children(webdav_sizer, sel == 1);
+        show_sizer_children(git_sizer, sel == 2);
+        show_sizer_children(item_readonly, sel != 0);
+        show_sizer_children(item_always_review, sel != 0);
+        show_sizer_children(sync_common_sizer, sel != 0);
+        g_sizer->Show(webdav_sizer, sel == 1);
+        g_sizer->Show(git_sizer, sel == 2);
+        g_sizer->Show(item_readonly, sel != 0);
+        g_sizer->Show(item_always_review, sel != 0);
+        g_sizer->Show(sync_common_sizer, sel != 0);
+        update_readonly_for_git(sel);
+        m_parent->Layout();
+        m_parent->FitInside();
+        m_parent->Thaw();
+    };
+    m_sync_visibility_callback = update_sync_backend_visibility;
+
+    // Apply initial readonly state for Git backend
+    update_readonly_for_git(initial_sync_backend);
 
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Network plug-in")), 1, wxEXPAND);

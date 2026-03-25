@@ -109,7 +109,7 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
 
         int cnt = 0;
 
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER) && opt_key != "printable_area")
+        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_FILAMENT) && opt_key != "printable_area")
             switch (config->option(opt_key)->type()) {
             case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;

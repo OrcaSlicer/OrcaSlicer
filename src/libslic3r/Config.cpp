@@ -817,7 +817,24 @@ ConfigSubstitutions ConfigBase::load_from_json(const std::string &file, ForwardC
     return std::move(substitutions_ctxt.substitutions);
 }
 
+// ORCA: Refactored to delegate to load_from_json_string for self-hosted sync
 int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason)
+{
+    try {
+        boost::nowide::ifstream ifs(file);
+        std::string content((std::istreambuf_iterator<char>(ifs)),
+                             std::istreambuf_iterator<char>());
+        ifs.close();
+        return load_from_json_string(content, substitution_context, load_inherits_to_config, key_values, reason);
+    } catch (const std::ifstream::failure &err) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file << " got a ifstream error, reason = " << err.what();
+        reason = std::string("ifstreamError: ") + err.what();
+        return -1;
+    }
+}
+
+// ORCA: Parse config from JSON string in memory (self-hosted sync)
+int ConfigBase::load_from_json_string(const std::string &json_content, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason)
 {
     json j;
     std::list<std::string> different_settings_append;
@@ -873,9 +890,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
         };
 
     try {
-        boost::nowide::ifstream ifs(file);
-        ifs >> j;
-        ifs.close();
+        j = json::parse(json_content);
 
         const ConfigDef* config_def = this->def();
         if (config_def == nullptr) {
@@ -993,7 +1008,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                     // BBS: we only support 2 depth array
                     valid = parse_str_arr(it, single_sep, array_sep,escape_string_type, value_str);
                     if (!valid) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file << " error, invalid json array for " << it.key();
+                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << " error, invalid json array for " << it.key();
                         break;
                     }
                     if (valid)
@@ -1001,7 +1016,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                 }
                 else {
                     //should not happen
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" error, invalid json type for " << it.key();
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse " << " error, invalid json type for " << it.key();
                 }
             }
         }
@@ -1094,18 +1109,13 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
         this->handle_legacy_composite();
         return 0;
     }
-    catch (const std::ifstream::failure &err)  {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a ifstream error, reason = " << err.what();
-        reason = std::string("ifstreamError: ") + err.what();
-        //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file, e.what()));
-    }
     catch(nlohmann::detail::parse_error &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a nlohmann::detail::parse_error, reason = " << err.what();
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse " << " got a nlohmann::detail::parse_error, reason = " << err.what();
         reason = std::string("JsonParseError: ") + err.what();
         //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file, err.what()));
     }
     catch(std::exception &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a generic exception, reason = " << err.what();
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse " << " got a generic exception, reason = " << err.what();
         reason = std::string("std::exception: ") + err.what();
     }
     return -1;

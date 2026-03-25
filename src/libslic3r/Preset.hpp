@@ -868,6 +868,12 @@ private:
 
     // Orca: used for validation only
     int m_errors = 0;
+
+    // ORCA: Warnings from load_presets (e.g. missing parent for synced presets)
+    std::vector<std::string> m_load_warnings;
+public:
+    const std::vector<std::string>& load_warnings() const { return m_load_warnings; }
+    void clear_load_warnings() { m_load_warnings.clear(); }
 };
 
 // Printer supports the FFF and SLA technologies, with different set of configuration values,

@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include "ImGuiWrapper.hpp"
@@ -11,6 +12,7 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/ProfileSyncManager.hpp" // ORCA: self-hosted profile sync
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "slic3r/GUI/WebUserLoginDialog.hpp"
 #include "slic3r/GUI/BindDialog.hpp"
@@ -311,6 +313,14 @@ private:
 
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
+
+    // ORCA: Self-hosted profile sync
+    std::unique_ptr<ProfileSyncManager> m_profile_sync_manager;
+    std::thread      m_profile_sync_manual_thread;
+    std::mutex       m_preset_sync_mutex;  // protects preset_bundle/app_config during sync
+    std::vector<SyncConflict>              m_deferred_conflicts;
+    std::chrono::steady_clock::time_point  m_deferred_conflicts_time;
+    std::mutex                             m_deferred_conflicts_mutex;
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -510,6 +520,16 @@ public:
     void            sync_preset(Preset* preset);
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
+
+    // ORCA: Self-hosted profile sync
+    void            init_profile_sync();
+    void            start_profile_sync();
+    void            stop_profile_sync();
+    void            trigger_profile_sync_now();
+    void            show_deferred_sync_conflicts();
+    void            check_and_warn_missing_synced_presets();
+    ProfileSyncManager* get_profile_sync_manager() { return m_profile_sync_manager.get(); }
+
     void            start_http_server();
     void            start_http_server(int port);
     void            stop_http_server();
