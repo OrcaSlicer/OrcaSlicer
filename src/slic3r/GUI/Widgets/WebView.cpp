@@ -257,8 +257,6 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 
 #ifdef __WIN32__
     wxWebView* webView = new WebViewEdge;
-#elif defined(__WXOSX__)
-    wxWebView *webView = new WebViewWebKit;
 #else
     auto webView = wxWebView::New();
 #endif
