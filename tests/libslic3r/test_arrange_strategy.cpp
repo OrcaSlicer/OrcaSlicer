@@ -18,6 +18,7 @@ static ArrangePolygon make_square(double size_mm, double height_mm, int bed_temp
     ap.poly.contour = {Point(0, 0), Point(s, 0), Point(s, s), Point(0, s)};
     ap.height = height_mm;
     ap.bed_temp = bed_temp;
+    ap.first_bed_temp = bed_temp;
     ap.filament_temp_type = 0;
     ap.extrude_ids = {0};
     ap.name = name.empty() ? ("sq_" + std::to_string(int(size_mm)) + "_h" + std::to_string(int(height_mm))) : name;
@@ -39,7 +40,7 @@ static ArrangeParams make_seq_params()
 
 static Points make_bed_250x210()
 {
-    return {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+    return {Point(0, 0), Point(scaled(250.0), 0), Point(scaled(250.0), scaled(210.0)), Point(0, scaled(210.0))};
 }
 
 static int count_plates(const ArrangePolygons &items)
@@ -194,7 +195,7 @@ TEST_CASE("PortfolioResult struct is constructible", "[Arrange][Portfolio]") {
 TEST_CASE("portfolio_arrange falls back for non-sequential print", "[Arrange][Portfolio]") {
     ArrangePolygons items;
     ArrangePolygons excludes;
-    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+    Points bed = make_bed_250x210();
     ArrangeParams params;
     params.is_seq_print = false;
 
@@ -205,7 +206,7 @@ TEST_CASE("portfolio_arrange falls back for non-sequential print", "[Arrange][Po
 TEST_CASE("portfolio_arrange falls back for empty items", "[Arrange][Portfolio]") {
     ArrangePolygons items; // empty
     ArrangePolygons excludes;
-    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
+    Points bed = make_bed_250x210();
     ArrangeParams params;
     params.is_seq_print = true;
 
@@ -214,30 +215,14 @@ TEST_CASE("portfolio_arrange falls back for empty items", "[Arrange][Portfolio]"
 }
 
 TEST_CASE("portfolio_arrange returns valid result for sequential print", "[Arrange][Portfolio]") {
-    // Create a simple set of small square polygons
+    // Create a simple set of small square polygons with proper inflation
     ArrangePolygons items;
-    for (int i = 0; i < 5; ++i) {
-        ArrangePolygon ap;
-        coord_t size = scaled(20.0); // 20mm squares
-        ap.poly.contour = {Point(0, 0), Point(size, 0), Point(size, size), Point(0, size)};
-        ap.height = 10.0 + i * 5.0; // varying heights: 10, 15, 20, 25, 30
-        ap.bed_temp = 60;
-        ap.filament_temp_type = 0;
-        ap.extrude_ids = {0};
-        ap.name = "obj_" + std::to_string(i);
-        items.push_back(ap);
-    }
+    for (int i = 0; i < 5; ++i)
+        items.push_back(make_square(20.0, 10.0 + i * 5.0));
 
     ArrangePolygons excludes;
-    // 250x210mm bed (Prusa MK3S size)
-    Points bed = {Point(0, 0), Point(scaled(250), 0), Point(scaled(250), scaled(210)), Point(0, scaled(210))};
-
-    ArrangeParams params;
-    params.is_seq_print = true;
-    params.clearance_radius = 50.0; // 50mm clearance
-    params.clearance_height_to_rod = 40.0;
-    params.clearance_height_to_lid = 120.0;
-    params.nozzle_height = 4.0;
+    Points bed = make_bed_250x210();
+    auto params = make_seq_params();
 
     auto result = portfolio_arrange(items, excludes, bed, params);
 
