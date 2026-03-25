@@ -12112,7 +12112,7 @@ void Plater::import_model_id(wxString download_info)
         /* load project */
         // Orca: If download is a zip file, treat it as if file has been drag and dropped on the plater
         if (target_path.extension() == ".zip")
-            this->load_files(wxArrayString(1, target_path.string()));
+            this->load_files(wxArrayString(1, wxString::FromUTF8(target_path.string())));
         else
             this->load_project(target_path.wstring());
         /*BBS set project info after load project, project info is reset in load project */
