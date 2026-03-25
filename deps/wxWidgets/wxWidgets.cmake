@@ -56,6 +56,17 @@ orcaslicer_add_cmake_project(
         -DwxUSE_NANOSVG=OFF
 )
 
+# wxWidgets 3.3 cmake install doesn't include private headers.
+# OrcaSlicer uses some of the private headers (for accessibility support).
+# Copy the private headers directory after install.
+ExternalProject_Add_Step(dep_wxWidgets copy_private_headers
+    DEPENDEES install
+    COMMENT "Copying wxWidgets private headers"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        <SOURCE_DIR>/include/wx/private
+        ${DESTDIR}/include/wx-3.3/wx/private
+)
+
 if (MSVC)
     add_debug_dep(dep_wxWidgets)
 endif ()
