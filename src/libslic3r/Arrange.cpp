@@ -429,6 +429,24 @@ protected:
         // 2) X distance of item corner to bed corner (low weight)
         // 3) item row occupancy (useful when rotation is enabled)
         // 4）需要允许往屏蔽区域的左边或下边去一点，不然很多物体可能认为摆不进去，实际上我们最后是可以做平移的
+    // Compute the origin point for packing based on alignment.
+    // This maps each alignment to the correct corner/center of the bin.
+    static ClipperLib::IntPoint get_origin_for_alignment(
+        const Box &bin,
+        typename Packer::PlacementConfig::Alignment alignment)
+    {
+        auto minc = bin.minCorner();
+        auto maxc = bin.maxCorner();
+        switch (alignment) {
+        case PConfig::Alignment::CENTER:       return bin.center();
+        case PConfig::Alignment::BOTTOM_LEFT:  return minc;
+        case PConfig::Alignment::BOTTOM_RIGHT: return {getX(maxc), getY(minc)};
+        case PConfig::Alignment::TOP_LEFT:     return {getX(minc), getY(maxc)};
+        case PConfig::Alignment::TOP_RIGHT:    return maxc;
+        default:                               return bin.center();
+        }
+    }
+
     double dist_for_BOTTOM_LEFT(Box ibb, const ClipperLib::IntPoint& origin_pack)
     {
         double dist_corner_y = ibb.minCorner().y() - origin_pack.y();
@@ -786,7 +804,7 @@ public:
 
             auto binbb = sl::boundingBox(m_bin);
 
-            auto starting_point = cfg.starting_point == PConfig::Alignment::BOTTOM_LEFT ? binbb.minCorner() : binbb.center();
+            auto starting_point = get_origin_for_alignment(binbb, cfg.starting_point);
             // if we have wipe tower, items should be arranged around wipe tower
             for (Item itm : items) {
                 if (itm.is_wipe_tower) {
@@ -906,8 +924,7 @@ public:
 
 template<> std::function<double(const Item&, const ItemGroup&)> AutoArranger<Box>::get_objfn()
 {
-    auto origin_pack = m_pconf.starting_point == PConfig::Alignment::CENTER ? m_bin.center() :
-        m_pconf.starting_point == PConfig::Alignment::TOP_RIGHT ? m_bin.maxCorner() : m_bin.minCorner();
+    auto origin_pack = get_origin_for_alignment(m_bin, m_pconf.starting_point);
 
     return [this, origin_pack](const Item &itm, const ItemGroup&) {
         auto result = objfunc(itm, origin_pack);
@@ -936,7 +953,7 @@ template<> std::function<double(const Item&, const ItemGroup&)> AutoArranger<Box
 template<> std::function<double(const Item&, const ItemGroup&)> AutoArranger<Circle>::get_objfn()
 {
     auto bb = sl::boundingBox(m_bin);
-    auto origin_pack = m_pconf.starting_point == PConfig::Alignment::CENTER ? bb.center() : bb.minCorner();
+    auto origin_pack = get_origin_for_alignment(bb, m_pconf.starting_point);
     return [this, origin_pack](const Item &item, const ItemGroup&) {
 
         auto result = objfunc(item, origin_pack);
@@ -966,7 +983,7 @@ template<>
 std::function<double(const Item &, const ItemGroup&)> AutoArranger<ExPolygon>::get_objfn()
 {
     auto bb = sl::boundingBox(m_bin);
-    auto origin_pack = m_pconf.starting_point == PConfig::Alignment::CENTER ? bb.center() : bb.minCorner();
+    auto origin_pack = get_origin_for_alignment(bb, m_pconf.starting_point);
     return [this, origin_pack](const Item &itm, const ItemGroup&) {
         auto result = objfunc(itm, origin_pack);
 
