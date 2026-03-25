@@ -4,15 +4,14 @@
 #include "wx/dcgraph.h"
 #include "I18N.hpp"
 #include "PartPlate.hpp"
+#include "Widgets/HyperLink.hpp"
 
 namespace Slic3r { namespace GUI {
 
 static const wxColour LabelEnableColor = wxColour("#262E30");
 static const wxColour LabelDisableColor = wxColour("#ACACAC");
 static const wxColour GreyColor = wxColour("#6B6B6B");
-static const wxColour GreenColor = wxColour("#009688");
 static const wxColour BackGroundColor = wxColour("#FFFFFF");
-
 
 static bool should_pop_up()
 {
@@ -49,8 +48,7 @@ static void set_prefered_map_mode(FilamentMapMode mode)
 
 bool play_dual_extruder_slice_video()
 {
-    const wxString video_url = "https://e.bambulab.com/t?c=HDB24RlwSmt77YFH";
-    if (wxLaunchDefaultBrowser(video_url)) {
+    if (wxLaunchDefaultBrowser("https://e.bambulab.com/t?c=HDB24RlwSmt77YFH")) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Video is being played using the system's default browser.");
         return true;
     }
@@ -71,8 +69,7 @@ bool play_dual_extruder_print_tpu_video()
 
 bool open_filament_group_wiki()
 {
-    const wxString wiki_url = "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9";
-    if (wxLaunchDefaultBrowser(wiki_url)) {
+    if (wxLaunchDefaultBrowser("https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9")) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Wiki is being displayed using the system's default browser.");
         return true;
     }
@@ -181,15 +178,13 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
 
         auto* video_sizer = new wxBoxSizer(wxHORIZONTAL);
-        video_link = new wxStaticText(this, wxID_ANY, _L("Video tutorial"));
+        video_link = new HyperLink(this, _L("Video tutorial"), "https://e.bambulab.com/t?c=HDB24RlwSmt77YFH");
         video_link->SetBackgroundColour(BackGroundColor);
-        video_link->SetForegroundColour(GreenColor);
         video_link->SetFont(Label::Body_12.Underlined());
-        video_link->SetCursor(wxCursor(wxCURSOR_HAND));
-        video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&)
+        video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& e)
             {
-                play_dual_extruder_slice_video();
                 wxGetApp().app_config->set("play_slicing_video", "false");
+                e.Skip();
             });
         video_sizer->Add(video_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
         button_sizer->Add(video_sizer, 0, wxLEFT, horizontal_margin);
@@ -197,12 +192,9 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
 
 
         auto* wiki_sizer = new wxBoxSizer(wxHORIZONTAL);
-        wiki_link = new wxStaticText(this, wxID_ANY, _L("Learn more"));
+        wiki_link = new HyperLink(this, _L("Wiki Guide"), "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
         wiki_link->SetBackgroundColour(BackGroundColor);
-        wiki_link->SetForegroundColour(GreenColor);
         wiki_link->SetFont(Label::Body_12.Underlined());
-        wiki_link->SetCursor(wxCursor(wxCURSOR_HAND));
-        wiki_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { open_filament_group_wiki(); });
         wiki_sizer->Add(wiki_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
 
         button_sizer->Add(wiki_sizer, 0, wxLEFT, horizontal_margin);
