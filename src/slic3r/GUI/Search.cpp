@@ -184,7 +184,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
     found.clear();
 
     bool         full_list = search.empty();
-    std::wstring sep       = L" : ";
+    wxString sep       = L" : ";
 
     auto get_label = [this, &sep](const Option &opt, bool marked = true) {
         std::wstring out;
