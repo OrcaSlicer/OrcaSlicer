@@ -20,7 +20,7 @@
         { "name": "0.32mm Draft @re3D fdm 0.4", "sub_path": "process/0.32mm Draft @re3D fdm 0.4.json" },
         { "name": "0.2mm Standard @re3D fdm 0.8", "sub_path": "process/0.2mm Standard @re3D fdm 0.8.json" },
         { "name": "0.4mm Draft @re3D fdm 0.8", "sub_path": "process/0.4mm Draft @re3D fdm 0.8.json" },
-        { "name": "1.0mm Standard @re3D fgf 1.75.json", "sub_path": "process/1.0mm Standard @re3D fgf 1.75.json" }
+        { "name": "1.0mm Standard @re3D fgf 1.75", "sub_path": "process/1.0mm Standard @re3D fgf 1.75.json" }
     ],
     "filament_list": [
         { "name": "fdm_filament_common", "sub_path": "filament/fdm_filament_common.json" },
