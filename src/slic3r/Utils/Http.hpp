@@ -88,7 +88,7 @@ public:
 	static Http put2(std::string url);
 	static Http patch(std::string url);
 
-	// WebDAV methods
+	// ORCA: WebDAV methods for self-hosted sync
 	static Http propfind(std::string url);
 	static Http mkcol(std::string url);
 

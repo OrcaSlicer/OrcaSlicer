@@ -166,6 +166,7 @@ enum class NotificationType
     OrcaSharedProfilesAvailable,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
+    SyncConflict,
     NotificationTypeCount
 
 };

@@ -100,6 +100,51 @@ bool GitSync::connect(std::string& error_out)
     if (fs::exists(clone_dir / ".git")) {
         if (!open_repo(error_out))
             return false;
+
+        // Ensure HEAD is on the configured branch
+        std::string branch_ref = "refs/heads/" + m_config.branch;
+        git_reference* head_ref = nullptr;
+        bool need_switch = true;
+        if (git_repository_head(&head_ref, m_repo) == 0) {
+            const char* name = git_reference_name(head_ref);
+            if (name && branch_ref == name)
+                need_switch = false;
+            git_reference_free(head_ref);
+        }
+        if (need_switch) {
+            BOOST_LOG_TRIVIAL(info) << "GitSync: switching HEAD to " << branch_ref;
+            git_repository_set_head(m_repo, branch_ref.c_str());
+
+            // Check if the target branch exists locally
+            git_reference* br = nullptr;
+            bool branch_exists = (git_reference_lookup(&br, m_repo, branch_ref.c_str()) == 0);
+            if (br) git_reference_free(br);
+
+            if (branch_exists) {
+                // Checkout the branch content
+                git_checkout_options co = GIT_CHECKOUT_OPTIONS_INIT;
+                co.checkout_strategy = GIT_CHECKOUT_FORCE;
+                git_checkout_head(m_repo, &co);
+            } else {
+                // Branch doesn't exist yet — clear index and working tree
+                // so the first commit starts clean (no leftover files from old branch)
+                BOOST_LOG_TRIVIAL(info) << "GitSync: branch '" << m_config.branch
+                                        << "' does not exist locally, clearing working tree";
+                git_index* index = nullptr;
+                if (git_repository_index(&index, m_repo) == 0) {
+                    git_index_clear(index);
+                    git_index_write(index);
+                    git_index_free(index);
+                }
+                // Remove working tree files (except .git)
+                for (auto& entry : fs::directory_iterator(clone_dir)) {
+                    if (entry.path().filename() == ".git") continue;
+                    boost::system::error_code ec;
+                    fs::remove_all(entry.path(), ec);
+                }
+            }
+        }
+
         return pull(error_out);
     }
 
@@ -180,12 +225,14 @@ bool GitSync::clone_repo(std::string& error_out)
                             "Initialize OrcaSlicer sync", tree, 0);
 
                         if (rc == 0) {
-                            git_repository_set_head(m_repo, branch_ref.c_str());
+                            if (git_repository_set_head(m_repo, branch_ref.c_str()) < 0)
+                                BOOST_LOG_TRIVIAL(warning) << "GitSync: set_head failed after orphan commit: " << last_git_error();
 
                             // Checkout empty tree — removes working dir files from default branch
                             git_checkout_options co_opts = GIT_CHECKOUT_OPTIONS_INIT;
                             co_opts.checkout_strategy = GIT_CHECKOUT_FORCE;
-                            git_checkout_head(m_repo, &co_opts);
+                            if (git_checkout_head(m_repo, &co_opts) < 0)
+                                BOOST_LOG_TRIVIAL(warning) << "GitSync: checkout_head failed after orphan commit: " << last_git_error();
                         }
                         git_signature_free(sig);
                     }
@@ -288,6 +335,7 @@ bool GitSync::test_connection(std::string& error_out)
 
     if (rc < 0) {
         error_out = last_git_error("Failed to get remote");
+        if (remote) git_remote_free(remote);
         return false;
     }
 
@@ -424,10 +472,38 @@ bool GitSync::merge_fetched(std::string& error_out)
         return true;
     }
 
-    // Non-fast-forward merge — report as conflict for the sync engine to handle
+    // Non-fast-forward — reset to remote since sync_git is a cache, not user workspace.
+    // Local preset files are the source of truth; sync_single_file() handles real conflicts.
+    BOOST_LOG_TRIVIAL(warning) << "GitSync: non-fast-forward detected, resetting to remote";
     git_annotated_commit_free(fetchhead_commit);
-    error_out = "CONFLICT";
-    return false;
+
+    git_object* target = nullptr;
+    rc = git_object_lookup(&target, m_repo, &fetch_head_oid, GIT_OBJECT_COMMIT);
+    if (rc < 0 || !target) {
+        error_out = last_git_error("Failed to lookup remote commit for reset");
+        return false;
+    }
+
+    git_checkout_options co = GIT_CHECKOUT_OPTIONS_INIT;
+    co.checkout_strategy = GIT_CHECKOUT_FORCE;
+    rc = git_reset(m_repo, target, GIT_RESET_HARD, &co);
+    git_object_free(target);
+    if (rc < 0) {
+        error_out = last_git_error("Hard reset to remote failed");
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "GitSync: successfully reset to remote HEAD";
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// refresh — pull latest changes before a sync cycle
+// ---------------------------------------------------------------------------
+
+bool GitSync::refresh(std::string& error_out)
+{
+    return pull(error_out);
 }
 
 // ---------------------------------------------------------------------------
@@ -456,9 +532,21 @@ bool GitSync::ensure_directory(const std::string& remote_path, std::string& erro
         fs::create_directories(dir);
         // Git doesn't track empty directories, add .gitkeep
         fs::path gitkeep = dir / ".gitkeep";
+        bool created = false;
         if (!fs::exists(gitkeep)) {
             std::ofstream f(gitkeep.string());
             f.close();
+            created = true;
+        }
+        // Stage the .gitkeep so it gets committed
+        if (created && m_repo) {
+            git_index* index = nullptr;
+            if (git_repository_index(&index, m_repo) == 0) {
+                std::string rel = remote_path + "/.gitkeep";
+                git_index_add_bypath(index, rel.c_str());
+                git_index_write(index);
+                git_index_free(index);
+            }
         }
         return true;
     } catch (const std::exception& e) {
@@ -560,6 +648,7 @@ bool GitSync::download_file(const std::string& remote_path,
     info_out.path = remote_path;
     info_out.size = content_out.size();
     info_out.etag = blob_hash_for_file(remote_path);
+    info_out.modified_time = static_cast<long long>(fs::last_write_time(full));
 
     return true;
 }
@@ -612,8 +701,11 @@ bool GitSync::upload_file(const std::string& remote_path,
                 git_index_free(index);
                 return false;
             }
-            if (git_index_write(index) < 0)
-                BOOST_LOG_TRIVIAL(warning) << "GitSync: git_index_write failed: " << last_git_error();
+            if (git_index_write(index) < 0) {
+                error_out = last_git_error("git_index_write failed");
+                git_index_free(index);
+                return false;
+            }
             git_index_free(index);
         } else {
             error_out = last_git_error("Failed to get index");
@@ -671,6 +763,8 @@ bool GitSync::commit_and_push(const std::string& message, std::string& error_out
         return false;
     }
 
+    std::string branch_ref = "refs/heads/" + m_config.branch;
+
     // Get index and check if there are staged changes
     git_index* index = nullptr;
     int rc = git_repository_index(&index, m_repo);
@@ -679,28 +773,33 @@ bool GitSync::commit_and_push(const std::string& message, std::string& error_out
         return false;
     }
 
-    // Check for changes by comparing index to HEAD tree
-    git_diff* diff = nullptr;
-    git_object* head_obj = nullptr;
-    git_tree* head_tree = nullptr;
-    bool has_changes = false;
-
-    rc = git_revparse_single(&head_obj, m_repo, "HEAD^{tree}");
-    if (rc == 0) {
-        rc = git_tree_lookup(&head_tree, m_repo, git_object_id(head_obj));
-        git_object_free(head_obj);
+    // Resolve the branch tip tree (not HEAD — HEAD may point to a different branch)
+    git_tree* tip_tree = nullptr;
+    git_reference* branch_ref_obj = nullptr;
+    if (git_reference_lookup(&branch_ref_obj, m_repo, branch_ref.c_str()) == 0) {
+        const git_oid* tip_oid = git_reference_target(branch_ref_obj);
+        if (tip_oid) {
+            git_commit* tip_commit = nullptr;
+            if (git_commit_lookup(&tip_commit, m_repo, tip_oid) == 0) {
+                git_commit_tree(&tip_tree, tip_commit);
+                git_commit_free(tip_commit);
+            }
+        }
+        git_reference_free(branch_ref_obj);
     }
 
-    if (head_tree) {
-        diff = nullptr;
-        rc = git_diff_tree_to_index(&diff, m_repo, head_tree, index, nullptr);
+    // Check for changes by comparing index to branch tip tree
+    bool has_changes = false;
+    if (tip_tree) {
+        git_diff* diff = nullptr;
+        rc = git_diff_tree_to_index(&diff, m_repo, tip_tree, index, nullptr);
         if (rc == 0 && diff)
             has_changes = git_diff_num_deltas(diff) > 0;
         if (diff)
             git_diff_free(diff);
-        git_tree_free(head_tree);
+        git_tree_free(tip_tree);
     } else {
-        // No HEAD yet (initial commit) — index has content means changes
+        // Branch doesn't exist yet (first commit) — index has content means changes
         has_changes = git_index_entrycount(index) > 0;
     }
 
@@ -734,24 +833,23 @@ bool GitSync::commit_and_push(const std::string& message, std::string& error_out
         return false;
     }
 
-    // Get parent commit (HEAD), if any
+    // Get parent commit from the branch tip (not HEAD)
     git_commit* parent = nullptr;
-    git_reference* head_ref = nullptr;
-    rc = git_repository_head(&head_ref, m_repo);
-    if (rc == 0) {
-        const git_oid* head_oid = git_reference_target(head_ref);
-        if (head_oid) {
-            if (git_commit_lookup(&parent, m_repo, head_oid) < 0)
+    git_reference* br_ref = nullptr;
+    if (git_reference_lookup(&br_ref, m_repo, branch_ref.c_str()) == 0) {
+        const git_oid* tip_oid = git_reference_target(br_ref);
+        if (tip_oid) {
+            if (git_commit_lookup(&parent, m_repo, tip_oid) < 0)
                 BOOST_LOG_TRIVIAL(warning) << "GitSync: git_commit_lookup failed: " << last_git_error();
         }
-        git_reference_free(head_ref);
+        git_reference_free(br_ref);
     }
 
-    // Create the commit
+    // Create the commit — update the branch ref directly (not "HEAD")
     git_oid commit_oid;
     const git_commit* parents[] = { parent };
     int nparents = parent ? 1 : 0;
-    rc = git_commit_create(&commit_oid, m_repo, "HEAD",
+    rc = git_commit_create(&commit_oid, m_repo, branch_ref.c_str(),
                            sig, sig, "UTF-8",
                            message.c_str(), tree,
                            nparents, parents);
@@ -764,6 +862,9 @@ bool GitSync::commit_and_push(const std::string& message, std::string& error_out
         error_out = last_git_error("Commit failed");
         return false;
     }
+
+    // Ensure HEAD points to our branch
+    git_repository_set_head(m_repo, branch_ref.c_str());
 
     // Push to remote
     git_remote* remote = nullptr;
@@ -779,7 +880,7 @@ bool GitSync::commit_and_push(const std::string& message, std::string& error_out
         push_opts.callbacks.payload     = const_cast<GitSyncConfig*>(&m_config);
     }
 
-    std::string refspec = "refs/heads/" + m_config.branch + ":refs/heads/" + m_config.branch;
+    std::string refspec = branch_ref + ":" + branch_ref;
     const char* refspec_strs[] = { refspec.c_str() };
     git_strarray refspecs = { const_cast<char**>(refspec_strs), 1 };
 

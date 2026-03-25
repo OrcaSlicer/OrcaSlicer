@@ -1613,11 +1613,19 @@ void PresetCollection::load_presets(
             // Remove the .ini suffix.
             std::string name = file_name.erase(file_name.size() - 5);
             std::string canonical_name = this->canonical_preset_name(name, resolved_origin);
-            if (this->find_preset(canonical_name, false)) {
-                // This happens when there's is a preset (most likely legacy one) with the same name as a system preset
-                // that's already been loaded from a bundle.
-                BOOST_LOG_TRIVIAL(warning) << "Preset already present, not loading: " << canonical_name;
-                continue;
+            // ORCA: Allow reloading user presets from disk (self-hosted profile sync may update files)
+            if (auto *existing = this->find_preset(canonical_name, false)) {
+                if (existing->is_user()) {
+                    // User preset already in memory — remove so it gets reloaded from disk
+                    auto it = this->find_preset_internal(canonical_name);
+                    if (it != m_presets.end() && it->name == canonical_name)
+                        m_presets.erase(it);
+                } else {
+                    // This happens when there's is a preset (most likely legacy one) with the same name as a system preset
+                    // that's already been loaded from a bundle.
+                    BOOST_LOG_TRIVIAL(warning) << "Preset already present, not loading: " << canonical_name;
+                    continue;
+                }
             }
             try {
                 Preset preset(m_type, canonical_name, false);
@@ -1687,6 +1695,7 @@ void PresetCollection::load_presets(
                         auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
                         if ((inherits_config2 && !inherits_config2->value.empty())) {
                             BOOST_LOG_TRIVIAL(error) << boost::format("can not find parent %1% for config %2%!")%inherits_config2->value %preset.file;
+                            m_load_warnings.push_back(name + "|" + inherits_config2->value);
                             ++m_errors;
                             continue;
                         }

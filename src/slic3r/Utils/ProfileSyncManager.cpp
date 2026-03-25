@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <chrono>
+#include <set>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -26,7 +27,7 @@ ProfileSyncManager::~ProfileSyncManager()
     stop();
 }
 
-std::string ProfileSyncManager::preset_type_dir(int preset_type)
+std::string ProfileSyncManager::preset_type_dir(Preset::Type preset_type)
 {
     switch (preset_type) {
     case Preset::TYPE_PRINT:        return "process";
@@ -45,6 +46,7 @@ std::string ProfileSyncManager::sync_state_file() const
 
 void ProfileSyncManager::load_sync_state()
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     std::string path = sync_state_file();
     if (!fs::exists(path))
         return;
@@ -53,6 +55,16 @@ void ProfileSyncManager::load_sync_state()
         std::ifstream f(path);
         json j;
         f >> j;
+
+        // Invalidate state if sync target changed (different repo/branch/URL)
+        std::string saved_fp = j.value("config_fingerprint", "");
+        std::string current_fp = m_backend->fingerprint();
+        if (!saved_fp.empty() && saved_fp != current_fp) {
+            BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: sync target changed, resetting state";
+            m_file_states.clear();
+            m_last_sync_time = 0;
+            return;
+        }
 
         if (j.contains("files") && j["files"].is_object()) {
             for (auto& [key, val] : j["files"].items()) {
@@ -73,9 +85,11 @@ void ProfileSyncManager::load_sync_state()
 
 void ProfileSyncManager::save_sync_state()
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     try {
         json j;
         j["version"] = 1;
+        j["config_fingerprint"] = m_backend ? m_backend->fingerprint() : "";
         j["last_sync_time"] = m_last_sync_time;
 
         json files = json::object();
@@ -132,14 +146,14 @@ void ProfileSyncManager::load_config_from_appconfig(const AppConfig& appconfig)
     m_config.git_config.token = appconfig.get("selfhost_sync_git_token");
     m_config.git_config.local_clone_path = (fs::path(Slic3r::data_dir()) / "sync_git").string();
 
-    // Read-only mode
-    m_config.read_only = appconfig.get("selfhost_sync_readonly") == "1";
-    m_config.always_review_remote = appconfig.get("selfhost_sync_always_review") == "1";
+    // Use get_bool() to handle both "true"/"1" formats (set_bool saves "true"/"false")
+    m_config.read_only = appconfig.get_bool("selfhost_sync_readonly");
+    m_config.always_review_remote = appconfig.get_bool("selfhost_sync_always_review");
 
     // Scope
-    m_config.scope.sync_presets   = appconfig.get("selfhost_sync_presets") != "0";
-    m_config.scope.sync_appconfig = appconfig.get("selfhost_sync_appconfig") == "1";
-    m_config.scope.sync_projects  = appconfig.get("selfhost_sync_projects") == "1";
+    m_config.scope.sync_presets   = appconfig.get_bool("selfhost_sync_presets");
+    m_config.scope.sync_appconfig = appconfig.get_bool("selfhost_sync_appconfig");
+    m_config.scope.sync_projects  = appconfig.get_bool("selfhost_sync_projects");
 
     // Interval
     std::string interval_str = appconfig.get("selfhost_sync_interval");
@@ -222,13 +236,13 @@ bool ProfileSyncManager::start(std::string& error_out)
     }
 
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
         m_backend = create_backend();
-    }
-    load_sync_state();
+        load_sync_state();
 
-    if (!m_backend->connect(error_out))
-        return false;
+        if (!m_backend->connect(error_out))
+            return false;
+    }
 
     if (m_config.auto_sync_interval_seconds > 0) {
         m_running.store(true);
@@ -246,16 +260,14 @@ void ProfileSyncManager::stop()
     }
     m_sync_thread.reset();
 
-    // Safe to lock here — all threads have been joined above
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
         if (m_backend) {
             m_backend->disconnect();
             m_backend.reset();
         }
+        save_sync_state();
     }
-
-    save_sync_state();
 }
 
 bool ProfileSyncManager::sync_now(std::string& error_out)
@@ -272,14 +284,25 @@ bool ProfileSyncManager::sync_now(std::string& error_out)
     }
 
     // Otherwise, do inline sync
-    if (!m_backend) {
-        m_backend = create_backend();
-        load_sync_state();
-        if (!m_backend->connect(error_out))
-            return false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
+        if (!m_backend) {
+            m_backend = create_backend();
+            load_sync_state();
+            if (!m_backend->connect(error_out))
+                return false;
+        }
     }
 
     m_syncing.store(true);
+
+    // Pull latest remote changes before sync (git fetch+merge / WebDAV no-op)
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
+        if (m_backend && !m_backend->refresh(error_out)) {
+            BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: refresh failed: " << error_out;
+        }
+    }
 
     bool ok = m_config.read_only ? true : ensure_remote_dirs(error_out);
     // Note: actual preset sync requires a PresetBundle reference,
@@ -307,19 +330,35 @@ long long ProfileSyncManager::last_sync_time() const
     return m_last_sync_time;
 }
 
+std::string ProfileSyncManager::remote_prefix() const
+{
+    if (m_backend)
+        return m_backend->remote_prefix();
+    return "";
+}
+
 bool ProfileSyncManager::ensure_remote_dirs(std::string& error_out)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     if (!m_backend) return false;
 
-    // Create the directory structure on the remote
+    std::string pfx = remote_prefix();
+
+    // For WebDAV, create the root namespace directory first
+    if (!pfx.empty()) {
+        std::string root = pfx;
+        if (root.back() == '/') root.pop_back();
+        if (!m_backend->ensure_directory(root, error_out))
+            return false;
+    }
+
     const std::vector<std::string> dirs = {
-        "orcaslicer-sync",
-        "orcaslicer-sync/presets",
-        "orcaslicer-sync/presets/machine",
-        "orcaslicer-sync/presets/filament",
-        "orcaslicer-sync/presets/process",
-        "orcaslicer-sync/config",
-        "orcaslicer-sync/projects"
+        pfx + "presets",
+        pfx + "presets/machine",
+        pfx + "presets/filament",
+        pfx + "presets/process",
+        pfx + "config",
+        pfx + "projects"
     };
 
     for (const auto& dir : dirs) {
@@ -344,12 +383,13 @@ void ProfileSyncManager::clear_pending_conflicts()
 }
 
 SyncConflictResult ProfileSyncManager::resolve_conflict(const std::string& remote_path,
+                                                        const std::string& local_filepath,
                                                         const std::string& local_content,
                                                         long long local_time,
                                                         const std::string& remote_content,
                                                         long long remote_time,
                                                         const std::string& remote_etag,
-                                                        int preset_type)
+                                                        Preset::Type preset_type)
 {
     // During auto-sync, don't block with a modal dialog — queue the conflict
     if (!m_manual_sync.load()) {
@@ -357,6 +397,7 @@ SyncConflictResult ProfileSyncManager::resolve_conflict(const std::string& remot
             std::lock_guard<std::mutex> lock(m_pending_mutex);
             SyncConflict deferred;
             deferred.path           = remote_path;
+            deferred.local_filepath = local_filepath;
             deferred.local_content  = local_content;
             deferred.local_time     = local_time;
             deferred.remote_content = remote_content;
@@ -374,13 +415,18 @@ SyncConflictResult ProfileSyncManager::resolve_conflict(const std::string& remot
     if (m_conflict_fn) {
         SyncConflict conflict;
         conflict.path           = remote_path;
+        conflict.local_filepath = local_filepath;
         conflict.local_content  = local_content;
         conflict.local_time     = local_time;
         conflict.remote_content = remote_content;
         conflict.remote_time    = remote_time;
         conflict.remote_etag    = remote_etag;
         conflict.preset_type    = preset_type;
-        return m_conflict_fn(conflict);
+        try {
+            return m_conflict_fn(conflict);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: conflict callback threw: " << e.what();
+        }
     }
     // Default: newer wins
     SyncConflictResult result;
@@ -389,10 +435,12 @@ SyncConflictResult ProfileSyncManager::resolve_conflict(const std::string& remot
 }
 
 SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_path,
+                                                     const std::string& local_filepath,
                                                      const std::string& local_content,
                                                      long long local_modified_time,
-                                                     int preset_type)
+                                                     Preset::Type preset_type)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     if (!m_backend)
         return {false, false, "", "No backend"};
 
@@ -403,6 +451,11 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
     bool effective_read_only = m_config.read_only;
     if (m_config.backend_type == SyncBackendType::Git && m_config.git_config.token.empty())
         effective_read_only = true;
+
+    BOOST_LOG_TRIVIAL(debug) << "ProfileSyncManager::sync_single_file: " << remote_path
+                             << " read_only=" << effective_read_only
+                             << " manual=" << m_manual_sync.load()
+                             << " always_review=" << m_config.always_review_remote;
 
     // Read-only mode: only download, never upload
     if (effective_read_only) {
@@ -421,32 +474,47 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
         if (it != m_file_states.end() && remote_info.etag == it->second.last_etag)
             return {}; // No changes
 
-        SyncFileState& state = m_file_states[remote_path];
-        state.remote_path              = remote_path;
-        state.last_etag                = remote_info.etag;
-        state.last_synced_time         = now;
-        state.last_local_modified_time = local_modified_time;
-
         // Content identical — no dialog or file write needed
-        if (remote_content == local_content)
+        if (remote_content == local_content) {
+            SyncFileState& state = m_file_states[remote_path];
+            state.remote_path              = remote_path;
+            state.last_etag                = remote_info.etag;
+            state.last_synced_time         = now;
+            state.last_local_modified_time = local_modified_time;
             return {};
+        }
 
         // If always_review_remote and this is a preset, show merge dialog
-        if (m_config.always_review_remote && preset_type != 0) {
-            auto cr = resolve_conflict(remote_path, local_content, local_modified_time,
+        if (m_config.always_review_remote && preset_type != Preset::Type::TYPE_INVALID) {
+            auto cr = resolve_conflict(remote_path, local_filepath, local_content, local_modified_time,
                                        remote_content, remote_info.modified_time,
                                        remote_info.etag, preset_type);
             switch (cr.resolution) {
             case ConflictResolution::Skip:
+                // Don't update state — re-detect next cycle
+                return {};
             case ConflictResolution::KeepLocal:
                 return {}; // Read-only: keeping local means do nothing
-            case ConflictResolution::Merge:
+            case ConflictResolution::Merge: {
+                SyncFileState& state = m_file_states[remote_path];
+                state.remote_path              = remote_path;
+                state.last_etag                = remote_info.etag;
+                state.last_synced_time         = now;
+                state.last_local_modified_time = local_modified_time;
                 return {true, true, cr.merged_content, ""};
+            }
             case ConflictResolution::KeepRemote:
                 break; // Fall through to accept remote
             }
         }
 
+        {
+            SyncFileState& state = m_file_states[remote_path];
+            state.remote_path              = remote_path;
+            state.last_etag                = remote_info.etag;
+            state.last_synced_time         = now;
+            state.last_local_modified_time = local_modified_time;
+        }
         return {true, true, remote_content, ""};
     }
 
@@ -462,13 +530,21 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
     } else if (err_code == SyncError::NotFound) {
         remote_exists = false;
     } else {
+        BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: download_file failed: " << dl_error;
         return {false, false, "", dl_error};
     }
+
+    BOOST_LOG_TRIVIAL(debug) << "ProfileSyncManager: " << remote_path
+                             << " remote_exists=" << remote_exists
+                             << " remote_size=" << remote_content.size()
+                             << " local_size=" << local_content.size()
+                             << " content_equal=" << (remote_content == local_content);
 
     auto it = m_file_states.find(remote_path);
     SyncFileState& state = m_file_states[remote_path];
 
     if (!remote_exists) {
+        BOOST_LOG_TRIVIAL(debug) << "ProfileSyncManager: uploading new file " << remote_path;
         // Upload new file
         std::string new_etag;
         std::string ul_error;
@@ -483,8 +559,14 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
     }
 
     // Both exist — check for changes
-    bool local_changed  = (it == m_file_states.end()) || (local_modified_time > state.last_local_modified_time);
-    bool remote_changed = (it == m_file_states.end()) || (remote_info.etag != state.last_etag);
+    bool has_state = (it != m_file_states.end());
+    bool local_changed  = !has_state || (local_modified_time > state.last_local_modified_time);
+    bool remote_changed = !has_state || (remote_info.etag != state.last_etag);
+
+    BOOST_LOG_TRIVIAL(debug) << "ProfileSyncManager: " << remote_path
+                             << " has_state=" << has_state
+                             << " local_changed=" << local_changed
+                             << " remote_changed=" << remote_changed;
 
     if (!local_changed && !remote_changed)
         return {};
@@ -512,17 +594,15 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
 
     if (!local_changed && remote_changed) {
         // Remote is newer — content already downloaded above
-        state.last_etag                = remote_info.etag;
-        state.last_synced_time         = now;
-        state.last_local_modified_time = local_modified_time;
 
         // If always_review_remote and this is a preset, let user review
-        if (m_config.always_review_remote && preset_type != 0 && remote_content != local_content) {
-            auto cr = resolve_conflict(remote_path, local_content, local_modified_time,
+        if (m_config.always_review_remote && preset_type != Preset::Type::TYPE_INVALID && remote_content != local_content) {
+            auto cr = resolve_conflict(remote_path, local_filepath, local_content, local_modified_time,
                                        remote_content, remote_info.modified_time,
                                        remote_info.etag, preset_type);
             switch (cr.resolution) {
             case ConflictResolution::Skip:
+                // Don't update state — so the change is re-detected next cycle
                 return {};
             case ConflictResolution::KeepLocal: {
                 std::string new_etag;
@@ -530,6 +610,7 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
                 if (!m_backend->upload_file(remote_path, local_content, "", new_etag, ul_error))
                     return {false, false, "", ul_error};
                 state.last_etag                = new_etag;
+                state.last_synced_time         = now;
                 state.last_local_modified_time = local_modified_time;
                 return {};
             }
@@ -538,7 +619,8 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
                 std::string ul_error;
                 if (!m_backend->upload_file(remote_path, cr.merged_content, "", new_etag, ul_error))
                     return {false, false, "", ul_error};
-                state.last_etag = new_etag;
+                state.last_etag        = new_etag;
+                state.last_synced_time = now;
                 return {true, true, cr.merged_content, ""};
             }
             case ConflictResolution::KeepRemote:
@@ -546,12 +628,15 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
             }
         }
 
+        state.last_etag                = remote_info.etag;
+        state.last_synced_time         = now;
+        state.last_local_modified_time = local_modified_time;
         return {true, true, remote_content, ""};
     }
 
     // Both changed — conflict
     auto cr = resolve_conflict(
-        remote_path, local_content, local_modified_time,
+        remote_path, local_filepath, local_content, local_modified_time,
         remote_content, remote_info.modified_time, remote_info.etag, preset_type);
 
     switch (cr.resolution) {
@@ -590,6 +675,7 @@ SyncFileResult ProfileSyncManager::sync_single_file(const std::string& remote_pa
 
 bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_out)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     if (!m_backend || !m_config.scope.sync_presets)
         return true;
 
@@ -597,7 +683,7 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
 
     struct PresetCollectionRef {
         PresetCollection& collection;
-        int               type;
+        Preset::Type      type;
         std::string       dir;
     };
 
@@ -609,7 +695,7 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
 
     for (auto& ref : collections) {
         // Get list of remote files for this type
-        std::string remote_dir = "orcaslicer-sync/presets/" + ref.dir;
+        std::string remote_dir = remote_prefix() + "presets/" + ref.dir;
         std::vector<RemoteFileInfo> remote_files;
         if (!m_backend->list_files(remote_dir, remote_files, error_out)) {
             BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to list " << remote_dir << ": " << error_out;
@@ -644,6 +730,43 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
         BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: found " << local_files.size()
                                 << " local presets in " << ref.dir;
 
+        // Phase 2 — Detect deletions via m_file_states
+        {
+            std::string prefix = remote_dir + "/";
+            std::vector<std::string> states_to_erase;
+            for (const auto& [state_path, state] : m_file_states) {
+                if (state_path.rfind(prefix, 0) != 0)
+                    continue; // not this collection type
+
+                // Extract preset name from remote_path
+                fs::path p(state_path);
+                std::string name = p.stem().string();
+
+                bool in_local  = local_files.count(name) > 0;
+                bool in_remote = remote_map.count(name) > 0;
+
+                if (!in_local && !in_remote) {
+                    // Both sides deleted — clean up state
+                    BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: preset deleted on both sides: " << name;
+                    states_to_erase.push_back(state_path);
+                } else if (in_local && !in_remote) {
+                    // Remote deleted
+                    if (handle_remote_deletion(state_path, name, local_files[name], ref.type))
+                        states_to_erase.push_back(state_path);
+                    local_files.erase(name);  // don't re-upload in Phase 3
+                } else if (!in_local && in_remote) {
+                    // Local deleted
+                    if (handle_local_deletion(state_path, name, remote_map[name], ref.type))
+                        states_to_erase.push_back(state_path);
+                    if (!m_config.read_only)
+                        remote_map.erase(name);  // don't re-download in Phase 3
+                    // In read-only mode, leave in remote_map so Phase 3 re-downloads
+                }
+            }
+            for (const auto& key : states_to_erase)
+                m_file_states.erase(key);
+        }
+
         for (const auto& [name, filepath] : local_files) {
             std::string remote_path = remote_dir + "/" + name + ".json";
 
@@ -663,7 +786,7 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
 
             long long local_mtime = static_cast<long long>(fs::last_write_time(filepath));
 
-            auto sfr = sync_single_file(remote_path, local_content, local_mtime, ref.type);
+            auto sfr = sync_single_file(remote_path, filepath.string(), local_content, local_mtime, ref.type);
 
             if (!sfr.success) {
                 BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to sync preset " << name << ": " << sfr.error;
@@ -672,6 +795,7 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
                     std::ofstream f(filepath.string(), std::ios::binary | std::ios::trunc);
                     f << sfr.remote_content;
                     f.close();
+                    m_had_local_changes.store(true);
                     BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: updated local preset from remote: " << name;
                 } catch (const std::exception& e) {
                     BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to write preset: " << e.what();
@@ -702,6 +826,7 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
                 std::ofstream f(local_file, std::ios::binary | std::ios::trunc);
                 f << content;
                 f.close();
+                m_had_local_changes.store(true);
                 BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: downloaded new preset from remote: " << name;
             } catch (const std::exception& e) {
                 BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to save downloaded preset: " << e.what();
@@ -733,8 +858,160 @@ bool ProfileSyncManager::sync_presets(PresetBundle& bundle, std::string& error_o
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// Deletion sync handlers
+// ---------------------------------------------------------------------------
+
+bool ProfileSyncManager::handle_remote_deletion(const std::string& remote_path,
+                                                 const std::string& preset_name,
+                                                 const fs::path& local_filepath,
+                                                 Preset::Type preset_type)
+{
+    BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: remote deleted preset: " << preset_name;
+
+    auto state_it = m_file_states.find(remote_path);
+    if (state_it == m_file_states.end())
+        return false;
+
+    // Read local file to check if it was modified since last sync
+    long long local_mtime = static_cast<long long>(fs::last_write_time(local_filepath));
+    bool local_changed = local_mtime > state_it->second.last_local_modified_time;
+
+    if (m_config.read_only || !local_changed) {
+        // Accept remote deletion — remove local file
+        boost::system::error_code ec;
+        fs::remove(local_filepath, ec);
+        if (ec)
+            BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to remove " << local_filepath << ": " << ec.message();
+        else {
+            m_had_local_changes.store(true);
+            BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: deleted local preset (remote deleted): " << preset_name;
+        }
+        return true; // caller should erase from m_file_states
+    }
+
+    // Local was modified after last sync, but remote deleted — conflict
+    std::string local_content;
+    try {
+        std::ifstream f(local_filepath.string(), std::ios::binary);
+        std::ostringstream ss;
+        ss << f.rdbuf();
+        local_content = ss.str();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to read " << local_filepath;
+        return false;
+    }
+
+    auto result = resolve_conflict(remote_path, local_filepath.string(), local_content, local_mtime,
+                                   "", 0, "", preset_type);
+
+    if (result.resolution == ConflictResolution::KeepLocal) {
+        // Re-upload local file to remote
+        std::string new_etag, error;
+        if (m_backend->upload_file(remote_path, local_content, "", new_etag, error)) {
+            auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+            auto& state = m_file_states[remote_path];
+            state.remote_path = remote_path;
+            state.last_etag = new_etag;
+            state.last_synced_time = now;
+            state.last_local_modified_time = local_mtime;
+            BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: re-uploaded locally modified preset: " << preset_name;
+        }
+        return false;
+    } else if (result.resolution == ConflictResolution::KeepRemote) {
+        // Accept deletion
+        boost::system::error_code ec;
+        fs::remove(local_filepath, ec);
+        BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: accepted remote deletion: " << preset_name;
+        return true; // caller should erase from m_file_states
+    }
+    // Skip → do nothing
+    return false;
+}
+
+bool ProfileSyncManager::handle_local_deletion(const std::string& remote_path,
+                                                const std::string& preset_name,
+                                                const RemoteFileInfo& remote_info,
+                                                Preset::Type preset_type)
+{
+    BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: local deleted preset: " << preset_name;
+
+    auto state_it = m_file_states.find(remote_path);
+    if (state_it == m_file_states.end())
+        return false;
+
+    if (m_config.read_only) {
+        // Read-only: remote is truth, will be re-downloaded by Phase 3
+        // Just clean up stale state so it gets a fresh entry on download
+        return true; // caller should erase from m_file_states
+    }
+
+    bool remote_changed = remote_info.etag != state_it->second.last_etag;
+
+    if (!remote_changed) {
+        // Remote unchanged — propagate local deletion to remote
+        std::string error;
+        if (m_backend->delete_file(remote_path, error)) {
+            BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: deleted remote preset (local deleted): " << preset_name;
+        } else {
+            BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to delete remote " << remote_path << ": " << error;
+        }
+        return true; // caller should erase from m_file_states
+    }
+
+    // Remote was modified, but local deleted — conflict
+    std::string remote_content;
+    RemoteFileInfo info;
+    std::string dl_error;
+    if (!m_backend->download_file(remote_path, remote_content, info, dl_error)) {
+        BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to download " << remote_path << " for conflict: " << dl_error;
+        return false;
+    }
+
+    // local_filepath not applicable (file was deleted locally), pass empty
+    auto result = resolve_conflict(remote_path, "", "", 0,
+                                   remote_content, remote_info.modified_time,
+                                   remote_info.etag, preset_type);
+
+    if (result.resolution == ConflictResolution::KeepLocal) {
+        // User wants to delete — propagate to remote
+        std::string error;
+        m_backend->delete_file(remote_path, error);
+        BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: deleted remote (user chose local/delete): " << preset_name;
+        return true; // caller should erase from m_file_states
+    } else if (result.resolution == ConflictResolution::KeepRemote) {
+        // Restore locally from remote
+        std::string user_dir = (fs::path(Slic3r::data_dir()) / "user" / "default"
+                                / preset_type_dir(preset_type)).string();
+        fs::create_directories(user_dir);
+        std::string local_file = (fs::path(user_dir) / (preset_name + ".json")).string();
+        try {
+            std::ofstream f(local_file, std::ios::binary | std::ios::trunc);
+            f << remote_content;
+            f.close();
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to restore " << preset_name << ": " << e.what();
+            return false;
+        }
+        auto now = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        auto& state = m_file_states[remote_path];
+        state.remote_path = remote_path;
+        state.last_etag = info.etag;
+        state.last_synced_time = now;
+        state.last_local_modified_time = 0;
+        m_had_local_changes.store(true);
+        BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: restored from remote (user chose remote/keep): " << preset_name;
+        return false;
+    }
+    // Skip → do nothing
+    return false;
+}
+
 bool ProfileSyncManager::sync_appconfig(AppConfig& appconfig, std::string& error_out)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     if (!m_backend || !m_config.scope.sync_appconfig)
         return true;
 
@@ -760,19 +1037,22 @@ bool ProfileSyncManager::sync_appconfig(AppConfig& appconfig, std::string& error
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
-    std::string remote_path = "orcaslicer-sync/config/appconfig.json";
-    auto sfr = sync_single_file(remote_path, local_content, now, 0);
+    std::string remote_path = remote_prefix() + "config/appconfig.json";
+    // AppConfig is not a file-on-disk preset; local_filepath left empty
+    auto sfr = sync_single_file(remote_path, "", local_content, now, Preset::Type::TYPE_INVALID);
 
     if (!sfr.success) {
         BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to sync app config: " << sfr.error;
     } else if (sfr.remote_newer) {
-        // Apply remote config
+        // Apply remote config — only allow keys from the sync whitelist
         try {
             json remote_j = json::parse(sfr.remote_content);
+            std::set<std::string> allowed_keys(sync_keys.begin(), sync_keys.end());
             for (auto& [key, val] : remote_j.items()) {
-                if (val.is_string())
+                if (val.is_string() && allowed_keys.count(key))
                     appconfig.set(key, val.get<std::string>());
             }
+            m_had_local_changes.store(true);
             BOOST_LOG_TRIVIAL(info) << "ProfileSyncManager: applied remote app config";
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to parse remote config: " << e.what();
@@ -795,6 +1075,7 @@ bool ProfileSyncManager::sync_appconfig(AppConfig& appconfig, std::string& error
 
 bool ProfileSyncManager::sync_projects(const std::vector<std::string>& project_paths, std::string& error_out)
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     if (!m_backend || !m_config.scope.sync_projects)
         return true;
 
@@ -806,7 +1087,7 @@ bool ProfileSyncManager::sync_projects(const std::vector<std::string>& project_p
 
         fs::path p(project_path);
         std::string filename     = p.filename().string();
-        std::string remote_path  = "orcaslicer-sync/projects/" + filename;
+        std::string remote_path  = remote_prefix() + "projects/" + filename;
 
         // Read file content
         std::string content;
@@ -822,7 +1103,7 @@ bool ProfileSyncManager::sync_projects(const std::vector<std::string>& project_p
 
         auto local_time = static_cast<long long>(fs::last_write_time(p));
 
-        auto sfr = sync_single_file(remote_path, content, local_time, 0);
+        auto sfr = sync_single_file(remote_path, project_path, content, local_time, Preset::Type::TYPE_INVALID);
 
         if (!sfr.success) {
             BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: failed to sync project " << filename << ": " << sfr.error;
@@ -849,6 +1130,90 @@ bool ProfileSyncManager::sync_projects(const std::vector<std::string>& project_p
     }
 
     save_sync_state();
+    return true;
+}
+
+bool ProfileSyncManager::apply_conflict_resolution(const SyncConflict& conflict,
+                                                    const SyncConflictResult& result,
+                                                    std::string& error_out)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
+    if (!m_backend) {
+        error_out = "No backend connected";
+        return false;
+    }
+
+    auto now = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+
+    bool effective_read_only = m_config.read_only;
+    if (m_config.backend_type == SyncBackendType::Git && m_config.git_config.token.empty())
+        effective_read_only = true;
+
+    // Use the local file path stored at conflict creation time
+    if (conflict.local_filepath.empty()) {
+        error_out = "No local file path in conflict";
+        return false;
+    }
+    fs::path local_filepath(conflict.local_filepath);
+
+    switch (result.resolution) {
+    case ConflictResolution::KeepLocal: {
+        if (!effective_read_only && !conflict.local_content.empty()) {
+            std::string new_etag;
+            if (!m_backend->upload_file(conflict.path, conflict.local_content, "", new_etag, error_out))
+                return false;
+            auto& state = m_file_states[conflict.path];
+            state.remote_path = conflict.path;
+            state.last_etag = new_etag;
+            state.last_synced_time = now;
+            state.last_local_modified_time = conflict.local_time;
+        }
+        save_sync_state();
+        return true;
+    }
+    case ConflictResolution::KeepRemote: {
+        fs::create_directories(local_filepath.parent_path());
+        std::ofstream f(local_filepath.string(), std::ios::binary | std::ios::trunc);
+        if (!f) { error_out = "Failed to open " + local_filepath.string(); return false; }
+        f << conflict.remote_content;
+        f.close();
+
+        auto& state = m_file_states[conflict.path];
+        state.remote_path = conflict.path;
+        state.last_etag = conflict.remote_etag;
+        state.last_synced_time = now;
+        state.last_local_modified_time = static_cast<long long>(fs::last_write_time(local_filepath));
+        save_sync_state();
+        return true;
+    }
+    case ConflictResolution::Merge: {
+        fs::create_directories(local_filepath.parent_path());
+        std::ofstream f(local_filepath.string(), std::ios::binary | std::ios::trunc);
+        if (!f) { error_out = "Failed to open " + local_filepath.string(); return false; }
+        f << result.merged_content;
+        f.close();
+
+        if (!effective_read_only) {
+            std::string new_etag;
+            if (!m_backend->upload_file(conflict.path, result.merged_content, "", new_etag, error_out))
+                return false;
+            auto& state = m_file_states[conflict.path];
+            state.last_etag = new_etag;
+        } else {
+            auto& state = m_file_states[conflict.path];
+            state.last_etag = conflict.remote_etag;
+        }
+        auto& state = m_file_states[conflict.path];
+        state.remote_path = conflict.path;
+        state.last_synced_time = now;
+        state.last_local_modified_time = static_cast<long long>(fs::last_write_time(local_filepath));
+        save_sync_state();
+        return true;
+    }
+    case ConflictResolution::Skip:
+        return true;
+    }
     return true;
 }
 
@@ -885,6 +1250,15 @@ void ProfileSyncManager::sync_thread_fn()
         }
 
         std::string error;
+
+        // Pull latest remote changes before background sync cycle
+        {
+            std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
+            if (m_backend && !m_backend->refresh(error)) {
+                BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: refresh failed: " << error;
+            }
+        }
+
         bool ok = read_only ? true : ensure_remote_dirs(error);
 
         // Execute actual sync via callback (set by GUI_App, which has PresetBundle/AppConfig)

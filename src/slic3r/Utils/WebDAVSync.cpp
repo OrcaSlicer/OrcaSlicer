@@ -8,8 +8,6 @@
 #include <cstring>
 #include <sstream>
 #include <ctime>
-#include <mutex>
-#include <iomanip>
 
 #ifdef _WIN32
 #include <time.h>
@@ -360,7 +358,9 @@ bool WebDAVSync::list_files(const std::string& remote_dir,
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
             if (status == 207) {
-                // Some servers return 207 Multi-Status through error callback
+                // HTTP 207 Multi-Status is the correct PROPFIND response, but
+                // the Http wrapper routes non-2xx codes through on_error.
+                // This is expected behavior — do not remove this handler.
                 response_body = std::move(body);
                 success       = true;
             } else if (status == 404) {
