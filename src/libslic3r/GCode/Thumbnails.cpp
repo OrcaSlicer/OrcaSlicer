@@ -246,6 +246,7 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail(const ThumbnailData &d
 {
     switch (format) {
     case GCodeThumbnailsFormat::PNG:
+    case GCodeThumbnailsFormat::SLICED_PREVIEW:
     default:
         return compress_thumbnail_png(data);
     case GCodeThumbnailsFormat::JPG:
@@ -584,8 +585,9 @@ std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbna
 
     // generate thumbnails data to process it
 
-    if (const auto thumbnails_value = config.option<ConfigOptionString>("thumbnails"))
+    if (const auto thumbnails_value = config.option<ConfigOptionString>("thumbnails")) {
         return make_and_check_thumbnail_list(thumbnails_value->value);
+    }
 
     return {};
 }

@@ -1,14 +1,24 @@
 # Repository Guidelines
 
+## Build Constraints
+- **Never build with more than 3 cores** - use `-j3` or `./build_linux.sh -j3`
+- Use wrapper script: `./build_linux.sh -rs` for quick rebuilds
+- Direct cmake/ninja: `cmake --build build --parallel 3` (no more than 3)
+
 ## Project Structure & Module Organization
-OrcaSlicer’s C++17 sources live in `src/`, split by feature modules and platform adapters. User assets, icons, and printer presets are in `resources/`; translations stay in `localization/`. Tests sit in `tests/`, grouped by domain (`libslic3r/`, `sla_print/`, etc.) with fixtures under `tests/data/`. CMake helpers reside in `cmake/`, and longer references in `doc/` and `SoftFever_doc/`. Automation scripts belong in `scripts/` and `tools/`. Treat everything in `deps/` and `deps_src/` as vendored snapshots—do not modify without mirroring upstream tags.
+OrcaSlicer's C++17 sources live in `src/`, split by feature modules and platform adapters. User assets, icons, and printer presets are in `resources/`; translations stay in `localization/`. Tests sit in `tests/`, grouped by domain (`libslic3r/`, `sla_print/`, etc.) with fixtures under `tests/data/`. CMake helpers reside in `cmake/`, and longer references in `doc/` and `SoftFever_doc/`. Automation scripts belong in `scripts/` and `tools/`. Treat everything in `deps/` and `deps_src/` as vendored snapshots—do not modify without mirroring upstream tags.
 
 ## Build, Test, and Development Commands
 Use out-of-source builds:
-- `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` configures dependencies and generates build files.
-- `cmake --build build --target OrcaSlicer --config Release` compiles the app; add `--parallel` to speed up.
-- `cmake --build build --target tests` then `ctest --test-dir build --output-on-failure` runs automated suites.
-Platform helpers such as `build_linux.sh`, `build_release_macos.sh`, and `build_release_vs2022.bat` wrap the same flow with toolchain flags. Use `build_release_macos.sh -sx` when reproducing macOS build issues, and `scripts/DockerBuild.sh` for reproducible container builds.
+- Platform helpers: `build_linux.sh`, `build_release_macos.sh`, `build_release_vs2022.bat`. Use `./build_linux.sh -dsi` for full build, `-rs` for quick rebuild. Always add `-j3` to limit building to 3 cores max.
+- DO NOT EVER ATTEMPT TO BUILD WITH `cmake` OR `ninja` DIRECTLY!
+
+## CLI Slicing
+The CLI requires a GUI environment (gtk initialization). Without display, it hangs. Options:
+- Run from GUI session
+- Use `--slice 0` to slice all plates
+- Thumbnail options: `--thumbnail-mode sliced`, `--thumbnail-shading-mode 0|1`, `--thumbnail-rolling-avg-segments N`
+- Example: `orca-slicer --slice 0 --outputdir /tmp/out --thumbnail-mode sliced tests/file.3mf`
 
 ## Coding Style & Naming Conventions
 `.clang-format` enforces 4-space indents, a 140-column limit, aligned initializers, and brace wrapping for classes and functions. Run `clang-format -i <file>` before committing; the CMake `clang-format` target is available when LLVM tools are on your PATH. Prefer `CamelCase` for classes, `snake_case` for functions and locals, and `SCREAMING_CASE` for constants, matching conventions in `src/`. Keep headers self-contained and align include order with the IWYU pragmas.

@@ -291,6 +291,12 @@ void AppConfig::set_defaults()
     if (get("developer_mode").empty())
         set_bool("developer_mode", false);
 
+    if (get(SETTING_THUMBNAIL_MODE).empty())
+        set("thumbnail_mode", "model");
+
+    if (get("thumbnail_shading_mode").empty())
+        set("thumbnail_shading_mode", "0");
+
     if (get("enable_ssl_for_mqtt").empty())
         set_bool("enable_ssl_for_mqtt", true);
 

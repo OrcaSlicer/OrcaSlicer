@@ -1988,6 +1988,20 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
         m_result.filament_costs[i]      = static_cast<float>(config.filament_cost.get_at(i));
     }
 
+    m_result.extruder_colors.resize(filament_count);
+    const ConfigOptionStrings* filament_colour = &config.filament_colour;
+    if (filament_colour->empty()) {
+        filament_colour = &config.default_filament_colour;
+    }
+    for (size_t i = 0; i < filament_count; ++i) {
+        if (i < filament_colour->size())
+            m_result.extruder_colors[i] = filament_colour->get_at(i);
+    }
+    for (size_t i = 0; i < m_result.extruder_colors.size(); ++i) {
+        if (m_result.extruder_colors[i].empty())
+            m_result.extruder_colors[i] = "#FF8000";
+    }
+
     if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfKlipper || m_flavor == gcfRepRapFirmware) {
         m_time_processor.machine_limits = reinterpret_cast<const MachineEnvelopeConfig&>(config);
         if (m_flavor == gcfMarlinLegacy || m_flavor == gcfKlipper) {
@@ -2222,10 +2236,18 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 
     // BBS
     const ConfigOptionStrings* filament_colour = config.option<ConfigOptionStrings>("filament_colour");
-    if (filament_colour != nullptr && filament_colour->values.size() == m_result.extruder_colors.size()) {
-        for (size_t i = 0; i < m_result.extruder_colors.size(); ++i) {
-            if (m_result.extruder_colors[i].empty())
-                m_result.extruder_colors[i] = filament_colour->values[i];
+    if (filament_colour != nullptr && !filament_colour->values.empty()) {
+        if (m_result.extruder_colors.size() == filament_colour->values.size()) {
+            for (size_t i = 0; i < m_result.extruder_colors.size(); ++i) {
+                if (m_result.extruder_colors[i].empty())
+                    m_result.extruder_colors[i] = filament_colour->values[i];
+            }
+        } else if (filament_colour->values.size() > m_result.extruder_colors.size()) {
+            m_result.extruder_colors.resize(filament_colour->values.size());
+            for (size_t i = 0; i < filament_colour->values.size(); ++i) {
+                if (m_result.extruder_colors[i].empty())
+                    m_result.extruder_colors[i] = filament_colour->values[i];
+            }
         }
     }
 

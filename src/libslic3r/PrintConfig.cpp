@@ -506,7 +506,8 @@ static const t_config_enum_values  s_keys_map_GCodeThumbnailsFormat = {
     { "JPG", int(GCodeThumbnailsFormat::JPG) },
     { "QOI", int(GCodeThumbnailsFormat::QOI) },
     { "BTT_TFT", int(GCodeThumbnailsFormat::BTT_TFT) },
-    { "COLPIC", int(GCodeThumbnailsFormat::ColPic) }
+    { "COLPIC", int(GCodeThumbnailsFormat::ColPic) },
+    { "SlicedPreview", int(GCodeThumbnailsFormat::SLICED_PREVIEW) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(GCodeThumbnailsFormat)
 
@@ -6618,11 +6619,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("QOI");
     def->enum_values.push_back("BTT_TFT");
     def->enum_values.push_back("COLPIC");
+    def->enum_values.push_back("SLICED_PREVIEW");
     def->enum_labels.push_back("PNG");
     def->enum_labels.push_back("JPG");
     def->enum_labels.push_back("QOI");
     def->enum_labels.push_back("BTT TT");
     def->enum_labels.push_back("ColPic");
+    def->enum_labels.push_back("SlicedPreview");
     def->set_default_value(new ConfigOptionEnum<GCodeThumbnailsFormat>(GCodeThumbnailsFormat::PNG));
 
     def = this->add("use_relative_e_distances", coBool);
@@ -10317,6 +10320,24 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
+
+    def = this->add("thumbnail_mode", coStrings);
+    def->label = "Thumbnail mode";
+    def->tooltip = "Thumbnail rendering mode: model (3D model thumbnail) or sliced (sliced preview thumbnail showing toolpaths). Default: model";
+    def->cli_params = "option";
+    def->set_default_value(new ConfigOptionString("model"));
+
+    def = this->add("thumbnail_shading_mode", coInt);
+    def->label = "Thumbnail shading mode";
+    def->tooltip = "Shading mode for sliced preview thumbnails: 0 = direction-based (default), 1 = hybrid (corner + Z-gradient)";
+    def->cli_params = "option";
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("thumbnail_sizes", coStrings);
+    def->label = "Thumbnail sizes override";
+    def->tooltip = "Override machine thumbnail sizes. Can be passed multiple times. Format: WxH or WxH/FORMAT (default FORMAT: PNG). Example: --thumbnail-sizes 200x200 --thumbnail-sizes 400x400/PNG";
+    def->cli_params = "option";
+    def->set_default_value(new ConfigOptionStrings());
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;
