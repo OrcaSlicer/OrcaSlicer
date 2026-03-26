@@ -6155,8 +6155,14 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (!m_last_pos_defined || m_last_pos.to_point() != first_point || m_need_change_layer_lift_z || slope_need_z_travel) {
         const bool _last_pos_undefined = !m_last_pos_defined;
 
-        gcode += this->travel_to(path.first_point(), path.role(), "move to first " + description + " point",
-                                 sloped == nullptr ? DBL_MAX : get_sloped_z(sloped->slope_begin.z_ratio));
+        double z = DBL_MAX;
+        if (sloped != nullptr) {
+            z =  get_sloped_z(sloped->slope_begin.z_ratio);
+        } else if (path.z_contoured && !path.polyline.lines().empty()) {
+            z = unscale_(path.polyline.lines().begin()->a.z()) + m_nominal_z;
+        }
+
+        gcode += this->travel_to(first_point, path.role(), "move to first " + description + " point", z);
 
         m_need_change_layer_lift_z = false;
         // Orca: ensure Z matches planned layer height
@@ -6167,7 +6173,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     if (path.z_contoured && !path.polyline.lines().empty()) {
         double current_z = m_writer.get_position().z();
-        ;
         double first_z = unscale_(path.polyline.lines().begin()->a.z()) + m_nominal_z;
         if (GCodeFormatter::quantize_xyzf(first_z) != GCodeFormatter::quantize_xyzf(current_z)) {
             gcode += m_writer.travel_to_z(first_z, "set Z for contouring", true);
