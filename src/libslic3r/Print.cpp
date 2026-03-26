@@ -2201,7 +2201,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         // Z-Contouring
         for (PrintObject *obj : m_objects) {
-            bool need_contouring = need_slicing_objects.count(obj) != 0 && obj->config().zaa_enabled;
+            bool need_contouring = need_slicing_objects.count(obj) != 0 && obj->need_z_contouring();
             if (need_contouring) {
                 obj->contour_z();
             } else {

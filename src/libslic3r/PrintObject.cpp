@@ -25,6 +25,7 @@
 #include "format.hpp"
 #include "AABBTreeLines.hpp"
 
+#include <cstddef>
 #include <float.h>
 #include <iterator>
 #include <mutex>
@@ -713,6 +714,21 @@ void PrintObject::ironing()
         BOOST_LOG_TRIVIAL(debug) << "Ironing in parallel - end";
         this->set_done(posIroning);
     }
+}
+
+bool PrintObject::need_z_contouring() const
+{
+    if (this->config().zaa_enabled) {
+        return true;
+    }
+
+    size_t num_regions = this->num_printing_regions();
+    for (size_t region_id = 0; region_id < num_regions; region_id++) {
+        if (this->printing_region(region_id).config().zaa_enabled)
+            return true;
+    }
+
+    return false;
 }
 
 void PrintObject::contour_z()

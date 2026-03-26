@@ -496,6 +496,7 @@ private:
     void prepare_infill();
     void infill();
     void ironing();
+    bool need_z_contouring() const;
     void contour_z();
     void generate_support_material();
     void estimate_curled_extrusions();

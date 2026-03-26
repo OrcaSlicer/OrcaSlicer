@@ -32,11 +32,7 @@ static double slope_from_normal(const Eigen::Vector3d& normal)
 
 static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &mesh, ExtrusionPath &path)
 {
-	if (region->region().config().zaa_region_disable) {
-		return false;
-	}
-
-	if (path.role() != erTopSolidInfill && path.role() != erIroning && path.role() != erExternalPerimeter && path.role() != erPerimeter) {
+    if (path.role() != erTopSolidInfill && path.role() != erIroning && path.role() != erExternalPerimeter && path.role() != erPerimeter) {
 		return false;
 	}
 	
@@ -227,6 +223,9 @@ static void handle_extrusion_collection(LayerRegion *region, const sla::IndexedM
 void Layer::make_contour_z(const sla::IndexedMesh &mesh)
 {
 	for (LayerRegion *region : this->regions()) {
+        if (!region->region().config().zaa_enabled)
+            continue;
+
         handle_extrusion_collection(region, mesh, region->fills, {erTopSolidInfill, erIroning, erPerimeter, erExternalPerimeter, erMixed});
         handle_extrusion_collection(region, mesh, region->perimeters, {erPerimeter, erExternalPerimeter, erMixed});
     }
