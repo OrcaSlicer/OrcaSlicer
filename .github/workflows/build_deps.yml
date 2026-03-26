@@ -36,7 +36,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          lfs: 'true'
+          lfs: 'false'
 
       - name: load cached deps
         uses: actions/cache@v5
