@@ -1124,7 +1124,11 @@ int GuideFrame::LoadProfileData()
                 return 0;
         }
 
-        //sync to web
+        //sync to appconfig first to populate current selections
+        if (!m_destroy)
+            wxGetApp().CallAfter([this] { SaveProfileData(); });
+
+        //sync to web after selections are populated
         std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents: " << std::endl << strAll;
@@ -1134,10 +1138,6 @@ int GuideFrame::LoadProfileData()
         wxString strJS       = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
         if (!m_destroy)
             wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
-
-        //sync to appconfig
-        if (!m_destroy)
-            wxGetApp().CallAfter([this] { SaveProfileData(); });
 
     } catch (std::exception& e) {
         // wxLogMessage("GUIDE: load_profile_error  %s ", e.what());
