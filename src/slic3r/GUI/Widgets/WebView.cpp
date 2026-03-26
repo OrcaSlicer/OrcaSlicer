@@ -329,7 +329,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 bool WebView::CheckWebViewRuntime()
 {
     wxWebViewFactoryEdge factory;
-    auto wxVersion = factory.GetVersionInfo();
+    auto wxVersion = factory.GetVersionInfo(wxVersionContext::RunTime);
     return wxVersion.GetMajor() != 0;
 }
 
