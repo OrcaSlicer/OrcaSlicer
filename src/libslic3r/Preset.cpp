@@ -1304,6 +1304,10 @@ void PresetCollection::load_presets(
                         std::string inherits_value = option_str->value;
                         // Orca: try to find if the parent preset has been renamed
                         inherit_preset = this->find_preset2(inherits_value);
+                        if (inherit_preset == nullptr && !inherits_value.empty()) {
+                            this->ensure_parent_preset_from_resources(inherits_value, substitution_rule);
+                            inherit_preset = this->find_preset2(inherits_value);
+                        }
 
                     } else {
                         ;
@@ -1318,9 +1322,9 @@ void PresetCollection::load_presets(
                     else {
                         auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
                         if ((inherits_config2 && !inherits_config2->value.empty())) {
-                            BOOST_LOG_TRIVIAL(error) << boost::format("can not find parent %1% for config %2%!")%inherits_config2->value %preset.file;
+                            BOOST_LOG_TRIVIAL(warning) << boost::format("can not find parent %1% for config %2%, fallback to default root preset")%inherits_config2->value %preset.file;
                             ++m_errors;
-                            continue;
+                            inherits_config2->value.clear();
                         }
                         // We support custom root preset now
                         // Find a default preset for the config. The PrintPresetCollection provides different default preset based on the "printer_technology" field.
@@ -1876,7 +1880,11 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
                 inherits_value.replace(pos, 1, 1, '~');
                 option_str->value = inherits_value;
             }*/
-            inherit_preset = this->find_preset(inherits_value, false, true);
+            inherit_preset = this->find_preset2(inherits_value);
+            if (inherit_preset == nullptr && !inherits_value.empty()) {
+                this->ensure_parent_preset_from_resources(inherits_value, rule);
+                inherit_preset = this->find_preset2(inherits_value);
+            }
         }
         const Preset& default_preset = this->default_preset_for(cloud_config);
         if (inherit_preset) {
@@ -1889,10 +1897,8 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             // We support custom root preset now
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
             if (inherits_config2 && !inherits_config2->value.empty()) {
-                //we should skip this preset here
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, just skip")%name;
-                unlock();
-                return false;
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, fallback to default root preset")%name;
+                inherits_config2->value.clear();
             }
             // Find a default preset for the config. The PrintPresetCollection provides different default preset based on the "printer_technology" field.
             new_config = default_preset.config;
@@ -2722,6 +2728,66 @@ bool PresetCollection::is_alias_exist(const std::string &alias, Preset* preset)
 
 const std::string& PresetCollection::get_suffix_modified() {
     return g_suffix_modified;
+}
+
+bool PresetCollection::ensure_parent_preset_from_resources(const std::string &inherits_name, ForwardCompatibilitySubstitutionRule substitution_rule)
+{
+    if (inherits_name.empty())
+        return false;
+
+    if (this->find_preset2(inherits_name, false) != nullptr)
+        return true;
+
+    const boost::filesystem::path resources_root = boost::filesystem::path(Slic3r::resources_dir()) / PRESET_PROFILES_DIR;
+    if (!boost::filesystem::exists(resources_root) || !boost::filesystem::is_directory(resources_root))
+        return false;
+
+    const std::string target_file = inherits_name + ".json";
+    const char *type_dir = nullptr;
+    switch (m_type) {
+    case Preset::TYPE_PRINT:
+        type_dir = PRESET_PRINT_NAME;
+        break;
+    case Preset::TYPE_FILAMENT:
+        type_dir = PRESET_FILAMENT_NAME;
+        break;
+    case Preset::TYPE_PRINTER:
+        type_dir = PRESET_PRINTER_NAME;
+        break;
+    default:
+        return false;
+    }
+
+    for (auto it = boost::filesystem::recursive_directory_iterator(resources_root); it != boost::filesystem::recursive_directory_iterator(); ++it) {
+        if (!boost::filesystem::is_regular_file(it->path()) || it->path().filename().string() != target_file)
+            continue;
+
+        const boost::filesystem::path subdir_path = it->path().parent_path();
+        const boost::filesystem::path base_dir = subdir_path.parent_path();
+        if (subdir_path.empty() || base_dir.empty())
+            continue;
+
+        const std::string subdir = subdir_path.filename().string();
+        const std::string base_dir_name = base_dir.filename().string();
+        if (subdir != type_dir && base_dir_name != type_dir)
+            continue;
+
+        std::string old_dir_path = m_dir_path;
+        PresetsConfigSubstitutions substitutions;
+        try {
+            this->load_presets(base_dir.string(), subdir, substitutions, substitution_rule);
+        } catch (const std::exception &err) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": failed reloading parent %1% from %2%: %3%") % inherits_name % subdir_path.string() % err.what();
+        }
+        m_dir_path = old_dir_path;
+
+        if (this->find_preset2(inherits_name, false) != nullptr) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": resolved missing parent %1% from %2%") % inherits_name % it->path().string();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // Return a preset by its name. If the preset is active, a temporary copy is returned.

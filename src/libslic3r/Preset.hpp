@@ -774,6 +774,8 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    bool ensure_parent_preset_from_resources(const std::string &inherits_name, ForwardCompatibilitySubstitutionRule substitution_rule = ForwardCompatibilitySubstitutionRule::Disable);
+
     // Comparator that sorts "Generic " prefixed presets before others, then alphabetically within each group.
     static bool filament_preset_less(const Preset &a, const Preset &b) {
         bool a_generic = boost::starts_with(a.name, GENERIC_PREFIX);
