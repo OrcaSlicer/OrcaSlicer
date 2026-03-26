@@ -256,6 +256,7 @@ protected:
 	bool				m_is_modified_values{ false };
 	bool				m_is_nonsys_values{ true };
 	bool				m_postpone_update_ui {false};
+	bool				m_skip_next_preset_combo_selection { false };
 
     void                set_type();
 
