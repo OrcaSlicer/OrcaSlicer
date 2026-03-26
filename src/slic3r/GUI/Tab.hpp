@@ -257,6 +257,8 @@ protected:
 	bool				m_is_nonsys_values{ true };
 	bool				m_postpone_update_ui {false};
 	bool				m_skip_next_preset_combo_selection { false };
+	bool				m_suppress_next_same_preset_selection { false };
+	std::string		m_suppressed_preset_name;
 
     void                set_type();
 

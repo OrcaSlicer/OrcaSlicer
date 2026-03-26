@@ -6715,9 +6715,15 @@ bool Tab::select_preset(
     //BBS: add project embedded preset logic and refine is_external
     assert(! delete_current || (m_presets->get_edited_preset().name != preset_name && (m_presets->get_edited_preset().is_user() || m_presets->get_edited_preset().is_project_embedded)));
     //assert(! delete_current || (m_presets->get_edited_preset().name != preset_name && m_presets->get_edited_preset().is_user()));
-    if (m_skip_next_preset_combo_selection && !delete_current && preset_name == m_presets->get_selected_preset().name) {
-        m_skip_next_preset_combo_selection = false;
-        return true;
+    if (m_suppress_next_same_preset_selection) {
+        if (!delete_current && preset_name == m_suppressed_preset_name) {
+            m_suppress_next_same_preset_selection = false;
+            m_suppressed_preset_name.clear();
+            return true;
+        }
+
+        m_suppress_next_same_preset_selection = false;
+        m_suppressed_preset_name.clear();
     }
 
     bool current_dirty = ! delete_current && m_presets->current_is_dirty();
@@ -7005,8 +7011,11 @@ bool Tab::select_preset(
         if (printer_tab && !selected_target_print_profile_name.empty())
             m_preset_bundle->prints.select_preset_by_name(selected_target_print_profile_name, true);
 
-        if (suppress_transfer_target_print_dialog && transfer_target_print_tab != nullptr)
+        if (suppress_transfer_target_print_dialog && transfer_target_print_tab != nullptr) {
             transfer_target_print_tab->m_skip_next_preset_combo_selection = true;
+            transfer_target_print_tab->m_suppress_next_same_preset_selection = true;
+            transfer_target_print_tab->m_suppressed_preset_name = m_preset_bundle->prints.get_selected_preset_name();
+        }
 
         load_current_preset();
 

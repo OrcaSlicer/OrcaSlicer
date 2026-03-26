@@ -1,27 +1,30 @@
-#include "libslic3r/PresetSwitchLogic.hpp"
+#include "slic3r/GUI/PresetSwitchLogic.hpp"
 
 #include <catch2/catch_all.hpp>
 
-namespace Slic3r {
+namespace Slic3r::GUI {
 
-TEST_CASE("Generic plater preset selection skips printer follow-up selection", "[PresetSwitchLogic]")
+TEST_CASE("Preset selection followup uses printer-specific flow for printer presets", "[PresetSwitchLogic]")
 {
-    REQUIRE_FALSE(should_run_generic_preset_selection(Preset::TYPE_PRINTER, true, false));
+    REQUIRE(preset_selection_followup(Preset::TYPE_PRINTER, true, false) == PresetSelectionFollowup::RunPrinterSelectionFlow);
 }
 
-TEST_CASE("Generic plater preset selection still runs for other presets when appropriate", "[PresetSwitchLogic]")
+TEST_CASE("Preset selection followup uses generic tab selection for compatible non-printer presets", "[PresetSwitchLogic]")
 {
-    REQUIRE(should_run_generic_preset_selection(Preset::TYPE_PRINT, true, false));
-    REQUIRE(should_run_generic_preset_selection(Preset::TYPE_FILAMENT, true, false));
-    REQUIRE_FALSE(should_run_generic_preset_selection(Preset::TYPE_FILAMENT, true, true));
-    REQUIRE_FALSE(should_run_generic_preset_selection(Preset::TYPE_PRINT, false, false));
+    REQUIRE(preset_selection_followup(Preset::TYPE_PRINT, true, false) == PresetSelectionFollowup::RunGenericTabSelection);
+    REQUIRE(preset_selection_followup(Preset::TYPE_FILAMENT, true, false) == PresetSelectionFollowup::RunGenericTabSelection);
 }
 
-TEST_CASE("Generic plater preset selection suppresses multifilament follow-up selection only for filament presets", "[PresetSwitchLogic]")
+TEST_CASE("Preset selection followup uses combo-only update for multifilament filament changes", "[PresetSwitchLogic]")
 {
-    REQUIRE_FALSE(should_run_generic_preset_selection(Preset::TYPE_FILAMENT, true, true));
-    REQUIRE(should_run_generic_preset_selection(Preset::TYPE_PRINT, true, true));
-    REQUIRE_FALSE(should_run_generic_preset_selection(Preset::TYPE_PRINTER, true, true));
+    REQUIRE(preset_selection_followup(Preset::TYPE_FILAMENT, true, true) == PresetSelectionFollowup::UpdateComboOnly);
+    REQUIRE(preset_selection_followup(Preset::TYPE_PRINT, true, true) == PresetSelectionFollowup::RunGenericTabSelection);
 }
 
-} // namespace Slic3r
+TEST_CASE("Preset selection followup returns none when no tab selection should happen", "[PresetSwitchLogic]")
+{
+    REQUIRE(preset_selection_followup(Preset::TYPE_PRINT, false, false) == PresetSelectionFollowup::None);
+    REQUIRE(preset_selection_followup(Preset::TYPE_PRINTER, false, false) == PresetSelectionFollowup::None);
+}
+
+} // namespace Slic3r::GUI
