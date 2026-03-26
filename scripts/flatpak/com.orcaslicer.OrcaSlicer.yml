@@ -118,9 +118,12 @@ modules:
       - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
       - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
     sources:
-      - type: archive
-        url: https://github.com/SoftFever/Orca-deps-wxWidgets/archive/refs/tags/orca-3.3.2.tar.gz
-        sha256: a1d265344be858a8cd00bc65b48c173635048fadb011006f35a83e3b8a50ed2d
+      # Use git instead of archive: wxWidgets 3.3 relies on multiple git
+      # submodules (PCRE2, etc.) that are not included in GitHub tarballs.
+      - type: git
+        url: https://github.com/SoftFever/Orca-deps-wxWidgets.git
+        tag: orca-3.3.2
+        commit: db1005db3dea2c37a46fb455a9a02e37aa360751
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
