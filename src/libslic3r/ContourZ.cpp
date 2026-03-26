@@ -89,21 +89,23 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 				min_down = -(height + 0.1);
 			}
 
-			double slope_rad = slope_from_normal(normal);
-			double slope_degrees = slope_rad * 180.0 / M_PI;
+            if (is_perimeter(path.role())) {
+                double slope_rad     = slope_from_normal(normal);
+                double slope_degrees = slope_rad * 180.0 / M_PI;
 
-			if (d > min_down && minimize_perimeter_height_angle > 0 && minimize_perimeter_height_angle < slope_degrees && path.role() == erExternalPerimeter) {
-				double adjustment = follow_slope_down(slope_rad, half_width);
-				if (adjustment > 0) {
-					throw RuntimeError("ContourZ: got positive adjustment");
-				}
-				d += adjustment;
-				if (d < min_down) {
-					d = min_down;
-				}
-			}
+                if (d > min_down && minimize_perimeter_height_angle > 0 && minimize_perimeter_height_angle < slope_degrees) {
+                    double adjustment = follow_slope_down(slope_rad, half_width);
+                    if (adjustment > 0) {
+                        throw RuntimeError("ContourZ: got positive adjustment");
+                    }
+                    d += adjustment;
+                    if (d < min_down) {
+                        d = min_down;
+                    }
+                }
+            }
 
-			if (d > max_up + 0.03 || d < min_down) {
+            if (d > max_up + 0.03 || d < min_down) {
 				d = 0;
 			} else {
 				if (d > max_up) {
@@ -111,12 +113,12 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 				}
 			}
 
-			if (path.role() == erExternalPerimeter && d > 0) {
-				// do not increase height of external perimeters as this may create an appearance of a seam
-				d = 0;
-			}
-			
-			if (std::abs(d) > EPSILON) {
+            if (is_perimeter(path.role()) && d > 0) {
+                // do not increase height of perimeters as this may create an appearance of a seam
+                d = 0;
+            }
+
+            if (std::abs(d) > EPSILON) {
 				was_contoured = true;
 			}
 
