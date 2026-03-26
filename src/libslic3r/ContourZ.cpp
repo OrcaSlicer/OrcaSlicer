@@ -101,13 +101,16 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
                 }
             }
 
-            if (d > max_up + 0.03 || d < min_down) {
-				d = 0;
-			} else {
-				if (d > max_up) {
-					d = max_up;
-				}
-			}
+            if (d < -height || d > max_up + 0.03) {
+                // this point is too far from the mesh edge, probably because this is not a top surface. Do not contour it.
+                d = 0;
+            }
+
+            if (d < min_down) {
+                d = min_down;
+            } else if (d > max_up) {
+                d = max_up;
+            }
 
             if (is_perimeter(path.role()) && d > 0) {
                 // do not increase height of perimeters as this may create an appearance of a seam
