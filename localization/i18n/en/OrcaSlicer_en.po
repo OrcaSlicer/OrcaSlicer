@@ -2614,7 +2614,7 @@ msgid "Brim"
 msgstr ""
 
 msgid "Object/Part Setting"
-msgstr "Object/part setting"
+msgstr "Object/part settings"
 
 msgid "Reset parameter"
 msgstr ""
