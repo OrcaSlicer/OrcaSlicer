@@ -3891,6 +3891,15 @@ void PrintConfigDef::init_fff_params()
     def->readonly = false;
     def->set_default_value(new ConfigOptionEnum<GCodeFlavor>(gcfMarlinLegacy));
 
+    def = this->add("gcode_skip_config_block", coBool);
+    def->label = L("Skip G-code config block");
+    def->tooltip = L("Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. "
+                   "This can help with printers whose firmware crashes when parsing these comment lines "
+                   "(e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, "
+                   "so importing it back into OrcaSlicer will not restore the configuration.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def          = this->add("pellet_modded_printer", coBool);
     def->label   = L("Pellet Modded Printer");
     def->tooltip = L("Enable this option if your printer uses pellets instead of filaments.");
@@ -3924,7 +3933,7 @@ void PrintConfigDef::init_fff_params()
                    "slow down.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(0));
-    
+
     //BBS
     def = this->add("infill_combination", coBool);
     def->label = L("Infill combination");
