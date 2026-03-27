@@ -101,7 +101,8 @@ void install_dll_crash_handler()
     std::call_once(s_handler_installed, []() {
         // Use sigaltstack so our handler has its own stack
         // (in case the crash corrupted the thread's stack)
-        static char alt_stack[SIGSTKSZ * 2];
+        // Use a fixed size because SIGSTKSZ may not be constexpr on some platforms (e.g. glibc 2.34+)
+        static char alt_stack[65536];
         stack_t ss;
         ss.ss_sp = alt_stack;
         ss.ss_size = sizeof(alt_stack);
@@ -253,23 +254,30 @@ void install_dll_crash_handler()
     });
 }
 
+// MSVC does not allow __try and C++ try/catch in the same function (C2712/C2713).
+// Split into two functions: inner does C++ exception handling, outer does SEH.
+static int dll_safe_call_cpp(std::function<int()>& fn, int fallback, const char* context)
+{
+    try {
+        return fn();
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: C++ exception in " << context << ": " << e.what();
+        set_crash_message(std::string("Exception in ") + context + ": " + e.what());
+        return fallback;
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: unknown C++ exception in " << context;
+        set_crash_message(std::string("Unknown exception in ") + context);
+        return fallback;
+    }
+}
+
 int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
 {
     // Layer 1: SEH protection — catches access violations from DLL calls we initiate.
-    // Layer 2: C++ exception protection.
     int result = fallback;
     __try {
-        try {
-            result = fn();
-        } catch (const std::exception& e) {
-            BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: C++ exception in " << context << ": " << e.what();
-            set_crash_message(std::string("Exception in ") + context + ": " + e.what());
-            result = fallback;
-        } catch (...) {
-            BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: unknown C++ exception in " << context;
-            set_crash_message(std::string("Unknown exception in ") + context);
-            result = fallback;
-        }
+        // Layer 2: C++ exception protection (in separate function for MSVC compatibility).
+        result = dll_safe_call_cpp(fn, fallback, context);
     } __except (
         GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH
     ) {
