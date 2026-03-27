@@ -618,6 +618,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/BBLPrinterAgent.hpp
     Utils/BBLNetworkPlugin.cpp
     Utils/BBLNetworkPlugin.hpp
+    Utils/DllCrashGuard.cpp
+    Utils/DllCrashGuard.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp

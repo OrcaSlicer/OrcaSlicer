@@ -122,6 +122,7 @@
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/DllCrashGuard.hpp"
 
 //#ifdef WIN32
 //#include "BaseException.h"
@@ -2740,6 +2741,11 @@ bool GUI_App::on_init_inner()
     //BBS set crash log folder
     CBaseException::set_log_folder(data_dir());
 #endif
+
+    // Install crash handler for the Bambu networking DLL.
+    // This catches SIGSEGV/access violations from the proprietary DLL's internal threads
+    // (e.g. MQTTAsync_sendThread) and prevents the entire application from crashing.
+    install_dll_crash_handler();
 
     wxGetApp().Bind(wxEVT_QUERY_END_SESSION, [this](auto & e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< "received wxEVT_QUERY_END_SESSION";
