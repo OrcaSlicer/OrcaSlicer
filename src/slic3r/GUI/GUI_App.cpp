@@ -2831,6 +2831,11 @@ bool GUI_App::on_init_inner()
     bool init_dark_color_mode = dark_mode();
     bool init_sys_menu_enabled = app_config->get("sys_menu_enabled") == "1";
 #ifdef __WINDOWS__
+     // Inform wxWidgets 3.3's dark mode system so it tracks NppDarkMode's state.
+     // Must be called before NppDarkMode::InitDarkMode() so that NppDarkMode's
+     // SetPreferredAppMode(ForceDark) overrides the AllowDark state set here.
+     // Orca: todo switch to native dark mode support in wxWidgets and remove NppDarkMode
+     MSWEnableDarkMode(DarkMode_Auto);
      NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled);
 #endif // __WINDOWS__
 
