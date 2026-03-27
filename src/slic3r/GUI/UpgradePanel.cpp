@@ -84,7 +84,7 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     m_staticText_sn = new wxStaticText(this, wxID_ANY, _L("Serial:"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_sn->Wrap(-1);
     m_staticText_sn->SetFont(Label::Head_14);
-    m_ota_info_sizer->Add(m_staticText_sn, 0, wxALL | wxEXPAND, FromDIP(5));
+    m_ota_info_sizer->Add(m_staticText_sn, 0, wxALIGN_RIGHT | wxALL | wxEXPAND, FromDIP(5));
 
     m_staticText_sn_val = new wxStaticText(this, wxID_ANY, "-", wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_sn_val->Wrap(-1);

@@ -334,7 +334,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     m_input_k_val->SetMinSize(wxSize(FromDIP(245), -1));
     m_input_k_val->SetMaxSize(wxSize(FromDIP(245), -1));
     m_input_k_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    kn_val_sizer->Add(m_input_k_val, 0, wxALL | wxEXPAND, FromDIP(0));
+    kn_val_sizer->Add(m_input_k_val, 0, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
 
     // n params input
     wxBoxSizer* n_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -345,7 +345,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     kn_val_sizer->Add(m_n_param, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     m_input_n_val = new TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_CENTRE | wxTE_PROCESS_ENTER);
     m_input_n_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    kn_val_sizer->Add(m_input_n_val, 0, wxALL | wxEXPAND, FromDIP(5));
+    kn_val_sizer->Add(m_input_n_val, 0, wxALL | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     m_n_param->Hide();
     m_input_n_val->Hide();
 
