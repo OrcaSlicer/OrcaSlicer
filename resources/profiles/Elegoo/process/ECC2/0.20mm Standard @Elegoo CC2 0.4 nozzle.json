@@ -8,7 +8,7 @@
   "instantiation": "true",
   "bottom_shell_layers": "3",
   "bottom_shell_thickness": "0.6",
-  "filename_format": "ECC2_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
+  "filename_format": "ECC2_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}_{layer_height}_{print_time}.gcode",
   "min_width_top_surface": "50%",
   "enable_prime_tower": "1",
   "compatible_printers": [
