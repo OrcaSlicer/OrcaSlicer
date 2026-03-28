@@ -428,7 +428,10 @@ wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
     if (! can_multisample())
         attribList[12] = 0;
 
-    return new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS);
+    wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS);
+    // The GL canvas paints its entire surface, so background erasing is unnecessary.
+    canvas->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    return canvas;
 }
 
 void OpenGLManager::detect_multisample(int* attribList)
