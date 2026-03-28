@@ -5,6 +5,7 @@
 # Based on the GitHub Actions workflow in .github/workflows/build_all.yml
 
 set -e
+SECONDS=0
 
 # Colors for output
 RED='\033[0;31m'
@@ -198,22 +199,22 @@ echo -e "${GREEN}All required dependencies found${NC}"
 # Install runtime and SDK if requested
 if [[ "$INSTALL_RUNTIME" == true ]]; then
     echo -e "${YELLOW}Installing GNOME runtime and SDK...${NC}"
-    flatpak install --user -y flathub org.gnome.Platform//48
-    flatpak install --user -y flathub org.gnome.Sdk//48
+    flatpak install --user -y flathub org.gnome.Platform//49
+    flatpak install --user -y flathub org.gnome.Sdk//49
 fi
 
 # Check if required runtime is available
-if ! flatpak info --user org.gnome.Platform//48 &> /dev/null; then
-    echo -e "${RED}Error: GNOME Platform 48 runtime is not installed.${NC}"
+if ! flatpak info --user org.gnome.Platform//49 &> /dev/null; then
+    echo -e "${RED}Error: GNOME Platform 49 runtime is not installed.${NC}"
     echo "Run with -i flag to install it automatically, or install manually:"
-    echo "flatpak install --user flathub org.gnome.Platform//48"
+    echo "flatpak install --user flathub org.gnome.Platform//49"
     exit 1
 fi
 
-if ! flatpak info --user org.gnome.Sdk//48 &> /dev/null; then
-    echo -e "${RED}Error: GNOME SDK 48 is not installed.${NC}"
+if ! flatpak info --user org.gnome.Sdk//49 &> /dev/null; then
+    echo -e "${RED}Error: GNOME SDK 49 is not installed.${NC}"
     echo "Run with -i flag to install it automatically, or install manually:"
-    echo "flatpak install --user flathub org.gnome.Sdk//48"
+    echo "flatpak install --user flathub org.gnome.Sdk//49"
     exit 1
 fi
 
@@ -254,8 +255,8 @@ mkdir -p "$BUILD_DIR"
 rm -rf "$BUILD_DIR/build-dir"
 
 # Check if flatpak manifest exists
-if [[ ! -f "./scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml" ]]; then
-    echo -e "${RED}Error: Flatpak manifest not found at scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml${NC}"
+if [[ ! -f "./scripts/flatpak/com.orcaslicer.OrcaSlicer.yml" ]]; then
+    echo -e "${RED}Error: Flatpak manifest not found at scripts/flatpak/com.orcaslicer.OrcaSlicer.yml${NC}"
     exit 1
 fi
 
@@ -315,11 +316,11 @@ if [[ "$DISABLE_ROFILES_FUSE" == true ]]; then
 fi
 
 # Use a temp manifest with no-debuginfo if requested
-MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
+MANIFEST="scripts/flatpak/com.orcaslicer.OrcaSlicer.yml"
 if [[ "$NO_DEBUGINFO" == true ]]; then
-    MANIFEST="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
-    sed '0,/^finish-args:/s//build-options:\n  no-debuginfo: true\n  strip: true\nfinish-args:/' \
-        scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml > "$MANIFEST"
+    MANIFEST="scripts/flatpak/com.orcaslicer.OrcaSlicer.no-debug.yml"
+    sed '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
+        scripts/flatpak/com.orcaslicer.OrcaSlicer.yml > "$MANIFEST"
     echo -e "${YELLOW}Debug info disabled (using temp manifest)${NC}"
 fi
 
@@ -329,19 +330,19 @@ if ! flatpak-builder \
     "$MANIFEST"; then
     echo -e "${RED}Error: flatpak-builder failed${NC}"
     echo -e "${YELLOW}Check the build log above for details${NC}"
-    rm -f "scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
+    rm -f "scripts/flatpak/com.orcaslicer.OrcaSlicer.no-debug.yml"
     exit 1
 fi
 
 # Clean up temp manifest
-rm -f "scripts/flatpak/io.github.orcaslicer.OrcaSlicer.no-debug.yml"
+rm -f "scripts/flatpak/com.orcaslicer.OrcaSlicer.no-debug.yml"
 
 # Create bundle
 echo -e "${YELLOW}Creating Flatpak bundle...${NC}"
 if ! flatpak build-bundle \
     "$BUILD_DIR/repo" \
     "$BUNDLE_NAME" \
-    io.github.orcaslicer.OrcaSlicer \
+    com.orcaslicer.OrcaSlicer \
     --arch="$ARCH"; then
     echo -e "${RED}Error: Failed to create Flatpak bundle${NC}"
     exit 1
@@ -360,10 +361,10 @@ echo -e "${BLUE}To install the Flatpak:${NC}"
 echo -e "flatpak install --user $BUNDLE_NAME"
 echo ""
 echo -e "${BLUE}To run OrcaSlicer:${NC}"
-echo -e "flatpak run io.github.orcaslicer.OrcaSlicer"
+echo -e "flatpak run com.orcaslicer.OrcaSlicer"
 echo ""
 echo -e "${BLUE}To uninstall:${NC}"
-echo -e "flatpak uninstall --user io.github.orcaslicer.OrcaSlicer"
+echo -e "flatpak uninstall --user com.orcaslicer.OrcaSlicer"
 echo ""
 if [[ "$FORCE_CLEAN" != true ]]; then
     echo -e "${BLUE}Cache Management:${NC}"
@@ -371,3 +372,6 @@ if [[ "$FORCE_CLEAN" != true ]]; then
     echo -e "• To force a clean build: $0 -f"
     echo -e "• To clean cache manually: rm -rf $CACHE_DIR"
 fi
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))

@@ -1,6 +1,6 @@
 {
     "name": "RH3D",
-    "version": "02.03.02.51",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "RH3D - printer profiles",
     "machine_model_list": [
@@ -49,10 +49,6 @@
             "sub_path": "process/process_common_E3NG v1.2S.json"
         },
         {
-            "name": "0.20mm Slow @E3NG v1.2S",
-            "sub_path": "process/0.20mm Slow @E3NG v1.2S.json"
-        },
-        {
             "name": "0.10mm Standard @E3NG v1.2S",
             "sub_path": "process/0.10mm Standard @E3NG v1.2S.json"
         },
@@ -61,20 +57,24 @@
             "sub_path": "process/0.15mm Standard @E3NG v1.2S.json"
         },
         {
-            "name": "0.20mm Standard @E3NG v1.2S",
-            "sub_path": "process/0.20mm Standard @E3NG v1.2S.json"
-        },
-        {
-            "name": "0.25mm Standard @E3NG v1.2S",
-            "sub_path": "process/0.25mm Standard @E3NG v1.2S.json"
-        },
-        {
             "name": "0.20mm Fast @E3NG v1.2S",
             "sub_path": "process/0.20mm Fast @E3NG v1.2S.json"
         },
         {
+            "name": "0.20mm Slow @E3NG v1.2S",
+            "sub_path": "process/0.20mm Slow @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.20mm Standard @E3NG v1.2S",
+            "sub_path": "process/0.20mm Standard @E3NG v1.2S.json"
+        },
+        {
             "name": "0.25mm Fast @E3NG v1.2S",
             "sub_path": "process/0.25mm Fast @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.25mm Standard @E3NG v1.2S",
+            "sub_path": "process/0.25mm Standard @E3NG v1.2S.json"
         }
     ],
     "filament_list": [

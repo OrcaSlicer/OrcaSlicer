@@ -251,7 +251,7 @@ public:
     std::string     unretract() { return m_writer.unlift() + m_writer.unretract(); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1);
     bool is_BBL_Printer();
-    bool is_QIDI_Printer();
+    WipeTowerType wipe_tower_type();
 
     // SoftFever
     std::string set_object_info(Print* print);

@@ -28,7 +28,9 @@ public:
     void RemovePage(size_t n);
     bool SetPageImage(size_t n, const std::string& bmp_name) const;
     void SetPageText(size_t n, const wxString& strText);
+    void SetCompact(size_t n, bool compact); // ORCA
     wxString GetPageText(size_t n) const;
+    wxFlexGridSizer* GetBtnsSizer(){return m_buttons_sizer;}; // ORCA
 
 private:
     wxFlexGridSizer*                m_buttons_sizer;
@@ -39,6 +41,7 @@ private:
     int                             m_btn_margin;
     int                             m_line_margin;
     //ModeSizer*                      m_mode_sizer {nullptr};
+    std::vector<wxString>           m_pageLabels; // ORCA
 };
 
 class Notebook: public wxBookCtrlBase

@@ -55,7 +55,7 @@ jobs:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ubuntu-24.04
+      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
     secrets: inherit
   build_windows:
@@ -63,7 +63,7 @@ jobs:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: windows-latest
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
@@ -95,7 +95,7 @@ jobs:
     secrets: inherit
   unit_tests:
     name: Unit Tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     steps:
@@ -107,21 +107,24 @@ jobs:
             scripts
             tests
       - name: Apt-Install Dependencies
+        if: ${{ !vars.SELF_HOSTED }}
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ github.sha }}-tests
       - uses: lukka/get-cmake@latest
         with:
-          cmakeVersion: "~3.28.0"  # use most recent 3.28.x version
+          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
+          useLocalCache: true         # <--= Use the local cache (default is 'false').
+          useCloudCache: true
       - name: Unpackage and Run Unit Tests
         timeout-minutes: 20
         run: |
           tar -xvf build_tests.tar
           scripts/run_unit_tests.sh
       - name: Upload Test Logs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: unit-test-logs
@@ -131,10 +134,15 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: "ctest_results.xml"
+      - name: Delete Test Artifact
+        if: success()
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: ${{ github.sha }}-tests
   flatpak:
     name: "Flatpak"
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-48
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
       volumes:
         - /usr/local/lib/android:/usr/local/lib/android
@@ -150,8 +158,8 @@ jobs:
             runner: ubuntu-24.04
           - arch: aarch64
             runner: ubuntu-24.04-arm
-    # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    # Don't run scheduled builds on forks; skip entirely on self-hosted runners
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     runs-on: ${{ matrix.variant.runner }}
     env:
       date:
@@ -170,7 +178,7 @@ jobs:
           git_commit_hash="${{ github.event.pull_request.head.sha }}"
         else
           ver=V$ver_pure
-          git_commit_hash=""
+          git_commit_hash="${{ github.sha }}"
         fi
         echo "ver=$ver" >> $GITHUB_ENV
         echo "ver_pure=$ver_pure" >> $GITHUB_ENV
@@ -180,32 +188,37 @@ jobs:
     # Manage flatpak-builder cache externally so PRs restore but never upload
     - name: Restore flatpak-builder cache
       if: github.event_name == 'pull_request'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: .flatpak-builder
         key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Save/restore flatpak-builder cache
       if: github.event_name != 'pull_request'
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .flatpak-builder
         key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Disable debug info for faster CI builds
       run: |
-        sed -i '0,/^finish-args:/s//build-options:\n  no-debuginfo: true\n  strip: true\nfinish-args:/' \
-          scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
+        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
+      shell: bash
+    - name: Inject git commit hash into Flatpak manifest
+      run: |
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
       with:
         bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        manifest-path: scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml
+        manifest-path: scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
         cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
@@ -219,3 +232,4 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+

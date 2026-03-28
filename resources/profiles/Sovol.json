@@ -1,7 +1,7 @@
 {
     "name": "Sovol",
     "url": "",
-    "version": "02.03.02.51",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "Sovol configurations",
     "machine_model_list": [
@@ -50,12 +50,12 @@
             "sub_path": "machine/Sovol SV08.json"
         },
         {
-            "name": "Sovol Zero",
-            "sub_path": "machine/Sovol Zero.json"
-        },
-        {
             "name": "Sovol SV08 MAX",
             "sub_path": "machine/Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Sovol Zero",
+            "sub_path": "machine/Sovol Zero.json"
         }
     ],
     "process_list": [
@@ -164,6 +164,10 @@
             "sub_path": "process/0.20mm Standard @Sovol SV08 0.4 nozzle.json"
         },
         {
+            "name": "0.20mm Standard @Sovol SV08 MAX 0.4 nozzle",
+            "sub_path": "process/0.20mm Standard @Sovol SV08 MAX 0.4 nozzle.json"
+        },
+        {
             "name": "0.20mm Standard @Sovol Zero 0.4 nozzle",
             "sub_path": "process/0.20mm Standard @Sovol Zero 0.4 nozzle.json"
         },
@@ -180,6 +184,10 @@
             "sub_path": "process/0.30mm Standard @Sovol SV08 0.6 nozzle.json"
         },
         {
+            "name": "0.30mm Standard @Sovol SV08 MAX 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Sovol SV08 MAX 0.6 nozzle.json"
+        },
+        {
             "name": "0.40mm Standard @Sovol SV06 ACE 0.8 nozzle",
             "sub_path": "process/0.40mm Standard @Sovol SV06 ACE 0.8 nozzle.json"
         },
@@ -188,19 +196,43 @@
             "sub_path": "process/0.40mm Standard @Sovol SV08 0.8 nozzle.json"
         },
         {
-            "name": "0.20mm Standard @Sovol SV08 MAX 0.4 nozzle",
-            "sub_path": "process/0.20mm Standard @Sovol SV08 MAX 0.4 nozzle.json"
-        },
-        {
-            "name": "0.30mm Standard @Sovol SV08 MAX 0.6 nozzle",
-            "sub_path": "process/0.30mm Standard @Sovol SV08 MAX 0.6 nozzle.json"
-        },
-        {
             "name": "0.40mm Standard @Sovol SV08 MAX 0.8 nozzle",
             "sub_path": "process/0.40mm Standard @Sovol SV08 MAX 0.8 nozzle.json"
         }
     ],
     "filament_list": [
+        {
+            "name": "Generic ABS @Sovol SV08 MAX",
+            "sub_path": "filament/Generic ABS @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Generic PC @Sovol SV08 MAX",
+            "sub_path": "filament/Generic PC @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Generic PETG @Sovol SV08 MAX",
+            "sub_path": "filament/Generic PETG @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Generic PLA @Sovol SV08 MAX",
+            "sub_path": "filament/Generic PLA @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Generic PLA Silk @Sovol SV08 MAX",
+            "sub_path": "filament/Generic PLA Silk @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Generic TPU @Sovol SV08 MAX",
+            "sub_path": "filament/Generic TPU @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "Polymaker PETG @Sovol SV08 MAX",
+            "sub_path": "filament/Polymaker PETG @Sovol SV08 MAX.json"
+        },
+        {
+            "name": "SUNLU PETG @Sovol SV08 MAX",
+            "sub_path": "filament/SUNLU PETG @Sovol SV08 MAX.json"
+        },
         {
             "name": "Sovol SV06 ACE ABS",
             "sub_path": "filament/Sovol SV06 ACE ABS.json"
@@ -292,38 +324,6 @@
         {
             "name": "Sovol Zero TPU",
             "sub_path": "filament/Sovol Zero TPU.json"
-        },
-        {
-            "name": "Generic PLA @Sovol SV08 MAX",
-            "sub_path": "filament/Generic PLA @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "Generic PLA Silk @Sovol SV08 MAX",
-            "sub_path": "filament/Generic PLA Silk @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "Generic ABS @Sovol SV08 MAX",
-            "sub_path": "filament/Generic ABS @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "Generic PETG @Sovol SV08 MAX",
-            "sub_path": "filament/Generic PETG @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "Polymaker PETG @Sovol SV08 MAX",
-            "sub_path": "filament/Polymaker PETG @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "SUNLU PETG @Sovol SV08 MAX",
-            "sub_path": "filament/SUNLU PETG @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "Generic TPU @Sovol SV08 MAX",
-            "sub_path": "filament/Generic TPU @Sovol SV08 MAX.json"
-        },
-        {
-            "name": "Generic PC @Sovol SV08 MAX",
-            "sub_path": "filament/Generic PC @Sovol SV08 MAX.json"
         }
     ],
     "machine_list": [
@@ -404,10 +404,6 @@
             "sub_path": "machine/Sovol SV08 0.8 nozzle.json"
         },
         {
-            "name": "Sovol Zero 0.4 nozzle",
-            "sub_path": "machine/Sovol Zero 0.4 nozzle.json"
-        },
-        {
             "name": "Sovol SV08 MAX 0.4 nozzle",
             "sub_path": "machine/Sovol SV08 MAX 0.4 nozzle.json"
         },
@@ -418,6 +414,10 @@
         {
             "name": "Sovol SV08 MAX 0.8 nozzle",
             "sub_path": "machine/Sovol SV08 MAX 0.8 nozzle.json"
+        },
+        {
+            "name": "Sovol Zero 0.4 nozzle",
+            "sub_path": "machine/Sovol Zero 0.4 nozzle.json"
         }
     ]
 }

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-05 17:45-0300\n"
+"POT-Creation-Date: 2026-03-20 23:39+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -1539,25 +1539,28 @@ msgid "Assemble"
 msgstr "組合"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
-msgstr ""
+msgstr "請確認爆炸比例 = 1 並選擇至少兩個零件。"
 
 msgid "Please select at least two volumes."
-msgstr ""
+msgstr "請選擇至少兩個零件。"
 
 msgid "(Moving)"
-msgstr ""
+msgstr "（移動中）"
 
 msgid "Point and point assembly"
-msgstr ""
+msgstr "點對點裝配"
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
+"建議先裝配物件，\n"
+"因為物件被限制在列印平台上，\n"
+"只有零件可以被抬起。"
 
 msgid "Face and face assembly"
-msgstr ""
+msgstr "面對面裝配"
 
 msgid "Notice"
 msgstr "通知"
@@ -1596,52 +1599,52 @@ msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "基於 PrusaSlicer 與 BambuStudio 開發"
 
 msgid "STEP files"
-msgstr ""
+msgstr "STEP 檔案"
 
 msgid "STL files"
-msgstr ""
+msgstr "STL 檔案"
 
 msgid "OBJ files"
-msgstr ""
+msgstr "OBJ 檔案"
 
 msgid "AMF files"
-msgstr ""
+msgstr "AMF 檔案"
 
 msgid "3MF files"
-msgstr ""
+msgstr "3MF 檔案"
 
 msgid "Gcode 3MF files"
-msgstr ""
+msgstr "Gcode 3MF 檔案"
 
 msgid "G-code files"
-msgstr ""
+msgstr "G-code 檔案"
 
 msgid "Supported files"
-msgstr ""
+msgstr "支援的檔案"
 
 msgid "ZIP files"
-msgstr ""
+msgstr "ZIP 檔案"
 
 msgid "Project files"
-msgstr ""
+msgstr "專案檔案"
 
 msgid "Known files"
-msgstr ""
+msgstr "已知檔案"
 
 msgid "INI files"
-msgstr ""
+msgstr "INI 檔案"
 
 msgid "SVG files"
-msgstr ""
+msgstr "SVG 檔案"
 
 msgid "Texture"
 msgstr "紋理"
 
 msgid "Masked SLA files"
-msgstr ""
+msgstr "Masked SLA 檔案"
 
 msgid "Draco files"
-msgstr ""
+msgstr "Draco 檔案"
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -1862,6 +1865,9 @@ msgstr "語言"
 msgid "*"
 msgstr "*"
 
+msgid "Changing application language"
+msgstr "正在為應用程式切換語言"
+
 msgid "The uploads are still ongoing"
 msgstr "正在上傳任務中"
 
@@ -2069,7 +2075,7 @@ msgstr ""
 "否 - 不為我更改這些設定"
 
 msgid "Suggestion"
-msgstr ""
+msgstr "建議"
 
 msgid "Text"
 msgstr "文字"
@@ -2586,9 +2592,6 @@ msgid ""
 msgstr ""
 "「%s」進行此細分後將超過 100 萬個面，這可能會增加切片時間。是否要繼續？"
 
-msgid "BambuStudio warning"
-msgstr "BambuStudio 警告"
-
 #, c-format, boost-format
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "「%s」零件的網格包含錯誤，請先修復。"
@@ -2611,7 +2614,6 @@ msgstr "新增高度範圍"
 msgid "Invalid numeric."
 msgstr "數值錯誤。"
 
-#, fuzzy
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "一個單元格僅能被複製到同一列的一個或多個單元格"
 
@@ -2674,7 +2676,7 @@ msgstr "走線類型"
 
 #, c-format, boost-format
 msgid "1x1 Grid: %d mm"
-msgstr ""
+msgstr "1x1 網格：%d mm"
 
 msgid "More"
 msgstr "詳情"
@@ -3180,36 +3182,36 @@ msgid ""
 msgstr "列印設備中的儲存空間為唯讀。請在傳送到列印設備前更換為正常的儲存空間。"
 
 msgid "Bad input data for EmbossCreateObjectJob."
-msgstr ""
+msgstr "EmbossCreateObjectJob 的輸入資料無效。"
 
 msgid "Add Emboss text object"
-msgstr ""
+msgstr "新增浮雕文字物件"
 
 msgid "Bad input data for EmbossUpdateJob."
-msgstr ""
+msgstr "EmbossUpdateJob 的輸入資料無效。"
 
 msgid "Created text volume is empty. Change text or font."
-msgstr ""
+msgstr "建立的文字體積為空。請變更文字或字型。"
 
 msgid "Bad input data for CreateSurfaceVolumeJob."
-msgstr ""
+msgstr "CreateSurfaceVolumeJob 的輸入資料無效。"
 
 msgid "Bad input data for UseSurfaceJob."
-msgstr ""
+msgstr "UseSurfaceJob 的輸入資料無效。"
 
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
-msgstr ""
+msgstr "浮雕屬性變更"
 
 msgid "Add Emboss text Volume"
-msgstr ""
+msgstr "新增浮雕文字體積"
 
 msgid "Font doesn't have any shape for given text."
-msgstr ""
+msgstr "字型沒有指定文字對應的形狀。"
 
 msgid "There is no valid surface for text projection."
-msgstr ""
+msgstr "沒有有效的表面用於文字投影。"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "首層優化的熱預調節"
@@ -4039,13 +4041,13 @@ msgstr ""
 "將重設為 0.1"
 
 msgid ""
-"Zero first layer height is invalid.\n"
+"Zero initial layer height is invalid.\n"
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
-"0 為無效的首層層高值。\n"
-"將被重設為 0.2。0 為無效的首層層高值。\n"
-"將被重設為 0.2。"
+"首層層高為無效的 0 值。\n"
+"\n"
+"首層層高將被重設為 0.2。"
 
 msgid ""
 "This setting is only used for model size tunning with small value in some "
@@ -4150,7 +4152,7 @@ msgstr ""
 "重設為 0。seam_slope_start_height 必須小於 layer_height。\n"
 "重設為 0。"
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4596,8 +4598,14 @@ msgstr "列印設備設定"
 msgid "parameter name"
 msgstr "參數名稱"
 
+msgid "layers"
+msgstr "層"
+
 msgid "Range"
 msgstr "範圍"
+
+msgid "Empty string"
+msgstr "空字串"
 
 msgid "Value is out of range."
 msgstr "數值超出範圍。"
@@ -4780,7 +4788,7 @@ msgid "Fan speed"
 msgstr "風扇速度"
 
 msgid "°C"
-msgstr ""
+msgstr "°C"
 
 msgid "Time"
 msgstr "時間"
@@ -5262,7 +5270,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5327,11 +5335,6 @@ msgstr "偵測到混合使用 PLA 和 PETG 線材。請根據 Wiki 調整參數�
 
 msgid "The prime tower extends beyond the plate boundary."
 msgstr "換料塔超出列印板邊界。"
-
-msgid ""
-"Prime tower position exceeded build plate boundaries and was repositioned to "
-"the nearest valid edge."
-msgstr "換料塔位置超出列印板邊界，已重新定位到最近的有效邊緣。"
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
@@ -5517,8 +5520,8 @@ msgstr "打開設定檔的資料夾"
 msgid "Show Tip of the Day"
 msgstr "顯示每日小提示"
 
-msgid "Check for Update"
-msgstr "檢查新版本"
+msgid "Check for Updates"
+msgstr "檢查更新"
 
 msgid "Open Network Test"
 msgstr "打開網路測試"
@@ -5791,26 +5794,29 @@ msgstr "壓力補償"
 msgid "Pass 1"
 msgstr "粗調"
 
-msgid "Flow rate test - Pass 1"
-msgstr "流量測試 - 通過 1"
+msgid "Flow ratio test - Pass 1"
+msgstr "流量比例測試 - 通過 1"
 
 msgid "Pass 2"
 msgstr "細調"
 
-msgid "Flow rate test - Pass 2"
-msgstr "流量測試 - 通過 2"
+msgid "Flow ratio test - Pass 2"
+msgstr "流量比例測試 - 通過 2"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (建議)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "Orca YOLO 流量校正，0.01 步"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "Orca YOLO 流量比例校正，0.01 步"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (完美主義者模式)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "Orca YOLO 流量校正，0.005 步"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "Orca YOLO 流量比例校正，0.005 步"
+
+msgid "Flow ratio"
+msgstr "流量比例"
 
 msgid "Retraction test"
 msgstr "回抽測試"
@@ -6150,9 +6156,9 @@ msgid ""
 "The .gcode.3mf file contains no G-code data. Please slice it with Orca "
 "Slicer and export a new .gcode.3mf file."
 msgstr ""
-".gcode.3mf 檔案不包含 G-code 資料。請使用 OrcaSlicer 切片並匯出新的 ."
-"gcode.3mf 檔案。.gcode.3mf 檔案中不包含 G-code 資料。請使用 Orca Slicer 進行"
-"切片並匯出新的 .gcode.3mf 檔案。"
+".gcode.3mf 檔案不包含 G-code 資料。請使用 OrcaSlicer 切片並匯出新"
+"的 .gcode.3mf 檔案。.gcode.3mf 檔案中不包含 G-code 資料。請使用 Orca Slicer "
+"進行切片並匯出新的 .gcode.3mf 檔案。"
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -6623,7 +6629,7 @@ msgstr ""
 "必須至少有一個此列印設定檔的成功列印記錄。"
 
 msgid "click to add machine"
-msgstr ""
+msgstr "點擊新增印表機"
 
 msgid "Status"
 msgstr "設備狀態"
@@ -6637,11 +6643,11 @@ msgstr "助手（HMS）"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s"
-msgstr ""
+msgstr "網路外掛程式 v%s"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s (%s)"
-msgstr ""
+msgstr "網路外掛程式 v%s (%s)"
 
 msgid "Don't show again"
 msgstr "不再顯示"
@@ -6920,8 +6926,8 @@ msgstr "暫停靈敏度："
 msgid "Spaghetti Detection"
 msgstr "拉絲偵測"
 
-msgid "Detect spaghetti failure(scattered lose filament)."
-msgstr "偵測拉絲失敗（散落的鬆散線材）。"
+msgid "Detect spaghetti failures (scattered lose filament)."
+msgstr "偵測拉絲故障（散落鬆脫的耗材絲）。"
 
 msgid "Purge Chute Pile-Up Detection"
 msgstr "廢料槽堆積偵測"
@@ -7598,7 +7604,6 @@ msgstr "儲存專案"
 msgid "Importing Model"
 msgstr "正在匯入模型"
 
-#, fuzzy
 msgid "Preparing 3MF file..."
 msgstr "正在準備 3MF 檔案..."
 
@@ -7905,9 +7910,6 @@ msgstr "語言選擇"
 msgid "Switching application language while some presets are modified."
 msgstr "在切換應用程式語言之前發現某些參數預設有更改。"
 
-msgid "Changing application language"
-msgstr "正在為應用程式切換語言"
-
 msgid "Asia-Pacific"
 msgstr "亞太"
 
@@ -8106,9 +8108,6 @@ msgstr "按廠商"
 msgid "Optimize filaments area height for..."
 msgstr "優化線材區域高度..."
 
-msgid "(Requires restart)"
-msgstr "（需要重啟程式）"
-
 msgid "filaments"
 msgstr "線材"
 
@@ -8125,6 +8124,9 @@ msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
 msgstr "啟用時可以同時傳送到並管理多個機臺。"
+
+msgid "(Requires restart)"
+msgstr "（需要重啟程式）"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "彈出視窗選擇線材分組模式"
@@ -8447,13 +8449,13 @@ msgstr "偏好設定同步"
 msgid "View control settings"
 msgstr "視角控制設定"
 
-msgid "Rotate of view"
+msgid "Rotate view"
 msgstr "旋轉視角"
 
-msgid "Move of view"
+msgid "Pan view"
 msgstr "移動視角"
 
-msgid "Zoom of view"
+msgid "Zoom view"
 msgstr "縮放視角"
 
 msgid "Other"
@@ -8643,10 +8645,10 @@ msgid "Slicing Plate 1"
 msgstr "正在切片列印板 1"
 
 msgid "Packing data to 3MF"
-msgstr ""
+msgstr "正在將資料打包為 3MF"
 
 msgid "Uploading data"
-msgstr ""
+msgstr "正在上傳資料"
 
 msgid "Jump to webpage"
 msgstr "跳至網頁"
@@ -9281,9 +9283,9 @@ msgstr ""
 "嗎？"
 
 msgid ""
-"Enabling both precise Z height and the prime tower may cause the size of "
-"prime tower to increase. Do you still want to enable?"
-msgstr "同時啟用精確 Z 軸高度與換料塔功能，可能會讓換料塔變大。是否仍要啟用？"
+"Enabling both precise Z height and the prime tower may cause slicing errors. "
+"Do you still want to enable?"
+msgstr "同時啟用精確 Z 高度和擦拭塔可能會導致切片錯誤。您仍然要啟用嗎？"
 
 msgid ""
 "A prime tower is required for clumping detection. There may be flaws on the "
@@ -9291,6 +9293,12 @@ msgid ""
 msgstr ""
 "堵塞偵測需要換料塔。若沒有換料塔，列印物件上可能會有瑕疵。您是否仍要啟用堵塞"
 "偵測？"
+
+msgid ""
+"Enabling both precise Z height and the prime tower may cause slicing errors. "
+"Do you still want to enable precise Z height?"
+msgstr ""
+"同時啟用精確 Z 高度和擦拭塔可能會導致切片錯誤。您仍然要啟用精確 Z 高度嗎？"
 
 msgid ""
 "A prime tower is required for smooth timelapse. There may be flaws on the "
@@ -9404,8 +9412,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "在錄製無工具頭縮時錄影影片時，建議新增一個「縮時錄影換料塔」\n"
 "可以通過右鍵點擊構建板的空白位置，選擇『新增標準模型』->『縮時錄影換料塔』來"
@@ -10037,7 +10045,7 @@ msgstr ""
 "\n"
 "您可以放棄已修改的預設值，或選擇將修改的數值轉移到新專案中"
 
-msgid "Extruders count"
+msgid "Extruder count"
 msgstr "擠出機數量"
 
 msgid "Capabilities"
@@ -10050,10 +10058,10 @@ msgid "Select presets to compare"
 msgstr "選擇要比較的預設"
 
 msgid "Left Preset Value"
-msgstr ""
+msgstr "左側預設值"
 
 msgid "Right Preset Value"
-msgstr ""
+msgstr "右側預設值"
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."
@@ -10203,6 +10211,9 @@ msgid ""
 msgstr ""
 "顏色已選擇，您可以選擇確定\n"
 "以繼續或手動調整。"
+
+msgid "—> "
+msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament "
@@ -10457,8 +10468,10 @@ msgstr ""
 
 msgid ""
 "Missing BambuSource component registered for media playing! Please re-"
-"install BambuStudio or seek after-sales help."
-msgstr "缺少 BambuSource 媒體播放組件！請重新安裝 BambuStudio 或聯繫售後支援。"
+"install OrcaSlicer or seek community help."
+msgstr ""
+"缺少用於媒體播放的已註冊 BambuSource 元件！請重新安裝 OrcaSlicer 或尋求社群協"
+"助。"
 
 msgid ""
 "Using a BambuSource from a different install, video play may not work "
@@ -10485,10 +10498,10 @@ msgid "Login"
 msgstr "登入"
 
 msgid "[Action Required] "
-msgstr ""
+msgstr "[需要操作] "
 
 msgid "[Action Required]"
-msgstr ""
+msgstr "[需要操作]"
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "設定檔在之前的設定引導過程中已改變"
@@ -10519,15 +10532,6 @@ msgstr "顯示鍵盤快捷鍵清單"
 
 msgid "Global shortcuts"
 msgstr "全域快捷鍵"
-
-msgid "Pan view"
-msgstr "移動視角"
-
-msgid "Rotate view"
-msgstr "旋轉視角"
-
-msgid "Zoom view"
-msgstr "縮放視角"
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11184,6 +11188,10 @@ msgid ""
 msgstr "啟用“按物件”序列時，不支援結塊檢測。"
 
 msgid ""
+"Enabling both precise Z height and the prime tower may cause slicing errors."
+msgstr "同時啟用精確 Z 高度和擦拭塔可能會導致切片錯誤。"
+
+msgid ""
 "A prime tower is required for clumping detection; otherwise, there may be "
 "flaws on the model."
 msgstr "結塊檢測需要 Prime 塔；否則，模型可能存在缺陷。"
@@ -11335,6 +11343,11 @@ msgid ""
 "Organic support branch diameter must not be smaller than support tree tip "
 "diameter."
 msgstr "有機樹狀支撐枝直徑不得小於支撐樹梢直徑。"
+
+msgid ""
+"The Hollow base pattern is not supported by this support type; Rectilinear "
+"will be used instead."
+msgstr "此支撐類型不支援空心底座圖案；將改用直線填充。"
 
 msgid ""
 "Support enforcers are used but support is not enabled. Please enable support."
@@ -11489,9 +11502,6 @@ msgid ""
 msgstr ""
 "象腳補償將處於活動狀態的層數。 第一層將縮小象腳補償值，然後接下來的層將線性縮"
 "小，直到該值指示的層。"
-
-msgid "layers"
-msgstr "層"
 
 msgid ""
 "Slicing height for each layer. Smaller layer height means more accurate and "
@@ -11670,33 +11680,33 @@ msgid "First layer bed temperature"
 msgstr "首層床溫"
 
 msgid ""
-"Bed temperature of the first layer. A value of 0 means the filament does "
-"not support printing on the Cool Plate SuperTack."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Cool Plate SuperTack."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫增穩列印板"
 
 msgid ""
-"Bed temperature of the first layer. A value of 0 means the filament does "
-"not support printing on the Cool Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫列印板"
 
 msgid ""
-"Bed temperature of the first layer. A value of 0 means the filament does "
-"not support printing on the Textured Cool Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Textured Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫紋理列印板"
 
 msgid ""
-"Bed temperature of the first layer. A value of 0 means the filament does "
-"not support printing on the Engineering Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Engineering Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於工程列印板"
 
 msgid ""
-"Bed temperature of the first layer. A value of 0 means the filament does "
-"not support printing on the High Temp Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the High Temp Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於高溫列印板"
 
 msgid ""
-"Bed temperature of the first layer. A value of 0 means the filament does "
-"not support printing on the Textured PEI Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Textured PEI Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
 msgid "Bed types supported by the printer."
@@ -12939,9 +12949,6 @@ msgstr "作為介面上的輔助"
 msgid "Extruder offset"
 msgstr "擠出機偏移"
 
-msgid "Flow ratio"
-msgstr "流量比例"
-
 msgid ""
 "The material may have volumetric change after switching between molten and "
 "crystalline states. This setting changes all extrusion flow of this filament "
@@ -13279,10 +13286,15 @@ msgstr "自適應體積流量"
 msgid ""
 "When enabled, the extrusion flow is limited by the smaller of the fitted "
 "value (calculated from line width and layer height) and the user-defined "
-"maximum flow. When disabled, only the user-defined maximum flow is applied."
+"maximum flow. When disabled, only the user-defined maximum flow is applied.\n"
+"\n"
+"Note: Experimental and incomplete feature imported from BBS. Functional for "
+"some profiles that already have the variable saved."
 msgstr ""
-"啟用時，擠出流量受限於擬合值（由線寬和層高計算得出）和使用者定義的最大流量中"
-"較小者。停用時，僅應用使用者定義的最大流量。"
+"啟用後，擠出流量受到擬合值（根據線寬和層高計算）和使用者定義的最大流量中較小"
+"者的限制。停用時，僅套用使用者定義的最大流量。\n"
+"\n"
+"注意：從 BBS 匯入的實驗性和不完整功能。對於某些已儲存該變數的設定檔有效。"
 
 msgid "Max volumetric speed multinomial coefficients"
 msgstr "最大體積流量多項式係數"
@@ -13776,8 +13788,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 或 %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "稀疏填充的加速度。如果該值表示為百分比（例如 100%），則將根據預設加速度進行計"
 "算。"
@@ -13846,11 +13858,10 @@ msgstr "首層的線寬。如果以 % 表示，它將以噴嘴直徑為基準來
 msgid "First layer height"
 msgstr "首層層高"
 
-#, fuzzy
 msgid ""
 "Height of the first layer. Making the first layer height thicker can improve "
 "build plate adhesion."
-msgstr "首層層高"
+msgstr "首層層高。加厚首層層高有助於提高列印板附著力。"
 
 msgid "Speed of the first layer except the solid infill part."
 msgstr "首層除實心填充之外的其他部分的列印速度"
@@ -13887,10 +13898,10 @@ msgstr "滿速風扇在"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "風扇速度會從第「close_fan_the_first_x_layers」層開始，從零速以線性方式逐漸增"
 "加，直到第「full_fan_speed_layer」層達到最大速度。如果"
@@ -14694,7 +14705,7 @@ msgstr "頂面"
 msgid "Topmost surface"
 msgstr "最頂面"
 
-msgid "All solid layer"
+msgid "All solid layers"
 msgstr "所有實心層"
 
 msgid "Ironing Pattern"
@@ -15174,7 +15185,7 @@ msgstr ""
 "模型底部的孔洞在被圓錐形材料填充前所允許的最大面積。值為 0 將填充模型底部的所"
 "有孔洞。"
 
-msgid "Detect overhang wall"
+msgid "Detect overhang walls"
 msgstr "檢測懸空外牆"
 
 #, c-format, boost-format
@@ -15630,8 +15641,8 @@ msgid "Role base wipe speed"
 msgstr "自動擦拭速度"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15787,7 +15798,7 @@ msgid "Minimum sparse infill threshold"
 msgstr "稀疏填充最小臨界值"
 
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr "小於設定閾值的稀疏填充區域將替換為內部實心填充"
 
@@ -15954,6 +15965,25 @@ msgstr ""
 "啟用此選項後，自定義的換線 G-code 將僅在列印開始時被省略，整個列印過程中會跳"
 "過工具更換指令（例如：T0）。此功能適用於手動多材料列印，允許使用 M600/PAUSE "
 "指令來觸發手動換線操作。"
+
+msgid "Wipe tower type"
+msgstr "擦拭塔類型"
+
+msgid ""
+"Choose the wipe tower implementation for multi-material prints. Type 1 is "
+"recommended for Bambu and Qidi printers with a filament cutter. Type 2 "
+"offers better compatibility with multi-tool and MMU printers and provide "
+"overall better compatibility."
+msgstr ""
+"選擇多材料列印的擦拭塔實作方式。類型 1 推薦用於帶有耗材切刀的 Bambu 和 Qidi "
+"印表機。類型 2 提供與多工具頭和 MMU 印表機更好的相容性，並提供更好的整體相容"
+"性。"
+
+msgid "Type 1"
+msgstr "類型 1"
+
+msgid "Type 2"
+msgstr "類型 2"
 
 msgid "Purge in prime tower"
 msgstr "沖刷進換料塔"
@@ -16432,8 +16462,8 @@ msgstr "啟動溫度控制"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16482,12 +16512,12 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "除首層外的其它層的噴嘴溫度"
 
-msgid "Detect thin wall"
+msgid "Detect thin walls"
 msgstr "檢查薄壁"
 
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "檢查無法容納兩條走線的薄壁。使用單條走線列印。可能會打地不是很好，因為走線不"
 "再閉合"
@@ -16706,7 +16736,7 @@ msgid "Rectangle"
 msgstr "矩形"
 
 msgid "Rib"
-msgstr ""
+msgstr "肋條"
 
 msgid "Extra rib length"
 msgstr "額外肋條長度"
@@ -17045,7 +17075,7 @@ msgstr ""
 "設定替代模型中細薄特徵（依據最小特徵尺寸）的牆體寬度。若最小牆寬小於特徵厚"
 "度，牆體將與特徵的厚度一致。此值以噴嘴直徑的百分比表示"
 
-msgid "Detect narrow internal solid infill"
+msgid "Detect narrow internal solid infills"
 msgstr "識別狹窄內部實心填充"
 
 msgid ""
@@ -17303,8 +17333,8 @@ msgid "Debug level"
 msgstr "除錯模式等級"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
 "設定除錯日誌級別。0：致命錯誤，1：錯誤，2：警告，3：資訊，4：除錯，5：追蹤\n"
 
@@ -18570,20 +18600,24 @@ msgstr "輸入整形器類型"
 
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
-msgstr ""
+msgstr "請確保所選類型與您的韌體版本相容。"
 
 msgid ""
 "Marlin version => 2.1.2\n"
 "Fixed-Time motion not yet implemented."
 msgstr ""
+"Marlin 版本 => 2.1.2\n"
+"固定時間運動尚未實作。"
 
 msgid "Klipper version => 0.9.0"
-msgstr ""
+msgstr "Klipper 版本 => 0.9.0"
 
 msgid ""
 "RepRap firmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
+"RepRap 韌體版本 => 3.4.0\n"
+"請查閱您的韌體文件了解支援的整形器類型。"
 
 msgid "Frequency (Start / End): "
 msgstr "頻率（開始/結束）："
@@ -18624,7 +18658,7 @@ msgid "Input shaping Damp test"
 msgstr "輸入整形阻尼測試"
 
 msgid "Check firmware compatibility."
-msgstr ""
+msgstr "檢查韌體相容性。"
 
 msgid "Frequency: "
 msgstr "頻率："
@@ -18667,8 +18701,8 @@ msgstr "結尾："
 msgid "Cornering settings"
 msgstr "轉彎設定"
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
-msgstr "注意：值越低 = 拐角越尖銳，但速度越慢。\n"
+msgid "Note: Lower values = sharper corners but slower speeds."
+msgstr "注意：值越低 = 拐角越尖銳，但速度越慢。"
 
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
@@ -18955,8 +18989,8 @@ msgstr ""
 "確定要覆寫嗎？"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "將會將預設名稱重新命名為「廠牌 型號 序號 @選擇的列印設備」。\n"
@@ -20309,105 +20343,105 @@ msgid "More Colors"
 msgstr "更多顏色"
 
 msgid "Network Plug-in Update Available"
-msgstr ""
+msgstr "網路外掛程式更新可用"
 
 msgid "Bambu Network Plug-in Required"
-msgstr ""
+msgstr "需要 Bambu 網路外掛程式"
 
 msgid ""
 "The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
-msgstr ""
+msgstr "Bambu 網路外掛程式已損壞或不相容。請重新安裝。"
 
 msgid ""
 "The Bambu Network Plug-in is required for cloud features, printer discovery, "
 "and remote printing."
-msgstr ""
+msgstr "Bambu 網路外掛程式用於雲端功能、印表機探索和遠端列印。"
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr ""
+msgstr "錯誤：%s"
 
 msgid "Show details"
-msgstr ""
+msgstr "顯示詳細資訊"
 
 msgid "Version to install:"
-msgstr ""
+msgstr "將安裝的版本："
 
 msgid "Download and Install"
-msgstr ""
+msgstr "下載並安裝"
 
 msgid "Skip for Now"
-msgstr ""
+msgstr "暫時略過"
 
 msgid "A new version of the Bambu Network Plug-in is available."
-msgstr ""
+msgstr "Bambu 網路外掛程式有新版本可用。"
 
 #, c-format, boost-format
 msgid "Current version: %s"
-msgstr ""
+msgstr "目前版本：%s"
 
 msgid "Update to version:"
-msgstr ""
+msgstr "更新到版本："
 
 msgid "Update Now"
-msgstr ""
+msgstr "立即更新"
 
 msgid "Remind Later"
-msgstr ""
+msgstr "稍後提醒"
 
 msgid "Skip Version"
-msgstr ""
+msgstr "略過此版本"
 
 msgid "Don't Ask Again"
-msgstr ""
+msgstr "不再詢問"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
-msgstr ""
+msgstr "Bambu 網路外掛程式已成功安裝。"
 
 msgid ""
 "A restart is required to load the new plug-in. Would you like to restart now?"
-msgstr ""
+msgstr "需要重新啟動以載入新的外掛程式。您要立即重新啟動嗎？"
 
 msgid "Restart Now"
-msgstr ""
+msgstr "立即重新啟動"
 
 msgid "Restart Later"
-msgstr ""
+msgstr "稍後重新啟動"
 
 msgid "NO RAMMING AT ALL"
-msgstr ""
+msgstr "完全不擠壓"
 
 msgid "Volumetric speed"
-msgstr ""
+msgstr "體積速度"
 
 msgid "Step file import parameters"
-msgstr ""
+msgstr "STEP 檔案匯入參數"
 
 msgid ""
 "Smaller linear and angular deflections result in higher-quality "
 "transformations but increase the processing time."
-msgstr ""
+msgstr "較小的線性和角度偏差會產生更高品質的轉換，但會增加處理時間。"
 
 msgid "Linear Deflection"
-msgstr ""
+msgstr "線性偏差"
 
 msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
-msgstr ""
+msgstr "請輸入有效值（0.001 < 線性偏差 < 0.1）"
 
 msgid "Angle Deflection"
-msgstr ""
+msgstr "角度偏差"
 
 msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
-msgstr ""
+msgstr "請輸入有效值（0.01 < 角度偏差 < 1.0）"
 
 msgid "Split compound and compsolid into multiple objects"
-msgstr ""
+msgstr "將複合體和複合實體拆分為多個物件"
 
 msgid "Number of triangular facets"
-msgstr ""
+msgstr "三角面片數量"
 
 msgid "Calculating, please wait..."
-msgstr ""
+msgstr "正在計算，請稍候..."
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
@@ -20792,6 +20826,62 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "BambuStudio warning"
+#~ msgstr "BambuStudio 警告"
+
+#~ msgid ""
+#~ "Zero first layer height is invalid.\n"
+#~ "\n"
+#~ "The first layer height will be reset to 0.2."
+#~ msgstr ""
+#~ "0 為無效的首層層高值。\n"
+#~ "將被重設為 0.2。0 為無效的首層層高值。\n"
+#~ "將被重設為 0.2。"
+
+#~ msgid ""
+#~ "Prime tower position exceeded build plate boundaries and was repositioned "
+#~ "to the nearest valid edge."
+#~ msgstr "換料塔位置超出列印板邊界，已重新定位到最近的有效邊緣。"
+
+#~ msgid "Check for Update"
+#~ msgstr "檢查新版本"
+
+#~ msgid "Detect spaghetti failure(scattered lose filament)."
+#~ msgstr "偵測拉絲失敗（散落的鬆散線材）。"
+
+#~ msgid "Rotate of view"
+#~ msgstr "旋轉視角"
+
+#~ msgid "Move of view"
+#~ msgstr "移動視角"
+
+#~ msgid "Zoom of view"
+#~ msgstr "縮放視角"
+
+#~ msgid ""
+#~ "Enabling both precise Z height and the prime tower may cause the size of "
+#~ "prime tower to increase. Do you still want to enable?"
+#~ msgstr ""
+#~ "同時啟用精確 Z 軸高度與換料塔功能，可能會讓換料塔變大。是否仍要啟用？"
+
+#~ msgid "Extruders count"
+#~ msgstr "擠出機數量"
+
+#~ msgid ""
+#~ "Missing BambuSource component registered for media playing! Please re-"
+#~ "install BambuStudio or seek after-sales help."
+#~ msgstr ""
+#~ "缺少 BambuSource 媒體播放組件！請重新安裝 BambuStudio 或聯繫售後支援。"
+
+#~ msgid ""
+#~ "When enabled, the extrusion flow is limited by the smaller of the fitted "
+#~ "value (calculated from line width and layer height) and the user-defined "
+#~ "maximum flow. When disabled, only the user-defined maximum flow is "
+#~ "applied."
+#~ msgstr ""
+#~ "啟用時，擠出流量受限於擬合值（由線寬和層高計算得出）和使用者定義的最大流量"
+#~ "中較小者。停用時，僅應用使用者定義的最大流量。"
 
 #~ msgid "Auto-refill"
 #~ msgstr "自動補料"
