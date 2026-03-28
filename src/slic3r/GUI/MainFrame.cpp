@@ -524,25 +524,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     update_layout();
     sizer->SetSizeHints(this);
 
-#ifdef WIN32
-    // SetMaximize causes the window to overlap the taskbar, due to the fact this window has wxMAXIMIZE_BOX off
-    // https://forums.wxwidgets.org/viewtopic.php?t=50634
-    // Fix it here
-    this->Bind(wxEVT_MAXIMIZE, [this](auto &e) {
-        wxDisplay display(this);
-        auto      size = display.GetClientArea().GetSize();
-        auto      pos  = display.GetClientArea().GetPosition();
-        HWND      hWnd = GetHandle();
-        RECT      borderThickness;
-        SetRectEmpty(&borderThickness);
-        AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE, 0);
-        const auto max_size = size + wxSize{-borderThickness.left + borderThickness.right, -borderThickness.top + borderThickness.bottom};
-        const auto current_size = GetSize();
-        SetSize({std::min(max_size.x, current_size.x), std::min(max_size.y, current_size.y)});
-        Move(pos + wxPoint{borderThickness.left, borderThickness.top});
-        e.Skip();
-    });
-#endif // WIN32
     // BBS
     Fit();
 
@@ -855,26 +836,31 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
     its wParam value is TRUE and the return value is 0 */
     case WM_NCCALCSIZE:
         if (wParam) {
-            /* Detect whether window is maximized or not. We don't need to change the resize border when win is
-             *  maximized because all resize borders are gone automatically */
             WINDOWPLACEMENT wPos;
             // GetWindowPlacement fail if this member is not set correctly.
             wPos.length = sizeof(wPos);
             GetWindowPlacement(hWnd, &wPos);
+            NCCALCSIZE_PARAMS *sz = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
+            RECT borderThickness;
+            SetRectEmpty(&borderThickness);
+            // Use & ~WS_CAPTION to get only the border thickness, not the caption height.
+            // wxWidgets 3.3 adds WS_CAPTION when wxMINIMIZE_BOX/wxMAXIMIZE_BOX/wxCLOSE_BOX is set,
+            // but we use a custom titlebar so we must exclude the caption from NC area calculations.
+            AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, NULL);
+            borderThickness.left *= -1;
+            borderThickness.top *= -1;
             if (wPos.showCmd != SW_SHOWMAXIMIZED) {
-                RECT borderThickness;
-                SetRectEmpty(&borderThickness);
-                AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, NULL);
-                borderThickness.left *= -1;
-                borderThickness.top *= -1;
-                NCCALCSIZE_PARAMS *sz = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
                 // Add 1 pixel to the top border to make the window resizable from the top border
-                sz->rgrc[0].top += 1; // borderThickness.top;
-                sz->rgrc[0].left += borderThickness.left;
-                sz->rgrc[0].right -= borderThickness.right;
-                sz->rgrc[0].bottom -= borderThickness.bottom;
-                return 0;
+                sz->rgrc[0].top += 1;
+            } else {
+                // When maximized, Windows extends the window beyond the screen by the border thickness.
+                // Strip the full border overshoot so the client area matches the work area.
+                sz->rgrc[0].top += borderThickness.top;
             }
+            sz->rgrc[0].left += borderThickness.left;
+            sz->rgrc[0].right -= borderThickness.right;
+            sz->rgrc[0].bottom -= borderThickness.bottom;
+            return 0;
         }
         break;
 
