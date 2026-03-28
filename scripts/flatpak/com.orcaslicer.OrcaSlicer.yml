@@ -1,4 +1,4 @@
-app-id: io.github.orcaslicer.OrcaSlicer
+app-id: com.orcaslicer.OrcaSlicer
 runtime: org.gnome.Platform
 runtime-version: "49"
 sdk: org.gnome.Sdk
@@ -24,9 +24,11 @@ finish-args:
   - --filesystem=/run/media
   - --filesystem=/media
   - --filesystem=/run/spnav.sock:ro
+  # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
+  - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
   # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
-  - --talk-name=com.softfever3d.orca-slicer.InstanceCheck.*
-  - --own-name=com.softfever3d.orca-slicer.InstanceCheck.*
+  - --talk-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
+  - --own-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
   - --system-talk-name=org.freedesktop.UDisks2
   - --env=SPNAV_SOCKET=/run/spnav.sock
 
@@ -367,7 +369,7 @@ modules:
 
       # AppData metainfo for GNOME Software & Co.
       - type: file
-        path: io.github.orcaslicer.OrcaSlicer.metainfo.xml
+        path: com.orcaslicer.OrcaSlicer.metainfo.xml
 
       # Startup script
       - type: file

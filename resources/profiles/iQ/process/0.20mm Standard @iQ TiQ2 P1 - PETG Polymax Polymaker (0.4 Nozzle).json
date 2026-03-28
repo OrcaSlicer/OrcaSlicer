@@ -18,7 +18,7 @@
     "bridge_speed": "50",
     "default_acceleration": "1500",
     "enable_overhang_speed": "0",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "gap_infill_speed": "50",
     "thick_internal_bridges": "0",
     "enable_extra_bridge_layer": "apply_to_all",

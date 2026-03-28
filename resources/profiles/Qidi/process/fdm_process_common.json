@@ -77,7 +77,7 @@
     "top_surface_line_width": "0.42",
     "top_surface_speed": "30",
     "travel_speed": "400",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",
     "xy_contour_compensation": "0"

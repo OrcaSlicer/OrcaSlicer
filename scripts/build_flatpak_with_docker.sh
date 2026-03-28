@@ -98,8 +98,8 @@ echo "  ccache:     enabled"
 echo ""
 
 # ---------- prepare manifest ----------
-MANIFEST_SRC="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.yml"
-MANIFEST_DOCKER="scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml"
+MANIFEST_SRC="scripts/flatpak/com.orcaslicer.OrcaSlicer.yml"
+MANIFEST_DOCKER="scripts/flatpak/com.orcaslicer.OrcaSlicer.docker.yml"
 # Ensure cleanup on exit (success or failure)
 trap 'rm -f "$PROJECT_ROOT/$MANIFEST_DOCKER"' EXIT
 
@@ -167,6 +167,12 @@ format_duration() {
 overall_start=$(date +%s)
 install_start=$overall_start
 
+# The workspace and .flatpak-builder cache are bind-mounted from the host.
+# Git inside the container may reject cached source repos as unsafe due to
+# ownership mismatch, which breaks flatpak-builder when it reuses git sources.
+git config --global --add safe.directory /src
+git config --global --add safe.directory '/src/.flatpak-builder/git/*'
+
 # Install required SDK extensions (not pre-installed in the container image)
 flatpak install -y --noninteractive --arch="$BUILD_ARCH" flathub \
     org.gnome.Platform//49 \
@@ -185,7 +191,7 @@ flatpak-builder $FORCE_CLEAN_FLAG \
     --arch="$BUILD_ARCH" \
     --repo=flatpak-repo \
     flatpak-build \
-    scripts/flatpak/io.github.orcaslicer.OrcaSlicer.docker.yml
+    scripts/flatpak/com.orcaslicer.OrcaSlicer.docker.yml
 builder_end=$(date +%s)
 builder_duration=$((builder_end - builder_start))
 
@@ -194,7 +200,7 @@ flatpak build-bundle \
     --arch="$BUILD_ARCH" \
     flatpak-repo \
     "$BUNDLE_NAME" \
-    io.github.orcaslicer.OrcaSlicer
+    com.orcaslicer.OrcaSlicer
 bundle_end=$(date +%s)
 bundle_duration=$((bundle_end - bundle_start))
 

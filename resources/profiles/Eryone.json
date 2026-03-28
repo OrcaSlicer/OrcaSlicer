@@ -1,6 +1,6 @@
 {
     "name": "Eryone",
-    "version": "02.03.02.51",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "Eryone  configurations",
     "machine_model_list": [
@@ -27,8 +27,8 @@
             "sub_path": "process/fdm_process_eryone_ER20_common.json"
         },
         {
-            "name": "fdm_process_eryone_ER20_Klipper_common",
-            "sub_path": "process/fdm_process_eryone_ER20_Klipper_common.json"
+            "name": "0.20mm Standard @Thinker X400",
+            "sub_path": "process/0.20mm Standard @Thinker X400.json"
         },
         {
             "name": "fdm_process_ER20_0.06_nozzle_0.2",
@@ -119,6 +119,122 @@
             "sub_path": "process/eryone_ER20/fdm_process_ER20_0.56_nozzle_0.8.json"
         },
         {
+            "name": "fdm_process_eryone_ER20_Klipper_common",
+            "sub_path": "process/fdm_process_eryone_ER20_Klipper_common.json"
+        },
+        {
+            "name": "0.10mm Standard @Thinker X400 0.2 nozzle",
+            "sub_path": "process/0.10mm Standard @Thinker X400 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm Standard @Thinker X400",
+            "sub_path": "process/0.12mm Standard @Thinker X400.json"
+        },
+        {
+            "name": "0.16mm Standard @Thinker X400",
+            "sub_path": "process/0.16mm Standard @Thinker X400.json"
+        },
+        {
+            "name": "0.24mm Standard @Thinker X400",
+            "sub_path": "process/0.24mm Standard @Thinker X400.json"
+        },
+        {
+            "name": "0.06mm High Quality @Eryone ER20 0.2 nozzle",
+            "sub_path": "process/eryone_ER20/0.06mm High Quality @Eryone ER20 0.2 nozzle.json"
+        },
+        {
+            "name": "0.08mm Optimal @Eryone ER20 0.2 nozzle",
+            "sub_path": "process/eryone_ER20/0.08mm Optimal @Eryone ER20 0.2 nozzle.json"
+        },
+        {
+            "name": "0.10mm Standard @Eryone ER20 0.2 nozzle",
+            "sub_path": "process/eryone_ER20/0.10mm Standard @Eryone ER20 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm High Quality @Eryone ER20",
+            "sub_path": "process/eryone_ER20/0.12mm High Quality @Eryone ER20.json"
+        },
+        {
+            "name": "0.12mm Draft @Eryone ER20 0.2 nozzle",
+            "sub_path": "process/eryone_ER20/0.12mm Draft @Eryone ER20 0.2 nozzle.json"
+        },
+        {
+            "name": "0.14mm Extra Draft @Eryone ER20 0.2 nozzle",
+            "sub_path": "process/eryone_ER20/0.14mm Extra Draft @Eryone ER20 0.2 nozzle.json"
+        },
+        {
+            "name": "0.15mm Optimal @Eryone ER20 0.5 nozzle",
+            "sub_path": "process/eryone_ER20/0.15mm Optimal @Eryone ER20 0.5 nozzle.json"
+        },
+        {
+            "name": "0.16mm Optimal @Eryone ER20",
+            "sub_path": "process/eryone_ER20/0.16mm Optimal @Eryone ER20.json"
+        },
+        {
+            "name": "0.18mm Fine @Eryone ER20 0.6 nozzle",
+            "sub_path": "process/eryone_ER20/0.18mm Fine @Eryone ER20 0.6 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Eryone ER20",
+            "sub_path": "process/eryone_ER20/0.20mm Standard @Eryone ER20.json"
+        },
+        {
+            "name": "0.20mm Strength @Eryone ER20",
+            "sub_path": "process/eryone_ER20/0.20mm Strength @Eryone ER20.json"
+        },
+        {
+            "name": "0.24mm Draft @Eryone ER20",
+            "sub_path": "process/eryone_ER20/0.24mm Draft @Eryone ER20.json"
+        },
+        {
+            "name": "0.24mm Optimal @Eryone ER20 0.6 nozzle",
+            "sub_path": "process/eryone_ER20/0.24mm Optimal @Eryone ER20 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Fine @Eryone ER20 0.8 nozzle",
+            "sub_path": "process/eryone_ER20/0.24mm Fine @Eryone ER20 0.8 nozzle.json"
+        },
+        {
+            "name": "0.25mm Standard @Eryone ER20 0.5 nozzle",
+            "sub_path": "process/eryone_ER20/0.25mm Standard @Eryone ER20 0.5 nozzle.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Eryone ER20",
+            "sub_path": "process/eryone_ER20/0.28mm Extra Draft @Eryone ER20.json"
+        },
+        {
+            "name": "0.30mm Standard @Eryone ER20 0.6 nozzle",
+            "sub_path": "process/eryone_ER20/0.30mm Standard @Eryone ER20 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Eryone ER20 0.6 nozzle",
+            "sub_path": "process/eryone_ER20/0.30mm Strength @Eryone ER20 0.6 nozzle.json"
+        },
+        {
+            "name": "0.32mm Optimal @Eryone ER20 0.8 nozzle",
+            "sub_path": "process/eryone_ER20/0.32mm Optimal @Eryone ER20 0.8 nozzle.json"
+        },
+        {
+            "name": "0.36mm Draft @Eryone ER20 0.6 nozzle",
+            "sub_path": "process/eryone_ER20/0.36mm Draft @Eryone ER20 0.6 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @Eryone ER20 0.8 nozzle",
+            "sub_path": "process/eryone_ER20/0.40mm Standard @Eryone ER20 0.8 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @Eryone ER20 0.6 nozzle",
+            "sub_path": "process/eryone_ER20/0.42mm Extra Draft @Eryone ER20 0.6 nozzle.json"
+        },
+        {
+            "name": "0.48mm Draft @Eryone ER20 0.8 nozzle",
+            "sub_path": "process/eryone_ER20/0.48mm Draft @Eryone ER20 0.8 nozzle.json"
+        },
+        {
+            "name": "0.56mm Extra Draft @Eryone ER20 0.8 nozzle",
+            "sub_path": "process/eryone_ER20/0.56mm Extra Draft @Eryone ER20 0.8 nozzle.json"
+        },
+        {
             "name": "fdm_process_ER20_Klipper_0.06_nozzle_0.2",
             "sub_path": "process/eryone_ER20_Klipper/fdm_process_ER20_Klipper_0.06_nozzle_0.2.json"
         },
@@ -207,126 +323,6 @@
             "sub_path": "process/eryone_ER20_Klipper/fdm_process_ER20_Klipper_0.56_nozzle_0.8.json"
         },
         {
-            "name": "0.12mm High Quality @Eryone ER20",
-            "sub_path": "process/eryone_ER20/0.12mm High Quality @Eryone ER20.json"
-        },
-        {
-            "name": "0.16mm Optimal @Eryone ER20",
-            "sub_path": "process/eryone_ER20/0.16mm Optimal @Eryone ER20.json"
-        },
-        {
-            "name": "0.20mm Standard @Eryone ER20",
-            "sub_path": "process/eryone_ER20/0.20mm Standard @Eryone ER20.json"
-        },
-        {
-            "name": "0.20mm Strength @Eryone ER20",
-            "sub_path": "process/eryone_ER20/0.20mm Strength @Eryone ER20.json"
-        },
-        {
-            "name": "0.24mm Draft @Eryone ER20",
-            "sub_path": "process/eryone_ER20/0.24mm Draft @Eryone ER20.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @Eryone ER20",
-            "sub_path": "process/eryone_ER20/0.28mm Extra Draft @Eryone ER20.json"
-        },
-        {
-            "name": "0.06mm High Quality @Eryone ER20 0.2 nozzle",
-            "sub_path": "process/eryone_ER20/0.06mm High Quality @Eryone ER20 0.2 nozzle.json"
-        },
-        {
-            "name": "0.08mm Optimal @Eryone ER20 0.2 nozzle",
-            "sub_path": "process/eryone_ER20/0.08mm Optimal @Eryone ER20 0.2 nozzle.json"
-        },
-        {
-            "name": "0.10mm Standard @Eryone ER20 0.2 nozzle",
-            "sub_path": "process/eryone_ER20/0.10mm Standard @Eryone ER20 0.2 nozzle.json"
-        },
-        {
-            "name": "0.12mm Draft @Eryone ER20 0.2 nozzle",
-            "sub_path": "process/eryone_ER20/0.12mm Draft @Eryone ER20 0.2 nozzle.json"
-        },
-        {
-            "name": "0.14mm Extra Draft @Eryone ER20 0.2 nozzle",
-            "sub_path": "process/eryone_ER20/0.14mm Extra Draft @Eryone ER20 0.2 nozzle.json"
-        },
-        {
-            "name": "0.15mm Optimal @Eryone ER20 0.5 nozzle",
-            "sub_path": "process/eryone_ER20/0.15mm Optimal @Eryone ER20 0.5 nozzle.json"
-        },
-        {
-            "name": "0.25mm Standard @Eryone ER20 0.5 nozzle",
-            "sub_path": "process/eryone_ER20/0.25mm Standard @Eryone ER20 0.5 nozzle.json"
-        },
-        {
-            "name": "0.18mm Fine @Eryone ER20 0.6 nozzle",
-            "sub_path": "process/eryone_ER20/0.18mm Fine @Eryone ER20 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Optimal @Eryone ER20 0.6 nozzle",
-            "sub_path": "process/eryone_ER20/0.24mm Optimal @Eryone ER20 0.6 nozzle.json"
-        },
-        {
-            "name": "0.30mm Standard @Eryone ER20 0.6 nozzle",
-            "sub_path": "process/eryone_ER20/0.30mm Standard @Eryone ER20 0.6 nozzle.json"
-        },
-        {
-            "name": "0.30mm Strength @Eryone ER20 0.6 nozzle",
-            "sub_path": "process/eryone_ER20/0.30mm Strength @Eryone ER20 0.6 nozzle.json"
-        },
-        {
-            "name": "0.36mm Draft @Eryone ER20 0.6 nozzle",
-            "sub_path": "process/eryone_ER20/0.36mm Draft @Eryone ER20 0.6 nozzle.json"
-        },
-        {
-            "name": "0.42mm Extra Draft @Eryone ER20 0.6 nozzle",
-            "sub_path": "process/eryone_ER20/0.42mm Extra Draft @Eryone ER20 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Fine @Eryone ER20 0.8 nozzle",
-            "sub_path": "process/eryone_ER20/0.24mm Fine @Eryone ER20 0.8 nozzle.json"
-        },
-        {
-            "name": "0.32mm Optimal @Eryone ER20 0.8 nozzle",
-            "sub_path": "process/eryone_ER20/0.32mm Optimal @Eryone ER20 0.8 nozzle.json"
-        },
-        {
-            "name": "0.40mm Standard @Eryone ER20 0.8 nozzle",
-            "sub_path": "process/eryone_ER20/0.40mm Standard @Eryone ER20 0.8 nozzle.json"
-        },
-        {
-            "name": "0.48mm Draft @Eryone ER20 0.8 nozzle",
-            "sub_path": "process/eryone_ER20/0.48mm Draft @Eryone ER20 0.8 nozzle.json"
-        },
-        {
-            "name": "0.56mm Extra Draft @Eryone ER20 0.8 nozzle",
-            "sub_path": "process/eryone_ER20/0.56mm Extra Draft @Eryone ER20 0.8 nozzle.json"
-        },
-        {
-            "name": "0.12mm High Quality @Eryone ER20 Klipper",
-            "sub_path": "process/eryone_ER20_Klipper/0.12mm High Quality @Eryone ER20 Klipper.json"
-        },
-        {
-            "name": "0.16mm Optimal @Eryone ER20 Klipper",
-            "sub_path": "process/eryone_ER20_Klipper/0.16mm Optimal @Eryone ER20 Klipper.json"
-        },
-        {
-            "name": "0.20mm Standard @Eryone ER20 Klipper",
-            "sub_path": "process/eryone_ER20_Klipper/0.20mm Standard @Eryone ER20 Klipper.json"
-        },
-        {
-            "name": "0.20mm Strength @Eryone ER20 Klipper",
-            "sub_path": "process/eryone_ER20_Klipper/0.20mm Strength @Eryone ER20 Klipper.json"
-        },
-        {
-            "name": "0.24mm Draft @Eryone ER20 Klipper",
-            "sub_path": "process/eryone_ER20_Klipper/0.24mm Draft @Eryone ER20 Klipper.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @Eryone ER20 Klipper",
-            "sub_path": "process/eryone_ER20_Klipper/0.28mm Extra Draft @Eryone ER20 Klipper.json"
-        },
-        {
             "name": "0.06mm High Quality @Eryone ER20 Klipper 0.2 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.06mm High Quality @Eryone ER20 Klipper 0.2 nozzle.json"
         },
@@ -337,6 +333,10 @@
         {
             "name": "0.10mm Standard @Eryone ER20 Klipper 0.2 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.10mm Standard @Eryone ER20 Klipper 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm High Quality @Eryone ER20 Klipper",
+            "sub_path": "process/eryone_ER20_Klipper/0.12mm High Quality @Eryone ER20 Klipper.json"
         },
         {
             "name": "0.12mm Draft @Eryone ER20 Klipper 0.2 nozzle",
@@ -351,16 +351,40 @@
             "sub_path": "process/eryone_ER20_Klipper/0.15mm Optimal @Eryone ER20 Klipper 0.5 nozzle.json"
         },
         {
-            "name": "0.25mm Standard @Eryone ER20 Klipper 0.5 nozzle",
-            "sub_path": "process/eryone_ER20_Klipper/0.25mm Standard @Eryone ER20 Klipper 0.5 nozzle.json"
+            "name": "0.16mm Optimal @Eryone ER20 Klipper",
+            "sub_path": "process/eryone_ER20_Klipper/0.16mm Optimal @Eryone ER20 Klipper.json"
         },
         {
             "name": "0.18mm Fine @Eryone ER20 Klipper 0.6 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.18mm Fine @Eryone ER20 Klipper 0.6 nozzle.json"
         },
         {
+            "name": "0.20mm Standard @Eryone ER20 Klipper",
+            "sub_path": "process/eryone_ER20_Klipper/0.20mm Standard @Eryone ER20 Klipper.json"
+        },
+        {
+            "name": "0.20mm Strength @Eryone ER20 Klipper",
+            "sub_path": "process/eryone_ER20_Klipper/0.20mm Strength @Eryone ER20 Klipper.json"
+        },
+        {
+            "name": "0.24mm Draft @Eryone ER20 Klipper",
+            "sub_path": "process/eryone_ER20_Klipper/0.24mm Draft @Eryone ER20 Klipper.json"
+        },
+        {
             "name": "0.24mm Optimal @Eryone ER20 Klipper 0.6 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.24mm Optimal @Eryone ER20 Klipper 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Fine @Eryone ER20 Klipper 0.8 nozzle",
+            "sub_path": "process/eryone_ER20_Klipper/0.24mm Fine @Eryone ER20 Klipper 0.8 nozzle.json"
+        },
+        {
+            "name": "0.25mm Standard @Eryone ER20 Klipper 0.5 nozzle",
+            "sub_path": "process/eryone_ER20_Klipper/0.25mm Standard @Eryone ER20 Klipper 0.5 nozzle.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Eryone ER20 Klipper",
+            "sub_path": "process/eryone_ER20_Klipper/0.28mm Extra Draft @Eryone ER20 Klipper.json"
         },
         {
             "name": "0.30mm Standard @Eryone ER20 Klipper 0.6 nozzle",
@@ -371,24 +395,20 @@
             "sub_path": "process/eryone_ER20_Klipper/0.30mm Strength @Eryone ER20 Klipper 0.6 nozzle.json"
         },
         {
-            "name": "0.36mm Draft @Eryone ER20 Klipper 0.6 nozzle",
-            "sub_path": "process/eryone_ER20_Klipper/0.36mm Draft @Eryone ER20 Klipper 0.6 nozzle.json"
-        },
-        {
-            "name": "0.42mm Extra Draft @Eryone ER20 Klipper 0.6 nozzle",
-            "sub_path": "process/eryone_ER20_Klipper/0.42mm Extra Draft @Eryone ER20 Klipper 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Fine @Eryone ER20 Klipper 0.8 nozzle",
-            "sub_path": "process/eryone_ER20_Klipper/0.24mm Fine @Eryone ER20 Klipper 0.8 nozzle.json"
-        },
-        {
             "name": "0.32mm Optimal @Eryone ER20 Klipper 0.8 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.32mm Optimal @Eryone ER20 Klipper 0.8 nozzle.json"
         },
         {
+            "name": "0.36mm Draft @Eryone ER20 Klipper 0.6 nozzle",
+            "sub_path": "process/eryone_ER20_Klipper/0.36mm Draft @Eryone ER20 Klipper 0.6 nozzle.json"
+        },
+        {
             "name": "0.40mm Standard @Eryone ER20 Klipper 0.8 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.40mm Standard @Eryone ER20 Klipper 0.8 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @Eryone ER20 Klipper 0.6 nozzle",
+            "sub_path": "process/eryone_ER20_Klipper/0.42mm Extra Draft @Eryone ER20 Klipper 0.6 nozzle.json"
         },
         {
             "name": "0.48mm Draft @Eryone ER20 Klipper 0.8 nozzle",
@@ -397,48 +417,32 @@
         {
             "name": "0.56mm Extra Draft @Eryone ER20 Klipper 0.8 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.56mm Extra Draft @Eryone ER20 Klipper 0.8 nozzle.json"
-        },
-        {
-            "name": "0.20mm Standard @Thinker X400",
-            "sub_path": "process/0.20mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.12mm Standard @Thinker X400",
-            "sub_path": "process/0.12mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.16mm Standard @Thinker X400",
-            "sub_path": "process/0.16mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.24mm Standard @Thinker X400",
-            "sub_path": "process/0.24mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.10mm Standard @Thinker X400 0.2 nozzle",
-            "sub_path": "process/0.10mm Standard @Thinker X400 0.2 nozzle.json"
         }
     ],
     "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
         {
             "name": "Eryone Standard PLA",
             "sub_path": "filament/Eryone Standard PLA.json"
         },
         {
-            "name": "Eryone PLA",
-            "sub_path": "filament/Eryone PLA.json"
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
         },
         {
-            "name": "Eryone PLA-CF",
-            "sub_path": "filament/Eryone PLA-CF.json"
+            "name": "Eryone ABS",
+            "sub_path": "filament/Eryone ABS.json"
+        },
+        {
+            "name": "Eryone ABS-CF",
+            "sub_path": "filament/Eryone ABS-CF.json"
+        },
+        {
+            "name": "Eryone ASA",
+            "sub_path": "filament/Eryone ASA.json"
+        },
+        {
+            "name": "Eryone ASA-CF",
+            "sub_path": "filament/Eryone ASA-CF.json"
         },
         {
             "name": "Eryone PA",
@@ -453,22 +457,6 @@
             "sub_path": "filament/Eryone PA-GF.json"
         },
         {
-            "name": "Eryone PP",
-            "sub_path": "filament/Eryone PP.json"
-        },
-        {
-            "name": "Eryone PP-CF",
-            "sub_path": "filament/Eryone PP-CF.json"
-        },
-        {
-            "name": "Eryone ABS",
-            "sub_path": "filament/Eryone ABS.json"
-        },
-        {
-            "name": "Eryone ABS-CF",
-            "sub_path": "filament/Eryone ABS-CF.json"
-        },
-        {
             "name": "Eryone PETG",
             "sub_path": "filament/Eryone PETG.json"
         },
@@ -477,12 +465,20 @@
             "sub_path": "filament/Eryone PETG-CF.json"
         },
         {
-            "name": "Eryone ASA",
-            "sub_path": "filament/Eryone ASA.json"
+            "name": "Eryone PLA",
+            "sub_path": "filament/Eryone PLA.json"
         },
         {
-            "name": "Eryone ASA-CF",
-            "sub_path": "filament/Eryone ASA-CF.json"
+            "name": "Eryone PLA-CF",
+            "sub_path": "filament/Eryone PLA-CF.json"
+        },
+        {
+            "name": "Eryone PP",
+            "sub_path": "filament/Eryone PP.json"
+        },
+        {
+            "name": "Eryone PP-CF",
+            "sub_path": "filament/Eryone PP-CF.json"
         },
         {
             "name": "Eryone Silk PLA",
@@ -493,12 +489,24 @@
             "sub_path": "filament/Eryone TPU.json"
         },
         {
-            "name": "Eryone PLA @0.2 nozzle",
-            "sub_path": "filament/Eryone PLA @0.2 nozzle.json"
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
         },
         {
-            "name": "Eryone PLA-CF @0.2 nozzle",
-            "sub_path": "filament/Eryone PLA-CF @0.2 nozzle.json"
+            "name": "Eryone ABS @0.2 nozzle",
+            "sub_path": "filament/Eryone ABS @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ABS-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone ABS-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ASA @0.2 nozzle",
+            "sub_path": "filament/Eryone ASA @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ASA-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone ASA-CF @0.2 nozzle.json"
         },
         {
             "name": "Eryone PA @0.2 nozzle",
@@ -513,22 +521,6 @@
             "sub_path": "filament/Eryone PA-GF @0.2 nozzle.json"
         },
         {
-            "name": "Eryone PP @0.2 nozzle",
-            "sub_path": "filament/Eryone PP @0.2 nozzle.json"
-        },
-        {
-            "name": "Eryone PP-CF @0.2 nozzle",
-            "sub_path": "filament/Eryone PP-CF @0.2 nozzle.json"
-        },
-        {
-            "name": "Eryone ABS @0.2 nozzle",
-            "sub_path": "filament/Eryone ABS @0.2 nozzle.json"
-        },
-        {
-            "name": "Eryone ABS-CF @0.2 nozzle",
-            "sub_path": "filament/Eryone ABS-CF @0.2 nozzle.json"
-        },
-        {
             "name": "Eryone PETG @0.2 nozzle",
             "sub_path": "filament/Eryone PETG @0.2 nozzle.json"
         },
@@ -537,12 +529,20 @@
             "sub_path": "filament/Eryone PETG-CF @0.2 nozzle.json"
         },
         {
-            "name": "Eryone ASA @0.2 nozzle",
-            "sub_path": "filament/Eryone ASA @0.2 nozzle.json"
+            "name": "Eryone PLA @0.2 nozzle",
+            "sub_path": "filament/Eryone PLA @0.2 nozzle.json"
         },
         {
-            "name": "Eryone ASA-CF @0.2 nozzle",
-            "sub_path": "filament/Eryone ASA-CF @0.2 nozzle.json"
+            "name": "Eryone PLA-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone PLA-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PP @0.2 nozzle",
+            "sub_path": "filament/Eryone PP @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PP-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone PP-CF @0.2 nozzle.json"
         },
         {
             "name": "Eryone Silk PLA @0.2 nozzle",
@@ -555,24 +555,16 @@
     ],
     "machine_list": [
         {
-            "name": "fdm_machine_common",
-            "sub_path": "machine/fdm_machine_common.json"
-        },
-        {
             "name": "Thinker X400 0.4 nozzle",
             "sub_path": "machine/Thinker X400 0.4 nozzle.json"
-        },
-        {
-            "name": "Thinker X400 0.2 nozzle",
-            "sub_path": "machine/Thinker X400 0.2 nozzle.json"
         },
         {
             "name": "fdm_machine_eryone_ER20_common",
             "sub_path": "machine/fdm_machine_eryone_ER20_common.json"
         },
         {
-            "name": "fdm_machine_eryone_ER20_Klipper_common",
-            "sub_path": "machine/fdm_machine_eryone_ER20_Klipper_common.json"
+            "name": "Thinker X400 0.2 nozzle",
+            "sub_path": "machine/Thinker X400 0.2 nozzle.json"
         },
         {
             "name": "Eryone ER20 0.2 nozzle",
@@ -595,6 +587,10 @@
             "sub_path": "machine/ER20/Eryone ER20 0.8 nozzle.json"
         },
         {
+            "name": "fdm_machine_eryone_ER20_Klipper_common",
+            "sub_path": "machine/fdm_machine_eryone_ER20_Klipper_common.json"
+        },
+        {
             "name": "Eryone ER20 Klipper 0.2 nozzle",
             "sub_path": "machine/ER20_Klipper/Eryone ER20 Klipper 0.2 nozzle .json"
         },
@@ -613,6 +609,10 @@
         {
             "name": "Eryone ER20 Klipper 0.8 nozzle",
             "sub_path": "machine/ER20_Klipper/Eryone ER20 Klipper 0.8 nozzle .json"
+        },
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
         }
     ]
 }

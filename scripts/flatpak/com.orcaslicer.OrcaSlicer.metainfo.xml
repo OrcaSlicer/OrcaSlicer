@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-    <id>io.github.orcaslicer.OrcaSlicer</id>
-    <launchable type="desktop-id">io.github.orcaslicer.OrcaSlicer.desktop</launchable>
+    <id>com.orcaslicer.OrcaSlicer</id>
+    <launchable type="desktop-id">com.orcaslicer.OrcaSlicer.desktop</launchable>
     <provides>
-        <id>io.github.orcaslicer.OrcaSlicer.desktop</id>
+        <id>com.orcaslicer.OrcaSlicer.desktop</id>
     </provides>
     <name>OrcaSlicer</name>
     <summary>Get even more perfect prints!</summary>
-    <developer id="io.github.orcaslicer">
+    <developer id="com.orcaslicer">
         <name>SoftFever</name>
     </developer>
     <url type="homepage">https://www.orcaslicer.com</url>
