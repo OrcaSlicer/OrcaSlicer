@@ -6530,29 +6530,6 @@
             ]
         },
         {
-            "fila_color_code": "51106",
-            "fila_id": "GFU03",
-            "fila_color_type": "单色",
-            "fila_type": "TPU 90A",
-            "fila_color_name": {
-                "de": "",
-                "sv": "",
-                "pt": "",
-                "ko": "",
-                "ja": "",
-                "en": "Quicksilver",
-                "it": "",
-                "fr": "",
-                "hu": "",
-                "zh": "水银色",
-                "nl": "",
-                "es": ""
-            },
-            "fila_color": [
-                "#9ea2a2FF"
-            ]
-        },
-        {
             "fila_color_code": "51201",
             "fila_id": "GFU04",
             "fila_color_type": "单色",
@@ -6829,5 +6806,5 @@
             ]
         }
     ],
-    "total": 296
+    "total": 295
 }
