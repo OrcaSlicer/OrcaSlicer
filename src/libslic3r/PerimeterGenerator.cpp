@@ -1711,8 +1711,12 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
             //compute our unsupported surface
             ExPolygons unsupported = diff_ex(last, *this->lower_slices, ApplySafetyOffset::Yes);
             if (!unsupported.empty()) {
-                //remove small overhangs
-                ExPolygons unsupported_filtered = offset2_ex(unsupported, double(-perimeter_spacing), double(perimeter_spacing));
+                // remove small overhangs (when using chbFilled we need to be less agresive un removing small ovehangs, to avoid affect
+                // bridging detection.)
+                const int  expansion_factor     = this->config->counterbore_hole_bridging.value == chbFilled ? 2 : 1;
+                ExPolygons unsupported_filtered = offset2_ex(unsupported, double(-perimeter_spacing),
+                                                             double(perimeter_spacing) / expansion_factor);
+
                 if (!unsupported_filtered.empty()) {
                     //to_draw.insert(to_draw.end(), last.begin(), last.end());
                     //extract only the useful part of the lower layer. The safety offset is really needed here.
@@ -1754,9 +1758,9 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                         unsupported_filtered.erase(unsupported_filtered.begin() + i);
                                     }
                                 }
-                                unsupported_filtered = intersection_ex(last,
-                                                                       offset2_ex(unsupported_filtered, double(-perimeter_spacing / 2), double(bridged_infill_margin + perimeter_spacing / 2)));
                                 if (this->config->counterbore_hole_bridging.value == chbFilled) {
+                                    // Expand sacrificial layer bridge area to ensure proper anchoring of the bridge infill.
+                                    unsupported_filtered = offset_ex(unsupported_filtered, double(perimeter_spacing));
                                     for (ExPolygon& expol : unsupported_filtered) {
                                         //check if the holes won't be covered by the upper layer
                                         //TODO: if we want to do that, we must modify the geometry before making perimeters.
