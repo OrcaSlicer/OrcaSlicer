@@ -56,12 +56,12 @@ namespace GUI {
      "Justmaker",             "Keene Village Plastics",  "Kexcelled",              "LDO",                    "MakerBot",
      "MatterHackers",         "MIKA3D",                  "NinjaTek",               "Nobufil",                "Novamaker",
      "OVERTURE",              "OVVNYXE",                 "Polymaker",              "Priline",                "Printed Solid",
-     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "Re-pet3D",
-     "Recreus",               "Regen",                   "RatRig",                 "Sain SMART",             "SliceWorx",
-     "Snapmaker",             "SnoLabs",                 "Spectrum",               "SUNLU",                  "TTYT3D",
-     "Tianse",                "UltiMaker",               "Valment",                "Verbatim",               "VO3D",
-     "Voxelab",               "VOXELPLA",                "YOOPAI",                 "Yousu",                  "Ziro", 
-     "Zyltech"};
+     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "re3D"
+     "Re-pet3D",              "Recreus",                 "Regen",                  "RatRig",                 "Sain SMART",             
+     "SliceWorx",             "Snapmaker",               "SnoLabs",                "Spectrum",               "SUNLU",                  
+     "TTYT3D",                "Tianse",                  "UltiMaker",              "Valment",                "Verbatim",               
+     "VO3D",                  "Voxelab",                 "VOXELPLA",               "YOOPAI",                 "Yousu",                  
+     "Ziro",                  "Zyltech"};
      
 static const std::vector<std::string> filament_types = {"PLA",    "rPLA",  "PLA+",      "PLA Tough", "PETG",  "ABS",    "ASA",    "FLEX",   "HIPS",   "PA",     "PACF",
                                                         "NYLON",  "PVA",   "PVB",       "PC",        "PCABS", "PCTG",   "PCCF",   "PHA",    "PP",     "PEI",    "PET",
@@ -75,10 +75,10 @@ static const std::vector<std::string> printer_vendors =
      "FLSun",              "FlyingBear",         "Folgertech",         "Geeetech",           "Ginger Additive",
      "InfiMech",           "Kingroon",           "Lulzbot",            "MagicMaker",         "Mellow",
      "Orca Arena Printer", "Peopoly",            "Positron 3D",        "Prusa",              "Qidi",
-     "Raise3D",            "RatRig",             "RolohaunDesign",     "SecKit",             "Snapmaker",
-     "Sovol",              "Thinker X400",       "Tronxy",             "TwoTrees",           "UltiMaker",
-     "Vivedino",           "Volumic",            "Voron",              "Voxelab",            "Vzbot",
-     "Wanhao",             "Z-Bolt"};
+     "Raise3D",            "RatRig",             "re3D"                "RolohaunDesign",     "SecKit",             
+     "Snapmaker",          "Sovol",              "Thinker X400",       "Tronxy",             "TwoTrees",           
+     "UltiMaker",          "Vivedino",           "Volumic",            "Voron",              "Voxelab",            
+     "Vzbot",              "Wanhao",             "Z-Bolt"};
 
 static const std::unordered_map<std::string, std::vector<std::string>> printer_model_map =
     {{"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
@@ -137,6 +137,8 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "RatRig V-Core 4 HYBRID 400",           "RatRig V-Core 4 HYBRID 500",           "RatRig V-Core 4 IDEX 300",             "RatRig V-Core 4 IDEX 300 COPY MODE",   "RatRig V-Core 4 IDEX 300 MIRROR MODE",
                             "RatRig V-Core 4 IDEX 400",             "RatRig V-Core 4 IDEX 400 COPY MODE",   "RatRig V-Core 4 IDEX 400 MIRROR MODE", "RatRig V-Core 4 IDEX 500",             "RatRig V-Core 4 IDEX 500 COPY MODE",
                             "RatRig V-Core 4 IDEX 500 MIRROR MODE"}},
+     {"re3D",              {"re3D Gigabot 4",                       "re3D Gigabot 4 XLT",                   "re3D Terabot 4",
+                            "re3D Gigabot X2",                      "re3D Gigabot X2 XLT",                  "re3D Terabot X2"}},
      {"RolohaunDesign",    {"Rook MK1 LDO"}},
      {"SecKit",            {"SecKit SK-Tank", "Seckit Go3"}},
      {"Snapmaker",         {"Snapmaker J1",                 "Snapmaker A250",               "Snapmaker A350",               "Snapmaker A250 Dual",          "Snapmaker A350 Dual",
@@ -161,10 +163,11 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
      {"Z-Bolt",            {"Z-Bolt S300",      "Z-Bolt S300 Dual", "Z-Bolt S400",      "Z-Bolt S400 Dual", "Z-Bolt S600",
                             "Z-Bolt S600 Dual"}}};
 
-static std::vector<std::string>               nozzle_diameter_vec = {"0.4", "0.15", "0.2", "0.25", "0.3", "0.35", "0.5", "0.6", "0.75", "0.8", "1.0", "1.2"};
+static std::vector<std::string>               nozzle_diameter_vec = {"0.4", "0.15", "0.2", "0.25", "0.3", "0.35", "0.5", "0.6", "0.75", "0.8", "1.0", "1.2", "1.75"};
 static std::unordered_map<std::string, float> nozzle_diameter_map = {{"0.15", 0.15}, {"0.2", 0.2},   {"0.25", 0.25}, {"0.3", 0.3},
                                                                      {"0.35", 0.35}, {"0.4", 0.4},   {"0.5", 0.5},   {"0.6", 0.6},
-                                                                     {"0.75", 0.75}, {"0.8", 0.8},   {"1.0", 1.0},   {"1.2", 1.2}};
+                                                                     {"0.75", 0.75}, {"0.8", 0.8},   {"1.0", 1.0},   {"1.2", 1.2}, 
+                                                                     {"1.75", 1.75}};
 
 static std::set<int> cannot_input_key = {9, 10, 13, 33, 35, 36, 37, 38, 40, 41, 42, 44, 46, 47, 59, 60, 62, 63, 64, 92, 94, 95, 124, 126};
 
