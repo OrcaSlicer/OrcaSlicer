@@ -1594,6 +1594,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("combine_brims", coBool);
+    def->label = L("Combine brims");
+    def->category = L("Support");
+    def->tooltip  = L("Combine multiple brims into one when they are close to each other. This can improve brim adhesion.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("brim_ears", coBool);
     def->label = L("Brim ears");
     def->category = L("Support");
@@ -1689,13 +1696,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("By object"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
-
-    def = this->add("combine_brims", coBool);
-    def->label = L("Combine brims");
-    def->category = L("Support");
-    def->tooltip  = L("Combine multiple brims into one when they are close to each other. This can improve brim adhesion.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("print_order", coEnum);
     def->label = L("Intra-layer order");
