@@ -1758,11 +1758,9 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                         unsupported_filtered.erase(unsupported_filtered.begin() + i);
                                     }
                                 }
+                                unsupported_filtered = intersection_ex(last,
+                                                                       offset_ex(unsupported_filtered, 0.9 * double((bridged_infill_margin + perimeter_spacing) / 2)));
                                 if (this->config->counterbore_hole_bridging.value == chbFilled) {
-                                    // Expand sacrificial layer bridge area to ensure proper anchoring of the bridge infill.
-                                    unsupported_filtered = offset_ex(unsupported_filtered, double(perimeter_spacing));
-                                    // Clip expanded unsupported regions back to the current surface to avoid fill outside the part.
-                                    unsupported_filtered = intersection_ex(unsupported_filtered, ExPolygons() = { surface->expolygon });
                                     for (ExPolygon& expol : unsupported_filtered) {
                                         //check if the holes won't be covered by the upper layer
                                         //TODO: if we want to do that, we must modify the geometry before making perimeters.
