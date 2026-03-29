@@ -1759,7 +1759,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     }
                                 }
                                 unsupported_filtered = intersection_ex(last,
-                                                                       offset_ex(unsupported_filtered, 0.9 * double((bridged_infill_margin + perimeter_spacing) / 2)));
+                                                                       offset_ex(unsupported_filtered, 0.5 * double(bridged_infill_margin)));
                                 if (this->config->counterbore_hole_bridging.value == chbFilled) {
                                     for (ExPolygon& expol : unsupported_filtered) {
                                         //check if the holes won't be covered by the upper layer
