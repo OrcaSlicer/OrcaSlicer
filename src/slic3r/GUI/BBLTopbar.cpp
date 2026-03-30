@@ -2,6 +2,7 @@
 #include "wx/artprov.h"
 #include "wx/aui/framemanager.h"
 #include "wx/display.h"
+#include <wx/utils.h>
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
