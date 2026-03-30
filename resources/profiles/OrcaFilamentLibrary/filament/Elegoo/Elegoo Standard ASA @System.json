@@ -1,7 +1,7 @@
 {
     "type": "filament",
-    "name": "Elegoo ASA @System",
-    "inherits": "Elegoo ASA @base",
+    "name": "Elegoo Standard ASA @System",
+    "inherits": "Elegoo Standard ASA @base",
     "from": "system",
     "setting_id": "OGFSE06_00",
     "instantiation": "true",

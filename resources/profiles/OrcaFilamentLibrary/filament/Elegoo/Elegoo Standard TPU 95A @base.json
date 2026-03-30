@@ -1,6 +1,6 @@
 {
     "type": "filament",
-    "name": "Elegoo TPU 95A @base",
+    "name": "Elegoo Standard TPU 95A @base",
     "inherits": "fdm_filament_tpu",
     "from": "system",
     "filament_id": "OGFE07",

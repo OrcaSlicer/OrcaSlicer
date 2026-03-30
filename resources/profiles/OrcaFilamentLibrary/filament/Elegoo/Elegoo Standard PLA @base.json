@@ -1,6 +1,6 @@
 {
     "type": "filament",
-    "name": "Elegoo PLA @base",
+    "name": "Elegoo Standard PLA @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
     "filament_id": "OGFE04",

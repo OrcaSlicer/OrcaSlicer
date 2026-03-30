@@ -157,8 +157,8 @@
             "sub_path": "filament/Elas/Elas ASA @base.json"
         },
         {
-            "name": "Elegoo ASA @base",
-            "sub_path": "filament/Elegoo/Elegoo ASA @base.json"
+            "name": "Elegoo Standard ASA @base",
+            "sub_path": "filament/Elegoo/Elegoo Standard ASA @base.json"
         },
         {
             "name": "Eolas Prints ASA @System",
@@ -481,8 +481,8 @@
             "sub_path": "filament/Elas/Elas PLA Pro @base.json"
         },
         {
-            "name": "Elegoo PLA @base",
-            "sub_path": "filament/Elegoo/Elegoo PLA @base.json"
+            "name": "Elegoo Standard PLA @base",
+            "sub_path": "filament/Elegoo/Elegoo Standard PLA @base.json"
         },
         {
             "name": "Elegoo Rapid PLA+ @base",
@@ -805,8 +805,8 @@
             "sub_path": "filament/COEX/COEX TPU 60A @base.json"
         },
         {
-            "name": "Elegoo TPU 95A @base",
-            "sub_path": "filament/Elegoo/Elegoo TPU 95A @base.json"
+            "name": "Elegoo Standard TPU 95A @base",
+            "sub_path": "filament/Elegoo/Elegoo Standard TPU 95A @base.json"
         },
         {
             "name": "Eolas Prints TPU D60 UV Resistant @System",
@@ -893,8 +893,8 @@
             "sub_path": "filament/Elas/Elas ASA @System.json"
         },
         {
-            "name": "Elegoo ASA @System",
-            "sub_path": "filament/Elegoo/Elegoo ASA @System.json"
+            "name": "Elegoo Standard ASA @System",
+            "sub_path": "filament/Elegoo/Elegoo Standard ASA @System.json"
         },
         {
             "name": "Overture ASA @System",
@@ -1145,8 +1145,8 @@
             "sub_path": "filament/Elas/Elas PLA Pro @System.json"
         },
         {
-            "name": "Elegoo PLA @System",
-            "sub_path": "filament/Elegoo/Elegoo PLA @System.json"
+            "name": "Elegoo Standard PLA @System",
+            "sub_path": "filament/Elegoo/Elegoo Standard PLA @System.json"
         },
         {
             "name": "Elegoo Rapid PLA+ @System",
@@ -1393,8 +1393,8 @@
             "sub_path": "filament/COEX/COEX TPU 60A @System.json"
         },
         {
-            "name": "Elegoo TPU 95A @System",
-            "sub_path": "filament/Elegoo/Elegoo TPU 95A @System.json"
+            "name": "Elegoo Standard TPU 95A @System",
+            "sub_path": "filament/Elegoo/Elegoo Standard TPU 95A @System.json"
         },
         {
             "name": "FDplast TPU @System",

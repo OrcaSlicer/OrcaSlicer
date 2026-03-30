@@ -1,7 +1,7 @@
 {
     "type": "filament",
-    "name": "Elegoo PLA @System",
-    "inherits": "Elegoo PLA @base",
+    "name": "Elegoo Standard PLA @System",
+    "inherits": "Elegoo Standard PLA @base",
     "from": "system",
     "setting_id": "OGFSE04_00",
     "instantiation": "true",

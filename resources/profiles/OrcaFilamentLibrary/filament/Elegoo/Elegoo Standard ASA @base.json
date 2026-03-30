@@ -1,6 +1,6 @@
 {
     "type": "filament",
-    "name": "Elegoo ASA @base",
+    "name": "Elegoo Standard ASA @base",
     "inherits": "fdm_filament_asa",
     "from": "system",
     "filament_id": "OGFE06",
