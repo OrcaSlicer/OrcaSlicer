@@ -9032,13 +9032,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", Line %1%: could not found extruder_type %2%, nozzle_volume_type %3%, extruder_index %4%")
                         %__LINE__ %s_keys_names_ExtruderType[extruder_type] % s_keys_names_NozzleVolumeType[nozzle_volume_type] % (e_index+1);
                     assert(false);
-                    // Legacy / transitional presets may temporarily have incomplete id<->variant mapping.
-                    // Fall back to the first matching variant ignoring the extruder id.
-                    variant_index[e_index] = get_index_for_extruder(0, "", extruder_type, nozzle_volume_type, variant_name);
-                    if (variant_index[e_index] < 0) {
-                        // Last resort: keep execution alive and normalize vectors later.
-                        variant_index[e_index] = 0;
-                    }
+                    //for some updates happens in a invalid state(caused by popup window)
+                    //we need to avoid crash
+                    variant_index[e_index] = 0;
                 }
             }
         }
@@ -9067,7 +9063,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9082,7 +9077,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9097,7 +9091,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9112,7 +9105,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9127,7 +9119,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9142,7 +9133,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9157,7 +9147,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                         for (unsigned int i = 0; i < stride; i++)
                             new_values[e_index*stride + i] = opt->get_at(variant_index[e_index]*stride + i);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9235,7 +9224,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9249,7 +9237,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9263,7 +9250,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9277,7 +9263,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9291,7 +9276,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9305,7 +9289,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
@@ -9319,7 +9302,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                     {
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
-                    opt->resize(new_values.size(), opt);
                     opt->values = new_values;
                     break;
                 }
