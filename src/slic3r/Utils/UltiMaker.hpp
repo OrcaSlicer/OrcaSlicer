@@ -1,5 +1,5 @@
-#ifndef slic3r_Ultimaker_hpp_
-#define slic3r_Ultimaker_hpp_
+#ifndef slic3r_UltiMaker_hpp_
+#define slic3r_UltiMaker_hpp_
 
 #include <string>
 #include <wx/string.h>
@@ -11,11 +11,11 @@ namespace Slic3r {
 class DynamicPrintConfig;
 class Http;
 
-class Ultimaker : public PrintHost
+class UltiMaker : public PrintHost
 {
 public:
-    explicit Ultimaker(DynamicPrintConfig *config);
-	~Ultimaker() override = default;
+    explicit UltiMaker(DynamicPrintConfig *config);
+	~UltiMaker() override = default;
 
 	const char* get_name() const override;
 

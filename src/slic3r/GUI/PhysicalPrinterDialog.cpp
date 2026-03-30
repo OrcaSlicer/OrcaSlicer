@@ -483,8 +483,8 @@ void PhysicalPrinterDialog::update_printhost_buttons()
     std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
     if (host) {
         m_printhost_test_btn->Enable(!m_config->opt_string("print_host").empty() && host->can_test());
-        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && strcmp( host->get_name(), 'Ultimaker') == 0);
-        // m_printhost_generate_creds_btn->Show(strcmp( host->get_name(), 'Ultimaker') == 0);
+        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && strcmp( host->get_name(), 'UltiMaker') == 0);
+        // m_printhost_generate_creds_btn->Show(strcmp( host->get_name(), 'UltiMaker') == 0);
         // m_printhost_generate_creds_btn->SetLabel(host->is_cloud() ? _L("Generate API Key") : _L("Generate API Key"));
         m_printhost_browse_btn->Show(host->has_auto_discovery());
         m_printhost_logout_btn->Show(host->is_logged_in());
@@ -591,8 +591,8 @@ void PhysicalPrinterDialog::update(bool printer_change)
         
         // m_optgroup->hide_field("ultimaker_generate_creds");
         // m_optgroup->hide_field("m_printhost_generate_creds_btn");
-        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && opt->value == htUltimaker);
-        // m_printhost_generate_creds_btn->Show(opt->value == htUltimaker);
+        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && opt->value == htUltiMaker);
+        // m_printhost_generate_creds_btn->Show(opt->value == htUltiMaker);
         // if (m_printhost_generate_creds_btn) { m_printhost_generate_creds_btn->Disable(); }
 
         // hide pre-configured address, in case user switched to a different host type
@@ -679,7 +679,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->hide_field("printhost_authorization_type");
             }
         
-        if (opt->value == htUltimaker) {
+        if (opt->value == htUltiMaker) {
                 m_optgroup->show_field("printhost_apikey");
                 m_optgroup->show_field("printhost_user");
                 m_optgroup->show_field("printhost_password");

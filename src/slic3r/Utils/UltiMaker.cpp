@@ -1,4 +1,4 @@
-#include "Ultimaker.hpp"
+#include "UltiMaker.hpp"
 
 #include <algorithm>
 #include <ctime>
@@ -30,7 +30,7 @@ namespace pt = boost::property_tree;
 
 namespace Slic3r {
 
-Ultimaker::Ultimaker(DynamicPrintConfig *config) :
+UltiMaker::UltiMaker(DynamicPrintConfig *config) :
 	
 	m_host(config->opt_string("print_host")),
 	host(config->opt_string("print_host")),
@@ -39,29 +39,29 @@ Ultimaker::Ultimaker(DynamicPrintConfig *config) :
 	m_api_password(config->opt_string("printhost_password"))
 {}
 
-const char* Ultimaker::get_name() const { return "Ultimaker"; }
+const char* UltiMaker::get_name() const { return "UltiMaker"; }
 
 // Modified from OctoPrint::test in OctoPrint.cpp
-bool Ultimaker::test(wxString &msg) const
+bool UltiMaker::test(wxString &msg) const
 {
 
 	// If called with specific arg, just generate the auth creds.
 	if (msg == "generate_auth_creds") {
-		BOOST_LOG_TRIVIAL(warning) << "Ultimaker: test called with generate_auth_creds! Generating the auth credentials.";
+		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: test called with generate_auth_creds! Generating the auth credentials.";
 		this->generate_auth_creds();
 		return true;
 	}
 
 	// Since the request is performed synchronously here,
     // it is ok to refer to `msg` from within the closure
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Attempting to test machine");
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Attempting to test machine");
 
     const char* name = get_name();
 
     bool res = true;
     auto url = (boost::format("http://%1%/api/v1/system/variant") % host).str();
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: name %1% url %2%") % name % url;
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: name %1% url %2%") % name % url;
     BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Get system variant at: %2%") % name % url;
 
     auto http = Http::get(std::move(url));
@@ -72,13 +72,13 @@ bool Ultimaker::test(wxString &msg) const
         msg = format_error(body, error, status);
         })
         .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: url completed without error: %1%") % url;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: url completed without error: %1%") % url;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got system variant: %2%") % name % body;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; // DEBUG
 
             try {
-				// Validate that response is correct ("Ultimaker 3", "Ultimaker 3 extended" or "Ultimaker S5")
-				res = (boost::starts_with(body, "\"Ultimaker 3") || body == "\"Ultimaker S5\"");
+				// Validate that response is correct ("UltiMaker 3", "UltiMaker 3 extended" or "UltiMaker S5")
+				res = (boost::starts_with(body, "\"UltiMaker 3") || body == "\"UltiMaker S5\"");
             }
             catch (const std::exception &) {
                 res = false;
@@ -108,38 +108,38 @@ bool Ultimaker::test(wxString &msg) const
 }
 
 
-wxString Ultimaker::get_test_ok_msg () const
+wxString UltiMaker::get_test_ok_msg () const
 {
-	return _("Connection to Ultimaker works correctly.");
+	return _("Connection to UltiMaker works correctly.");
 }
 
-wxString Ultimaker::get_test_failed_msg (wxString &msg) const
+wxString UltiMaker::get_test_failed_msg (wxString &msg) const
 {
     return GUI::from_u8((boost::format("%s: %s")
-                    // % _utf8(L("Could not connect to Ultimaker"))
-                    % _utf8("Could not connect to Ultimaker")
+                    // % _utf8(L("Could not connect to UltiMaker"))
+                    % _utf8("Could not connect to UltiMaker")
                     % std::string(msg.ToUTF8())).str());
 }
 
 
 #pragma region Auth
 // Modified from PrusaLink::set_auth in OctoPrint.cpp
-void Ultimaker::set_auth(Http& http) const
+void UltiMaker::set_auth(Http& http) const
 {
-    BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: set_auth, m_api_username of %1% and m_api_password of %2%") % get_api_username() % get_api_password();
+    BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: set_auth, m_api_username of %1% and m_api_password of %2%") % get_api_username() % get_api_password();
     http.auth_digest(m_api_username, m_api_password);
 }
 
 
-bool Ultimaker::has_auth_creds() const{
+bool UltiMaker::has_auth_creds() const{
 	// True if has authentication credentials, false otherwise
 	return not(m_api_username.empty()) && not(m_api_password.empty());
 }
 
 
-bool Ultimaker::is_authorized() const{
+bool UltiMaker::is_authorized() const{
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: is_authorized() attempting to see if creds are valid.");
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: is_authorized() attempting to see if creds are valid.");
 
     const char* name = get_name();
 
@@ -157,7 +157,7 @@ bool Ultimaker::is_authorized() const{
 
         })
         .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: url completed without error: %1%") % url;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: url completed without error: %1%") % url;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth] rtn=%2%") % name % rtn; // DEBUG
 
@@ -188,10 +188,10 @@ bool Ultimaker::is_authorized() const{
 
 
 
-std::string Ultimaker::auth_status() const{
+std::string UltiMaker::auth_status() const{
 	// returns 'authorized', 'unauthorized', or 'waiting', or 'ERROR: unknown value' on a different output
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: auth_status() attempting to see if creds are valid.");
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: auth_status() attempting to see if creds are valid.");
 
     const char* name = get_name();
 
@@ -205,7 +205,7 @@ std::string Ultimaker::auth_status() const{
 
         })
         .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: url completed without error: %1%") % url;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: url completed without error: %1%") % url;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
 
             try {
@@ -237,21 +237,21 @@ std::string Ultimaker::auth_status() const{
 
 
 
-std::string Ultimaker::generate_auth_creds() const {
+std::string UltiMaker::generate_auth_creds() const {
 	//TODO: Implement.
 	// Send POST request to generate creds
 	// Get the ID and key from the request
 	// Wait for user to authorize on the physical machine
 	// Return the result.
-	BOOST_LOG_TRIVIAL(warning) << "Ultimaker: generate_auth_creds called!";
+	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds called!";
 	return "Unimplemeneted.";
 }
 
 
 
-std::string Ultimaker::test_auth() const {
+std::string UltiMaker::test_auth() const {
 	/* 
-	Used in Ultimaker::test(), creates creds if they don't already
+	Used in UltiMaker::test(), creates creds if they don't already
 	exist, and returns various error strings if errors.
 	Returns "OK" if no errors and creds are valid.
 	*/
@@ -292,7 +292,7 @@ std::string Ultimaker::test_auth() const {
 #pragma endregion Auth
 
 
-int Ultimaker::getPrintTime(std::string filepath) const {
+int UltiMaker::getPrintTime(std::string filepath) const {
 	// Get the total print time in seconds from the provided gcode filepath
 	// TODO: find a way to read the other orca variables without iterating another time through the gcode
 	std::ifstream file_in(filepath);
@@ -308,12 +308,12 @@ int Ultimaker::getPrintTime(std::string filepath) const {
 				if (sscanf(line.c_str(), "; estimated printing time (normal mode) = %dh %dm %ds", &h, &m, &s) >= 1) {
 					ret = 3600*h + 60*m + s;
 				} else {
-					BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: ERROR: sscanf error while getting total print time, no vars assigned.");
+					BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: sscanf error while getting total print time, no vars assigned.");
 				}
 			}
 		}
     } else {
-		BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
 		return false;
 	}
 
@@ -323,9 +323,9 @@ int Ultimaker::getPrintTime(std::string filepath) const {
 }
 
 
-bool Ultimaker::makeGriffinCompatible(std::string filepath) const {
+bool UltiMaker::makeGriffinCompatible(std::string filepath) const {
 	// Modifies the header of the given file path to remove the double colon
-	// at the timestamp because - if left in - it makes Ultimakers crash.
+	// at the timestamp because - if left in - it makes UltiMakers crash.
 
 	// Opening and modifying files code was modified from https://www.w3resource.com/cpp-exercises/file-handling/cpp-file-handling-exercise-6.php
 	std::string file_temp = filepath+".temp";
@@ -357,12 +357,12 @@ bool Ultimaker::makeGriffinCompatible(std::string filepath) const {
 			}
     	}
 	} else {
-		BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: file %1% or file %2% was unable to open!") % filepath % (filepath+".temp");
 		return false;
 	}
 
 	if (not(write_on)) {
-		BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: ERROR: while postprocessing to make compatible with Griffin, headers not found!");
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: ERROR: while postprocessing to make compatible with Griffin, headers not found!");
 	}
 
 	file_in.close();
@@ -376,7 +376,7 @@ bool Ultimaker::makeGriffinCompatible(std::string filepath) const {
 }
 
 
-bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
+bool UltiMaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
 	/* 
 		TODO: delete this reference.
@@ -404,16 +404,16 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 
 	// Preprocess the file so the machine doesn't crash
 	if (makeGriffinCompatible(upload_data.source_path.string())) {
-		BOOST_LOG_TRIVIAL(warning) << "Ultimaker: [upload] Griffin compatibility appeared successful.";
+		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: [upload] Griffin compatibility appeared successful.";
 	} else {
-		BOOST_LOG_TRIVIAL(warning) << "Ultimaker: [upload] Griffin compatibility FAILED.";
+		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: [upload] Griffin compatibility FAILED.";
 		return false;
 	}
 	
 	wxString connect_msg;
 	auto connectionType = connect(connect_msg);
 	if (connectionType == ConnectionType::error) {
-		BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: [upload] connectionType is of type error!");
+		BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: [upload] connectionType is of type error!");
 		error_fn(std::move(connect_msg));
 		return false;
 	}
@@ -422,7 +422,7 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 	bool dsf = (connectionType == ConnectionType::dsf);
 
 	auto upload_cmd = get_upload_url(upload_data.upload_path.string(), connectionType);
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Uploading file %1%, filepath: %2%, post_action: %3%, command: %4%")
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Uploading file %1%, filepath: %2%, post_action: %3%, command: %4%")
 		% upload_data.source_path
 		% upload_data.upload_path
 		% int(upload_data.post_action)
@@ -441,11 +441,11 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 
 	set_auth(http);
 	http.on_complete([&](std::string body, unsigned status) {
-			BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: File uploaded: HTTP %1%: %2%") % status % body;
+			BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: File uploaded: HTTP %1%: %2%") % status % body;
 
 			int err_code = dsf ? (status == 201 ? 0 : 1) : get_err_code_from_body(body);
 			if (err_code != 0) {
-				BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: Request completed but error code was received: %1%") % err_code;
+				BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Request completed but error code was received: %1%") % err_code;
 				error_fn(format_error(body, L("Unknown error occurred"), 0));
 				res = false;
 			} else if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
@@ -463,7 +463,7 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 			}
 		})
 		.on_error([&](std::string body, std::string error, unsigned status) {
-			BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: Error uploading file: %1%, HTTP %2%, body: `%3%`") % error % status % body;
+			BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Error uploading file: %1%, HTTP %2%, body: `%3%`") % error % status % body;
 			error_fn(format_error(body, error, status));
 			res = false;
 		})
@@ -471,7 +471,7 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 			prorgess_fn(std::move(progress), cancel);
 			if (cancel) {
 				// Upload was canceled
-				BOOST_LOG_TRIVIAL(warning) << "Ultimaker: Upload canceled";
+				BOOST_LOG_TRIVIAL(warning) << "UltiMaker: Upload canceled";
 				res = false;
 			}
 		})
@@ -482,10 +482,10 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 	return res;
 }
 
-Ultimaker::ConnectionType Ultimaker::connect(wxString &msg) const
+UltiMaker::ConnectionType UltiMaker::connect(wxString &msg) const
 {
-	BOOST_LOG_TRIVIAL(warning) << "Ultimaker: Attempting to connect"; // TODO: Remove this. Testing to see if var substitution is the issue
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Attempting to connect"); // TODO: Remove this. Testing to see if var substitution is the issue
+	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: Attempting to connect"; // TODO: Remove this. Testing to see if var substitution is the issue
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Attempting to connect"); // TODO: Remove this. Testing to see if var substitution is the issue
 	
 	auto res = ConnectionType::error;
 	auto url = get_connect_url(false);
@@ -493,13 +493,13 @@ Ultimaker::ConnectionType Ultimaker::connect(wxString &msg) const
 	auto http = Http::get(std::move(url));
 	set_auth(http);
 
-	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Attempting to connect to url %1%") % url;
+	BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Attempting to connect to url %1%") % url;
 
 	http.on_error([&](std::string body, std::string error, unsigned status) {
 			auto dsfUrl = get_connect_url(true);
 			auto dsfHttp = Http::get(std::move(dsfUrl));
 			dsfHttp.on_error([&](std::string body, std::string error, unsigned status) {
-					BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: Error connecting: %1%, HTTP %2%, body: `%3%`") % error % status % body;
+					BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Error connecting: %1%, HTTP %2%, body: `%3%`") % error % status % body;
 					msg = format_error(body, error, status);
 				})
 				.on_complete([&](std::string body, unsigned) {
@@ -508,7 +508,7 @@ Ultimaker::ConnectionType Ultimaker::connect(wxString &msg) const
 				.perform_sync();
 		})
 		.on_complete([&](std::string body, unsigned) {
-			BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Got: %1%") % body;
+			BOOST_LOG_TRIVIAL(warning) << boost::format("UltiMaker: Got: %1%") % body;
 
 			int err_code = get_err_code_from_body(body);
 			switch (err_code) {
@@ -532,7 +532,7 @@ Ultimaker::ConnectionType Ultimaker::connect(wxString &msg) const
 	return res;
 }
 
-void Ultimaker::disconnect(ConnectionType connectionType) const
+void UltiMaker::disconnect(ConnectionType connectionType) const
 {
 	// we don't need to disconnect from DSF or if it failed anyway
 	if (connectionType != ConnectionType::rrf) {
@@ -543,15 +543,15 @@ void Ultimaker::disconnect(ConnectionType connectionType) const
 
 	auto http = Http::get(std::move(url));
 	http.on_error([&](std::string body, std::string error, unsigned status) {
-		// we don't care about it, if disconnect is not working Ultimaker will disconnect automatically after some time
-		BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: Error disconnecting: %1%, HTTP %2%, body: `%3%`") % error % status % body;
+		// we don't care about it, if disconnect is not working UltiMaker will disconnect automatically after some time
+		BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Error disconnecting: %1%, HTTP %2%, body: `%3%`") % error % status % body;
 	})
 	.perform_sync();
 }
 
 
 #pragma region Get Constants
-std::string Ultimaker::get_upload_url(const std::string &filename, ConnectionType connectionType) const
+std::string UltiMaker::get_upload_url(const std::string &filename, ConnectionType connectionType) const
 {
 	// Fixed?
 	// TODO: figure out what connectionType even is.
@@ -569,12 +569,12 @@ std::string Ultimaker::get_upload_url(const std::string &filename, ConnectionTyp
 	}
 }
 
-std::string Ultimaker::get_status_url() const
+std::string UltiMaker::get_status_url() const
 {
 	return (boost::format("%1%/printer/status") % get_base_url()).str();
 }
 
-std::string Ultimaker::get_connect_url(const bool dsfUrl) const
+std::string UltiMaker::get_connect_url(const bool dsfUrl) const
 {
 	if (dsfUrl)	{
 		return (boost::format("%1%/printer/status")
@@ -588,7 +588,7 @@ std::string Ultimaker::get_connect_url(const bool dsfUrl) const
 	}
 }
 
-std::string Ultimaker::get_base_url() const
+std::string UltiMaker::get_base_url() const
 {
 	if (host.find("http://") == 0 || host.find("https://") == 0) {
 		if (host.back() == '/') {
@@ -601,7 +601,7 @@ std::string Ultimaker::get_base_url() const
 	}
 }
 
-std::string Ultimaker::timestamp_str() const
+std::string UltiMaker::timestamp_str() const
 {
 	enum { BUFFER_SIZE = 32 };
 
@@ -616,7 +616,7 @@ std::string Ultimaker::timestamp_str() const
 
 #pragma endregion Get Constants
 
-bool Ultimaker::start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const
+bool UltiMaker::start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const
 {
 	// TODO: Fix
     assert(connectionType != ConnectionType::error);
@@ -644,11 +644,11 @@ bool Ultimaker::start_print(wxString &msg, const std::string &filename, Connecti
 				);
 	}
 	http.on_error([&](std::string body, std::string error, unsigned status) {
-			BOOST_LOG_TRIVIAL(error) << boost::format("Ultimaker: Error starting print: %1%, HTTP %2%, body: `%3%`") % error % status % body;
+			BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Error starting print: %1%, HTTP %2%, body: `%3%`") % error % status % body;
 			msg = format_error(body, error, status);
 		})
 		.on_complete([&](std::string body, unsigned) {
-			BOOST_LOG_TRIVIAL(debug) << boost::format("Ultimaker: Got: %1%") % body;
+			BOOST_LOG_TRIVIAL(debug) << boost::format("UltiMaker: Got: %1%") % body;
 			res = true;
 		})
 		.perform_sync();
@@ -656,7 +656,7 @@ bool Ultimaker::start_print(wxString &msg, const std::string &filename, Connecti
 	return res;
 }
 
-int Ultimaker::get_err_code_from_body(const std::string &body) const
+int UltiMaker::get_err_code_from_body(const std::string &body) const
 {
 	pt::ptree root;
 	std::istringstream iss (body); // wrap returned json to istringstream
