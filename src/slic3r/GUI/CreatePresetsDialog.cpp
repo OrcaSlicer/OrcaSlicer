@@ -55,7 +55,7 @@ namespace GUI {
      "Justmaker",             "Keene Village Plastics",  "Kexcelled",              "LDO",                    "MakerBot",
      "MatterHackers",         "MIKA3D",                  "NinjaTek",               "Nobufil",                "Novamaker",
      "OVERTURE",              "OVVNYXE",                 "Polymaker",              "Priline",                "Printed Solid",
-     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "re3D"
+     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "re3D",
      "Re-pet3D",              "Recreus",                 "Regen",                  "RatRig",                 "Sain SMART",             
      "SliceWorx",             "Snapmaker",               "SnoLabs",                "Spectrum",               "SUNLU",                  
      "TTYT3D",                "Tianse",                  "UltiMaker",              "Valment",                "Verbatim",               
@@ -74,7 +74,7 @@ static const std::vector<std::string> printer_vendors =
      "FLSun",              "FlyingBear",         "Folgertech",         "Geeetech",           "Ginger Additive",
      "InfiMech",           "Kingroon",           "Lulzbot",            "MagicMaker",         "Mellow",
      "Orca Arena Printer", "Peopoly",            "Positron 3D",        "Prusa",              "Qidi",
-     "Raise3D",            "RatRig",             "re3D"                "RolohaunDesign",     "SecKit",             
+     "Raise3D",            "RatRig",             "re3D",               "RolohaunDesign",     "SecKit",             
      "Snapmaker",          "Sovol",              "Thinker X400",       "Tronxy",             "TwoTrees",           
      "UltiMaker",          "Vivedino",           "Volumic",            "Voron",              "Voxelab",            
      "Vzbot",              "Wanhao",             "Z-Bolt"};
