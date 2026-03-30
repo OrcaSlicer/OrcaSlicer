@@ -1801,6 +1801,57 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments does not match.");
         warning->opt_key = "";
     }
+
+    // Z-pin geometry sanity checks (Duty et al., Additive Manufacturing 2019).
+    if (warning && warning->string.empty()) {
+        const double nozzle_d = m_config.nozzle_diameter.get_at(0);
+        for (const PrintObject* obj : m_objects) {
+            if (!obj->config().enable_z_pins.value) continue;
+            const double pin_d = obj->config().z_pin_diameter.value;
+            const int    depth = obj->config().z_pin_depth.value;
+            const double lh    = obj->config().layer_height.value;
+
+            // DH/DN check: hole must be at least 2× nozzle diameter for reliable material entry.
+            if (nozzle_d > 0.0 && pin_d < 2.0 * nozzle_d) {
+                warning->string  = Slic3r::format(
+                    L("Z-pin diameter (%.2f mm) is less than 2\xc3\x97 the nozzle diameter (%.2f mm). "
+                      "Material may not enter the void reliably. "
+                      "Increase Z-pin diameter to at least %.2f mm."),
+                    pin_d, nozzle_d, 2.0 * nozzle_d);
+                warning->opt_key = "z_pin_diameter";
+                break;
+            }
+
+            // LP/DH check: without a penetrating deposition nozzle the aspect ratio
+            // LP/DH > ~2 causes the "rope in a bucket" defect where material piles
+            // up near the void entrance instead of reaching the bottom.
+            if (lh > 0.0 && pin_d > 0.0) {
+                const double lp_dh = (depth * lh) / pin_d;
+                if (lp_dh > 2.0) {
+                    warning->string  = Slic3r::format(
+                        L("Z-pin depth/diameter aspect ratio LP/DH = %.1f (depth=%d layers \xc3\x97 %.2f mm \xc3\xb7 diameter %.2f mm). "
+                          "Without a penetrating deposition nozzle, values above 2.0 risk the void not filling completely. "
+                          "Reduce Z-pin depth or increase Z-pin diameter."),
+                        lp_dh, depth, lh, pin_d);
+                    warning->opt_key = "z_pin_depth";
+                    break;
+                }
+            }
+
+            // Overflow fill (>100%) only creates mechanical interlocking when surrounding
+            // infill is sparse enough to absorb excess material laterally.  With solid
+            // infill the overflow has nowhere to go and is silently capped at 100%.
+            if (obj->config().z_pin_fill_pct.value > 100.0 &&
+                m_default_region_config.sparse_infill_density.value >= 99.0) {
+                warning->string  = L("Z-pin fill percentage above 100% has no effect with solid infill: "
+                                     "overflow material has no adjacent void space to expand into and will be capped at 100%. "
+                                     "Use sparse infill (e.g. 35% rectilinear) to benefit from overflow interlocking.");
+                warning->opt_key = "z_pin_fill_pct";
+                break;
+            }
+        }
+    }
+
     return {};
 }
 
@@ -1941,7 +1992,10 @@ void  PrintObject::clear_shared_object()
 {
     if (m_shared_object) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, clear previous shared object data %2%")%this %m_shared_object;
-        m_layers.clear();
+        {
+            std::unique_lock<std::shared_mutex> lk(m_layers_mutex);
+            m_layers.clear();
+        }
         m_support_layers.clear();
 
         m_shared_object = nullptr;
@@ -1953,24 +2007,38 @@ void  PrintObject::clear_shared_object()
 void  PrintObject::copy_layers_from_shared_object()
 {
     if (m_shared_object) {
-        m_layers.clear();
+        {
+            // Lock this object's vector for writing, and the source's for reading.
+            // Always acquire in this order (destination exclusive, source shared) to
+            // avoid deadlock — no other code acquires both in the reverse order.
+            std::unique_lock<std::shared_mutex> lk_dst(m_layers_mutex);
+            std::shared_lock<std::shared_mutex> lk_src(m_shared_object->m_layers_mutex);
+            m_layers.clear();
+            m_layers = m_shared_object->m_layers;
+        }
         m_support_layers.clear();
 
         firstLayerObjSliceByVolume.clear();
         firstLayerObjSliceByGroups.clear();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, copied layers from object %2%")%this%m_shared_object;
-        m_layers = m_shared_object->layers();
         m_support_layers = m_shared_object->support_layers();
 
         firstLayerObjSliceByVolume = m_shared_object->firstLayerObjSlice();
         firstLayerObjSliceByGroups = m_shared_object->firstLayerObjGroups();
+
+        // Z-Pinning: copy grid + schedule from shared object so all copies get z-pins, not just the first.
+        m_z_pin_grid         = m_shared_object->m_z_pin_grid;
+        m_z_pin_schedule     = m_shared_object->m_z_pin_schedule;
+        m_z_pin_void_indices = m_shared_object->m_z_pin_void_indices;
     }
 }
 
 void  PrintObject::copy_layers_overhang_from_shared_object()
 {
     if (m_shared_object) {
+        std::shared_lock<std::shared_mutex> lk_dst(m_layers_mutex);
+        std::shared_lock<std::shared_mutex> lk_src(m_shared_object->m_layers_mutex);
         for (size_t index = 0; index <  m_layers.size() && index <  m_shared_object->m_layers.size(); index++)
         {
             Layer* layer_src = m_layers[index];
@@ -1982,14 +2050,63 @@ void  PrintObject::copy_layers_overhang_from_shared_object()
 }
 
 
-// BBS
+coordf_t PrintObject::max_layer_height() const
+{
+    // NOTE: Do NOT acquire m_layers_mutex here.  This function is only called
+    // from PrintObjectSupportMaterial::generate(), which is called from
+    // PrintObject::_generate_support_material(), which is called from
+    // PrintObject::generate_support_material().  That outer function holds a
+    // shared lock on m_layers_mutex for its entire duration, so m_layers is
+    // already stable here.  Acquiring a second shared lock from the same
+    // thread is technically undefined behaviour in C++17 and, on some
+    // platforms (e.g. Apple libc++ with pending writers), can trigger a
+    // self-deadlock.
+    coordf_t h = 0;
+    for (const Layer* l : m_layers)
+        h = std::max(h, l->height);
+    return h;
+}
+
+size_t PrintObject::layer_count_safe() const
+{
+    std::shared_lock<std::shared_mutex> lk(m_layers_mutex);
+    return m_layers.size();
+}
+
 BoundingBox PrintObject::get_first_layer_bbox(float& a, float& layer_height, std::string& name)
 {
     BoundingBox bbox;
     a = 0;
     name = this->model_object()->name;
+    // Hold a shared read lock for the entire access: clear_layers() / assign_layers()
+    // take an exclusive write lock, so this prevents a data race on m_layers metadata.
+    std::shared_lock<std::shared_mutex> lk(m_layers_mutex);
     if (layer_count() > 0) {
-        auto layer = get_layer(0);
+        // Capture m_layers.__begin_ into a local register-held pointer once.
+        // Using the same pointer for both the guard check and the element
+        // access eliminates the TOCTOU window where a concurrent write could
+        // corrupt __begin_ between the two reads.
+        static constexpr uintptr_t kMinPtr = 0x4000000ULL;
+        static constexpr uintptr_t kMaxPtr = 0x7fffffffffffULL;
+        Layer* const* data_ptr = m_layers.data();  // one load from __begin_
+        const uintptr_t data_addr = reinterpret_cast<uintptr_t>(data_ptr);
+        if (data_addr < kMinPtr || data_addr > kMaxPtr) {
+            BOOST_LOG_TRIVIAL(error) << "get_first_layer_bbox: corrupt m_layers.data()=0x"
+                << std::hex << data_addr << " layer_count=" << std::dec << layer_count()
+                << " object=" << name;
+            return bbox;
+        }
+        // Use data_ptr[0] — same register value, no second load from __begin_.
+        Layer* layer = data_ptr[0];
+        const uintptr_t layer_addr = reinterpret_cast<uintptr_t>(layer);
+        if (layer_addr < kMinPtr || layer_addr > kMaxPtr) {
+            BOOST_LOG_TRIVIAL(error) << "get_first_layer_bbox: corrupt m_layers[0]=0x"
+                << std::hex << layer_addr
+                << " layer_count=" << std::dec << layer_count()
+                << " has_shared=" << (m_shared_object != nullptr ? "yes" : "no")
+                << " object=" << name;
+            return bbox;
+        }
         layer_height = layer->height;
         // only work for object with single instance
         auto shift = instances()[0].shift_without_plate_offset();
@@ -2250,8 +2367,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
     }
 
-
-
     if (this->set_started(psWipeTower)) {
         {
             std::vector<std::set<int>> geometric_unprintables(m_config.nozzle_diameter.size());
@@ -2311,6 +2426,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         bool         has_wipe_tower = false;
         std::vector<const PrintInstance*> 					print_object_instances_ordering;
         std::vector<const PrintInstance*>::const_iterator 	print_object_instance_sequential_active;
+        // If apply() canceled slicing after generate_support_material() released
+        // its shared lock on m_layers, the layer vectors may be partially cleared.
+        // Bail out here rather than crashing inside collect_layers_to_print().
+        this->throw_if_canceled();
         std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> layers_to_print = GCode::collect_layers_to_print(*this);
         std::vector<unsigned int> printExtruders;
         if (this->config().print_sequence == PrintSequence::ByObject) {

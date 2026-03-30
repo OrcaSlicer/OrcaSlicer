@@ -4,6 +4,7 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Fill/FillZPin.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
@@ -1449,6 +1450,7 @@ void GCodeViewer::reset_shell()
     m_shells.volumes.clear();
     m_shells.print_id = -1;
     m_shell_bounding_box = BoundingBoxf3();
+    m_z_pin_overlay.reset();
 }
 
 void GCodeViewer::reset()
@@ -2088,6 +2090,49 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
     exporter.export_to(filename);
 }
 
+// Append a vertical cylinder (capped) into a P3N3 GLModel::Geometry at world position (cx, cy, z0..z1).
+static void append_zpin_cylinder(GLModel::Geometry& geo, float cx, float cy, float z0, float z1, float r, int N = 10)
+{
+    if (z1 <= z0 || r <= 0.f || N < 3) return;
+    const unsigned int base = (unsigned int)geo.vertices_count();
+    const float da = 2.f * float(M_PI) / N;
+
+    // Side ring: bottom (ring=0) then top (ring=1), N vertices each with outward normals.
+    for (int ring = 0; ring < 2; ++ring) {
+        float z = (ring == 0) ? z0 : z1;
+        for (int i = 0; i < N; ++i) {
+            float a = i * da;
+            float nx = std::cos(a), ny = std::sin(a);
+            geo.add_vertex(Vec3f(cx + r * nx, cy + r * ny, z), Vec3f(nx, ny, 0.f));
+        }
+    }
+    // Side triangles (2 per segment)
+    for (int i = 0; i < N; ++i) {
+        unsigned int ni = (i + 1) % N;
+        geo.add_triangle(base + i,     base + ni,     base + N + ni);
+        geo.add_triangle(base + i,     base + N + ni, base + N + i);
+    }
+    // Bottom cap: centre + ring (N+1 vertices, pointing -Z)
+    unsigned int bc = base + 2 * N;
+    geo.add_vertex(Vec3f(cx, cy, z0), Vec3f(0.f, 0.f, -1.f));
+    for (int i = 0; i < N; ++i) {
+        float a = i * da;
+        geo.add_vertex(Vec3f(cx + r * std::cos(a), cy + r * std::sin(a), z0), Vec3f(0.f, 0.f, -1.f));
+    }
+    for (int i = 0; i < N; ++i)
+        geo.add_triangle(bc, bc + 1 + (i + 1) % N, bc + 1 + i);
+
+    // Top cap: centre + ring (N+1 vertices, pointing +Z)
+    unsigned int tc = bc + N + 1;
+    geo.add_vertex(Vec3f(cx, cy, z1), Vec3f(0.f, 0.f, 1.f));
+    for (int i = 0; i < N; ++i) {
+        float a = i * da;
+        geo.add_vertex(Vec3f(cx + r * std::cos(a), cy + r * std::sin(a), z1), Vec3f(0.f, 0.f, 1.f));
+    }
+    for (int i = 0; i < N; ++i)
+        geo.add_triangle(tc, tc + 1 + i, tc + 1 + (i + 1) % N);
+}
+
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
@@ -2194,6 +2239,52 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
         volume->set_render_color();
         //BBS: add shell bounding box logic
         m_shell_bounding_box.merge(volume->transformed_bounding_box());
+    }
+
+    // Build Z-pin preview cylinders.
+    {
+        GLModel::Geometry geo;
+        geo.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3N3 };
+        geo.color = ColorRGBA(0.1f, 0.55f, 1.0f, 0.7f); // translucent blue
+
+        for (const PrintObject* obj : print.objects()) {
+            const auto& grids = obj->z_pin_grids();
+            if (grids.empty() || grids[0].centres.empty()) continue;
+            const ZPinGrid& grid = grids[0];  // use phase-0 grid for visualisation
+
+            const ModelObject* mobj = obj->model_object();
+            const BoundingBoxf3& bb = mobj->raw_bounding_box();
+            const float r  = (float)(grid.diameter * 0.5);
+            const float dz = (float)(bb.max.z() - bb.min.z());
+
+            // Use the first layer's slices to filter out grid positions that fall
+            // outside the actual cross-section (e.g. outside the neck of a dogbone).
+            const ExPolygons* filter_slices = nullptr;
+            if (!obj->layers().empty())
+                filter_slices = &obj->layers().front()->lslices;
+
+            for (const PrintInstance& inst : obj->instances()) {
+                if (!inst.model_instance->is_printable()) continue;
+                const Vec3d off = inst.model_instance->get_transformation().get_offset();
+                const Vec2d shift2d = unscale(inst.shift);
+                const float z0 = (float)(bb.min.z() + off.z());
+                const float z1 = z0 + dz;
+                for (const Point& c : grid.centres) {
+                    // Skip positions outside the object's cross-section.
+                    if (filter_slices) {
+                        bool inside = false;
+                        for (const ExPolygon& ex : *filter_slices)
+                            if (ex.contains(c)) { inside = true; break; }
+                        if (!inside) continue;
+                    }
+                    const Vec2d cm = unscale(c);
+                    append_zpin_cylinder(geo, (float)(cm.x() + shift2d.x()), (float)(cm.y() + shift2d.y()), z0, z1, r);
+                }
+            }
+        }
+
+        if (!geo.is_empty())
+            m_z_pin_overlay.init_from(std::move(geo));
     }
 
     //BBS: always load shell when preview
@@ -2379,25 +2470,43 @@ void GCodeViewer::render_toolpaths()
 
 void GCodeViewer::render_shells(int canvas_width, int canvas_height)
 {
-    //BBS: add shell previewing logic
-    if ((!m_shells.previewing && !m_shells.visible) || m_shells.volumes.empty())
-        //if (!m_shells.visible || m_shells.volumes.empty())
+    const bool shells_on  = (m_shells.previewing || m_shells.visible) && !m_shells.volumes.empty();
+    // Z-pin overlay only shows when the user explicitly enables the shells view.
+    const bool zpins_on   = m_shells.visible && m_z_pin_overlay.is_initialized();
+    if (!shells_on && !zpins_on)
         return;
 
     GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
     if (shader == nullptr)
         return;
 
+    const Camera& camera = wxGetApp().plater()->get_camera();
     glsafe(::glDepthMask(GL_FALSE));
 
-    shader->start_using();
-    shader->set_uniform("emission_factor", 0.1f);
-    const Camera& camera = wxGetApp().plater()->get_camera();
-    shader->set_uniform("z_far", camera.get_far_z());
-    shader->set_uniform("z_near", camera.get_near_z());
-    m_shells.volumes.render(GLVolumeCollection::ERenderType::Transparent, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
-    shader->set_uniform("emission_factor", 0.0f);
-    shader->stop_using();
+    if (shells_on) {
+        shader->start_using();
+        shader->set_uniform("emission_factor", 0.1f);
+        shader->set_uniform("z_far", camera.get_far_z());
+        shader->set_uniform("z_near", camera.get_near_z());
+        m_shells.volumes.render(GLVolumeCollection::ERenderType::Transparent, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
+        shader->set_uniform("emission_factor", 0.0f);
+        shader->stop_using();
+    }
+
+    // Render Z-pin preview cylinders.
+    if (zpins_on) {
+        glsafe(::glEnable(GL_BLEND));
+        glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        shader->start_using();
+        shader->set_uniform("emission_factor", 0.1f);
+        shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+        shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+        const Matrix3d vnm = camera.get_view_matrix().matrix().block(0, 0, 3, 3);
+        shader->set_uniform("view_normal_matrix", vnm);
+        m_z_pin_overlay.render(shader);
+        shader->stop_using();
+        glsafe(::glDisable(GL_BLEND));
+    }
 
     glsafe(::glDepthMask(GL_TRUE));
 }

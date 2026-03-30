@@ -646,6 +646,10 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
         return;
     }
 
+    // Bail out early if the print was cancelled (e.g. a new process() run started
+    // and freed/replaced m_layers while we were waiting for the is_support_necessary mutex).
+    if (m_object->print()->canceled()) return;
+
     // Clear and create Tree Support Layers
     m_object->clear_support_layers();
     m_object->clear_tree_support_preview_cache();
@@ -765,16 +769,68 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
     max_cantilever_dist = 0;
     m_highest_overhang_layer = 0;
 
+    // Mutex protecting writes to shared TreeSupport members (has_sharp_tails,
+    // has_cantilever, max_cantilever_dist) and shared locals (config_detect_sharp_tails,
+    // config_remove_small_overhangs) from concurrent TBB tasks in the inner parallel_for.
+    tbb::spin_mutex detect_mutex;
+
+    if (m_object->print()->canceled()) return;
+
+    // Snapshot layer pointers BEFORE the parallel_fors.  The caller
+    // (generate_support_material) holds a shared read lock on m_layers_mutex for
+    // the full duration of support generation, so clear_layers() / assign_layers()
+    // cannot delete or replace Layer objects while we are running.  Taking our own
+    // copy of the pointer vector also protects against the vector being reallocated
+    // while the parallel tasks are iterating it.
+    size_t _ts_layer_count = m_object->layer_count();
+    std::vector<Layer*> layer_snapshot(_ts_layer_count);
+    for (size_t i = 0; i < _ts_layer_count; ++i)
+        layer_snapshot[i] = m_object->get_layer(i);
+
+    // Pre-flight validation of every snapshot pointer.  On 64-bit systems the
+    // user-space heap starts well above the first 64 MB; any pointer below
+    // that threshold (e.g. the ~0x5959F1 value produced when a freed TBB block
+    // whose memory is overwritten with the 0x59 fill pattern ends up in the
+    // snapshot) is certainly garbage.  Detecting this before the parallel_for
+    // avoids a SIGSEGV inside a TBB task and produces a useful diagnostic.
+    static constexpr uintptr_t kMinValidLayerPtr = 0x4000000ULL;       // 64 MB
+    static constexpr uintptr_t kMaxValidLayerPtr = 0x7fffffffffffULL;  // 128 TB (47-bit user space)
+    for (size_t i = 0; i < _ts_layer_count; ++i) {
+        Layer* lp = layer_snapshot[i];
+        if (!lp || (uintptr_t)lp < kMinValidLayerPtr || (uintptr_t)lp > kMaxValidLayerPtr) {
+            BOOST_LOG_TRIVIAL(error) << "detect_overhangs: invalid layer ptr in snapshot"
+                << " index=" << i << "/" << _ts_layer_count
+                << " ptr=0x" << std::hex << (uintptr_t)lp << std::dec
+                << " object=" << m_object->model_object()->name
+                << " check_support_necessity=" << check_support_necessity;
+            // Snapshot is corrupt; bail out safely rather than crashing inside a
+            // TBB task.  The warning to the user may be inaccurate this slice,
+            // but slicing itself continues.
+            return;
+        }
+    }
+
     // calc the extrudable expolygons of each layer
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_object->layer_count()),
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, _ts_layer_count),
         [&](const tbb::blocked_range<size_t>& range) {
             for (size_t layer_nr = range.begin(); layer_nr < range.end(); layer_nr++) {
                 if (m_object->print()->canceled())
                     break;
-                Layer* layer = m_object->get_layer(layer_nr);
+                Layer* layer = layer_snapshot[layer_nr];
+                // Guard against corrupted pointers (second line of defence after
+                // the pre-flight check above).
+                if (!layer || (uintptr_t)layer < kMinValidLayerPtr || (uintptr_t)layer > kMaxValidLayerPtr) {
+                    BOOST_LOG_TRIVIAL(error) << "detect_overhangs: corrupted layer ptr at index " << layer_nr
+                        << " ptr=0x" << std::hex << (uintptr_t)layer << std::dec
+                        << " object=" << m_object->model_object()->name;
+                    continue;
+                }
                 // Filter out areas whose diameter that is smaller than extrusion_width, but we don't want to lose any details.
-                layer->lslices_extrudable = intersection_ex(layer->lslices, offset2_ex(layer->lslices, -extrusion_width_scaled / 2, extrusion_width_scaled));
-                layer->loverhangs.clear();
+                // lslices_extrudable is pre-computed sequentially in generate_support_material() before any parallel
+                // support work begins; skip the write here if already set to avoid a data race.
+                if (layer->lslices_extrudable.empty())
+                    layer->lslices_extrudable = intersection_ex(layer->lslices, offset2_ex(layer->lslices, -extrusion_width_scaled / 2, extrusion_width_scaled));
+                // loverhangs is pre-cleared sequentially in generate_support_material(); skip here.
             }
         });
 
@@ -782,8 +838,8 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
     typedef std::chrono::duration<double, std::ratio<1> > second_;
     std::chrono::time_point<clock_> t0{ clock_::now() };
     // main part of overhang detection can be parallel
-    tbb::concurrent_vector<ExPolygons> overhangs_all_layers(m_object->layer_count());
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, m_object->layer_count()),
+    tbb::concurrent_vector<ExPolygons> overhangs_all_layers(_ts_layer_count);
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, _ts_layer_count),
         [&](const tbb::blocked_range<size_t>& range) {
             for (size_t layer_nr = range.begin(); layer_nr < range.end(); layer_nr++) {
                 if (m_object->print()->canceled())
@@ -792,7 +848,8 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 if (!is_auto(stype) && layer_nr > enforce_support_layers)
                     continue;
 
-                Layer* layer = m_object->get_layer(layer_nr);
+                Layer* layer = layer_snapshot[layer_nr];
+                if (!layer || (uintptr_t)layer < kMinValidLayerPtr || (uintptr_t)layer > kMaxValidLayerPtr) continue;
 
                 if (layer->lower_layer == nullptr) {
                     for (auto& slice : layer->lslices_extrudable) {
@@ -820,8 +877,9 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 double duration{ std::chrono::duration_cast<second_>(clock_::now() - t0).count() };
                 if (duration > 30 || overhangs_all_layers[layer_nr].size() > 100) {
                     BOOST_LOG_TRIVIAL(info) << "detect_overhangs takes more than 30 secs, skip cantilever and sharp tails detection: layer_nr=" << layer_nr << " duration=" << duration;
-                    config_detect_sharp_tails = false;
-                    config_remove_small_overhangs = false;
+                    { tbb::spin_mutex::scoped_lock lk(detect_mutex);
+                      config_detect_sharp_tails = false;
+                      config_remove_small_overhangs = false; }
                     continue;
                 }
                 if (is_auto(stype) && config_detect_sharp_tails)
@@ -839,7 +897,7 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                             layer->sharp_tails.push_back(expoly);
                             layer->sharp_tails_height.push_back(0);
 
-                            has_sharp_tails = true;
+                            { tbb::spin_mutex::scoped_lock lk(detect_mutex); has_sharp_tails = true; }
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG
 							SVG::export_expolygons(debug_out_path("sharp_tail_orig_%.02f.svg", layer->print_z), { expoly });
 #endif
@@ -865,10 +923,11 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                         dist_max = std::max(dist_max, dist_pt);
                     }
                     if (dist_max > scale_(3)) {  // is cantilever if the farmost point is larger than 3mm away from base
-                        max_cantilever_dist = std::max(max_cantilever_dist, dist_max);
                         layer->cantilevers.emplace_back(poly);
                         BOOST_LOG_TRIVIAL(debug) << "found a cantilever cluster. layer_nr=" << layer_nr << dist_max;
-                        has_cantilever = true;
+                        { tbb::spin_mutex::scoped_lock lk(detect_mutex);
+                          if (dist_max > max_cantilever_dist) max_cantilever_dist = dist_max;
+                          has_cantilever = true; }
                     }
                 }
             }
@@ -3225,12 +3284,19 @@ void TreeSupport::generate_contact_points()
     tbb::parallel_for(tbb::blocked_range<size_t>(1, m_object->layers().size()), [&](const tbb::blocked_range<size_t>& range) {
         for (size_t layer_nr = range.begin(); layer_nr < range.end(); layer_nr++) {
             if (m_object->print()->canceled())
-                break;
+                return;
+            if (layer_nr >= m_object->layers().size())
+                return;
             Layer* layer = m_object->get_layer(layer_nr);
+            if (layer == nullptr)
+                return;
             auto& curr_nodes = contact_nodes[layer_nr-1];
 
             std::unordered_set<Point, PointHash> already_inserted;
-            auto                                 bottom_z = m_object->get_layer(layer_nr)->bottom_z();
+            Layer* bottom_z_layer = (layer_nr < m_object->layers().size()) ? m_object->get_layer(layer_nr) : nullptr;
+            if (bottom_z_layer == nullptr)
+                return;
+            auto                                 bottom_z = bottom_z_layer->bottom_z();
             bool                                 added = false; // Did we add a point this way?
             bool                                 is_sharp_tail = false;
 

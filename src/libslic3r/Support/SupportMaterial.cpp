@@ -375,9 +375,12 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 {
     BOOST_LOG_TRIVIAL(info) << "Support generator - Start";
 
-    coordf_t max_object_layer_height = 0.;
-    for (size_t i = 0; i < object.layer_count(); ++ i)
-        max_object_layer_height = std::max(max_object_layer_height, object.layers()[i]->height);
+    // max_layer_height() does NOT acquire m_layers_mutex — the caller chain
+    // (generate_support_material) already holds a shared lock for the entire
+    // duration, keeping m_layers stable.
+    coordf_t max_object_layer_height = object.max_layer_height();
+    if (object.print()->canceled())
+        return;
 
     // Layer instances will be allocated by std::deque and they will be kept until the end of this function call.
     // The layers will be referenced by various LayersPtr (of type std::vector<Layer*>)
@@ -395,6 +398,10 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
     // that it will be effective, regardless of how it's built below.
     // If raft is to be generated, the 1st top_contact layer will contain the 1st object layer silhouette without holes.
     SupportGeneratorLayersPtr top_contacts = this->top_contact_layers(object, buildplate_covered, layer_storage);
+    BOOST_LOG_TRIVIAL(info) << "Support generator - top_contacts.size()=" << top_contacts.size()
+        << " layer_count=" << object.layer_count()
+        << " support_type=" << (int)m_object_config->support_type.value
+        << " has_support=" << this->has_support();
     if (top_contacts.empty())
         // Nothing is supported, no supports are generated.
         return;
@@ -2117,8 +2124,23 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
     // If having a raft, start with 0th layer, otherwise with 1st layer.
     // Note that layer_id < layer->id when raft_layers > 0 as the layer->id incorporates the raft layers.
     // So layer_id == 0 means first object layer and layer->id == 0 means first print layer if there are no explicit raft layers.
-    size_t num_layers = this->has_support() ? object.layer_count() : 1;
-    // For each overhang layer, two supporting layers may be generated: One for the overhangs extruded with a bridging flow, 
+    // Use layer_count_safe() (non-inline, acquires shared lock with memory barrier)
+    // rather than layer_count() (inline, no barrier).  On ARM64 the compiler may
+    // cache m_layers.__begin_ in a register across the SupportAnnotations()
+    // constructor call above, then read m_layers.__end_ fresh; if another thread
+    // transiently writes __end_ the subtraction yields a garbage size.
+    // layer_count_safe() is a non-inlined call boundary that forces the compiler
+    // to re-issue both LDR instructions, and the internal pthread_rwlock_rdlock()
+    // provides a full CPU memory barrier (DMB ISH on ARM64).
+    const size_t raw_layer_count = object.layer_count_safe();
+    size_t num_layers = this->has_support() ? raw_layer_count : 1;
+    // Sanity check: implausibly large counts indicate corrupted vector metadata.
+    // Return empty rather than crashing with std::length_error inside assign().
+    if (num_layers > 500000) {
+        BOOST_LOG_TRIVIAL(warning) << "top_contact_layers: implausible layer_count=" << num_layers << ", aborting support generation";
+        return SupportGeneratorLayersPtr();
+    }
+    // For each overhang layer, two supporting layers may be generated: One for the overhangs extruded with a bridging flow,
     // and the other for the overhangs extruded with a normal flow.
     contact_out.assign(num_layers * 2, nullptr);
 
@@ -2128,23 +2150,36 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::top_contact_layers(
     tbb::parallel_for(tbb::blocked_range<size_t>(layer_id_start, num_layers),
         [&](const tbb::blocked_range<size_t>& range) {
             for (size_t layer_id = range.begin(); layer_id < range.end(); layer_id++) {
-                const Layer& layer = *object.layers()[layer_id];
-                Polygons            lower_layer_polygons = (layer_id == 0) ? Polygons() : to_polygons(object.layers()[layer_id - 1]->lslices);
+                if (object.print()->canceled())
+                    return;
+                try {
+                    const Layer& layer = *object.layers().at(layer_id);
+                    Polygons            lower_layer_polygons = (layer_id == 0) ? Polygons() : to_polygons(object.layers().at(layer_id - 1)->lslices);
 
-                overhangs_per_layers[layer_id] = detect_overhangs(layer, layer_id, lower_layer_polygons, *m_print_config, *m_object_config, annotations, m_support_params.gap_xy
+                    overhangs_per_layers[layer_id] = detect_overhangs(layer, layer_id, lower_layer_polygons, *m_print_config, *m_object_config, annotations, m_support_params.gap_xy
 #ifdef SLIC3R_DEBUG
-                    , iRun
+                        , iRun
 #endif // SLIC3R_DEBUG
-                );
+                    );
+                } catch (const std::out_of_range&) {
+                    return;
+                }
 
                 if (object.print()->canceled())
-                    break;
+                    return;
             }
         }
     ); // end tbb::parallel_for
 
     if (object.print()->canceled())
         return SupportGeneratorLayersPtr();
+
+    {
+        size_t n_overhang_layers = 0;
+        for (const auto& ov : overhangs_per_layers) if (!ov.empty()) ++n_overhang_layers;
+        BOOST_LOG_TRIVIAL(info) << "top_contact_layers: TBB done, " << n_overhang_layers
+            << "/" << overhangs_per_layers.size() << " layers have raw overhangs";
+    }
 
     // check if the sharp tails should be extended higher
     bool detect_first_sharp_tail_only = false;
@@ -2482,7 +2517,7 @@ static inline SupportGeneratorLayer* detect_bottom_contacts(
     // Trim the already created base layers above the current layer intersecting with the new bottom contacts layer.
     //FIXME Maybe this is no more needed, as the overlapping base layers are trimmed by the bottom layers at the final stage?
     touching = expand(touching, float(SCALED_EPSILON));
-    for (int layer_id_above = layer_id + 1; layer_id_above < int(object.total_layer_count()); ++ layer_id_above) {
+    for (int layer_id_above = layer_id + 1; layer_id_above < int(object.layer_count_safe()); ++ layer_id_above) {
         const Layer &layer_above = *object.layers()[layer_id_above];
         if (layer_above.print_z > layer_new.print_z - EPSILON)
             break;
@@ -2605,7 +2640,18 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
     const bool buildplate_only = ! buildplate_covered.empty();
 
     // Allocate empty surface areas, one per object layer.
-    layer_support_areas.assign(object.total_layer_count(), Polygons());
+    // Use layer_count_safe() (non-inline + memory barrier) not total_layer_count()
+    // (which calls the inline layer_count() subject to ARM64 torn reads).
+    // At this point in the pipeline m_support_layers is empty so
+    // total_layer_count() == layer_count() anyway.
+    {
+        const size_t tc = object.layer_count_safe();
+        if (tc > 500000) {
+            BOOST_LOG_TRIVIAL(warning) << "bottom_contact_layers: implausible layer_count=" << tc << ", aborting";
+            return SupportGeneratorLayersPtr();
+        }
+        layer_support_areas.assign(tc, Polygons());
+    }
 
     // find object top surfaces
     // we'll use them to clip our support and detect where does it stick
@@ -2619,7 +2665,8 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
     Polygons  enforcers_projection;
     // Last top contact layer visited when collecting the projection of contact areas.
     int       contact_idx = int(top_contacts.size()) - 1;
-    for (int layer_id = int(object.total_layer_count()) - 2; layer_id >= 0; -- layer_id) {
+    // Use layer_count_safe() to avoid the same ARM64 torn-read issue.
+    for (int layer_id = int(object.layer_count_safe()) - 2; layer_id >= 0; -- layer_id) {
         BOOST_LOG_TRIVIAL(trace) << "Support generator - bottom_contact_layers - layer " << layer_id;
         const Layer &layer = *object.get_layer(layer_id);
         // Collect projections of all contact areas above or at the same level as this top surface.
@@ -3150,7 +3197,10 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                 // Collect all the object layers intersecting with this layer.
                 Polygons polygons_trimming;
                 size_t i = idx_object_layer_overlapping;
-                for (; i < object.layers().size(); ++ i) {
+                // Snapshot size to guard against apply() racing and resizing layers under us.
+                size_t obj_layer_cnt = object.layers().size();
+                for (; i < obj_layer_cnt; ++ i) {
+                    if (i >= object.layers().size()) break;
                     const Layer &object_layer = *object.layers()[i];
                     if (object_layer.bottom_z() > support_layer.print_z + gap_extra_above - EPSILON)
                         break;
@@ -3167,7 +3217,9 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                 }
                 if (! m_slicing_params.soluble_interface && m_object_config->thick_bridges) {
                     // Collect all bottom surfaces, which will be extruded with a bridging flow.
-                    for (; i < object.layers().size(); ++ i) {
+                    obj_layer_cnt = object.layers().size(); // re-snapshot for second loop
+                    for (; i < obj_layer_cnt; ++ i) {
+                        if (i >= object.layers().size()) break;
                         const Layer &object_layer = *object.layers()[i];
                         bool some_region_overlaps = false;
                         for (LayerRegion *region : object_layer.regions()) {

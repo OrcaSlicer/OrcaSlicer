@@ -176,6 +176,8 @@ public:
     GCodeCheckResult  m_gcode_check_result;
     FilamentPrintableResult filament_printable_reuslt;
     Shells            m_shells;
+    // Z-pin preview: one merged cylinder mesh for all pin locations in all objects.
+    GLModel           m_z_pin_overlay;
 
 private:
     std::vector<int> m_plater_extruder;

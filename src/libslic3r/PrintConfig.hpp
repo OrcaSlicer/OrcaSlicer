@@ -1051,9 +1051,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                z_pin_diameter))
     ((ConfigOptionFloat,                z_pin_fill_pct))
     ((ConfigOptionFloat,                z_pin_feedrate))
-    ((ConfigOptionBool,                 z_pin_stagger))
-    ((ConfigOptionBool,                 z_pin_layer_stagger))
-    ((ConfigOptionInt,                  z_pin_layer_stagger_offset))
     ((ConfigOptionEnum<ZPinStyle>,      z_pin_style))
 
 )
@@ -1216,6 +1213,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
     ((ConfigOptionFloat,                scarf_joint_flow_ratio))
     ((ConfigOptionPercent,              scarf_overhang_threshold))
+
+    // Z-Pinning per-region override: a PARAMETER_MODIFIER with enable_z_pins=false suppresses pins in its region.
+    ((ConfigOptionBool,                 enable_z_pins))
 
 )
 

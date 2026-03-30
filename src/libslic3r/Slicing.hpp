@@ -112,6 +112,7 @@ struct SlicingParameters
      coordf_t    object_shrinkage_compensation_z { 0 };
 };
 static_assert(IsTriviallyCopyable<SlicingParameters>::value, "SlicingParameters class is not POD (and it should be - see constructor).");
+static_assert(sizeof(SlicingParameters) == 184, "SlicingParameters size changed — update m_slicing_params_guard padding in Print.hpp (must keep m_layers at offset +208 from m_slicing_params, i.e. 24-byte guard)");
 
 // The two slicing parameters lead to the same layering as long as the variable layer thickness is not in action.
 inline bool equal_layering(const SlicingParameters &sp1, const SlicingParameters &sp2)

@@ -1687,7 +1687,16 @@ void GCode::PlaceholderParserIntegration::validate_output_vector_variables()
 std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObject& object)
 {
     std::vector<GCode::LayerToPrint> layers_to_print;
-    layers_to_print.reserve(object.layers().size() + object.support_layers().size());
+    // Guard against a torn read of m_layers vector metadata: if apply() is
+    // clearing layers concurrently (without the slicing thread holding
+    // m_layers_mutex), the size() call can return a garbage huge value.
+    const size_t n_obj = object.layers().size();
+    const size_t n_sup = object.support_layers().size();
+    if (n_obj > 500000 || n_sup > 500000) {
+        BOOST_LOG_TRIVIAL(error) << "collect_layers_to_print: implausible layer counts obj=" << n_obj << " sup=" << n_sup << " — returning empty";
+        return layers_to_print;
+    }
+    layers_to_print.reserve(n_obj + n_sup);
 
     /*
     // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
@@ -2418,7 +2427,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Add each of the object's layers separately.
         for (auto object : print.objects()) {
             std::vector<coordf_t> zs;
-            zs.reserve(object->layers().size() + object->support_layers().size());
+            const size_t n_l = object->layers().size();
+            const size_t n_s = object->support_layers().size();
+            if (n_l > 500000 || n_s > 500000) {
+                BOOST_LOG_TRIVIAL(error) << "_do_export: implausible layer counts n_l=" << n_l << " n_s=" << n_s << " for object " << object->model_object()->name;
+                throw Slic3r::RuntimeError("Layer data corrupted (possible apply() race); aborting export.");
+            }
+            zs.reserve(n_l + n_s);
             for (auto layer : object->layers())
                 zs.push_back(layer->print_z);
             for (auto layer : object->support_layers())
@@ -2437,7 +2452,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Print all objects with the same print_z together.
         std::vector<coordf_t> zs;
         for (auto object : print.objects()) {
-            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
+            const size_t n_l = object->layers().size();
+            const size_t n_s = object->support_layers().size();
+            if (n_l > 500000 || n_s > 500000) {
+                BOOST_LOG_TRIVIAL(error) << "_do_export: implausible layer counts n_l=" << n_l << " n_s=" << n_s << " for object " << object->model_object()->name;
+                throw Slic3r::RuntimeError("Layer data corrupted (possible apply() race); aborting export.");
+            }
+            zs.reserve(zs.size() + n_l + n_s);
             for (auto layer : object->layers())
                 zs.push_back(layer->print_z);
             for (auto layer : object->support_layers())
@@ -5269,6 +5290,25 @@ LayerResult GCode::process_layer(
                     gcode += this->extrude_infill(print,by_region_specific, true);
                 }
 
+                // Z-Pinning: fire pre-scheduled pins for this layer.
+                if (print_wipe_extrusions == 0 && m_layer != nullptr) {
+                    const PrintObject* zpin_obj = &instance_to_print.print_object;
+                    if (zpin_obj->config().enable_z_pins.value) {
+                        const auto& schedule = zpin_obj->z_pin_schedule();
+                        const size_t lid     = m_layer->id();
+                        if (lid < schedule.size() && !schedule[lid].empty()) {
+                            const auto& grids = zpin_obj->z_pin_grids();
+                            const Point& inst_offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
+                            this->set_origin(unscale(inst_offset));
+                            gcode += "; ZPIN lid=" + std::to_string(lid)
+                                   + " n_pins=" + std::to_string(schedule[lid].size()) + "\n";
+                            gcode += this->_z_pin_extrude(*m_layer, schedule[lid],
+                                                          grids.empty() ? ZPinGrid{} : grids[0],
+                                                          zpin_obj->config());
+                        }
+                    }
+                }
+
                 if (this->config().gcode_label_objects) {
                     gcode += std::string("; stop printing object ") +
                              instance_to_print.print_object.model_object()->name +
@@ -5343,25 +5383,6 @@ LayerResult GCode::process_layer(
         }
         m_writer.add_object_change_labels(gcode);
         gcode += insert_timelapse_gcode();
-    }
-
-    // Z-Pinning injection
-    if (layer.object()) {
-        const bool zpin_en = layer.object()->config().enable_z_pins.value;
-        const ZPinGrid& grid = layer.object()->z_pin_grid();
-        if (zpin_en && !grid.centres.empty() && grid.depth > 0) {
-            const size_t lid = layer.id() + 1;
-            const size_t d   = static_cast<size_t>(grid.depth);
-            bool fires = (lid % d == 0);
-            if (!fires && grid.layer_stagger) {
-                const int off = grid.layer_stagger_offset > 0 ? grid.layer_stagger_offset : grid.depth / 2;
-                if (off > 0 && (lid + (size_t)(d - (size_t)off % d)) % d == 0)
-                    fires = true;
-            }
-            if (fires) {
-                gcode += this->_z_pin_extrude(layer, grid, layer.object()->config());
-            }
-        }
     }
 
     result.gcode = std::move(gcode);
@@ -7915,36 +7936,60 @@ void GCode::ObjectByExtruder::Island::Region::append(const Type type, const Extr
 // Index into std::vector<LayerToPrint>, which contains Object and Support layers for the current print_z, collected for
 // a single object, or for possibly multiple objects with multiple instances.
 
-std::string GCode::_z_pin_extrude(const Layer& layer, const ZPinGrid& grid, const PrintObjectConfig& cfg) {
+// Fire pre-selected pin centres at the current layer.
+// The `centres` vector is already filtered and scheduled by PrintObject::prepare_infill().
+// `grid` is used only for diameter/depth/style metadata; its centre list is not used here.
+std::string GCode::_z_pin_extrude(const Layer& layer, const std::vector<Point>& centres,
+                                   const ZPinGrid& grid, const PrintObjectConfig& cfg, double vol_scale) {
     std::string gcode;
+    if (centres.empty()) return gcode;
     const double feedrate = cfg.z_pin_feedrate.value * 60.0;
     const double flow     = cfg.z_pin_fill_pct.value / 100.0;
-
-    // filament cross-section area from print config
-    const double fil_r   = m_print->config().filament_diameter.get_at(0) * 0.5;
+    const double fil_r    = m_print->config().filament_diameter.get_at(0) * 0.5;
     const double fil_area = M_PI * fil_r * fil_r;
-    if (fil_area <= 0 || feedrate <= 0 || grid.depth <= 0) return gcode;
+    if (fil_area <= 0 || feedrate <= 0) return gcode;
 
-    const int lyr_off = grid.layer_stagger_offset > 0 ? grid.layer_stagger_offset : grid.depth / 2;
-    for (size_t i = 0; i < grid.centres.size(); ++i) {
-        const Point& c = grid.centres[i];
-        // Per-pin layer-stagger check: even columns fire normally, odd columns fire at offset
-        if (grid.layer_stagger) {
-            const int col_parity = (i < grid.col_indices.size() ? grid.col_indices[i] : (int)i) % 2;
-            const int shift = (col_parity == 1) ? lyr_off : 0;
-            if (((int)layer.id() + 1 - shift) % grid.depth != 0) continue;
-        } else {
-            // No layer stagger: all pins fire on the same cadence
-            if (((int)layer.id() + 1) % grid.depth != 0) continue;
+    // VP/VH fill factor (Duty et al.): volume is relative to the full void depth, not one layer.
+    // Cap at 100% (flow=1.0) when surrounding infill is solid — overflow has nowhere to go laterally.
+    const int    pin_depth     = cfg.z_pin_depth.value;
+    double       effective_flow = flow;
+    for (const LayerRegion* lr : layer.regions()) {
+        if (lr->region().config().sparse_infill_density.value >= 99.0) {
+            effective_flow = std::min(effective_flow, 1.0);
+            break;
         }
-        // check point is inside layer outline
-        bool inside = false;
-        for (const ExPolygon& ex : layer.lslices)
-            if (ex.contains(c)) { inside = true; break; }
-        if (!inside) continue;
+    }
+
+    bool role_emitted = false;
+    const ExtrusionRole saved_role = m_last_processor_extrusion_role;
+    char role_buf[256];
+
+    for (const Point& c : centres) {
+        // Modifier suppression: skip pins inside regions with enable_z_pins=false.
+        bool suppressed = false;
+        for (const LayerRegion* lr : layer.regions()) {
+            if (!lr->region().config().enable_z_pins.value) {
+                for (const ExPolygon& ex : lr->raw_slices)
+                    if (ex.contains(c)) { suppressed = true; break; }
+                if (suppressed) break;
+            }
+        }
+        if (suppressed) continue;
+
+        // Lazy-emit Custom role tag so the G-code viewer colours pins distinctly.
+        if (!role_emitted) {
+            sprintf(role_buf, ";%s%s\n",
+                    GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
+                    ExtrusionEntity::role_to_string(erCustom).c_str());
+            gcode += role_buf;
+            m_last_processor_extrusion_role = erCustom;
+            role_emitted = true;
+        }
+
         Vec2d centre = this->point_to_gcode(c);
         double r     = grid.diameter * 0.5;
-        double vol   = M_PI * r * r * layer.height * grid.depth * flow;
+        // VH = full void cylinder volume (depth layers); VP = VH × fill factor.
+        double vol   = M_PI * r * r * layer.height * pin_depth * effective_flow * vol_scale;
         double e_len = vol / fil_area;
 
         const double hop = m_config.z_hop.get_at(0);
@@ -7960,13 +8005,27 @@ std::string GCode::_z_pin_extrude(const Layer& layer, const ZPinGrid& grid, cons
         if (cfg.z_pin_style.value == ZPinStyle::Spiral) {
             for (int s = 0; s < 4; ++s) {
                 double a = s * M_PI / 2;
-                Vec2d p = centre + Vec2d(r*0.8*std::cos(a), r*0.8*std::sin(a));
-                gcode += m_writer.extrude_to_xy(p, e_len/4, "z-pin spiral");
+                Vec2d p = centre + Vec2d(r * 0.8 * std::cos(a), r * 0.8 * std::sin(a));
+                const Point p_scaled = this->gcode_to_point(p);
+                bool arm_inside = false;
+                for (const ExPolygon& ex : layer.lslices)
+                    if (ex.contains(p_scaled)) { arm_inside = true; break; }
+                gcode += m_writer.extrude_to_xy(arm_inside ? p : centre, e_len / 4, "z-pin spiral");
             }
         } else {
             gcode += m_writer.extrude_to_xy(centre, e_len, "z-pin");
         }
     }
+
+    // Restore previous extrusion role.
+    if (role_emitted) {
+        sprintf(role_buf, ";%s%s\n",
+                GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
+                ExtrusionEntity::role_to_string(saved_role).c_str());
+        gcode += role_buf;
+        m_last_processor_extrusion_role = saved_role;
+    }
+
     return gcode;
 }
 

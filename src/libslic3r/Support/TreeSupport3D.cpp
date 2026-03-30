@@ -220,9 +220,13 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
             for (size_t layer_nr = range.begin(); layer_nr < range.end(); layer_nr++) {
                 if (print_object.print()->canceled())
                     break;
+                if (layer_nr >= print_object.layer_count()) break; // apply() resized layers
                 Layer* layer = print_object.get_layer(layer_nr);
                 // Filter out areas whose diameter that is smaller than extrusion_width, but we don't want to lose any details.
-                layer->lslices_extrudable = intersection_ex(layer->lslices, offset2_ex(layer->lslices, -extrusion_width_scaled / 2, extrusion_width_scaled));
+                // lslices_extrudable is pre-computed sequentially in generate_support_material() before any parallel
+                // support work begins; skip the write here if already set to avoid a data race.
+                if (layer->lslices_extrudable.empty())
+                    layer->lslices_extrudable = intersection_ex(layer->lslices, offset2_ex(layer->lslices, -extrusion_width_scaled / 2, extrusion_width_scaled));
             }
         });
 
@@ -3394,7 +3398,9 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         const int       num_raft_layers = int(config.raft_layers.size());
         const int       num_layers = int(print_object.layer_count()) + num_raft_layers;
         overhangs.resize(num_layers);
-        for (size_t i = 0; i < print_object.layer_count(); i++) {
+        const size_t ts3d_layer_cnt = print_object.layer_count();
+        for (size_t i = 0; i < ts3d_layer_cnt; i++) {
+            if (i >= print_object.layer_count()) break; // apply() resized layers; cancel pending
             for (ExPolygon& expoly : print_object.get_layer(i)->loverhangs) {
                 Polygons polys = to_polygons(expoly);
                 if (tree_support->overhang_types[&expoly] == TreeSupport::SharpTail) { polys = offset(polys, scale_(0.2));

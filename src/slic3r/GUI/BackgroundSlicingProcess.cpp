@@ -699,8 +699,7 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const Dyn
     {
         static const std::vector<std::string> z_pin_keys = {
             "enable_z_pins", "z_pin_spacing", "z_pin_depth", "z_pin_diameter",
-            "z_pin_fill_pct", "z_pin_feedrate", "z_pin_stagger",
-            "z_pin_layer_stagger", "z_pin_layer_stagger_offset", "z_pin_style"
+            "z_pin_fill_pct", "z_pin_feedrate", "z_pin_style"
         };
         for (const auto& key : z_pin_keys) {
             const auto* src = config.option(key);

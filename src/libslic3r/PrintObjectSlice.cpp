@@ -797,7 +797,9 @@ void PrintObject::slice()
     m_print->throw_if_canceled();
     m_typed_slices = false;
     this->clear_layers();
-    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value));
+    // Use assign_layers() so the write acquires an exclusive lock on m_layers_mutex,
+    // preventing concurrent detect_overhangs() from reading stale layer pointers.
+    this->assign_layers(new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value)));
     this->slice_volumes();
     m_print->throw_if_canceled();
     int firstLayerReplacedBy = 0;
@@ -1164,15 +1166,9 @@ void PrintObject::slice_volumes()
     region_slices.clear();
 
     BOOST_LOG_TRIVIAL(debug) << "Slicing volumes - removing top empty layers";
-    while (! m_layers.empty()) {
-        const Layer *layer = m_layers.back();
-        if (! layer->empty())
-            break;
-        delete layer;
-        m_layers.pop_back();
-    }
-    if (! m_layers.empty())
-        m_layers.back()->upper_layer = nullptr;
+    // Use trim_empty_top_layers() so the deletion acquires an exclusive lock on
+    // m_layers_mutex, preventing concurrent detect_overhangs() from reading deleted layers.
+    this->trim_empty_top_layers();
     m_print->throw_if_canceled();
 
     this->apply_conical_overhang();

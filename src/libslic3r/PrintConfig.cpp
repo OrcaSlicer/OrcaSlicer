@@ -5541,18 +5541,20 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Enable Z-pinning");
     def->tooltip = L("Periodically deposit small filament slugs (\"Z-pins\") through the infill to mechanically interlock adjacent layers. "
                      "Z-pinning significantly improves Z-direction (inter-layer) tensile and shear strength without requiring exotic materials. "
-                     "Based on research by Duty et al. (Oak Ridge National Laboratory, 2019) — see OSTI biblio/1808415.");
+                     "Based on research by Duty et al. (Oak Ridge National Laboratory, 2019) — see OSTI biblio/1808415.\n"
+                     "On a modifier mesh, setting this to OFF suppresses Z-pins inside that region.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("z_pin_spacing", coFloat);
     def->label = L("Z-pin spacing");
-    def->tooltip = L("Center-to-center distance between Z-pins in the XY plane (mm). "
-                     "Smaller spacing increases pin density and Z-strength but adds print time and may weaken the surrounding infill. "
+    def->tooltip = L("Minimum center-to-center distance between simultaneously active Z-pins (mm). "
+                     "The Bridson scheduler places pins with at least this spacing, using graph coloring to stagger expiration. "
+                     "Must be >= pin diameter. Smaller spacing increases density; larger spacing spreads pins apart. "
                      "Duty et al. (ORNL 2019, OSTI biblio/1808415) found that spacing relative to pin diameter governs load-bearing area.");
     def->sidetext = L("mm");
-    def->min = 2.0;
-    def->set_default_value(new ConfigOptionFloat(5.0));
+    def->min = 1.0;
+    def->set_default_value(new ConfigOptionFloat(3.0));
 
     def = this->add("z_pin_depth", coInt);
     def->label = L("Z-pin depth");
@@ -5583,7 +5585,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("%");
     def->min = 10.0;
     def->max = 200.0;
-    def->set_default_value(new ConfigOptionFloat(115.0));
+    def->set_default_value(new ConfigOptionFloat(80.0));
 
     def = this->add("z_pin_feedrate", coFloat);
     def->label = L("Z-pin feedrate");
@@ -5594,33 +5596,6 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L("mm/s");
     def->min = 1.0;
     def->set_default_value(new ConfigOptionFloat(8.0));
-
-    def = this->add("z_pin_stagger", coBool);
-    def->label = L("Z-pin XY stagger");
-    def->tooltip = L("Offset odd-numbered columns of Z-pins by half the pin spacing in Y, creating a hexagonal (brick-like) layout. "
-                     "This distributes pins more uniformly across the cross-section, improving coverage and reducing stress concentrations. "
-                     "Has no effect on which layer each pin fires — see 'Z-pin layer stagger' for that. "
-                     "Duty et al. (ORNL 2019, OSTI biblio/1808415) recommend maximizing spatial coverage of the pin array.");
-    def->set_default_value(new ConfigOptionBool(true));
-
-    def = this->add("z_pin_layer_stagger", coBool);
-    def->label = L("Z-pin layer stagger");
-    def->tooltip = L("Fire odd-numbered columns of Z-pins at a different layer interval than even columns, so no single layer has all pins depositing simultaneously. "
-                     "This spreads the inter-layer bonding events vertically, preventing a single weak plane and improving uniform Z-strength throughout the part. "
-                     "The offset between even and odd column firing is controlled by 'Z-pin layer stagger offset'. "
-                     "Duty et al. (ORNL 2019, OSTI biblio/1808415) describe staggered pin timing as beneficial for uniform load distribution.");
-    def->set_default_value(new ConfigOptionBool(true));
-
-    def = this->add("z_pin_layer_stagger_offset", coInt);
-    def->label = L("Z-pin layer stagger offset");
-    def->tooltip = L("Number of layers by which odd-column pins are shifted relative to even-column pins when 'Z-pin layer stagger' is enabled. "
-                     "Set to 0 for automatic (half of Z-pin depth). "
-                     "For example, with depth=6 and offset=3, even columns fire at layers 6, 12, 18... and odd columns fire at layers 9, 15, 21... "
-                     "Duty et al. (ORNL 2019, OSTI biblio/1808415) suggest an offset of depth/2 as a starting point.");
-    def->sidetext = L("layers");
-    def->min = 0;
-    def->max = 29;
-    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("z_pin_style", coEnum);
     def->label = L("Z-pin fill style");
