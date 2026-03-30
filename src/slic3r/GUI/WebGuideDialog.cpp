@@ -1132,21 +1132,38 @@ int GuideFrame::LoadProfileData()
                 return 0;
         }
 
-        //sync to appconfig first to populate current selections
-        if (!m_destroy)
-            wxGetApp().CallAfter([this] { SaveProfileData(); });
+        // //sync to appconfig first to populate current selections
+        // if (!m_destroy)
+        //     wxGetApp().CallAfter([this] { SaveProfileData(); });
 
-        //sync to web after selections are populated
-        std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
+        // //sync to web after selections are populated
+        // std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents: " << std::endl << strAll;
-        json m_Res           = json::object();
-        m_Res["command"]     = "userguide_profile_load_finish";
-        m_Res["sequence_id"] = "10001";
-        wxString strJS       = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
-        if (!m_destroy)
-            wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+        // BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents: " << std::endl << strAll;
+        // json m_Res           = json::object();
+        // m_Res["command"]     = "userguide_profile_load_finish";
+        // m_Res["sequence_id"] = "10001";
+        // wxString strJS       = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
+        // if (!m_destroy) {
+        //     BOOST_LOG_TRIVIAL(info) << "load finish";
+        //     wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+        // }
+        wxGetApp().CallAfter([this] {
+            if (!m_destroy) {
+                SaveProfileData();
 
+                //sync to web after selections are populated
+                std::string strAll = m_ProfileJson.dump(-1, ' ', false, json::error_handler_t::ignore);
+
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished, json contents: " << std::endl << strAll;
+                json m_Res           = json::object();
+                m_Res["command"]     = "userguide_profile_load_finish";
+                m_Res["sequence_id"] = "10001";
+                wxString strJS       = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
+
+                RunScript(strJS);
+            }
+        });
     } catch (std::exception& e) {
         // wxLogMessage("GUIDE: load_profile_error  %s ", e.what());
         //  wxMessageBox(e.what(), "", MB_OK);
