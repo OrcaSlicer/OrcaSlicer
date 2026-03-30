@@ -749,6 +749,18 @@ wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
 }
 
 #ifdef __WIN32__
+WXLRESULT CenteredTitle::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
+{
+    switch (nMsg) {
+    case WM_NCHITTEST: {
+        // Pass all mouse event to parent
+        return HTTRANSPARENT;
+    }
+    }
+
+    return wxControl::MSWWindowProc(nMsg, wParam, lParam);
+}
+
 WXLRESULT BBLTopbar::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 {
     switch (nMsg) {
