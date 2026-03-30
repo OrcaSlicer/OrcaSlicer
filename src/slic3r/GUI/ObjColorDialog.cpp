@@ -57,7 +57,7 @@ wxBoxSizer* ObjColorDialog::create_btn_sizer(long flags,bool exist_error)
     m_button_list[wxOK]     = dlg_btns->GetOK();
     m_button_list[wxCANCEL] = dlg_btns->GetCANCEL();
 
-    btn_sizer->Add(dlg_btns, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    btn_sizer->Add(dlg_btns, 0, wxEXPAND);
     return btn_sizer;
 }
 
@@ -310,8 +310,8 @@ ObjColorPanel::ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, c
                                               wxBORDER_NONE | wxBU_AUTODRAW);
                 m_image_button->SetBitmap(image);
                 m_image_button->SetCanFocus(false);
-                icon_sizer->Add(m_image_button, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL | wxEXPAND | wxALL,
-                                FromDIP(0)); // wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL | wxEXPAND | wxALL
+                icon_sizer->Add(m_image_button, 0, wxEXPAND | wxALL,
+                                FromDIP(0)); // wxEXPAND | wxALL
                 cur_combox->Raise();//for mac
 
             m_sizer_simple->Add(icon_sizer, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(0));

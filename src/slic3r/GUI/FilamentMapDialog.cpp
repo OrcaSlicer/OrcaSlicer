@@ -169,9 +169,9 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     else
         m_default_map_panel = nullptr;
 
-    panel_sizer->Add(m_manual_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
-    panel_sizer->Add(m_auto_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
-    if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
+    panel_sizer->Add(m_manual_map_panel, 0, wxEXPAND);
+    panel_sizer->Add(m_auto_map_panel, 0, wxEXPAND);
+    if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxEXPAND);
     main_sizer->Add(panel_sizer, 0, wxEXPAND);
 
     wxPanel* bottom_panel = new wxPanel(this);
