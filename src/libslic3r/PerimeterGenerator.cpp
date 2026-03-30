@@ -1873,13 +1873,13 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
 
                                     // Normalize anchor size for partial bridges:
                                     // derive the bridge core first, then add a fixed overlap into support.
-                                    const coord_t anchor_overlap = coord_t(bridged_infill_margin);
+                                    const coordf_t anchor_overlap = bridged_infill_margin;
                                     ExPolygons bridge_core = diff_ex(unsupported_filtered, support, ApplySafetyOffset::Yes);
                                     if (bridge_core.empty()) {
                                         bridge_core = unsupported_filtered;
                                     }
                                     ExPolygons anchor_overlap_area = intersection_ex(
-                                        offset_ex(bridge_core, double(anchor_overlap)),
+                                        offset_ex(bridge_core, anchor_overlap),
                                         support,
                                         ApplySafetyOffset::Yes);
                                     unsupported_filtered = union_ex(bridge_core, anchor_overlap_area);
