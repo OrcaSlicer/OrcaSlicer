@@ -1,5 +1,6 @@
 #include "HMS.hpp"
 
+#include "GUI.hpp"
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
@@ -567,7 +568,7 @@ wxImage HMSQuery::query_image_from_local(const wxString& image_name)
             {
                 const fs::path& image_path = entry.path();
                 const fs::path& image_name = fs::relative(image_path, local_img_dir);
-                m_hms_local_images[image_name.string()] = wxImage(wxString::FromUTF8(image_path.string()));
+                m_hms_local_images[from_path(image_name)] = wxImage(from_path(image_path));
             }
         }
     }

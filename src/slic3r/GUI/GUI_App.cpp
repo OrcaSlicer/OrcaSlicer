@@ -7949,11 +7949,12 @@ bool GUI_App::check_url_association(std::wstring url_prefix, std::wstring& reg_b
     if (!key_full.Exists()) {
         return false;
     }
-    reg_bin = key_full.QueryDefaultValue().ToStdWstring();
+    wxString reg_value = key_full.QueryDefaultValue();
+    reg_bin = reg_value.ToStdWstring();
 
     boost::filesystem::path binary_path(boost::filesystem::canonical(boost::dll::program_location()));
-    std::wstring key_string = L"\"" + binary_path.wstring() + L"\" \"%1\"";
-    return key_string == reg_bin;
+    wxString key_string = "\"" + from_path(binary_path) + "\" \"%1\"";
+    return key_string == reg_value;
 #else
     return false;
 #endif // WIN32
@@ -7963,12 +7964,10 @@ void GUI_App::associate_url(std::wstring url_prefix)
 {
 #ifdef WIN32
     boost::filesystem::path binary_path(boost::filesystem::canonical(boost::dll::program_location()));
-    // the path to binary needs to be correctly saved in string with respect to localized characters
-    wxString wbinary = wxString::FromUTF8(binary_path.string());
-    std::string binary_string = (boost::format("%1%") % wbinary).str();
-    BOOST_LOG_TRIVIAL(info) << "Downloader registration: Path of binary: " << binary_string;
+    wxString wbinary = from_path(binary_path);
+    BOOST_LOG_TRIVIAL(info) << "Downloader registration: Path of binary: " << wbinary.ToUTF8().data();
 
-    std::string key_string = "\"" + binary_string + "\" \"%1\"";
+    wxString key_string = "\"" + wbinary + "\" \"%1\"";
 
     wxRegKey key_first(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix);
     wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");
