@@ -44,6 +44,7 @@ const char* UltiMaker::get_name() const { return "UltiMaker"; }
 // Modified from OctoPrint::test in OctoPrint.cpp
 bool UltiMaker::test(wxString &msg) const
 {
+	// Returns true on success, false on error.
 
 	// If called with specific arg, just generate the auth creds.
 	if (msg == "generate_auth_creds") {
@@ -78,7 +79,7 @@ bool UltiMaker::test(wxString &msg) const
 
             try {
 				// Validate that response is correct ("UltiMaker 3", "UltiMaker 3 extended" or "UltiMaker S5")
-				res = (boost::starts_with(body, "\"UltiMaker 3") || body == "\"UltiMaker S5\"");
+				res = (boost::starts_with(body, "\"Ultimaker 3") || body == "\"Ultimaker S5\"");
             }
             catch (const std::exception &) {
                 res = false;
@@ -103,7 +104,7 @@ bool UltiMaker::test(wxString &msg) const
 	std::string auth_result = test_auth();
 	if ( not(boost::starts_with(auth_result,"OK")) ) { msg = auth_result; res = false; };
     BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth test result: %2%") % name % auth_result;
-	
+	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; //DEBUG
     return res;
 }
 
