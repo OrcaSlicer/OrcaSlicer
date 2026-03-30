@@ -883,45 +883,64 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     // Not switch filament
     //get_first_added_material_preset(AppConfig::SECTION_FILAMENTS, first_added_filament);
 
-    // For each @System filament, check if a vendor-specific override exists
-    // in the loaded profiles. If so, replace the @System variant with the
-    // override (e.g. replace "Generic ABS @System" with BBL "Generic ABS").
-    // When printers from the default bundle are also selected, keep @System
-    // too since those printers need it.
-    static const std::string system_suffix              = " @System";
-    auto                     it_default                 = enabled_vendors.find(PresetBundle::ORCA_DEFAULT_BUNDLE);
-    bool                     has_default_bundle_printer = it_default != enabled_vendors.end() && !it_default->second.empty();
-    bool                     has_filament_profiles      = m_ProfileJson.contains("filament");
+    // Since the vendor specific filaments were already handled by the JS, there's no need to do any additional processing here
+    // // For each @System filament, check if a vendor-specific override exists
+    // // in the loaded profiles. If so, replace the @System variant with the
+    // // override (e.g. replace "Generic ABS @System" with BBL "Generic ABS").
+    // // When printers from the default bundle are also selected, keep @System
+    // // too since those printers need it.
+    // static const std::string system_suffix              = " @System";
+    // auto                     it_default                 = enabled_vendors.find(PresetBundle::ORCA_DEFAULT_BUNDLE);
+    // bool                     has_default_bundle_printer = it_default != enabled_vendors.end() && !it_default->second.empty();
+    // bool                     has_filament_profiles      = m_ProfileJson.contains("filament");
 
-    // Check if any non-default vendor has selected printers
-    bool has_vendor_printer = false;
-    for (const auto& [vendor, models] : enabled_vendors) {
-        if (vendor != PresetBundle::ORCA_DEFAULT_BUNDLE && !models.empty()) {
-            has_vendor_printer = true;
-            break;
-        }
-    }
+    // // Check if any non-default vendor has selected printers
+    // bool has_vendor_printer = false;
+    // for (const auto& [vendor, models] : enabled_vendors) {
+    //     if (vendor != PresetBundle::ORCA_DEFAULT_BUNDLE && !models.empty()) {
+    //         has_vendor_printer = true;
+    //         break;
+    //     }
+    // }
 
-    std::map<std::string, std::string> supplemented_filaments;
-    for (const auto& [name, value] : enabled_filaments) {
-        if (name.size() > system_suffix.size() &&
-            name.compare(name.size() - system_suffix.size(), system_suffix.size(), system_suffix) == 0) {
-            std::string short_name = name.substr(0, name.size() - system_suffix.size());
-            if (has_vendor_printer && has_filament_profiles && m_ProfileJson["filament"].contains(short_name)) {
-                supplemented_filaments[short_name] = value;
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Replacing @System filament: '" << name << "' -> '" << short_name << "'";
-                if (has_default_bundle_printer) {
-                    supplemented_filaments[name] = value;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Also keeping '" << name << "' for default bundle printers";
-                }
-                continue;
-            }
-        }
-        supplemented_filaments[name] = value;
-    }
+    // BOOST_LOG_TRIVIAL(info) << "m_ProfileJson[filament][name]";
+    // for (auto p : m_ProfileJson["filament"])
+    //     BOOST_LOG_TRIVIAL(info) << p["name"];
+
+    // std::map<std::string, std::string> supplemented_filaments;
+    // BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - Processing " << enabled_filaments.size() << " enabled filaments";
+    // BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - has_vendor_printer: " << (has_vendor_printer ? "YES" : "NO") << " has_filament_profiles: " << (has_filament_profiles ? "YES" : "NO") << " has_default_bundle_printer: " << (has_default_bundle_printer ? "YES" : "NO");
+    // for (const auto& [name, value] : enabled_filaments) {
+    //     BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - Checking filament: " << name;
+    //     // ORCA: This section of code only applies to code suffixed with @System
+    //     if (name.size() > system_suffix.size() &&
+    //         name.compare(name.size() - system_suffix.size(), system_suffix.size(), system_suffix) == 0) {
+    //         std::string short_name = name.substr(0, name.size() - system_suffix.size());
+    //         BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - Found @System filament: " << name << " (short_name: " << short_name << ")";
+    //         BOOST_LOG_TRIVIAL(info) << "has_vendor_printer: " << has_vendor_printer << ", has_filament_profiles: " << has_filament_profiles << ", m_ProfileJson[filament].contains(short_name): " << m_ProfileJson["filament"].contains(short_name);
+    //         // ORCA: if a vendor printer is in use, filaments were selected, and that the the short name is in the array, then the short name is set instead of the
+    //         // of the full @System name - however, this only seems to work for some BBL profiles literally named "Generic ABS" etc., so is not applicable here
+    //         // This section is now commented out in favor of recording the enabled_filaments array without modifications, which should already include any vendor-specific profiles
+    //         if (has_vendor_printer && has_filament_profiles && m_ProfileJson["filament"].contains(short_name)) {
+    //             supplemented_filaments[short_name] = value;
+    //             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Replacing @System filament: '" << name << "' -> '" << short_name << "'";
+    //             BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - Vendor replacement: " << name << " -> " << short_name << " value: " << value;
+    //             if (has_default_bundle_printer) {
+    //                 supplemented_filaments[name] = value;
+    //                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Also keeping '" << name << "' for default bundle printers";
+    //                 BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - Keeping both @System and vendor variant: " << name << " and " << short_name;
+    //             }
+    //             continue;
+    //         } else {
+    //             BOOST_LOG_TRIVIAL(info) << "[DEBUG-FILAMENT-RESOLUTION] " << __FUNCTION__ << " - @System filament " << name << " will NOT be replaced (has_vendor_printer: " << (has_vendor_printer ? "YES" : "NO") << ", has_filament_profiles: " << (has_filament_profiles ? "YES" : "NO") << ", in_profile_json: " << (m_ProfileJson["filament"].contains(short_name) ? "YES" : "NO") << ")";
+    //         }
+    //     }
+    //     supplemented_filaments[name] = value;
+    // }
 
     //update the app_config
-    app_config->set_section(AppConfig::SECTION_FILAMENTS, supplemented_filaments);
+    // app_config->set_section(AppConfig::SECTION_FILAMENTS, supplemented_filaments);
+    app_config->set_section(AppConfig::SECTION_FILAMENTS, enabled_filaments);
     app_config->set_vendors(m_appconfig_new);
 
     if (check_unsaved_preset_changes)
@@ -931,10 +950,10 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     // If the active filament is not in the wizard-selected filaments, switch to the first
     // compatible wizard-selected filament. This handles the first-run case where load_presets
     // falls back to "Generic PLA" even though the user selected a different filament.
-    bool active_filament_selected = supplemented_filaments.empty()
-        || supplemented_filaments.count(preset_bundle->filament_presets.front()) > 0;
+    bool active_filament_selected = enabled_filaments.empty()
+        || enabled_filaments.count(preset_bundle->filament_presets.front()) > 0;
     if (!active_filament_selected) {
-        for (const auto& [filament_name, _] : supplemented_filaments) {
+        for (const auto& [filament_name, _] : enabled_filaments) {
             const Preset* preset = preset_bundle->filaments.find_preset(filament_name);
             if (preset && preset->is_visible && preset->is_compatible) {
                 preset_bundle->filaments.select_preset_by_name(filament_name, true);
