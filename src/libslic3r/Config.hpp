@@ -596,20 +596,20 @@ public:
             this->values = rhs_opt->values;
 
             const size_t overlap_size = std::min(rhs_opt->size(), inherits_opt->size());
-            const size_t aligned_overlap_size = overlap_size - (overlap_size % size_t(stride));
 
-            for (size_t i = 0; i < aligned_overlap_size; i = i + stride) {
+            for (size_t i = 0; i < overlap_size; i += size_t(stride)) {
+                const size_t group_size = std::min(size_t(stride), overlap_size - i);
                 bool set_nil = true;
-                for (size_t j = 0; j < stride; j++) {
-                    if (inherits_opt->values[i +j] != rhs_opt->values[i +j]) {
+                for (size_t j = 0; j < group_size; ++j) {
+                    if (inherits_opt->values[i + j] != rhs_opt->values[i + j]) {
                         set_nil = false;
                         break;
                     }
                 }
 
-                for (size_t j = 0; j < stride; j++) {
+                for (size_t j = 0; j < group_size; ++j) {
                     if (set_nil) {
-                        this->set_at_to_nil(i +j);
+                        this->set_at_to_nil(i + j);
                     }
                 }
             }
