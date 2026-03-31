@@ -17,7 +17,7 @@
     "initial_layer_jerk": "3",
     "travel_jerk": "8",
     "elefant_foot_compensation": "0.1",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "extra_perimeters_on_overhangs": "1",
     "flush_into_support": "0",
     "infill_wall_overlap": "20%",
