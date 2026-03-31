@@ -64,6 +64,7 @@ private:
 
 	VolumeMatrix m_raw_matrixs;
 	std::vector<double> m_flush_multipliers;
+	std::vector<size_t> m_physical_indices;
 	bool m_submit_flag{ false };
 };
 

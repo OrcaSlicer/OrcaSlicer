@@ -5,6 +5,7 @@
 
 #include "../libslic3r.h"
 
+#include <map>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
@@ -167,6 +168,33 @@ public:
     // Custom G-code (color change, extruder switch, pause) to be performed before this layer starts to print.
     const CustomGCode::Item    *custom_gcode = nullptr;
 
+    // 0-based mixed filament slot → 0-based resolved physical filament for this layer.
+    // Populated by ToolOrdering::resolve_mixed_filaments(). Empty when no mixed filaments.
+    std::map<unsigned int, unsigned int> mixed_filament_resolution;
+
+    unsigned int resolve_mixed(unsigned int filament_0based) const {
+        auto it = mixed_filament_resolution.find(filament_0based);
+        return (it != mixed_filament_resolution.end()) ? it->second : filament_0based;
+    }
+
+    struct MixedSubLayerGroup {
+        unsigned int              mixed_slot_0based;
+        std::vector<unsigned int> components_0based;
+        std::vector<double>       sub_heights;       // per-component, sum ≈ layer_height
+    };
+    std::vector<MixedSubLayerGroup> mixed_sub_layer_groups;
+
+    const MixedSubLayerGroup* mixed_group_by_slot(unsigned int slot_id) const {
+        for (const auto &g : mixed_sub_layer_groups)
+            if (g.mixed_slot_0based == slot_id)
+                return &g;
+        return nullptr;
+    }
+
+    bool is_mixed_slot(unsigned int slot_id) const {
+        return mixed_group_by_slot(slot_id) != nullptr;
+    }
+
     WipingExtrusions& wiping_extrusions() {
         m_wiping_extrusions.set_layer_tools_ptr(this);
         return m_wiping_extrusions;
@@ -262,6 +290,8 @@ private:
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
     void 				collect_extruder_statistics(bool prime_multi_material);
     void                reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer);
+    void                resolve_mixed_filaments(const PrintConfig &config);
+    void                enforce_mixed_component_order();
 
     // BBS
     std::vector<unsigned int> generate_first_layer_tool_order(const Print& print);

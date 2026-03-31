@@ -1,6 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
 
+#include <chrono>
 #include <igl/unproject.h>
 
 #include "libslic3r/BuildVolume.hpp"
@@ -2561,7 +2562,15 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             if (!model_volume.is_model_part())
                 continue;
 
-            unsigned int filaments_count = (unsigned int)dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"))->values.size();
+            // Use project_config as the source of truth for filament count,
+            // because m_config->filament_colour may be truncated by full_config()
+            // which only merges filament_presets (physical filaments).
+            // project_config includes mixed filament slots.
+            unsigned int filaments_count_m_config = (unsigned int)dynamic_cast<const ConfigOptionStrings*>(m_config->option("filament_colour"))->values.size();
+            auto* proj_colour_opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour");
+            unsigned int filaments_count = proj_colour_opt
+                ? std::max(filaments_count_m_config, (unsigned int)proj_colour_opt->values.size())
+                : filaments_count_m_config;
             model_volume.update_extruder_count(filaments_count);
         }
     }
@@ -8962,6 +8971,10 @@ void GLCanvas3D::_render_paint_toolbar() const
                     }
                 }
             }
+        }
+        while ((int)filament_text_first_line.size() < extruder_num) {
+            filament_text_first_line.push_back("");
+            filament_text_second_line.push_back("");
         }
     }
 

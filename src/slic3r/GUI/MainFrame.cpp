@@ -2221,6 +2221,9 @@ bool MainFrame::get_enable_slice_status()
         }
     }
 
+    if (enable && m_plater->sidebar().has_broken_mixed_filament())
+        enable = false;
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": m_slice_select %1%, enable= %2% ")%m_slice_select %enable;
     return enable;
 }

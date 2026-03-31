@@ -1325,6 +1325,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_colour))
     ((ConfigOptionStrings,             filament_vendor))
     ((ConfigOptionBools,               filament_is_support))
+    ((ConfigOptionBools,               filament_is_mixed))
+    ((ConfigOptionStrings,             filament_mixed_components))
+    ((ConfigOptionStrings,             filament_mixed_sublayer_ratios))
+    ((ConfigOptionBools,               filament_mixed_gradient))
+    ((ConfigOptionStrings,             filament_mixed_gradient_range))
     ((ConfigOptionInts,                filament_printable))
     ((ConfigOptionFloats,              filament_change_length))
     ((ConfigOptionFloats,              filament_cost))
@@ -1570,7 +1575,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // BBS
     ((ConfigOptionInts,               nozzle_temperature_range_low))
     ((ConfigOptionInts,               nozzle_temperature_range_high))
-    ((ConfigOptionFloats,             wipe_distance))
+    ((ConfigOptionFloatsNullable,     wipe_distance))
+    ((ConfigOptionBool,               enable_mixed_color_sublayer))
     ((ConfigOptionBool,               enable_prime_tower))
     ((ConfigOptionBool,               prime_tower_enable_framework))
     // BBS: change wipe_tower_x and wipe_tower_y data type to floats to add partplate logic

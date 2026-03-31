@@ -29,6 +29,7 @@
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
 
+
 #define FILAMENT_SYSTEM_COLORS_NUM      16
 
 class wxButton;
@@ -254,6 +255,13 @@ public:
     std::vector<PlaterPresetComboBox*>&   combos_filament();
     void                                 clear_combos_filament_badge();
     void                                 udpate_combos_filament_badge();
+
+    // Mixed Filament sidebar
+    void add_mixed_filament();
+    void edit_mixed_filament(size_t idx);
+    void delete_mixed_filament_at(size_t idx);
+    void update_mixed_filament_list();
+    bool has_broken_mixed_filament() const;
     Search::OptionsSearcher&        get_searcher();
     std::string&                    get_search_line();
     void                            update_printer_thumbnail();
@@ -262,6 +270,9 @@ public:
     void set_need_auto_sync_after_connect_printer(bool need_auto_sync) { m_need_auto_sync_after_connect_printer = need_auto_sync; }
 
 private:
+    void  collect_physical_filament_info(std::vector<std::string>& colors,
+                                         std::vector<std::string>& names,
+                                         std::vector<std::string>& types);
     void  auto_calc_flushing_volumes_internal(const int filament_id, const int extruder_id);
 
 private:
@@ -305,7 +316,13 @@ public:
     const SLAPrint& sla_print() const;
     SLAPrint& sla_print();
 
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString());
+    // Helper: returns config indices where filament_is_mixed == true
+    std::vector<size_t> mixed_filament_config_indices() const;
+    // Helper: returns config indices where filament_is_mixed == false
+    std::vector<size_t> physical_filament_config_indices() const;
+
+    void reset_flags_when_new_or_close_project();
+    int new_project(bool skip_confirm = false, bool silent = false, const wxString &project_name = wxString());
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     int save_project(bool saveAs = false);
@@ -556,8 +573,8 @@ public:
 
     void on_filament_change(size_t filament_idx);
     void on_filament_count_change(size_t extruders_count);
-    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1);
-    std::vector<Slic3r::ColorRGBA> get_extruders_colors();
+    void on_filaments_delete(size_t extruders_count, size_t filament_id, int replace_filament_id = -1, const std::vector<unsigned char>& is_mixed_before_delete = {});
+    std::vector<std::array<float, 4>> get_extruders_colors();
     // BBS
     void on_bed_type_change(BedType bed_type);
 

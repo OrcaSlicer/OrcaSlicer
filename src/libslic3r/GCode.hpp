@@ -640,6 +640,8 @@ private:
     Print* m_curr_print = nullptr;
     unsigned int m_toolchange_count;
     coordf_t m_nominal_z;
+    double   m_sub_layer_flow_ratio = 0.0;
+    double   m_sub_layer_height     = 0.0;
     bool m_need_change_layer_lift_z = false;
     int m_start_gcode_filament = -1;
     std::string m_filament_instances_code;

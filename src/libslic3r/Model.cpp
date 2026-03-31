@@ -2575,7 +2575,8 @@ void ModelVolume::update_extruder_count(size_t extruder_count)
     }
 }
 
-void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id)
+void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_count, size_t filament_id, int replace_filament_id,
+                                                             const std::vector<unsigned char> &filament_is_mixed)
 {
     std::vector<int> used_extruders = get_extruders();
     for (int extruder_id : used_extruders) {
@@ -2583,6 +2584,12 @@ void ModelVolume::update_extruder_count_when_delete_filament(size_t extruder_cou
             mmu_segmentation_facets.set_enforcer_block_type_limit(*this, (EnforcerBlockerType)(extruder_count), (EnforcerBlockerType)(filament_id), (EnforcerBlockerType)(replace_filament_id));
             break;
         }
+    }
+    size_t eid = extruder_id();
+    if (eid > extruder_count) {
+        bool is_mixed = !filament_is_mixed.empty() && eid >= 1 && (eid - 1) < filament_is_mixed.size() && filament_is_mixed[eid - 1];
+        if (!is_mixed)
+            this->config.erase("extruder");
     }
 }
 
@@ -3485,6 +3492,15 @@ void FacetsAnnotation::get_facets(const ModelVolume& mv, std::vector<indexed_tri
     TriangleSelector selector(mv.mesh());
     selector.deserialize(m_data, false);
     selector.get_facets(facets_per_type);
+}
+
+void FacetsAnnotation::shift_states_above(const ModelVolume &mv, EnforcerBlockerType threshold, int delta)
+{
+    if (empty()) return;
+    TriangleSelector selector(mv.mesh());
+    selector.deserialize(m_data, false);
+    selector.shift_states_above(threshold, delta);
+    this->set(selector);
 }
 
 void FacetsAnnotation::set_enforcer_block_type_limit(const ModelVolume  &mv,

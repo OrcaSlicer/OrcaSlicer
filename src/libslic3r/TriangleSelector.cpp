@@ -1996,6 +1996,20 @@ void TriangleSelector::seed_fill_apply_on_triangles(EnforcerBlockerType new_stat
         }
 }
 
+void TriangleSelector::shift_states_above(EnforcerBlockerType threshold, int delta)
+{
+    for (Triangle &triangle : m_triangles) {
+        if (triangle.is_split() || !triangle.valid())
+            continue;
+        EnforcerBlockerType s = triangle.get_state();
+        if (s >= threshold && s != EnforcerBlockerType::NONE) {
+            int new_val = (int)s + delta;
+            if (new_val >= 0)
+                triangle.set_state(EnforcerBlockerType(new_val));
+        }
+    }
+}
+
 TriangleSelector::Cursor::Cursor(const Vec3f &source_, float radius_world, const Transform3d &trafo_, const ClippingPlane &clipping_plane_)
     : source{source_}, trafo{trafo_.cast<float>()}, clipping_plane{clipping_plane_}
 {

@@ -2293,8 +2293,9 @@ void TabPrint::build()
 
     auto page = add_options_page(L("Quality"), "custom-gcode_quality"); // ORCA: icon only visible on placeholders
         auto optgroup = page->new_optgroup(L("Layer height"), L"param_layer_height");
-        optgroup->append_single_option_line("layer_height","quality_settings_layer_height");
-        optgroup->append_single_option_line("initial_layer_print_height","quality_settings_layer_height");
+    optgroup->append_single_option_line("layer_height", "layer-height");
+        optgroup->append_single_option_line("initial_layer_print_height", "layer-height");
+        optgroup->append_single_option_line("enable_mixed_color_sublayer");
 
         optgroup = page->new_optgroup(L("Line width"), L"param_line_width");
         optgroup->append_single_option_line("line_width","quality_settings_line_width");

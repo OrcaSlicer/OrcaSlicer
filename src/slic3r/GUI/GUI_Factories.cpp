@@ -1062,7 +1062,7 @@ void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
             item_name << " (" + _L("current") + ")";
         }
 
-        if (icon_idx >= 0 && icon_idx < icons.size()) {
+        if (icon_idx >= 0 && icon_idx < (int)icons.size()) {
             append_menu_item(
                 extruder_selection_menu, wxID_ANY, item_name, "", [i](wxCommandEvent &) { obj_list()->set_extruder_for_selected_items(i); }, *icons[icon_idx], menu,
                 [is_active_extruder]() { return !is_active_extruder; }, m_parent);
@@ -2209,7 +2209,7 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
     }
 
     std::vector<wxBitmap*> icons = get_extruder_color_icons(true);
-    if (icons.size() < filaments_cnt) {
+    if ((int)icons.size() < filaments_cnt) {
         BOOST_LOG_TRIVIAL(warning) << boost::format("Warning: icons size %1%, filaments_cnt=%2%")%icons.size()%filaments_cnt;
         if (icons.size() <= 1)
             return;
@@ -2260,8 +2260,10 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
             item_name << " (" + _L("current") + ")";
         }
 
+        int icon_idx = i == 0 ? -1 : i - 1;
         append_menu_item(extruder_selection_menu, wxID_ANY, item_name, "",
-            [i](wxCommandEvent&) { obj_list()->set_extruder_for_selected_items(i); }, i == 0 ? wxNullBitmap : *icons[i - 1], menu,
+            [i](wxCommandEvent&) { obj_list()->set_extruder_for_selected_items(i); },
+            (icon_idx >= 0 && icon_idx < (int)icons.size()) ? *icons[icon_idx] : wxNullBitmap, menu,
             [is_active_extruder]() { return !is_active_extruder; }, m_parent);
     }
     menu->Append(wxID_ANY, name, extruder_selection_menu, _L("Change Filament"));

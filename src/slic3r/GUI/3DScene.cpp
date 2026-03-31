@@ -489,11 +489,230 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     ModelObjectPtrs &model_objects = GUI::wxGetApp().model().objects;
     std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
 
-    const GUI::OpenGLManager::EFramebufferType framebuffers_type = GUI::OpenGLManager::get_framebuffers_type();
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Unknown) {
-        // No supported, degrade to normal rendering
-        simple_render(shader, model_objects, colors);
-        return;
+                for (int idx = 0; idx < its_per_color.size(); idx++) {
+                    if (its_per_color[idx].indices.size() > 0) {
+                        mmuseg_ivas[idx].load_its_flat_shading(its_per_color[idx]);
+                        mmuseg_ivas[idx].finalize_geometry(true);
+                    }
+                }
+                mmuseg_ts = mv->mmu_segmentation_facets.timestamp();
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< boost::format(", this %1%, name %2%, new mmuseg_ts %3%, new color size %4%")
+                    %this %this->name %mmuseg_ts  %mmuseg_ivas.size();
+            }
+        } while (0);
+
+        const auto shader = GUI::wxGetApp().get_current_shader();
+        if (color_volume && !picking) {
+            //when force_transparent, we need to keep the alpha
+            auto cp_colors = colors;
+            if (force_native_color && (render_color[3] < 1.0)) {
+                for (int index = 0; index < colors.size(); index ++)
+                    cp_colors[index][3] = render_color[3];
+            }
+            for (int idx = 0; idx < mmuseg_ivas.size(); idx++) {
+                GLIndexedVertexArray* iva = &mmuseg_ivas[idx];
+                if (iva->triangle_indices_size == 0 && iva->quad_indices_size == 0)
+                    continue;
+
+                if (shader) {
+                    if (idx == 0) {
+                        ModelObject* mo = model_objects[object_idx()];
+                        ModelVolume* mv = mo->volumes[volume_idx()];
+                        int extruder_id = mv->extruder_id();
+                        //to make black not too hard too see
+                        if (extruder_id <= 0) { extruder_id = 1; }
+                        if (extruder_id > (int)cp_colors.size()) { extruder_id = 1; }
+                        std::array<float, 4> new_color = adjust_color_for_rendering(cp_colors[extruder_id - 1]);
+                        shader->set_uniform("uniform_color", new_color);
+                    }
+                    else {
+                        if (idx <= colors.size()) {
+                            //to make black not too hard too see
+                            std::array<float, 4> new_color = adjust_color_for_rendering(cp_colors[idx - 1]);
+                            shader->set_uniform("uniform_color", new_color);
+                        }
+                        else {
+                            //to make black not too hard too see
+                            std::array<float, 4> new_color = adjust_color_for_rendering(cp_colors[0]);
+                            shader->set_uniform("uniform_color", new_color);
+                        }
+                    }
+                }
+                iva->render(shader, this->tverts_range, this->qverts_range);
+                /*if (force_native_color && (render_color[3] < 1.0)) {
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< boost::format(", this %1%, name %2%, tverts_range {%3,%4}, qverts_range{%5%, %6%}")
+                     %this %this->name %this->tverts_range.first  %this->tverts_range.second
+                     % this->qverts_range.first % this->qverts_range.second;
+                }*/
+            }
+        }
+        else {
+            auto render_which = [this](std::shared_ptr<GLIndexedVertexArray> cur, const std::shared_ptr<GLShaderProgram>& shader) {
+                if (cur->vertices_and_normals_interleaved_VBO_id > 0) {
+                    cur->render(shader, tverts_range_lod, qverts_range_lod);
+                } else {// if (cur->vertices_and_normals_interleaved_VBO_id == 0)
+                    if (cur->triangle_indices.size() > 0) {
+                        cur->finalize_geometry(true);
+                        cur->render(shader, tverts_range_lod, qverts_range_lod);
+                    } else {
+                        indexed_vertex_array->render(shader, this->tverts_range, this->qverts_range);
+                    }
+                }
+            };
+            m_lod_update_index++;
+            if (abs(zoom - LAST_CAMERA_ZOOM_VALUE) > ZOOM_THRESHOLD || m_lod_update_index >= LOD_UPDATE_FREQUENCY){
+                m_lod_update_index     = 0;
+                LAST_CAMERA_ZOOM_VALUE = zoom;
+                if (!picking) {
+                    m_cur_lod_level = calc_volume_box_in_screen_bigger_than_threshold(transformed_bounding_box(), vier_proj_mat, viewport[2], viewport[3]);
+                }
+            }
+            if (m_cur_lod_level == LOD_LEVEL::SMALL && indexed_vertex_array_small) {
+                render_which(indexed_vertex_array_small, shader);
+            } else if (m_cur_lod_level == LOD_LEVEL::MIDDLE && indexed_vertex_array_middle) {
+                render_which(indexed_vertex_array_middle, shader);
+            } else {
+                this->indexed_vertex_array->render(shader, this->tverts_range, this->qverts_range);
+            }
+        }
+    };
+
+    //BBS: add logic of outline rendering
+    const auto shader = GUI::wxGetApp().get_current_shader();
+    //BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, with_outline %2%, shader %3%.")%__LINE__ %with_outline %shader;
+    if (with_outline && shader != nullptr)
+    {
+        do
+        {
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(0xFF);
+            glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
+            glClear(GL_STENCIL_BUFFER_BIT);
+            glStencilFunc(GL_ALWAYS, 0xff, 0xFF);
+            //another way use depth buffer
+            //glsafe(::glEnable(GL_DEPTH_TEST));
+            //glsafe(::glDepthFunc(GL_ALWAYS));
+            //glsafe(::glDepthMask(GL_FALSE));
+            //glsafe(::glEnable(GL_BLEND));
+            //glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+            /*GLShaderProgram* outline_shader = GUI::wxGetApp().get_shader("outline");
+            if (outline_shader == nullptr)
+            {
+                glDisable(GL_STENCIL_TEST);
+                this->indexed_vertex_array->render(this->tverts_range, this->qverts_range);
+                break;
+            }
+            shader->stop_using();
+            outline_shader->start_using();
+            //float scale_ratio = 1.02f;
+            std::array<float, 4> outline_color = { 0.0f, 1.0f, 0.0f, 1.0f };
+
+            outline_shader->set_uniform("uniform_color", outline_color);*/
+#if 0 //dump stencil buffer
+            int i = 100, j = 100;
+            std::string file_name;
+            FILE* file = NULL;
+            memset(stencil_data, 0, sizeof(stencil_data));
+            glReadPixels(0, 0, 2936, 1083, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencil_data);
+            for (i = 100; i < 1083; i++)
+            {
+                for (j = 100; j < 2936; j++)
+                {
+                    if (stencil_data[i][j] != 0)
+                    {
+                        file_name = "before_stencil_index_" + std::to_string(i) + "x" + std::to_string(j) + ".a8";
+                        break;
+                    }
+                }
+
+                if (stencil_data[i][j] != 0)
+                    break;
+            }
+            file = fopen(file_name.c_str(), "w");
+            if (file)
+            {
+                fwrite(stencil_data, 2936 * 1083, 1, file);
+                fclose(file);
+            }
+#endif
+            render_body();
+            //BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, outline render body, shader name %2%")%__LINE__ %shader->get_name();
+
+#if 0 //dump stencil buffer after first rendering
+            memset(stencil_data, 0, sizeof(stencil_data));
+            glReadPixels(0, 0, 2936, 1083, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencil_data);
+            for (i = 100; i < 1083; i++)
+            {
+                for (j = 100; j < 2936; j++)
+                    if (stencil_data[i][j] != 0)
+                    {
+                        file_name = "after_stencil_index_" + std::to_string(i) + "x" + std::to_string(j) + ".a8";
+                        break;
+                    }
+
+                if (stencil_data[i][j] != 0)
+                    break;
+            }
+
+            file = fopen(file_name.c_str(), "w");
+            if (file)
+            {
+                fwrite(stencil_data, 2936 * 1083, 1, file);
+                fclose(file);
+            }
+#endif
+            // 2nd. render pass: now draw slightly scaled versions of the objects, this time disabling stencil writing.
+            // Because the stencil buffer is now filled with several 1s. The parts of the buffer that are 1 are not drawn, thus only drawing
+            // the objects' size differences, making it look like borders.
+            // -----------------------------------------------------------------------------------------------------------------------------
+            /*GLShaderProgram* outline_shader = GUI::wxGetApp().get_shader("outline");
+            if (outline_shader == nullptr)
+            {
+                glDisable(GL_STENCIL_TEST);
+                break;
+            }
+            shader->stop_using();
+            outline_shader->start_using();*/
+            //outline_shader->stop_using();
+            //shader->start_using();
+
+            glStencilFunc(GL_NOTEQUAL, 0xff, 0xFF);
+            glStencilMask(0x00);
+            float scale = 1.02f;
+
+            shader->set_uniform("uniform_color", body_color);
+            shader->set_uniform("is_outline", true);
+
+            Transform3d matrix = world_matrix();
+            Transform3d world_tran = matrix;
+            matrix.scale(scale);
+            shader->set_uniform("view_model_matrix", view_matrix * matrix);
+            m_lod_update_index++;
+            if (abs(zoom - LAST_CAMERA_ZOOM_VALUE) > ZOOM_THRESHOLD || m_lod_update_index >= LOD_UPDATE_FREQUENCY) {
+                m_lod_update_index     = 0;
+                LAST_CAMERA_ZOOM_VALUE = zoom;
+                if (!picking) {
+                    m_cur_lod_level = calc_volume_box_in_screen_bigger_than_threshold(transformed_bounding_box(), vier_proj_mat, viewport[2], viewport[3]);
+                }
+            }
+            if (m_cur_lod_level == LOD_LEVEL::SMALL && indexed_vertex_array_small && indexed_vertex_array_small->vertices_and_normals_interleaved_VBO_id > 0) {
+                this->indexed_vertex_array_small->render(shader, this->tverts_range_lod, this->qverts_range_lod);
+            } else if (m_cur_lod_level == LOD_LEVEL::MIDDLE && indexed_vertex_array_middle && indexed_vertex_array_middle->vertices_and_normals_interleaved_VBO_id > 0) {
+                this->indexed_vertex_array_middle->render(shader, this->tverts_range_lod, this->qverts_range_lod);
+            } else {
+                this->indexed_vertex_array->render(shader, this->tverts_range, this->qverts_range);
+            }
+            //BOOST_LOG_TRIVIAL(info) << boost::format(": %1%, outline render for body, shader name %2%")%__LINE__ %shader->get_name();
+            shader->set_uniform("is_outline", false);
+
+            //glStencilMask(0xFF);
+            //glStencilFunc(GL_ALWAYS, 0, 0xFF);
+            glDisable(GL_STENCIL_TEST);
+            //glEnable(GL_DEPTH_TEST);
+            //outline_shader->stop_using();
+            //shader->start_using();
+        } while (0);
     }
 
     // 1st. render pass, render the model into a separate render target that has only depth buffer
@@ -615,7 +834,8 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                 if (idx == 0) {
                     int extruder_id = model_volume->extruder_id();
                     //to make black not too hard too see
-                    ColorRGBA new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
+                    if (extruder_id > (int)extruder_colors.size()) { extruder_id = 1; }
+                    std::array<float, 4> new_color = adjust_color_for_rendering(extruder_colors[extruder_id - 1]);
                     if (ban_light) {
                         new_color[3] = (255 - (extruder_id - 1))/255.0f;
                     }
@@ -854,9 +1074,9 @@ int GLVolumeCollection::load_wipe_tower_preview(
     std::vector<int> plate_extruders = ppl.get_plate(plate_idx)->get_extruders(true);
     TriangleMesh wipe_tower_shell = make_cube(width, depth, height);
     for (int extruder_id : plate_extruders) {
-        if (extruder_id <= extruder_colors.size())
+        if (extruder_id > 0 && extruder_id <= (int)extruder_colors.size())
             colors.push_back(extruder_colors[extruder_id - 1]);
-        else
+        else if (!extruder_colors.empty())
             colors.push_back(extruder_colors[0]);
     }
 
@@ -895,9 +1115,10 @@ int GLVolumeCollection::load_real_wipe_tower_preview(
     std::vector<int>                  plate_extruders  = ppl.get_plate(plate_idx)->get_extruders(true);
     std::vector<Slic3r::ColorRGBA>    colors;
     if (!plate_extruders.empty()) {
-        if (plate_extruders.front() <= extruder_colors.size())
-            colors.push_back(extruder_colors[plate_extruders.front() - 1]);
-        else
+        int front_id = plate_extruders.front();
+        if (front_id > 0 && front_id <= (int)extruder_colors.size())
+            colors.push_back(extruder_colors[front_id - 1]);
+        else if (!extruder_colors.empty())
             colors.push_back(extruder_colors[0]);
     }
     if (colors.empty()) return int(this->volumes.size() - 1);

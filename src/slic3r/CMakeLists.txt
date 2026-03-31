@@ -16,6 +16,70 @@ set(SLIC3R_GUI_SOURCES
     GUI/3DBed.hpp
     GUI/Widgets/StaticGroup.cpp
     GUI/Widgets/StaticGroup.hpp
+    GUI/Widgets/ImageSwitchButton.cpp
+    GUI/Widgets/ImageSwitchButton.hpp
+    GUI/Widgets/SwitchButton.cpp
+    GUI/Widgets/SwitchButton.hpp
+    GUI/Widgets/SpinInput.cpp
+    GUI/Widgets/SpinInput.hpp
+    GUI/Widgets/StaticLine.cpp
+    GUI/Widgets/StaticLine.hpp
+    GUI/Widgets/StateColor.cpp
+    GUI/Widgets/StateColor.hpp
+    GUI/Widgets/StateHandler.cpp
+    GUI/Widgets/StateHandler.hpp
+    GUI/Widgets/TabCtrl.cpp
+    GUI/Widgets/TabCtrl.hpp
+    GUI/Widgets/TextInput.cpp
+    GUI/Widgets/TextInput.hpp
+    GUI/Widgets/TempInput.cpp
+    GUI/Widgets/TempInput.hpp
+    GUI/Widgets/AMSControl.cpp
+    GUI/Widgets/AMSControl.hpp
+    GUI/Widgets/AMSItem.cpp
+    GUI/Widgets/AMSItem.hpp
+    GUI/Widgets/FilamentLoad.cpp
+    GUI/Widgets/FilamentLoad.hpp
+    GUI/Widgets/FanControl.cpp
+    GUI/Widgets/FanControl.hpp
+    GUI/Widgets/Scrollbar.cpp
+    GUI/Widgets/Scrollbar.hpp
+    GUI/Widgets/ScrolledWindow.cpp
+    GUI/Widgets/ScrolledWindow.hpp
+    GUI/Widgets/StepCtrl.cpp
+    GUI/Widgets/StepCtrl.hpp
+    GUI/Widgets/ProgressBar.cpp
+    GUI/Widgets/ProgressBar.hpp
+    GUI/Widgets/SideTools.cpp
+    GUI/Widgets/SideTools.hpp
+    GUI/Widgets/WebView.cpp
+    GUI/Widgets/WebView.hpp
+    GUI/Widgets/ErrorMsgStaticText.cpp
+    GUI/Widgets/ErrorMsgStaticText.hpp
+    GUI/Widgets/MultiNozzleSync.hpp
+    GUI/Widgets/MultiNozzleSync.cpp
+    GUI/MixedFilamentDialog.cpp
+    GUI/MixedFilamentDialog.hpp
+    GUI/AboutDialog.cpp
+    GUI/AboutDialog.hpp
+    GUI/NetworkTestDialog.cpp
+    GUI/NetworkTestDialog.hpp
+    GUI/AuxiliaryDialog.cpp
+    GUI/AuxiliaryDialog.hpp
+    GUI/Auxiliary.cpp
+    GUI/Auxiliary.hpp
+    GUI/DailyTips.cpp
+    GUI/DailyTips.hpp
+    GUI/EncodedFilament.hpp
+    GUI/EncodedFilament.cpp
+    GUI/Project.cpp
+    GUI/Project.hpp
+    GUI/BackgroundSlicingProcess.cpp
+    GUI/BackgroundSlicingProcess.hpp
+    GUI/BitmapCache.cpp
+    GUI/BitmapCache.hpp
+    GUI/ImageGrid.cpp
+    GUI/ImageGrid.h
     GUI/3DScene.cpp
     GUI/3DScene.hpp
     GUI/Widgets/FilamentLoad.cpp

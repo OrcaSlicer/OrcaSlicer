@@ -160,6 +160,8 @@ enum class NotificationType
     BBLSliceMultiExtruderHeightOutside,
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
+    BBLMixedFilamentBroken,
+    BBLMultiFilaNoWipeTower,
 	BBLNozzleFilamentIncompatible,
     OrcaSharedProfilesAvailable,
     NotificationTypeCount

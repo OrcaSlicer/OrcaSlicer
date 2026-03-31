@@ -53,7 +53,18 @@ static std::vector<std::string> s_project_options {
     "flush_multiplier",
     "nozzle_volume_type",
     "filament_map_mode",
-    "filament_map"
+    "filament_map",
+    "filament_volume_map",
+    "filament_nozzle_map",
+    "extruder_nozzle_stats",
+    "prime_volume_mode",
+    "extruder_full_stats",
+    "enable_filament_dynamic_map",
+    "filament_is_mixed",
+    "filament_mixed_components",
+    "filament_mixed_sublayer_ratios",
+    "filament_mixed_gradient",
+    "filament_mixed_gradient_range"
 };
 
 //Orca: add custom as default
@@ -3003,6 +3014,17 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     filament_map->values.resize(n, 1);
     ams_multi_color_filment.resize(n);
 
+    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
+        opt->values.resize(n, false);
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
+        opt->resize(n);
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
+        opt->resize(n);
+    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
+        opt->values.resize(n, false);
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
+        opt->resize(n);
+
     //BBS set new filament color to new_color
     if (old_filament_count < n) {
         if (!new_color.empty()) {
@@ -3065,9 +3087,34 @@ void PresetBundle::update_num_filaments(unsigned int to_del_flament_id)
     erase_or_resize(filament_color_type->values);
     erase_or_resize(ams_multi_color_filment);
 
+    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
+        erase_or_resize(opt->values);
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
+        erase_or_resize(opt->values);
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
+        erase_or_resize(opt->values);
+    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
+        erase_or_resize(opt->values);
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
+        erase_or_resize(opt->values);
+
     update_multi_material_filament_presets(to_del_flament_id);
 }
 
+bool PresetBundle::is_mixed_filament(size_t idx) const
+{
+    auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    return opt && idx < opt->values.size() && opt->values[idx];
+}
+
+std::vector<size_t> PresetBundle::physical_filament_config_indices() const
+{
+    std::vector<size_t> indices;
+    for (size_t i = 0; i < filament_presets.size(); ++i)
+        if (!is_mixed_filament(i))
+            indices.push_back(i);
+    return indices;
+}
 
 void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
 {
@@ -3272,71 +3319,54 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
-    if (color_only) {
-        auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
-            for (int i = 0; i < infos.size(); i++) {
-                if (infos[i].slot_id == temp.slot_id && infos[i].ams_id == temp.ams_id) {
-                    ams_infos[i].is_map = true;
-                    return i;
-                }
-            }
-            return -1;
-        };
 
-        auto exist_colors = filament_color->values;
-        std::vector<std::vector<std::string>> exist_multi_color_filment(exist_colors.size());
-        for (size_t i = 0; i < exist_colors.size(); i++) {
-            exist_multi_color_filment[i] = {exist_colors[i]};
+    // Snapshot and temporarily strip mixed filament slots so AMS sync
+    // operates on physical filaments only, preserving "physical-first" ordering.
+    struct MixedSlotSnapshot {
+        std::string preset;
+        std::string color;
+        std::string color_type;
+        std::string mixed_components;
+        std::string mixed_sublayer_ratios;
+        bool        mixed_gradient = false;
+        std::string mixed_gradient_range;
+    };
+    std::vector<MixedSlotSnapshot> mixed_snapshots;
+    auto* is_mixed_opt         = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    auto* mixed_comp_opt       = project_config.option<ConfigOptionStrings>("filament_mixed_components");
+    auto* mixed_ratios_opt     = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios");
+    auto* mixed_gradient_opt   = project_config.option<ConfigOptionBools>("filament_mixed_gradient");
+    auto* mixed_grad_range_opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range");
+    if (is_mixed_opt) {
+        for (size_t i = 0; i < is_mixed_opt->values.size() && i < this->filament_presets.size(); ++i) {
+            if (!is_mixed_opt->values[i])
+                continue;
+            MixedSlotSnapshot snap;
+            snap.preset     = this->filament_presets[i];
+            snap.color      = (i < filament_color->values.size())      ? filament_color->values[i]      : "";
+            snap.color_type = (i < filament_color_type->values.size()) ? filament_color_type->values[i] : "";
+            if (mixed_comp_opt     && i < mixed_comp_opt->values.size())     snap.mixed_components      = mixed_comp_opt->values[i];
+            if (mixed_ratios_opt   && i < mixed_ratios_opt->values.size())   snap.mixed_sublayer_ratios = mixed_ratios_opt->values[i];
+            if (mixed_gradient_opt && i < mixed_gradient_opt->values.size()) snap.mixed_gradient        = mixed_gradient_opt->values[i];
+            if (mixed_grad_range_opt && i < mixed_grad_range_opt->values.size()) snap.mixed_gradient_range = mixed_grad_range_opt->values[i];
+            mixed_snapshots.push_back(snap);
         }
+        if (!mixed_snapshots.empty()) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": stripping " << mixed_snapshots.size() << " mixed filament slot(s) before AMS sync";
+            size_t phys_count = this->filament_presets.size() - mixed_snapshots.size();
+            this->filament_presets.resize(phys_count);
+            filament_color->values.resize(phys_count);
+            filament_color_type->values.resize(phys_count);
+            filament_map->values.resize(phys_count, 1);
+            is_mixed_opt->values.resize(phys_count);
+            if (mixed_comp_opt)       mixed_comp_opt->values.resize(phys_count);
+            if (mixed_ratios_opt)     mixed_ratios_opt->values.resize(phys_count);
+            if (mixed_gradient_opt)   mixed_gradient_opt->values.resize(phys_count);
+            if (mixed_grad_range_opt) mixed_grad_range_opt->values.resize(phys_count);
+        }
+    }
 
-        ConfigOptionStrings *project_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
-        if (project_multi_color) {
-            for (size_t i = 0; i < std::min(exist_multi_color_filment.size(), project_multi_color->values.size()); i++) {
-                std::vector<std::string> colors = split_string(project_multi_color->values[i], ' ');
-                if (!colors.empty()) {
-                    exist_multi_color_filment[i] = colors;
-                }
-            }
-        }
-
-        bool mapped_any = false;
-        if (use_map && !maps.empty()) {
-            for (size_t i = 0; i < exist_colors.size(); i++) {
-                if (maps.find(i) == maps.end()) {
-                    continue;
-                }
-                int valid_index = get_map_index(ams_array_maps, maps[i]);
-                if (valid_index >= 0 && valid_index < int(ams_filament_colors.size()) && !ams_filament_colors[valid_index].empty()) {
-                    exist_colors[i] = ams_filament_colors[valid_index];
-                    mapped_any = true;
-                    if (valid_index < int(ams_multi_color_filment.size()) && !ams_multi_color_filment[valid_index].empty()) {
-                        exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
-                    } else {
-                        exist_multi_color_filment[i] = {ams_filament_colors[valid_index]};
-                    }
-                }
-            }
-        }
-        // Fallback to index-based color sync if no mapping was applied.
-        if (!use_map || maps.empty() || !mapped_any) {
-            size_t sync_count = std::min(exist_colors.size(), ams_filament_colors.size());
-            for (size_t i = 0; i < sync_count; i++) {
-                if (ams_filament_colors[i].empty()) {
-                    continue;
-                }
-                exist_colors[i] = ams_filament_colors[i];
-                if (i < ams_multi_color_filment.size() && !ams_multi_color_filment[i].empty()) {
-                    exist_multi_color_filment[i] = ams_multi_color_filment[i];
-                } else {
-                    exist_multi_color_filment[i] = {ams_filament_colors[i]};
-                }
-            }
-        }
-
-        filament_color->values = exist_colors;
-        ams_multi_color_filment = exist_multi_color_filment;
-        merge_info.merges.clear();
-    } else if (use_map) {
+    if (use_map) {
         auto check_has_merge_info = [](std::map<int, AMSMapInfo> &maps, MergeFilamentInfo &merge_info, int exist_colors_size) {
             std::set<int> done;
             for (auto it_i = maps.begin(); it_i != maps.end(); ++it_i) {
@@ -3524,6 +3554,31 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         if (support_interface_filament_opt->value > filament_color_type->values.size())
             support_interface_filament_opt->value = 0;
     }
+
+    // Re-append mixed filament slots that were stripped before AMS sync
+    if (!mixed_snapshots.empty()) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": re-appending " << mixed_snapshots.size() << " mixed filament slot(s) after AMS sync";
+        size_t new_phys_count = this->filament_presets.size();
+        if (is_mixed_opt)         is_mixed_opt->values.resize(new_phys_count, (unsigned char)false);
+        if (mixed_comp_opt)       mixed_comp_opt->values.resize(new_phys_count);
+        if (mixed_ratios_opt)     mixed_ratios_opt->values.resize(new_phys_count);
+        if (mixed_gradient_opt)   mixed_gradient_opt->values.resize(new_phys_count, (unsigned char)false);
+        if (mixed_grad_range_opt) mixed_grad_range_opt->values.resize(new_phys_count);
+
+        for (auto& snap : mixed_snapshots) {
+            this->filament_presets.push_back(snap.preset);
+            filament_color->values.push_back(snap.color);
+            filament_color_type->values.push_back(snap.color_type);
+            ams_multi_color_filment.push_back({snap.color});
+            filament_map->values.push_back(1);
+            if (is_mixed_opt)         is_mixed_opt->values.push_back((unsigned char)true);
+            if (mixed_comp_opt)       mixed_comp_opt->values.push_back(snap.mixed_components);
+            if (mixed_ratios_opt)     mixed_ratios_opt->values.push_back(snap.mixed_sublayer_ratios);
+            if (mixed_gradient_opt)   mixed_gradient_opt->values.push_back((unsigned char)snap.mixed_gradient);
+            if (mixed_grad_range_opt) mixed_grad_range_opt->values.push_back(snap.mixed_gradient_range);
+        }
+    }
+
     // Update ams_multi_color_filment
     update_filament_multi_color();
     update_multi_material_filament_presets();

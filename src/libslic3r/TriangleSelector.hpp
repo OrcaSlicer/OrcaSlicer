@@ -373,24 +373,8 @@ public:
     // The operation may merge split triangles if they are being assigned the same color.
     void seed_fill_apply_on_triangles(EnforcerBlockerType new_state);
 
-    // Saved painting data for remapping after mesh change.
-    struct SavedPainting {
-        TriangleMesh          mesh;  // Original mesh
-        TriangleSplittingData supported;
-        TriangleSplittingData seam;
-        TriangleSplittingData mmu;
-        TriangleSplittingData fuzzy;
-    };
-
-    // Remap painting data from source mesh to target mesh using spatial mapping.
-    // `target_transform` should transform the target mesh into source's coordinate space.
-    // If `existing_painting` is present, the result will be a combine of `existing_painting` and remapped `source_painting`.
-    static TriangleSplittingData remap_painting(
-        const indexed_triangle_set& source_its,
-        const TriangleSplittingData& source_painting,
-        const indexed_triangle_set& target_its,
-        const Transform3d& target_transform,
-        const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting);
+    // Shift all triangle states >= threshold by delta (used when inserting filaments)
+    void shift_states_above(EnforcerBlockerType threshold, int delta);
 
 protected:
     // Triangle and info about how it's split.
