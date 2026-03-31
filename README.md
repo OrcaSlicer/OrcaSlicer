@@ -140,7 +140,9 @@ winget install --id=SoftFever.OrcaSlicer -e
 ## Linux         
 
 ### Flathub (Recommended)
-OrcaSlicer is available on [Flathub](https://github.com/flathub/com.orcaslicer.OrcaSlicer).
+OrcaSlicer is available through FlatHub:
+
+<a href='https://flathub.org/apps/com.orcaslicer.OrcaSlicer'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
 
 Install from the command line:
 
