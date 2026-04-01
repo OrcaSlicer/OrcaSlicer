@@ -4535,9 +4535,11 @@ void TabPrinter::build_fff()
 
             if (og_initial != nullptr) {
                 const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
-                og_initial->show_field("additional_initial_plate_change_gcode", has_plate_change);
-                if (!has_plate_change)
-                    og_initial->hide_field("additional_initial_plate_change_gcode");
+                if (Line* line = og_initial->get_line("additional_initial_plate_change_gcode"); line != nullptr)
+                    line->toggle_visible = has_plate_change;
+                og_initial->update_visibility(m_mode);
+                if (wxWindow* w = og_initial->parent())
+                    w->Layout();
             }
         };
         og_plate_change->edit_custom_gcode = edit_custom_gcode_fn;
@@ -4617,11 +4619,15 @@ void TabPrinter::build_fff()
                     wxString wxgcode = from_u8(gcode);
                     field->set_value(wxgcode, true);
                 }
+                // Ensure the "additional initial plate change" block visibility updates
+                // even if the preset button doesn't trigger the same change events.
                 if (og_initial != nullptr) {
                     const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
-                    og_initial->show_field("additional_initial_plate_change_gcode", has_plate_change);
-                    if (!has_plate_change)
-                        og_initial->hide_field("additional_initial_plate_change_gcode");
+                    if (Line* line = og_initial->get_line("additional_initial_plate_change_gcode"); line != nullptr)
+                        line->toggle_visible = has_plate_change;
+                    og_initial->update_visibility(m_mode);
+                    if (wxWindow* w = og_initial->parent())
+                        w->Layout();
                 }
                 update_changed_ui();
             };
@@ -4665,12 +4671,12 @@ void TabPrinter::build_fff()
             opt_initial.opt.is_code       = true;
             opt_initial.opt.height        = gcode_field_height;
             og_initial->append_single_option_line(opt_initial, "printer_machine_gcode#additional-initial-plate-change-gcode");
-            {
-                const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
-                og_initial->show_field("additional_initial_plate_change_gcode", has_plate_change);
-                if (!has_plate_change)
-                    og_initial->hide_field("additional_initial_plate_change_gcode");
-            }
+
+            // Initial visibility: only show when Plate change G-code is non-empty.
+            const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
+            if (Line* line = og_initial->get_line("additional_initial_plate_change_gcode"); line != nullptr)
+                line->toggle_visible = has_plate_change;
+            og_initial->update_visibility(m_mode);
         }
 
         optgroup = page->new_optgroup(L("Timelapse G-code"), L"param_gcode", 0);

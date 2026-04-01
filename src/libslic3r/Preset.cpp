@@ -411,11 +411,18 @@ void Preset::normalize(DynamicPrintConfig &config)
         }
     }
 
-    // Backfill new printer Machine G-code keys for older presets (avoids missing opt in edited config).
-    if (config.def() && config.def()->get("additional_initial_plate_change_gcode") != nullptr &&
-        !config.has("additional_initial_plate_change_gcode")) {
-        config.option<ConfigOptionString>("additional_initial_plate_change_gcode", true)->value =
-            FullPrintConfig::defaults().additional_initial_plate_change_gcode.value;
+    // Backfill new printer Machine G-code key for older presets (avoids missing opt in edited config).
+    // Also, if the user has configured Plate change G-code but left the additional-initial block empty,
+    // seed it with the default boilerplate to reduce surprise.
+    if (config.def() && config.def()->get("additional_initial_plate_change_gcode") != nullptr) {
+        const std::string& default_initial = FullPrintConfig::defaults().additional_initial_plate_change_gcode.value;
+        if (!config.has("additional_initial_plate_change_gcode")) {
+            config.option<ConfigOptionString>("additional_initial_plate_change_gcode", true)->value = default_initial;
+        } else if (!default_initial.empty()) {
+            auto* initial_opt = dynamic_cast<ConfigOptionString*>(config.optptr("additional_initial_plate_change_gcode"));
+            if (initial_opt != nullptr && initial_opt->value.empty())
+                initial_opt->value = default_initial;
+        }
     }
 
     handle_legacy_sla(config);
