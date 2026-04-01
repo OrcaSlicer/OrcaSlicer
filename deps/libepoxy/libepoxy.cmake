@@ -10,7 +10,7 @@ ExternalProject_Add(
     INSTALL_DIR       ${DESTDIR}
     DOWNLOAD_DIR      ${DEP_DOWNLOAD_DIR}/libepoxy
     URL               https://github.com/anholt/libepoxy/archive/refs/tags/1.5.10.tar.gz
-    URL_HASH          SHA256=a7ced37f4102b745ac86d6a70a9c427c215e49a7e75e97e4b7862a22068d40a9
+    URL_HASH          SHA256=a7ced37f4102b745ac86d6a70a9da399cc139ff168ba6b8002b4d8d43c900c15
     CONFIGURE_COMMAND meson setup
         --prefix=<INSTALL_DIR>
         --default-library=static

@@ -1,0 +1,395 @@
+diff --git a/src/channelManager.cpp b/src/channelManager.cpp
+index 5c22857..1f69a4b 100644
+--- a/src/channelManager.cpp
++++ b/src/channelManager.cpp
+@@ -24,11 +24,9 @@
+ #include "opencsgConfig.h"
+ #include "channelManager.h"
+ 
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #ifdef _WIN32
+ #include <GL/wglew.h>
+-#elif !defined(__APPLE__)
+-#include <GL/glxew.h>
+ #endif
+ 
+ #include "context.h"
+@@ -105,10 +103,10 @@ namespace OpenCSG {
+         glDisable(GL_LIGHTING);
+         glDisable(GL_TEXTURE_1D);
+         glDisable(GL_TEXTURE_2D);
+-        if (GLEW_ARB_texture_rectangle || GLEW_EXT_texture_rectangle || GLEW_NV_texture_rectangle)
++        if (epoxy_has_gl_extension("GL_ARB_texture_rectangle") || epoxy_has_gl_extension("GL_EXT_texture_rectangle") || epoxy_has_gl_extension("GL_NV_texture_rectangle"))
+             glDisable(GL_TEXTURE_RECTANGLE_ARB);
+         glDisable(GL_TEXTURE_3D); // OpenGL 1.2 - take this as given
+-        if (GLEW_ARB_texture_cube_map)
++        if (epoxy_has_gl_extension("GL_ARB_texture_cube_map"))
+             glDisable(GL_TEXTURE_CUBE_MAP_ARB);
+         glDisable(GL_BLEND);
+ 
+@@ -142,12 +140,12 @@ namespace OpenCSG {
+         if (   newOffscreenType == OpenCSG::AutomaticOffscreenType
+             || newOffscreenType == OpenCSG::FrameBufferObject
+         ) {
+-            if (GLEW_ARB_framebuffer_object) {
++            if (epoxy_has_gl_extension("GL_ARB_framebuffer_object")) {
+                 newOffscreenType = OpenCSG::FrameBufferObjectARB;
+             }
+             else
+-            if (   GLEW_EXT_framebuffer_object
+-                && GLEW_EXT_packed_depth_stencil
++            if (   epoxy_has_gl_extension("GL_EXT_framebuffer_object")
++                && epoxy_has_gl_extension("GL_EXT_packed_depth_stencil")
+             ) {
+                 newOffscreenType = OpenCSG::FrameBufferObjectEXT;
+             }
+@@ -160,8 +158,8 @@ namespace OpenCSG {
+                 && WGLEW_ARB_pbuffer
+                 && WGLEW_ARB_pixel_format
+ #elif !defined(__APPLE__)
+-                && GLXEW_SGIX_pbuffer
+-                && GLXEW_SGIX_fbconfig
++                && epoxy_has_gl_extension("GLX_SGIX_pbuffer")
++                && epoxy_has_gl_extension("GLX_SGIX_fbconfig")
+ #else
+                 && false
+ #endif
+@@ -198,12 +196,12 @@ namespace OpenCSG {
+         // - any of the texture rectangle extensions is supported
+         //   (texture rectangle is no problem for FBO; for pbuffers we fallback to copy-to-texture
+         //    if the required WGL-extensions for texture rectangle are missing - always on Linux)
+-        // - Otherwise for FBO, if we have the GLEW_ARB_texture_non_power_of_two extension
++        // - Otherwise for FBO, if we have the epoxy_has_gl_extension("GL_ARB_texture_non_power_of_two") extension
+         // Negating this gives the following expression from hell:
+-        if (   !GLEW_ARB_texture_rectangle
+-            && !GLEW_EXT_texture_rectangle
+-            && !GLEW_NV_texture_rectangle
+-            && (newOffscreenType == OpenCSG::PBuffer || !GLEW_ARB_texture_non_power_of_two)
++        if (   !epoxy_has_gl_extension("GL_ARB_texture_rectangle")
++            && !epoxy_has_gl_extension("GL_EXT_texture_rectangle")
++            && !epoxy_has_gl_extension("GL_NV_texture_rectangle")
++            && (newOffscreenType == OpenCSG::PBuffer || !epoxy_has_gl_extension("GL_ARB_texture_non_power_of_two"))
+         ) {
+             // blow up the texture to legal power-of-two size :-(
+             tx = nextPow2(dx);
+@@ -289,7 +287,7 @@ namespace OpenCSG {
+         // find free channel
+         if ((mOccupiedChannels & Alpha) == 0) {
+             channel = Alpha;
+-        }  else if (GLEW_ARB_texture_env_dot3) {
++        }  else if (epoxy_has_gl_extension("GL_ARB_texture_env_dot3")) {
+             if ((mOccupiedChannels & Red) == 0)   {
+                 channel = Red;
+             } else if ((mOccupiedChannels & Green) == 0) {
+@@ -485,7 +483,7 @@ namespace OpenCSG {
+             glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+         } else {
+             // replicate color into alpha
+-            if (GLEW_ARB_texture_env_dot3) {
++            if (epoxy_has_gl_extension("GL_ARB_texture_env_dot3")) {
+                 switch (channel) {
+                 case Red: 
+                     glColor3f(1.0f, 0.5f, 0.5f); 
+diff --git a/src/channelManager.h b/src/channelManager.h
+index 3578ac5..70107f7 100644
+--- a/src/channelManager.h
++++ b/src/channelManager.h
+@@ -27,7 +27,7 @@
+ #define __OpenCSG__channel_manager_h__
+ 
+ #include "opencsgConfig.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include <utility>
+ #include <vector>
+ 
+diff --git a/src/context.cpp b/src/context.cpp
+index 118e610..066e646 100644
+--- a/src/context.cpp
++++ b/src/context.cpp
+@@ -26,7 +26,7 @@
+ #include "frameBufferObject.h"
+ #include "frameBufferObjectExt.h"
+ #include "pBufferTexture.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include <map>
+ 
+ namespace OpenCSG {
+diff --git a/src/context.h b/src/context.h
+index b4e3750..9930be2 100644
+--- a/src/context.h
++++ b/src/context.h
+@@ -27,7 +27,7 @@
+ 
+ #include "opencsgConfig.h"
+ #include <opencsg.h>
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ 
+ namespace OpenCSG {
+ 
+diff --git a/src/frameBufferObject.cpp b/src/frameBufferObject.cpp
+index 620bd68..d929159 100644
+--- a/src/frameBufferObject.cpp
++++ b/src/frameBufferObject.cpp
+@@ -45,7 +45,7 @@ namespace OpenCSG {
+ 
+         bool FrameBufferObject::ReadCurrent()
+         {
+-            bool haveFBO = GLEW_ARB_framebuffer_object != 0;
++            bool haveFBO = epoxy_has_gl_extension("GL_ARB_framebuffer_object") != 0;
+ 
+             if (haveFBO)
+                 glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFramebufferID);
+@@ -57,7 +57,7 @@ namespace OpenCSG {
+         // shareObjects and copyContext do not make sense here, context remains the same.
+         bool FrameBufferObject::Initialize(int width, int height, bool /* shareObjects */, bool /* copyContext */ )
+         {
+-            bool haveFBO = GLEW_ARB_framebuffer_object != 0;
++            bool haveFBO = epoxy_has_gl_extension("GL_ARB_framebuffer_object") != 0;
+             if (!haveFBO)
+                 return false;
+ 
+@@ -70,7 +70,7 @@ namespace OpenCSG {
+ 
+             glBindFramebuffer(GL_FRAMEBUFFER, framebufferID);
+ 
+-            GLenum target = (GLEW_ARB_texture_rectangle || GLEW_EXT_texture_rectangle || GLEW_NV_texture_rectangle)
++            GLenum target = (epoxy_has_gl_extension("GL_ARB_texture_rectangle") || epoxy_has_gl_extension("GL_EXT_texture_rectangle") || epoxy_has_gl_extension("GL_NV_texture_rectangle"))
+                 ? GL_TEXTURE_RECTANGLE_ARB
+                 : GL_TEXTURE_2D; // implicitely asks for GL_ARB_texture_non_power_of_two.
+                                  // this should have been checked in channelManager.cpp
+diff --git a/src/frameBufferObject.h b/src/frameBufferObject.h
+index 4096ab9..63b6925 100644
+--- a/src/frameBufferObject.h
++++ b/src/frameBufferObject.h
+@@ -27,7 +27,7 @@
+ 
+ #include "opencsgConfig.h"
+ #include "offscreenBuffer.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ 
+ namespace OpenCSG {
+ 
+diff --git a/src/frameBufferObjectExt.cpp b/src/frameBufferObjectExt.cpp
+index 683af93..2e8660c 100644
+--- a/src/frameBufferObjectExt.cpp
++++ b/src/frameBufferObjectExt.cpp
+@@ -45,8 +45,8 @@ namespace OpenCSG {
+ 
+         bool FrameBufferObjectExt::ReadCurrent()
+         {
+-            bool haveFBO = GLEW_EXT_framebuffer_object != 0
+-                        && GLEW_EXT_packed_depth_stencil != 0;
++            bool haveFBO = epoxy_has_gl_extension("GL_EXT_framebuffer_object") != 0
++                        && epoxy_has_gl_extension("GL_EXT_packed_depth_stencil") != 0;
+ 
+             if (haveFBO)
+                 glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &oldFramebufferID);
+@@ -58,8 +58,8 @@ namespace OpenCSG {
+         // shareObjects and copyContext do not make sense here, context remains the same.
+         bool FrameBufferObjectExt::Initialize(int width, int height, bool /* shareObjects */, bool /* copyContext */ )
+         {
+-            bool haveFBO =    GLEW_EXT_framebuffer_object != 0 
+-                           && GLEW_EXT_packed_depth_stencil != 0;
++            bool haveFBO =    epoxy_has_gl_extension("GL_EXT_framebuffer_object") != 0 
++                           && epoxy_has_gl_extension("GL_EXT_packed_depth_stencil") != 0;
+             if (!haveFBO)
+                 return false;
+ 
+@@ -72,7 +72,7 @@ namespace OpenCSG {
+ 
+             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebufferID);
+ 
+-            GLenum target = (GLEW_ARB_texture_rectangle || GLEW_EXT_texture_rectangle || GLEW_NV_texture_rectangle)
++            GLenum target = (epoxy_has_gl_extension("GL_ARB_texture_rectangle") || epoxy_has_gl_extension("GL_EXT_texture_rectangle") || epoxy_has_gl_extension("GL_NV_texture_rectangle"))
+                 ? GL_TEXTURE_RECTANGLE_ARB
+                 : GL_TEXTURE_2D; // implicitely asks for GL_ARB_texture_non_power_of_two.
+                                  // this should have been checked in channelManager.cpp
+diff --git a/src/frameBufferObjectExt.h b/src/frameBufferObjectExt.h
+index af6b64c..5ec3e87 100644
+--- a/src/frameBufferObjectExt.h
++++ b/src/frameBufferObjectExt.h
+@@ -27,7 +27,7 @@
+ 
+ #include "opencsgConfig.h"
+ #include "offscreenBuffer.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ 
+ namespace OpenCSG {
+ 
+diff --git a/src/occlusionQuery.cpp b/src/occlusionQuery.cpp
+index 360ea61..59012be 100644
+--- a/src/occlusionQuery.cpp
++++ b/src/occlusionQuery.cpp
+@@ -22,7 +22,7 @@
+ //
+ 
+ #include "opencsgConfig.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include "occlusionQuery.h"
+ 
+ namespace OpenCSG {
+@@ -107,19 +107,19 @@ namespace OpenCSG {
+ 
+         OcclusionQuery* getOcclusionQuery(bool exactNumberNeeded) {
+ 
+-            if (!exactNumberNeeded && GLEW_ARB_occlusion_query2) {
++            if (!exactNumberNeeded && epoxy_has_gl_extension("GL_ARB_occlusion_query2")) {
+                 OcclusionQueryARB* occlusionQuery = new OcclusionQueryARB;
+                 occlusionQuery->mQueryType = GL_ANY_SAMPLES_PASSED;
+                 return occlusionQuery;
+             }
+ 
+-            if (GLEW_ARB_occlusion_query) {
++            if (epoxy_has_gl_extension("GL_ARB_occlusion_query")) {
+                 OcclusionQueryARB* occlusionQuery = new OcclusionQueryARB;
+                 occlusionQuery->mQueryType = GL_SAMPLES_PASSED_ARB;
+                 return occlusionQuery;
+             }
+ 
+-            if (GLEW_NV_occlusion_query) {
++            if (epoxy_has_gl_extension("GL_NV_occlusion_query")) {
+                 return new OcclusionQueryNV;
+             }
+ 
+diff --git a/src/opencsgRender.cpp b/src/opencsgRender.cpp
+index 2fc1d56..957b533 100644
+--- a/src/opencsgRender.cpp
++++ b/src/opencsgRender.cpp
+@@ -23,7 +23,7 @@
+ 
+ #include "opencsgConfig.h"
+ #include <opencsg.h>
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include "opencsgRender.h"
+ #include "primitiveHelper.h"
+ #include "settings.h"
+@@ -33,7 +33,7 @@ namespace OpenCSG {
+     namespace {
+ 
+         bool haveHardwareOcclusionQueries() {
+-            return GLEW_ARB_occlusion_query || GLEW_NV_occlusion_query;
++            return epoxy_has_gl_extension("GL_ARB_occlusion_query") || epoxy_has_gl_extension("GL_NV_occlusion_query");
+         }
+ 
+         Algorithm chooseAlgorithm(const std::vector<Primitive*>& primitives) {
+diff --git a/src/openglHelper.cpp b/src/openglHelper.cpp
+index f9b00dc..7155263 100644
+--- a/src/openglHelper.cpp
++++ b/src/openglHelper.cpp
+@@ -22,7 +22,7 @@
+ //
+ 
+ #include "opencsgConfig.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include "openglHelper.h"
+ 
+ namespace OpenCSG {
+diff --git a/src/openglHelper.h b/src/openglHelper.h
+index 3f4e6d4..971632d 100644
+--- a/src/openglHelper.h
++++ b/src/openglHelper.h
+@@ -27,7 +27,7 @@
+ #define __OpenCSG__opengl_helper_h__
+ 
+ #include "opencsgConfig.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include "area.h"
+ 
+ namespace OpenCSG {
+diff --git a/src/pBufferTexture.cpp b/src/pBufferTexture.cpp
+index c20af60..b8b580f 100644
+--- a/src/pBufferTexture.cpp
++++ b/src/pBufferTexture.cpp
+@@ -26,7 +26,7 @@
+ 
+ #include "pBufferTexture.h"
+ #include "RenderTexture/RenderTexture.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #ifdef _WIN32
+ #include <GL/wglew.h>
+ #endif
+@@ -36,7 +36,7 @@ namespace OpenCSG {
+     namespace OpenGL {
+ 
+         PBufferTexture::PBufferTexture() : r(0), s(0) {
+-            if (GLEW_ARB_texture_rectangle || GLEW_EXT_texture_rectangle || GLEW_NV_texture_rectangle) {
++            if (epoxy_has_gl_extension("GL_ARB_texture_rectangle") || epoxy_has_gl_extension("GL_EXT_texture_rectangle") || epoxy_has_gl_extension("GL_NV_texture_rectangle")) {
+ #ifdef _WIN32
+                 if (WGLEW_ARB_render_texture && (WGLEW_ATI_render_texture_rectangle || WGLEW_NV_render_texture_rectangle)) {
+                     s = "rgba texRECT depth=24 stencil=8 single rtt";
+diff --git a/src/primitiveHelper.cpp b/src/primitiveHelper.cpp
+index 848835f..6a330de 100644
+--- a/src/primitiveHelper.cpp
++++ b/src/primitiveHelper.cpp
+@@ -23,7 +23,7 @@
+ 
+ #include "opencsgConfig.h"
+ #include <opencsg.h>
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include "openglHelper.h"
+ #include "primitiveHelper.h"
+ #include <algorithm>
+diff --git a/src/renderSCS.cpp b/src/renderSCS.cpp
+index d73947d..840b81d 100644
+--- a/src/renderSCS.cpp
++++ b/src/renderSCS.cpp
+@@ -271,7 +271,7 @@ namespace OpenCSG {
+ 
+         ChannelManagerForBatches* getChannelManager() {
+ 
+-            if (GLEW_ARB_vertex_program && GLEW_ARB_fragment_program) {
++            if (epoxy_has_gl_extension("GL_ARB_vertex_program") && epoxy_has_gl_extension("GL_ARB_fragment_program")) {
+                 return new SCSChannelManagerFragmentProgram;
+             }
+ 
+diff --git a/src/scissorMemo.cpp b/src/scissorMemo.cpp
+index ee0f99b..e0243bd 100644
+--- a/src/scissorMemo.cpp
++++ b/src/scissorMemo.cpp
+@@ -23,7 +23,7 @@
+ 
+ #include "opencsgConfig.h"
+ #include <opencsg.h>
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #include "openglHelper.h"
+ #include "scissorMemo.h"
+ 
+@@ -45,7 +45,7 @@ namespace OpenCSG {
+                  || optimizationSetting == OptimizationOff)
+             mUseDepthBoundsTest = false;
+         else if (optimizationSetting == OptimizationOn)
+-            mUseDepthBoundsTest = (GLEW_EXT_depth_bounds_test != 0);
++            mUseDepthBoundsTest = (epoxy_has_gl_extension("GL_EXT_depth_bounds_test") != 0);
+     }
+ 
+     void ScissorMemo::store(Channel ch) {
+diff --git a/src/stencilManager.cpp b/src/stencilManager.cpp
+index 8fbddfa..8cb29d3 100644
+--- a/src/stencilManager.cpp
++++ b/src/stencilManager.cpp
+@@ -22,11 +22,9 @@
+ //
+ 
+ #include "opencsgConfig.h"
+-#include <GL/glew.h>
++#include <epoxy/gl.h>
+ #ifdef _WIN32
+ #include <GL/wglew.h>
+-#elif !defined(__APPLE__)
+-#include <GL/glxew.h>
+ #endif
+ #include "area.h"
+ #include "openglHelper.h"

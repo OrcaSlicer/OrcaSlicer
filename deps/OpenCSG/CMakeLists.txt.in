@@ -2,16 +2,12 @@ cmake_minimum_required(VERSION 3.0)
 
 project(OpenCSG)
 
-if (NOT BUILD_SHARED_LIBS)
-  set(GLEW_USE_STATIC_LIBS ON)
-elseif (MSVC)
+if (BUILD_SHARED_LIBS AND MSVC)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
 find_package(OpenGL REQUIRED)
-
-set(GLEW_VERBOSE ON)
-find_package(GLEW 1.13.0 REQUIRED)
+find_package(Epoxy REQUIRED)
 
 set(_srcfiles 
     src/area.cpp
@@ -54,7 +50,7 @@ set(_srcfiles
 add_library(opencsg ${_srcfiles})
 target_include_directories(opencsg PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
 target_include_directories(opencsg PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
-target_link_libraries(opencsg PRIVATE GLEW::GLEW OpenGL::GL)
+target_link_libraries(opencsg PRIVATE epoxy::epoxy OpenGL::GL)
 
 include(CMakePackageConfigHelpers)
 
