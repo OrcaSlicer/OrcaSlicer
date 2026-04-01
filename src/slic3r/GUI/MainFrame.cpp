@@ -310,6 +310,17 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     m_edge_right  = new ResizeEdgePanel(this, ResizeEdgePanel::Right);
 #endif
 
+#ifdef _WIN32
+    if (HWND hWnd = GetHandle(); hWnd != nullptr) {
+        LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        if ((style & WS_CAPTION) != 0) {
+            SetWindowLongPtr(hWnd, GWL_STYLE, style & ~WS_CAPTION);
+            SetWindowPos(hWnd, nullptr, 0, 0, 0, 0,
+                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+    }
+#endif
+
     if (!wxGetApp().app_config->has("user_mode")) {
         wxGetApp().app_config->set("user_mode", "simple");
         wxGetApp().app_config->set_bool("developer_mode", false);
