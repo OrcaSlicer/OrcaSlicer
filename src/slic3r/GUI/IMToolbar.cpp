@@ -1,7 +1,7 @@
 #include "IMToolbar.hpp"
 
 #include "3DScene.hpp"
-#include <GL/glew.h>
+#include <epoxy/gl.h>
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui.h>
 

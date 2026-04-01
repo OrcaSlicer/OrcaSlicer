@@ -44,7 +44,7 @@
 #include "slic3r/Utils/RetinaHelper.hpp"
 #endif
 
-#include <GL/glew.h>
+#include <epoxy/gl.h>
 
 #include <wx/glcanvas.h>
 #include <wx/bitmap.h>

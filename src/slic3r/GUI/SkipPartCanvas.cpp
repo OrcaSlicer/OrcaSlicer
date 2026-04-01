@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <epoxy/gl.h>
 #include "SkipPartCanvas.hpp"
 
 #include <opencv2/opencv.hpp>

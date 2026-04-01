@@ -1,6 +1,6 @@
 #include "TextLines.hpp"
 
-#include <GL/glew.h>
+#include <epoxy/gl.h>
 
 #include "libslic3r/Model.hpp"
 
