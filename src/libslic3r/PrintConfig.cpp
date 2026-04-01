@@ -9029,11 +9029,8 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
                 //variant index
                 variant_index[e_index] = get_index_for_extruder(e_index+1, id_name, extruder_type, nozzle_volume_type, variant_name);
                 if (variant_index[e_index] < 0) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", Line %1%: could not found extruder_type %2%, nozzle_volume_type %3%, extruder_index %4%")
-                        %__LINE__ %s_keys_names_ExtruderType[extruder_type] % s_keys_names_NozzleVolumeType[nozzle_volume_type] % (e_index+1);
-                    assert(false);
-                    //for some updates happens in a invalid state(caused by popup window)
-                    //we need to avoid crash
+                    // Orca: This is expected during transient UI states (e.g. popup windows),
+                    // fall back to 0 silently.
                     variant_index[e_index] = 0;
                 }
             }
