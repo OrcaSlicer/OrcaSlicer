@@ -75,6 +75,7 @@ using namespace nlohmann;
 #include "OrcaSlicer.hpp"
 //BBS: add exception handler for win32
 #include <wx/stdpaths.h>
+#include <wx/glcanvas.h>
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
@@ -1186,7 +1187,7 @@ int CLI::run(int argc, char **argv)
     // Detect display server at runtime.
     // GTK3 auto-detects Wayland vs X11 -- we do NOT force GDK_BACKEND.
     // wxWidgets 3.3.2 with EGL support creates EGL contexts on both
-    // Wayland and X11, matching our EGL-enabled GLEW build.
+    // Wayland and X11; libepoxy handles EGL/GLX dispatch at runtime.
     const char* wayland_display = ::getenv("WAYLAND_DISPLAY");
     const char* session_type = ::getenv("XDG_SESSION_TYPE");
     const bool is_wayland = (wayland_display && *wayland_display) ||
@@ -1212,6 +1213,9 @@ int CLI::run(int argc, char **argv)
         // XInitThreads() is for X11 thread safety (GStreamer).
         // On Wayland, X11 threads are not used.
         XInitThreads();
+        // Force GLX backend for wxGLCanvas on X11.
+        // Must be called before any wxGLCanvas is created.
+        wxGLCanvas::PreferGLX();
     }
 
     BOOST_LOG_TRIVIAL(info) << "Display server: " << (is_wayland ? "Wayland" : "X11");
@@ -6461,7 +6465,7 @@ int CLI::run(int argc, char **argv)
                     BOOST_LOG_TRIVIAL(error) << "init opengl failed! skip thumbnail generating" << std::endl;
                 }
                 else {
-                    BOOST_LOG_TRIVIAL(info) << "glewInit Success." << std::endl;
+                    BOOST_LOG_TRIVIAL(info) << "OpenGL loader ready." << std::endl;
                     GLVolumeCollection glvolume_collection;
                     Model &model = m_models[0];
                     int obj_extruder_id = 1, volume_extruder_id = 1;
