@@ -74,6 +74,10 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " WIPE_TOWER_START",
     " WIPE_TOWER_END",
     " PA_CHANGE:",
+    "@PRINT_TIME_TOTAL_SEC@",
+    "@PRINT_TIME_DAY@",
+    "@PRINT_TIME_HOUR@",
+    "@PRINT_TIME_MINUTE@",
     "@PRINT_TIME_SEC@",
     "@USED_FILAMENT_LENGTH@"
 };
@@ -97,6 +101,10 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     " WIPE_TOWER_START",
     " WIPE_TOWER_END",
     " PA_CHANGE:",
+    "@PRINT_TIME_TOTAL_SEC@",
+    "@PRINT_TIME_DAY@",
+    "@PRINT_TIME_HOUR@",
+    "@PRINT_TIME_MINUTE@",
     "@PRINT_TIME_SEC@",
     "@USED_FILAMENT_LENGTH@"
 };
@@ -1105,22 +1113,76 @@ void GCodeProcessor::run_post_process()
         return ret;
     };
 
-    // Process inline placeholders (print_time_sec and used_filament_length)
+    // Process inline placeholders (print_time_total_sec, print_time_day, print_time_hour, print_time_minute, print_time_sec and used_filament_length)
     auto process_inline_placeholders = [&](std::string& gcode_line) {
         bool processed = false;
 
-        const std::string& print_time_placeholder = reserved_tag(ETags::Print_Time_Sec_Placeholder);
+        const std::string& print_time_total_placeholder = reserved_tag(ETags::Print_Time_Total_Sec_Placeholder);
+        const std::string& print_time_day_placeholder = reserved_tag(ETags::Print_Time_Day_Placeholder);
+        const std::string& print_time_hour_placeholder = reserved_tag(ETags::Print_Time_Hour_Placeholder);
+        const std::string& print_time_minute_placeholder = reserved_tag(ETags::Print_Time_Minute_Placeholder);
+        const std::string& print_time_sec_placeholder = reserved_tag(ETags::Print_Time_Sec_Placeholder);
         const std::string& used_filament_placeholder = reserved_tag(ETags::Used_Filament_Length_Placeholder);
 
-        // Replace print_time_sec
-        size_t pos = gcode_line.find(print_time_placeholder);
+        double print_time_total_sec = m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].time;
+        if (print_time_total_sec < 0.0)
+            print_time_total_sec = 0.0;
+
+        int total_seconds = static_cast<int>(print_time_total_sec);
+        int print_time_day = total_seconds / 86400;
+        int day_remainder_seconds = total_seconds % 86400;
+        int print_time_hour = day_remainder_seconds / 3600;
+        int print_time_minute = (day_remainder_seconds % 3600) / 60;
+        int print_time_sec = day_remainder_seconds % 60;
+
+        // Replace print_time_total_sec
+        size_t pos = gcode_line.find(print_time_total_placeholder);
         while (pos != std::string::npos) {
-            double print_time_sec = m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].time;
             char buf[64];
-            sprintf(buf, "%.2f", print_time_sec);
-            gcode_line.replace(pos, print_time_placeholder.length(), buf);
+            sprintf(buf, "%.2f", print_time_total_sec);
+            gcode_line.replace(pos, print_time_total_placeholder.length(), buf);
             processed = true;
-            pos = gcode_line.find(print_time_placeholder, pos + strlen(buf));
+            pos = gcode_line.find(print_time_total_placeholder, pos + strlen(buf));
+        }
+
+        // Replace print_time_day
+        pos = gcode_line.find(print_time_day_placeholder);
+        while (pos != std::string::npos) {
+            char buf[64];
+            sprintf(buf, "%d", print_time_day);
+            gcode_line.replace(pos, print_time_day_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(print_time_day_placeholder, pos + strlen(buf));
+        }
+
+        // Replace print_time_hour
+        pos = gcode_line.find(print_time_hour_placeholder);
+        while (pos != std::string::npos) {
+            char buf[64];
+            sprintf(buf, "%d", print_time_hour);
+            gcode_line.replace(pos, print_time_hour_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(print_time_hour_placeholder, pos + strlen(buf));
+        }
+
+        // Replace print_time_minute
+        pos = gcode_line.find(print_time_minute_placeholder);
+        while (pos != std::string::npos) {
+            char buf[64];
+            sprintf(buf, "%d", print_time_minute);
+            gcode_line.replace(pos, print_time_minute_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(print_time_minute_placeholder, pos + strlen(buf));
+        }
+
+        // Replace print_time_sec
+        pos = gcode_line.find(print_time_sec_placeholder);
+        while (pos != std::string::npos) {
+            char buf[64];
+            sprintf(buf, "%d", print_time_sec);
+            gcode_line.replace(pos, print_time_sec_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(print_time_sec_placeholder, pos + strlen(buf));
         }
 
         // Replace used_filament_length

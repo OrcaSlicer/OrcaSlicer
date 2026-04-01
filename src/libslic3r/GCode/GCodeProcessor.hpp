@@ -368,6 +368,10 @@ class Print;
             Wipe_Tower_Start,
             Wipe_Tower_End,
             PA_Change,
+            Print_Time_Total_Sec_Placeholder,
+            Print_Time_Day_Placeholder,
+            Print_Time_Hour_Placeholder,
+            Print_Time_Minute_Placeholder,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
         };
@@ -1138,5 +1142,3 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
-
