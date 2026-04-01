@@ -1190,6 +1190,15 @@ int Emboss::get_line_height(const FontFile &font, const FontProp &prop) {
 }
 
 namespace {
+struct BackupFontState
+{
+    std::shared_ptr<const FontFile> font_file;
+    Glyphs                          cache;
+    fontinfo_opt                    font_info_cache;
+
+    bool has_value() const { return font_file != nullptr; }
+};
+
 ExPolygons letter2shapes(
     wchar_t letter, Point &cursor, FontFileWithCache &font_with_cache, const FontProp &font_prop, fontinfo_opt& font_info_cache)
 {
@@ -1241,8 +1250,9 @@ ExPolygons letter2shapes_with_backup(
     Point &cursor, 
     FontFileWithCache &font_with_cache, 
     const FontProp &font_prop, 
+    const FontProp &backup_font_prop,
     fontinfo_opt& font_info_cache,
-    Emboss::BackFontCacheFn backup_font_fn)
+    std::vector<BackupFontState> &backup_fonts)
 {
     assert(font_with_cache.has_value());
     if (!font_with_cache.has_value())
@@ -1273,32 +1283,24 @@ ExPolygons letter2shapes_with_backup(
     // Create glyph from font file and cache it
     const Glyph *glyph_ptr = (it != cache.end()) ? &it->second : get_glyph(unicode, font, font_prop, cache, font_info_cache);
     
-    // If glyph not found in primary font, try backup fonts
-    if ((glyph_ptr == nullptr || glyph_ptr->shape.empty()) && backup_font_fn) {
-        auto backup_fonts = backup_font_fn();
+    // If glyph is missing from the primary font, try backup fonts.
+    // Keep empty-shape glyphs such as spaces in the primary font so their advance width is preserved.
+    if (glyph_ptr == nullptr) {
         for (auto &backup_font : backup_fonts) {
             if (!backup_font.has_value()) 
                 continue;
             
-            Glyphs &backup_cache = *backup_font.cache;
             const FontFile &backup_ff = *backup_font.font_file;
+            const Glyph *backup_glyph = get_glyph(unicode, backup_ff, backup_font_prop, backup_font.cache, backup_font.font_info_cache);
             
-            // Clear backup font cache to ensure glyph is regenerated with current font_prop
-            // This is necessary because skew/boldness transformations are applied during glyph generation
-            backup_cache.clear();
-            
-            // Try to get glyph from backup font with current font_prop
-            fontinfo_opt backup_font_info_cache;
-            const Glyph *backup_glyph = get_glyph(unicode, backup_ff, font_prop, backup_cache, backup_font_info_cache);
-            
-            if (backup_glyph != nullptr && !backup_glyph->shape.empty()) {
+            if (backup_glyph != nullptr) {
                 glyph_ptr = backup_glyph;
                 break;
             }
         }
     }
     
-    if (glyph_ptr == nullptr || glyph_ptr->shape.empty())
+    if (glyph_ptr == nullptr)
         return {};
 
     // move glyph to cursor position
@@ -1405,24 +1407,12 @@ ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const
             if (was_canceled())
                 return {};
         }
-        wchar_t process_letter = letter;
-        if (letter == wchar_t(' ')) {
-            // Use 'i' character temporarily to calculate space width
-            process_letter = 'i';
-        }
         unsigned id = static_cast<unsigned>(letter);
-        result.push_back({id, letter2shapes(process_letter, cursor, font_with_cache, font_prop, font_info_cache)});
+        result.push_back({id, letter2shapes(letter, cursor, font_with_cache, font_prop, font_info_cache)});
     }
 
     align_shape(result, text, font_prop, font);
-    
-    // Clear shape data for space characters, but keep their position info
-    for (size_t i = 0; i < result.size() && i < text.size(); i++) {
-        if (text[i] == wchar_t(' ')) {
-            result[i].expoly.clear();
-        }
-    }
-    
+
     return result;
 }
 
@@ -1444,6 +1434,19 @@ ExPolygonsWithIds Emboss::text2vshapes_with_backup(
     Point cursor(0, 0);
 
     fontinfo_opt font_info_cache;  
+    FontProp backup_font_prop = font_prop;
+    backup_font_prop.collection_number.reset();
+    std::vector<BackupFontState> backup_fonts;
+    if (backup_font_fn) {
+        std::vector<FontFileWithCache> backup_fonts_src = backup_font_fn();
+        backup_fonts.reserve(backup_fonts_src.size());
+        for (const FontFileWithCache &backup_font : backup_fonts_src) {
+            if (!backup_font.has_value())
+                continue;
+            backup_fonts.push_back({backup_font.font_file, {}, {}});
+        }
+    }
+
     ExPolygonsWithIds result;
     result.reserve(text.size());
     for (wchar_t letter : text) {
@@ -1452,24 +1455,12 @@ ExPolygonsWithIds Emboss::text2vshapes_with_backup(
             if (was_canceled())
                 return {};
         }
-        wchar_t process_letter = letter;
-        if (letter == wchar_t(' ')) {
-            // Use 'i' character temporarily to calculate space width
-            process_letter = 'i';
-        }
         unsigned id = static_cast<unsigned>(letter);
-        result.push_back({id, letter2shapes_with_backup(process_letter, cursor, font_with_cache, font_prop, font_info_cache, backup_font_fn)});
+        result.push_back({id, letter2shapes_with_backup(letter, cursor, font_with_cache, font_prop, backup_font_prop, font_info_cache, backup_fonts)});
     }
 
     align_shape(result, text, font_prop, font);
-    
-    // Clear shape data for space characters, but keep their position info
-    for (size_t i = 0; i < result.size() && i < text.size(); i++) {
-        if (text[i] == wchar_t(' ')) {
-            result[i].expoly.clear();
-        }
-    }
-    
+
     return result;
 }
 
@@ -1593,7 +1584,7 @@ std::string Emboss::create_range_text(const std::string &text,
     // need remove symbols not contained in font
     std::sort(ws.begin(), ws.end());
 
-    auto font_info_opt = load_font_info(font.data->data(), 0);
+    auto font_info_opt = load_font_info(font.data->data(), font_index);
     if (!font_info_opt.has_value()) return {};
     const stbtt_fontinfo *font_info = &(*font_info_opt);
 

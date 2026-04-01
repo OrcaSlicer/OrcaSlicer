@@ -1546,6 +1546,10 @@ void GLGizmoEmboss::draw_text_input()
         unsigned int font_index = (cn.has_value()) ? *cn : 0;
         return create_range_text(text, *ff.font_file, font_index, &exist_unknown);
     };
+    auto create_font_check_text = [&]() {
+        std::string primary_font_text = create_range_text_prep();
+        return BackupFonts::backup_fonts.empty() ? primary_font_text : m_text;
+    };
     
     double scale = m_scale_height.has_value() ? *m_scale_height : 1.;
     ImFont *imgui_font = m_style_manager.get_imgui_font();
@@ -1553,10 +1557,7 @@ void GLGizmoEmboss::draw_text_input()
         // try create new imgui font
         double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
         double imgui_scale = scale * screen_scale;
-        // Use original text to include all characters for backup fonts
-        // This ensures that characters unsupported by the primary font can still be displayed
-        // using backup fonts, instead of being filtered out and showing as '?'
-        m_style_manager.create_imgui_font(m_text, imgui_scale, true);
+        m_style_manager.create_imgui_font(create_font_check_text(), imgui_scale, true);
         imgui_font = m_style_manager.get_imgui_font();
     }
     bool exist_font = 
@@ -1620,7 +1621,7 @@ void GLGizmoEmboss::draw_text_input()
                 reinit_text_lines(count_lines);         
         }
         process();
-        range_text = create_range_text_prep();
+        range_text = create_font_check_text();
     }
 
     if (exist_font) ImGui::PopFont();
@@ -1648,7 +1649,8 @@ void GLGizmoEmboss::draw_text_input()
         
         // Draw warning text on the same line
         ImGui::SameLine();
-        ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
+        float wrap_pos_x = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+        ImGui::PushTextWrapPos(wrap_pos_x);
         ImGui::TextWrapped("%s", warning_tool_tip.c_str());
         ImGui::PopTextWrapPos();
         
@@ -1695,9 +1697,13 @@ void GLGizmoEmboss::open_text_editor()
             // Prepare range text for font extension
             auto& ff = m_style_manager.get_font_file_with_cache();
             if (ff.has_value()) {
-                const auto &cn = m_style_manager.get_font_prop().collection_number;
-                unsigned int font_index = (cn.has_value()) ? *cn : 0;
-                std::string range_text = create_range_text(m_text, *ff.font_file, font_index, &m_text_contain_unknown_glyph);
+                std::string range_text;
+                {
+                    const auto &cn = m_style_manager.get_font_prop().collection_number;
+                    unsigned int font_index = (cn.has_value()) ? *cn : 0;
+                    std::string primary_font_text = create_range_text(m_text, *ff.font_file, font_index, &m_text_contain_unknown_glyph);
+                    range_text = BackupFonts::backup_fonts.empty() ? primary_font_text : m_text;
+                }
                 if (!range_text.empty()) {
                     ImFont* imgui_font = m_style_manager.get_imgui_font();
                     if (imgui_font && !ImGuiWrapper::contain_all_glyphs(imgui_font, range_text)) {
