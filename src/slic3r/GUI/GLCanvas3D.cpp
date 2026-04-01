@@ -1949,8 +1949,19 @@ void GLCanvas3D::render(bool only_init)
     if (!_is_shown_on_screen() || !_set_current() || !wxGetApp().init_opengl())
         return;
 
-    if (!is_initialized() && !init())
-        return;
+    if (!is_initialized()) {
+        if (!init())
+            return;
+        // On Wayland, GL init is deferred until the EGL surface is ready.
+        // Flag a deferred reload so models loaded before GL init get proper VBOs.
+        m_needs_deferred_reload = true;
+    }
+
+    // Deferred reload: runs on the first render AFTER init, when gizmos etc. are ready.
+    if (m_needs_deferred_reload && m_model && !m_model->objects.empty()) {
+        m_needs_deferred_reload = false;
+        reload_scene(true, true);
+    }
     if (m_canvas_type == ECanvasType::CanvasView3D  && m_gizmos.get_current_type() == GLGizmosManager::Undefined) {
         enable_return_toolbar(false);
     }

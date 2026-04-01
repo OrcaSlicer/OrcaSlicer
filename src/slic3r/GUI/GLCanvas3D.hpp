@@ -575,6 +575,7 @@ private:
     //BBS: add flag to controll rendering
     bool m_render_preview{ true };
     bool m_enable_render { true };
+    bool m_needs_deferred_reload { false };
     bool m_apply_zoom_to_volumes_filter;
     bool m_picking_enabled;
     bool m_moving_enabled;
