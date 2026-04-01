@@ -1,6 +1,6 @@
 {
     "name": "RatRig",
-    "version": "02.03.02.51",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "RatRig configurations",
     "machine_model_list": [
@@ -139,10 +139,6 @@
             "sub_path": "process/0.20mm Quality @RatRig V-Core 4 HYBRID 0.6.json"
         },
         {
-            "name": "0.20mm Quality @RatRig V-Core 4 IDEX 0.5",
-            "sub_path": "process/0.20mm Quality @RatRig V-Core 4 IDEX 0.5.json"
-        },
-        {
             "name": "0.20mm Standard @RatRig",
             "sub_path": "process/0.20mm Standard @RatRig.json"
         },
@@ -175,14 +171,6 @@
             "sub_path": "process/0.25mm Quality Speed @RatRig V-Core 4 HYBRID 0.6.json"
         },
         {
-            "name": "0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.5",
-            "sub_path": "process/0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.5.json"
-        },
-        {
-            "name": "0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.6",
-            "sub_path": "process/0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.6.json"
-        },
-        {
             "name": "0.25mm Speed @RatRig V-Core 4 0.4",
             "sub_path": "process/0.25mm Speed @RatRig V-Core 4 0.4.json"
         },
@@ -211,14 +199,6 @@
             "sub_path": "process/0.25mm Speed @RatRig V-Core 4 HYBRID 0.8.json"
         },
         {
-            "name": "0.25mm Speed @RatRig V-Core 4 IDEX 0.6",
-            "sub_path": "process/0.25mm Speed @RatRig V-Core 4 IDEX 0.6.json"
-        },
-        {
-            "name": "0.25mm Speed @RatRig V-Core 4 IDEX 0.8",
-            "sub_path": "process/0.25mm Speed @RatRig V-Core 4 IDEX 0.8.json"
-        },
-        {
             "name": "0.28mm Extra Draft @RatRig",
             "sub_path": "process/0.28mm Extra Draft @RatRig.json"
         },
@@ -235,20 +215,16 @@
             "sub_path": "process/0.30mm Big @RatRig V-Core 4 HYBRID 0.8.json"
         },
         {
-            "name": "0.30mm Big @RatRig V-Core 4 IDEX 0.8",
-            "sub_path": "process/0.30mm Big @RatRig V-Core 4 IDEX 0.8.json"
-        },
-        {
             "name": "0.35mm Extra Big @RatRig V-Core 4 HYBRID 0.8",
             "sub_path": "process/0.35mm Extra Big @RatRig V-Core 4 HYBRID 0.8.json"
         },
         {
-            "name": "0.35mm Extra Big @RatRig V-Core 4 IDEX 0.8",
-            "sub_path": "process/0.35mm Extra Big @RatRig V-Core 4 IDEX 0.8.json"
-        },
-        {
             "name": "0.20mm Quality @RatRig V-Core 4 IDEX 0.4",
             "sub_path": "process/0.20mm Quality @RatRig V-Core 4 IDEX 0.4.json"
+        },
+        {
+            "name": "0.20mm Quality @RatRig V-Core 4 IDEX 0.5",
+            "sub_path": "process/0.20mm Quality @RatRig V-Core 4 IDEX 0.5.json"
         },
         {
             "name": "0.20mm Quality @RatRig V-Core 4 IDEX 0.6",
@@ -259,6 +235,14 @@
             "sub_path": "process/0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.4.json"
         },
         {
+            "name": "0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.5",
+            "sub_path": "process/0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.5.json"
+        },
+        {
+            "name": "0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.6",
+            "sub_path": "process/0.25mm Quality Speed @RatRig V-Core 4 IDEX 0.6.json"
+        },
+        {
             "name": "0.25mm Speed @RatRig V-Core 4 IDEX 0.4",
             "sub_path": "process/0.25mm Speed @RatRig V-Core 4 IDEX 0.4.json"
         },
@@ -267,8 +251,24 @@
             "sub_path": "process/0.25mm Speed @RatRig V-Core 4 IDEX 0.5.json"
         },
         {
+            "name": "0.25mm Speed @RatRig V-Core 4 IDEX 0.6",
+            "sub_path": "process/0.25mm Speed @RatRig V-Core 4 IDEX 0.6.json"
+        },
+        {
+            "name": "0.25mm Speed @RatRig V-Core 4 IDEX 0.8",
+            "sub_path": "process/0.25mm Speed @RatRig V-Core 4 IDEX 0.8.json"
+        },
+        {
             "name": "0.30mm Big @RatRig V-Core 4 IDEX 0.6",
             "sub_path": "process/0.30mm Big @RatRig V-Core 4 IDEX 0.6.json"
+        },
+        {
+            "name": "0.30mm Big @RatRig V-Core 4 IDEX 0.8",
+            "sub_path": "process/0.30mm Big @RatRig V-Core 4 IDEX 0.8.json"
+        },
+        {
+            "name": "0.35mm Extra Big @RatRig V-Core 4 IDEX 0.8",
+            "sub_path": "process/0.35mm Extra Big @RatRig V-Core 4 IDEX 0.8.json"
         }
     ],
     "filament_list": [

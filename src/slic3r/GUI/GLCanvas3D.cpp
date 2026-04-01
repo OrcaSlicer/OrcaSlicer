@@ -38,7 +38,6 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
-#include <libslic3r/BoundingBox.hpp>
 #include <slic3r/GUI/GUI_Utils.hpp>
 
 #if ENABLE_RETINA_GL
@@ -54,6 +53,7 @@
 #include <wx/settings.h>
 #include <wx/tooltip.h>
 #include <wx/debug.h>
+#include <wx/utils.h>
 #include <wx/fontutil.h>
 // Print now includes tbb, and tbb includes Windows. This breaks compilation of wxWidgets if included before wx.
 #include "libslic3r/Print.hpp"
@@ -78,6 +78,13 @@
 #include <imgui/imgui_internal.h>
 
 #include <imguizmo/ImGuizmo.h>
+
+#ifdef __WXMSW__
+#if wxUSE_POPUPWIN
+#include <wx/popupwin.h>
+extern wxPopupWindow* wxCurrentPopupWindow;
+#endif
+#endif
 
 static constexpr const float TRACKBALLSIZE = 0.8f;
 
@@ -2835,15 +2842,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
-                // Helper: persist corrected wipe tower position to config so the next slice uses valid coords.
-                auto persist_wipe_tower_pos = [&](float nx, float ny) {
-                    ConfigOptionFloat cx(nx), cy(ny);
-                    proj_cfg.option<ConfigOptionFloats>("wipe_tower_x")->set_at(&cx, plate_id, 0);
-                    proj_cfg.option<ConfigOptionFloats>("wipe_tower_y")->set_at(&cy, plate_id, 0);
-                };
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
                 float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
-
                 // BBS
                 float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
@@ -2870,30 +2870,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     }
 
                     coordf_t plate_bbox_x_min_local_coord = plate_bbox_2d.min(0) - plate_origin(0);
-                    coordf_t plate_bbox_y_min_local_coord = plate_bbox_2d.min(1) - plate_origin(1);
                     coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
                     coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
-
-                    const float tower_w = (float) wipe_tower_size(0);    
-                    const float tower_h = (float) wipe_tower_size(1);
-                    const float min_x   = (float) plate_bbox_x_min_local_coord + margin;
-                    const float max_x   = (float) plate_bbox_x_max_local_coord - margin;
-                    const float min_y   = (float) plate_bbox_y_min_local_coord + margin;
-                    const float max_y   = (float) plate_bbox_y_max_local_coord - margin;
-
-                    // snap wipe tower back to nearest edge if it was initially loaded outside the plate boundary
-                    float new_x = (x < min_x) ? min_x : ((x + tower_w > max_x) ? (max_x - tower_w) : x);
-                    float new_y = (y < min_y) ? min_y : ((y + tower_h > max_y) ? (max_y - tower_h) : y);
-
-                    if (new_x != x || new_y != y) {
-                        // do notification
-                        _set_warning_notification(EWarning::PreviewPrimeTowerOutside, true);
-                        x = new_x;
-                        y = new_y;
-                        // Persist the correction to config so the next slice uses the valid position
-                        persist_wipe_tower_pos(new_x, new_y);
-                    }
-
 
                     if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                         // update for wipe tower position
@@ -2914,13 +2892,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                         BoundingBoxf3 plate_bbox        = wxGetApp().plater()->get_partplate_list().get_plate(plate_id)->get_build_volume(true);
                         BoundingBox   plate_bbox2d      = BoundingBox(scaled(Vec2f(plate_bbox.min[0], plate_bbox.min[1])), scaled(Vec2f(plate_bbox.max[0], plate_bbox.max[1])));
                         Vec2f         offset            = WipeTower::move_box_inside_box(tower_bottom_bbox, plate_bbox2d, scaled(margin));
-                        // move_box_inside_box returns mm (already unscaled); apply directly.
-                        // If the actual brim polygon is outside bounds, persist the correction to config.
-                        float display_x = x + offset[0];
-                        float display_y = y + offset[1];
-                        if (offset.norm() > float(EPSILON))
-                            persist_wipe_tower_pos(display_x, display_y);
-                        int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, display_x + plate_origin(0), display_y + plate_origin(1),
+                        int volume_idx_wipe_tower_new = m_volumes.load_real_wipe_tower_preview(1000 + plate_id, x + plate_origin(0), y + plate_origin(1),
                                                                                                current_print->wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
                                                                                                current_print->wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh,
                                                                                             true,a,/*!print->is_step_done(psWipeTower)*/ true, m_initialized);
@@ -4293,14 +4265,21 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     if (evt.Entering()) {
         // Set focus in order to remove it from sidebar fields and ensure hotkeys work
         if (m_canvas != nullptr) {
-            // Only set focus if the top level window of this canvas is active.
-            auto p = dynamic_cast<wxWindow*>(evt.GetEventObject());
-            while (p->GetParent())
-                p = p->GetParent();
-            auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
-            //Orca: Set focus so hotkeys like 'tab' work when a notification is shown.
-            if (top_level_wnd != nullptr && top_level_wnd->IsActive())
-                m_canvas->SetFocus();
+#if defined(__WXMSW__) && wxUSE_POPUPWIN
+            // Don't steal focus when a popup window is active (e.g., search dropdown).
+            // Stealing focus triggers MSWDismissUnfocusedPopup, closing the popup unexpectedly.
+            if (!wxCurrentPopupWindow)
+#endif
+            {
+                // Only set focus if the top level window of this canvas is active.
+                auto p = dynamic_cast<wxWindow*>(evt.GetEventObject());
+                while (p->GetParent())
+                    p = p->GetParent();
+                auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
+                //Orca: Set focus so hotkeys like 'tab' work when a notification is shown.
+                if (top_level_wnd != nullptr && top_level_wnd->IsActive())
+                    m_canvas->SetFocus();
+            }
             m_mouse.position = pos.cast<double>();
             m_tooltip_enabled = false;
             // 1) forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
@@ -4760,11 +4739,19 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
 void GLCanvas3D::on_paint(wxPaintEvent& evt)
 {
-    if (m_initialized)
+    if (m_initialized) {
+#ifdef __WXMSW__
+        // Idle events are not dispatched during the Windows resize modal loop,
+        // so render immediately to avoid blank frames.
+        _refresh_if_shown_on_screen();
+        m_dirty = false;
+#else
         m_dirty = true;
-    else
+#endif
+    } else {
         // Call render directly, so it gets initialized immediately, not from On Idle handler.
         this->render();
+    }
 }
 
 void GLCanvas3D::force_set_focus() {
@@ -9679,9 +9666,6 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
         break;
-    case EWarning::PreviewPrimeTowerOutside:
-        text = _u8L("Prime tower position exceeded build plate boundaries and was repositioned to the nearest valid edge."); 
-        break;
     case EWarning::NozzleFilamentIncompatible: {
         text = _u8L(get_nozzle_filament_incompatible_text());
         break;
@@ -9835,6 +9819,10 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
 }
 
 bool GLCanvas3D::is_flushing_matrix_error() {
+
+    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers
+    if (!Sidebar::should_show_SEMM_buttons())
+        return false;
 
     const auto                &project_config = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;

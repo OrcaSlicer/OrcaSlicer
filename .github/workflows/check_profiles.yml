@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload comment artifact
         if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: profile-check-results
           path: ${{ runner.temp }}/profile-check-results/

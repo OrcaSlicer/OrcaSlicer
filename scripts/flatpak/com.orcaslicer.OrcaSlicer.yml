@@ -1,4 +1,4 @@
-app-id: io.github.orcaslicer.OrcaSlicer
+app-id: com.orcaslicer.OrcaSlicer
 runtime: org.gnome.Platform
 runtime-version: "49"
 sdk: org.gnome.Sdk
@@ -24,9 +24,11 @@ finish-args:
   - --filesystem=/run/media
   - --filesystem=/media
   - --filesystem=/run/spnav.sock:ro
+  # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
+  - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
   # Allow OrcaSlicer to own and talk to instance-check D-Bus names (InstanceCheck.cpp)
-  - --talk-name=com.softfever3d.orca-slicer.InstanceCheck.*
-  - --own-name=com.softfever3d.orca-slicer.InstanceCheck.*
+  - --talk-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
+  - --own-name=com.orcaslicer.OrcaSlicer.InstanceCheck.*
   - --system-talk-name=org.freedesktop.UDisks2
   - --env=SPNAV_SOCKET=/run/spnav.sock
 
@@ -95,7 +97,6 @@ modules:
       - -DBUILD_SHARED_LIBS=ON
       - -DwxUSE_MEDIACTRL=ON
       - -DwxUSE_DETECT_SM=OFF
-      - -DwxUSE_UNICODE=ON
       - -DwxUSE_PRIVATE_FONTS=ON
       - -DwxUSE_OPENGL=ON
       - -DwxUSE_GLCANVAS_EGL=OFF
@@ -117,9 +118,12 @@ modules:
       - -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
       - -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
     sources:
-      - type: archive
-        url: https://github.com/SoftFever/Orca-deps-wxWidgets/archive/refs/tags/orca-3.1.5-1.tar.gz
-        sha256: 1dc9d3865d899cb71c27a7e549aa5491e832ef6e81a7b6653ccb11f9c37fa99d
+      # Use git instead of archive: wxWidgets 3.3 relies on multiple git
+      # submodules (PCRE2, etc.) that are not included in GitHub tarballs.
+      - type: git
+        url: https://github.com/SoftFever/Orca-deps-wxWidgets.git
+        tag: orca-3.3.2
+        commit: db1005db3dea2c37a46fb455a9a02e37aa360751
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
@@ -367,7 +371,7 @@ modules:
 
       # AppData metainfo for GNOME Software & Co.
       - type: file
-        path: io.github.orcaslicer.OrcaSlicer.metainfo.xml
+        path: com.orcaslicer.OrcaSlicer.metainfo.xml
 
       # Startup script
       - type: file

@@ -628,13 +628,12 @@ class PartPlateList : public ObjectBase
     void generate_icon_textures();
     void release_icon_textures();
 
-    void set_default_wipe_tower_pos_for_plate(int plate_idx);
-
     friend class cereal::access;
     friend class UndoRedo::StackImpl;
     friend class PartPlate;
 
 public:
+    void set_default_wipe_tower_pos_for_plate(int plate_idx, bool init_pos = false);
     class BedTextureInfo {
     public:
         class TexturePart {
