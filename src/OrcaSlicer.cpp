@@ -1190,8 +1190,13 @@ int CLI::run(int argc, char **argv)
     // Wayland and X11; libepoxy handles EGL/GLX dispatch at runtime.
     const char* wayland_display = ::getenv("WAYLAND_DISPLAY");
     const char* session_type = ::getenv("XDG_SESSION_TYPE");
-    const bool is_wayland = (wayland_display && *wayland_display) ||
-                            (session_type && strcmp(session_type, "wayland") == 0);
+    const char* gdk_backend = ::getenv("GDK_BACKEND");
+    // Wayland if GDK_BACKEND=wayland explicitly, or if GDK_BACKEND is unset
+    // and the session environment indicates Wayland.
+    const bool is_wayland = (gdk_backend != nullptr && strcmp(gdk_backend, "wayland") == 0) ||
+                            (gdk_backend == nullptr &&
+                             ((wayland_display && *wayland_display) ||
+                              (session_type && strcmp(session_type, "wayland") == 0)));
 
     // WebKit2GTK compositing workaround -- keep for stability.
     // Safe on both X11 and Wayland; forces software rendering for WebViews.
