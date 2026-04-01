@@ -14,6 +14,7 @@
     "draft_shield": "disabled",
     "elefant_foot_compensation": "0",
     "enable_arc_fitting": "1",
+    "exclude_object": "1",
     "outer_wall_acceleration": "5000",
     "wall_infill_order": "inner wall/outer wall/infill",
     "line_width": "0.42",

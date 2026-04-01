@@ -618,7 +618,7 @@ void AMSSettingTypePanel::CreateGui()
     h_sizer->AddStretchSpacer();
     h_sizer->Add(m_type_combobox, 0, wxEXPAND);
     h_sizer->Add(m_switching_icon, 0, wxALIGN_CENTER);
-    h_sizer->Add(m_switching_tips, 0, wxEXPAND | wxLEFT | wxALIGN_CENTER, FromDIP(8));
+    h_sizer->Add(m_switching_tips, 0, wxEXPAND | wxLEFT, FromDIP(8));
     SetSizer(h_sizer);
     Layout();
     Fit();
@@ -754,7 +754,7 @@ void AMSSettingArrangeAMSOrder::CreateGui()
     m_btn_rearrange->Bind(wxEVT_BUTTON, &AMSSettingArrangeAMSOrder::OnBtnRearrangeClicked, this);
     h_sizer->Add(title, 0);
     h_sizer->AddStretchSpacer();
-    h_sizer->Add(m_btn_rearrange, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    h_sizer->Add(m_btn_rearrange, 0, wxEXPAND);
     SetSizer(h_sizer);
     Layout();
     Fit();

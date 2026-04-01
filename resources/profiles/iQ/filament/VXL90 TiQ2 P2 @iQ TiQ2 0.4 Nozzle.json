@@ -9,13 +9,13 @@
     "compatible_prints": [
         "0.20mm Standard @iQ TiQ2 P2 - PACF Pro Fiberthree + VXL90 Xioneer (0.4 Nozzle)"
     ],
-     "filament_vendor": [
+    "filament_vendor": [
         "iQ Materials"
     ],
     "compatible_printers": [
         "iQ TiQ2 0.4 Nozzle"
     ],
-     "filament_diameter": [
+    "filament_diameter": [
         "1.75"
     ],
     "complete_print_exhaust_fan_speed": [
@@ -51,7 +51,7 @@
     "close_fan_the_first_x_layers": [
         "3"
     ],
-     "fan_cooling_layer_time": [
+    "fan_cooling_layer_time": [
         "30"
     ],
     "fan_max_speed": [
@@ -74,7 +74,7 @@
     ],
     "filament_retraction_length": [
         "4"
-    ],     
+    ],
     "filament_is_support": [
         "1"
     ],
@@ -135,7 +135,6 @@
     "idle_temperature": [
         "205"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "235"
     ],
@@ -147,6 +146,5 @@
     ],
     "nozzle_temperature_range_low": [
         "220"
-    ],
-    "version": "2.3.1.10"
+    ]
 }

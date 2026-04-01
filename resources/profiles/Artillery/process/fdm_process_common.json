@@ -23,6 +23,7 @@
     "bridge_no_support": "0",
     "draft_shield": "disabled",
     "elefant_foot_compensation": "0.15",
+    
     "outer_wall_line_width": "0.4",
     "wall_infill_order": "inner wall/outer wall/infill",
     "line_width": "0.4",
@@ -83,7 +84,7 @@
     "top_surface_pattern": "monotonicline",
     "top_surface_line_width": "0.4",
     "top_shell_thickness": "0.8",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "wipe_tower_no_sparse_layers": "0",
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",
@@ -102,4 +103,5 @@
     "gap_infill_speed": "30",
     "travel_speed": "200",
     "enable_arc_fitting": "0"
+
 }
