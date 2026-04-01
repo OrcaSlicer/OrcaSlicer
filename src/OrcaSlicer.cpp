@@ -1183,30 +1183,38 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // On Linux, wxGTK has no support for Wayland, and the app crashes on
-    // startup if gtk3 is used. This env var has to be set explicitly to
-    // instruct the window manager to fall back to X server mode.
-    ::setenv("GDK_BACKEND", "x11", /* replace */ true);
+    // Detect display server at runtime.
+    // GTK3 auto-detects Wayland vs X11 -- we do NOT force GDK_BACKEND.
+    // wxWidgets 3.3.2 with EGL support creates EGL contexts on both
+    // Wayland and X11, matching our EGL-enabled GLEW build.
+    const char* wayland_display = ::getenv("WAYLAND_DISPLAY");
+    const char* session_type = ::getenv("XDG_SESSION_TYPE");
+    const bool is_wayland = (wayland_display && *wayland_display) ||
+                            (session_type && strcmp(session_type, "wayland") == 0);
 
-    // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
-    // (like the Setup Wizard) to render blank or freeze. Disabling compositing
-    // mode forces software rendering, which works reliably on all backends.
+    // WebKit2GTK compositing workaround -- keep for stability.
+    // Safe on both X11 and Wayland; forces software rendering for WebViews.
     ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
 
-    // On Linux dual-GPU systems, request the high-performance discrete GPU.
-    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
+    // Request discrete GPU on dual-GPU systems (works on both X11 and Wayland).
     ::setenv("DRI_PRIME", "1", /* replace */ false);
 
-    // For NVIDIA proprietary driver PRIME render offload, set additional variables.
-    // Only set if the NVIDIA kernel module is loaded to avoid breaking systems without NVIDIA.
+    // NVIDIA PRIME render offload for proprietary driver.
     if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
         ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
-        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        if (!is_wayland) {
+            // __GLX_VENDOR_LIBRARY_NAME is GLX-specific; skip on Wayland EGL.
+            ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        }
     }
 
-    // Also on Linux, we need to tell Xlib that we will be using threads,
-    // lest we crash when we fire up GStreamer.
-    XInitThreads();
+    if (!is_wayland) {
+        // XInitThreads() is for X11 thread safety (GStreamer).
+        // On Wayland, X11 threads are not used.
+        XInitThreads();
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Display server: " << (is_wayland ? "Wayland" : "X11");
 #endif
 
 	// Switch boost::filesystem to utf8.
