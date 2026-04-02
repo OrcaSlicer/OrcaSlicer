@@ -8477,30 +8477,29 @@ void GLCanvas3D::_render_return_toolbar() const
     ImVec2 margin = ImVec2(10.0f, 5.0f);
 
     if (ImGui::ImageTextButton(real_size,_utf8(L("Return")).c_str(), m_return_toolbar.get_return_texture_id(), button_icon_size, uv0, uv1, -1, bg_col, tint_col, margin)) {
-        if (m_canvas == nullptr || wxGetApp().is_closing())
-            return;
-
         const_cast<GLGizmosManager*>(&m_gizmos)->reset_all_states();
-        m_canvas->CallAfter([]() {
-            if (wxGetApp().is_closing())
-                return;
+        if (m_canvas != nullptr && !wxGetApp().is_closing()) {
+            m_canvas->CallAfter([]() {
+                if (wxGetApp().is_closing())
+                    return;
 
-            auto* plater = wxGetApp().plater();
-            if (plater == nullptr)
-                return;
+                auto* plater = wxGetApp().plater();
+                if (plater == nullptr)
+                    return;
 
-            plater->select_view_3D("3D");
+                plater->select_view_3D("3D");
 
-            if (wxGetApp().is_closing())
-                return;
+                if (wxGetApp().is_closing())
+                    return;
 
-            auto* view3d_canvas = plater->get_view3D_canvas3D();
-            if (view3d_canvas == nullptr)
-                return;
+                auto* view3d_canvas = plater->get_view3D_canvas3D();
+                if (view3d_canvas == nullptr)
+                    return;
 
-            view3d_canvas->get_gizmos_manager().reset_all_states();
-            view3d_canvas->reload_scene(true);
-        });
+                view3d_canvas->get_gizmos_manager().reset_all_states();
+                view3d_canvas->reload_scene(true);
+            });
+        }
     }
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(1);
