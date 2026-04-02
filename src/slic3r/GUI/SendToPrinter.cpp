@@ -385,6 +385,8 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_opt_end_with_new_plate->setValue("off");
     sizer_plate_changer->Add(m_opt_start_with_new_plate, 0, wxEXPAND);
     sizer_plate_changer->Add(m_opt_end_with_new_plate, 0, wxEXPAND);
+    m_opt_start_with_new_plate->Bind(EVT_SWITCH_PRINT_OPTION, [this](wxCommandEvent&) { persist_plate_changer_prefs_to_appconfig(); });
+    m_opt_end_with_new_plate->Bind(EVT_SWITCH_PRINT_OPTION, [this](wxCommandEvent&) { persist_plate_changer_prefs_to_appconfig(); });
     m_panel_plate_changer_opts->SetSizer(sizer_plate_changer);
     m_line_plate_changer->Hide();
     m_panel_plate_changer_opts->Hide();
@@ -794,6 +796,24 @@ void SendToPrinterDialog::prepare(int print_plate_idx, bool use_plate_changer_al
     if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
     if (m_panel_plate_changer_opts) m_panel_plate_changer_opts->Show(show_plate_changer_opts);
     if (m_panel_prepare) m_panel_prepare->Layout();
+    sync_plate_changer_prefs_from_appconfig();
+}
+
+void SendToPrinterDialog::sync_plate_changer_prefs_from_appconfig()
+{
+    if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
+        return;
+    bool start = false, end = false;
+    Plater::plate_changer_prefs_load_from_appconfig(start, end);
+    m_opt_start_with_new_plate->setValue(start ? "on" : "off");
+    m_opt_end_with_new_plate->setValue(end ? "on" : "off");
+}
+
+void SendToPrinterDialog::persist_plate_changer_prefs_to_appconfig()
+{
+    if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
+        return;
+    Plater::plate_changer_prefs_save_to_appconfig(m_opt_start_with_new_plate->getValue() == "on", m_opt_end_with_new_plate->getValue() == "on");
 }
 
 void SendToPrinterDialog::update_priner_status_msg(wxString msg, bool is_warning)
@@ -924,6 +944,8 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 
     // enter sending mode
     sending_mode();
+
+    persist_plate_changer_prefs_to_appconfig();
 
     if (wxGetApp().plater()->using_exported_file()) {
         m_plater->set_print_job_plate_idx(m_print_plate_idx);

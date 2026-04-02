@@ -233,6 +233,9 @@ public:
     void GetConnection();
 
 private:
+    void sync_plate_changer_prefs_from_appconfig();
+    void persist_plate_changer_prefs_to_appconfig();
+
     void update_time_and_weight_labels();
     void ResetConnectMethod();
     void ResetTunnelAndJob();

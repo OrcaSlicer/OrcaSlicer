@@ -590,6 +590,7 @@ public:
 
 class TabPrinter : public Tab
 {
+    friend class Tab;
 private:
 	bool		m_use_silent_mode = false;
 	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
@@ -610,8 +611,11 @@ public:
 	size_t		m_initial_extruders_count;
 	size_t		m_sys_extruders_count;
 	size_t		m_cache_extruder_count = 0;
-	std::vector<std::string> m_extruder_variant_list;
-	std::string m_base_preset_name;
+    std::vector<std::string> m_extruder_variant_list;
+    std::string m_base_preset_name;
+
+    // Row under "Additional initial plate change G-code" (preset inject buttons); not in OG_CustomCtrl.
+    wxWindow*                       m_additional_initial_inject_row{nullptr};
 
     PrinterTechnology               m_printer_technology = ptFFF;
 
@@ -644,6 +648,10 @@ public:
 	wxSizer*	create_bed_shape_widget(wxWindow* parent);
 	void		cache_extruder_cnt(const DynamicPrintConfig* config = nullptr);
 	bool		apply_extruder_cnt_from_cache();
+
+private:
+	// When plate_change_gcode is non-empty and additional_initial is still empty, copy PrintConfig default boilerplate.
+	void		maybe_autofill_additional_initial_plate_change_gcode(bool config_only);
 
 };
 

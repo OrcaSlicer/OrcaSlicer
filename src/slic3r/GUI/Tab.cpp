@@ -998,8 +998,11 @@ void Tab::init_options_list()
 void TabPrinter::init_options_list()
 {
     Tab::init_options_list();
-    if (m_printer_technology == ptFFF)
+    if (m_printer_technology == ptFFF) {
         m_options_list.emplace("extruders_count", m_opt_status_value);
+        // Ensure decorate() assigns undo / edit icons (same as other Machine G-code fields).
+        m_options_list.emplace("additional_initial_plate_change_gcode", m_opt_status_value);
+    }
     for (size_t i = 1; i < m_extruders_count; ++i) {
         wxString target_title = wxString::Format("Extruder %d", int(i + 1));
         for (auto &page : m_pages) {
@@ -3529,6 +3532,8 @@ void Tab::set_custom_gcode(const t_config_option_key& opt_key, const std::string
     DynamicPrintConfig new_conf = *m_config;
     new_conf.set_key_value(opt_key, new ConfigOptionString(value));
     load_config(new_conf);
+    if (m_type == Preset::TYPE_PRINTER && opt_key == "plate_change_gcode" && !value.empty())
+        static_cast<TabPrinter*>(this)->maybe_autofill_additional_initial_plate_change_gcode(false);
 }
 
 const std::string& TabFilament::get_custom_gcode(const t_config_option_key& opt_key)
@@ -4339,6 +4344,7 @@ void TabPrinter::build()
 
 void TabPrinter::build_fff()
 {
+    m_additional_initial_inject_row = nullptr;
     if (!m_pages.empty())
         m_pages.resize(0);
     // to avoid redundant memory allocation / deallocation during extruders count changing
@@ -4527,22 +4533,31 @@ void TabPrinter::build_fff()
         option.opt.height = gcode_field_height;//150;
         optgroup->append_single_option_line(option, "printer_machine_gcode#layer-change-g-code");
 
-        ConfigOptionsGroupShp og_initial;
+        // Shared slot so lambdas keep a stable pointer after this builder returns (stack `og_initial` would dangle).
+        auto og_initial_slot = std::make_shared<ConfigOptionsGroupShp>();
 
         ConfigOptionsGroupShp og_plate_change = page->new_optgroup(L("Plate change G-code"), L"param_gcode", 0);
-        og_plate_change->m_on_change = [this, &og_plate_change, &og_initial](const t_config_option_key& opt_key, const boost::any& value) {
+        og_plate_change->m_on_change = [this, og_plate_change, og_initial_slot](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, og_plate_change->title, opt_key, value);
 
-            if (og_initial != nullptr) {
+            if (!boost::any_cast<std::string>(value).empty())
+                maybe_autofill_additional_initial_plate_change_gcode(false);
+
+            if (ConfigOptionsGroupShp og_initial = *og_initial_slot) {
                 const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
                 if (Line* line = og_initial->get_line("additional_initial_plate_change_gcode"); line != nullptr)
                     line->toggle_visible = has_plate_change;
                 og_initial->update_visibility(m_mode);
+                if (m_additional_initial_inject_row)
+                    m_additional_initial_inject_row->Show(has_plate_change);
                 if (wxWindow* w = og_initial->parent())
                     w->Layout();
             }
         };
         og_plate_change->edit_custom_gcode = edit_custom_gcode_fn;
+        // Older printer presets may omit newer keys; ConfigOptionsGroup::get_option logs if !has().
+        if (!m_config->has("plate_change_gcode"))
+            m_config->option<ConfigOptionString>("plate_change_gcode", true);
         option = og_plate_change->get_option("plate_change_gcode");
         option.opt.full_width = true;
         option.opt.is_code = true;
@@ -4553,6 +4568,7 @@ void TabPrinter::build_fff()
         {
             // Chitu Systems Platecycler C1M
             static const std::string chitu_platecycler_c1m_gcode =
+                "; OrcaSlicer — plate change preset: Chitu Platecycler C1M\n"
                 "G0 X-10 F5000;\n"
                 "G0 Z175;\n"
                 "G0 Y-5 F2000;\n"
@@ -4580,12 +4596,13 @@ void TabPrinter::build_fff()
                 "G4 P1000; wait;\n";
             // Innocube A1 swapmod (Bambu A1) – placeholder
             static const std::string innocube_a1_swapmod_gcode =
+                "; OrcaSlicer — plate change preset: Innocube A1 swapmod (Bambu A1)\n"
                 "G28 X Y\n"
                 "G1 X0 Y0 F6000\n"
-                "; Innocube A1 swapmod (Bambu A1) – add your plate-change sequence here\n";
+                "; Add your plate-change sequence above/below as needed for your hardware.\n";
             // Swapmod A1m kit (Bambu A1 Mini) – from swaplist.app V00-24
             static const std::string swapmod_a1m_kit_gcode =
-                ";swap code from swaplist.app V00-24\n"
+                "; OrcaSlicer — plate change preset: Swapmod A1m kit (swaplist.app V00-24)\n"
                 "G0 X-10 F5000;\n"
                 " G0 Z175;\n"
                 " G0 Y-5 F2000;\n"
@@ -4613,22 +4630,24 @@ void TabPrinter::build_fff()
             Line preset_line(L"", L"");
             preset_line.full_width = 1;
             // Helper to write both config and visible field
-            auto apply_preset = [this, &og_initial](const std::string& gcode) {
+            auto apply_preset = [this, og_initial_slot](const std::string& gcode) {
                 load_key_value("plate_change_gcode", gcode);
                 if (Field* field = this->get_field("plate_change_gcode")) {
                     wxString wxgcode = from_u8(gcode);
                     field->set_value(wxgcode, true);
                 }
-                // Ensure the "additional initial plate change" block visibility updates
-                // even if the preset button doesn't trigger the same change events.
-                if (og_initial != nullptr) {
+                // Preset buttons bypass the option group's m_on_change; refresh dependent UI here.
+                if (ConfigOptionsGroupShp og_initial = *og_initial_slot) {
                     const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
                     if (Line* line = og_initial->get_line("additional_initial_plate_change_gcode"); line != nullptr)
                         line->toggle_visible = has_plate_change;
                     og_initial->update_visibility(m_mode);
+                    if (m_additional_initial_inject_row)
+                        m_additional_initial_inject_row->Show(has_plate_change);
                     if (wxWindow* w = og_initial->parent())
                         w->Layout();
                 }
+                maybe_autofill_additional_initial_plate_change_gcode(false);
                 update_changed_ui();
             };
 
@@ -4661,22 +4680,58 @@ void TabPrinter::build_fff()
         }
 
         {
-            og_initial = page->new_optgroup(L("Additional initial plate change G-code"), L"param_gcode", 0);
-            og_initial->m_on_change                = [this](const t_config_option_key& opt_key, const boost::any& value) {
+            *og_initial_slot                      = page->new_optgroup(L("Additional initial plate change G-code"), L"param_gcode", 0);
+            ConfigOptionsGroupShp og_initial      = *og_initial_slot;
+            og_initial->m_on_change               = [this](const t_config_option_key& opt_key, const boost::any& value) {
                 validate_custom_gcode_cb(this, _L("Additional initial plate change G-code"), opt_key, value);
             };
             og_initial->edit_custom_gcode = edit_custom_gcode_fn;
+            if (!m_config->has("additional_initial_plate_change_gcode"))
+                m_config->set_key_value("additional_initial_plate_change_gcode", new ConfigOptionString());
             Option opt_initial            = og_initial->get_option("additional_initial_plate_change_gcode");
             opt_initial.opt.full_width    = true;
             opt_initial.opt.is_code       = true;
             opt_initial.opt.height        = gcode_field_height;
             og_initial->append_single_option_line(opt_initial, "printer_machine_gcode#additional-initial-plate-change-gcode");
 
+            {
+                Line inject_line(L"", L"");
+                inject_line.full_width = 1;
+                inject_line.widget      = [this](wxWindow* parent) {
+                    auto* panel = new wxPanel(parent);
+                    m_additional_initial_inject_row = panel;
+                    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+                    auto* label = new wxStaticText(panel, wxID_ANY, _L("Insert initial plate swap code for:"));
+                    label->SetFont(wxGetApp().normal_font());
+                    sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+                    Button* swapmod_load_btn = new Button(panel, _L("Swapmod / A1 Mini plate-load (default)"));
+                    swapmod_load_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+                    sizer->Add(swapmod_load_btn, 0);
+                    swapmod_load_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+                        std::string boilerplate = FullPrintConfig::defaults().additional_initial_plate_change_gcode.value;
+                        if (boilerplate.empty())
+                            return;
+                        load_key_value("additional_initial_plate_change_gcode", boilerplate, false);
+                        if (Field* f = get_field("additional_initial_plate_change_gcode")) {
+                            f->set_value(from_u8(boilerplate), true);
+                        }
+                        update_changed_ui();
+                    });
+                    panel->SetSizer(sizer);
+                    auto* outer = new wxBoxSizer(wxHORIZONTAL);
+                    outer->Add(panel, 0, wxEXPAND);
+                    return outer;
+                };
+                og_initial->append_line(inject_line);
+            }
+
             // Initial visibility: only show when Plate change G-code is non-empty.
             const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
             if (Line* line = og_initial->get_line("additional_initial_plate_change_gcode"); line != nullptr)
                 line->toggle_visible = has_plate_change;
             og_initial->update_visibility(m_mode);
+            if (m_additional_initial_inject_row)
+                m_additional_initial_inject_row->Show(has_plate_change);
         }
 
         optgroup = page->new_optgroup(L("Timelapse G-code"), L"param_gcode", 0);
@@ -5241,6 +5296,32 @@ if (is_marlin_flavor)
     apply_searcher();
 }
 
+void TabPrinter::maybe_autofill_additional_initial_plate_change_gcode(bool config_only)
+{
+    if (!m_config)
+        return;
+    // During project/preset load, G-code keys may not be materialized yet; opt_string() would dereference null.
+    if (!m_config->has("plate_change_gcode") || !m_config->has("additional_initial_plate_change_gcode"))
+        return;
+    const auto* plate_opt = m_config->opt<ConfigOptionString>("plate_change_gcode");
+    const auto* addl_opt  = m_config->opt<ConfigOptionString>("additional_initial_plate_change_gcode");
+    if (!plate_opt || plate_opt->value.empty())
+        return;
+    if (!addl_opt || !addl_opt->value.empty())
+        return;
+    std::string boilerplate = FullPrintConfig::defaults().additional_initial_plate_change_gcode.value;
+    if (boilerplate.empty())
+        return;
+
+    if (config_only) {
+        m_config->set_key_value("additional_initial_plate_change_gcode", new ConfigOptionString(boilerplate));
+        if (m_presets_choice)
+            m_presets_choice->update_dirty();
+    } else {
+        load_key_value("additional_initial_plate_change_gcode", boilerplate, false);
+    }
+}
+
 // this gets executed after preset is loaded and before GUI fields are updated
 void TabPrinter::on_preset_loaded()
 {
@@ -5274,6 +5355,8 @@ void TabPrinter::on_preset_loaded()
             m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
         }
     }
+
+    maybe_autofill_additional_initial_plate_change_gcode(true);
 }
 
 void TabPrinter::update_pages()
@@ -5338,6 +5421,7 @@ void TabPrinter::clear_pages()
 {
     Tab::clear_pages();
     m_reset_to_filament_color = nullptr;
+    m_additional_initial_inject_row = nullptr;
 }
 
 void TabPrinter::toggle_options()
@@ -5383,6 +5467,11 @@ void TabPrinter::toggle_options()
         PresetBundle *preset_bundle = wxGetApp().preset_bundle;
         std::string   printer_type  = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
         toggle_line("wrapping_detection_gcode", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
+        // Sync with loaded preset / project (build-time toggle_visible can be stale).
+        const bool has_plate_change = !m_config->opt_string("plate_change_gcode").empty();
+        toggle_line("additional_initial_plate_change_gcode", has_plate_change);
+        if (m_additional_initial_inject_row)
+            m_additional_initial_inject_row->Show(has_plate_change);
     }
 
     if (m_active_page->title() == L("Multimaterial")) {
@@ -5548,6 +5637,9 @@ void TabPrinter::update_fff()
     }
 
     toggle_options();
+    // Apply toggle_line() results to custom_ctrl rows (e.g. after preset/project load while this page is open).
+    if (m_active_page)
+        m_active_page->update_visibility(m_mode, true);
 }
 
 void TabPrinter::update_sla()

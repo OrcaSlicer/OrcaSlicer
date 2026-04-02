@@ -483,6 +483,10 @@ public:
     void send_to_printer(bool isall = false, bool use_plate_changer_all = false);
     void export_gcode(bool prefer_removable);
     void export_gcode_3mf(bool export_all = false, bool use_plate_changer_all = false);
+
+    // Last-used "Start/End with new plate?" from print dialogs; used for export-all (plate changer) and legacy send when those dialogs are not shown.
+    static void plate_changer_prefs_load_from_appconfig(bool& start_with_new_plate, bool& end_with_new_plate);
+    static void plate_changer_prefs_save_to_appconfig(bool start_with_new_plate, bool end_with_new_plate);
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});

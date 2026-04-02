@@ -64,6 +64,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ObjColorUtils.hpp"
@@ -4754,6 +4755,7 @@ struct Plater::priv
                                       bool                    ban_light              = false);
     ThumbnailsList generate_thumbnails(const ThumbnailsParams& params, Camera::EType camera_type);
     PlateBBoxData generate_first_layer_bbox();
+    PlateBBoxData generate_first_layer_bbox(PartPlate *plate);
 
     void bring_instance_forward() const;
 
@@ -10491,16 +10493,24 @@ ThumbnailsList Plater::priv::generate_thumbnails(const ThumbnailsParams& params,
 
 PlateBBoxData Plater::priv::generate_first_layer_bbox()
 {
+    return generate_first_layer_bbox(this->partplate_list.get_curr_plate());
+}
+
+PlateBBoxData Plater::priv::generate_first_layer_bbox(PartPlate *plate)
+{
     PlateBBoxData bboxdata;
+    if (!plate || !plate->get_slice_result())
+        return bboxdata;
     std::vector<BBoxData>& id_bboxes = bboxdata.bbox_objs;
     BoundingBoxf bbox_all;
     auto                   print = this->background_process.m_fff_print;
-    auto curr_plate = this->partplate_list.get_curr_plate();
-    auto curr_plate_seq = curr_plate->get_real_print_seq();
+    if (!print)
+        return bboxdata;
+    auto curr_plate_seq = plate->get_real_print_seq();
     bboxdata.is_seq_print = (curr_plate_seq == PrintSequence::ByObject);
     bboxdata.first_extruder = print->get_tool_ordering().first_extruder();
     bboxdata.bed_type       = bed_type_to_gcode_string(print->config().curr_bed_type.value);
-    bboxdata.first_layer_time = partplate_list.get_curr_plate()->get_slice_result()->initial_layer_time;
+    bboxdata.first_layer_time = plate->get_slice_result()->initial_layer_time;
     // get nozzle diameter
     auto opt_nozzle_diameters = print->config().option<ConfigOptionFloats>("nozzle_diameter");
     if (opt_nozzle_diameters != nullptr)
@@ -10513,7 +10523,7 @@ PlateBBoxData Plater::priv::generate_first_layer_bbox()
     //    objects = this->background_process.m_sla_print->objects();
     //}
     auto objects = print->objects();
-    auto orig = this->partplate_list.get_curr_plate()->get_origin();
+    auto orig = plate->get_origin();
     Vec2d orig2d = { orig[0], orig[1] };
 
     BBoxData data;
@@ -10541,7 +10551,7 @@ PlateBBoxData Plater::priv::generate_first_layer_bbox()
             bb.max -= orig2d;
             bbox_all.merge(bb);
             data.name = "wipe_tower";
-            data.id   = partplate_list.get_curr_plate()->get_index() + 1000;
+            data.id   = plate->get_index() + 1000;
             data.bbox = {bb.min.x(), bb.min.y(), bb.max.x(), bb.max.y()};
             id_bboxes.emplace_back(data);
         }
@@ -14758,6 +14768,26 @@ void Plater::send_to_printer(bool isall, bool use_plate_changer_all)
     p->on_action_send_to_printer(isall, use_plate_changer_all);
 }
 
+void Plater::plate_changer_prefs_load_from_appconfig(bool& start_with_new_plate, bool& end_with_new_plate)
+{
+    start_with_new_plate = false;
+    end_with_new_plate   = false;
+    AppConfig* cfg       = wxGetApp().app_config;
+    if (!cfg)
+        return;
+    start_with_new_plate = cfg->get_bool("plate_changer_start_with_new_plate");
+    end_with_new_plate   = cfg->get_bool("plate_changer_end_with_new_plate");
+}
+
+void Plater::plate_changer_prefs_save_to_appconfig(bool start_with_new_plate, bool end_with_new_plate)
+{
+    AppConfig* cfg = wxGetApp().app_config;
+    if (!cfg)
+        return;
+    cfg->set_bool("plate_changer_start_with_new_plate", start_with_new_plate);
+    cfg->set_bool("plate_changer_end_with_new_plate", end_with_new_plate);
+}
+
 //BBS export gcode 3mf to file
 void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
 {
@@ -14837,7 +14867,11 @@ void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
         int plate_idx = get_partplate_list().get_curr_plate_index();
         if (export_all)
             plate_idx = PLATE_ALL_IDX;
-        export_3mf(output_path, SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode | SaveStrategy::SkipModel, plate_idx, nullptr, use_plate_changer_all); // BBS: silence
+        bool start_pc = false, end_pc = false;
+        if (use_plate_changer_all)
+            plate_changer_prefs_load_from_appconfig(start_pc, end_pc);
+        export_3mf(output_path, SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode | SaveStrategy::SkipModel, plate_idx, nullptr,
+                   use_plate_changer_all, start_pc, end_pc); // BBS: silence
 
         RemovableDriveManager& removable_drive_manager = *wxGetApp().removable_drive_manager();
 
@@ -15459,17 +15493,21 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             picking_thumbnails.push_back(picking_thumbnail);
         }
 
-        if (p->partplate_list.get_curr_plate()->is_slice_result_valid()) {
-            //BBS generate BBS calibration thumbnails
-            int index = p->partplate_list.get_curr_plate_index();
-            //ThumbnailData* calibration_data = calibration_thumbnails[index];
-            //const ThumbnailsParams calibration_params = { {}, false, true, true, true, p->partplate_list.get_curr_plate_index() };
-            //p->generate_calibration_thumbnail(*calibration_data, PartPlate::cali_thumbnail_width, PartPlate::cali_thumbnail_height, calibration_params);
-            if (using_exported_file()) {
-                //do nothing
+        // First-layer bbox / filament metadata must match each plate, not whichever plate is selected in the UI.
+        if (export_plate_idx == PLATE_ALL_IDX) {
+            for (int pi = 0; pi < p->partplate_list.get_plate_count(); ++pi) {
+                PartPlate *pl = p->partplate_list.get_plate(pi);
+                if (!pl || !pl->is_slice_result_valid())
+                    continue;
+                if (static_cast<size_t>(pi) >= plate_bboxes.size())
+                    continue;
+                if (!using_exported_file())
+                    *plate_bboxes[pi] = p->generate_first_layer_bbox(pl);
             }
-            else
-                *plate_bboxes[index] = p->generate_first_layer_bbox();
+        } else if (p->partplate_list.get_curr_plate()->is_slice_result_valid()) {
+            int index = p->partplate_list.get_curr_plate_index();
+            if (!using_exported_file())
+                *plate_bboxes[index] = p->generate_first_layer_bbox(p->partplate_list.get_curr_plate());
         }
     }
 
@@ -15520,11 +15558,10 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             it->type  = cfg.get_filament_type(display_filament_type, it->id);
             it->filament_id = filament_id_opt ? filament_id_opt->get_at(it->id) : "";
             it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-            // save filament info used in curr plate
-            int index = p->partplate_list.get_curr_plate_index();
-            if (store_params.id_bboxes.size() > index) {
-                store_params.id_bboxes[index]->filament_ids.push_back(it->id);
-                store_params.id_bboxes[index]->filament_colors.push_back(it->color);
+            // Associate filament entries with this plate's bbox slot (not the UI-selected plate).
+            if (static_cast<size_t>(i) < store_params.id_bboxes.size()) {
+                store_params.id_bboxes[i]->filament_ids.push_back(it->id);
+                store_params.id_bboxes[i]->filament_colors.push_back(it->color);
             }
         }
     }
@@ -16013,8 +16050,11 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn, bool us
     }
 
     if (use_3mf) {
-        // Process gcode
-        const int result = send_gcode(plate_idx, nullptr, use_plate_changer_all, false, false);
+        // Process gcode (plate changer start/end match last print-dialog choice; there is no separate dialog on this path)
+        bool start_pc = false, end_pc = false;
+        if (use_plate_changer_all)
+            plate_changer_prefs_load_from_appconfig(start_pc, end_pc);
+        const int result = send_gcode(plate_idx, nullptr, use_plate_changer_all, start_pc, end_pc);
 
         if (result < 0) {
             wxString msg = _L("Abnormal print file data. Please slice again");
@@ -16033,7 +16073,12 @@ int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn, bool use_plate_
     /* generate 3mf */
     set_print_job_plate_idx(plate_idx);
 
-    PartPlate* plate = get_partplate_list().get_curr_plate();
+    // "Print / send all" must not use the viewed plate for temp paths or side effects.
+    PartPlate *plate = (plate_idx == PLATE_ALL_IDX) ? get_partplate_list().get_plate(0) : get_partplate_list().get_curr_plate();
+    if (!plate) {
+        BOOST_LOG_TRIVIAL(error) << "send_gcode: no plate for temp path";
+        return -1;
+    }
     try {
         p->m_print_job_data._3mf_path = fs::path(plate->get_tmp_gcode_path());
         p->m_print_job_data._3mf_path.replace_extension("3mf");
@@ -16062,7 +16107,11 @@ int Plater::export_config_3mf(int plate_idx, Export3mfProgressFn proFn, bool use
     /* generate 3mf */
     set_print_job_plate_idx(plate_idx);
 
-    PartPlate* plate = get_partplate_list().get_curr_plate();
+    PartPlate *plate = (plate_idx == PLATE_ALL_IDX) ? get_partplate_list().get_plate(0) : get_partplate_list().get_curr_plate();
+    if (!plate) {
+        BOOST_LOG_TRIVIAL(error) << "export_config_3mf: no plate for temp path";
+        return -1;
+    }
     try {
         p->m_print_job_data._3mf_config_path = fs::path(plate->get_temp_config_3mf_path());
     }

@@ -266,6 +266,11 @@ void AppConfig::set_defaults()
     if (get("show_overhang").empty())
         set_bool("show_overhang", false);
 
+    if (get("plate_changer_start_with_new_plate").empty())
+        set_bool("plate_changer_start_with_new_plate", false);
+    if (get("plate_changer_end_with_new_plate").empty())
+        set_bool("plate_changer_end_with_new_plate", false);
+
 #ifdef _WIN32
 
 //#ifdef SUPPORT_3D_CONNEXION

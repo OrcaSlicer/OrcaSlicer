@@ -597,6 +597,8 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_opt_end_with_new_plate->setValue("off");
     sizer_plate_changer_opts->Add(m_opt_start_with_new_plate, 0, wxEXPAND);
     sizer_plate_changer_opts->Add(m_opt_end_with_new_plate, 0, wxEXPAND);
+    m_opt_start_with_new_plate->Bind(EVT_SWITCH_PRINT_OPTION, [this](wxCommandEvent&) { persist_plate_changer_prefs_to_appconfig(); });
+    m_opt_end_with_new_plate->Bind(EVT_SWITCH_PRINT_OPTION, [this](wxCommandEvent&) { persist_plate_changer_prefs_to_appconfig(); });
     m_panel_plate_changer_opts->SetSizer(sizer_plate_changer_opts);
     m_line_plate_changer->Hide();
     m_panel_plate_changer_opts->Hide();
@@ -1514,6 +1516,7 @@ void SelectMachineDialog::prepare(int print_plate_idx, bool use_plate_changer_al
     if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
     if (m_panel_plate_changer_opts) m_panel_plate_changer_opts->Show(show_plate_changer_opts);
     if (m_scroll_area && m_scroll_area->GetSizer()) m_scroll_area->GetSizer()->Layout();
+    sync_plate_changer_prefs_from_appconfig();
 }
 
 void SelectMachineDialog::update_print_status_msg()
@@ -2432,6 +2435,23 @@ void SelectMachineDialog::save_option_vals(MachineObject *obj) {
     }
 }
 
+void SelectMachineDialog::sync_plate_changer_prefs_from_appconfig()
+{
+    if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
+        return;
+    bool start = false, end = false;
+    Plater::plate_changer_prefs_load_from_appconfig(start, end);
+    m_opt_start_with_new_plate->setValue(start ? "on" : "off");
+    m_opt_end_with_new_plate->setValue(end ? "on" : "off");
+}
+
+void SelectMachineDialog::persist_plate_changer_prefs_to_appconfig()
+{
+    if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
+        return;
+    Plater::plate_changer_prefs_save_to_appconfig(m_opt_start_with_new_plate->getValue() == "on", m_opt_end_with_new_plate->getValue() == "on");
+}
+
 void SelectMachineDialog::Enable_Auto_Refill(bool enable)
 {
     if (enable) {
@@ -2498,6 +2518,7 @@ void SelectMachineDialog::on_send_print()
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
+        persist_plate_changer_prefs_to_appconfig();
         bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
         bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {

@@ -539,6 +539,9 @@ private:
     void save_option_vals();
     void save_option_vals(MachineObject *obj);
 
+    void sync_plate_changer_prefs_from_appconfig();
+    void persist_plate_changer_prefs_to_appconfig();
+
     // enbale or disable external change assist
     bool is_enable_external_change_assist(std::vector<FilamentInfo>& ams_mapping_result);
 };
