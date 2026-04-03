@@ -152,6 +152,8 @@ elif [[ "${DISTRIBUTION_LIKE}" == *"debian"* ]] || [[ "${DISTRIBUTION_LIKE}" == 
     DISTRIBUTION="debian"
 elif [[ "${DISTRIBUTION_LIKE}" == *"arch"* ]] ; then
     DISTRIBUTION="arch"
+elif [[ "${DISTRIBUTION_LIKE}" == *"suse"* ]] ; then
+    DISTRIBUTION="suse"
 fi
 
 if [ ! -f "./scripts/linux.d/${DISTRIBUTION}" ] ; then

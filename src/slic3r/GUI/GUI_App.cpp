@@ -633,24 +633,6 @@ wxString file_wildcards(FileType file_type, const std::string &custom_extension)
 static std::string libslic3r_translate_callback(const char *s) { return wxGetTranslation(wxString(s, wxConvUTF8)).utf8_str().data(); }
 
 #ifdef WIN32
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-static void register_win32_dpi_event()
-{
-    enum { WM_DPICHANGED_ = 0x02e0 };
-
-    wxWindow::MSWRegisterMessageHandler(WM_DPICHANGED_, [](wxWindow *win, WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) {
-        const int dpi = wParam & 0xffff;
-        const auto rect = reinterpret_cast<PRECT>(lParam);
-        const wxRect wxrect(wxPoint(rect->top, rect->left), wxPoint(rect->bottom, rect->right));
-
-        DpiChangedEvent evt(EVT_DPI_CHANGED_SLICER, dpi, wxrect);
-        win->GetEventHandler()->AddPendingEvent(evt);
-
-        return true;
-    });
-}
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
-
 static GUID GUID_DEVINTERFACE_HID = { 0x4D1E55B2, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 };
 
 static void register_win32_device_notification_event()
@@ -2726,11 +2708,15 @@ bool GUI_App::on_init_inner()
 
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
     // Suppress harmless GTK critical warnings from the GTK3/wxWidgets interaction.
-    // These include widget allocation on hidden widgets and events on unrealized widgets.
+    // These include widget allocation on hidden widgets, events on unrealized widgets,
+    // and style context operations during widget construction (SetBackgroundColour
+    // before GTK widget realization).
     g_log_set_handler("Gtk", G_LOG_LEVEL_CRITICAL,
         [](const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
             if (message && (strstr(message, "gtk_widget_set_allocation") ||
-                            strstr(message, "WIDGET_REALIZED_FOR_EVENT")))
+                            strstr(message, "WIDGET_REALIZED_FOR_EVENT") ||
+                            strstr(message, "gtk_widget_get_style_context") ||
+                            strstr(message, "gtk_style_context_add_provider")))
                 return;
             g_log_default_handler(log_domain, log_level, message, user_data);
         }, nullptr);
@@ -2845,6 +2831,11 @@ bool GUI_App::on_init_inner()
     bool init_dark_color_mode = dark_mode();
     bool init_sys_menu_enabled = app_config->get("sys_menu_enabled") == "1";
 #ifdef __WINDOWS__
+     // Inform wxWidgets 3.3's dark mode system so it tracks NppDarkMode's state.
+     // Must be called before NppDarkMode::InitDarkMode() so that NppDarkMode's
+     // SetPreferredAppMode(ForceDark) overrides the AllowDark state set here.
+     // Orca: todo switch to native dark mode support in wxWidgets and remove NppDarkMode
+     MSWEnableDarkMode(DarkMode_Auto);
      NppDarkMode::InitDarkMode(init_dark_color_mode, init_sys_menu_enabled);
 #endif // __WINDOWS__
 
@@ -3094,9 +3085,6 @@ bool GUI_App::on_init_inner()
     //}
 
 #ifdef WIN32
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-    register_win32_dpi_event();
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
     register_win32_device_notification_event();
 #endif // WIN32
 
@@ -3657,9 +3645,15 @@ bool GUI_App::dark_mode()
     // proper dark mode was first introduced.
     return wxPlatformInfo::Get().CheckOSVersion(10, 14) && mac_dark_mode();
 #else
-    return wxGetApp().app_config->get("dark_color_mode") == "1" ? true : check_dark_mode();
-    //const unsigned luma = get_colour_approx_luma(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-    //return luma < 128;
+    // When the user has explicitly chosen a mode, honour it directly.
+    // Falling through to check_dark_mode() for an explicit "0" would query
+    // wxSystemSettings::GetAppearance().IsDark(), which is contaminated by
+    // wxWidgets 3.3's MSWEnableDarkMode(DarkMode_Auto) and can return true
+    // even though the user asked for light mode.
+    const auto &val = wxGetApp().app_config->get("dark_color_mode");
+    if (val == "1") return true;
+    if (val == "0") return false;
+    return check_dark_mode();
 #endif
 #else
     //BBS disable DarkUI mode
@@ -4313,8 +4307,10 @@ void GUI_App::force_colors_update()
 #ifdef _MSW_DARK_MODE
 #ifdef __WINDOWS__
     NppDarkMode::SetDarkMode(dark_mode());
+#if wxVERSION_NUMBER < 3300
     if (WXHWND wxHWND = wxToolTip::GetToolTipCtrl())
         NppDarkMode::SetDarkExplorerTheme((HWND)wxHWND);
+#endif
     NppDarkMode::SetDarkTitleBar(mainframe->GetHWND());
 
 
@@ -6428,7 +6424,22 @@ bool GUI_App::load_language(wxString language, bool initial)
                                         % original_lang % locale_language_info->CanonicalName.ToUTF8().data();
         }
     }
+#endif
 
+    // Try base language without region (e.g., "en" from "en_IL") on all platforms
+    if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
+        wxString base_lang = requested_language_code.BeforeFirst('_');
+        if (base_lang != requested_language_code) {
+            const wxLanguageInfo *base_info = wxLocale::FindLanguageInfo(base_lang);
+            if (base_info && wxLocale::IsAvailable(base_info->Language)) {
+                BOOST_LOG_TRIVIAL(info) << boost::format("Locale %1% not available. Falling back to base language %2%.")
+                    % requested_language_code.ToUTF8().data() % base_info->CanonicalName.ToUTF8().data();
+                locale_language_info = base_info;
+            }
+        }
+    }
+
+    // Generic fallback chain for all platforms
     if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
         auto try_locale = [](const wxLanguageInfo* candidate) -> const wxLanguageInfo* {
             return (candidate && wxLocale::IsAvailable(candidate->Language)) ? candidate : nullptr;
@@ -6445,7 +6456,6 @@ bool GUI_App::load_language(wxString language, bool initial)
             locale_language_info = fallback_locale_info;
         }
     }
-#endif
 
     if (initial) {
         // bbs supported languages
@@ -7953,11 +7963,12 @@ bool GUI_App::check_url_association(std::wstring url_prefix, std::wstring& reg_b
     if (!key_full.Exists()) {
         return false;
     }
-    reg_bin = key_full.QueryDefaultValue().ToStdWstring();
+    wxString reg_value = key_full.QueryDefaultValue();
+    reg_bin = reg_value.ToStdWstring();
 
     boost::filesystem::path binary_path(boost::filesystem::canonical(boost::dll::program_location()));
-    std::wstring key_string = L"\"" + binary_path.wstring() + L"\" \"%1\"";
-    return key_string == reg_bin;
+    wxString key_string = "\"" + from_path(binary_path) + "\" \"%1\"";
+    return key_string == reg_value;
 #else
     return false;
 #endif // WIN32
@@ -7967,12 +7978,10 @@ void GUI_App::associate_url(std::wstring url_prefix)
 {
 #ifdef WIN32
     boost::filesystem::path binary_path(boost::filesystem::canonical(boost::dll::program_location()));
-    // the path to binary needs to be correctly saved in string with respect to localized characters
-    wxString wbinary = wxString::FromUTF8(binary_path.string());
-    std::string binary_string = (boost::format("%1%") % wbinary).str();
-    BOOST_LOG_TRIVIAL(info) << "Downloader registration: Path of binary: " << binary_string;
+    wxString wbinary = from_path(binary_path);
+    BOOST_LOG_TRIVIAL(info) << "Downloader registration: Path of binary: " << wbinary.ToUTF8().data();
 
-    std::string key_string = "\"" + binary_string + "\" \"%1\"";
+    wxString key_string = "\"" + wbinary + "\" \"%1\"";
 
     wxRegKey key_first(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix);
     wxRegKey key_full(wxRegKey::HKCU, "Software\\Classes\\" + url_prefix + "\\shell\\open\\command");

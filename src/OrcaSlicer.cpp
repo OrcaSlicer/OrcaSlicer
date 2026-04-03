@@ -6,6 +6,7 @@
     #define NOMINMAX
     #include <Windows.h>
     #include <wchar.h>
+    #include <commctrl.h>
     #ifdef SLIC3R_GUI
     extern "C"
     {
