@@ -2435,6 +2435,7 @@ void SelectMachineDialog::save_option_vals(MachineObject *obj) {
     }
 }
 
+// AppConfig keys are shared with PlateChangerExportOptionsDialog (Export all plate changer) so export and print/send stay aligned.
 void SelectMachineDialog::sync_plate_changer_prefs_from_appconfig()
 {
     if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
@@ -2445,6 +2446,7 @@ void SelectMachineDialog::sync_plate_changer_prefs_from_appconfig()
     m_opt_end_with_new_plate->setValue(end ? "on" : "off");
 }
 
+// Persists to the same keys as PlateChangerExportOptionsDialog (plate-swap export path).
 void SelectMachineDialog::persist_plate_changer_prefs_to_appconfig()
 {
     if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)

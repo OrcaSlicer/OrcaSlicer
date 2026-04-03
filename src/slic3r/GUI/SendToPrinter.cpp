@@ -355,7 +355,10 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     // line schedule
     m_line_schedule = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
     m_line_schedule->SetBackgroundColour(wxColour(238, 238, 238));
-    m_simplebook   = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_DIALOG_SIMBOOK_SIZE, 0);
+    // Plate-swap / Send dialog: do not use SELECT_MACHINE_DIALOG_SIMBOOK_SIZE (FromDIP(370)xFromDIP(64)) for this
+    // wxSimplebook. That size was for a short "Send" strip only; plate-changer rows on m_panel_prepare need more
+    // height and width, and a fixed small client rect clipped the toggles and Send button. Size from content instead.
+    m_simplebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
 
     // perpare mode
     m_panel_prepare = new wxPanel(m_simplebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -799,6 +802,7 @@ void SendToPrinterDialog::prepare(int print_plate_idx, bool use_plate_changer_al
     sync_plate_changer_prefs_from_appconfig();
 }
 
+// AppConfig keys are shared with PlateChangerExportOptionsDialog (Export all plate changer) so export and send stay aligned.
 void SendToPrinterDialog::sync_plate_changer_prefs_from_appconfig()
 {
     if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
@@ -809,6 +813,7 @@ void SendToPrinterDialog::sync_plate_changer_prefs_from_appconfig()
     m_opt_end_with_new_plate->setValue(end ? "on" : "off");
 }
 
+// Persists to the same keys as PlateChangerExportOptionsDialog (plate-swap export path).
 void SendToPrinterDialog::persist_plate_changer_prefs_to_appconfig()
 {
     if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)

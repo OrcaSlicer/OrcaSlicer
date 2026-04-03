@@ -484,7 +484,8 @@ public:
     void export_gcode(bool prefer_removable);
     void export_gcode_3mf(bool export_all = false, bool use_plate_changer_all = false);
 
-    // Last-used "Start/End with new plate?" from print dialogs; used for export-all (plate changer) and legacy send when those dialogs are not shown.
+    // Last-used "Start/End with new plate?" — shared by print/send dialogs and PlateChangerExportOptionsDialog (plate-swap export).
+    // Export-all (plate changer) still reads these when plate_change_gcode is empty (no options dialog).
     static void plate_changer_prefs_load_from_appconfig(bool& start_with_new_plate, bool& end_with_new_plate);
     static void plate_changer_prefs_save_to_appconfig(bool start_with_new_plate, bool end_with_new_plate);
     void send_gcode_finish(wxString name);

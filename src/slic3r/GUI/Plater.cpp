@@ -132,6 +132,7 @@
 #include "BBLStatusBar.hpp"
 #include "BitmapCache.hpp"
 #include "ParamsDialog.hpp"
+#include "PlateChangerExportOptionsDialog.hpp"
 #include "ImageDPIFrame.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/RoundedRectangle.hpp"
@@ -14768,6 +14769,8 @@ void Plater::send_to_printer(bool isall, bool use_plate_changer_all)
     p->on_action_send_to_printer(isall, use_plate_changer_all);
 }
 
+// Persisted plate-changer flags: used by SelectMachineDialog / SendToPrinterDialog (print & send) and by
+// PlateChangerExportOptionsDialog (Export all plate changer). Not conditional on those UIs — same AppConfig keys.
 void Plater::plate_changer_prefs_load_from_appconfig(bool& start_with_new_plate, bool& end_with_new_plate)
 {
     start_with_new_plate = false;
@@ -14821,6 +14824,25 @@ void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
     default_output_file.replace_extension(".gcode.3mf");
     default_output_file = fs::path(Slic3r::fold_utf8_to_ascii(default_output_file.string()));
 
+    // Plate-swap export: for "Export all (plate changer)" only, if the printer preset defines plate_change_gcode,
+    // show start/end plate options before the save dialog. If plate change G-code is empty, behavior is unchanged
+    // (no extra dialog — same as users without a plate swapper). Other plate-changer exports still use AppConfig only.
+    bool start_pc = false, end_pc = false;
+    if (use_plate_changer_all) {
+        PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+        const bool has_plate_change_gcode = preset_bundle &&
+            !preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+        if (export_all && has_plate_change_gcode) {
+            PlateChangerExportOptionsDialog opts_dlg(this);
+            if (opts_dlg.ShowModal() != wxID_OK)
+                return;
+            start_pc = opts_dlg.start_with_new_plate();
+            end_pc   = opts_dlg.end_with_new_plate();
+        } else {
+            plate_changer_prefs_load_from_appconfig(start_pc, end_pc);
+        }
+    }
+
     //Get a last save path
     start_dir = appconfig.get_last_output_dir(default_output_file.parent_path().string(), false);
 
@@ -14867,9 +14889,6 @@ void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
         int plate_idx = get_partplate_list().get_curr_plate_index();
         if (export_all)
             plate_idx = PLATE_ALL_IDX;
-        bool start_pc = false, end_pc = false;
-        if (use_plate_changer_all)
-            plate_changer_prefs_load_from_appconfig(start_pc, end_pc);
         export_3mf(output_path, SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode | SaveStrategy::SkipModel, plate_idx, nullptr,
                    use_plate_changer_all, start_pc, end_pc); // BBS: silence
 
