@@ -8480,17 +8480,15 @@ void GLCanvas3D::_render_return_toolbar() const
         const_cast<GLGizmosManager*>(&m_gizmos)->reset_all_states();
         if (m_canvas != nullptr && !wxGetApp().is_closing()) {
             m_canvas->CallAfter([]() {
-                if (wxGetApp().is_closing())
+                auto& app = wxGetApp();
+                if (app.is_closing())
                     return;
 
-                auto* plater = wxGetApp().plater();
+                auto* plater = app.plater();
                 if (plater == nullptr)
                     return;
 
                 plater->select_view_3D("3D");
-
-                if (wxGetApp().is_closing())
-                    return;
 
                 auto* view3d_canvas = plater->get_view3D_canvas3D();
                 if (view3d_canvas == nullptr)
