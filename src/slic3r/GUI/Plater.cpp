@@ -13507,6 +13507,12 @@ wxString Plater::get_project_name()
     return p->get_project_name();
 }
 
+void Plater::set_project_name(const wxString& project_name)
+{
+    p->set_project_name(project_name);
+    p->update_title_dirty_status();
+}
+
 void Plater::update_all_plate_thumbnails(bool force_update)
 {
     for (int i = 0; i < get_partplate_list().get_plate_count(); i++) {
@@ -14833,7 +14839,7 @@ void Plater::export_gcode_3mf(bool export_all, bool use_plate_changer_all)
         const bool has_plate_change_gcode = preset_bundle &&
             !preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
         if (export_all && has_plate_change_gcode) {
-            PlateChangerExportOptionsDialog opts_dlg(this);
+            PlateChangerExportOptionsDialog opts_dlg(this, this);
             if (opts_dlg.ShowModal() != wxID_OK)
                 return;
             start_pc = opts_dlg.start_with_new_plate();

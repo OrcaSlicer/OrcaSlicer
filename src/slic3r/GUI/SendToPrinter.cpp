@@ -24,6 +24,7 @@
 #include <miniz.h>
 #include <algorithm>
 #include "BitmapCache.hpp"
+#include "PlateChangerPlateStatsTable.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
@@ -1668,24 +1669,28 @@ void SendToPrinterDialog::set_default()
         }
     }
 
-    // thumbmail
+    // thumbmail (plate-changer all: first plate in job order, not UI selection)
     //wxBitmap bitmap;
-    ThumbnailData &data   = m_plater->get_partplate_list().get_curr_plate()->thumbnail_data;
-    if (data.is_valid()) {
-        wxImage image(data.width, data.height);
-        image.InitAlpha();
-        for (unsigned int r = 0; r < data.height; ++r) {
-            unsigned int rr = (data.height - 1 - r) * data.width;
-            for (unsigned int c = 0; c < data.width; ++c) {
-                unsigned char *px = (unsigned char *) data.pixels.data() + 4 * (rr + c);
-                image.SetRGB((int) c, (int) r, px[0], px[1], px[2]);
-                image.SetAlpha((int) c, (int) r, px[3]);
+    PartPlate *thumb_plate = (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) ? m_plater->get_partplate_list().get_plate(0)
+                                                                                             : m_plater->get_partplate_list().get_curr_plate();
+    if (thumb_plate) {
+        ThumbnailData &data = thumb_plate->thumbnail_data;
+        if (data.is_valid()) {
+            wxImage image(data.width, data.height);
+            image.InitAlpha();
+            for (unsigned int r = 0; r < data.height; ++r) {
+                unsigned int rr = (data.height - 1 - r) * data.width;
+                for (unsigned int c = 0; c < data.width; ++c) {
+                    unsigned char *px = (unsigned char *) data.pixels.data() + 4 * (rr + c);
+                    image.SetRGB((int) c, (int) r, px[0], px[1], px[2]);
+                    image.SetAlpha((int) c, (int) r, px[3]);
+                }
             }
+            image = image.Rescale(FromDIP(256), FromDIP(256));
+            m_thumbnailPanel->set_thumbnail(image);
+        } else {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " : thumbnail_data invalid." << "current plater: " << m_plater->get_partplate_list().get_curr_plate_index();
         }
-        image  = image.Rescale(FromDIP(256), FromDIP(256));
-        m_thumbnailPanel->set_thumbnail(image);
-    } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " : thumbnail_data invalid." << "current plater: " << m_plater->get_partplate_list().get_curr_plate_index();
     }
 
     std::vector<std::string> materials;
@@ -1749,6 +1754,7 @@ void SendToPrinterDialog::update_time_and_weight_labels()
     const bool use_inches = wxGetApp().app_config->get("use_inches") == "1";
 
     // Only show plate count + table when using plate changer (all plates). Otherwise show single-line time/weight only.
+    // Plate/time/weight grid is shared with SelectMachineDialog and PlateChangerExportOptionsDialog.
     if (m_use_plate_changer_all) {
         m_stats_switch->SetSelection(1);
 
@@ -1756,86 +1762,8 @@ void SendToPrinterDialog::update_time_and_weight_labels()
         m_stext_project_name_in_table->SetLabel(m_current_project_name);
         m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d plates."), n_plates));
 
-        std::vector<double> plate_times(n_plates, 0.0);
-        std::vector<double> plate_weights(n_plates, 0.0);
-        double total_time_s   = 0.0;
-        double total_weight_g = 0.0;
-
-        for (int i = 0; i < n_plates; ++i) {
-            PartPlate *p = partplate_list.get_plate(i);
-            if (p && p->get_slice_result())
-                plate_times[i] = p->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time;
-            PrintBase *pbase = nullptr;
-            if (p) p->get_print(&pbase, nullptr, nullptr);
-            if (Slic3r::Print *print = dynamic_cast<Slic3r::Print *>(pbase))
-                plate_weights[i] = print->print_statistics().total_weight;
-            total_time_s += plate_times[i];
-            total_weight_g += plate_weights[i];
-        }
-
-        m_plate_table_grid_sizer->Clear(true);
-
         wxWindow *table_panel = m_stext_plate_count->GetParent();
-        const wxColour table_text_colour(0x98, 0x98, 0x98);
-        const wxColour table_header_colour(0xBC, 0xBC, 0xBC);
-        const wxColour table_bg = table_panel->GetBackgroundColour();
-        const wxColour table_gridline_colour(0x40, 0x40, 0x40);
-        wxFont header_font(::Label::Body_13);
-        header_font.MakeSmaller();
-        header_font.MakeBold();
-
-        auto make_line_cell = [this, table_panel, table_gridline_colour]() {
-            wxPanel *cell = new wxPanel(table_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(1)), wxBORDER_NONE);
-            cell->SetBackgroundColour(table_gridline_colour);
-            cell->SetMinSize(wxSize(-1, FromDIP(1)));
-            return cell;
-        };
-
-        auto make_cell = [this, table_panel, table_bg](const wxString &text, const wxFont *font, const wxColour &text_colour, const char *icon_name = nullptr) {
-            wxPanel *cell = new wxPanel(table_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE);
-            cell->SetBackgroundColour(table_bg);
-            wxBoxSizer *cell_sizer = new wxBoxSizer(wxHORIZONTAL);
-            if (icon_name) {
-                wxStaticBitmap *icon = new wxStaticBitmap(cell, wxID_ANY, create_scaled_bitmap(icon_name, this, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
-                cell_sizer->Add(icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
-            }
-            wxStaticText *st = new wxStaticText(cell, wxID_ANY, text, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-            st->SetForegroundColour(text_colour);
-            st->SetBackgroundColour(table_bg);
-            if (font) st->SetFont(*font);
-            cell_sizer->Add(st, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(4));
-            cell->SetSizer(cell_sizer);
-            return cell;
-        };
-
-        m_plate_table_grid_sizer->Add(make_cell(_L("Plate"), &header_font, table_header_colour, nullptr), 0, wxEXPAND | wxALL, 0);
-        m_plate_table_grid_sizer->Add(make_cell(_L("Time"), &header_font, table_header_colour, "print-time"), 0, wxEXPAND | wxALL, 0);
-        m_plate_table_grid_sizer->Add(make_cell(_L("Weight"), &header_font, table_header_colour, "print-weight"), 0, wxEXPAND | wxALL, 0);
-
-        auto add_line_row = [this, make_line_cell]() {
-            m_plate_table_grid_sizer->Add(make_line_cell(), 0, wxEXPAND | wxALL, 0);
-            m_plate_table_grid_sizer->Add(make_line_cell(), 0, wxEXPAND | wxALL, 0);
-            m_plate_table_grid_sizer->Add(make_line_cell(), 0, wxEXPAND | wxALL, 0);
-        };
-
-        add_line_row();
-
-        auto add_row = [this, make_cell, use_inches, table_text_colour, table_header_colour](const wxString &plate_label, double time_s, double weight_g, bool highlight) {
-            const wxColour &row_colour = highlight ? table_header_colour : table_text_colour;
-            m_plate_table_grid_sizer->Add(make_cell(plate_label, nullptr, row_colour), 0, wxEXPAND | wxALL, 0);
-            m_plate_table_grid_sizer->Add(make_cell(short_time(get_time_dhms(time_s)), nullptr, row_colour), 0, wxEXPAND | wxALL, 0);
-            wxString wstr = use_inches ? wxString::Format("%.2f oz", weight_g * 0.035274) : wxString::Format("%.2f g", weight_g);
-            m_plate_table_grid_sizer->Add(make_cell(wstr, nullptr, row_colour), 0, wxEXPAND | wxALL, 0);
-        };
-
-        add_row(_L("All"), total_time_s, total_weight_g, true);
-        add_line_row();
-        for (int i = 0; i < n_plates; ++i) {
-            add_row(wxString::Format("%d", i + 1), plate_times[i], plate_weights[i], false);
-            add_line_row();
-        }
-
-        table_panel->Layout();
+        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, table_panel, this, partplate_list);
     } else {
         m_stats_switch->SetSelection(0);
 

@@ -434,6 +434,9 @@ protected:
 
     PrePrintChecker                     m_pre_print_checker;
 
+    // First physical plate's metadata for cloud AMS JSON when printing merged plate-changer G-code (must match job order, not UI selection).
+    PartPlate* reference_plate_for_merged_cloud_job() const;
+
     void update_time_and_weight_labels();
 
 public:
@@ -456,6 +459,11 @@ public:
     void finish_mode();
 	void sync_ams_mapping_result(std::vector<FilamentInfo>& result);
     void prepare(int print_plate_idx, bool use_plate_changer_all = false);
+    // Merged G-code for all plates (plate changer): UI-selected plate must not affect AMS JSON / validation.
+    bool is_merged_plate_changer_print_job() const
+    {
+        return m_print_type == PrintFromType::FROM_NORMAL && m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX;
+    }
     void show_status(PrintDialogStatus status, std::vector<wxString> params = std::vector<wxString>(), wxString wiki_url = wxEmptyString);
     void sys_color_changed();
     void reset_timeout();
