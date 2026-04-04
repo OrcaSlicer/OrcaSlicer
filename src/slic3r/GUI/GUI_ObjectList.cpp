@@ -5538,6 +5538,136 @@ void ObjectList::change_part_type()
   return;
 }
 
+ModelVolumeType ObjectList::get_selected_volume_type()
+{
+    ModelVolume* volume = get_selected_model_volume();
+    if (volume)
+        return volume->type();
+    return ModelVolumeType::INVALID;
+}
+
+void ObjectList::set_volume_type(ModelVolumeType new_type)
+{
+    struct VolumeSelection {
+        int          object_idx;
+        ModelVolume* volume;
+    };
+
+    std::vector<VolumeSelection> volumes;
+    auto add_volume = [&volumes](int obj_idx, ModelVolume* volume) {
+        if (volume == nullptr)
+            return;
+        auto it = std::find_if(volumes.begin(), volumes.end(), [volume](const VolumeSelection& other) { return other.volume == volume; });
+        if (it == volumes.end())
+            volumes.push_back({ obj_idx, volume });
+    };
+
+    wxDataViewItemArray sels;
+    GetSelections(sels);
+    for (auto item : sels) {
+        wxDataViewItem volume_item = item;
+        ItemType       type        = m_objects_model->GetItemType(item);
+        if (!(type & itVolume)) {
+            if ((type & itSettings) && (m_objects_model->GetItemType(m_objects_model->GetParent(item)) & itVolume))
+                volume_item = m_objects_model->GetParent(item);
+            else
+                continue;
+        }
+
+        const int obj_idx = m_objects_model->GetObjectIdByItem(volume_item);
+        const int vol_idx = m_objects_model->GetVolumeIdByItem(volume_item);
+        if (obj_idx < 0 || vol_idx < 0 || obj_idx >= m_objects->size())
+            continue;
+
+        const int real_idx = m_objects_model->get_real_volume_index_in_3d(obj_idx, vol_idx);
+        if (real_idx < 0 || real_idx >= (*m_objects)[obj_idx]->volumes.size())
+            continue;
+
+        add_volume(obj_idx, (*m_objects)[obj_idx]->volumes[real_idx]);
+    }
+
+    auto collect_from_canvas = [&add_volume](GLCanvas3D* canvas) {
+        if (canvas == nullptr)
+            return;
+        const Selection& selection = canvas->get_selection();
+        for (auto idx : selection.get_volume_idxs()) {
+            const GLVolume* gl_volume = selection.get_volume(idx);
+            if (gl_volume == nullptr || gl_volume->object_idx() < 0)
+                continue;
+            ModelVolume* volume = get_model_volume(*gl_volume, selection.get_model()->objects);
+            add_volume(gl_volume->object_idx(), volume);
+        }
+    };
+
+    if (volumes.empty()) {
+        collect_from_canvas(wxGetApp().plater()->canvas3D());
+        if (volumes.empty()) {
+            auto canvas_type = wxGetApp().plater()->get_current_canvas3D()->get_canvas_type();
+            if (canvas_type == GLCanvas3D::ECanvasType::CanvasView3D && is_connectors_item_selected())
+                collect_from_canvas(wxGetApp().plater()->get_view3D_canvas3D());
+        }
+        if (volumes.empty())
+            return;
+    }
+
+    const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
+        [new_type](const VolumeSelection& sel) { return sel.volume->type() != new_type; });
+
+    if (!any_diff)
+        return;
+
+    if (new_type != ModelVolumeType::MODEL_PART) {
+        std::map<int, int> total_part_cnt;
+        std::map<int, int> selected_part_cnt;
+
+        for (const auto& sel : volumes) {
+            if (total_part_cnt.find(sel.object_idx) == total_part_cnt.end()) {
+                int count = 0;
+                for (auto vol : (*m_objects)[sel.object_idx]->volumes)
+                    if (vol->type() == ModelVolumeType::MODEL_PART)
+                        ++count;
+                total_part_cnt.emplace(sel.object_idx, count);
+            }
+            if (sel.volume->type() == ModelVolumeType::MODEL_PART)
+                ++selected_part_cnt[sel.object_idx];
+        }
+
+        for (const auto& sel : selected_part_cnt) {
+            auto it = total_part_cnt.find(sel.first);
+            if (it != total_part_cnt.end() && it->second > 0 && sel.second == it->second) {
+                Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+                return;
+            }
+        }
+    }
+
+    take_snapshot("Change part type");
+
+    std::set<const ModelVolume*> changed_volumes;
+    std::set<int>                touched_objects;
+    for (const auto& sel : volumes) {
+        sel.volume->set_type(new_type);
+        changed_volumes.insert(sel.volume);
+        touched_objects.insert(sel.object_idx);
+    }
+
+    wxDataViewItemArray new_selection;
+    for (int obj_idx : touched_objects) {
+        wxDataViewItemArray sel_items = reorder_volumes_and_get_selection(obj_idx, [&changed_volumes](const ModelVolume* volume) {
+            return changed_volumes.find(volume) != changed_volumes.end();
+        });
+        for (const auto& item : sel_items)
+            new_selection.push_back(item);
+    }
+
+    if (!new_selection.IsEmpty()) {
+        m_prevent_list_events = true;
+        UnselectAll();
+        SetSelections(new_selection);
+        m_prevent_list_events = false;
+    }
+}
+
 void ObjectList::last_volume_is_deleted(const int obj_idx)
 {
     // BBS: object (obj_idx calc in obj list) is already removed from m_objects in Plater::priv::remove().
