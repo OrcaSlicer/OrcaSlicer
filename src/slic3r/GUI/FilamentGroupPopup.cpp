@@ -176,29 +176,19 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
 
     {
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-        auto* video_sizer = new wxBoxSizer(wxHORIZONTAL);
-        video_link = new HyperLink(this, _L("Video tutorial"), "https://e.bambulab.com/t?c=HDB24RlwSmt77YFH");
-        video_link->SetBackgroundColour(BackGroundColor);
-        video_link->SetFont(Label::Body_12.Underlined());
+        // ORCA Unified hyperlinks
+        video_link = new HyperLink(this, _L("Video tutorial"));
         video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& e)
             {
+                play_dual_extruder_slice_video();
                 wxGetApp().app_config->set("play_slicing_video", "false");
-                e.Skip();
             });
-        video_sizer->Add(video_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
-        button_sizer->Add(video_sizer, 0, wxLEFT, horizontal_margin);
+        button_sizer->Add(video_link, 0, wxLEFT, horizontal_margin);
         button_sizer->AddStretchSpacer();
 
-
-        auto* wiki_sizer = new wxBoxSizer(wxHORIZONTAL);
-        wiki_link = new HyperLink(this, _L("Wiki Guide"), "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
-        wiki_link->SetBackgroundColour(BackGroundColor);
-        wiki_link->SetFont(Label::Body_12.Underlined());
-        wiki_sizer->Add(wiki_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
-
-        button_sizer->Add(wiki_sizer, 0, wxLEFT, horizontal_margin);
-        button_sizer->AddStretchSpacer();
+        wiki_link = new HyperLink(this, _L("Wiki Guide"));
+        wiki_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { open_filament_group_wiki(); });
+        button_sizer->Add(wiki_link, 0, wxLEFT, horizontal_margin);
 
         top_sizer->Add(button_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, horizontal_margin);
     }

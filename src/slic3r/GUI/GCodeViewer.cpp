@@ -2773,12 +2773,20 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         };
     auto link_filament_group_wiki = [&](const std::string& label) {
         ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
-        ImColor HyperColor = ImColor(0, 174, 66, 255).Value;
+        ImColor HyperColor = ImColor(0, 150, 136, 255); // ORCA match color
         ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
         imgui.text(label.c_str());
         ImGui::PopStyleColor();
+
+        // ORCA use underline to match hyperlink style
+        ImVec2 lineEnd = ImGui::GetItemRectMax();
+        lineEnd.y -= 2.0f;
+        ImVec2 lineStart = lineEnd;
+        lineStart.x = ImGui::GetItemRectMin().x;
+        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
         // click behavior
         if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
+            HyperColor = ImColor(255, 150, 136, 255);
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 open_filament_group_wiki();
             }
@@ -2986,9 +2994,9 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         link_text(_u8L("Regroup filament"));
 
         ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize("Tips").x);
-        link_filament_group_wiki(_u8L("Tips"));
-        imgui.text(_u8L("Tips"));
+        std::string wiki_str = _u8L("Wiki Guide"); // ORCA
+        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize(wiki_str.c_str()).x);
+        link_filament_group_wiki(wiki_str);
 
         ImGui::EndChild();
     }
