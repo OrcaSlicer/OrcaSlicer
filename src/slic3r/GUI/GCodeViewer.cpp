@@ -2770,7 +2770,8 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
                 }
             }
         }
-        };
+    };
+
     auto link_filament_group_wiki = [&](const std::string& label) {
         ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
         ImColor HyperColor = ImColor(0, 150, 136, 255); // ORCA match color
@@ -2786,12 +2787,12 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
         // click behavior
         if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
-            HyperColor = ImColor(255, 150, 136, 255);
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 open_filament_group_wiki();
             }
         }
-        };
+    };
+
     auto draw_dash_line = [&](ImDrawList* draw_list, int dash_length = 5, int gap_length = 3) {
         ImVec2 p1 = ImGui::GetCursorScreenPos();
         ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
