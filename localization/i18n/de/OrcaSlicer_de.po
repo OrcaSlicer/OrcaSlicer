@@ -1654,7 +1654,7 @@ msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Basierend auf PrusaSlicer und BambuStudio"
 
 msgid "STEP files"
-msgstr "SETP Dateien"
+msgstr "STEP Dateien"
 
 msgid "STL files"
 msgstr "STL Dateien"

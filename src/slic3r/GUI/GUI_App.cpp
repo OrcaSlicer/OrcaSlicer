@@ -6424,7 +6424,22 @@ bool GUI_App::load_language(wxString language, bool initial)
                                         % original_lang % locale_language_info->CanonicalName.ToUTF8().data();
         }
     }
+#endif
 
+    // Try base language without region (e.g., "en" from "en_IL") on all platforms
+    if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
+        wxString base_lang = requested_language_code.BeforeFirst('_');
+        if (base_lang != requested_language_code) {
+            const wxLanguageInfo *base_info = wxLocale::FindLanguageInfo(base_lang);
+            if (base_info && wxLocale::IsAvailable(base_info->Language)) {
+                BOOST_LOG_TRIVIAL(info) << boost::format("Locale %1% not available. Falling back to base language %2%.")
+                    % requested_language_code.ToUTF8().data() % base_info->CanonicalName.ToUTF8().data();
+                locale_language_info = base_info;
+            }
+        }
+    }
+
+    // Generic fallback chain for all platforms
     if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
         auto try_locale = [](const wxLanguageInfo* candidate) -> const wxLanguageInfo* {
             return (candidate && wxLocale::IsAvailable(candidate->Language)) ? candidate : nullptr;
@@ -6441,7 +6456,6 @@ bool GUI_App::load_language(wxString language, bool initial)
             locale_language_info = fallback_locale_info;
         }
     }
-#endif
 
     if (initial) {
         // bbs supported languages
