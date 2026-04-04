@@ -750,18 +750,51 @@ wxMenuItem* MenuFactory::append_menu_item_settings(wxMenu* menu_)
 
 wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
 {
-    return append_menu_item(menu, wxID_ANY, _L("Change type"), "",
-        [](wxCommandEvent&) { obj_list()->change_part_type(); }, "", menu,
-        []() {
-          wxDataViewItemArray selections;
-          obj_list()->GetSelections(selections);
-          if (selections.empty()) return false;
-          for (const auto& it : selections) {
-            if (!(obj_list()->GetModel()->GetItemType(it) & itVolume))
-              return false; // non-volume present -> disable
-          }
-          return true;
-        }, m_parent);
+    const wxString menu_name = _L("Change type");
+
+    // Delete old menu item if exists
+    const int item_id = menu->FindItem(menu_name);
+    if (item_id != wxNOT_FOUND)
+        menu->Destroy(item_id);
+
+    // Create submenu
+    wxMenu* type_menu = new wxMenu();
+
+    struct TypeInfo {
+        ModelVolumeType type;
+        wxString label;
+    };
+
+    std::vector<TypeInfo> types = {
+        { ModelVolumeType::MODEL_PART,         _L("Part") },
+        { ModelVolumeType::NEGATIVE_VOLUME,    _L("Negative Part") },
+        { ModelVolumeType::PARAMETER_MODIFIER, _L("Modifier") },
+        { ModelVolumeType::SUPPORT_BLOCKER,    _L("Support Blocker") },
+        { ModelVolumeType::SUPPORT_ENFORCER,   _L("Support Enforcer") }
+    };
+
+    for (const auto& info : types) {
+        wxMenuItem* item = append_menu_check_item(type_menu, wxID_ANY, info.label, "",
+            [type = info.type](wxCommandEvent&) { obj_list()->set_volume_type(type); }, type_menu);
+
+        // Update checkmark dynamically when menu is shown - check all selected volumes
+        m_parent->Bind(wxEVT_UPDATE_UI, [type = info.type](wxUpdateUIEvent& evt) {
+            bool has_type = false;
+            wxDataViewItemArray sels;
+            obj_list()->GetSelections(sels);
+            for (auto item : sels) {
+                ModelVolumeType vol_type = obj_list()->GetModel()->GetVolumeType(item);
+                if (vol_type == type) {
+                    has_type = true;
+                    break;
+                }
+            }
+            evt.Check(has_type);
+        }, item->GetId());
+    }
+
+    menu->Append(wxID_ANY, menu_name, type_menu, _L("Change part type"));
+    return nullptr;
 }
 
 wxMenuItem* MenuFactory::append_menu_item_instance_to_object(wxMenu* menu)
