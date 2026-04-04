@@ -2165,7 +2165,8 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
 
         for (auto fs : m_filaments) {
             if (fs.id == m_ams_mapping_result[i].id) {
-                filament_brand = m_filaments[i].brand;
+                filament_brand = fs.brand;
+                break;
             }
         }
 
@@ -2231,8 +2232,9 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
 
         for (auto fs : m_filaments) {
             if (fs.id == m_ams_mapping_result[i].id) {
-                filament_brand = m_filaments[i].brand;
-                filament_id = m_filaments[i].filament_id;
+                filament_brand = fs.brand;
+                filament_id    = fs.filament_id;
+                break;
             }
         }
 
@@ -3683,7 +3685,10 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         std::string filament_brand;
 
         for (auto fs : m_filaments) {
-            if (fs.id == m_ams_mapping_result[i].id) { filament_brand = m_filaments[i].brand; }
+            if (fs.id == m_ams_mapping_result[i].id) {
+                filament_brand = fs.brand;
+                break;
+            }
         }
 
         bool        in_blacklist = false;

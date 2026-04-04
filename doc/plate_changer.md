@@ -44,6 +44,28 @@ Example with two plates and both toggles on:
 
 `[plate_change] → [plate 1 gcode] → [plate_change] → [plate 2 gcode] → [plate_change]`
 
+### Plate details table (Include / Plate / Time / Weight)
+
+For **Print all (plate changer)**, **Send all (plate changer)**, and **Export all (plate changer)** (when the export options dialog is shown), the dialog includes a small grid:
+
+| Column | Meaning |
+|--------|---------|
+| **Include** | Checkbox: whether this physical plate is part of the merged job. |
+| **Plate** | Plate number (1-based). |
+| **Time** / **Weight** | Estimates from slicing for that plate. |
+
+**Behaviour:**
+
+- **All** row: **Time** and **Weight** are totals **only for included** plates.
+- **Unchecked** plates are shown with **dimmed text**; they are **not** concatenated into merged G-code and are **not** counted in those totals.
+- You **cannot** uncheck every plate: the last remaining checkbox stays on if you try.
+- The header shows **“Printing *n* of *m* plates”** (or **“Exporting …”** on the export options dialog), where *n* is the included count.
+
+**Semantics for the job:**
+
+- **First included plate** (lowest plate index that remains checked) is treated like “plate 1” for **cloud AMS JSON**, thumbnails, and other metadata that must match a single reference plate—same idea as before, but relative to inclusion, not always physical plate 1.
+- **Filament / AMS UI** in **Select Machine** is rebuilt from **included** plates only when you toggle a row (so mapping matches what will be sent).
+
 ---
 
 ## Limitations
@@ -83,21 +105,38 @@ This matches setups like swapmod/swaplist.app where a small, **start-only wrappe
 
 - These are set in **Plater::export_3mf()** (`src/slic3r/GUI/Plater.cpp`) when building `StoreParams`, and are passed through to the 3MF exporter so that **`_BBS_3MF_Exporter`** can call **`build_plate_changer_merged_gcode()`** with the correct flags.
 
+### Per-plate inclusion (export / send mask)
+
+- **Dialogs** keep a **`std::vector<bool> plate_included`** with one entry per physical plate (`true` = in job). Defaults are all `true`.
+- **`Plater::export_3mf(..., plate_changer_plate_included)`** (optional `const std::vector<bool>*`, same length as plate count): when **`use_plate_changer_all`** is set and the pointer is non-null, **`filter_export_payload_for_plate_changer_selection()`** (in **`Plater.cpp`**) removes excluded **`PlateData`** rows and parallel thumbnail / bbox vectors, then **renumbers** **`plate_index`** to `0 … k-1` so merged G-code and **`Metadata/plate_1.*`** stay consistent.
+- **`send_gcode`** / **`export_config_3mf`** take the same optional pointer; temp 3MF paths use the **first included** plate when **`export_plate_idx == PLATE_ALL_IDX`** (**`partplate_for_temp_3mf_paths()`**).
+- **`export_gcode_3mf`**: after **PlateChangerExportOptionsDialog**, the returned mask is passed into **`export_3mf`**; suggested “`*_N_plates*`” filename uses the **included** count.
+
+### Plate stats table widget
+
+- **`populate_plate_changer_time_weight_grid()`** – **`src/slic3r/GUI/PlateChangerPlateStatsTable.{hpp,cpp}`**  
+  Four-column flex grid; optional callback runs after any **Include** checkbox change (e.g. refresh AMS list and totals).
+
 ### Plater / send APIs
 
-- **`Plater::export_3mf(..., use_plate_changer_all, start_with_new_plate, end_with_new_plate)`** – full export; forwards the three flags into `StoreParams`.
-- **`Plater::export_config_3mf(..., use_plate_changer_all, start_with_new_plate, end_with_new_plate)`** – export of the “config” 3MF used when sending; calls **`export_3mf()`** with the same flags.
-- **`Plater::send_gcode(..., use_plate_changer_all, start_with_new_plate, end_with_new_plate)`** – builds the 3MF for send (via **`export_3mf()`**) then proceeds with upload; used by both LAN and cloud send flows.
+- **`Plater::export_3mf(..., use_plate_changer_all, start_with_new_plate, end_with_new_plate, plate_changer_plate_included)`** – full export; forwards flags and optional inclusion mask.
+- **`Plater::export_config_3mf(..., …, plate_changer_plate_included)`** – config 3MF for send; same optional mask.
+- **`Plater::send_gcode(..., …, plate_changer_plate_included)`** – build send 3MF via **`export_3mf()`**; same optional mask.
+- **`Plater::export_gcode_3mf(..., plate_changer_plate_included)`** – optional mask for callers that skip the export options dialog.
 
 ### GUI: where the toggles live
 
 - **Send to Printer (LAN):** **`src/slic3r/GUI/SendToPrinter.cpp`** / **`.hpp`**
   - **prepare(...)** – shows the start/end toggles whenever the printer preset has non-empty **Plate change G-code** (single-plate print or print-all).
-  - When sending, the checkbox states are read and passed into **`send_gcode()`** and **`export_config_3mf()`**.
+  - **Print-all (plate changer):** plate table + **`m_plate_changer_plate_included`**; **`plate_changer_included_mask_for_export()`** passed to **`send_gcode()`** / **`export_config_3mf()`**.
 
 - **Select Machine (cloud):** **`src/slic3r/GUI/SelectMachine.cpp`** / **`.hpp`**
-  - Same visibility rule as Send to Printer.
-  - On Print, the checkbox states are passed into **`send_gcode()`** and **`export_config_3mf()`**.
+  - Same visibility rule as Send to Printer for start/end toggles.
+  - **Print-all:** same mask vector; **`reference_plate_for_merged_cloud_job()`** returns the **first included** plate; **`reset_and_sync_ams_list()`** unions filaments only over included plates.
+  - **`get_ams_mapping_result()`** must resolve **`m_filaments`** entries by **filament id**, not by the inner-loop index into **`m_ams_mapping_result`** (order differs after merge; sizes can change when the table is toggled).
+
+- **Export options (plate changer):** **`src/slic3r/GUI/PlateChangerExportOptionsDialog.{hpp,cpp}`**  
+  Same table + mask; **`plate_changer_plate_included()`** returned to **`export_gcode_3mf`** after OK.
 
 ### Config keys
 
@@ -113,6 +152,7 @@ This matches setups like swapmod/swaplist.app where a small, **start-only wrappe
 | **Config** | Printer Settings → Machine G-code → **Plate change G-code** |
 | **Merge helper** | **`build_plate_changer_merged_gcode()`** in **`bbs_3mf.cpp`** |
 | **StoreParams** | **`use_plate_changer_all`**, **`start_with_new_plate`**, **`end_with_new_plate`** |
-| **Send/Export** | **Plater::export_3mf**, **export_config_3mf**, **send_gcode** carry the flags |
-| **Dialogs** | **SendToPrinter**, **SelectMachine**: separator + two checkboxes whenever preset has **plate_change_gcode** |
+| **Send/Export** | **Plater::export_3mf**, **export_config_3mf**, **send_gcode** carry the flags + optional **`plate_changer_plate_included`** mask |
+| **Plate table** | **PlateChangerPlateStatsTable**; **Include** column + totals; **PlateChangerExportOptionsDialog** for export |
+| **Dialogs** | **SendToPrinter**, **SelectMachine**: separator + start/end toggles whenever preset has **plate_change_gcode**; print-all also shows the plate grid |
 | **Limitation** | One G-code string for start, between plates, and end (no separate start/end sequences) |
