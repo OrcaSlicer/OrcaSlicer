@@ -639,15 +639,38 @@ int GuideFrame::SaveProfile()
     }
     m_appconfig_new.set_section(section_name, section_new);
 
-    //set vendors to app_config
-    Slic3r::AppConfig::VendorMap empty_vendor_map;
-    m_appconfig_new.set_vendors(empty_vendor_map);
+    // set vendors to app_config
+    // Keep existing selections and only update models present in the guide payload.
+    // This prevents dropping previously selected printers when the current guide view
+    // provides only a subset of models.
+    m_appconfig_new.set_vendors(*wxGetApp().app_config);
     for (auto it = m_ProfileJson["model"].begin(); it != m_ProfileJson["model"].end(); ++it)
     {
         if (it.value().is_object()) {
             json temp_model = it.value();
             std::string model_name = temp_model["model"];
             std::string vendor_name = temp_model["vendor"];
+
+            // Clear all known variants for this model first.
+            std::string all_nozzles = temp_model["nozzle_diameter"];
+            boost::trim(all_nozzles);
+            while (all_nozzles.size() > 0) {
+                auto pos = all_nozzles.find(';');
+                if (pos != std::string::npos) {
+                    std::string nozzle = all_nozzles.substr(0, pos);
+                    boost::trim(nozzle);
+                    if (!nozzle.empty())
+                        m_appconfig_new.set_variant(vendor_name, model_name, nozzle, false);
+                    all_nozzles = all_nozzles.substr(pos + 1);
+                    boost::trim(all_nozzles);
+                } else {
+                    boost::trim(all_nozzles);
+                    if (!all_nozzles.empty())
+                        m_appconfig_new.set_variant(vendor_name, model_name, all_nozzles, false);
+                    break;
+                }
+            }
+
             std::string selected = temp_model["nozzle_selected"];
             boost::trim(selected);
             std::string nozzle;
@@ -655,13 +678,16 @@ int GuideFrame::SaveProfile()
                 auto pos = selected.find(';');
                 if (pos != std::string::npos) {
                     nozzle   = selected.substr(0, pos);
-                    m_appconfig_new.set_variant(vendor_name, model_name, nozzle, "true");
+                    boost::trim(nozzle);
+                    if (!nozzle.empty())
+                        m_appconfig_new.set_variant(vendor_name, model_name, nozzle, true);
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("vendor_name %1%, model_name %2%, nozzle %3% selected")%vendor_name %model_name %nozzle;
                     selected = selected.substr(pos + 1);
                     boost::trim(selected);
                 }
                 else {
-                    m_appconfig_new.set_variant(vendor_name, model_name, selected, "true");
+                    if (!selected.empty())
+                        m_appconfig_new.set_variant(vendor_name, model_name, selected, true);
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("vendor_name %1%, model_name %2%, nozzle %3% selected")%vendor_name %model_name %selected;
                     break;
                 }
