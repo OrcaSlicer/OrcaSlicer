@@ -183,7 +183,7 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
                 play_dual_extruder_slice_video();
                 wxGetApp().app_config->set("play_slicing_video", "false");
             });
-        button_sizer->Add(video_link, 0, wxLEFT, horizontal_margin);
+        button_sizer->Add(video_link, 0, wxLEFT, horizontal_margin + FromDIP(3));
         button_sizer->AddStretchSpacer();
 
         wiki_link = new HyperLink(this, _L("Wiki Guide"));
