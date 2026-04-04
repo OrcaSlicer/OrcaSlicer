@@ -36,6 +36,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include <vector>
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
 #include "Widgets/AnimaController.hpp"
@@ -56,6 +57,7 @@ private:
 
     int                                 m_print_plate_idx;
     bool                                m_use_plate_changer_all{ false };
+    std::vector<bool>                   m_plate_changer_plate_included;
     bool                                m_start_with_new_plate{ false };
     bool                                m_end_with_new_plate{ false };
     int                                 m_current_filament_id;
@@ -235,6 +237,7 @@ public:
 private:
     void sync_plate_changer_prefs_from_appconfig();
     void persist_plate_changer_prefs_to_appconfig();
+    const std::vector<bool>* plate_changer_included_mask_for_export() const;
 
     void update_time_and_weight_labels();
     void ResetConnectMethod();

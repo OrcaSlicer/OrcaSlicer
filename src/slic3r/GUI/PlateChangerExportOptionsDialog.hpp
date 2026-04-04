@@ -3,6 +3,8 @@
 
 #include "GUI_Utils.hpp"
 
+#include <vector>
+
 class wxFlexGridSizer;
 class wxStaticText;
 class wxSimplebook;
@@ -24,6 +26,7 @@ public:
 
     bool start_with_new_plate() const;
     bool end_with_new_plate() const;
+    std::vector<bool> plate_changer_plate_included() const { return m_plate_changer_plate_included; }
 
 private:
     void persist_plate_changer_prefs_to_appconfig();
@@ -50,6 +53,8 @@ private:
 
     PrintOption* m_opt_start_with_new_plate{nullptr};
     PrintOption* m_opt_end_with_new_plate{nullptr};
+
+    std::vector<bool> m_plate_changer_plate_included;
 };
 
 }} // namespace Slic3r::GUI

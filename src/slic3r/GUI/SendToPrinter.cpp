@@ -23,8 +23,10 @@
 #include <wx/dcgraph.h>
 #include <miniz.h>
 #include <algorithm>
+#include <numeric>
 #include "BitmapCache.hpp"
 #include "PlateChangerPlateStatsTable.hpp"
+#include "PartPlate.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
@@ -288,7 +290,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     left_col_sizer->Add(m_stext_plate_count, 0);
     table_hsizer->Add(left_col_sizer, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(20));
 
-    m_plate_table_grid_sizer = new wxFlexGridSizer(0, 3, FromDIP(1), FromDIP(1));
+    m_plate_table_grid_sizer = new wxFlexGridSizer(0, 4, FromDIP(1), FromDIP(1));
     table_hsizer->Add(m_plate_table_grid_sizer, 1, wxEXPAND);
     table_panel->SetSizer(table_hsizer);
     m_stats_switch->AddPage(table_panel, wxEmptyString);
@@ -795,6 +797,11 @@ void SendToPrinterDialog::prepare(int print_plate_idx, bool use_plate_changer_al
 {
     m_print_plate_idx = print_plate_idx;
     m_use_plate_changer_all = use_plate_changer_all;
+    if (use_plate_changer_all && print_plate_idx == PLATE_ALL_IDX && m_plater) {
+        m_plate_changer_plate_included.assign(static_cast<size_t>(m_plater->get_partplate_list().get_plate_count()), true);
+    } else {
+        m_plate_changer_plate_included.clear();
+    }
     bool show_plate_changer_opts = wxGetApp().preset_bundle &&
         !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
     if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
@@ -820,6 +827,15 @@ void SendToPrinterDialog::persist_plate_changer_prefs_to_appconfig()
     if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
         return;
     Plater::plate_changer_prefs_save_to_appconfig(m_opt_start_with_new_plate->getValue() == "on", m_opt_end_with_new_plate->getValue() == "on");
+}
+
+const std::vector<bool>* SendToPrinterDialog::plate_changer_included_mask_for_export() const
+{
+    if (!(m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) || !m_plater)
+        return nullptr;
+    if (m_plate_changer_plate_included.size() != static_cast<size_t>(m_plater->get_partplate_list().get_plate_count()))
+        return nullptr;
+    return &m_plate_changer_plate_included;
 }
 
 void SendToPrinterDialog::update_priner_status_msg(wxString msg, bool is_warning)
@@ -966,7 +982,7 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
              wxString msg       = _L("Preparing print job");
              m_status_bar->update_status(msg, cancelled, 10, true);
              m_export_3mf_cancel = cancel = cancelled;
-         }, m_use_plate_changer_all, start_plate, end_plate);
+         }, m_use_plate_changer_all, start_plate, end_plate, plate_changer_included_mask_for_export());
      }
 
     if (m_is_canceled || m_export_3mf_cancel) {
@@ -987,7 +1003,8 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     if(!wxGetApp().plater()->using_exported_file() && !obj_->is_lan_mode_printer()) {
             bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
             bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
-            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all, start_plate, end_plate);
+            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all, start_plate, end_plate,
+                                                 plate_changer_included_mask_for_export());
             if (result < 0) {
                 BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
                 return;
@@ -1669,10 +1686,24 @@ void SendToPrinterDialog::set_default()
         }
     }
 
-    // thumbmail (plate-changer all: first plate in job order, not UI selection)
+    // thumbmail (plate-changer all: first included plate in job order, not UI selection)
     //wxBitmap bitmap;
-    PartPlate *thumb_plate = (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) ? m_plater->get_partplate_list().get_plate(0)
-                                                                                             : m_plater->get_partplate_list().get_curr_plate();
+    PartPlate *thumb_plate = nullptr;
+    if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
+        const int n = m_plater->get_partplate_list().get_plate_count();
+        if (m_plate_changer_plate_included.size() == static_cast<size_t>(n)) {
+            for (int i = 0; i < n; ++i) {
+                if (m_plate_changer_plate_included[static_cast<size_t>(i)]) {
+                    thumb_plate = m_plater->get_partplate_list().get_plate(i);
+                    break;
+                }
+            }
+        }
+        if (!thumb_plate)
+            thumb_plate = m_plater->get_partplate_list().get_plate(0);
+    } else {
+        thumb_plate = m_plater->get_partplate_list().get_curr_plate();
+    }
     if (thumb_plate) {
         ThumbnailData &data = thumb_plate->thumbnail_data;
         if (data.is_valid()) {
@@ -1755,15 +1786,19 @@ void SendToPrinterDialog::update_time_and_weight_labels()
 
     // Only show plate count + table when using plate changer (all plates). Otherwise show single-line time/weight only.
     // Plate/time/weight grid is shared with SelectMachineDialog and PlateChangerExportOptionsDialog.
-    if (m_use_plate_changer_all) {
+    if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
         m_stats_switch->SetSelection(1);
 
         const int n_plates = partplate_list.get_plate_count();
+        if (m_plate_changer_plate_included.size() != static_cast<size_t>(n_plates))
+            m_plate_changer_plate_included.assign(static_cast<size_t>(n_plates), true);
+        const int n_included = static_cast<int>(std::count(m_plate_changer_plate_included.begin(), m_plate_changer_plate_included.end(), true));
         m_stext_project_name_in_table->SetLabel(m_current_project_name);
-        m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d plates."), n_plates));
+        m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d of %d plates."), n_included, n_plates));
 
         wxWindow *table_panel = m_stext_plate_count->GetParent();
-        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, table_panel, this, partplate_list);
+        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, table_panel, this, partplate_list, m_plate_changer_plate_included,
+                                                [this]() { update_time_and_weight_labels(); });
     } else {
         m_stats_switch->SetSelection(0);
 

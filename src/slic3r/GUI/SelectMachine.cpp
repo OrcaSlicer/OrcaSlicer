@@ -34,6 +34,8 @@
 #include <wx/mstream.h>
 #include <miniz.h>
 #include <algorithm>
+#include <numeric>
+#include <set>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Print.hpp"
 #include "Plater.hpp"
@@ -292,7 +294,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     table_vsizer->Add(m_stext_plate_count, 0, wxBOTTOM, 0);
     table_vsizer->Add(0, 0, 0, wxTOP, FromDIP(8));
 
-    m_plate_table_grid_sizer = new wxFlexGridSizer(0, 3, FromDIP(1), FromDIP(1));
+    m_plate_table_grid_sizer = new wxFlexGridSizer(0, 4, FromDIP(1), FromDIP(1));
     table_vsizer->Add(m_plate_table_grid_sizer, 0);
     table_panel->SetSizer(table_vsizer);
     m_stats_switch->AddPage(table_panel, wxEmptyString);
@@ -1261,17 +1263,29 @@ bool SelectMachineDialog::get_ams_mapping_result(std::string &mapping_array_str,
                 mapping_item["filamentType"] = "";
                 for (int k = 0; k < m_ams_mapping_result.size(); k++) {
                     if (m_ams_mapping_result[k].id == i) {
-                        tray_id                      = m_ams_mapping_result[k].tray_id;
-                        mapping_item["ams"]          = tray_id;
-                        mapping_item["filamentType"] = m_filaments[k].type;
+                        tray_id             = m_ams_mapping_result[k].tray_id;
+                        mapping_item["ams"] = tray_id;
+                        // m_ams_mapping_result is ordered by id; m_filaments follows UI extruder order — index k is not valid here.
+                        const FilamentInfo* fila_for_slot = nullptr;
+                        for (const FilamentInfo& mf : m_filaments) {
+                            if (mf.id == i) {
+                                fila_for_slot = &mf;
+                                break;
+                            }
+                        }
+                        if (fila_for_slot) {
+                            mapping_item["filamentType"] = fila_for_slot->type;
+                            mapping_item["sourceColor"]    = fila_for_slot->color;
+                        } else {
+                            mapping_item["filamentType"] = m_ams_mapping_result[k].type;
+                            mapping_item["sourceColor"]    = m_ams_mapping_result[k].color;
+                        }
                         if (i >= 0 && i < wxGetApp().preset_bundle->filament_presets.size()) {
                             auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
                             if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                         }
                         /* nozzle id */
                         if (i >= 0 && i < filament_maps.size()) { mapping_item["nozzleId"] = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]); }
-                        // convert #RRGGBB to RRGGBBAA
-                        mapping_item["sourceColor"] = m_filaments[k].color;
                         mapping_item["targetColor"] = m_ams_mapping_result[k].color;
                         if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) { tray_id = -1; }
 
@@ -1437,20 +1451,40 @@ bool SelectMachineDialog::is_nozzle_type_match(DevExtderSystem data, wxString& e
         return false;
 
     const auto& project_config = wxGetApp().preset_bundle->project_config;
-    //check nozzle used (merged plate-changer: same metadata as first plate in job / AMS JSON)
-    PartPlate* ref_plate = reference_plate_for_merged_cloud_job();
-    if (!ref_plate)
-        ref_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    auto used_filaments = ref_plate->get_used_filaments(); // 1 based
-    auto filament_maps  = ref_plate->get_real_filament_maps(project_config);  // 1 based
     std::map<int, std::string> used_extruders_flow;
-    std::vector<int> used_extruders; // 0 based
-    for (auto f : used_filaments) {
-        int filament_extruder = filament_maps[f - 1] - 1;
-        if (std::find(used_extruders.begin(), used_extruders.end(), filament_extruder) == used_extruders.end()) used_extruders.emplace_back(filament_extruder);
-    }
+    std::vector<int> used_extruders; // 0 based (physical nozzle indices)
 
-    std::sort(used_extruders.begin(), used_extruders.end());
+    if (is_merged_plate_changer_print_job() && m_plate_changer_plate_included.size() ==
+        static_cast<size_t>(wxGetApp().plater()->get_partplate_list().get_plate_count())) {
+        PartPlateList& ppl = wxGetApp().plater()->get_partplate_list();
+        std::set<int> uniq_ext;
+        for (int pi = 0; pi < ppl.get_plate_count(); ++pi) {
+            if (!m_plate_changer_plate_included[static_cast<size_t>(pi)])
+                continue;
+            PartPlate* pl = ppl.get_plate(pi);
+            if (!pl)
+                continue;
+            auto used_filaments = pl->get_used_filaments();
+            auto filament_maps  = pl->get_real_filament_maps(project_config);
+            for (auto f : used_filaments) {
+                int filament_extruder = filament_maps[f - 1] - 1;
+                uniq_ext.insert(filament_extruder);
+            }
+        }
+        used_extruders.assign(uniq_ext.begin(), uniq_ext.end());
+    } else {
+        PartPlate* ref_plate = reference_plate_for_merged_cloud_job();
+        if (!ref_plate)
+            ref_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+        auto used_filaments = ref_plate->get_used_filaments(); // 1 based
+        auto filament_maps  = ref_plate->get_real_filament_maps(project_config);  // 1 based
+        for (auto f : used_filaments) {
+            int filament_extruder = filament_maps[f - 1] - 1;
+            if (std::find(used_extruders.begin(), used_extruders.end(), filament_extruder) == used_extruders.end())
+                used_extruders.emplace_back(filament_extruder);
+        }
+        std::sort(used_extruders.begin(), used_extruders.end());
+    }
 
     auto nozzle_volume_type_opt = dynamic_cast<const ConfigOptionEnumsGeneric *>(wxGetApp().preset_bundle->project_config.option("nozzle_volume_type"));
     for (auto i = 0; i < used_extruders.size(); i++) {
@@ -1526,6 +1560,11 @@ void SelectMachineDialog::prepare(int print_plate_idx, bool use_plate_changer_al
 {
     m_print_plate_idx = print_plate_idx;
     m_use_plate_changer_all = use_plate_changer_all;
+    if (use_plate_changer_all && print_plate_idx == PLATE_ALL_IDX && m_plater) {
+        m_plate_changer_plate_included.assign(static_cast<size_t>(m_plater->get_partplate_list().get_plate_count()), true);
+    } else {
+        m_plate_changer_plate_included.clear();
+    }
     // Show start/end toggles whenever Machine G-code defines plate_change_gcode (single or multi-plate).
     bool show_plate_changer_opts = wxGetApp().preset_bundle &&
         !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
@@ -1539,7 +1578,23 @@ PartPlate* SelectMachineDialog::reference_plate_for_merged_cloud_job() const
 {
     if (!is_merged_plate_changer_print_job() || !m_plater)
         return nullptr;
+    const int n = m_plater->get_partplate_list().get_plate_count();
+    if (m_plate_changer_plate_included.size() == static_cast<size_t>(n)) {
+        for (int i = 0; i < n; ++i) {
+            if (m_plate_changer_plate_included[static_cast<size_t>(i)])
+                return m_plater->get_partplate_list().get_plate(i);
+        }
+    }
     return m_plater->get_partplate_list().get_plate(0);
+}
+
+const std::vector<bool>* SelectMachineDialog::plate_changer_included_mask_for_export() const
+{
+    if (!is_merged_plate_changer_print_job() || !m_plater)
+        return nullptr;
+    if (m_plate_changer_plate_included.size() != static_cast<size_t>(m_plater->get_partplate_list().get_plate_count()))
+        return nullptr;
+    return &m_plate_changer_plate_included;
 }
 
 void SelectMachineDialog::update_print_status_msg()
@@ -1830,7 +1885,7 @@ bool SelectMachineDialog::is_blocking_printing(MachineObject* obj_)
     return false;
 }
 
-static std::unordered_set<int> _get_used_nozzle_idxes(bool merged_plate_changer_job)
+static std::unordered_set<int> _get_used_nozzle_idxes(bool merged_plate_changer_job, const std::vector<bool>* plate_included)
 {
     std::unordered_set<int> used_nozzle_idxes;
 
@@ -1851,8 +1906,12 @@ static std::unordered_set<int> _get_used_nozzle_idxes(bool merged_plate_changer_
                     }
                 };
                 if (merged_plate_changer_job) {
-                    for (int pi = 0; pi < ppl.get_plate_count(); ++pi)
+                    for (int pi = 0; pi < ppl.get_plate_count(); ++pi) {
+                        if (plate_included && plate_included->size() == static_cast<size_t>(ppl.get_plate_count()) &&
+                            !(*plate_included)[static_cast<size_t>(pi)])
+                            continue;
                         collect(ppl.get_plate(pi));
+                    }
                 } else {
                     collect(ppl.get_curr_plate());
                 }
@@ -1864,7 +1923,7 @@ static std::unordered_set<int> _get_used_nozzle_idxes(bool merged_plate_changer_
 }
 
 
-static bool _is_nozzle_data_valid(MachineObject* obj_, const DevExtderSystem &ext_data, bool merged_plate_changer_job)
+static bool _is_nozzle_data_valid(MachineObject* obj_, const DevExtderSystem &ext_data, bool merged_plate_changer_job, const std::vector<bool>* plate_included)
 {
     if (obj_ == nullptr) return false;
 
@@ -1889,6 +1948,9 @@ static bool _is_nozzle_data_valid(MachineObject* obj_, const DevExtderSystem &ex
         };
         if (merged_plate_changer_job) {
             for (int pi = 0; pi < ppl.get_plate_count(); ++pi) {
+                if (plate_included && plate_included->size() == static_cast<size_t>(ppl.get_plate_count()) &&
+                    !(*plate_included)[static_cast<size_t>(pi)])
+                    continue;
                 if (!check(ppl.get_plate(pi)))
                     return false;
             }
@@ -1906,7 +1968,8 @@ static bool _is_nozzle_data_valid(MachineObject* obj_, const DevExtderSystem &ex
  * @param tag_nozzle_diameter -- return the target nozzle_diameter but mismatch
  * @return is same or not
 /*************************************************************/
-static bool _is_same_nozzle_diameters(MachineObject* obj, float &tag_nozzle_diameter, int& mismatch_nozzle_id, bool merged_plate_changer_job)
+static bool _is_same_nozzle_diameters(MachineObject* obj, float &tag_nozzle_diameter, int& mismatch_nozzle_id, bool merged_plate_changer_job,
+                                      const std::vector<bool>* plate_included)
 {
     if (obj == nullptr) return false;
 
@@ -1948,6 +2011,9 @@ static bool _is_same_nozzle_diameters(MachineObject* obj, float &tag_nozzle_diam
         };
         if (merged_plate_changer_job) {
             for (int pi = 0; pi < ppl.get_plate_count(); ++pi) {
+                if (plate_included && plate_included->size() == static_cast<size_t>(ppl.get_plate_count()) &&
+                    !(*plate_included)[static_cast<size_t>(pi)])
+                    continue;
                 if (!check(ppl.get_plate(pi)))
                     return false;
             }
@@ -2582,7 +2648,7 @@ void SelectMachineDialog::on_send_print()
             wxString msg = _L("Preparing print job");
             m_status_bar->update_status(msg, cancelled, 10, true);
             m_export_3mf_cancel = cancel = cancelled;
-            }, m_use_plate_changer_all, start_plate, end_plate);
+            }, m_use_plate_changer_all, start_plate, end_plate, plate_changer_included_mask_for_export());
 
         if (m_is_canceled || m_export_3mf_cancel) {
             BOOST_LOG_TRIVIAL(info) << "print_job: m_export_3mf_cancel or m_is_canceled";
@@ -2600,7 +2666,8 @@ void SelectMachineDialog::on_send_print()
         if (!obj_->is_lan_mode_printer()) {
             bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
             bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
-            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all, start_plate, end_plate);
+            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all, start_plate, end_plate,
+                                                 plate_changer_included_mask_for_export());
             if (result < 0) {
                 BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
                 return;
@@ -3366,6 +3433,9 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         if (is_merged_plate_changer_print_job()) {
             auto &ppl = m_plater->get_partplate_list();
             for (int pi = 0; pi < ppl.get_plate_count(); ++pi) {
+                if (m_plate_changer_plate_included.size() == static_cast<size_t>(ppl.get_plate_count()) &&
+                    !m_plate_changer_plate_included[static_cast<size_t>(pi)])
+                    continue;
                 PartPlate *p = ppl.get_plate(pi);
                 if (p && !p->empty() && !p->is_valid_gcode_file()) {
                     blank = true;
@@ -3516,9 +3586,11 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     const auto &full_config = wxGetApp().preset_bundle->full_config();
     size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
+    const std::vector<bool>* plate_inc_mask = plate_changer_included_mask_for_export();
+
     /*the nozzle type of preset and machine are different*/
     if (nozzle_nums > 1 && m_print_type == FROM_NORMAL) {
-        if (!_is_nozzle_data_valid(obj_, *obj_->GetExtderSystem(), is_merged_plate_changer_print_job())) {
+        if (!_is_nozzle_data_valid(obj_, *obj_->GetExtderSystem(), is_merged_plate_changer_print_job(), plate_inc_mask)) {
             show_status(PrintDialogStatus::PrintStatusNozzleDataInvalid);
             return;
         }
@@ -3537,7 +3609,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     {
         int mismatch_nozzle_id = 0;
         float nozzle_diameter = 0;
-        if (!_is_same_nozzle_diameters(obj_, nozzle_diameter, mismatch_nozzle_id, is_merged_plate_changer_print_job()))
+        if (!_is_same_nozzle_diameters(obj_, nozzle_diameter, mismatch_nozzle_id, is_merged_plate_changer_print_job(), plate_inc_mask))
         {
             std::vector<wxString> msg_params;
             if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
@@ -3566,7 +3638,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             return;
         }
 
-        const auto &used_nozzle_idxes = _get_used_nozzle_idxes(is_merged_plate_changer_print_job());
+        const auto &used_nozzle_idxes = _get_used_nozzle_idxes(is_merged_plate_changer_print_job(), plate_inc_mask);
         for (const auto &extder : obj_->GetExtderSystem()->GetExtruders()) {
             if (used_nozzle_idxes.count(extder.GetNozzleId()) == 0) { continue; }
 
@@ -3892,8 +3964,14 @@ void SelectMachineDialog::set_default()
     fs::path filename_path(filename.c_str());
     std::string file_name  = filename_path.filename().string();
     if (from_u8(file_name).find(_L("Untitled")) != wxString::npos) {
-        PartPlate *part_plate = (m_print_plate_idx == PLATE_ALL_IDX) ? m_plater->get_partplate_list().get_plate(0)
-                                                                     : m_plater->get_partplate_list().get_plate(m_print_plate_idx);
+        PartPlate *part_plate = nullptr;
+        if (m_print_plate_idx == PLATE_ALL_IDX) {
+            part_plate = reference_plate_for_merged_cloud_job();
+            if (!part_plate)
+                part_plate = m_plater->get_partplate_list().get_plate(0);
+        } else {
+            part_plate = m_plater->get_partplate_list().get_plate(m_print_plate_idx);
+        }
         if (part_plate) {
             if (std::vector<ModelObject *> objects = part_plate->get_objects_on_this_plate(); objects.size() > 0) {
                 file_name = objects[0]->name;
@@ -4011,8 +4089,16 @@ void SelectMachineDialog::reset_and_sync_ams_list()
 
     std::vector<int> extruders;
     if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
-        // Plate-changer "all plates": show filaments from every plate so AMS mapping includes all needed.
-        std::set<int> all_ext = wxGetApp().plater()->get_partplate_list().get_extruders(true);
+        // Plate-changer "all plates": filaments from included plates only.
+        std::set<int> all_ext;
+        auto&         ppl = wxGetApp().plater()->get_partplate_list();
+        const int     npc = ppl.get_plate_count();
+        for (int i = 0; i < npc; ++i) {
+            if (m_plate_changer_plate_included.size() == static_cast<size_t>(npc) && !m_plate_changer_plate_included[static_cast<size_t>(i)])
+                continue;
+            auto pe = ppl.get_plate(i)->get_extruders(true);
+            all_ext.insert(pe.begin(), pe.end());
+        }
         extruders.assign(all_ext.begin(), all_ext.end());
         std::sort(extruders.begin(), extruders.end());
     } else {
@@ -4041,11 +4127,14 @@ void SelectMachineDialog::reset_and_sync_ams_list()
     {
         const auto& project_config = preset_bundle->project_config;
         if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
-            // Build combined filament_map from all plates (first plate that uses each filament wins).
+            // Build combined filament_map from included plates (first plate that uses each filament wins).
             auto& ppl = wxGetApp().plater()->get_partplate_list();
             size_t filament_count = preset_bundle->filaments.size();
             m_filaments_map.assign(filament_count, 1);
             for (int i = 0; i < ppl.get_plate_count(); i++) {
+                if (m_plate_changer_plate_included.size() == static_cast<size_t>(ppl.get_plate_count()) &&
+                    !m_plate_changer_plate_included[static_cast<size_t>(i)])
+                    continue;
                 PartPlate* plate = ppl.get_plate(i);
                 std::vector<int> plate_ext = plate->get_used_filaments();
                 std::vector<int> plate_map = plate->get_real_filament_maps(project_config);
@@ -4727,10 +4816,23 @@ void SelectMachineDialog::update_time_and_weight_labels()
         m_stats_switch->SetSelection(1);
 
         const int n_plates = partplate_list.get_plate_count();
-        m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d plates."), n_plates));
+        if (m_plate_changer_plate_included.size() != static_cast<size_t>(n_plates))
+            m_plate_changer_plate_included.assign(static_cast<size_t>(n_plates), true);
+        const int n_included = static_cast<int>(std::count(m_plate_changer_plate_included.begin(), m_plate_changer_plate_included.end(), true));
+        m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d of %d plates."), n_included, n_plates));
 
         wxWindow *table_panel = m_stext_plate_count->GetParent();
-        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, table_panel, m_scroll_area, partplate_list);
+        populate_plate_changer_time_weight_grid(
+            m_plate_table_grid_sizer, table_panel, m_scroll_area, partplate_list, m_plate_changer_plate_included, [this]() {
+                reset_and_sync_ams_list();
+                if (DeviceManager* dev = wxGetApp().getDeviceManager()) {
+                    if (MachineObject* o = dev->get_selected_machine()) {
+                        do_ams_mapping(o, true);
+                        update_filament_change_count();
+                    }
+                }
+                update_time_and_weight_labels();
+            });
     } else {
         m_stats_switch->SetSelection(0);
 

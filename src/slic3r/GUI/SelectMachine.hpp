@@ -25,6 +25,7 @@
 #include <wx/srchctrl.h>
 
 #include <unordered_map>
+#include <vector>
 
 #include "boost/bimap/bimap.hpp"
 #include "AmsMappingPopup.hpp"
@@ -290,6 +291,8 @@ private:
     int                                 m_current_filament_id{0};
     int                                 m_print_plate_idx{0};
     bool                                m_use_plate_changer_all{ false };
+    // Per-plate inclusion for plate-changer \"all plates\" (same length as get_plate_count() when active).
+    std::vector<bool>                   m_plate_changer_plate_included;
     bool                                m_start_with_new_plate{ false };
     bool                                m_end_with_new_plate{ false };
     int                                 m_print_plate_total{0};
@@ -434,8 +437,9 @@ protected:
 
     PrePrintChecker                     m_pre_print_checker;
 
-    // First physical plate's metadata for cloud AMS JSON when printing merged plate-changer G-code (must match job order, not UI selection).
+    // First included plate's metadata for cloud AMS JSON when printing merged plate-changer G-code (must match job order, not UI selection).
     PartPlate* reference_plate_for_merged_cloud_job() const;
+    const std::vector<bool>* plate_changer_included_mask_for_export() const;
 
     void update_time_and_weight_labels();
 

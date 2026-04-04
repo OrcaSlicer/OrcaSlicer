@@ -20,6 +20,7 @@
 #include <wx/stattext.h>
 
 #include <cstring>
+#include <numeric>
 
 namespace Slic3r { namespace GUI {
 
@@ -131,18 +132,20 @@ PlateChangerExportOptionsDialog::PlateChangerExportOptionsDialog(wxWindow* paren
         m_project_rename_book->AddPage(m_project_rename_normal_panel, wxEmptyString, true);
         m_project_rename_book->AddPage(rename_edit_panel, wxEmptyString, false);
 
-        const int n_plates         = m_plater->get_partplate_list().get_plate_count();
+        const int n_plates = m_plater->get_partplate_list().get_plate_count();
+        m_plate_changer_plate_included.assign(static_cast<size_t>(n_plates), true);
         m_stext_export_plate_count = new wxStaticText(m_plate_stats_panel, wxID_ANY, wxString::Format(_L("Exporting %d plates."), n_plates),
                                                       wxDefaultPosition, wxDefaultSize);
         m_stext_export_plate_count->SetFont(Label::Body_13);
 
-        m_plate_stats_grid_sizer = new wxFlexGridSizer(0, 3, FromDIP(1), FromDIP(1));
+        m_plate_stats_grid_sizer = new wxFlexGridSizer(0, 4, FromDIP(1), FromDIP(1));
         stats_vsizer->Add(m_project_rename_book, 0, wxEXPAND | wxBOTTOM, FromDIP(6));
         stats_vsizer->Add(m_stext_export_plate_count, 0, wxBOTTOM, FromDIP(8));
         stats_vsizer->Add(m_plate_stats_grid_sizer, 0, wxEXPAND);
 
         m_plate_stats_panel->SetSizer(stats_vsizer);
-        populate_plate_changer_time_weight_grid(m_plate_stats_grid_sizer, m_plate_stats_panel, this, m_plater->get_partplate_list());
+        populate_plate_changer_time_weight_grid(m_plate_stats_grid_sizer, m_plate_stats_panel, this, m_plater->get_partplate_list(),
+                                                m_plate_changer_plate_included, [this]() { rebuild_plate_stats_grid(); });
 
         panel_sizer->Add(m_plate_stats_panel, 0, wxEXPAND | wxBOTTOM, FromDIP(16));
     }
@@ -289,11 +292,15 @@ void PlateChangerExportOptionsDialog::rebuild_plate_stats_grid()
     if (!m_plater || !m_plate_stats_grid_sizer || !m_plate_stats_panel)
         return;
     const int n_plates = m_plater->get_partplate_list().get_plate_count();
+    if (m_plate_changer_plate_included.size() != static_cast<size_t>(n_plates))
+        m_plate_changer_plate_included.assign(static_cast<size_t>(n_plates), true);
+    const int n_included = static_cast<int>(std::count(m_plate_changer_plate_included.begin(), m_plate_changer_plate_included.end(), true));
     if (m_stext_export_plate_count)
-        m_stext_export_plate_count->SetLabel(wxString::Format(_L("Exporting %d plates."), n_plates));
+        m_stext_export_plate_count->SetLabel(wxString::Format(_L("Exporting %d of %d plates."), n_included, n_plates));
     if (m_export_project_rename_text && (!m_project_rename_book || m_project_rename_book->GetSelection() == 0))
         m_export_project_rename_text->SetLabel(m_current_project_name);
-    populate_plate_changer_time_weight_grid(m_plate_stats_grid_sizer, m_plate_stats_panel, this, m_plater->get_partplate_list());
+    populate_plate_changer_time_weight_grid(m_plate_stats_grid_sizer, m_plate_stats_panel, this, m_plater->get_partplate_list(),
+                                            m_plate_changer_plate_included, [this]() { rebuild_plate_stats_grid(); });
 }
 
 void PlateChangerExportOptionsDialog::on_ok(wxCommandEvent&)

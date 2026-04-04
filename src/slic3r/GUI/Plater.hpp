@@ -484,7 +484,8 @@ public:
 
     void send_to_printer(bool isall = false, bool use_plate_changer_all = false);
     void export_gcode(bool prefer_removable);
-    void export_gcode_3mf(bool export_all = false, bool use_plate_changer_all = false);
+    void export_gcode_3mf(bool export_all = false, bool use_plate_changer_all = false,
+                          const std::vector<bool>* plate_changer_plate_included = nullptr);
 
     // Last-used "Start/End with new plate?" — shared by print/send dialogs and PlateChangerExportOptionsDialog (plate-swap export).
     // Export-all (plate changer) still reads these when plate_change_gcode is empty (no options dialog).
@@ -498,7 +499,8 @@ public:
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
     // BBS: backup
-    int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false, bool start_with_new_plate = false, bool end_with_new_plate = false);
+    int export_3mf(const boost::filesystem::path& output_path = boost::filesystem::path(), SaveStrategy strategy = SaveStrategy::Default, int export_plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false, bool start_with_new_plate = false, bool end_with_new_plate = false,
+                   const std::vector<bool>* plate_changer_plate_included = nullptr);
 
     //BBS
     void publish_project();
@@ -526,9 +528,11 @@ public:
     void suppress_background_process(const bool stop_background_process) ;
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
-    int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false, bool start_with_new_plate = false, bool end_with_new_plate = false);
+    int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false, bool start_with_new_plate = false, bool end_with_new_plate = false,
+                   const std::vector<bool>* plate_changer_plate_included = nullptr);
     void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_3mf = false, bool use_plate_changer_all = false);
-    int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false, bool start_with_new_plate = false, bool end_with_new_plate = false);
+    int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_plate_changer_all = false, bool start_with_new_plate = false, bool end_with_new_plate = false,
+                          const std::vector<bool>* plate_changer_plate_included = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);
     void print_job_finished(wxCommandEvent &evt);
