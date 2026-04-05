@@ -1,0 +1,90 @@
+#!/bin/bash
+# CachyOS (Arch-like) specific build functions.
+# CachyOS sets ID=cachyos and ID_LIKE=arch. We prefer exact ID match in build_linux.sh.
+
+set -e
+
+# Additional Dev packages for OrcaSlicer.
+# Note: CachyOS repos may not ship `gstreamermm` (GStreamer C++ bindings). We install it via AUR helper if needed.
+export REQUIRED_DEV_PACKAGES=(
+    cmake
+    curl
+    dbus
+    eglexternalplatform
+    extra-cmake-modules
+    file
+    gettext
+    git
+    glew
+    gstreamer
+    gtk3
+    libmspack
+    libsecret
+    libspnav
+    mesa
+    ninja
+    openssl
+    texinfo
+    wayland-protocols
+    webkit2gtk
+    wget
+)
+
+install_gstreamermm_if_missing() {
+    # Already installed as a pacman package?
+    if pacman -Q gstreamermm >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # Or at least available via pkg-config (some users may have it installed from source)?
+    if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists gstreamermm-1.0 >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # Try common AUR helpers.
+    if command -v yay >/dev/null 2>&1; then
+        echo "Installing missing dependency: gstreamermm (via yay / AUR) ..."
+        yay -S --noconfirm --needed gstreamermm
+        return 0
+    fi
+    if command -v paru >/dev/null 2>&1; then
+        echo "Installing missing dependency: gstreamermm (via paru / AUR) ..."
+        paru -S --noconfirm --needed gstreamermm
+        return 0
+    fi
+
+    cat <<'EOF'
+ERROR: Missing dependency 'gstreamermm'.
+
+CachyOS may not provide this package in enabled pacman repos, but OrcaSlicer expects the GStreamer C++ bindings.
+
+Fix options:
+  1) Install an AUR helper (yay or paru) and rerun: ./build_linux.sh -u
+  2) Install gstreamermm manually (from AUR/source), then rerun.
+
+If you believe gstreamermm should be optional for your build, we can also look into a CMake option to disable
+features requiring it, but that requires verifying the CMake checks.
+EOF
+    exit 1
+}
+
+if [[ -n "$UPDATE_LIB" ]]; then
+    echo -n -e "Updating linux ...\n"
+
+    NEEDED_PKGS=()
+    for PKG in "${REQUIRED_DEV_PACKAGES[@]}"; do
+        pacman -Q "${PKG}" >/dev/null 2>&1 || NEEDED_PKGS+=("${PKG}")
+    done
+
+    if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
+        sudo pacman -Syy --noconfirm "${NEEDED_PKGS[@]}"
+    fi
+
+    install_gstreamermm_if_missing
+
+    echo -e "done\n"
+    exit 0
+fi
+
+export FOUND_GTK3_DEV
+FOUND_GTK3_DEV=$(pacman -Q gtk3)
