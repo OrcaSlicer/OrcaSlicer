@@ -18,6 +18,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "slic3r/GUI/UnitConversion.hpp"
+
 #define MAX_NUM 9999.99
 #define MAX_SIZE std::string_view{"9999.99"}
 
@@ -822,6 +824,11 @@ void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &
 
 void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit)
 {
+    update_ui_from_settings();
+    bool imperial_display = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    bool temp_swap        = Slic3r::GUI::UnitSystem::Get().IsTempSwapActive();
+    const char* unit_str  = imperial_display ? "in" : "mm";
+    
     // BBS: GUI refactor: move gizmo to the right
     if (abs(last_move_input_window_width) > 0.01f) {
         if (x + last_move_input_window_width > m_glcanvas.get_canvas_size().get_width()) {
@@ -862,13 +869,18 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
 
     // position
-    Vec3d original_position;
-    if (this->m_imperial_units)
-        original_position = this->m_new_position * this->mm_to_in;
-    else
-        original_position = this->m_new_position;
-    Vec3d display_position = m_buffered_position;
-
+    Vec3d original_position = imperial_display
+    ? this->m_new_position * this->mm_to_in
+    : this->m_new_position;
+    Vec3d display_position = imperial_display
+    ? this->m_new_position * this->mm_to_in
+    : this->m_new_position;
+    static bool last_imperial_display = imperial_display;
+    if (last_imperial_display != imperial_display) {
+        for (int i = 0; i < 3; i++)
+            ImGui::ClearInputTextInitialData(label_values[0][i], display_position[i]);
+        last_imperial_display = imperial_display;
+    }
     // Rotation
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
     int   index      = 1;
@@ -927,7 +939,13 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][2], &display_position[2], 0.0f, 0.0f, "%.2f");
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
-    imgui_wrapper->text(this->m_new_unit_string);
+    {
+        if (temp_swap)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f));
+        imgui_wrapper->text(unit_str);
+        if (temp_swap)
+            ImGui::PopStyleColor();
+    }
     bool is_avoid_one_update{false};
     if (combox_changed) {
         combox_changed = false;
@@ -941,7 +959,9 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             if (display_position[i] > MAX_NUM) display_position[i] = MAX_NUM;
             if (display_position[i] < -MAX_NUM) display_position[i] = -MAX_NUM;
         }
-        m_buffered_position = display_position;
+        Vec3d display_position = imperial_display
+        ? this->m_new_position * this->mm_to_in
+            : this->m_new_position;
         update(current_active_id, "position", original_position, m_buffered_position);
     }
     // the init position values are not zero, won't add reset button
@@ -1015,13 +1035,13 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
 
     // position
-    Vec3d original_position;
-    if (this->m_imperial_units)
-        original_position = this->m_new_position * this->mm_to_in;
-    else
-        original_position = this->m_new_position;
-    Vec3d display_position = m_buffered_position;
-    // Rotation
+    bool imperial = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    Vec3d original_position = imperial
+        ? this->m_new_position * this->mm_to_in
+        : this->m_new_position;
+    Vec3d display_position = imperial
+        ? this->m_new_position * this->mm_to_in
+        : this->m_new_position;    // Rotation
     Vec3d rotation   = this->m_buffered_rotation;
     Vec3d absolute_rotation = this->m_buffered_absolute_rotation;
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
@@ -1209,7 +1229,25 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
         return -1;
     };
-
+ 
+    // ── Unit system state ────────────────────────────────────────────────
+    // update_ui_from_settings() keeps m_imperial_units in sync with the
+    // persisted preference (used by on_change for correct mm conversion).
+    update_ui_from_settings();
+ 
+    // imperial_display follows the LIVE UnitSystem state so Alt temp-swap
+    // is reflected in the display without touching m_imperial_units.
+    bool imperial_display = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    bool temp_swap        = Slic3r::GUI::UnitSystem::Get().IsTempSwapActive();
+    const char* unit_str  = imperial_display ? "in" : "mm";
+ 
+    // Invalidate ImGui's input caches when the display unit flips
+    static bool last_imperial_scale = imperial_display;
+    if (last_imperial_scale != imperial_display) {
+        // We'll clear caches after computing display_size below
+        last_imperial_scale = imperial_display;
+    }
+ 
     float space_size = imgui_wrapper->get_style_scaling() * 8;
     float scale_size = imgui_wrapper->calc_text_size(_L("Scale")).x + space_size;
     float caption_max   = imgui_wrapper->calc_text_size(_L("Object coordinates")).x + 2 * space_size;
@@ -1218,13 +1256,12 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     unsigned int current_active_id = ImGui::GetActiveID();
 
     Vec3d scale = m_buffered_scale;
-    Vec3d display_size = m_buffered_size;
-
+    Vec3d display_size = imperial_display
+        ? this->m_new_size * this->mm_to_in
+        : this->m_new_size;
     Vec3d display_position = m_buffered_position;
 
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
-    bool imperial_units = this->m_imperial_units;
-
     int index      = 2;
     int index_unit = 1;
 
@@ -1290,13 +1327,19 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         ImGui::SameLine(caption_max + 3 * unit_size + 5 * space_size + end_text_size);
         ImGui::InvisibleButton("", ImVec2(ImGui::GetFontSize(), ImGui::GetFontSize()));
     }
-
-    //Size
-    Vec3d original_size;
-    if (this->m_imperial_units)
-        original_size = this->m_new_size * this->mm_to_in;
-    else
-        original_size = this->m_new_size;
+    // ── Size row ─────────────────────────────────────────────────────────
+    // original_size: used for on_change() — must be in display units so the
+    // update lambda detects the correct delta.
+    Vec3d original_size = imperial_display
+        ? this->m_new_size * this->mm_to_in
+        : this->m_new_size;
+    // Invalidate ImGui caches when unit flips so fields repaint immediately
+    static bool last_imperial_size = imperial_display;
+    if (last_imperial_size != imperial_display) {
+        for (int i = 0; i < 3; i++)
+            ImGui::ClearInputTextInitialData(label_scale_values[1][i], display_size[i]);
+        last_imperial_size = imperial_display;
+    }
 
     index              = 2;
     index_unit         = 1;
@@ -1312,8 +1355,18 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[1][2], &display_size[2], 0.0f, 0.0f, "%.2f");
-    ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
-    imgui_wrapper->text(this->m_new_unit_string);
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
+ 
+    // ── Unit label (tinted blue during temp swap) ─────────────────────────
+    {
+        if (temp_swap)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f));
+        imgui_wrapper->text(unit_str);
+        if (temp_swap)
+            ImGui::PopStyleColor();
+    }
+
+    // Clamp display size
     for (int i = 0; i < display_size.size(); i++) {
         if (std::abs(display_size[i]) > MAX_NUM) {
             display_size[i] = MAX_NUM;

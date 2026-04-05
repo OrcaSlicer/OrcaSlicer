@@ -18,6 +18,7 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
+#include "UnitConversion.hpp"
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
@@ -1335,7 +1336,12 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_language);
 
     std::vector<wxString>Units = {_L("Metric") + " (mm, g)", _L("Imperial") + " (in, oz)"};
-    auto item_currency         = create_item_combobox(_L("Units"), "", "use_inches", Units);
+    auto item_currency= create_item_combobox(_L("Units"), "", "use_inches", Units,
+    [](wxString selection) {
+    // selection is the index as a string: "0" = Metric, "1" = Imperial
+    bool is_imperial = selection == "1";
+    Slic3r::GUI::UnitSystem::Get().SetImperial(is_imperial);
+    });
     g_sizer->Add(item_currency);
 
     std::vector<wxString> DefaultPage = {_L("Home"), _L("Prepare")};
