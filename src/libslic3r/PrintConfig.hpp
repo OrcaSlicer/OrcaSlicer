@@ -83,7 +83,33 @@ enum InfillPattern : int {
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
     ipSupportBase, ipConcentricInternal,
+    // Magma infill pattern for vertical reinforcement
+    ipMagmaTriangle,
     ipCount,
+};
+
+// Returns true for all Magma infill patterns (solid after injection during printing).
+// Add future Magma geometries here (ipMagmaHex, etc.)
+inline bool is_magma_pattern(InfillPattern p) {
+    return p == ipMagmaTriangle;
+}
+
+enum class MagmaTubeWidthMode : int {
+    Auto   = 0,  // Derive from nozzle outer diameter measurement
+    Manual = 1,  // User specifies interior width directly
+    Count,
+};
+
+enum class MagmaTubeSolverMode : int {
+    Basic   = 0,  // Greedy assignment only (fast)
+    Refined = 1,  // Greedy + CP-SAT refinement (better coverage, slower)
+    Count,
+};
+
+enum class MagmaInjectionEdgePref : int {
+    Interior = 0,  // Inject into cell further from model edge (default)
+    Exterior = 1,  // Inject into cell closer to model edge
+    Count,
 };
 
 enum class IroningType {
@@ -1038,6 +1064,27 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,  interlocking_depth))
     ((ConfigOptionInt,  interlocking_boundary_avoidance))
 
+    // Magma injection & solver (object-level: injection runs once per object,
+    // solver runs once per object — per-object overrides via obj.config()).
+    ((ConfigOptionInt,                  magma_injection_filament))     // Filament for injection (0 = current)
+    ((ConfigOptionFloat,                magma_tube_fill_factor))       // Injection flow ratio (1.0 = calculated)
+    ((ConfigOptionInt,                  magma_injection_temp))         // Injection temperature (0 = no change)
+    ((ConfigOptionFloat,                magma_injection_speed))        // Injection volumetric speed mm³/s (0 = auto)
+    ((ConfigOptionBool,                 magma_iron_tube_ends))         // Iron over tube ends after injection
+    ((ConfigOptionPercent,              magma_ironing_flow))           // Ironing flow % (0 = use regular ironing)
+    ((ConfigOptionFloat,                magma_ironing_spacing))        // Ironing line spacing mm (0 = use regular)
+    ((ConfigOptionFloat,                magma_ironing_speed))          // Ironing speed mm/s (0 = use regular)
+    ((ConfigOptionBool,                 magma_injection_park))         // Park nozzle during temp changes
+    ((ConfigOptionFloat,                magma_injection_park_z_hop))   // Park Z-hop height (mm)
+    ((ConfigOptionFloat,                magma_injection_park_retract)) // Extra retract during temp wait (mm)
+    ((ConfigOptionFloat,                magma_injection_z_slam))       // Z-slam depth in mm (0 = disabled)
+    ((ConfigOptionInt,                  magma_injection_dwell))        // Dwell after injection, before z-slam release (ms, 0 = disabled)
+    ((ConfigOptionFloat,                magma_injection_z_hop))        // Z-hop after each injection (mm, 0 = disabled)
+    ((ConfigOptionBool,                 magma_injection_retract))      // Retract after each injection
+    ((ConfigOptionEnum<MagmaTubeSolverMode>, magma_tube_solver_mode))   // Basic (fast) vs Refined (better coverage)
+    ((ConfigOptionFloat,                magma_solver_timeout))         // CP-SAT timeout per block in seconds
+    ((ConfigOptionEnum<MagmaInjectionEdgePref>, magma_injection_edge_pref))  // Injection position: interior or exterior
+
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 )
@@ -1129,7 +1176,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt, wall_loops))
     ((ConfigOptionBool, alternate_extra_wall))
     ((ConfigOptionFloat, minimum_sparse_infill_area))
+    ((ConfigOptionBool,  filter_narrow_sparse_infill))
+    ((ConfigOptionFloat, minimum_sparse_infill_width))
     ((ConfigOptionInt, solid_infill_filament))
+    ((ConfigOptionInt, dual_infill_outer_filament))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloat, internal_solid_infill_speed))
     // Detect thin walls.
@@ -1203,13 +1253,38 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
     ((ConfigOptionFloat,                scarf_joint_flow_ratio))
     ((ConfigOptionPercent,              scarf_overhang_threshold))
-    
+
     // Orca: Z Anti-Aliasing (aka Z Contouring)
     ((ConfigOptionBool, zaa_enabled))
     ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
     ((ConfigOptionFloat, zaa_min_z))
     ((ConfigOptionFloat, zaa_minimize_perimeter_height))
-    )
+
+    // Dual infill zones configuration (inner/outer zones with shell boundary)
+    // Outer zone always uses Magma Triangle infill at 100% density
+    ((ConfigOptionBool,                 dual_infill_enabled))
+    ((ConfigOptionFloat,                dual_infill_outer_width))      // Width of outer zone (mm)
+    ((ConfigOptionInt,                  dual_infill_shell_walls))      // Number of shell walls
+    ((ConfigOptionFloatOrPercent,       dual_infill_shell_width))      // Shell wall line width
+    ((ConfigOptionFloat,                dual_infill_min_inner_width))  // Minimum inner zone width
+    ((ConfigOptionInt,                  dual_infill_solid_layers))     // Solid floor/ceiling layers
+    ((ConfigOptionFloat,                dual_infill_solid_thickness))  // Solid floor/ceiling thickness
+    // Dual infill speed configuration (0 = use default speed)
+    ((ConfigOptionFloat,                dual_infill_outer_speed))
+    ((ConfigOptionFloat,                dual_infill_shell_speed))
+    ((ConfigOptionFloat,                dual_infill_floor_speed))
+    ((ConfigOptionFloat,                dual_infill_ceiling_speed))
+    // Magma Triangle U-tube parameters (pattern-specific, shown when Magma is used)
+    ((ConfigOptionEnum<MagmaTubeWidthMode>, magma_tube_width_mode))   // Auto vs manual tube sizing
+    ((ConfigOptionFloat,                magma_nozzle_outer_diameter))  // Nozzle shoulder OD (mm), 0 = use fallback
+    ((ConfigOptionFloat,                magma_interior_width))         // Cell hole size (mm), 0 = auto
+    ((ConfigOptionFloat,                magma_window_height_mm))       // Window gap height (mm), 0 = auto
+    ((ConfigOptionFloat,                magma_tube_height))            // Tube height in mm
+    ((ConfigOptionFloat,                magma_boundary_dodge))         // Boundary dodge distance in mm (0 = auto: 4x max_layer_height)
+    ((ConfigOptionBool,                 magma_spiral_interlock))       // Enable spiral interlock between layers
+    ((ConfigOptionBool,                 magma_overlap_line_correction)) // Reduce line width for vertex overlap
+    ((ConfigOptionPercent,              magma_overlap_min_width))       // Min line width as % of nozzle (0 = auto 90%)
+)
 
 PRINT_CONFIG_CLASS_DEFINE(
     MachineEnvelopeConfig,
@@ -1497,6 +1572,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             nozzle_diameter))
     ((ConfigOptionBool,               reduce_infill_retraction))
     ((ConfigOptionBool,               ooze_prevention))
+    ((ConfigOptionBool,               ooze_prevention_park))
+    ((ConfigOptionFloat,              ooze_prevention_park_z_hop))
+    ((ConfigOptionFloat,              ooze_prevention_park_retract))
     ((ConfigOptionString,             filename_format))
     ((ConfigOptionStrings,            post_process))
     ((ConfigOptionString,             printer_model))
@@ -1582,6 +1660,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,                support_material_interface_fan_speed))
     ((ConfigOptionInts,                internal_bridge_fan_speed)) // ORCA: Add support for separate internal bridge fan speed control
     ((ConfigOptionInts,                ironing_fan_speed))
+    ((ConfigOptionInts,                magma_injection_fan_speed))
     // Orca: notes for profiles from PrusaSlicer
     ((ConfigOptionStrings,             filament_notes))
     ((ConfigOptionString,              notes))

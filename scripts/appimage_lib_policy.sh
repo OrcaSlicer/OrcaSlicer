@@ -28,7 +28,7 @@ appimage_is_elf_file() {
 
 appimage_list_direct_dependencies() {
     local target="$1"
-    local line dep dep_name
+    local line dep dep_name target_dir
     declare -A needed=()
 
     # Use objdump to identify the direct DT_NEEDED entries first. ldd reports the
@@ -43,6 +43,13 @@ appimage_list_direct_dependencies() {
     if (( ${#needed[@]} == 0 )); then
         return 0
     fi
+
+    # When recursively bundling deps, ldd needs to resolve transitive references
+    # against sibling libs already copied into the same dest dir (e.g. abseil's
+    # libabsl_strings.so referenced by libutf8_validity.so — both newly bundled
+    # to package/lib/orca-runtime/). Without target_dir on LD_LIBRARY_PATH, ldd
+    # reports those siblings as "not found" and we fail with MISSING:lib.
+    target_dir="$(dirname "$target")"
 
     while IFS= read -r line; do
         dep_name=""
@@ -71,5 +78,5 @@ appimage_list_direct_dependencies() {
         if [[ -n "$dep" ]]; then
             echo "$dep"
         fi
-    done < <(ldd "$target" 2>/dev/null || true)
+    done < <(LD_LIBRARY_PATH="$target_dir:${LD_LIBRARY_PATH:-}" ldd "$target" 2>/dev/null || true)
 }

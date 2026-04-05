@@ -7,6 +7,7 @@
 #include "GCode/ToolOrderUtils.hpp"
 #include "FilamentGroupUtils.hpp"
 #include "I18N.hpp"
+#include "../Magma/MagmaTubeMap.hpp"
 
 // #define SLIC3R_DEBUG
 
@@ -98,6 +99,12 @@ unsigned int LayerTools::solid_infill_filament(const PrintRegion &region) const
 	return ((this->extruder_override == 0) ? region.config().solid_infill_filament.value : this->extruder_override) - 1;
 }
 
+unsigned int LayerTools::dual_infill_outer_filament(const PrintRegion &region) const
+{
+	assert(region.config().dual_infill_outer_filament.value > 0);
+	return ((this->extruder_override == 0) ? region.config().dual_infill_outer_filament.value : this->extruder_override) - 1;
+}
+
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
 {
@@ -105,9 +112,15 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().sparse_infill_filament.value > 0);
 	assert(region.config().solid_infill_filament.value > 0);
 	// 1 based extruder ID.
+    // Dual infill zone filament routing: each fill collection has a single role.
+    // Zone outer infill (erZoneOuterInfill) → dual_infill_outer_filament
+    // Zone floor/ceiling (erZoneFloor/Ceiling) → solid_infill_filament (via is_solid_infill)
+    // Zone shell (erZoneShell) → wall_filament (lives in perimeters, not fills)
     unsigned int extruder = 1;
     if (this->extruder_override == 0) {
-        if (extrusions.has_infill()) {
+        if (extrusions.has_zone_fill())
+            extruder = region.config().dual_infill_outer_filament;
+        else if (extrusions.has_infill()) {
             if (extrusions.has_solid_infill())
                 extruder = region.config().solid_infill_filament;
             else
@@ -693,12 +706,15 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
             bool has_infill       = false;
             bool has_solid_infill = false;
+            bool has_zone_fill    = false;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
-                if (is_solid_infill(role))
+                if (fill->has_zone_fill())
+                    has_zone_fill = true;
+                else if (is_solid_infill(role))
                     has_solid_infill = true;
                 else if (role != erNone)
                     has_infill = true;
@@ -711,14 +727,16 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
             if (something_nonoverriddable || !m_print_config_ptr) {
             	if (extruder_override == 0) {
+	                if (has_zone_fill)
+	                    layer_tools.extruders.emplace_back(region.config().dual_infill_outer_filament);
 	                if (has_solid_infill)
 	                    layer_tools.extruders.emplace_back(region.config().solid_infill_filament);
 	                if (has_infill)
 	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament);
-            	} else if (has_solid_infill || has_infill)
+            	} else if (has_zone_fill || has_solid_infill || has_infill)
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_solid_infill || has_infill)
+            if (has_zone_fill || has_solid_infill || has_infill)
                 layer_tools.has_object = true;
         }
         layerCount++;
@@ -773,6 +791,20 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         if (has_support || has_interface) {
             layer_tools.has_support = true;
             layer_tools.wiping_extrusions().is_support_overriddable_and_mark(role, object);
+        }
+    }
+
+    // Magma injection filament: register on cap layers so ToolOrdering
+    // schedules the tool change and wipe tower handles the transition.
+    if (object.config().magma_injection_filament.value > 0) {
+        if (const auto* tube_map = object.magma_tube_map()) {
+            unsigned int inj_ext = (unsigned int)object.config().magma_injection_filament.value;
+            for (int lid : tube_map->injection_layer_ids()) {
+                if (lid >= 0 && lid < (int)object.layers().size()) {
+                    LayerTools &lt = this->tools_for_layer(object.layers()[lid]->print_z);
+                    lt.extruders.push_back(inj_ext);
+                }
+            }
         }
     }
 

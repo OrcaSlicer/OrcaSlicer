@@ -2441,12 +2441,51 @@ void TabPrint::build()
         optgroup->append_single_option_line("filter_out_gap_fill", "strength_settings_infill#filter-out-tiny-gaps");
         optgroup->append_single_option_line("infill_wall_overlap", "strength_settings_infill#infill-wall-overlap");
 
+        optgroup = page->new_optgroup(L("Dual Infill Zones"), L"param_dual_infill");
+        optgroup->append_single_option_line("dual_infill_enabled");
+        optgroup->append_single_option_line("dual_infill_outer_width");
+        optgroup->append_single_option_line("dual_infill_shell_walls");
+        optgroup->append_single_option_line("dual_infill_shell_width");
+        optgroup->append_single_option_line("dual_infill_min_inner_width");
+        optgroup->append_single_option_line("dual_infill_solid_layers");
+        optgroup->append_single_option_line("dual_infill_solid_thickness");
+
+        optgroup = page->new_optgroup(L("Magma Pattern"), L"param_magmatriangle");
+        optgroup->append_single_option_line("magma_tube_width_mode");
+        optgroup->append_single_option_line("magma_nozzle_outer_diameter");
+        optgroup->append_single_option_line("magma_interior_width");
+        optgroup->append_single_option_line("magma_spiral_interlock");
+        optgroup->append_single_option_line("magma_overlap_line_correction");
+        optgroup->append_single_option_line("magma_overlap_min_width");
+
+        optgroup = page->new_optgroup(L("Magma Tubes"), L"param_magmatubes");
+        optgroup->append_single_option_line("magma_window_height_mm");
+        optgroup->append_single_option_line("magma_tube_height");
+        optgroup->append_single_option_line("magma_tube_fill_factor");
+        optgroup->append_single_option_line("magma_tube_solver_mode");
+        optgroup->append_single_option_line("magma_solver_timeout");
+        optgroup->append_single_option_line("magma_boundary_dodge");
+
+        optgroup = page->new_optgroup(L("Magma Injection"), L"param_magmainjection");
+        optgroup->append_single_option_line("magma_injection_temp");
+        optgroup->append_single_option_line("magma_injection_speed");
+        optgroup->append_single_option_line("magma_injection_z_slam");
+        optgroup->append_single_option_line("magma_injection_dwell");
+        optgroup->append_single_option_line("magma_injection_z_hop");
+        optgroup->append_single_option_line("magma_injection_retract");
+        optgroup->append_single_option_line("magma_injection_park");
+        optgroup->append_single_option_line("magma_injection_park_z_hop");
+        optgroup->append_single_option_line("magma_injection_park_retract");
+        optgroup->append_single_option_line("magma_iron_tube_ends");
+
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
         optgroup->append_single_option_line("align_infill_direction_to_model", "strength_settings_advanced#align-infill-direction-to-model");
         optgroup->append_single_option_line("extra_solid_infills", "strength_settings_infill#extra-solid-infill");
         optgroup->append_single_option_line("bridge_angle", "strength_settings_advanced#bridge-infill-direction");
         optgroup->append_single_option_line("internal_bridge_angle", "strength_settings_advanced#bridge-infill-direction"); // ORCA: Internal bridge angle override
         optgroup->append_single_option_line("minimum_sparse_infill_area", "strength_settings_advanced#minimum-sparse-infill-threshold");
+        optgroup->append_single_option_line("filter_narrow_sparse_infill");
+        optgroup->append_single_option_line("minimum_sparse_infill_width");
         optgroup->append_single_option_line("infill_combination", "strength_settings_advanced#infill-combination");
         optgroup->append_single_option_line("infill_combination_max_layer_height", "strength_settings_advanced#max-layer-height");
         optgroup->append_single_option_line("detect_narrow_internal_solid_infill", "strength_settings_advanced#detect-narrow-internal-solid-infill");
@@ -2519,6 +2558,12 @@ void TabPrint::build()
         optgroup->append_single_option_line("max_volumetric_extrusion_rate_slope", "speed_settings_advanced");
         optgroup->append_single_option_line("max_volumetric_extrusion_rate_slope_segment_length", "speed_settings_advanced");
         optgroup->append_single_option_line("extrusion_rate_smoothing_external_perimeter_only", "speed_settings_advanced");
+
+        optgroup = page->new_optgroup(L("Dual infill zone speed"), L"param_dual_infill", 15);
+        optgroup->append_single_option_line("dual_infill_outer_speed");
+        optgroup->append_single_option_line("dual_infill_shell_speed");
+        optgroup->append_single_option_line("dual_infill_floor_speed");
+        optgroup->append_single_option_line("dual_infill_ceiling_speed");
 
     page = add_options_page(L("Support"), "custom-gcode_support"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Support"), L"param_support");
@@ -2615,6 +2660,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("wall_filament", "multimaterial_settings_filament_for_features#walls");
         optgroup->append_single_option_line("sparse_infill_filament", "multimaterial_settings_filament_for_features#infill");
         optgroup->append_single_option_line("solid_infill_filament", "multimaterial_settings_filament_for_features#solid-infill");
+        optgroup->append_single_option_line("dual_infill_outer_filament", "multimaterial_settings_filament_for_features#outer-zone");
+        optgroup->append_single_option_line("magma_injection_filament", "multimaterial_settings_filament_for_features#injection");
         optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
 
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
@@ -2622,6 +2669,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("standby_temperature_delta", "multimaterial_settings_ooze_prevention#temperature-variation");
         optgroup->append_single_option_line("preheat_time", "multimaterial_settings_ooze_prevention#preheat-time");
         optgroup->append_single_option_line("preheat_steps", "multimaterial_settings_ooze_prevention#preheat-steps");
+        optgroup->append_single_option_line("ooze_prevention_park");
+        optgroup->append_single_option_line("ooze_prevention_park_z_hop");
+        optgroup->append_single_option_line("ooze_prevention_park_retract");
 
         optgroup = page->new_optgroup(L("Flush options"), L"param_flush");
         optgroup->append_single_option_line("flush_into_infill", "multimaterial_settings_flush_options#flush-into-objects-infill");
@@ -4022,6 +4072,7 @@ void TabFilament::build()
         optgroup->append_single_option_line("internal_bridge_fan_speed", "material_cooling#internal-bridges-fan-speed"); // ORCA: Add support for separate internal bridge fan speed control
         optgroup->append_single_option_line("support_material_interface_fan_speed", "material_cooling#support-interface-fan-speed");
         optgroup->append_single_option_line("ironing_fan_speed", "material_cooling#ironing-fan-speed"); // ORCA: Add support for ironing fan speed control
+        optgroup->append_single_option_line("magma_injection_fan_speed");
 
         optgroup = page->new_optgroup(L("Auxiliary part cooling fan"), L"param_cooling_aux_fan");
         optgroup->append_single_option_line("additional_cooling_fan_speed", "material_cooling#auxiliary-part-cooling-fan");

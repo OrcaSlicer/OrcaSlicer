@@ -4,6 +4,7 @@
 #include <memory>
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/SLA/JobController.hpp>
+#include <libslic3r/SLA/Interior.hpp>
 
 namespace Slic3r {
 
@@ -18,12 +19,6 @@ struct HollowingConfig
 };
 
 enum HollowingFlags { hfRemoveInsideTriangles = 0x1 };
-
-// All data related to a generated mesh interior. Includes the 3D grid and mesh
-// and various metadata. No need to manipulate from outside.
-struct Interior;
-struct InteriorDeleter { void operator()(Interior *p); };
-using  InteriorPtr = std::unique_ptr<Interior, InteriorDeleter>;
 
 indexed_triangle_set &      get_mesh(Interior &interior);
 const indexed_triangle_set &get_mesh(const Interior &interior);
@@ -102,6 +97,11 @@ inline void swap_normals(indexed_triangle_set &its)
     for (auto &face : its.indices)
         std::swap(face(0), face(2));
 }
+
+// Post-process interior mesh after grid_to_mesh(): flip normals, lossless
+// simplify, clean up vertices, flip back. Used by both SLA hollowing and
+// zone boundary smoothing.
+void postprocess_interior_mesh(indexed_triangle_set &mesh);
 
 } // namespace sla
 } // namespace Slic3r

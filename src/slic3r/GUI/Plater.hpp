@@ -919,6 +919,11 @@ public:
     bool is_loading_project() const { return m_loading_project; }
 
 private:
+    // These must be declared BEFORE priv p, because priv's constructor accesses them
+    //BBS: add only gcode mode
+    bool m_only_gcode { false };//just for .gcode file not for .gcode.3mf
+    bool m_exported_file { false };
+
     struct priv;
     std::unique_ptr<priv> p;
     std::string           m_3mf_path;
@@ -929,9 +934,6 @@ private:
     wxString m_tracking_popup_menu_error_message;
 
     wxString m_last_loaded_gcode;
-    //BBS: add only gcode mode
-    bool m_only_gcode { false };//just for .gcode file not for .gcode.3mf
-    bool m_exported_file { false };
     bool skip_thumbnail_invalid { false };
     bool m_loading_project { false };
     bool m_new_project_and_check_state{false};

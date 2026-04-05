@@ -39,14 +39,7 @@ PrintHost::~PrintHost() {}
 
 PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
 {
-    PrinterTechnology tech = ptFFF;
-
-    {
-        const auto opt = config->option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
-        if (opt != nullptr) {
-            tech = opt->value;
-        }
-    }
+    PrinterTechnology tech = config->opt_enum_or<PrinterTechnology>("printer_technology", ptFFF);
 
     if (tech == ptFFF) {
         const auto opt = config->option<ConfigOptionEnum<PrintHostType>>("host_type");

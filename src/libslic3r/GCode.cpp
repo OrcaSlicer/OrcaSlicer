@@ -22,6 +22,8 @@
 #include "libslic3r/format.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
+#include "Magma/MagmaInjection.hpp"
+#include "Magma/MagmaTubeMap.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -266,7 +268,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (gcodegen.config().standby_temperature_delta.value != 0) {
                 // we assume that heating is always slower than cooling, so no need to block
                 gcode += gcodegen.writer().set_temperature
-                (this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false, extruder_id);
+                (this->get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false, extruder_id);
                 gcode.pop_back();
                 gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
             }
@@ -283,11 +285,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string OozePrevention::post_toolchange(GCode& gcodegen)
     {
         return (gcodegen.config().standby_temperature_delta.value != 0) ?
-            gcodegen.writer().set_temperature(this->_get_temp(gcodegen), true, gcodegen.writer().filament()->id()) :
+            gcodegen.writer().set_temperature(this->get_temp(gcodegen), true, gcodegen.writer().filament()->id()) :
             std::string();
     }
 
-    int OozePrevention::_get_temp(const GCode &gcodegen) const
+    int OozePrevention::get_temp(const GCode &gcodegen) const
     {
         // First layer temperature should be used when on the first layer (obviously) and when
         // "other layers" is set to zero (which means it should not be used).
@@ -4368,6 +4370,12 @@ LayerResult GCode::process_layer(
         }
     }
 
+    // Update cumulative object footprint for safe park position finding.
+    for (const LayerToPrint &l : layers) {
+        if (l.object_layer)
+            m_safe_park.update(l.object_layer);
+    }
+
     const Layer* layer_ptr = nullptr;
     if (object_layer != nullptr)
         layer_ptr = object_layer;
@@ -5361,6 +5369,123 @@ LayerResult GCode::process_layer(
                 }
             }
         }
+
+        // Magma injection phase: runs once per extruder pass, after all normal
+        // extrusions.  Temperature and fan are managed here (once per layer) so
+        // that multiple objects share a single heat/cool cycle.
+        //
+        // Phase 1: Collect all injection work for this layer/extruder.
+        // Phase 2: Group by injection temp, sort ascending (heats faster than cooling).
+        // Phase 3: For each temp group: heat → fan start → inject all → fan end.
+        // Phase 4: Restore print temperature.
+        {
+            // --- Phase 1: Collect injection work ---
+            struct InjWork {
+                const PrintObject*              obj;
+                const magma::MagmaTubeMap*      tube_map;
+                std::vector<magma::InjectionPoint> points;
+                int lid;
+                double actual_h;
+                int injection_temp;   // resolved per-object injection temp
+            };
+            std::vector<InjWork> inj_work;
+
+            for (const LayerToPrint &ltp : layers) {
+                if (!ltp.object_layer || !ltp.original_object)
+                    continue;
+                // Use original_object for instances/config (correct for shared objects).
+                // magma_tube_map() falls through to the primary automatically.
+                const PrintObject &obj = *ltp.original_object;
+                const auto* tube_map = obj.magma_tube_map();
+                if (!tube_map)
+                    continue;
+
+                // Check if injection should run on this extruder iteration.
+                int inj_filament = obj.config().magma_injection_filament.value;
+                if (inj_filament > 0) {
+                    if (extruder_id != (unsigned int)(inj_filament - 1))
+                        continue;
+                } else {
+                    if (extruder_id != layer_tools.extruders.back())
+                        continue;
+                }
+
+                int lid = ltp.object_layer->id();
+                auto pts = magma::collect_injection_points(*tube_map, lid);
+                if (pts.empty())
+                    continue;
+
+                // Resolve this object's injection temp.
+                int inj_temp = obj.config().magma_injection_temp.value;
+                if (inj_temp > 0) {
+                    int max_temp = m_config.nozzle_temperature_range_high.get_at(extruder_id);
+                    if (max_temp > 0)
+                        inj_temp = std::min(inj_temp, max_temp);
+                }
+
+                inj_work.push_back({&obj, tube_map, std::move(pts), lid,
+                                    tube_map->layer_height_at(lid), inj_temp});
+            }
+
+            if (!inj_work.empty()) {
+                // --- Phase 2: Group by injection temp (ascending) ---
+                std::map<int, std::vector<InjWork*>> temp_groups;
+                for (auto& w : inj_work)
+                    temp_groups[w.injection_temp].push_back(&w);
+
+                int print_temp = m_config.nozzle_temperature.get_at(extruder_id);
+                int current_temp = print_temp;
+
+                // Read park config from first object (park behavior is machine-level).
+                m_config.apply(print.default_region_config());
+                m_config.apply(inj_work.front().obj->config(), true);
+                bool park_enabled  = m_config.magma_injection_park.value;
+                double park_z_hop  = m_config.magma_injection_park_z_hop.value;
+                double extra_retract = m_config.magma_injection_park_retract.value;
+
+                // --- Phase 3: Inject each temp group ---
+                for (auto& [target_temp, group] : temp_groups) {
+                    // Heat if needed (target_temp 0 means use print temp — no change).
+                    if (target_temp > 0 && target_temp != current_temp) {
+                        gcode += "; Magma injection: heating\n";
+                        gcode += magma::park_and_set_temp(*this, park_enabled, print_z,
+                            park_z_hop, extra_retract, target_temp,
+                            "park z-hop for temp change", "park XY for temp change");
+                        current_temp = target_temp;
+                    }
+
+                    gcode += ";_MAGMA_INJECTION_FAN_START\n";
+
+                    for (InjWork* w : group) {
+                        // Apply per-object config for injection settings (fill_factor, etc.)
+                        m_config.apply(print.default_region_config());
+                        m_config.apply(w->obj->config(), true);
+
+                        for (size_t inst_idx = 0; inst_idx < w->obj->instances().size(); ++inst_idx) {
+                            if (single_object_instance_idx != size_t(-1) &&
+                                inst_idx != single_object_instance_idx)
+                                continue;
+                            const PrintInstance &inst = w->obj->instances()[inst_idx];
+                            this->set_origin(unscale(inst.shift));
+                            gcode += magma::generate_injection_gcode(
+                                *this, *w->tube_map, w->points, print_z, w->actual_h);
+                        }
+                    }
+
+                    gcode += ";_MAGMA_INJECTION_FAN_END\n";
+                }
+
+                // --- Phase 4: Restore print temperature ---
+                if (current_temp != print_temp && !last_layer) {
+                    gcode += "; Magma injection: cooling\n";
+                    gcode += magma::park_and_set_temp(*this, park_enabled, print_z,
+                        park_z_hop, extra_retract, print_temp,
+                        "park z-hop for temp restore", "park XY for temp restore");
+                }
+
+                m_last_processor_extrusion_role = erMagmaInjection;
+            }
+        }
     }
     if (first_layer) {
         for (auto iter = by_extruder.begin(); iter != by_extruder.end(); ++iter) {
@@ -6277,10 +6402,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 #endif
         } else if (m_config.get_abs_value("bridge_acceleration") > 0 && is_bridge(path.role())) {
             acceleration = m_config.get_abs_value("bridge_acceleration");
-        } else if (m_config.get_abs_value("sparse_infill_acceleration") > 0 && (path.role() == erInternalInfill)) {
+        } else if (m_config.get_abs_value("sparse_infill_acceleration") > 0 && (path.role() == erInternalInfill || path.role() == erZoneOuterInfill)) {
             acceleration = m_config.get_abs_value("sparse_infill_acceleration");
-        } else if (m_config.get_abs_value("internal_solid_infill_acceleration") > 0 && (path.role() == erSolidInfill)) {
+        } else if (m_config.get_abs_value("internal_solid_infill_acceleration") > 0 && (path.role() == erSolidInfill || path.role() == erZoneFloor || path.role() == erZoneCeiling)) {
             acceleration = m_config.get_abs_value("internal_solid_infill_acceleration");
+        } else if (m_config.inner_wall_acceleration.value > 0 && path.role() == erZoneShell) {
+            // Zone shell uses inner wall acceleration
+            acceleration = m_config.inner_wall_acceleration.value;
         } else if (m_config.outer_wall_acceleration.value > 0 && is_external_perimeter(path.role())) {
             acceleration = m_config.outer_wall_acceleration.value;
         } else if (m_config.inner_wall_acceleration.value > 0 && is_internal_perimeter(path.role())) {
@@ -6301,6 +6429,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
              jerk = m_config.outer_wall_jerk.value;
         } else if (m_config.inner_wall_jerk.value > 0 && is_internal_perimeter(path.role())) {
             jerk = m_config.inner_wall_jerk.value;
+        } else if (m_config.inner_wall_jerk.value > 0 && path.role() == erZoneShell) {
+            jerk = m_config.inner_wall_jerk.value;
+        } else if (m_config.infill_jerk.value > 0 && (path.role() == erZoneFloor || path.role() == erZoneCeiling)) {
+            jerk = m_config.infill_jerk.value;
         } else if (m_config.top_surface_jerk.value > 0 && is_top_surface(path.role())) {
             jerk = m_config.top_surface_jerk.value;
         } else if (m_config.infill_jerk.value > 0 && is_infill(path.role())) {
@@ -6344,9 +6476,14 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             _mm3_per_mm *= m_config.inner_wall_flow_ratio;
         } else if (path.role() == erOverhangPerimeter) {
             _mm3_per_mm *= m_config.overhang_flow_ratio;
-        } else if (path.role() == erInternalInfill) {
+        } else if (path.role() == erInternalInfill || path.role() == erZoneOuterInfill) {
             _mm3_per_mm *= m_config.sparse_infill_flow_ratio;
         } else if (path.role() == erSolidInfill) {
+            _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
+        } else if (path.role() == erZoneShell) {
+            // Zone shell uses inner wall flow ratio
+            _mm3_per_mm *= m_config.inner_wall_flow_ratio;
+        } else if (path.role() == erZoneFloor || path.role() == erZoneCeiling) {
             _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
         } else if (path.role() == erGapFill) {
             _mm3_per_mm *= m_config.gap_fill_flow_ratio;
@@ -6402,6 +6539,26 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double  support_speed = m_config.support_speed.value;
             const double  support_interface_speed = m_config.get_abs_value("support_interface_speed");
             speed = (path.role() == erSupportMaterial) ? support_speed : support_interface_speed;
+        } else if (path.role() == erZoneShell) {
+            // Zone shell perimeters - use config or default to inner wall speed
+            speed = m_config.dual_infill_shell_speed.value;
+            if (speed == 0)
+                speed = m_config.get_abs_value("inner_wall_speed");
+        } else if (path.role() == erZoneOuterInfill) {
+            // Zone outer infill (magma triangle) - use config or default to sparse infill speed
+            speed = m_config.dual_infill_outer_speed.value;
+            if (speed == 0)
+                speed = m_config.get_abs_value("sparse_infill_speed");
+        } else if (path.role() == erZoneFloor) {
+            // Zone floor (bottom of shell zone) - use config or default to solid infill speed
+            speed = m_config.dual_infill_floor_speed.value;
+            if (speed == 0)
+                speed = m_config.get_abs_value("internal_solid_infill_speed");
+        } else if (path.role() == erZoneCeiling) {
+            // Zone ceiling (top of shell zone) - use config or default to top surface speed
+            speed = m_config.dual_infill_ceiling_speed.value;
+            if (speed == 0)
+                speed = m_config.get_abs_value("top_surface_speed");
         } else {
             throw Slic3r::InvalidArgument("Invalid speed");
         }
@@ -6767,13 +6924,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     };
     auto apply_role_based_fan_speed = [
         &path, &append_role_based_fan_marker,
-        supp_interface_fan_speed = FILAMENT_CONFIG(support_material_interface_fan_speed),
-        ironing_fan_speed        = FILAMENT_CONFIG(ironing_fan_speed)
+        supp_interface_fan_speed    = FILAMENT_CONFIG(support_material_interface_fan_speed),
+        ironing_fan_speed           = FILAMENT_CONFIG(ironing_fan_speed),
+        magma_injection_fan_speed   = FILAMENT_CONFIG(magma_injection_fan_speed)
     ] {
         append_role_based_fan_marker(erSupportMaterialInterface, "_SUPP_INTERFACE"sv,
                                      supp_interface_fan_speed >= 0 && path.role() == erSupportMaterialInterface);
         append_role_based_fan_marker(erIroning, "_IRONING"sv,
                                      ironing_fan_speed >= 0 && path.role() == erIroning);
+        append_role_based_fan_marker(erMagmaInjection, "_MAGMA_INJECTION"sv,
+                                     path.role() == erMagmaInjection);
     };
 
     if (!variable_speed) {
@@ -7136,6 +7296,11 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
         case erSupportMaterialInterface: return "SupportMaterialInterface";
         case erSupportTransition: return "SupportTransition";
         case erWipeTower: return "WipeTower";
+        case erZoneShell: return "ZoneShell";
+        case erZoneOuterInfill: return "ZoneOuterInfill";
+        case erZoneFloor: return "ZoneFloor";
+        case erZoneCeiling: return "ZoneCeiling";
+        case erMagmaInjection: return "Magma injection";
         case erCustom:
         case erMixed:
         case erCount:
@@ -7886,8 +8051,23 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         check_add_eol(gcode);
     }
     // Set the new extruder to the operating temperature.
-    if (m_ooze_prevention.enable)
-        gcode += m_ooze_prevention.post_toolchange(*this);
+    if (m_ooze_prevention.enable) {
+        if (m_config.ooze_prevention_park.value) {
+            // Park nozzle at a safe position while waiting for temperature.
+            ParkResult park = m_safe_park.find_safe_position(
+                m_layer, nullptr, last_pos());
+            int target_temp = m_ooze_prevention.get_temp(*this);
+            gcode += SafeParkPosition::park_and_set_temp(
+                *this, park, print_z,
+                m_config.ooze_prevention_park_z_hop.value,
+                m_config.ooze_prevention_park_retract.value,
+                target_temp,
+                "park z-hop for tool change",
+                "park XY for tool change");
+        } else {
+            gcode += m_ooze_prevention.post_toolchange(*this);
+        }
+    }
 
     if (m_config.enable_pressure_advance.get_at(new_filament_id)) {
         gcode += m_writer.set_pressure_advance(m_config.pressure_advance.get_at(new_filament_id));

@@ -1,0 +1,248 @@
+#ifndef slic3r_Magma_MagmaTriangleCell_hpp_
+#define slic3r_Magma_MagmaTriangleCell_hpp_
+
+#include "../libslic3r.h"
+#include "../Point.hpp"
+#include "../BoundingBox.hpp"
+
+#include <vector>
+#include <array>
+#include <cmath>
+#include <functional>
+
+namespace Slic3r {
+namespace magma {
+
+// ============================================================================
+// Triangle Grid Constants
+// ============================================================================
+
+constexpr double SQRT3 = 1.7320508075688772935;
+constexpr double INV_SQRT3 = 0.57735026918962576451;
+
+// ============================================================================
+// Triangle Grid Geometry Helpers
+// ============================================================================
+
+// Triangle side length (edge length) from cell spacing
+// cell_spacing = distance between parallel lines
+// side_length = cell_spacing * 2 / sqrt(3)
+inline double triangle_side_length(double cell_spacing) {
+    return cell_spacing * 2.0 * INV_SQRT3;
+}
+
+// Cell spacing from interior width and line width
+// cell_spacing = interior_width + line_width (center-to-center distance)
+inline double cell_spacing_from_geometry(double interior_width, double line_width) {
+    return interior_width + line_width;
+}
+
+// Interior area of a triangle cell after insetting by half the line width.
+// Infill beads are centered on triangle edges, so each edge eats line_width/2
+// into the interior. This is the actual open tube cross-section in mm².
+// Used for: obstruction checks, window height auto-calculation, volume computation.
+inline double inset_triangle_area(double cell_spacing, double line_width) {
+    double side = triangle_side_length(cell_spacing);
+    double inset_side = side - line_width * SQRT3;
+    return (inset_side > 0) ? (SQRT3 / 4.0) * inset_side * inset_side : 0.0;
+}
+
+// Auto-calculate interior width from nozzle diameter (fallback: 3× bore).
+double calculate_auto_interior_width(double nozzle_diameter);
+
+// Auto-calculate interior width from nozzle outer diameter measurement.
+// Finds the largest inset triangle that fits within the nozzle shoulder circle
+// with 0.2mm safety buffer. Accounts for line_width eating into the triangle.
+double calculate_auto_interior_width_from_od(double nozzle_od, double line_width);
+
+// ============================================================================
+// Triangle Cell Coordinate System
+// ============================================================================
+
+// Triangle cell coordinate system using (a, b, c) integer coordinates
+//
+// The triangular grid uses three axes at 60° angles, creating a dual coordinate system:
+// - Up triangles: a + b + c == 2 (pointing up: △)
+// - Down triangles: a + b + c == 1 (pointing down: ▽)
+//
+// This coordinate system allows:
+// - Efficient neighbor lookups
+// - Consistent cell identification across layers
+//
+// Geometry:
+// - cell_spacing: distance between parallel lines (center-to-center)
+// - Triangle side length = cell_spacing * 2 / sqrt(3)
+// - Triangle height (altitude) = cell_spacing
+//
+struct TriangleCell {
+    int a, b, c;  // Triangle coordinates
+
+    TriangleCell() : a(0), b(0), c(0) {}
+    TriangleCell(int a_, int b_, int c_) : a(a_), b(b_), c(c_) {}
+
+    // Check if this is an upward-pointing triangle (△)
+    bool is_up() const { return (a + b + c) == 2; }
+
+    bool operator==(const TriangleCell& other) const {
+        return a == other.a && b == other.b && c == other.c;
+    }
+
+    bool operator!=(const TriangleCell& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const TriangleCell& o) const {
+        if (a != o.a) return a < o.a;
+        if (b != o.b) return b < o.b;
+        return c < o.c;
+    }
+
+    // Adjacent cells sharing an edge.
+    // Up triangle neighbors: decrement one coordinate by 1 → down triangles (sum=1).
+    // Down triangle neighbors: increment one coordinate by 1 → up triangles (sum=2).
+    std::array<TriangleCell, 3> neighbors() const {
+        if (is_up())
+            // Up (sum=2) neighbors are down triangles (sum=1)
+            return {{ {a-1,b,c}, {a,b-1,c}, {a,b,c-1} }};
+        else
+            // Down (sum=1) neighbors are up triangles (sum=2)
+            return {{ {a+1,b,c}, {a,b+1,c}, {a,b,c+1} }};
+    }
+};
+
+// Hash functor for TriangleCell, suitable for use in unordered containers.
+struct TriangleCellHash {
+    size_t operator()(const TriangleCell &c) const {
+        // Combine all three coordinates with bit mixing
+        size_t h = std::hash<int>()(c.a);
+        h ^= std::hash<int>()(c.b) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= std::hash<int>()(c.c) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        return h;
+    }
+};
+
+// ============================================================================
+// TriangleLattice - Unified Coordinate System for Triangle Grid
+// ============================================================================
+//
+// The triangle grid uses a skewed coordinate system where:
+// - Rows are spaced cell_spacing apart vertically
+// - Columns are spaced edge_length apart, but shift by edge_length/2 per row
+//
+// Lattice coordinates (lx, ly) map to world coordinates (px, py) via:
+//   py = ly * cell_spacing
+//   px = lx * edge_length + ly * edge_length * 0.5
+//
+// This class bundles cell_spacing and spiral offset together, providing
+// all coordinate transformations needed for cell detection and window placement.
+
+class TriangleLattice {
+public:
+    TriangleLattice() : m_cell_spacing(0), m_edge_length(0), m_offset_x(0), m_offset_y(0) {}
+
+    // Construct a lattice with given cell spacing and optional spiral offset
+    explicit TriangleLattice(double cell_spacing, double offset_x = 0.0, double offset_y = 0.0)
+        : m_cell_spacing(cell_spacing)
+        , m_edge_length(triangle_side_length(cell_spacing))
+        , m_offset_x(offset_x)
+        , m_offset_y(offset_y)
+    {}
+
+    // Accessors
+    double cell_spacing() const { return m_cell_spacing; }
+    double edge_length() const { return m_edge_length; }
+    double offset_x() const { return m_offset_x; }
+    double offset_y() const { return m_offset_y; }
+
+    // ========================================================================
+    // Coordinate Transformations
+    // ========================================================================
+
+    // Convert lattice coordinates to world coordinates
+    Vec2d to_world(double lx, double ly) const {
+        return Vec2d(
+            lx * m_edge_length + ly * m_edge_length * 0.5 + m_offset_x,
+            ly * m_cell_spacing + m_offset_y
+        );
+    }
+
+    // Convert world coordinates to lattice coordinates
+    // Returns (lattice_x, lattice_y) in the unshifted reference frame
+    std::pair<double, double> to_lattice(double px, double py) const {
+        double adjusted_x = px - m_offset_x;
+        double adjusted_y = py - m_offset_y;
+        double ly = adjusted_y / m_cell_spacing;
+        double lx = (adjusted_x - ly * m_edge_length * 0.5) / m_edge_length;
+        return {lx, ly};
+    }
+
+    // ========================================================================
+    // Cell Operations
+    // ========================================================================
+
+    // Get the triangle cell containing a world point
+    TriangleCell cell_at(double px, double py) const {
+        auto [lx, ly] = to_lattice(px, py);
+
+        int col = static_cast<int>(std::floor(lx));
+        int row = static_cast<int>(std::floor(ly));
+
+        double fx = lx - col;
+        double fy = ly - row;
+
+        // fx + fy < 1 means UP triangle, >= 1 means DOWN triangle
+        bool is_up = (fx + fy) < 1.0;
+
+        int c = is_up ? (2 - col - row) : (1 - col - row);
+        return TriangleCell(col, row, c);
+    }
+
+    // ========================================================================
+    // Cell Geometry Operations
+    // ========================================================================
+
+    // Get the 3 corners of a cell in world coordinates
+    std::array<Vec2d, 3> cell_corners(const TriangleCell& cell) const;
+
+    // Get the center of a cell in world coordinates
+    Vec2d cell_center(const TriangleCell& cell) const;
+
+    // Enumerate all unique cells within a bounding box.
+    // Iterates lattice (col, row) coordinates covering the bbox,
+    // generates both up and down triangles for each position.
+    std::vector<TriangleCell> enumerate_cells(const BoundingBox& bbox) const;
+
+private:
+    double m_cell_spacing;
+    double m_edge_length;
+    double m_offset_x;
+    double m_offset_y;
+};
+
+// Window specification for U-tube formation.
+// Windows are gaps in the shared walls between paired cells that create
+// connected U-tubes. Boundary dodge (see MagmaTubeMap::m_dodge_distance)
+// prevents horizontal weak planes by staggering tube boundaries.
+//
+// All boundaries are checked in mm (via window_end_z on each UTubePair),
+// so variable layer height works correctly.
+struct WindowSpec {
+    double window_height_mm = 0.4;     // Gap height in mm
+
+    // Default constructor with defaults
+    WindowSpec() = default;
+
+    // Construct from config values with auto-calculation support.
+    // config_window_height_mm = 0 means auto-calculate from tube geometry.
+    static WindowSpec from_config(
+        float config_window_height_mm,      // 0 = auto-calculate
+        float interior_width,               // for auto window height calc
+        float line_width                    // for auto window height calc
+    );
+
+};
+
+} // namespace magma
+} // namespace Slic3r
+
+#endif // slic3r_Magma_MagmaTriangleCell_hpp_

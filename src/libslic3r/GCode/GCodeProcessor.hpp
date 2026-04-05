@@ -350,6 +350,7 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            Magma_Tube,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -786,6 +787,24 @@ class Print;
 // ORCA: Add Pressure Advance visualization support
         float m_pressure_advance;
         ExtrusionRole m_extrusion_role;
+
+        // Pending tube visualization data parsed from ; MAGMA_TUBE comments.
+        // When active, the next erMagmaInjection Extrude is replaced with
+        // synthetic vertices tracing the U-tube spiral path.
+        struct PendingTubeViz {
+            std::vector<Vec3f> waypoints;
+            float  width = 0.f;
+            bool   active = false;
+            size_t cursor = 0;              // next waypoint index to emit
+            float  dx = 0.f, dy = 0.f, dz = 0.f;  // model → viewer translation
+            bool   offsets_computed = false;
+            void reset() {
+                waypoints.clear(); width = 0.f; active = false;
+                cursor = 0; offsets_computed = false; dx = dy = dz = 0.f;
+            }
+        };
+        PendingTubeViz m_pending_tube_viz;
+
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
         std::vector<unsigned char> m_filament_id;
@@ -1068,6 +1087,10 @@ class Print;
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
+        // Emit synthetic tube-visualization vertices for Magma injection.
+        // Called from process_G1() instead of store_move_vertex() when
+        // m_pending_tube_viz is active and the move is an injection extrude.
+        void emit_tube_viz_vertex(bool internal_only);
 
         void set_extrusion_role(ExtrusionRole role);
 

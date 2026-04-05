@@ -74,6 +74,15 @@ public:
     {
         return std::any_of(entities.begin(), entities.end(), [](const ExtrusionEntity* ee) { return is_solid_infill(ee->role()); });
     }
+    // Checks for outer zone infill (Magma Triangle) only. Other zone roles route
+    // through standard filament selection: zone shell → wall_filament (lives in
+    // perimeters, not fills), floor/ceiling → solid_infill_filament (via is_solid_infill()).
+    bool has_zone_fill() const
+    {
+        return std::any_of(entities.begin(), entities.end(), [](const ExtrusionEntity* ee) {
+            return ee->role() == erZoneOuterInfill;
+        });
+    }
     
     bool can_sort() const override { return !this->no_sort; }
     bool can_reverse() const override

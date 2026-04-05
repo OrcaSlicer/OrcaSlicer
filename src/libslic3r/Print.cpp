@@ -1170,6 +1170,12 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
             }
+            // Magma injection filament
+            {
+                auto num_ext = (unsigned int)print_config.filament_diameter.size();
+                if (print_object->config().magma_injection_filament.value >= 1 && (unsigned int)print_object->config().magma_injection_filament.value < num_ext + 1)
+                    obj_used_extruder_ids.insert((unsigned int) print_object->config().magma_injection_filament.value - 1);
+            }
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;
             std::vector<int> nozzle_temperature_range_lows;
@@ -1346,6 +1352,133 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             })) {
                 return {L("The spiral vase mode does not work when an object contains more than one materials."), nullptr, "spiral_mode"};
             }
+        }
+        // Magma infill is incompatible with spiral vase (multi-cell grid vs single-wall spiral)
+        for (const auto& region : all_regions) {
+            if (is_magma_pattern(region.get().config().sparse_infill_pattern.value)) {
+                return {L("Spiral vase mode is not compatible with Magma infill."),
+                        nullptr, "spiral_mode"};
+            }
+        }
+    }
+
+    // Magma parameter validation
+    for (const PrintObject *object : m_objects) {
+        // Check if any region uses Magma pattern
+        bool has_magma = false;
+        for (const auto& region : object->all_regions()) {
+            if (is_magma_pattern(region.get().config().sparse_infill_pattern.value)) {
+                has_magma = true;
+                break;
+            }
+        }
+        if (!has_magma)
+            continue;
+
+        // Injection/ironing settings are in PrintObjectConfig (per-object)
+        const auto& obj_cfg = object->config();
+
+        // Ironing requires either regular ironing enabled or magma-specific ironing params
+        if (obj_cfg.magma_iron_tube_ends.value) {
+            bool has_magma_ironing = obj_cfg.magma_ironing_flow.value > 0
+                && obj_cfg.magma_ironing_spacing.value > 0
+                && obj_cfg.magma_ironing_speed.value > 0;
+            // Check region ironing setting (still in PrintRegionConfig)
+            bool has_regular_ironing = false;
+            for (const auto& region : object->all_regions()) {
+                if (region.get().config().ironing_type.value != IroningType::NoIroning) {
+                    has_regular_ironing = true;
+                    break;
+                }
+            }
+            if (!has_magma_ironing && !has_regular_ironing) {
+                return {L("Magma tube end ironing requires either regular ironing to be enabled "
+                          "or all Magma ironing parameters (flow, spacing, speed) to be set."),
+                        nullptr, "magma_iron_tube_ends"};
+            }
+        }
+
+        // Warn if inner zone also uses Magma (defeats purpose of dual zones)
+        for (const auto& region : object->all_regions()) {
+            const auto& rcfg = region.get().config();
+            if (rcfg.dual_infill_enabled && is_magma_pattern(rcfg.sparse_infill_pattern.value)) {
+                StringObjectException warning;
+                warning.string = L("Inner infill zone uses Magma Triangle pattern. The inner zone is "
+                      "intended for lighter infill (e.g., gyroid). Magma injection will "
+                      "fill both zones, which may use excessive material.");
+                warning.is_warning = true;
+                return warning;
+            }
+        }
+
+        // Warn if effective Magma infill line width drops below reliable nozzle minimum.
+        // This catches interactions between overlap correction, flow ratios, and line width.
+        for (const auto& region : object->all_regions()) {
+            const auto& rcfg = region.get().config();
+            const auto& obj_cfg = object->config();
+            if (!is_magma_pattern(rcfg.sparse_infill_pattern.value))
+                continue;
+            if (!rcfg.magma_overlap_line_correction.value)
+                continue;
+
+            // Get nozzle diameter for the sparse infill extruder
+            int sparse_ext = std::max(0, rcfg.sparse_infill_filament.value - 1);
+            double nozzle_d = m_config.nozzle_diameter.get_at(sparse_ext);
+
+            // Compute the overlap correction floor
+            double min_pct = rcfg.magma_overlap_min_width.value;
+            if (min_pct <= 0) min_pct = 90.0;
+            double min_width = min_pct * 0.01 * nozzle_d;
+
+            // Start with sparse infill line width (resolve % of nozzle)
+            double line_w = rcfg.sparse_infill_line_width.get_abs_value(nozzle_d);
+            if (line_w <= 0) line_w = nozzle_d;  // default = nozzle diameter
+
+            // Apply overlap correction (same formula as MagmaTubeMap::build)
+            double cell_sp = line_w * std::sqrt(3.0);  // approximate; actual uses interior_width
+            // Use actual interior width if available for more accurate estimate
+            double iw = rcfg.magma_interior_width.value;
+            if (iw <= 0) iw = nozzle_d * 3.0;  // auto default
+            cell_sp = iw + line_w * std::sqrt(3.0);
+            double excess_frac = 3.0 * line_w / (4.0 * cell_sp);
+            double corrected_w = line_w * (1.0 - excess_frac);
+            if (corrected_w < min_width)
+                corrected_w = min_width;
+
+            // Apply flow ratios that GCode.cpp will multiply
+            double effective_w = corrected_w;
+            effective_w *= rcfg.print_flow_ratio.value;
+            double filament_flow = m_config.filament_flow_ratio.get_at(sparse_ext);
+            effective_w *= filament_flow;
+            if (obj_cfg.set_other_flow_ratios.value)
+                effective_w *= rcfg.sparse_infill_flow_ratio.value;
+
+            if (effective_w < min_width) {
+                // Build a helpful message listing which settings are reducing flow
+                std::string reasons;
+                if (rcfg.print_flow_ratio.value < 1.0)
+                    reasons += Slic3r::format("\n - Print flow ratio: %.0f%%",
+                        rcfg.print_flow_ratio.value * 100);
+                if (filament_flow < 1.0)
+                    reasons += Slic3r::format("\n - Filament flow ratio: %.0f%%",
+                        filament_flow * 100);
+                if (obj_cfg.set_other_flow_ratios.value &&
+                    rcfg.sparse_infill_flow_ratio.value < 1.0)
+                    reasons += Slic3r::format("\n - Sparse infill flow ratio: %.0f%%",
+                        rcfg.sparse_infill_flow_ratio.value * 100);
+
+                StringObjectException warning;
+                warning.string = Slic3r::format(
+                    L("Magma infill effective line width (%.2f mm) is below the minimum "
+                      "(%.2f mm = %.0f%% of %.1f mm nozzle). Lines may be unreliable.%s\n\n"
+                      "Consider setting flow ratios closer to 100%% or increasing "
+                      "sparse infill line width."),
+                    effective_w, min_width, min_pct, nozzle_d, reasons);
+                warning.object = object;
+                warning.is_warning = true;
+                return warning;
+            }
+            break;  // only check first Magma region per object
         }
     }
 

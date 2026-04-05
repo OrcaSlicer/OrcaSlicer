@@ -317,6 +317,16 @@ if(NOT WIN32)
     add_compile_definitions("$<IF:$<CONFIG:Debug>,DEBUG,NDEBUG>")
 endif()
 
+# Use cereal's thread-safe StaticObject branch globally. The default
+# (CEREAL_THREAD_SAFE=0) branch defines a LockGuard class with a user-declared
+# copy ctor and destructor but no default ctor, so `LockGuard{}` only compiles
+# as aggregate-init. C++20 tightened aggregate rules to forbid user-declared
+# ctors, so MSVC in C++20 mode rejects it. Defining CEREAL_THREAD_SAFE=1
+# selects the thread-safe branch which has a proper one-arg ctor and sidesteps
+# the issue entirely. Also strictly more correct for our use: cereal singletons
+# are touched from multiple threads.
+add_compile_definitions(CEREAL_THREAD_SAFE=1)
+
 # To be able to link libslic3r with the Perl XS module.
 # Once we get rid of Perl and libslic3r is linked statically, we can get rid of -fPIC
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -618,6 +628,8 @@ find_package(TBB REQUIRED)
 # endif()
 # The Intel TBB library will use the std::exception_ptr feature of C++11.
 # add_definitions(-DTBB_USE_CAPTURED_EXCEPTION=0)
+
+find_package(ortools REQUIRED)
 
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)

@@ -305,6 +305,24 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
+    if (auto* z_slam_opt = config->option<ConfigOptionFloat>("magma_injection_z_slam");
+        z_slam_opt && z_slam_opt->value > 3.5 + EPSILON)
+    {
+        const wxString msg_text = _(L("Z-slam depth beyond 3.5mm is very aggressive.\n\n"
+                                      "The correct z-slam depth is highly dependent on your nozzle "
+                                      "geometry — measure the shoulder (flat tip) diameter and taper "
+                                      "angle to determine how deep the nozzle must go to seal the "
+                                      "tube opening.\n\n"
+                                      "The value will be reset to 1mm."));
+        MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+        DynamicPrintConfig new_conf = *config;
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        new_conf.set_key_value("magma_injection_z_slam", new ConfigOptionFloat(1.0));
+        apply(config, &new_conf);
+        is_msg_dlg_already_exist = false;
+    }
+
     if (config->option<ConfigOptionBool>("enable_wrapping_detection")->value) {
         std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
         if (!DevPrinterConfigUtil::support_wrapping_detection(printer_type)) {
@@ -595,8 +613,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
-        "minimum_sparse_infill_area", "sparse_infill_filament", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
+        "minimum_sparse_infill_area", "filter_narrow_sparse_infill", "sparse_infill_filament", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
+    // Width threshold only shown when narrow filter is enabled
+    bool have_narrow_filter = have_infill && config->opt_bool("filter_narrow_sparse_infill");
+    toggle_line("minimum_sparse_infill_width", have_narrow_filter);
 
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
     toggle_line("infill_combination_max_layer_height", have_combined_infill);
@@ -625,12 +646,28 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_field("infill_anchor", has_infill_anchors);
     }
 
+    // Magma Triangle: hide standard settings that don't apply.
+    // Magma density is fixed by cell geometry (magma_interior_width + line_width),
+    // lattice is orientation-fixed, no rotation/multiline/combination.
+    bool is_magma = is_magma_pattern(pattern);
+    if (have_infill && is_magma) {
+        toggle_line("sparse_infill_density", false);
+        toggle_line("infill_direction", false);
+        toggle_line("sparse_infill_rotate_template", false);
+        toggle_line("fill_multiline", false);
+        toggle_line("infill_combination", false);
+        toggle_line("infill_combination_max_layer_height", false);
+        toggle_line("symmetric_infill_y_axis", false);
+        toggle_line("infill_anchor", false);
+        toggle_line("infill_anchor_max", false);
+    }
+
     //cross zag
     bool is_cross_zag = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipCrossZag;
     bool is_locked_zig = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipLockedZag;
 
     toggle_line("infill_shift_step", is_cross_zag || is_locked_zig);
-    
+
     for (auto el : { "skeleton_infill_density", "skin_infill_density", "infill_lock_depth", "skin_infill_depth","skin_infill_line_width", "skeleton_infill_line_width" })
         toggle_line(el, is_locked_zig);
 
@@ -821,6 +858,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("preheat_time", have_ooze_prevention);
     int preheat_steps = config->opt_int("preheat_steps");
     toggle_line("preheat_steps", have_ooze_prevention && (preheat_steps > 0));
+    auto* park_opt = config->option<ConfigOptionBool>("ooze_prevention_park");
+    toggle_line("ooze_prevention_park", have_ooze_prevention);
+    bool have_park = have_ooze_prevention && park_opt && park_opt->value;
+    toggle_line("ooze_prevention_park_z_hop", have_park);
+    toggle_line("ooze_prevention_park_retract", have_park);
 
     bool have_prime_tower = config->opt_bool("enable_prime_tower");
     for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
@@ -829,7 +871,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && config->opt_bool("enable_tower_interface_features"));
 
-    for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"})
+    for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament",
+                     "dual_infill_outer_filament", "magma_injection_filament"})
         toggle_line(el, !bSEMM);
 
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
@@ -894,6 +937,64 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width", "wall_maximum_resolution", "wall_maximum_deviation"})
         toggle_line(el, have_arachne);
     toggle_field("detect_thin_wall", !have_arachne);
+
+    // Dual infill zones settings
+    auto* dual_infill_opt = config->option<ConfigOptionBool>("dual_infill_enabled");
+    bool have_dual_infill = dual_infill_opt && dual_infill_opt->value;
+    for (auto el : { "dual_infill_outer_width", "dual_infill_shell_walls",
+        "dual_infill_shell_width", "dual_infill_min_inner_width",
+        "dual_infill_solid_layers", "dual_infill_solid_thickness" })
+        toggle_line(el, have_dual_infill);
+
+    // Magma settings — visible when Magma Triangle pattern is selected or dual infill is enabled
+    // (dual infill uses Magma Triangle pattern in outer zone regardless of sparse_infill_pattern)
+    bool is_magma_infill = is_magma_pattern(config->opt_enum<InfillPattern>("sparse_infill_pattern"));
+    bool have_magma_pattern = is_magma_infill || have_dual_infill;
+
+    // Magma Pattern section
+    toggle_line("magma_tube_width_mode", have_magma_pattern);
+    toggle_line("magma_spiral_interlock", have_magma_pattern);
+
+    // Tube width mode: show nozzle OD for Auto, interior width for Manual
+    auto* tube_mode_opt = config->option<ConfigOptionEnum<MagmaTubeWidthMode>>("magma_tube_width_mode");
+    bool tube_auto = have_magma_pattern && tube_mode_opt &&
+        tube_mode_opt->value == MagmaTubeWidthMode::Auto;
+    toggle_line("magma_nozzle_outer_diameter", tube_auto);
+    toggle_line("magma_interior_width", have_magma_pattern && !tube_auto);
+
+    // Magma Tubes section
+    for (auto el : { "magma_window_height_mm",
+        "magma_tube_height", "magma_tube_fill_factor" })
+        toggle_line(el, have_magma_pattern);
+    toggle_line("magma_tube_solver_mode", have_magma_pattern);
+    auto* solver_mode_opt = config->option<ConfigOptionEnum<MagmaTubeSolverMode>>("magma_tube_solver_mode");
+    bool is_refined = have_magma_pattern && solver_mode_opt &&
+        solver_mode_opt->value == MagmaTubeSolverMode::Refined;
+    toggle_line("magma_boundary_dodge", is_refined);
+    // Refined-only setting: solver timeout
+    toggle_line("magma_solver_timeout", is_refined);
+
+    // Magma Injection section
+    for (auto el : { "magma_injection_temp", "magma_injection_speed", "magma_iron_tube_ends",
+        "magma_injection_park", "magma_injection_z_slam", "magma_injection_dwell",
+        "magma_injection_z_hop", "magma_injection_retract" })
+        toggle_line(el, have_magma_pattern);
+
+    // Zone filament settings — on the Filament for Features page, visibility
+    // controlled here alongside other Magma toggles.
+    toggle_line("dual_infill_outer_filament", !bSEMM && (have_dual_infill || have_magma_pattern));
+    toggle_line("magma_injection_filament", !bSEMM && have_magma_pattern);
+
+    // Park Z-hop visible only when Magma is active AND park is enabled
+    auto* magma_park_opt = config->option<ConfigOptionBool>("magma_injection_park");
+    bool park_on = have_magma_pattern && magma_park_opt && magma_park_opt->value;
+    toggle_line("magma_injection_park_z_hop", park_on);
+    toggle_line("magma_injection_park_retract", park_on);
+
+    // Overlap line correction visible when Magma pattern is active
+    toggle_line("magma_overlap_line_correction", have_magma_pattern);
+    bool have_overlap_correction = have_magma_pattern && config->opt_bool("magma_overlap_line_correction");
+    toggle_line("magma_overlap_min_width", have_overlap_correction);
 
     // Orca
     auto is_role_based_wipe_speed = config->opt_bool("role_based_wipe_speed");

@@ -1,0 +1,170 @@
+#include "MagmaTriangleCell.hpp"
+
+#include <cmath>
+#include <algorithm>
+
+namespace Slic3r {
+namespace magma {
+
+// Triangle grid geometry:
+// - Lines are spaced cell_spacing apart
+// - Triangle side length s = cell_spacing * 2 / sqrt(3)
+// - Triangle height (altitude) h = cell_spacing
+//
+// Coordinate system basis vectors (for converting (a,b,c) to (x,y)):
+// - a axis: (1, 0) scaled by s/2
+// - b axis: (cos(60°), sin(60°)) = (0.5, sqrt(3)/2) scaled by s/2
+// - c axis: (-cos(60°), sin(60°)) = (-0.5, sqrt(3)/2) scaled by s/2
+//
+// For a given cell_spacing:
+// s = cell_spacing * 2 / sqrt(3)
+// basis_a = (s/2, 0) = (cell_spacing / sqrt(3), 0)
+// basis_b = (s/4, s*sqrt(3)/4) = (cell_spacing / (2*sqrt(3)), cell_spacing/2)
+// basis_c = (-s/4, s*sqrt(3)/4) = (-cell_spacing / (2*sqrt(3)), cell_spacing/2)
+
+// ============================================================================
+// Geometry Helper Implementations
+// ============================================================================
+
+double calculate_auto_interior_width(double nozzle_diameter)
+{
+    // Fallback when nozzle outer diameter is not specified.
+    // Uses 3.0× bore as a conservative default.
+    return nozzle_diameter * 3.0;
+}
+
+double calculate_auto_interior_width_from_od(double nozzle_od, double line_width)
+{
+    // Compute the largest tube interior width whose inset triangle fits
+    // entirely within the nozzle shoulder circle.
+    //
+    // The inset triangle (tube opening after accounting for line width) must
+    // have its circumscribed circle ≤ nozzle_od - buffer, so all 3 vertices
+    // are covered by the nozzle flat during z-slam injection.
+    //
+    // For equilateral triangle with side s:
+    //   circumscribed diameter = 2s / √3
+    //
+    // Setting  2 * inset_side / √3 = nozzle_od - buffer  and solving for IW:
+    //   inset_side = (nozzle_od - buffer) * √3 / 2
+    //   inset_side = side - line_width * √3
+    //              = (IW + lw) * 2/√3 - lw * √3
+    //   → IW = (inset_side + lw * √3) * √3 / 2 - lw
+
+    constexpr double buffer = 0.2;  // mm safety margin
+    double effective_od = nozzle_od - buffer;
+    if (effective_od <= 0)
+        return 0.1;
+
+    double max_inset_side = effective_od * SQRT3 / 2.0;
+    double IW = (max_inset_side + line_width * SQRT3) * SQRT3 / 2.0 - line_width;
+    return std::max(0.1, IW);
+}
+
+// Auto-calculate window height in mm so that window cross-sectional area
+// approximately matches tube interior cross-section.
+//
+// The window is a vertical slit between two adjacent cell interiors where
+// the shared infill line is omitted. Plastic flows perpendicular to the
+// shared edge, so the cross-section it sees is:
+//   inset_side × window_height
+// where inset_side = edge_len - line_width × √3 (the gap length between
+// the two inset triangle interiors along the shared edge).
+//
+// Setting window cross-section = tube interior area:
+//   inset_side × window_height = inset_triangle_area
+//   window_height = inset_triangle_area / inset_side
+static double calculate_auto_window_height_mm(double interior_width, double line_width)
+{
+    double cell_spacing = cell_spacing_from_geometry(interior_width, line_width);
+    double tube_area = inset_triangle_area(cell_spacing, line_width);
+    double side = triangle_side_length(cell_spacing);
+    double inset_side = side - line_width * SQRT3;
+    if (inset_side <= 0)
+        return 0.1;
+    // 20% safety margin: window opening should exceed tube cross-section
+    // to ensure plastic can flow freely between the two tube halves.
+    double window_height_mm = 1.2 * tube_area / inset_side;
+    return std::max(0.1, window_height_mm);
+}
+
+WindowSpec WindowSpec::from_config(
+    float config_window_height_mm,
+    float interior_width,
+    float line_width)
+{
+    WindowSpec spec;
+
+    // Window height: auto-calculate if 0, otherwise use config value.
+    if (config_window_height_mm <= 0)
+        spec.window_height_mm = calculate_auto_window_height_mm(interior_width, line_width);
+    else
+        spec.window_height_mm = config_window_height_mm;
+
+    return spec;
+}
+
+
+// ============================================================================
+// TriangleLattice Method Implementations
+// ============================================================================
+
+Vec2d TriangleLattice::cell_center(const TriangleCell& cell) const
+{
+    // Centroid of the triangle within the lattice parallelogram cell (a, b).
+    // Up triangle vertices: lattice (a,b), (a+1,b), (a,b+1) → centroid at (a+1/3, b+1/3)
+    // Down triangle vertices: lattice (a+1,b), (a,b+1), (a+1,b+1) → centroid at (a+2/3, b+2/3)
+    if (cell.is_up()) {
+        return to_world(cell.a + 1.0 / 3.0, cell.b + 1.0 / 3.0);
+    } else {
+        return to_world(cell.a + 2.0 / 3.0, cell.b + 2.0 / 3.0);
+    }
+}
+
+std::array<Vec2d, 3> TriangleLattice::cell_corners(const TriangleCell& cell) const
+{
+    // Use exact lattice vertex positions for correct geometry.
+    // Up triangle at (a,b): vertices at lattice (a,b), (a+1,b), (a,b+1)
+    // Down triangle at (a,b): vertices at lattice (a+1,b), (a,b+1), (a+1,b+1)
+    if (cell.is_up()) {
+        return {{ to_world(cell.a, cell.b),
+                  to_world(cell.a + 1, cell.b),
+                  to_world(cell.a, cell.b + 1) }};
+    } else {
+        return {{ to_world(cell.a + 1, cell.b),
+                  to_world(cell.a, cell.b + 1),
+                  to_world(cell.a + 1, cell.b + 1) }};
+    }
+}
+
+std::vector<TriangleCell> TriangleLattice::enumerate_cells(const BoundingBox& bbox) const
+{
+    std::vector<TriangleCell> cells;
+
+    double min_x = unscale<double>(bbox.min.x());
+    double min_y = unscale<double>(bbox.min.y());
+    double max_x = unscale<double>(bbox.max.x());
+    double max_y = unscale<double>(bbox.max.y());
+
+    // Row range is unskewed (ly = y / cell_spacing), so direct computation works
+    int row_min = static_cast<int>(std::floor((min_y - m_offset_y) / m_cell_spacing)) - 1;
+    int row_max = static_cast<int>(std::ceil((max_y - m_offset_y) / m_cell_spacing)) + 1;
+
+    for (int row = row_min; row <= row_max; ++row) {
+        // Column range depends on row due to lattice skew (lx = (x - ly*edge*0.5) / edge)
+        double row_y = row * m_cell_spacing + m_offset_y;
+        auto [lx_lo, _1] = to_lattice(min_x, row_y);
+        auto [lx_hi, _2] = to_lattice(max_x, row_y);
+        int col_min = static_cast<int>(std::floor(std::min(lx_lo, lx_hi))) - 1;
+        int col_max = static_cast<int>(std::ceil(std::max(lx_lo, lx_hi))) + 1;
+
+        for (int col = col_min; col <= col_max; ++col) {
+            cells.emplace_back(col, row, 2 - col - row);  // up triangle
+            cells.emplace_back(col, row, 1 - col - row);  // down triangle
+        }
+    }
+    return cells;
+}
+
+} // namespace magma
+} // namespace Slic3r

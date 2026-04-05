@@ -95,6 +95,11 @@ public:
     //BBS
     ExPolygons                  *fill_no_overlap;
 
+    // Zone: Pre-computed zone boundary from 3D shell
+    const ExPolygons            *zone_boundary = nullptr;
+    // Zone: Output for inner zone region inside boundary shells
+    ExPolygons                  *inner_zone_out = nullptr;
+
     //BBS
     Flow                        smaller_ext_perimeter_flow;
     std::vector<Polygons>       m_lower_polygons_series;

@@ -181,7 +181,7 @@ void PartPlate::init()
 
 	m_print_index = -1;
 	m_print = nullptr;
-	m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush;
+	m_config.opt_set_enum("filament_map_mode", FilamentMapMode::fmmAutoForFlush);
 }
 
 BedType PartPlate::get_bed_type(bool load_from_project) const
@@ -254,7 +254,7 @@ void PartPlate::set_print_seq(PrintSequence print_seq)
     if (old_real_print_seq == PrintSequence::ByDefault) {
         auto curr_preset_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
         if (curr_preset_config.has(print_seq_key))
-            old_real_print_seq = curr_preset_config.option<ConfigOptionEnum<PrintSequence>>(print_seq_key)->value;
+            old_real_print_seq = curr_preset_config.opt_enum<PrintSequence>(print_seq_key);
     }
 
     PrintSequence new_real_print_seq = print_seq;
@@ -262,7 +262,7 @@ void PartPlate::set_print_seq(PrintSequence print_seq)
     if (print_seq == PrintSequence::ByDefault) {
         auto curr_preset_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
         if (curr_preset_config.has(print_seq_key))
-            new_real_print_seq = curr_preset_config.option<ConfigOptionEnum<PrintSequence>>(print_seq_key)->value;
+            new_real_print_seq = curr_preset_config.opt_enum<PrintSequence>(print_seq_key);
     }
 
     if (old_real_print_seq != new_real_print_seq) {
@@ -322,7 +322,7 @@ FilamentMapMode PartPlate::get_real_filament_map_mode(const DynamicConfig& g_con
 		return mode;
 	}
 
-	auto g_mode = g_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value;
+	auto g_mode = g_config.opt_enum<FilamentMapMode>("filament_map_mode");
 	if (use_global_param) { *use_global_param = true; }
 	return g_mode;
 }
@@ -2082,8 +2082,8 @@ bool PartPlate::check_compatible_of_nozzle_and_filament(const DynamicPrintConfig
     }
     wipe_tower_size(2) = max_height;
 
-    auto timelapse_type    = config.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool timelapse_enabled = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
+    auto timelapse_type    = config.opt_enum_or<TimelapseType>("timelapse_type", TimelapseType::tlTraditional);
+    bool timelapse_enabled = (timelapse_type == TimelapseType::tlSmooth);
     int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
     double extra_spacing     = config.option("prime_tower_infill_gap")->getFloat() / 100.;
     double depth             = std::sqrt(wipe_volume * (nozzle_nums == 2 ? plate_extruder_size : (plate_extruder_size - 1)) / layer_height * extra_spacing);
@@ -2125,11 +2125,11 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
     }
     wipe_tower_size(2) = max_height;
     //const DynamicPrintConfig &dconfig = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    auto timelapse_type    = config.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | enable_wrapping_detection;
+    auto timelapse_type    = config.opt_enum_or<TimelapseType>("timelapse_type", TimelapseType::tlTraditional);
+    bool need_wipe_tower = (timelapse_type == TimelapseType::tlSmooth) | enable_wrapping_detection;
     double extra_spacing     = config.option("prime_tower_infill_gap")->getFloat() / 100.;
-    const ConfigOptionEnum<WipeTowerWallType>* use_rib_wall_opt = config.option<ConfigOptionEnum<WipeTowerWallType>>("wipe_tower_wall_type");
-    bool use_rib_wall = use_rib_wall_opt ? use_rib_wall_opt->value == WipeTowerWallType::wtwRib: false;
+    auto wipe_tower_wall_type = config.opt_enum_or<WipeTowerWallType>("wipe_tower_wall_type", WipeTowerWallType::wtwRectangle);
+    bool use_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib);
     double rib_width = config.option("wipe_tower_rib_width")->getFloat();
     double depth;
     double filament_change_volume=0.;
@@ -3682,14 +3682,14 @@ FilamentMapMode PartPlate::get_filament_map_mode() const
 {
     std::string key = "filament_map_mode";
     if(m_config.has(key))
-        return m_config.option<ConfigOptionEnum<FilamentMapMode>>(key)->value;
+        return m_config.opt_enum<FilamentMapMode>(key);
     return FilamentMapMode::fmmDefault;
 }
 
 void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 {
 	const auto& proj_config = wxGetApp().preset_bundle->project_config;
-	FilamentMapMode global_mode = proj_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value;
+	FilamentMapMode global_mode = proj_config.opt_enum<FilamentMapMode>("filament_map_mode");
 	FilamentMapMode old_mode = get_filament_map_mode();
 	FilamentMapMode old_real_mode = old_mode == fmmDefault ? global_mode : old_mode;
 	FilamentMapMode new_real_mode = mode == fmmDefault ? global_mode : mode;
@@ -3699,7 +3699,7 @@ void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 	if (mode == fmmDefault)
 		clear_filament_map_mode();
 	else
-		m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = mode;
+		m_config.opt_set_enum("filament_map_mode", mode);
 }
 
 std::vector<int> PartPlate::get_filament_maps() const
@@ -3738,7 +3738,7 @@ void PartPlate::on_extruder_count_changed(int extruder_count)
         clear_filament_map();
         //clear_filament_map_mode();
         // do not clear mode now, reset to default mode
-        m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = FilamentMapMode::fmmAutoForFlush;
+        m_config.opt_set_enum("filament_map_mode", FilamentMapMode::fmmAutoForFlush);
     }
 }
 
@@ -4120,11 +4120,11 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
     wipe_tower_x->values.resize(m_plate_list.size(), wipe_tower_x->values.front());
     wipe_tower_y->values.resize(m_plate_list.size(), wipe_tower_y->values.front());
 
-    auto printer_structure_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
+    auto printer_structure = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_enum_or<PrinterStructure>("printer_structure", PrinterStructure::psUndefine);
     // set the default position, the same with print config(left top)
     float x = WIPE_TOWER_DEFAULT_X_POS;
     float y = WIPE_TOWER_DEFAULT_Y_POS;
-    if (printer_structure_opt && printer_structure_opt->value == PrinterStructure::psI3) {
+    if (printer_structure == PrinterStructure::psI3) {
         x = I3_WIPE_TOWER_DEFAULT_X_POS;
         y = I3_WIPE_TOWER_DEFAULT_Y_POS;
     }

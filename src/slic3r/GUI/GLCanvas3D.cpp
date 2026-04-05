@@ -3032,8 +3032,11 @@ void GLCanvas3D::load_shells(const Print& print, bool force_previewing)
 {
     if (m_initialized)
     {
+        _set_current();  // GL context needed for clearing old shell GL resources
         m_gcode_viewer.load_shells(print, m_initialized, force_previewing);
         m_gcode_viewer.update_shells_color_by_extruder(m_config);
+        // Zone boundary: Load interior shell meshes for preview visualization
+        m_gcode_viewer.load_zone_shells(print);
     }
 }
 
@@ -3057,6 +3060,9 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     m_gcode_viewer.load_as_gcode(gcode_result, *this->fff_print(), str_tool_colors, str_color_print_colors, wxGetApp().plater()->build_volume(), exclude_bounding_box,
         wxGetApp().get_mode(), only_gcode);
     m_gcode_layers_times_cache = m_gcode_viewer.get_layers_times();
+
+    // Zone boundary: Reload shell meshes so they reflect current settings
+    m_gcode_viewer.load_zone_shells(*this->fff_print());
 
     m_gcode_viewer.get_moves_slider()->SetHigherValue(m_gcode_viewer.get_moves_slider()->GetMaxValue());
 
@@ -3465,6 +3471,18 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         //    }
         //    break;
         //}
+        case 'J':
+        case 'j': {
+            // Zone boundary: 'J' cycles through interior shell stages in Preview mode
+            // cycle_zone_boundary_stage() rebuilds from cache - no Print access needed
+            if (dynamic_cast<Preview*>(m_canvas->GetParent()) != nullptr) {
+                _set_current();  // GL context needed before destroying GL resources
+                m_gcode_viewer.cycle_zone_boundary_stage();
+                m_dirty = true;
+                request_extra_frame();
+            }
+            break;
+        }
         case 'I':
         case 'i': { _update_camera_zoom(1.0); break; }
         //case 'K':

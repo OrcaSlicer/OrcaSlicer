@@ -159,7 +159,8 @@ void Generator::generateInitialInternalOverhangs(const PrintObject &print_object
         Polygons infill_area_here;
         for (const LayerRegion* layerm : print_object.get_layer(layer_nr)->regions())
             for (const Surface& surface : layerm->fill_surfaces.surfaces)
-                if (surface.surface_type == stInternal || surface.surface_type == stInternalVoid)
+                if (surface.surface_type == stInternal || surface.surface_type == stInternalVoid ||
+                    surface.surface_type == stZoneInner)
                     append(infill_area_here, to_polygons(surface.expolygon));
 
         //Remove the part of the infill area that is already supported by the walls.
@@ -188,7 +189,8 @@ void Generator::generateTrees(const PrintObject &print_object, const std::functi
         throw_on_cancel_callback();
         for (const LayerRegion *layerm : print_object.get_layer(layer_id)->regions())
             for (const Surface &surface : layerm->fill_surfaces.surfaces)
-                if (surface.surface_type == stInternal || surface.surface_type == stInternalVoid)
+                if (surface.surface_type == stInternal || surface.surface_type == stInternalVoid ||
+                    surface.surface_type == stZoneInner)
                     append(infill_outlines[layer_id], to_polygons(surface.expolygon));
     }
 

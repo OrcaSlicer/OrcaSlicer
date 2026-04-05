@@ -78,12 +78,20 @@ find_first_existing_file() {
 copy_shared_object_to_dir() {
     local src="$1"
     local dst_dir="$2"
-    local src_real dst_name soname
+    local src_real dst_name dst_path soname
 
     src_real="$(readlink -f "$src")"
     dst_name="$(basename "$src_real")"
+    dst_path="$dst_dir/$dst_name"
     mkdir -p "$dst_dir"
-    cp -fL "$src_real" "$dst_dir/$dst_name"
+    # When recursively bundling deps via ldd against a lib already in
+    # $dst_dir, the resolved source can BE the destination (e.g. abseil's
+    # many cross-referencing libs all live alongside each other once
+    # bundled). Compare resolved paths (or use -ef for inode equality)
+    # so we skip the no-op cp; cp -fL otherwise errors with "same file".
+    if [ ! -e "$dst_path" ] || [ ! "$src_real" -ef "$dst_path" ]; then
+        cp -fL "$src_real" "$dst_path"
+    fi
 
     if [ -L "$src" ]; then
         ln -snf "$dst_name" "$dst_dir/$(basename "$src")"

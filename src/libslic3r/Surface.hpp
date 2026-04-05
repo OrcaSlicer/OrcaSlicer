@@ -28,6 +28,15 @@ enum SurfaceType {
     stInternalVoid,
     // Inner/outer perimeters.
     stPerimeter,
+    // Dual infill zone surface types
+    // Outer zone filled with Magma Triangle U-tube pattern (legacy — now uses stInternal)
+    stZoneOuter,
+    // Zone floor (no zone infill below) - propagates solid upward into zone
+    stZoneFloor,
+    // Zone ceiling (no zone infill above) - propagates solid downward into zone
+    stZoneCeiling,
+    // Inner zone (yolk) filled with user's sparse infill pattern
+    stZoneInner,
     // Number of SurfaceType enums.
     stCount,
 };
@@ -109,8 +118,19 @@ public:
     bool   is_internal_bridge() const { return this->surface_type == stInternalBridge; }
 	bool   is_external() const { return this->is_top() || this->is_bottom(); }
 	bool   is_internal() const { return ! this->is_external(); }
-	bool   is_solid()    const { return this->is_external() || this->surface_type == stInternalSolid || this->surface_type == stInternalBridge; }
+	// Zone boundaries (floor/ceiling) are solid shell layers.
+	// Outer zone (now stInternal) solidity is handled by bridge detection checks.
+	bool   is_solid()    const { return this->is_external() || this->surface_type == stInternalSolid || this->surface_type == stInternalBridge || this->is_zone_boundary(); }
 	bool   is_solid_infill() const { return this->surface_type == stInternalSolid; }
+	// Sparse infill: stInternal or stZoneInner (yolk). Does NOT include stInternalVoid.
+	bool   is_sparse_fill() const { return this->surface_type == stInternal || this->surface_type == stZoneInner; }
+    // Dual infill zone surface type helpers
+    bool   is_zone_outer() const { return this->surface_type == stZoneOuter; }
+    bool   is_zone_inner() const { return this->surface_type == stZoneInner; }
+    bool   is_zone_floor() const { return this->surface_type == stZoneFloor; }
+    bool   is_zone_ceiling() const { return this->surface_type == stZoneCeiling; }
+    bool   is_zone_boundary() const { return is_zone_floor() || is_zone_ceiling(); }
+    bool   is_zone()       const { return is_zone_outer() || is_zone_inner() || is_zone_boundary(); }
 };
 
 typedef std::vector<Surface> Surfaces;

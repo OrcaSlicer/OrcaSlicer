@@ -160,6 +160,8 @@ set(lisbslic3r_sources
     Fill/FillLightning.hpp
     Fill/FillLine.cpp
     Fill/FillLine.hpp
+    Fill/FillMagma.cpp
+    Fill/FillMagma.hpp
     Fill/FillPlanePath.cpp
     Fill/FillPlanePath.hpp
     Fill/FillRectilinear.cpp
@@ -221,6 +223,8 @@ set(lisbslic3r_sources
     GCode/FanMover.hpp
     GCode/GCodeProcessor.cpp
     GCode/GCodeProcessor.hpp
+    GCode/SafeParkPosition.cpp
+    GCode/SafeParkPosition.hpp
     GCode.hpp
     GCode/PchipInterpolatorHelper.cpp
     GCode/PchipInterpolatorHelper.hpp
@@ -286,6 +290,19 @@ set(lisbslic3r_sources
     Line.hpp
     LocalesUtils.cpp
     LocalesUtils.hpp
+    ZoneBoundary/ZoneInterior.cpp
+    ZoneBoundary/ZoneInterior.hpp
+    Magma/MagmaTriangleCell.cpp
+    Magma/MagmaTriangleCell.hpp
+    Magma/MagmaSpiralOffset.cpp
+    Magma/MagmaSpiralOffset.hpp
+    Magma/MagmaTubeMap.cpp
+    Magma/MagmaTubeMap.hpp
+    Magma/MagmaInjection.cpp
+    Magma/MagmaInjection.hpp
+    Magma/MagmaTubeSolver.hpp
+    Magma/MagmaGreedyWarmStart.cpp
+    Magma/MagmaGreedyWarmStart.hpp
     MarchingSquares.hpp
     Measure.cpp
     Measure.hpp
@@ -380,6 +397,7 @@ set(lisbslic3r_sources
     SLA/Concurrency.hpp
     SLA/Hollowing.cpp
     SLA/Hollowing.hpp
+    SLA/Interior.hpp
     SLA/IndexedMesh.cpp
     SLA/IndexedMesh.hpp
     SLA/JobController.hpp
@@ -484,10 +502,49 @@ if (APPLE)
         )
 endif ()
 
-add_library(libslic3r STATIC ${lisbslic3r_sources} 
+add_library(libslic3r STATIC ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
+
+# OR-Tools (CP-SAT solver) is isolated in its own static library. OR-Tools'
+# CMake config declares INTERFACE_COMPILE_FEATURES=cxx_std_20 on MSVC, which
+# propagates to anything that PUBLIC-links it. abseil's transitively-included
+# compare.h actually needs C++20, but upstream OrcaSlicer code (libslic3r) is
+# C++17 and breaks in C++20 mode (aggregate init, u8 literals, cereal LockGuard,
+# libnest2d, etc). Putting OR-Tools behind a PRIVATE link from this isolated
+# static library stops the cxx_std_20 requirement from cascading up: only this
+# one translation unit (MagmaTubeSolver.cpp) compiles in C++20, libslic3r stays
+# in C++17 like upstream. MagmaTubeSolver.hpp deliberately includes no OR-Tools
+# headers, so it's safe to include from libslic3r consumers.
+add_library(magma_tube_solver STATIC
+    Magma/MagmaTubeSolver.cpp
+    Magma/MagmaTubeSolver.hpp
+)
+target_include_directories(magma_tube_solver
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(magma_tube_solver
+    PRIVATE
+        ortools::ortools
+        boost_libs
+        cereal::cereal
+        eigen
+        semver
+        TBB::tbb
+        # These are pulled in for their PUBLIC include-directory exports — the
+        # MagmaTubeSolver.cpp translation unit transitively includes libslic3r
+        # headers (PrintConfig.hpp, Semver.hpp, etc) which expect deps_src/
+        # in the include path. libslic3r gets this via admesh's `deps_src/..`
+        # export; replicating the same link chain here keeps the include
+        # resolution identical without pulling in any symbol pollution
+        # (everything stays PRIVATE).
+        admesh
+        Clipper2
+        clipper
+        libnest2d
+        miniz
+)
 
 if (SLIC3R_STATIC)
     set(CGAL_Boost_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)
@@ -602,6 +659,7 @@ target_link_libraries(libslic3r
         semver
         TBB::tbb
         TBB::tbbmalloc
+        magma_tube_solver
         ZLIB::ZLIB
         OpenSSL::Crypto
     )

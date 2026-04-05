@@ -34,6 +34,15 @@ Vec3 normalize(const Vec3& v)
     return { v[0] * inv_length, v[1] * inv_length, v[2] * inv_length };
 }
 
+Vec3 cross(const Vec3& v1, const Vec3& v2)
+{
+    return {
+        v1[1] * v2[2] - v1[2] * v2[1],
+        v1[2] * v2[0] - v1[0] * v2[2],
+        v1[0] * v2[1] - v1[1] * v2[0]
+    };
+}
+
 float dot(const Vec3& v1, const Vec3& v2)
 {
     return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];

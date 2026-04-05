@@ -50,7 +50,7 @@ namespace Slic3r { namespace GUI {
 /* const strings */
 static const wxString NA_STR         = _L("N/A");
 static const wxString TEMP_BLANK_STR = wxString("_");
-static const wxFont   SWITCH_FONT    = Label::Body_10;
+// SWITCH_FONT removed - was unused and caused SIOF bug (copying Label::Body_10 before initialization)
 
 /* const values */
 static const int bed_temp_range[2]    = {20, 120};
@@ -76,7 +76,7 @@ static const wxColour STAGE_TEXT_COL      = wxColour(0, 150, 136);
 static const wxColour GROUP_STATIC_LINE_COL = wxColour(206, 206, 206);
 
 /* font and foreground colors */
-static const wxFont PAGE_TITLE_FONT  = Label::Body_14;
+// PAGE_TITLE_FONT removed - was unused and caused SIOF bug (copying Label::Body_14 before initialization)
 //static const wxFont GROUP_TITLE_FONT = Label::sysFont(17);
 
 static wxColour PAGE_TITLE_FONT_COL  = wxColour(107, 107, 107);

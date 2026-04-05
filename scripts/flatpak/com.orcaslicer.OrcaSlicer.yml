@@ -253,6 +253,64 @@ modules:
         sha256: 27b72ba2d5ff3d0a9814ad40d4cb88f8dc89a35491c0866d952473f8f9416b77
         dest: external-packages/Draco
 
+      # Google OR-Tools v9.15 — CP-SAT constraint solver for Magma tube assignment
+      - type: file
+        url: https://github.com/google/or-tools/archive/refs/tags/v9.15.tar.gz
+        sha256: 6395a00a97ff30af878ee8d7fd5ad0ab1c7844f7219182c6d71acbee1b5f3026
+        dest: external-packages/ORTools
+
+      # Subdeps OR-Tools' BUILD_DEPS=ON would normally fetch via FetchContent.
+      # Pre-staged here so the sandboxed build can find them (deps/ORTools/ORTools.cmake
+      # passes -DFETCHCONTENT_SOURCE_DIR_<NAME>=... pointing at these locations).
+      # Versions and patches must match exactly what OR-Tools v9.15 expects:
+      # see cmake/dependencies/CMakeLists.txt in the OR-Tools tarball above.
+
+      # abseil-cpp 20250814.1 — required by OR-Tools v9.15 (FetchContent name: absl)
+      - type: git
+        url: https://github.com/abseil/abseil-cpp.git
+        tag: "20250814.1"
+        commit: d38452e1ee03523a208362186fd42248ff2609f6
+        dest: external-packages/abseil-cpp
+
+      # protobuf v33.1 — required by OR-Tools v9.15 (FetchContent name: Protobuf)
+      - type: git
+        url: https://github.com/protocolbuffers/protobuf.git
+        tag: "v33.1"
+        commit: e1c1fc8cab0fd4c5187b12aed7fd0e64bcbee8c1
+        dest: external-packages/protobuf
+
+      # re2 2025-08-12 — required by OR-Tools v9.15 (FetchContent name: re2)
+      # Tag is QUOTED to prevent YAML date interpretation (would become "2025-08-12T00:00:00")
+      - type: git
+        url: https://github.com/google/re2.git
+        tag: "2025-08-12"
+        commit: 0acbd92727c6ea785ced598fae92a7d56fabcb54
+        dest: external-packages/re2
+
+      # zlib v1.3.1 — required by OR-Tools v9.15 (FetchContent name: ZLIB)
+      # OR-Tools applies an internal patch to this source; we use git source
+      # rather than archive so the patch context (.git/) is available.
+      - type: git
+        url: https://github.com/madler/ZLIB.git
+        tag: "v1.3.1"
+        commit: 925af44f3cde53c6b076611c297850091b5dc7bb
+        dest: external-packages/zlib
+
+      # bzip2 — required by OR-Tools v9.15 (FetchContent name: BZip2)
+      # bzip2 has no version tags; OR-Tools uses GIT_TAG=master. We pin to a
+      # specific commit (master HEAD as of 2026-05) for reproducibility.
+      - type: git
+        url: https://gitlab.com/bzip2/bzip2.git
+        commit: 66c46b8c9436613fd81bc5d03f63a61933a4dcc3
+        dest: external-packages/bzip2
+
+      # eigen 3.4.0 — required by OR-Tools v9.15 (FetchContent name: eigen3)
+      - type: git
+        url: https://gitlab.com/libeigen/eigen.git
+        tag: "3.4.0"
+        commit: 3147391d946bb4b6c68edd901f2add6ac1f31f8c
+        dest: external-packages/eigen
+
       # OpenSSL 1.1.1w (GNOME SDK has 3.x; OrcaSlicer requires 1.1.x)
       - type: file
         url: https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz

@@ -2117,6 +2117,14 @@ public:
             throw ConfigurationError("ConfigOptionEnumsGeneric: Comparing incompatible types");
         return this->values == rhs.values;
     }
+    // Explicit overload for same-type comparison. Without this, MSVC reports
+    // C2666 because both this->operator==(const ConfigOptionInts&) and the
+    // inherited operator==(const ConfigOptionIntsTempl&) match when comparing
+    // two derived ConfigOptionEnumsGenericTempl values.
+    bool                        operator==(const ConfigOptionEnumsGenericTempl& rhs) const throw()
+    {
+        return this->values == rhs.values;
+    }
     bool nullable() const override { return NULLABLE; }
 
     void set(const ConfigOption* rhs) override {
@@ -2594,6 +2602,21 @@ public:
             throw BadOptionTypeException("Conversion to a wrong type");
         return static_cast<TYPE*>(opt);
     }
+
+    // Get an enum option, throwing if not found.
+    // Works correctly for both ConfigOptionEnumGeneric (coEnum) and ConfigOptionEnum<T>.
+    template<typename ENUM>
+    ENUM                        opt_enum(const t_config_option_key &opt_key) const {
+        return static_cast<ENUM>(this->option_throw(opt_key)->getInt());
+    }
+
+    // Safe variant that returns default_val if option doesn't exist.
+    // Works correctly for both ConfigOptionEnumGeneric (coEnum) and ConfigOptionEnum<T>.
+    template<typename ENUM>
+    ENUM                        opt_enum_or(const t_config_option_key &opt_key, ENUM default_val) const {
+        const ConfigOption* opt = this->optptr(opt_key);
+        return opt ? static_cast<ENUM>(opt->getInt()) : default_val;
+    }
 };
 
 
@@ -2854,6 +2877,9 @@ public:
     // Allow DynamicConfig to be instantiated on ints own without a definition.
     // If the definition is not defined, the method requiring the definition will throw NoDefinitionException.
     const ConfigDef*        def() const override { return nullptr; }
+    // Bring base class opt_enum/opt_enum_or into scope (otherwise hidden by indexed opt_enum below)
+    using ConfigOptionResolver::opt_enum;
+    using ConfigOptionResolver::opt_enum_or;
     template<class T> T*    opt(const t_config_option_key &opt_key, bool create = false)
         { return dynamic_cast<T*>(this->option(opt_key, create)); }
     template<class T> const T* opt(const t_config_option_key &opt_key) const
@@ -2904,11 +2930,13 @@ public:
     int&                opt_int(const t_config_option_key &opt_key, unsigned int idx)           { return this->option<ConfigOptionInts>(opt_key)->get_at(idx); }
     int                 opt_int(const t_config_option_key &opt_key, unsigned int idx) const     { return dynamic_cast<const ConfigOptionInts*>(this->option(opt_key))->get_at(idx); }
 
-    // In ConfigManipulation::toggle_print_fff_options, it is called on option with type ConfigOptionEnumGeneric* and also ConfigOptionEnum*.
-    // Thus the virtual method getInt() is used to retrieve the enum value.
+    // Set an enum option. Works correctly for both ConfigOptionEnumGeneric and ConfigOptionEnum<T>.
+    // Creates the option if it doesn't exist (when create=true, the default).
     template<typename ENUM>
-    ENUM                opt_enum(const t_config_option_key &opt_key) const                      { return static_cast<ENUM>(this->option(opt_key)->getInt()); }
-    // BBS
+    void                opt_set_enum(const t_config_option_key &opt_key, ENUM value, bool create = true) {
+        this->option(opt_key, create)->setInt(static_cast<int>(value));
+    }
+    // BBS: indexed enum access for vector enums
     int                 opt_enum(const t_config_option_key &opt_key, unsigned int idx) const    { return dynamic_cast<const ConfigOptionEnumsGeneric*>(this->option(opt_key))->get_at(idx); }
 
     bool                opt_bool(const t_config_option_key &opt_key) const                      { return this->option<ConfigOptionBool>(opt_key)->value != 0; }

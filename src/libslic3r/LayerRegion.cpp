@@ -52,7 +52,7 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
 // Fill in layerm->fill_surfaces by trimming the layerm->slices by the cummulative layerm->fill_surfaces.
 void LayerRegion::slices_to_fill_surfaces_clipped()
 {
-    // Note: this method should be idempotent, but fill_surfaces gets modified 
+    // Note: this method should be idempotent, but fill_surfaces gets modified
     // in place. However we're now only using its boundaries (which are invariant)
     // so we're safe. This guarantees idempotence of prepare_infill() also in case
     // that combine_infill() turns some fill_surface into VOID surfaces.
@@ -64,8 +64,16 @@ void LayerRegion::slices_to_fill_surfaces_clipped()
     this->fill_surfaces.surfaces.clear();
     for (size_t surface_type = 0; surface_type < size_t(stCount); ++ surface_type) {
         const SurfacesPtr &this_surfaces = by_surface[surface_type];
-        if (! this_surfaces.empty())
-            this->fill_surfaces.append(intersection_ex(this_surfaces, this->fill_expolygons), SurfaceType(surface_type));
+        if (! this_surfaces.empty()) {
+            // Zone: Clip floor/ceiling surfaces to inner zone (inside shells) rather than fill_expolygons
+            // This keeps floor/ceiling from "escaping" outside the zone shell perimeters
+            SurfaceType st = SurfaceType(surface_type);
+            if ((st == stZoneFloor || st == stZoneCeiling) && !this->inner_zone.empty()) {
+                this->fill_surfaces.append(intersection_ex(this_surfaces, this->inner_zone), st);
+            } else {
+                this->fill_surfaces.append(intersection_ex(this_surfaces, this->fill_expolygons), st);
+            }
+        }
     }
 }
 
@@ -117,6 +125,10 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
     g.ext_perimeter_flow    = this->flow(frExternalPerimeter);
     g.overhang_flow         = this->bridging_flow(frPerimeter, object_config.thick_bridges);
     g.solid_infill_flow     = this->flow(frSolidInfill);
+
+    // Zone: Pass pre-computed 3D zone boundary and inner zone output
+    g.zone_boundary   = &this->layer()->zone_boundary;
+    g.inner_zone_out        = &this->inner_zone;
 
     if (this->layer()->object()->config().wall_generator.value == PerimeterGeneratorType::Arachne && !spiral_mode)
         g.process_arachne();
@@ -505,12 +517,19 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     ExPolygons shells = union_ex(fill_surfaces_extract_expolygons(this->fill_surfaces.surfaces, { stInternalSolid }, layer_thickness));
     ExPolygons sparse = union_ex(fill_surfaces_extract_expolygons(this->fill_surfaces.surfaces, {stInternal}, layer_thickness));
     ExPolygons top_expolygons = union_ex(fill_surfaces_extract_expolygons(this->fill_surfaces.surfaces, {stTop}, layer_thickness));
+    // Zone: Extract yolk infill - it becomes an expansion zone (top/bottom/bridges can expand into it)
+    ExPolygons zone_inner = union_ex(fill_surfaces_extract_expolygons(this->fill_surfaces.surfaces, {stZoneInner}, layer_thickness));
+
     const auto expansion_params_into_sparse_infill = RegionExpansionParameters::build(expansion_min, expansion_step, max_nr_expansion_steps);
     const auto expansion_params_into_solid_infill  = RegionExpansionParameters::build(expansion_bottom_bridge, expansion_step, max_nr_expansion_steps);
 
+    // Expansion zones: top is popped after bridge detection, remainder stay.
+    // Zone inner (yolk) is expendable like sparse (bridges/top/bottom can consume it).
+    enum : size_t { zShells = 0, zSparse = 1, zZoneInner = 2 };
     std::vector<ExpansionZone> expansion_zones{
         ExpansionZone{std::move(shells), expansion_params_into_solid_infill},
         ExpansionZone{std::move(sparse), expansion_params_into_sparse_infill},
+        ExpansionZone{std::move(zone_inner), expansion_params_into_sparse_infill},
         ExpansionZone{std::move(top_expolygons), expansion_params_into_solid_infill},
     };
 
@@ -536,52 +555,126 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         top_templ.thickness = layer_thickness;
         this->fill_surfaces.append(std::move(expansion_zones.back().expolygons), top_templ);
     }
-
     expansion_zones.pop_back();
+    // Now: zShells, zSparse, zZoneInner
 
-    expansion_zones.at(0).parameters = RegionExpansionParameters::build(expansion_bottom, expansion_step, max_nr_expansion_steps);
+    // Expand bottom/top surfaces into expansion zones
+    expansion_zones.at(zShells).parameters = RegionExpansionParameters::build(expansion_bottom, expansion_step, max_nr_expansion_steps);
     Surfaces bottoms = expand_merge_surfaces(this->fill_surfaces.surfaces, stBottom, expansion_zones, closing_radius);
 
-    expansion_zones.at(0).parameters = RegionExpansionParameters::build(expansion_top, expansion_step, max_nr_expansion_steps);
+    expansion_zones.at(zShells).parameters = RegionExpansionParameters::build(expansion_top, expansion_step, max_nr_expansion_steps);
     Surfaces tops = expand_merge_surfaces(this->fill_surfaces.surfaces, stTop, expansion_zones, closing_radius);
 
-    // turn too small internal regions into solid regions according to the user setting
-    if (!this->layer()->object()->print()->config().spiral_mode && this->region().config().sparse_infill_density.value > 0) {
-        // scaling an area requires two calls!
-        double min_area = scale_(scale_(this->region().config().minimum_sparse_infill_area.value));
-        ExPolygons small_regions{};
-        expansion_zones[1].expolygons.erase(std::remove_if(expansion_zones[1].expolygons.begin(), expansion_zones[1].expolygons.end(), [min_area, &small_regions](ExPolygon& ex_polygon) {
-            if (ex_polygon.area() <= min_area) {
-                small_regions.push_back(ex_polygon);
-                return true;
-            }
-            return false;
-        }), expansion_zones[1].expolygons.end());
+    // Zone: Expand floor/ceiling like bottom/top to get proper shell thickness
+    // Floor needs solid layers above it (into yolk), ceiling needs solid layers below it (into yolk)
+    expansion_zones.at(zShells).parameters = RegionExpansionParameters::build(expansion_bottom, expansion_step, max_nr_expansion_steps);
+    Surfaces zone_floors = expand_merge_surfaces(this->fill_surfaces.surfaces, stZoneFloor, expansion_zones, closing_radius);
 
-        if (!small_regions.empty()) {
-            expansion_zones[0].expolygons = union_ex(expansion_zones[0].expolygons, small_regions);
-        }
+    expansion_zones.at(zShells).parameters = RegionExpansionParameters::build(expansion_top, expansion_step, max_nr_expansion_steps);
+    Surfaces zone_ceilings = expand_merge_surfaces(this->fill_surfaces.surfaces, stZoneCeiling, expansion_zones, closing_radius);
+
+    // Turn too small internal regions into solid regions according to the user setting
+    if (!this->layer()->object()->print()->config().spiral_mode && this->region().config().sparse_infill_density.value > 0) {
+        double min_area = scale_(scale_(this->region().config().minimum_sparse_infill_area.value));
+
+        // Helper to move small regions from source to destination
+        auto move_small_to_solid = [min_area](ExPolygons& source, ExPolygons& dest) {
+            source.erase(std::remove_if(source.begin(), source.end(), [min_area, &dest](ExPolygon& ex) {
+                if (ex.area() <= min_area) {
+                    dest.push_back(std::move(ex));
+                    return true;
+                }
+                return false;
+            }), source.end());
+        };
+
+        ExPolygons small_to_solid;
+        move_small_to_solid(expansion_zones[zSparse].expolygons, small_to_solid);
+        move_small_to_solid(expansion_zones[zZoneInner].expolygons, small_to_solid);
+
+        if (!small_to_solid.empty())
+            expansion_zones[zShells].expolygons = union_ex(expansion_zones[zShells].expolygons, small_to_solid);
+
+        // Width-based thin section filter: split narrow parts of sparse regions
+        // into solid fill using morphological opening. The opening (shrink then
+        // expand) creates a "thick enough" mask — sections narrower than the
+        // minimum width collapse during the shrink and don't come back. Intersect
+        // the original with the mask to keep exact boundaries on the thick part;
+        // diff gives the thin strips that become solid.
+        // Gated behind filter_narrow_sparse_infill (default on).
+        if (this->region().config().filter_narrow_sparse_infill.value) {
+            double min_width_mm = this->region().config().minimum_sparse_infill_width.value;
+            if (min_width_mm <= 0) {
+                // Auto: 2x nozzle diameter
+                auto nozzle_diameter = this->region().nozzle_dmr_avg(this->layer()->object()->print()->config());
+                min_width_mm = nozzle_diameter * 2.0;
+            }
+            const coord_t thin_threshold = scale_(min_width_mm / 2.0);  // opening removes 2x threshold
+            if (thin_threshold > 0) {
+                ExPolygons thin_to_solid;
+
+                for (size_t zone_idx : {zSparse, zZoneInner}) {
+                    ExPolygons &source = expansion_zones[zone_idx].expolygons;
+                    if (source.empty())
+                        continue;
+                    // Asymmetric opening: expand slightly MORE than we shrink so the mask
+                    // fully covers the original at non-thin regions.  This compensates for
+                    // Clipper's arc approximation during offset, matching the pattern used in
+                    // PrintObject.cpp:4007 and Fill.cpp:1095.
+                    ExPolygons mask = offset_ex(
+                        offset_ex(source, -thin_threshold),
+                        thin_threshold + ClipperSafetyOffset);
+                    if (mask.empty()) {
+                        // Everything is too thin — all to solid
+                        append(thin_to_solid, std::move(source));
+                        source.clear();
+                    } else {
+                        ExPolygons thin_parts = diff_ex(source, mask);
+                        if (!thin_parts.empty()) {
+                            source = intersection_ex(source, mask);
+                            append(thin_to_solid, std::move(thin_parts));
+                        }
+                    }
+                }
+
+                if (!thin_to_solid.empty())
+                    expansion_zones[zShells].expolygons = union_ex(expansion_zones[zShells].expolygons, thin_to_solid);
+            }
+        } // filter_narrow_sparse_infill
     }
 
-//    this->fill_surfaces.remove_types({ stBottomBridge, stBottom, stTop, stInternal, stInternalSolid });
+    // Re-add all surfaces to fill_surfaces
     this->fill_surfaces.clear();
     unsigned zones_expolygons_count = 0;
     for (const ExpansionZone& zone : expansion_zones)
         zones_expolygons_count += zone.expolygons.size();
-    reserve_more(this->fill_surfaces.surfaces, zones_expolygons_count + bridges.size() + bottoms.size() + tops.size());
+    reserve_more(this->fill_surfaces.surfaces,
+        zones_expolygons_count + bridges.size() + bottoms.size() + tops.size() +
+        zone_floors.size() + zone_ceilings.size());
+
+    // Re-add zone remainders with their original surface types
     {
         Surface solid_templ(stInternalSolid, {});
         solid_templ.thickness = layer_thickness;
-        this->fill_surfaces.append(std::move(expansion_zones[0].expolygons), solid_templ);
+        this->fill_surfaces.append(std::move(expansion_zones[zShells].expolygons), solid_templ);
     }
     {
         Surface sparse_templ(stInternal, {});
         sparse_templ.thickness = layer_thickness;
-        this->fill_surfaces.append(std::move(expansion_zones[1].expolygons), sparse_templ);
+        this->fill_surfaces.append(std::move(expansion_zones[zSparse].expolygons), sparse_templ);
     }
+    {
+        Surface zone_inner_templ(stZoneInner, {});
+        zone_inner_templ.thickness = layer_thickness;
+        this->fill_surfaces.append(std::move(expansion_zones[zZoneInner].expolygons), zone_inner_templ);
+    }
+
+    // Re-add expanded surfaces
     this->fill_surfaces.append(std::move(bridges.surfaces));
     this->fill_surfaces.append(std::move(bottoms));
     this->fill_surfaces.append(std::move(tops));
+    this->fill_surfaces.append(std::move(zone_floors));
+    this->fill_surfaces.append(std::move(zone_ceilings));
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     export_region_fill_surfaces_to_svg_debug("4_process_external_surfaces-final");
@@ -634,8 +727,8 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         if (this->layer()->lower_layer != nullptr)
             max_grid_area = this->layer()->lower_layer->get_sparse_infill_max_void_area();
         for (const Surface &surface : this->fill_surfaces.surfaces) {
-            if (surface.is_top()) {
-                // Collect the top surfaces, inflate them and trim them by the bottom surfaces.
+            if (surface.is_top() || surface.is_zone_ceiling()) {
+                // Collect the top surfaces (and zone ceiling), inflate them and trim them by the bottom surfaces.
                 // This gives the priority to bottom surfaces.
                 if (max_grid_area < 0 || surface.expolygon.area() < max_grid_area)
                     surfaces_append(top, offset_ex(surface.expolygon, margin, EXTERNAL_SURFACES_OFFSET_PARAMETERS), surface);
@@ -643,16 +736,18 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                     //BBS: Don't need to expand too much in this situation. Expand 3mm to eliminate hole and 1mm for contour
                     surfaces_append(top, intersection_ex(offset(surface.expolygon.contour, margin / 3.0, EXTERNAL_SURFACES_OFFSET_PARAMETERS),
                                                          offset_ex(surface.expolygon, margin, EXTERNAL_SURFACES_OFFSET_PARAMETERS)), surface);
-            } else if (surface.surface_type == stBottom || (surface.surface_type == stBottomBridge && lower_layer == nullptr)) {
-                // Grown by 3mm.
+            } else if (surface.surface_type == stBottom || surface.is_zone_floor() || (surface.surface_type == stBottomBridge && lower_layer == nullptr)) {
+                // Grown by 3mm. Zone floor is like bottom - solid surface over sparse infill below.
                 surfaces_append(bottom, offset_ex(surface.expolygon, margin, EXTERNAL_SURFACES_OFFSET_PARAMETERS), surface);
             } else if (surface.surface_type == stBottomBridge) {
                 if (! surface.empty())
                     bridges.emplace_back(surface);
-            }
-            if (surface.is_internal()) {
-            	assert(surface.surface_type == stInternal || surface.surface_type == stInternalSolid);
-            	if (! has_infill && lower_layer != nullptr)
+            } else if (surface.is_internal()) {
+            	// Internal surfaces: stInternal, stInternalSolid, stZoneInner
+            	assert(surface.surface_type == stInternal || surface.surface_type == stInternalSolid ||
+            	       surface.surface_type == stZoneInner);
+            	// Zone: Don't convert zone surfaces to void - they need to stay as-is
+            	if (! has_infill && lower_layer != nullptr && !surface.is_zone())
             		polygons_append(voids, surface.expolygon);
             	internal.emplace_back(std::move(surface));
             }
@@ -915,7 +1010,7 @@ void LayerRegion::prepare_fill_surfaces()
     if (!spiral_mode && fabs(this->region().config().sparse_infill_density.value - 100.) < EPSILON) {
         // Turn all internal sparse infill into solid infill, if sparse_infill_density is 100%
         for (Surface &surface : this->fill_surfaces.surfaces)
-            if (surface.surface_type == stInternal)
+            if (surface.is_sparse_fill())
                 surface.surface_type = stInternalSolid;
     }
 

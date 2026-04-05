@@ -19,6 +19,8 @@
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/Magma/MagmaTubeMap.hpp"
+#include "libslic3r/Magma/MagmaTriangleCell.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -92,6 +94,12 @@ Slic3r::ExtrusionRole convert(EGCodeExtrusionRole role)
     case EGCodeExtrusionRole::Brim:                     { return Slic3r::ExtrusionRole::erBrim; }
     case EGCodeExtrusionRole::SupportTransition:        { return Slic3r::ExtrusionRole::erSupportTransition; }
     case EGCodeExtrusionRole::Mixed:                    { return Slic3r::ExtrusionRole::erMixed; }
+    // Dual Infill Zones
+    case EGCodeExtrusionRole::ZoneOuterInfill:          { return Slic3r::ExtrusionRole::erZoneOuterInfill; }
+    case EGCodeExtrusionRole::ZoneShell:                { return Slic3r::ExtrusionRole::erZoneShell; }
+    case EGCodeExtrusionRole::ZoneFloor:                { return Slic3r::ExtrusionRole::erZoneFloor; }
+    case EGCodeExtrusionRole::ZoneCeiling:              { return Slic3r::ExtrusionRole::erZoneCeiling; }
+    case EGCodeExtrusionRole::MagmaInjection:           { return Slic3r::ExtrusionRole::erMagmaInjection; }
     default:                                            { return Slic3r::ExtrusionRole::erNone; }
     }
 }
@@ -121,6 +129,12 @@ EGCodeExtrusionRole convert(Slic3r::ExtrusionRole role)
     case Slic3r::ExtrusionRole::erBrim:                        { return EGCodeExtrusionRole::Brim; }
     case Slic3r::ExtrusionRole::erSupportTransition:           { return EGCodeExtrusionRole::SupportTransition; }
     case Slic3r::ExtrusionRole::erMixed:                       { return EGCodeExtrusionRole::Mixed; }
+    // Dual Infill Zones
+    case Slic3r::ExtrusionRole::erZoneOuterInfill:             { return EGCodeExtrusionRole::ZoneOuterInfill; }
+    case Slic3r::ExtrusionRole::erZoneShell:                   { return EGCodeExtrusionRole::ZoneShell; }
+    case Slic3r::ExtrusionRole::erZoneFloor:                   { return EGCodeExtrusionRole::ZoneFloor; }
+    case Slic3r::ExtrusionRole::erZoneCeiling:                 { return EGCodeExtrusionRole::ZoneCeiling; }
+    case Slic3r::ExtrusionRole::erMagmaInjection:              { return EGCodeExtrusionRole::MagmaInjection; }
     default:                                                   { return EGCodeExtrusionRole::None; }
     }
 }
@@ -544,6 +558,114 @@ static void convert_wipe_tower_to_vertices(const Slic3r::Print& print, const std
     Slic3r::sort_remove_duplicates(data.layers_zs);
 }
 
+static void convert_magma_injection_to_vertices(const Slic3r::Print& print,
+    std::vector<VerticesData>& vertices_data)
+{
+    for (const Slic3r::PrintObject* obj : print.objects()) {
+        const auto* tube_map = obj->magma_tube_map();
+        if (!tube_map)
+            continue;
+
+        const auto& pairs = tube_map->u_tube_pairs();
+        if (pairs.empty())
+            continue;
+
+        const auto& obj_layers = obj->layers();
+        if (obj_layers.empty())
+            continue;
+
+        const float interior_width = tube_map->interior_width();
+
+        vertices_data.emplace_back(VerticesData());
+        VerticesData& data = vertices_data.back();
+
+        // Collect layers_zs and build layer_id → layers_zs index map.
+        data.layers_zs.reserve(obj_layers.size());
+        std::map<int, uint32_t> lid_to_zs_idx;
+        for (size_t i = 0; i < obj_layers.size(); ++i) {
+            const float pz = static_cast<float>(obj_layers[i]->print_z);
+            // Find or insert into sorted layers_zs
+            auto it = std::lower_bound(data.layers_zs.begin(), data.layers_zs.end(), pz);
+            uint32_t idx;
+            if (it != data.layers_zs.end() && *it == pz) {
+                idx = static_cast<uint32_t>(std::distance(data.layers_zs.begin(), it));
+            } else {
+                idx = static_cast<uint32_t>(std::distance(data.layers_zs.begin(),
+                    data.layers_zs.insert(it, pz)));
+            }
+            lid_to_zs_idx[static_cast<int>(obj_layers[i]->id())] = idx;
+        }
+
+        // Iterate pairs → layers (not layers → pairs).
+        // Per pair we compute the z-slam floor once, then emit only visible layers.
+        Slic3r::magma::TriangleLattice lattice(tube_map->cell_spacing(), 0, 0);
+
+        for (const auto& pair : pairs) {
+            if (pair.volume_mm3 <= 0)
+                continue;
+
+            // Window center layer — tube fill only exists from this layer upward.
+            const int window_center = tube_map->window_center_layer(pair);
+
+            const Slic3r::Vec2d center_a = lattice.cell_center(pair.cell_a);
+            const Slic3r::Vec2d center_b = lattice.cell_center(pair.cell_b);
+
+            for (size_t layer_idx = 0; layer_idx < obj_layers.size(); ++layer_idx) {
+                const Slic3r::Layer* layer = obj_layers[layer_idx];
+                const int lid = static_cast<int>(layer->id());
+                if (lid < window_center || lid > pair.pair_end_layer)
+                    continue;
+
+                const float layer_z = static_cast<float>(layer->print_z);
+                const float lh = static_cast<float>(layer->height);
+                const auto zs_it = lid_to_zs_idx.find(lid);
+                assert(zs_it != lid_to_zs_idx.end());
+                const uint32_t vertex_layer_id = (zs_it != lid_to_zs_idx.end()) ? zs_it->second : 0;
+
+                for (const Slic3r::PrintInstance& instance : obj->instances()) {
+                    const float sx = Slic3r::unscale<float>(instance.shift.x());
+                    const float sy = Slic3r::unscale<float>(instance.shift.y());
+
+                    const float ax = static_cast<float>(center_a.x()) + sx;
+                    const float ay = static_cast<float>(center_a.y()) + sy;
+                    const float bx = static_cast<float>(center_b.x()) + sx;
+                    const float by = static_cast<float>(center_b.y()) + sy;
+
+                    // Noop separator + extrude start at cell_a
+#if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+                    PathVertex vertex = { convert(Slic3r::Vec3f(ax, ay, layer_z)), lh, interior_width,
+                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Noop, 0,
+                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
+#else
+                    PathVertex vertex = { convert(Slic3r::Vec3f(ax, ay, layer_z)), lh, interior_width,
+                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Noop, 0,
+                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
+#endif
+                    data.vertices.emplace_back(vertex);
+                    vertex.type = EMoveType::Extrude;
+                    data.vertices.emplace_back(vertex);
+
+                    // Extrude end at cell_b
+#if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+                    vertex = { convert(Slic3r::Vec3f(bx, by, layer_z)), lh, interior_width,
+                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Extrude, 0,
+                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
+#else
+                    vertex = { convert(Slic3r::Vec3f(bx, by, layer_z)), lh, interior_width,
+                        0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                        EGCodeExtrusionRole::MagmaInjection, EMoveType::Extrude, 0,
+                        vertex_layer_id, 0, 0, { 0.0f, 0.0f } };
+#endif
+                    data.vertices.emplace_back(vertex);
+                }
+            }
+        }
+    }
+}
+
 class ObjectHelper
 {
 public:
@@ -715,14 +837,21 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                         // fill represents infill extrusions of a single island.
                         const auto& fill = *dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee);
                         if (!fill.entities.empty()) {
-                            const bool is_solid_infill = Slic3r::is_solid_infill(fill.entities.front()->role());
-                            const size_t extruder_id = is_solid_infill ?
-                                static_cast<size_t>(std::max(cfg.solid_infill_filament.value - 1, 0)) :
-                                static_cast<size_t>(std::max(cfg.sparse_infill_filament.value - 1, 0));
+                            size_t extruder_id;
+                            EGCodeExtrusionRole viz_role;
+                            if (fill.has_zone_fill()) {
+                                extruder_id = static_cast<size_t>(std::max(cfg.dual_infill_outer_filament.value - 1, 0));
+                                viz_role = EGCodeExtrusionRole::SolidInfill;
+                            } else if (Slic3r::is_solid_infill(fill.entities.front()->role())) {
+                                extruder_id = static_cast<size_t>(std::max(cfg.solid_infill_filament.value - 1, 0));
+                                viz_role = EGCodeExtrusionRole::SolidInfill;
+                            } else {
+                                extruder_id = static_cast<size_t>(std::max(cfg.sparse_infill_filament.value - 1, 0));
+                                viz_role = EGCodeExtrusionRole::InternalInfill;
+                            }
                             convert_to_vertices(fill, layer_z, layer_id, extruder_id,
                                                 object_helper.color_id(layer_z, extruder_id),
-                                                is_solid_infill ? EGCodeExtrusionRole::SolidInfill : EGCodeExtrusionRole::InternalInfill,
-                                                copy, data.vertices);
+                                                viz_role, copy, data.vertices);
                         }
                     }
                 }
@@ -776,6 +905,10 @@ GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string
     if (!print.wipe_tower_data().tool_changes.empty() && print.is_step_done(Slic3r::psWipeTower))
         // extract vertices and layers zs from wipe tower
         convert_wipe_tower_to_vertices(print, str_tool_colors, data);
+    // extract vertices and layers zs from magma injection tube fills
+    // Guard: tube map is built during posPrepareInfill — only access after that step completes
+    if (print.is_step_done(Slic3r::posPrepareInfill))
+        convert_magma_injection_to_vertices(print, data);
     // extract vertices and layers zs from objects
     convert_objects_to_vertices(print.objects(), str_tool_colors, str_color_print_colors, color_print_values, extruders_count, data);
 

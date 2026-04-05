@@ -37,6 +37,16 @@ enum ExtrusionRole : uint8_t {
     erSupportTransition,
     erWipeTower,
     erCustom,
+    // Dual infill zone outer infill (Magma Triangle U-tube pattern)
+    erZoneOuterInfill,
+    // Zone shell walls (perimeters between outer and inner zones)
+    erZoneShell,
+    // Zone floor (bottom of zone boundary, solid)
+    erZoneFloor,
+    // Zone ceiling (top of zone boundary, bridges over inner zone)
+    erZoneCeiling,
+    // Magma injection (stationary extrude to fill tubes with plastic)
+    erMagmaInjection,
     // Extrusion role for a collection with multiple extrusion roles.
     erMixed,
     erCount
@@ -78,7 +88,10 @@ inline bool is_infill(ExtrusionRole role)
         || role == erSolidInfill
         || role == erTopSolidInfill
         || role == erBottomSurface
-        || role == erIroning;
+        || role == erIroning
+        || role == erZoneOuterInfill
+        || role == erZoneFloor
+        || role == erZoneCeiling;
 }
 
 inline bool is_top_surface(ExtrusionRole role)
@@ -88,12 +101,17 @@ inline bool is_top_surface(ExtrusionRole role)
 
 inline bool is_solid_infill(ExtrusionRole role)
 {
+    // erZoneOuterInfill excluded — routed to dual_infill_outer_filament
+    // via has_zone_fill() in ToolOrdering. Including it here would mis-route
+    // to solid_infill_filament in multi-extruder setups.
     return role == erBridgeInfill
         || role == erInternalBridgeInfill
         || role == erSolidInfill
         || role == erTopSolidInfill
         || role == erBottomSurface
-        || role == erIroning;
+        || role == erIroning
+        || role == erZoneFloor
+        || role == erZoneCeiling;
 }
 
 inline bool is_bridge(ExtrusionRole role) {

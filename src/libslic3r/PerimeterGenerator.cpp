@@ -365,6 +365,8 @@ struct PerimeterGeneratorArachneExtrusion
     Arachne::ExtrusionLine* extrusion = nullptr;
     // Indicates if closed ExtrusionLine is a contour or a hole. Used it only when ExtrusionLine is a closed loop.
     bool is_contour = false;
+    // Zone: Indicates if this extrusion is part of the inner shell walls
+    bool is_zone_shell = false;
 };
 
 static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& perimeter_generator, std::vector<PerimeterGeneratorArachneExtrusion>& pg_extrusions,
@@ -381,7 +383,14 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             continue;
 
         const bool    is_external = extrusion->inset_idx == 0;
-        ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
+        ExtrusionRole role;
+        if (pg_extrusion.is_zone_shell) {
+            role = erZoneShell;  // Zone shell walls use dedicated role
+        } else if (is_external) {
+            role = erExternalPerimeter;
+        } else {
+            role = erPerimeter;
+        }
 
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
         apply_fuzzy_skin(extrusion, perimeter_generator, is_contour);
@@ -2204,6 +2213,8 @@ void PerimeterGenerator::process_arachne()
         Arachne::WallToolPaths wallToolPaths(last_p, bead_width_0, perimeter_spacing, coord_t(loop_number + 1),
                                                wall_0_inset, layer_height, input_params_tmp);
         std::vector<Arachne::VariableWidthLines>   perimeters = wallToolPaths.getToolPaths();
+        // Zone: Track which ExtrusionLine pointers are from inner shell walls
+        std::unordered_set<Arachne::ExtrusionLine*> zone_shell_lines;
         ExPolygons  infill_contour = union_ex(wallToolPaths.getInnerContour());
 
         // Check if there are some remaining perimeters to generate (the number of perimeters
@@ -2279,6 +2290,116 @@ void PerimeterGenerator::process_arachne()
         //PS
 
         loop_number = int(perimeters.size()) - 1;
+
+        // Zone: Generate inner shell walls if enabled
+        [&]() {
+            if (!this->config->dual_infill_enabled || infill_contour.empty())
+                return;
+            // Require pre-computed 3D zone boundary from PrintObject::compute_zone_boundary()
+            if (!this->zone_boundary || this->zone_boundary->empty())
+                return;
+
+            // Intersect 3D boundary with infill_contour to get the boundary within this region.
+            // Note: 3D voxel-based filtering (dual_infill_min_inner_width) already removes thin sections.
+            // We DON'T apply opening_ex here because:
+            // 1. Regular perimeters work without it
+            // 2. It would change the boundary, causing mismatch with floor/ceiling detection
+            //    which uses zone_boundary directly
+            ExPolygons inner_shell_boundary = intersection_ex(*this->zone_boundary, infill_contour);
+            if (inner_shell_boundary.empty())
+                return;
+
+            // Generate inner shell walls using WallToolPaths
+            coord_t shell_line_width = perimeter_spacing;
+            if (this->config->dual_infill_shell_width.value > 0) {
+                double nozzle_diam = this->print_config->nozzle_diameter.get_at(this->config->wall_filament - 1);
+                shell_line_width = scale_(this->config->dual_infill_shell_width.get_abs_value(nozzle_diam));
+            }
+
+            // Convert to polygons - no opening_ex cleaning to keep boundary consistent
+            // with zone_boundary used in floor/ceiling detection
+            Polygons shell_polygons = to_polygons(inner_shell_boundary);
+            if (shell_polygons.empty())
+                return;
+
+            // Remove degenerate polygons (less than 3 points or near-zero area)
+            shell_polygons.erase(
+                std::remove_if(shell_polygons.begin(), shell_polygons.end(),
+                    [](const Polygon& poly) {
+                        return poly.points.size() < 3 ||
+                               std::abs(poly.area()) < scale_(0.01) * scale_(0.01);
+                    }),
+                shell_polygons.end());
+            if (shell_polygons.empty())
+                return;
+
+            Arachne::WallToolPaths innerShellPaths(
+                shell_polygons,
+                shell_line_width,
+                shell_line_width,
+                this->config->dual_infill_shell_walls,
+                0,
+                layer_height,
+                input_params_tmp
+            );
+
+            auto inner_shell_walls = innerShellPaths.getToolPaths();
+
+            for (auto& wall_lines : inner_shell_walls) {
+                for (auto& line : wall_lines) {
+                    line.inset_idx += loop_number + 1;
+                }
+            }
+
+            // Insert inner shell walls and track pointers for erZoneShell role
+            size_t perimeters_before = perimeters.size();
+            perimeters.insert(perimeters.end(),
+                inner_shell_walls.begin(), inner_shell_walls.end());
+            // Mark all ExtrusionLines from inner shell walls for special treatment
+            for (size_t i = perimeters_before; i < perimeters.size(); ++i) {
+                for (Arachne::ExtrusionLine& line : perimeters[i]) {
+                    zone_shell_lines.insert(&line);
+                }
+            }
+
+            // Update infill_contour to exclude shell wall area while preserving:
+            // - Outer zone (between model perimeter and shell outer edge) for U-tube infill
+            // - Yolk (inside shell walls) for sparse infill
+            //
+            // Shell perimeters are inscribed inside zone_boundary (outer edge AT boundary,
+            // walls extend inward). We account for shell width when computing fill surfaces,
+            // mirroring how model perimeters handle infill contours:
+            //
+            // 1. Grow zone_boundary outward by shell_line_width/2 to create clearance
+            //    from the shell outer wall (same as model infill being inside perimeters)
+            // 2. Apply infill_wall_overlap to expand fill back toward shell for adhesion
+            //    (same as regular infill_wall_overlap with model perimeters)
+            //
+            // NOTE: No ApplySafetyOffset — it would expand outer_zone into zone_boundary,
+            // causing floor/ceiling (detected inside zone_boundary) to appear in outer_zone.
+            coord_t zone_infill_overlap = coord_t(scale_(
+                this->config->infill_wall_overlap.get_abs_value(
+                    unscale<double>(shell_line_width))));
+            coord_t shell_clearance = shell_line_width / 2 - zone_infill_overlap;
+            // Clamp: don't let overlap exceed clearance (would push fill past boundary)
+            if (shell_clearance < 0)
+                shell_clearance = 0;
+
+            ExPolygons outer_zone_boundary = offset_ex(inner_shell_boundary, shell_clearance);
+            ExPolygons outer_zone = diff_ex(infill_contour, outer_zone_boundary);
+            ExPolygons yolk = offset_ex(
+                union_ex(innerShellPaths.getInnerContour()), zone_infill_overlap);
+
+            // Zone: Store inner zone for floor/ceiling clipping in slices_to_fill_surfaces_clipped()
+            // This ensures floor/ceiling surfaces stay within the zone shell boundary
+            if (this->inner_zone_out != nullptr) {
+                *this->inner_zone_out = yolk;  // Copy before we move
+            }
+
+            infill_contour = std::move(outer_zone);
+            append(infill_contour, std::move(yolk));
+            infill_contour = union_ex(infill_contour);
+        }();
 
         #ifdef ARACHNE_DEBUG
         {
@@ -2382,7 +2503,8 @@ void PerimeterGenerator::process_arachne()
             }
 
             auto& best_path = all_extrusions[best_candidate];
-            ordered_extrusions.push_back({ best_path, best_path->is_contour() });
+            bool is_shell = zone_shell_lines.count(best_path) > 0;
+            ordered_extrusions.push_back({ best_path, best_path->is_contour(), is_shell });
             processed[best_candidate] = true;
             for (size_t unlocked_idx : blocking[best_candidate])
                 blocked[unlocked_idx]--;
@@ -2548,6 +2670,11 @@ void PerimeterGenerator::process_arachne()
         if (!top_expolygons.empty()) {
             infill_exp = union_ex(infill_exp, offset_ex(top_expolygons, double(top_inset)));
         }
+
+        // Append infill areas as stInternal
+        // Note: Zone floor/ceiling detection happens in detect_surfaces_type()
+        // which classifies surfaces including stZoneFloor/stZoneCeiling.
+        // Zone splitting (inner/outer) happens later when fill_surfaces is rebuilt.
         this->fill_surfaces->append(infill_exp, stInternal);
 
         apply_extra_perimeters(infill_exp);

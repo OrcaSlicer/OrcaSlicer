@@ -82,7 +82,9 @@ using enable_if_t = typename std::enable_if<B, T>::type;
 
 template<class F, class...Args>
 struct invoke_result {
-    using type = typename std::result_of<F(Args...)>::type;
+    // std::result_of was deprecated in C++17 and removed in C++20.
+    // std::invoke_result is the standard C++17+ replacement.
+    using type = typename std::invoke_result<F, Args...>::type;
 };
 
 template<class F, class...Args>
@@ -162,6 +164,17 @@ inline bool operator==(const Degrees& deg, const Radians& rads) {
 
 inline bool operator==(const Radians& rads, const Degrees& deg) {
     return deg == rads;
+}
+
+// Same-type overloads: exact match resolves C++20 rewritten-expression
+// ambiguity when MSVC compiles libslic3r in C++20 mode (OR-Tools propagates
+// cxx_std_20 via INTERFACE_COMPILE_FEATURES on MSVC).
+inline bool operator==(const Radians& a, const Radians& b) {
+    return std::abs(static_cast<double>(a) - static_cast<double>(b)) < 0.0001;
+}
+
+inline bool operator==(const Degrees& a, const Degrees& b) {
+    return std::abs(static_cast<double>(a) - static_cast<double>(b)) < 0.0001;
 }
 
 inline Radians::operator Degrees() { return *this * 180/Pi; }

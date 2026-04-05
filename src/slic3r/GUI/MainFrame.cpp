@@ -3788,9 +3788,9 @@ bool MainFrame::load_config_file(const std::string &path)
 void MainFrame::load_config(const DynamicPrintConfig& config)
 {
 	PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
-	const auto       *opt_printer_technology = config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
-	if (opt_printer_technology != nullptr && opt_printer_technology->value != printer_technology) {
-		printer_technology = opt_printer_technology->value;
+	PrinterTechnology config_printer_technology = config.opt_enum_or<PrinterTechnology>("printer_technology", printer_technology);
+	if (config_printer_technology != printer_technology) {
+		printer_technology = config_printer_technology;
 		this->plater()->set_printer_technology(printer_technology);
 	}
 #if 0

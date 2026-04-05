@@ -353,6 +353,7 @@ include(NLopt/NLopt.cmake)
 include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
+include(ORTools/ORTools.cmake)
 
 
 # I *think* 1.1 is used for *just* md5 hashing?
@@ -430,6 +431,7 @@ set(_dep_list
     ${ZLIB_PKG}
     ${EXPAT_PKG}
     dep_libnoise
+    dep_ORTools
     )
 
 if (MSVC)

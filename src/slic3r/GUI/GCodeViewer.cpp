@@ -295,6 +295,12 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     case libvgcode::EGCodeExtrusionRole::Brim:                     { return _u8L("Brim"); }
     case libvgcode::EGCodeExtrusionRole::SupportTransition:        { return _u8L("Support transition"); }
     case libvgcode::EGCodeExtrusionRole::Mixed:                    { return _u8L("Mixed"); }
+    // Dual Infill Zones
+    case libvgcode::EGCodeExtrusionRole::ZoneOuterInfill:          { return _u8L("Outer zone infill"); }
+    case libvgcode::EGCodeExtrusionRole::ZoneShell:                { return _u8L("Zone shell"); }
+    case libvgcode::EGCodeExtrusionRole::ZoneFloor:                { return _u8L("Zone floor"); }
+    case libvgcode::EGCodeExtrusionRole::ZoneCeiling:              { return _u8L("Zone ceiling"); }
+    case libvgcode::EGCodeExtrusionRole::MagmaInjection:          { return _u8L("Magma injection"); }
     default:                                                       { return _u8L("Unknown"); }
     }
 }
@@ -1276,7 +1282,11 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             libvgcode::EGCodeExtrusionRole::WipeTower,
             // ORCA
             libvgcode::EGCodeExtrusionRole::BottomSurface, libvgcode::EGCodeExtrusionRole::InternalBridgeInfill, libvgcode::EGCodeExtrusionRole::Brim,
-            libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed
+            libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed,
+            // Dual Infill Zones
+            libvgcode::EGCodeExtrusionRole::ZoneOuterInfill, libvgcode::EGCodeExtrusionRole::ZoneShell,
+            libvgcode::EGCodeExtrusionRole::ZoneFloor, libvgcode::EGCodeExtrusionRole::ZoneCeiling,
+            libvgcode::EGCodeExtrusionRole::MagmaInjection
             });
     m_paths_bounding_box = BoundingBoxf3(libvgcode::convert(bbox[0]).cast<double>(), libvgcode::convert(bbox[1]).cast<double>());
 
@@ -1457,6 +1467,12 @@ void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::InternalInfill,           { 255, 127, 127 });
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::SolidInfill,              { 255, 127, 127 });
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::WipeTower,                { 127, 255, 127 });
+    // Dual Infill Zones - Volcanic Strata palette
+    m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::ZoneOuterInfill,          { 255, 80, 30 });   // Hot Orange (infill channels)
+    m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::ZoneShell,                { 160, 90, 65 });   // Clay (earth tone group)
+    m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::ZoneFloor,                { 130, 75, 55 });   // Dark Clay (earth tone group)
+    m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::ZoneCeiling,              { 185, 110, 75 });  // Sandstone (earth tone group)
+    m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::MagmaInjection,           { 255, 25, 0 });    // Molten Lava (brightest)
     m_viewer.load(std::move(data));
 
     const libvgcode::AABox bbox = m_viewer.get_extrusion_bounding_box();
@@ -1478,6 +1494,13 @@ void GCodeViewer::reset_shell()
     m_shells.volumes.clear();
     m_shells.print_id = -1;
     m_shell_bounding_box = BoundingBoxf3();
+
+    // Zone boundary: Clear cache when model changes
+    m_zone_shells.volumes.clear();
+    m_zone_shells.cached_objects.clear();
+    m_zone_shells.cache_valid = false;
+    m_zone_shells.print_id = -1;
+    m_zone_shells.print_modify_count = -1;
 }
 
 void GCodeViewer::reset()
@@ -1510,6 +1533,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
     render_shells(canvas_width, canvas_height);
+    render_zone_shells(canvas_width, canvas_height);  // Zone interior shell debug visualization
 
     if (m_viewer.get_extrusion_roles().empty())
         return;
@@ -1530,7 +1554,26 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     auto endpoints = m_viewer.get_view_full_range();
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
     const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
-    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    // For Magma injection tube visualization, the synthetic vertices trace
+    // the tube path below the surface, but the nozzle stays at the injection
+    // point.  Walk backward past Extrude+MagmaInjection vertices to find the
+    // Travel/Unretract at the real nozzle position.  Only Extrude type is
+    // checked so we stop at the inter-injection Travel (which also carries
+    // the MagmaInjection role, as is normal for travels between extrusions).
+    if (curr_vertex.role == libvgcode::EGCodeExtrusionRole::MagmaInjection &&
+        curr_vertex.type == libvgcode::EMoveType::Extrude) {
+        size_t id = m_viewer.get_current_vertex_id();
+        while (id > 0) {
+            const auto& v = m_viewer.get_vertex_at(id);
+            if (v.role != libvgcode::EGCodeExtrusionRole::MagmaInjection ||
+                v.type != libvgcode::EMoveType::Extrude)
+                break;
+            --id;
+        }
+        m_sequential_view.marker.set_world_position(libvgcode::convert(m_viewer.get_vertex_at(id).position));
+    } else {
+        m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    }
     m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
     // BBS fixed buttom margin. m_moves_slider.pos_y
     m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
@@ -2233,6 +2276,167 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
         % m_shells.print_id % m_shells.print_modify_count % object_count %m_shells.volumes.volumes.size();
 }
 
+// Zone boundary: Rebuild GLVolumes from cached stage data (called on stage change or after load)
+void GCodeViewer::rebuild_zone_volumes()
+{
+    m_zone_shells.volumes.clear();
+
+    if (!m_zone_shells.cache_valid || m_zone_shells.stage == ZoneBoundaryStage::Off)
+        return;
+
+    // stage_idx: Initial=0, Smoothed=1 (Off already returned above)
+    int stage_idx = static_cast<int>(m_zone_shells.stage) - 1;
+    int loaded_count = 0;
+
+    // Color varies by stage for easy identification
+    ColorRGBA zone_color;
+    switch (m_zone_shells.stage) {
+        case ZoneBoundaryStage::Off: break;  // unreachable
+        case ZoneBoundaryStage::Initial:
+            zone_color = ColorRGBA(0.9f, 0.3f, 0.3f, 0.55f);  // Red - raw
+            break;
+        case ZoneBoundaryStage::Smoothed:
+            zone_color = ColorRGBA(0.2f, 0.6f, 0.9f, 0.55f);  // Blue - final
+            break;
+    }
+
+    for (const auto& cached : m_zone_shells.cached_objects) {
+        if (!cached.has_data || cached.stage_meshes[stage_idx].empty())
+            continue;
+
+        for (const Transform3d& transform : cached.instance_transforms) {
+            GLVolume* v = m_zone_shells.volumes.new_nontoolpath_volume(zone_color);
+            v->model.init_from(cached.stage_meshes[stage_idx]);
+            v->set_instance_transformation(transform);
+            v->set_volume_transformation(Transform3d::Identity());
+            v->force_native_color = true;
+            v->zoom_to_volumes = false;
+            v->set_render_color();
+            // Adjust Z for raft (same as load_shells)
+            if (cached.raft_z_offset != 0.0) {
+                const Vec3d z_offset = cached.raft_z_offset * Vec3d::UnitZ();
+                auto offset = v->get_instance_transformation().get_matrix_no_offset().inverse() * z_offset;
+                v->set_volume_offset(v->get_volume_offset() + offset);
+            }
+            loaded_count++;
+        }
+    }
+
+}
+
+// Zone boundary: Load and cache interior shell meshes for preview (called after slicing)
+void GCodeViewer::load_zone_shells(const Print& print)
+{
+    if (print.id().id == m_zone_shells.print_id &&
+        print.get_modified_count() == m_zone_shells.print_modify_count &&
+        m_zone_shells.cache_valid)
+        return;
+
+    // Clear old cache and volumes
+    m_zone_shells.volumes.clear();
+    m_zone_shells.cached_objects.clear();
+    m_zone_shells.cache_valid = false;
+
+    if (print.objects().empty())
+        return;
+
+    const ModelObjectPtrs& model_objs = wxGetApp().model().objects;
+
+    // Cache all stages for all objects
+    for (const PrintObject* obj : print.objects()) {
+        const ModelObject* model_obj = obj->model_object();
+
+        // Verify object still exists in model (may be deleted asynchronously)
+        bool found = false;
+        for (const ModelObject* mo : model_objs) {
+            if (mo->id() == model_obj->id()) { found = true; break; }
+        }
+        if (!found)
+            continue;
+
+        ZoneCachedObject cached;
+        const auto& stages = obj->zone_stages();
+
+        // Collect instance transforms (once per object)
+        for (size_t i = 0; i < model_obj->instances.size(); ++i) {
+            if (model_obj->instances[i]->is_printable()) {
+                cached.instance_transforms.push_back(
+                    model_obj->instances[i]->get_transformation().get_matrix());
+            }
+        }
+
+        // Cache raft Z offset for rebuild_zone_volumes
+        cached.raft_z_offset = obj->slicing_parameters().object_print_z_min;
+
+        // Cache each stage mesh (with transform removed)
+        const indexed_triangle_set* meshes[2] = {
+            &stages.initial, &stages.smoothed
+        };
+
+        // Both stages must be ready. If initial exists but smoothed is empty,
+        // the background thread is still computing — skip this object for now.
+        bool both_ready = !meshes[0]->empty() && !meshes[1]->empty();
+        bool neither    = meshes[0]->empty() && meshes[1]->empty();
+
+        if (both_ready) {
+            for (int s = 0; s < 2; ++s) {
+                cached.stage_meshes[s] = TriangleMesh(*meshes[s]);
+                cached.stage_meshes[s].transform(obj->trafo_centered().inverse());
+            }
+            cached.has_data = true;
+        }
+
+        // Fallback: use final interior if both stages empty
+        if (neither && !cached.has_data && obj->has_zone_interior()) {
+            TriangleMesh mesh(obj->zone_interior_mesh());
+            mesh.transform(obj->trafo_centered().inverse());
+            for (int s = 0; s < 2; ++s) {
+                cached.stage_meshes[s] = mesh;
+            }
+            cached.has_data = true;
+        }
+
+        m_zone_shells.cached_objects.push_back(std::move(cached));
+    }
+
+    // Check if any object actually had zone data
+    bool any_data = false;
+    for (const auto& c : m_zone_shells.cached_objects)
+        if (c.has_data) { any_data = true; break; }
+
+    if (any_data) {
+        m_zone_shells.cache_valid = true;
+        m_zone_shells.print_id = print.id().id;
+        m_zone_shells.print_modify_count = print.get_modified_count();
+        rebuild_zone_volumes();
+    } else {
+        // Zone data not ready yet (background thread still computing).
+        // Don't cache the IDs so we retry on next call.
+        m_zone_shells.cached_objects.clear();
+    }
+}
+
+// Zone boundary: Set stage and rebuild volumes
+void GCodeViewer::set_zone_boundary_stage(ZoneBoundaryStage stage)
+{
+    if (m_zone_shells.stage != stage) {
+        m_zone_shells.stage = stage;
+        rebuild_zone_volumes();  // Rebuild from cache, no Print needed
+    }
+}
+
+// Zone boundary: Cycle Off → Initial → Smoothed → Off
+void GCodeViewer::cycle_zone_boundary_stage()
+{
+    ZoneBoundaryStage next;
+    switch (m_zone_shells.stage) {
+    case ZoneBoundaryStage::Off:      next = ZoneBoundaryStage::Initial; break;
+    case ZoneBoundaryStage::Initial:  next = ZoneBoundaryStage::Smoothed; break;
+    case ZoneBoundaryStage::Smoothed: next = ZoneBoundaryStage::Off; break;
+    }
+    set_zone_boundary_stage(next);
+}
+
 void GCodeViewer::render_toolpaths()
 {
     const Camera& camera = wxGetApp().plater()->get_camera();
@@ -2427,6 +2631,29 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
     shader->set_uniform("z_far", camera.get_far_z());
     shader->set_uniform("z_near", camera.get_near_z());
     m_shells.volumes.render(GLVolumeCollection::ERenderType::Transparent, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
+    shader->set_uniform("emission_factor", 0.0f);
+    shader->stop_using();
+
+    glsafe(::glDepthMask(GL_TRUE));
+}
+
+void GCodeViewer::render_zone_shells(int canvas_width, int canvas_height)
+{
+    if (!m_zone_shells.visible || m_zone_shells.volumes.empty())
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    if (shader == nullptr)
+        return;
+
+    glsafe(::glDepthMask(GL_FALSE));
+
+    shader->start_using();
+    shader->set_uniform("emission_factor", 0.15f);  // Slightly more glow than regular shells
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("z_far", camera.get_far_z());
+    shader->set_uniform("z_near", camera.get_near_z());
+    m_zone_shells.volumes.render(GLVolumeCollection::ERenderType::Transparent, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
     shader->set_uniform("emission_factor", 0.0f);
     shader->stop_using();
 

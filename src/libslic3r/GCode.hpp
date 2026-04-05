@@ -28,6 +28,7 @@
 #include "GCode/AdaptivePAProcessor.hpp"
 
 #include "GCode/TimelapsePosPicker.hpp"
+#include "GCode/SafeParkPosition.hpp"
 
 #include <memory>
 #include <map>
@@ -51,9 +52,7 @@ public:
     OozePrevention() : enable(false) {}
     std::string pre_toolchange(GCode &gcodegen);
     std::string post_toolchange(GCode &gcodegen);
-
-private:
-    int _get_temp(const GCode &gcodegen) const;
+    int get_temp(const GCode &gcodegen) const;
 };
 
 class Wipe {
@@ -231,6 +230,7 @@ public:
     const Layer*    layer() const { return m_layer; }
     GCodeWriter&    writer() { return m_writer; }
     const GCodeWriter& writer() const { return m_writer; }
+    const SafeParkPosition& safe_park() const { return m_safe_park; }
     PlaceholderParser& placeholder_parser() { return m_placeholder_parser_integration.parser; }
     const PlaceholderParser& placeholder_parser() const { return m_placeholder_parser_integration.parser; }
     // Process a template through the placeholder parser, collect error messages to be reported
@@ -282,6 +282,9 @@ public:
             return nullptr;
         }
 
+        // WARNING: returns the layer's OWNER, which is the primary PrintObject
+        // for shared copies (copy_layers_from_shared_object shares layer pointers).
+        // Use original_object for per-copy data (instances, config, shifts).
         const PrintObject* 	object()   const
         {
             return (this->layer() != nullptr) ? this->layer()->object() : nullptr;
@@ -542,6 +545,7 @@ private:
     } m_placeholder_parser_integration;
 
     OozePrevention                      m_ooze_prevention;
+    SafeParkPosition                    m_safe_park;
     Wipe                                m_wipe;
     AvoidCrossingPerimeters             m_avoid_crossing_perimeters;
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;
@@ -590,7 +594,6 @@ private:
 #if !defined(NDEBUG)
 #define ORCA_CHECK_GCODE_PLACEHOLDERS 1
 #endif
-    
 #if ORCA_CHECK_GCODE_PLACEHOLDERS
     std::map<std::string, std::vector<std::string>> m_placeholder_error_messages;
 #endif

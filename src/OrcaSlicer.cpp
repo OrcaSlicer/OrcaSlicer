@@ -385,8 +385,7 @@ void default_status_callback(const PrintBase::SlicingStatus& slicing_status)
 
 static PrinterTechnology get_printer_technology(const DynamicConfig &config)
 {
-    const ConfigOptionEnum<PrinterTechnology> *opt = config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
-    return (opt == nullptr) ? ptUnknown : opt->value;
+    return config.opt_enum_or<PrinterTechnology>("printer_technology", ptUnknown);
 }
 
 //BBS: add flush and exit
@@ -3536,7 +3535,7 @@ int CLI::run(int argc, char **argv)
     // Normalizing after importing the 3MFs / AMFs
     m_print_config.normalize_fdm();
 
-    m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
+    m_print_config.opt_set_enum("printer_technology", printer_technology);
 
     bool has_wipe_tower_position = m_print_config.option<ConfigOptionFloats>("wipe_tower_x") && m_print_config.option<ConfigOptionFloats>("wipe_tower_y");
     // Initialize full print configs for both the FFF and SLA technologies.

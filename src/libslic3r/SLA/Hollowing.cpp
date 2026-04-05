@@ -22,26 +22,6 @@
 namespace Slic3r {
 namespace sla {
 
-struct Interior {
-    indexed_triangle_set mesh;
-    openvdb::FloatGrid::Ptr gridptr;
-    mutable std::optional<openvdb::FloatGrid::ConstAccessor> accessor;
-
-    double closing_distance = 0.;
-    double thickness = 0.;
-    double voxel_scale = 1.;
-    double nb_in = 3.;  // narrow band width inwards
-    double nb_out = 3.; // narrow band width outwards
-    // Full narrow band is the sum of the two above values.
-
-    void reset_accessor() const  // This resets the accessor and its cache
-    // Not a thread safe call!
-    {
-        if (gridptr)
-            accessor = gridptr->getConstAccessor();
-    }
-};
-
 void InteriorDeleter::operator()(Interior *p)
 {
     delete p;
@@ -55,6 +35,16 @@ indexed_triangle_set &get_mesh(Interior &interior)
 const indexed_triangle_set &get_mesh(const Interior &interior)
 {
     return interior.mesh;
+}
+
+void postprocess_interior_mesh(indexed_triangle_set &mesh)
+{
+    swap_normals(mesh);
+    float loss_less_max_error = 2 * std::numeric_limits<float>::epsilon();
+    its_quadric_edge_collapse(mesh, 0U, &loss_less_max_error);
+    its_compactify_vertices(mesh);
+    its_merge_vertices(mesh);
+    swap_normals(mesh);
 }
 
 static InteriorPtr generate_interior_verbose(const TriangleMesh & mesh,
@@ -128,21 +118,8 @@ InteriorPtr generate_interior(const TriangleMesh &   mesh,
         generate_interior_verbose(mesh, ctl, hc.min_thickness, voxel_scale,
                                   hc.closing_distance);
 
-    if (interior && !interior->mesh.empty()) {
-
-        // flip normals back...
-        swap_normals(interior->mesh);
-
-        // simplify mesh lossless
-        float loss_less_max_error = 2*std::numeric_limits<float>::epsilon();
-        its_quadric_edge_collapse(interior->mesh, 0U, &loss_less_max_error);
-
-        its_compactify_vertices(interior->mesh);
-        its_merge_vertices(interior->mesh);
-
-        // flip normals back...
-        swap_normals(interior->mesh);
-    }
+    if (interior && !interior->mesh.empty())
+        postprocess_interior_mesh(interior->mesh);
 
     return interior;
 }

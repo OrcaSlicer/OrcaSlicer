@@ -28,6 +28,8 @@
 // BBS: new infill pattern header
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
+// Magma infill patterns
+#include "FillMagma.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
@@ -73,6 +75,8 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
     case ipLockedZag:           return new FillLockedZag();
+    // Magma pattern for vertical reinforcement infill
+    case ipMagmaTriangle:       return new FillMagmaTriangle();
     default: throw Slic3r::InvalidArgument("unknown type");
     }
 }
