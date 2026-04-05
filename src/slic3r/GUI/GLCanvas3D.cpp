@@ -4277,7 +4277,10 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                     p = p->GetParent();
                 auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
                 //Orca: Set focus so hotkeys like 'tab' work when a notification is shown.
-                if (top_level_wnd != nullptr && top_level_wnd->IsActive())
+                //But don't steal focus from text input controls.
+                wxWindow* focused            = wxWindow::FindFocus();
+                bool      focus_in_text_ctrl = dynamic_cast<wxTextCtrl*>(focused) != nullptr;
+                if (top_level_wnd != nullptr && top_level_wnd->IsActive() && !focus_in_text_ctrl)
                     m_canvas->SetFocus();
             }
             m_mouse.position = pos.cast<double>();
