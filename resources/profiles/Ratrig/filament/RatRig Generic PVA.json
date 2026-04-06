@@ -1,57 +1,66 @@
 {
-    "type": "filament",
-    "name": "RatRig Generic PVA",
-    "inherits": "fdm_filament_pva",
-    "from": "system",
-    "setting_id": "GFSA04",
-    "filament_id": "GFS99",
-    "instantiation": "true",
-    "filament_flow_ratio": [
-        "0.95"
-    ],
-    "filament_max_volumetric_speed": [
-        "12"
-    ],
-    "filament_z_hop": [
-        "0"
-    ],
-    "enable_pressure_advance": [
-        "1"
-    ],
-    "pressure_advance": [
-        "0.03"
-    ],
-    "slow_down_layer_time": [
-        "7"
-    ],
-    "slow_down_min_speed": [
-        "10"
-    ],
-    "compatible_printers": [
-        "RatRig V-Core 3 200 0.4 nozzle",
-        "RatRig V-Core 3 300 0.4 nozzle",
-        "RatRig V-Core 3 400 0.4 nozzle",
-        "RatRig V-Core 3 500 0.4 nozzle",
-        "RatRig V-Minion 0.4 nozzle",
-        "RatRig V-Cast 0.4 nozzle",
-        "RatRig V-Cast 0.6 nozzle",
-        "RatRig V-Core 4 300 0.4 nozzle",
-        "RatRig V-Core 4 300 0.5 nozzle",
-        "RatRig V-Core 4 300 0.6 nozzle",
-        "RatRig V-Core 4 400 0.4 nozzle",
-        "RatRig V-Core 4 400 0.5 nozzle",
-        "RatRig V-Core 4 400 0.6 nozzle",
-        "RatRig V-Core 4 500 0.4 nozzle",
-        "RatRig V-Core 4 500 0.5 nozzle",
-        "RatRig V-Core 4 500 0.6 nozzle",
-        "RatRig V-Core 4 HYBRID 300 0.4 nozzle",
-        "RatRig V-Core 4 HYBRID 300 0.5 nozzle",
-        "RatRig V-Core 4 HYBRID 300 0.6 nozzle",
-        "RatRig V-Core 4 HYBRID 400 0.4 nozzle",
-        "RatRig V-Core 4 HYBRID 400 0.5 nozzle",
-        "RatRig V-Core 4 HYBRID 400 0.6 nozzle",
-        "RatRig V-Core 4 HYBRID 500 0.4 nozzle",
-        "RatRig V-Core 4 HYBRID 500 0.5 nozzle",
-        "RatRig V-Core 4 HYBRID 500 0.6 nozzle"
-    ]
+  "type": "filament",
+  "name": "RatRig Generic PVA",
+  "inherits": "fdm_filament_pva",
+  "from": "system",
+  "setting_id": "GFSA04",
+  "filament_id": "GFS99",
+  "instantiation": "true",
+  "filament_flow_ratio": [
+    "0.95"
+  ],
+  "filament_max_volumetric_speed": [
+    "12"
+  ],
+  "filament_z_hop": [
+    "0"
+  ],
+  "enable_pressure_advance": [
+    "1"
+  ],
+  "pressure_advance": [
+    "0.03"
+  ],
+  "slow_down_layer_time": [
+    "7"
+  ],
+  "slow_down_min_speed": [
+    "10"
+  ],
+  "compatible_printers": [
+    "RatRig V-Core 3 200 0.4 nozzle",
+    "RatRig V-Core 3 300 0.4 nozzle",
+    "RatRig V-Core 3 400 0.4 nozzle",
+    "RatRig V-Core 3 500 0.4 nozzle",
+    "RatRig V-Minion 0.4 nozzle",
+    "RatRig V-Cast 0.4 nozzle",
+    "RatRig V-Cast 0.6 nozzle",
+    "RatRig V-Core 4 300 0.4 nozzle",
+    "RatRig V-Core 4 300 0.5 nozzle",
+    "RatRig V-Core 4 300 0.6 nozzle",
+    "RatRig V-Core 4 400 0.4 nozzle",
+    "RatRig V-Core 4 400 0.5 nozzle",
+    "RatRig V-Core 4 400 0.6 nozzle",
+    "RatRig V-Core 4 500 0.4 nozzle",
+    "RatRig V-Core 4 500 0.5 nozzle",
+    "RatRig V-Core 4 500 0.6 nozzle",
+    "RatRig V-Core 4 IDEX 300 0.4 nozzle",
+    "RatRig V-Core 4 IDEX 300 0.5 nozzle",
+    "RatRig V-Core 4 IDEX 300 0.6 nozzle",
+    "RatRig V-Core 4 IDEX 400 0.4 nozzle",
+    "RatRig V-Core 4 IDEX 400 0.5 nozzle",
+    "RatRig V-Core 4 IDEX 400 0.6 nozzle",
+    "RatRig V-Core 4 IDEX 500 0.4 nozzle",
+    "RatRig V-Core 4 IDEX 500 0.5 nozzle",
+    "RatRig V-Core 4 IDEX 500 0.6 nozzle",
+    "RatRig V-Core 4 HYBRID 300 0.4 nozzle",
+    "RatRig V-Core 4 HYBRID 300 0.5 nozzle",
+    "RatRig V-Core 4 HYBRID 300 0.6 nozzle",
+    "RatRig V-Core 4 HYBRID 400 0.4 nozzle",
+    "RatRig V-Core 4 HYBRID 400 0.5 nozzle",
+    "RatRig V-Core 4 HYBRID 400 0.6 nozzle",
+    "RatRig V-Core 4 HYBRID 500 0.4 nozzle",
+    "RatRig V-Core 4 HYBRID 500 0.5 nozzle",
+    "RatRig V-Core 4 HYBRID 500 0.6 nozzle"
+  ]
 }

@@ -1,0 +1,16 @@
+{
+  "bridge_flow": "1",
+  "elefant_foot_compensation": "0",
+  "from": "system",
+  "inherits": "fdm_process_eryone_ER20_Klipper_common",
+  "instantiation": "false",
+  "layer_height": "0.28",
+  "name": "fdm_process_ER20_Klipper_0.28",
+  "support_bottom_z_distance": "0.16",
+  "support_threshold_angle": "40",
+  "support_top_z_distance": "0.16",
+  "top_shell_layers": "4",
+  "top_shell_thickness": "0",
+  "top_surface_line_width": "0.45",
+  "type": "process"
+}

@@ -5,6 +5,12 @@
     "from": "system",
     "setting_id": "GFSS02_18",
     "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "fan_max_speed": [
         "30"
     ],

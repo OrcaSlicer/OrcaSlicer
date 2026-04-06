@@ -14,6 +14,7 @@ static std::map<wxColour, wxColour> gDarkColors{
     {"#DFDFDF", "#3E3E45"}, // rgb(223, 223, 223)  Button Background color
     {"#D4D4D4", "#4D4D54"}, // rgb(212, 212, 212)  Button Background color on Hover
     {"#6B6A6A", "#909090"}, // rgb(107, 107, 106)  Button Dimmed text
+    {"#26A69A", "#008172"}, // rgb(0, 150, 136)    Button Confirm Color hover | ORCA Color Hover
     {"#6B6B6A", "#B3B3B5"}, // rgb(107, 107, 106)  Input box side text
     {"#2C2C2E", "#B3B3B4"}, // rgb(44, 44, 46)     ???
     {"#6B6B6B", "#818183"}, // rgb(107, 107, 107)  Disabled Text
@@ -190,7 +191,6 @@ inline wxColour darkModeColorFor2(wxColour const &color)
     if (!gDarkMode)
         return color;
     auto iter = gDarkColors.find(color);
-    wxASSERT(iter != gDarkColors.end());
     if (iter != gDarkColors.end()) return iter->second;
     return color;
 }
@@ -206,7 +206,6 @@ wxColour StateColor::lightModeColorFor(wxColour const &color)
 {
     static std::map<wxColour, wxColour> gLightColors = revert(gDarkColors);
     auto iter = gLightColors.find(color);
-    wxASSERT(iter != gLightColors.end());
     if (iter != gLightColors.end()) return iter->second;
     return color;
 }

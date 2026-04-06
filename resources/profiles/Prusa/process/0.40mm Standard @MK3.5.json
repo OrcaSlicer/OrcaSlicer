@@ -41,7 +41,11 @@
     "inner_wall_acceleration": "2000",
     "outer_wall_acceleration": "1500",
     "bridge_acceleration": "1000",
+    "support_base_pattern_spacing": "2",
     "support_top_z_distance": "0.25",
+    "support_bottom_z_distance": "0.25",
+    "support_bottom_interface_spacing": "0.25",
+    "support_interface_spacing": "0.35",
     "compatible_printers": [
         "Prusa MK3.5 0.8 nozzle"
     ]

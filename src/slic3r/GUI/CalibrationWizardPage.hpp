@@ -7,6 +7,7 @@
 #include "Widgets/TextInput.hpp"
 #include "Widgets/AMSControl.hpp"
 #include "Widgets/ProgressBar.hpp"
+#include "Widgets/HyperLink.hpp"
 #include "wxExtensions.hpp"
 #include "PresetComboBoxes.hpp"
 
@@ -140,7 +141,7 @@ private:
     void init_bitmaps();
     void create_wiki(wxWindow* parent);
 
-    Label* m_wiki_text;
+    HyperLink* m_wiki_text; // ORCA
     wxString  m_wiki_url;
     ScalableBitmap m_prev_bmp_normal;
     ScalableBitmap m_prev_bmp_hover;

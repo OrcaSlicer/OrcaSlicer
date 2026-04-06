@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e # Exit immediately if a command exits with a non-zero status.
+SECONDS=0
 
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
@@ -27,7 +28,6 @@ function usage() {
     echo "   -L: use ld.lld as linker (if available)"
     echo "For a first use, you want to './${SCRIPT_NAME} -u'"
     echo "   and then './${SCRIPT_NAME} -dsi'"
-    echo "To build with tests: './${SCRIPT_NAME} -st' or './${SCRIPT_NAME} -dst'"
 }
 
 SLIC3R_PRECOMPILED_HEADERS="ON"
@@ -102,11 +102,6 @@ if [ ${OPTIND} -eq 1 ] ; then
     exit 1
 fi
 
-if [[ -n "${BUILD_TESTS}" ]] && [[ -z "${BUILD_ORCA}" ]] ; then
-    echo "-t flag requires -s flag in the same invocation"
-    exit 1
-fi
-
 function check_available_memory_and_disk() {
     FREE_MEM_GB=$(free --gibi --total | grep 'Mem' | rev | cut --delimiter=" " --fields=1 | rev)
     MIN_MEM_GB=10
@@ -157,6 +152,8 @@ elif [[ "${DISTRIBUTION_LIKE}" == *"debian"* ]] || [[ "${DISTRIBUTION_LIKE}" == 
     DISTRIBUTION="debian"
 elif [[ "${DISTRIBUTION_LIKE}" == *"arch"* ]] ; then
     DISTRIBUTION="arch"
+elif [[ "${DISTRIBUTION_LIKE}" == *"suse"* ]] ; then
+    DISTRIBUTION="suse"
 fi
 
 if [ ! -f "./scripts/linux.d/${DISTRIBUTION}" ] ; then
@@ -221,7 +218,7 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
     print_and_run cmake --build deps/$BUILD_DIR
 fi
 
-if [[ -n "${BUILD_ORCA}" ]] ; then
+if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
     echo "Configuring OrcaSlicer..."
     if [[ -n "${CLEAN_BUILD}" ]] ; then
         print_and_run rm -fr $BUILD_DIR
@@ -243,11 +240,13 @@ if [[ -n "${BUILD_ORCA}" ]] ; then
 "${COLORED_OUTPUT}" \
 "${BUILD_ARGS[@]}"
     echo "done"
-    echo "Building OrcaSlicer ..."
-    print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer
-    echo "Building OrcaSlicer_profile_validator .."
-    print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer_profile_validator
-    ./scripts/run_gettext.sh
+    if [[ -n "${BUILD_ORCA}" ]]; then
+	echo "Building OrcaSlicer ..."
+	print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer
+	echo "Building OrcaSlicer_profile_validator .."
+	print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer_profile_validator
+	./scripts/run_gettext.sh
+    fi
     if [[ -n "${BUILD_TESTS}" ]] ; then
 	echo "Building tests ..."
 	print_and_run cmake --build ${BUILD_DIR} --config "${BUILD_CONFIG}" --target tests/all
@@ -269,5 +268,8 @@ if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
     fi
     popd > /dev/null # build
 fi
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))
 
 popd > /dev/null # ${SCRIPT_PATH}

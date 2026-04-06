@@ -246,6 +246,7 @@ public:
     // should be called after doing reorder
     FilamentChangeStats get_filament_change_stats(FilamentChangeMode mode);
     void                cal_most_used_extruder(const PrintConfig &config);
+    float               cal_max_additional_fan(const PrintConfig &config);
     bool                cal_non_support_filaments(const PrintConfig &config,
                                                   unsigned int &     first_non_support_filament,
                                                   std::vector<int> & initial_non_support_filaments,
@@ -257,6 +258,7 @@ private:
     void				initialize_layers(std::vector<coordf_t> &zs);
     void 				collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches);
     void 				fill_wipe_tower_partitions(const PrintConfig &config, coordf_t object_bottom_z, coordf_t max_layer_height);
+    bool                insert_wipe_tower_extruder();
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
     void 				collect_extruder_statistics(bool prime_multi_material);
     void                reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer);
@@ -277,7 +279,6 @@ private:
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;
-    bool                       m_is_BBL_printer = false;
 
     FilamentChangeStats        m_stats_by_single_extruder;
     FilamentChangeStats        m_stats_by_multi_extruder_curr;

@@ -13,6 +13,8 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevCtrl.h
     GUI/DeviceCore/DevCtrl.cpp
     GUI/DeviceCore/DevDefs.h
+    GUI/DeviceCore/DevExtensionTool.h
+    GUI/DeviceCore/DevExtensionTool.cpp
     GUI/DeviceCore/DevExtruderSystem.h
     GUI/DeviceCore/DevExtruderSystem.cpp
     GUI/DeviceCore/DevExtruderSystemCtrl.cpp
@@ -20,10 +22,12 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevFan.h
     GUI/DeviceCore/DevFilaAmsSetting.h
     GUI/DeviceCore/DevFilaAmsSetting.cpp
+    GUI/DeviceCore/DevFilaAmsSettingCtrl.cpp
     GUI/DeviceCore/DevFilaBlackList.h
     GUI/DeviceCore/DevFilaBlackList.cpp
     GUI/DeviceCore/DevFilaSystem.h
     GUI/DeviceCore/DevFilaSystem.cpp
+    GUI/DeviceCore/DevFilaSystemCtrl.cpp
     GUI/DeviceCore/DevFirmware.h
     GUI/DeviceCore/DevFirmware.cpp
     GUI/DeviceCore/DevPrintOptions.h

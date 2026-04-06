@@ -1,6 +1,6 @@
 {
     "name": "Anycubic",
-    "version": "02.03.01.10",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "Anycubic configurations",
     "machine_model_list": [
@@ -57,6 +57,10 @@
             "sub_path": "machine/Anycubic Kobra S1.json"
         },
         {
+            "name": "Anycubic Predator",
+            "sub_path": "machine/Anycubic Predator.json"
+        },
+        {
             "name": "Anycubic Vyper",
             "sub_path": "machine/Anycubic Vyper.json"
         },
@@ -77,6 +81,10 @@
         {
             "name": "0.10mm Detail @Anycubic Kobra 3 0.2 nozzle",
             "sub_path": "process/0.10mm Detail @Anycubic Kobra 3 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm Detail @Anycubic Kobra 2 Neo 0.4 nozzle",
+            "sub_path": "process/0.12mm Detail @Anycubic Kobra 2 Neo 0.4 nozzle.json"
         },
         {
             "name": "0.12mm Detail @Anycubic Kobra 3 0.4 nozzle",
@@ -121,6 +129,10 @@
         {
             "name": "0.16mm Optimal @Anycubic Kobra 3 0.4 nozzle",
             "sub_path": "process/0.16mm Optimal @Anycubic Kobra 3 0.4 nozzle.json"
+        },
+        {
+            "name": "0.16mm Standard @Anycubic Kobra 2 Neo 0.4 nozzle",
+            "sub_path": "process/0.16mm Standard @Anycubic Kobra 2 Neo 0.4 nozzle.json"
         },
         {
             "name": "0.20mm Standard @Anycubic 4MaxPro",
@@ -175,6 +187,10 @@
             "sub_path": "process/0.20mm Standard @Anycubic KobraPlus.json"
         },
         {
+            "name": "0.20mm Standard @Anycubic Predator",
+            "sub_path": "process/0.20mm Standard @Anycubic Predator.json"
+        },
+        {
             "name": "0.20mm Standard @Anycubic Vyper",
             "sub_path": "process/0.20mm Standard @Anycubic Vyper.json"
         },
@@ -189,6 +205,10 @@
         {
             "name": "0.28mm Draft @Anycubic Kobra 2 Pro 0.4 nozzle",
             "sub_path": "process/0.28mm Draft @Anycubic Kobra 2 Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "0.28mm Standard @Anycubic Kobra 2 Neo 0.4 nozzle",
+            "sub_path": "process/0.28mm Standard @Anycubic Kobra 2 Neo 0.4 nozzle.json"
         },
         {
             "name": "0.28mm SuperDraft @Anycubic Kobra 3 0.4 nozzle",
@@ -485,6 +505,10 @@
         {
             "name": "Anycubic Kobra S1 0.4 nozzle",
             "sub_path": "machine/Anycubic Kobra S1 0.4 nozzle.json"
+        },
+        {
+            "name": "Anycubic Predator 0.4 nozzle",
+            "sub_path": "machine/Anycubic Predator 0.4 nozzle.json"
         },
         {
             "name": "Anycubic Vyper 0.4 nozzle",

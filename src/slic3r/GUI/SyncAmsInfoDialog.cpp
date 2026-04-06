@@ -222,8 +222,27 @@ bool SyncAmsInfoDialog::get_is_double_extruder()
 {
     const auto &full_config = wxGetApp().preset_bundle->full_config();
     size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-    bool use_double_extruder = nozzle_nums > 1 ? true : false;
-    return use_double_extruder;
+    // This dialog has dedicated left/right layout logic only for true 2-nozzle printers.
+    // For toolchangers with 3+ tools (or any filament_map beyond {1,2}),
+    // fall back to the generic list flow so all tools are shown.
+    if (nozzle_nums != 2)
+        return false;
+
+    auto *plater = wxGetApp().plater();
+    if (!plater)
+        return true;
+    auto *plate = plater->get_partplate_list().get_curr_plate();
+    if (!plate)
+        return true;
+
+    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    auto         filament_maps = plate->get_real_filament_maps(project_config);
+    for (int map_id : filament_maps) {
+        if (map_id != 1 && map_id != 2) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool SyncAmsInfoDialog::is_dirty_filament() {
@@ -322,7 +341,9 @@ void SyncAmsInfoDialog::update_plate_combox()
 {
     if (m_combobox_plate) {
         m_combobox_plate->Clear();
-        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) { m_combobox_plate->Append(m_plate_number_choices_str[i]); }
+        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) {
+            m_combobox_plate->Append(m_plate_number_choices_str[i]);
+        }
         auto iter = std::find(m_plate_choices.begin(), m_plate_choices.end(), m_specify_plate_idx);
         if (iter != m_plate_choices.end()) {
             auto index = iter - m_plate_choices.begin();
@@ -474,7 +495,7 @@ void SyncAmsInfoDialog::add_two_image_control()
         m_swipe_left_button->SetBitmap(m_swipe_left_bmp_normal.bmp());
     });
     m_swipe_left_button->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::to_previous_plate, this);
-    swipe_left__sizer->Add(m_swipe_left_button, 0, wxALIGN_CENTER | wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    swipe_left__sizer->Add(m_swipe_left_button, 0, wxEXPAND);
     swipe_left__sizer->AddStretchSpacer();
     view_two_thumbnail_sizer->Add(swipe_left__sizer, 0, wxEXPAND);
     view_two_thumbnail_sizer->AddSpacer(FromDIP(24));
@@ -486,19 +507,19 @@ void SyncAmsInfoDialog::add_two_image_control()
         m_left_image_button     = new wxButton(m_two_image_panel, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(LEFT_THUMBNAIL_SIZE_WIDTH), FromDIP(LEFT_THUMBNAIL_SIZE_WIDTH)),
                                            wxBORDER_NONE | wxBU_AUTODRAW);
         m_left_sizer_thumbnail = create_sizer_thumbnail(m_left_image_button, true);
-        m_two_image_panel_sizer->Add(m_left_sizer_thumbnail, FromDIP(0), wxALIGN_LEFT | wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, FromDIP(8));
+        m_two_image_panel_sizer->Add(m_left_sizer_thumbnail, FromDIP(0), wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, FromDIP(8));
         m_two_image_panel_sizer->AddSpacer(FromDIP(5));
 
         m_right_image_button = new wxButton(m_two_image_panel, wxID_ANY, {}, wxDefaultPosition,
                                             wxSize(FromDIP(RIGHT_THUMBNAIL_SIZE_WIDTH), FromDIP(RIGHT_THUMBNAIL_SIZE_WIDTH)),
                                             wxBORDER_NONE | wxBU_AUTODRAW);
         m_right_sizer_thumbnail = create_sizer_thumbnail(m_right_image_button, false);
-        m_two_image_panel_sizer->Add(m_right_sizer_thumbnail, FromDIP(0), wxALIGN_LEFT | wxEXPAND | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
+        m_two_image_panel_sizer->Add(m_right_sizer_thumbnail, FromDIP(0), wxEXPAND | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
         m_two_image_panel->SetSizer(m_two_image_panel_sizer);
         m_two_image_panel->Layout();
         m_two_image_panel->Fit();
 
-        view_two_thumbnail_sizer->Add(m_two_image_panel, FromDIP(0), wxALIGN_LEFT | wxEXPAND | wxTOP, FromDIP(2));
+        view_two_thumbnail_sizer->Add(m_two_image_panel, FromDIP(0), wxEXPAND | wxTOP, FromDIP(2));
     }
     view_two_thumbnail_sizer->AddSpacer(FromDIP(20));
     auto swipe_right__sizer = new wxBoxSizer(wxVERTICAL);
@@ -515,7 +536,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     });
     m_swipe_right_button->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::to_next_plate, this);
 
-    swipe_right__sizer->Add(m_swipe_right_button, 0, wxALIGN_CENTER | wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    swipe_right__sizer->Add(m_swipe_right_button, 0, wxEXPAND);
     swipe_right__sizer->AddStretchSpacer();
     view_two_thumbnail_sizer->Add(swipe_right__sizer, 0, wxEXPAND);
     view_two_thumbnail_sizer->AddStretchSpacer();
@@ -525,10 +546,10 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer->AddStretchSpacer();
 
     wxStaticText *chose_combox_title = new wxStaticText(m_two_thumbnail_panel, wxID_ANY, _CTX(L_CONTEXT("Plate", "Sync_AMS"), "Sync_AMS"));
-    m_choose_plate_sizer->Add(chose_combox_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxEXPAND | wxTOP, FromDIP(6));
+    m_choose_plate_sizer->Add(chose_combox_title, 0, wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
-    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(50), -1), 0, NULL, wxCB_READONLY);
+    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(60), -1), 0, NULL, wxCB_READONLY);
 
     m_combobox_plate->Bind(wxEVT_COMBOBOX, [this](auto &e) {
         if (e.GetSelection() < m_plate_choices.size()) {
@@ -542,7 +563,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_two_thumbnail_panel->SetSizer(m_two_thumbnail_panel_sizer);
     m_two_thumbnail_panel->Layout();
     m_two_thumbnail_panel->Fit();
-    m_sizer_main->Add(m_two_thumbnail_panel, FromDIP(0), wxALIGN_CENTER | wxEXPAND | wxLEFT | wxRIGHT, FromDIP(25));
+    m_sizer_main->Add(m_two_thumbnail_panel, FromDIP(0), wxEXPAND | wxLEFT | wxRIGHT, FromDIP(25));
 
     update_swipe_button_state();
 }
@@ -696,9 +717,9 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_colormap_btn      = new CapsuleButton(m_scrolledWindow, PageType::ptColorMap, _L("Mapping"), true);
         m_override_btn      = new CapsuleButton(m_scrolledWindow, PageType::ptOverride, _L("Overwriting"), false);
         m_mode_combox_sizer->AddSpacer(SyncAmsInfoDialogWidth / 2.0f - FromDIP(8) / 2.0f - m_colormap_btn->GetSize().GetX());
-        m_mode_combox_sizer->Add(m_colormap_btn, 0, wxALIGN_CENTER | wxEXPAND | wxALL, FromDIP(2));
+        m_mode_combox_sizer->Add(m_colormap_btn, 0, wxEXPAND | wxALL, FromDIP(2));
         m_mode_combox_sizer->AddSpacer(FromDIP(8));
-        m_mode_combox_sizer->Add(m_override_btn, 0, wxALIGN_CENTER | wxEXPAND | wxALL, FromDIP(2));
+        m_mode_combox_sizer->Add(m_override_btn, 0, wxEXPAND | wxALL, FromDIP(2));
         m_mode_combox_sizer->AddSpacer(SyncAmsInfoDialogWidth / 2.0f - FromDIP(8) / 2.0f - m_override_btn->GetSize().GetX() - FromDIP(60));
         m_reset_all_btn = new ScalableButton(m_scrolledWindow, wxID_ANY, "reset_gray", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER,
                                                         true, 14);
@@ -706,12 +727,12 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_reset_all_btn->SetBackgroundColour(*wxWHITE);
         m_reset_all_btn->SetToolTip(_L("Reset all filament mapping"));
 
-        m_mode_combox_sizer->Add(m_reset_all_btn, 0, wxALIGN_LEFT | wxEXPAND | wxALL, FromDIP(2));
+        m_mode_combox_sizer->Add(m_reset_all_btn, 0, wxEXPAND | wxALL, FromDIP(2));
 
         m_colormap_btn->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::update_when_change_map_mode,this); // update_when_change_map_mode(e.GetSelection());
         m_override_btn->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::update_when_change_map_mode,this);
 
-        bSizer->Add(m_mode_combox_sizer, FromDIP(0), wxEXPAND | wxALIGN_LEFT | wxTOP, FromDIP(10));
+        bSizer->Add(m_mode_combox_sizer, FromDIP(0), wxEXPAND | wxTOP, FromDIP(10));
     }
 
     m_basic_panel = new wxPanel(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -931,6 +952,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
             auto flag = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
             wxGetApp().app_config->set_bool("enable_append_color_by_sync_ams",!flag);
             m_append_color_checkbox->SetValue(!flag);
+            e.Skip();
         });
         m_append_color_checkbox->Hide();
         m_append_color_sizer->Add(m_append_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
@@ -951,6 +973,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
             auto flag = wxGetApp().app_config->get_bool("enable_merge_color_by_sync_ams");
             wxGetApp().app_config->set_bool("enable_merge_color_by_sync_ams",!flag);
             m_merge_color_checkbox->SetValue(!flag);
+            e.Skip();
         });
         m_merge_color_checkbox->Hide();
         m_merge_color_sizer->Add(m_merge_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
@@ -1056,7 +1079,7 @@ void SyncAmsInfoDialog::check_empty_project()
         if (!temp_plate->get_objects_on_this_plate().empty()) {
             if (m_is_empty_project) { m_is_empty_project = false; }
             if (i < 9) {
-                m_plate_number_choices_str.Add("0" + std::to_wstring(i + 1));
+                m_plate_number_choices_str.Add(wxString("0") + std::to_wstring(i + 1));
             }
             else if (i == 9) {
                 m_plate_number_choices_str.Add("10");
@@ -1497,7 +1520,7 @@ void SyncAmsInfoDialog::auto_supply_with_ext(std::vector<DevAmsTray> slots)
             if (slot.id.empty()) continue;
             m_ams_mapping_result[i].ams_id  = slot.id;
             m_ams_mapping_result[i].color   = slot.color;
-            m_ams_mapping_result[i].type    = slot.type;
+            m_ams_mapping_result[i].type    = slot.m_fila_type;
             m_ams_mapping_result[i].colors  = slot.cols;
             m_ams_mapping_result[i].tray_id = atoi(slot.id.c_str());
             m_ams_mapping_result[i].slot_id = "0";
@@ -1730,31 +1753,31 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
     } else if (status == PrintDialogStatus::PrintStatusInvalidPrinter) {
         update_print_status_msg(wxEmptyString, true, true);
     } else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
-        wxString msg_text = _L("Connecting to server");
+        wxString msg_text = _L("Connecting to server...");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusReading) {
-        wxString msg_text = _L("Synchronizing device information");
+        wxString msg_text = _L("Synchronizing device information...");
         update_print_status_msg(msg_text, false, true);
     } else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
         update_print_status_msg(wxEmptyString, false, true);
     } else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
-        wxString msg_text = _L("Synchronizing device information time out");
+        wxString msg_text = _L("Synchronizing device information timed out.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
-        wxString msg_text = _L("Cannot send the print job when the printer is updating firmware");
+        wxString msg_text = _L("Cannot send a print job while the printer is updating firmware.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInSystemPrinting) {
-        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends");
+        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInPrinting) {
-        wxString msg_text = _L("The printer is busy on other print job");
+        wxString msg_text = _L("The printer is busy with another print job.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingSuccess) {
         update_print_status_msg(wxEmptyString, false, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
         update_print_status_msg(wxEmptyString, true, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingMixInvalid) {
-        wxString msg_text = _L("Please do not mix-use the Ext with AMS");
+        wxString msg_text = _L("Please do not mix-use the Ext with AMS.");
         update_print_status_msg(msg_text, true, false);
     } else if (status == PrintDialogStatus::PrintStatusNozzleDataInvalid) {
         wxString msg_text = _L("Invalid nozzle information, please refresh or manually set nozzle information.");
@@ -1823,10 +1846,10 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusBlankPlate) {
-        wxString msg_text = _L("Cannot send the print job for empty plate");
+        wxString msg_text = _L("Cannot send a print job for an empty plate.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusNotSupportedPrintAll) {
-        wxString msg_text = _L("This printer does not support printing all plates");
+        wxString msg_text = _L("This printer does not support printing all plates.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusTimelapseWarning) {
         wxString   msg_text;
@@ -2382,26 +2405,13 @@ void SyncAmsInfoDialog::update_show_status()
     size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
     // the nozzle type of preset and machine are different
-    if (nozzle_nums > 1) {
+    if (get_is_double_extruder()) {
          wxString error_message;
         if (!is_nozzle_type_match(*obj_->GetExtderSystem(), error_message)) {
             std::vector<wxString> params{error_message};
             params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
             show_status(PrintDialogStatus::PrintStatusNozzleMatchInvalid, params);
             return;
-        }
-    }
-
-    if (!m_mapping_popup.m_supporting_mix_print && nozzle_nums == 1) {
-        bool useAms = false;
-        bool useExt = false;
-        for (auto iter = m_ams_mapping_result.begin(); iter != m_ams_mapping_result.end(); iter++) {
-            if (iter->tray_id != VIRTUAL_TRAY_MAIN_ID) { useAms = true; }
-            if (iter->tray_id == VIRTUAL_TRAY_MAIN_ID) { useExt = true; }
-            if (useAms && useExt) {
-                show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
-                return;
-            }
         }
     }
 
@@ -2529,6 +2539,7 @@ void SyncAmsInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_button_cancel->SetCornerRadius(FromDIP(12));
     m_merge_color_checkbox->Rescale();
     m_append_color_checkbox->Rescale();
+    m_combobox_plate->Rescale();
     Fit();
     Refresh();
 }
@@ -2729,9 +2740,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev_manager) return;
             MachineObject *obj_        = dev_manager->get_selected_machine();
-            const auto &   full_config = wxGetApp().preset_bundle->full_config();
-            size_t         nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-            if (nozzle_nums > 1) {
+            if (get_is_double_extruder()) {
                 m_mapping_popup.set_show_type(ShowType::LEFT_AND_RIGHT);//special
             }
             // m_mapping_popup.set_show_type(ShowType::RIGHT);
@@ -3328,7 +3337,9 @@ FinishSyncAmsDialog::FinishSyncAmsDialog(InputInfo &input_info)
                               310,
                               input_info.dialog_pos,
                               68,
-                              _L("Successfully synchronized color and type of filament from printer."),
+                              wxGetApp().app_config->get("sync_ams_filament_mode") == "1" ?
+                                  _L("Successfully synchronized filament color from printer.") :
+                                  _L("Successfully synchronized color and type of filament from printer."),
                               _CTX(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
                               "",
                               DisappearanceMode::TimedDisappearance)

@@ -12,6 +12,9 @@
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/DeviceCore/DevUtil.h"
 
+#include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
+
 namespace Slic3r {
 namespace GUI {
 
@@ -195,25 +198,46 @@ void PrintJob::process(Ctl &ctl)
         this->task_bed_type = bed_type_to_gcode_string(plate_data.is_valid ? plate_data.bed_type : curr_plate->get_bed_type(true));
     }
 
-    BBL::PrintParams params;
+    PrintParams params;
 
     // local print access
     params.dev_ip = m_dev_ip;
     params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt  = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt  = m_local_use_ssl;
     params.username = "bblp";
     params.password = m_access_code;
 
     // check access code and ip address
     if (this->connection_type == "lan" && m_print_type == "from_normal") {
-        params.dev_id = m_dev_id;
-        params.project_name = "verify_job";
-        params.filename = job_data._temp_path.string();
-        params.connection_type = this->connection_type;
+        bool emmc_ok = false;
+        bool ftp_ok = false;
+        if (could_emmc_print) {
+            std::string devIP = m_dev_ip;
+            std::string accessCode = m_access_code;
+            std::string url = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
+            std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+            emmc_ok = tunnel->sync_start_connect();
+        }
+        {
+            params.dev_id = m_dev_id;
+            params.project_name = "verify_job";
+            params.filename = job_data._temp_path.string();
+            params.connection_type = this->connection_type;
 
-        result = m_agent->start_send_gcode_to_sdcard(params, nullptr, nullptr, nullptr);
-        if (result != 0) {
-            BOOST_LOG_TRIVIAL(error) << "access code is invalid";
+            result = m_agent->start_send_gcode_to_sdcard(params, nullptr, nullptr, nullptr);
+
+            ftp_ok = result == 0;
+        }
+        if (!emmc_ok && !ftp_ok) {
+            bool legacy_mode = BBLNetworkPlugin::instance().use_legacy_network();
+            BOOST_LOG_TRIVIAL(error) << "LAN connection verification failed:"
+                << " emmc_ok=" << emmc_ok
+                << ", ftp_ok=" << ftp_ok
+                << ", ftp_result=" << result
+                << ", dev_ip=" << m_dev_ip
+                << ", dev_id=" << m_dev_id
+                << ", password_length=" << m_access_code.size()
+                << ", legacy_mode=" << (legacy_mode ? "true" : "false");
             m_enter_ip_address_fun_fail();
             m_job_finished = true;
             return;
@@ -233,6 +257,7 @@ void PrintJob::process(Ctl &ctl)
     params.task_vibration_cali  = this->task_vibration_cali;
     params.task_layer_inspect   = this->task_layer_inspect;
     params.task_record_timelapse= this->task_record_timelapse;
+    params.nozzle_mapping       = this->task_nozzle_mapping;
     params.ams_mapping          = this->task_ams_mapping;
     params.ams_mapping2         = this->task_ams_mapping2;
     params.ams_mapping_info     = this->task_ams_mapping_info;
@@ -245,6 +270,7 @@ void PrintJob::process(Ctl &ctl)
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
     params.task_ext_change_assist = this->task_ext_change_assist;
+    params.try_emmc_print         = this->could_emmc_print;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;
@@ -365,14 +391,14 @@ void PrintJob::process(Ctl &ctl)
         StagePercentPoint
     ](int stage, int code, std::string info) {
 
-                        if (stage == BBL::SendingPrintJobStage::PrintingStageCreate && !is_try_lan_mode_failed) {
+                        if (stage == SendingPrintJobStage::PrintingStageCreate && !is_try_lan_mode_failed) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageUpload && !is_try_lan_mode_failed) {
+                        else if (stage == SendingPrintJobStage::PrintingStageUpload && !is_try_lan_mode_failed) {
                             if (code >= 0 && code <= 100 && !info.empty()) {
                                 if (this->connection_type == "lan") {
                                     msg = _u8L("Sending print job over LAN");
@@ -382,24 +408,24 @@ void PrintJob::process(Ctl &ctl)
                                 msg += format("(%s)", info);
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageWaiting) {
+                        else if (stage == SendingPrintJobStage::PrintingStageWaiting) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else  if (stage == BBL::SendingPrintJobStage::PrintingStageRecord && !is_try_lan_mode) {
+                        else  if (stage == SendingPrintJobStage::PrintingStageRecord && !is_try_lan_mode) {
                             msg = _u8L("Sending print configuration");
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageSending && !is_try_lan_mode) {
+                        else if (stage == SendingPrintJobStage::PrintingStageSending && !is_try_lan_mode) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageFinished) {
+                        else if (stage == SendingPrintJobStage::PrintingStageFinished) {
                             msg = format(_u8L("Successfully sent. Will automatically jump to the device page in %ss"), info);
                             if (m_print_job_completed_id == wxGetApp().plater()->get_send_calibration_finished_event()) {
                                 msg = format(_u8L("Successfully sent. Will automatically jump to the next page in %ss"), info);
@@ -416,15 +442,15 @@ void PrintJob::process(Ctl &ctl)
                         // update current percnet
                         if (stage >= 0 && stage <= (int) PrintingStageFinished) {
                             curr_percent = StagePercentPoint[stage];
-                            if ((stage == BBL::SendingPrintJobStage::PrintingStageUpload
-                                || stage == BBL::SendingPrintJobStage::PrintingStageRecord)
+                            if ((stage == SendingPrintJobStage::PrintingStageUpload
+                                || stage == SendingPrintJobStage::PrintingStageRecord)
                                 && (code > 0 && code <= 100)) {
                                 curr_percent = (StagePercentPoint[stage + 1] - StagePercentPoint[stage]) * code / 100 + StagePercentPoint[stage];
                             }
                         }
 
                         //get errors
-                        if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
+                        if (code > 100 || code < 0 || stage == SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
                             }else if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST){
@@ -560,32 +586,37 @@ void PrintJob::process(Ctl &ctl)
                 ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
                 result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
             }
-        } 
-    } else {        
-        switch(this->sdcard_state) {
+        }
+    } else {
+        if (this->could_emmc_print) {
+            ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+            result = m_agent->start_local_print(params, update_fn, cancel_fn);
+        } else {
+            switch(this->sdcard_state) {
                 case DevStorage::SdcardState::NO_SDCARD:
                     ctl.update_status(curr_percent, _u8L("A Storage needs to be inserted before printing via LAN."));
                     return;
                 case DevStorage::SdcardState::HAS_SDCARD_ABNORMAL:
                     if(this->has_sdcard) {
                         // means the storage is abnormal but can be used option is enabled
-                         ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
-                         result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                        ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                        result = m_agent->start_local_print(params, update_fn, cancel_fn);
                         break;
                     }
                     ctl.update_status(curr_percent, _u8L("The Storage in the printer is abnormal. Please replace it with a normal Storage before sending print job to printer."));
-                    return;              
+                    return;
                 case DevStorage::SdcardState::HAS_SDCARD_READONLY:
                     ctl.update_status(curr_percent, _u8L("The Storage in the printer is read-only. Please replace it with a normal Storage before sending print job to printer."));
-                    return;  
+                    return;
                 case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
                     ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
                     result = m_agent->start_local_print(params, update_fn, cancel_fn);
                     break;
-                default:                    
+                default:
                     ctl.update_status(curr_percent, _u8L("Encountered an unknown error with the Storage status. Please try again."));
-                    return;                    
-            }               
+                    return;
+            }
+        }
     }
 
     if (result < 0) {

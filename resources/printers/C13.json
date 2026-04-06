@@ -44,19 +44,22 @@
 			"support_lidar_calibration": true,
 			"support_ai_monitoring": true,
 			"support_first_layer_inspect": true,
+			"support_chamber": true,
 			"support_chamber_temp_edit": true,
 			"support_chamber_temp_edit_range": [0, 60],
 			"support_extrusion_cali": false,
 			"support_user_preset": false,
 			"bed_temperature_limit": 110,
-			"nozzle_max_temperature": 320
+			"nozzle_max_temperature": 320,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "C13",
 		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto",
 		"compatible_machine": [ "BL-P001", "BL-P002", "C11", "C12" ],
 		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
 		"printer_type": "C13",
-		"printer_thumbnail_image": "printer_thumbnail",
+		"printer_thumbnail_image": "printer_thumbnail_x1e",
 		"printer_connect_help_image": "input_access_code_x1",
 		"printer_use_ams_image": "ams_icon",
 		"printer_ext_image": ["ext_image_xp"],
@@ -65,7 +68,8 @@
 		"printer_series": "series_x1",
 		"has_cali_line": true,
 		"printer_is_enclosed": true,
-		"enable_set_nozzle_info": false
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
 	},
 	"01.05.06.06": {
 		"rv2166": "00.00.21.20"

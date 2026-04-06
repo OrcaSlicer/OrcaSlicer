@@ -26,7 +26,7 @@
         "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.3"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "40"

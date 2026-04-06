@@ -9,10 +9,12 @@ class AnimaIcon : public wxPanel
 {
 public:
     AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt = 1000);
+    ~AnimaIcon();
 
     void Play();
     void Stop();
     void Enable();
+    bool IsPlaying() const { return IsRunning(); };
     bool IsRunning() const;
 
 private:

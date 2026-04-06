@@ -62,9 +62,10 @@ void SwitchButton::SetThumbColor(StateColor const& color)
 
 void SwitchButton::SetValue(bool value)
 {
-	if (value != GetValue())
-		wxBitmapToggleButton::SetValue(value);
-	update();
+    if (value != GetValue()) {
+        wxBitmapToggleButton::SetValue(value);
+        update();
+    }
 }
 
 bool SwitchButton::SetBackgroundColour(const wxColour& colour)
@@ -179,8 +180,15 @@ void SwitchButton::Rescale()
 			(i == 0 ? m_off : m_on).bmp() = bmp;
 		}
 	}
-	SetSize(m_on.GetBmpSize());
 	update();
+#ifdef __WXGTK__
+	wxSize bestSize = GetBestSize();
+	bestSize.IncTo(m_on.GetBmpSize());
+	SetSize(bestSize);
+	SetMinSize(bestSize);
+#else
+	SetSize(m_on.GetBmpSize());
+#endif
 }
 
 void SwitchButton::update()
@@ -212,17 +220,30 @@ SwitchBoard::SwitchBoard(wxWindow *parent, wxString leftL, wxString right, wxSiz
 void SwitchBoard::updateState(wxString target)
 {
     if (target.empty()) {
+        if (!switch_left && !switch_right) {
+            return;
+        }
+
         switch_left = false;
         switch_right = false;
     } else {
         if (target == "left") {
+            if (switch_left && !switch_right) {
+                return;
+            }
+
             switch_left = true;
             switch_right = false;
         } else if (target == "right") {
+            if (!switch_left && switch_right) {
+                return;
+            }
+
             switch_left  = false;
             switch_right = true;
         }
     }
+
     Refresh();
 }
 

@@ -116,7 +116,7 @@ void FilamentLoad::SetFilamentStep(FilamentStep item_idx, FilamentStepType f_typ
         }
     }
 
-    wxString slot_info = L"Ams-";
+    wxString slot_info = L"AMS-";
     slot_info = slot_info + std::to_string(m_ams_id);
     slot_info = slot_info + L'-';
     slot_info = slot_info + std::to_string(m_slot_id);
@@ -174,6 +174,9 @@ void FilamentLoad::SetupSteps(bool has_fila_to_switch) {
         m_filament_unload_steps->AppendItem(FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_CUT_FILAMENT]);
         m_filament_unload_steps->AppendItem(FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_PULL_CURR_FILAMENT]);
     }
+
+    Layout();
+    Fit();
 }
 
 

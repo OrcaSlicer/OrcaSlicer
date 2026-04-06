@@ -11,7 +11,7 @@
 	<key>CFBundleIconFile</key>
 	<string>${MACOSX_BUNDLE_ICON_FILE}</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.softfever3d.orca-slicer</string>
+	<string>com.orcaslicer.OrcaSlicer</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleLongVersionString</key>
@@ -133,7 +133,7 @@
 	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
 	<key>NSAppTransportSecurity</key>  
 	<dict>
-		<!-- Disable App Transport Security. Resolves https://github.com/SoftFever/OrcaSlicer/issues/791 -->
+		<!-- Disable App Transport Security. Resolves https://github.com/OrcaSlicer/OrcaSlicer/issues/791 -->
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>  
 		<key>NSAllowsArbitraryLoadsInWebContent</key>

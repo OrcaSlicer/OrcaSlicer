@@ -1,7 +1,7 @@
 {
     "type": "process",
     "name": "0.20mm Strength @BBL A1M",
-    "inherits": "0.20mm Strength @BBL P1P",
+    "inherits": "fdm_process_single_0.20",
     "from": "system",
     "setting_id": "GP046",
     "instantiation": "true",
@@ -10,9 +10,16 @@
         "6000"
     ],
     "elefant_foot_compensation": "0",
+    "outer_wall_speed": [
+        "60"
+    ],
+    "sparse_infill_density": "25%",
+    "skeleton_infill_density": "25%",
+    "skin_infill_density": "25%",
     "travel_speed": [
         "700"
     ],
+    "wall_loops": "6",
     "compatible_printers": [
         "Bambu Lab A1 mini 0.4 nozzle"
     ]

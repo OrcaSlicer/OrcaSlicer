@@ -59,8 +59,8 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 
     m_dsa_sizer = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(120));
-    btn_sizer->AddStretchSpacer();
     btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND);
+    btn_sizer->AddStretchSpacer();
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
@@ -548,7 +548,7 @@ void DeleteConfirmDialog::on_dpi_changed(const wxRect &suggested_rect) {}
 
 
 Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *file_version, const Semver *cloud_version, wxString new_keys)
-    : DPIDialog(parent ? parent : nullptr, wxID_ANY, wxString(SLIC3R_APP_FULL_NAME " - ") + _L("Newer 3mf version"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+    : DPIDialog(parent ? parent : nullptr, wxID_ANY, wxString(SLIC3R_APP_FULL_NAME " - ") + _L("Newer 3MF version"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
     , m_file_version(file_version)
     , m_cloud_version(cloud_version)
     , m_new_keys(new_keys)
@@ -584,15 +584,16 @@ wxBoxSizer *Newer3mfVersionDialog::get_msg_sizer()
     wxBoxSizer *     horizontal_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxString    msg_str;
     if (file_version_newer) { 
-        text1 = new wxStaticText(this, wxID_ANY, _L("The 3mf file version is in Beta and it is newer than the current OrcaSlicer version."));
+        text1 = new wxStaticText(this, wxID_ANY, _L("The 3MF file version is in Beta and it is newer than the current OrcaSlicer version."));
         wxStaticText *   text2       = new wxStaticText(this, wxID_ANY, _L("If you would like to try Orca Slicer Beta, you may click to"));
-        wxHyperlinkCtrl *github_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Download Beta Version"), "https://github.com/bambulab/BambuStudio/releases");
+        // ORCA standardized HyperLink
+        HyperLink *      github_link = new HyperLink(this, _L("Download Beta Version"), "https://github.com/SoftFever/OrcaSlicer/releases");
         horizontal_sizer->Add(text2, 0, wxEXPAND, 0);
         horizontal_sizer->Add(github_link, 0, wxEXPAND | wxLEFT, 5);
         
     } else {
-        text1 = new wxStaticText(this, wxID_ANY, _L("The 3mf file version is newer than the current Orca Slicer version."));
-        wxStaticText *text2 = new wxStaticText(this, wxID_ANY, _L("Update your Orca Slicer could enable all functionality in the 3mf file."));
+        text1 = new wxStaticText(this, wxID_ANY, _L("The 3MF file version is newer than the current OrcaSlicer version."));
+        wxStaticText *text2 = new wxStaticText(this, wxID_ANY, _L("Updating your OrcaSlicer could enable all functionality in the 3MF file."));
         horizontal_sizer->Add(text2, 0, wxEXPAND, 0);
     }
     Semver        app_version = *(Semver::parse(SLIC3R_VERSION));
@@ -672,11 +673,9 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
 
     wxBoxSizer* sizer_link = new wxBoxSizer(wxVERTICAL);
 
-    m_link_server_state = new wxHyperlinkCtrl(this, wxID_ANY, _L("Check the status of current system services"), "");
+    // ORCA standardized HyperLink
+    m_link_server_state = new HyperLink(this, _L("Check the status of current system services"), wxGetApp().link_to_network_check());
     m_link_server_state->SetFont(::Label::Body_13);
-    m_link_server_state->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_network_check(); });
-    m_link_server_state->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_HAND); });
-    m_link_server_state->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
 
     sizer_link->Add(m_link_server_state, 0, wxALL, 0);
 
@@ -690,11 +689,9 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     m_text_proposal->SetFont(::Label::Body_14);
     m_text_proposal->SetForegroundColour(0x323A3C);
 
-    m_text_wiki = new wxHyperlinkCtrl(this, wxID_ANY, _L("How to use LAN only mode"), "");
+    // ORCA standardized HyperLink
+    m_text_wiki = new HyperLink(this, _L("How to use LAN only mode"), wxGetApp().link_to_lan_only_wiki());
     m_text_wiki->SetFont(::Label::Body_13);
-    m_text_wiki->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_lan_only_wiki(); });
-    m_text_wiki->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_HAND); });
-    m_text_wiki->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
 
     sizer_help->Add(m_text_proposal, 0, wxEXPAND, 0);
     sizer_help->Add(m_text_wiki, 0, wxALL, 0);

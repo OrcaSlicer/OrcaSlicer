@@ -100,6 +100,45 @@ struct ZipUnicodePathExtraField
     }
 };
 
+// Validate that a relative file path does not escape the root directory via path traversal.
+static bool is_path_within_root(const std::string& file_path, const boost::filesystem::path& root)
+{
+    if (file_path.empty())
+        return false;
+
+    boost::filesystem::path p(file_path);
+    if (p.is_absolute())
+        return false;
+
+    // Reject any path component that is ".."
+    for (const auto& component : p) {
+        if (component == "..")
+            return false;
+    }
+
+    // Resolve the full path and verify it starts with the canonical root (also catches symlink escapes)
+    try {
+        boost::filesystem::path full_path = root / p;
+        boost::filesystem::path canonical_root = boost::filesystem::weakly_canonical(root);
+        boost::filesystem::path canonical_full = boost::filesystem::weakly_canonical(full_path);
+
+        auto root_str = canonical_root.string();
+        auto full_str = canonical_full.string();
+        if (full_str.length() < root_str.length())
+            return false;
+        if (full_str.compare(0, root_str.length(), root_str) != 0)
+            return false;
+        // Ensure it's a proper prefix (not just a substring of a longer directory name)
+        if (full_str.length() > root_str.length() &&
+            full_str[root_str.length()] != boost::filesystem::path::preferred_separator)
+            return false;
+    } catch (const boost::filesystem::filesystem_error&) {
+        return false;
+    }
+
+    return true;
+}
+
 // VERSION NUMBERS
 // 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
 // 1 : Introduction of 3mf versioning. No other change in data saved into 3mf files.
@@ -317,6 +356,7 @@ static constexpr const char* NOZZLE_TYPE_ATTR          = "nozzle_types";
 static constexpr const char* NOZZLE_DIAMETERS_ATTR = "nozzle_diameters";
 static constexpr const char* SLICE_PREDICTION_ATTR = "prediction";
 static constexpr const char* SLICE_WEIGHT_ATTR = "weight";
+static constexpr const char* FIRST_LAYER_TIME_ATTR = "first_layer_time";
 static constexpr const char* TIMELAPSE_TYPE_ATTR = "timelapse_type";
 static constexpr const char* OUTSIDE_ATTR = "outside";
 static constexpr const char* SUPPORT_USED_ATTR = "support_used";
@@ -1773,8 +1813,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("extract %1%th file %2%, total=%3%")%(i+1)%name%num_entries;
 
-                if (name.find("/../") != std::string::npos) {
-                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", find file path including /../, not valid, skip it\n");
+                if (name.find("/../") != std::string::npos ||
+                    name.find("../") == 0 ||
+                    (name.length() >= 3 && name.compare(name.length() - 3, 3, "/..") == 0) ||
+                    name == "..") {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", find file path including path traversal, not valid, skip it\n");
                     continue;
                 }
 
@@ -1837,8 +1880,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 else if (boost::algorithm::iequals(name, BBS_MODEL_CONFIG_FILE)) {
                     // extract slic3r model config file
                     if (!_extract_xml_from_archive(archive, stat, _handle_start_config_xml_element, _handle_end_config_xml_element)) {
-                        add_error("Archive does not contain a valid model config");
-                        return false;
+                        if (m_is_bbl_3mf) {
+                            add_error("Archive does not contain a valid model config");
+                            return false;
+                        }
                     }
                 }
                 else if (_is_svg_shape_file(name)) {
@@ -2338,6 +2383,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetUserData(m_xml_parser, (void*)this);
         XML_SetElementHandler(m_xml_parser, start_handler, end_handler);
         XML_SetCharacterDataHandler(m_xml_parser, _BBS_3MF_Importer::_handle_xml_characters);
+        XML_SetEntityDeclHandler(m_xml_parser, nullptr);
+        XML_SetExternalEntityRefHandler(m_xml_parser, nullptr);
 
         void* parser_buffer = XML_GetBuffer(m_xml_parser, (int)stat.m_uncomp_size);
         if (parser_buffer == nullptr) {
@@ -2379,6 +2426,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetUserData(m_xml_parser, (void*)this);
         XML_SetElementHandler(m_xml_parser, _BBS_3MF_Importer::_handle_start_model_xml_element, _BBS_3MF_Importer::_handle_end_model_xml_element);
         XML_SetCharacterDataHandler(m_xml_parser, _BBS_3MF_Importer::_handle_xml_characters);
+        XML_SetEntityDeclHandler(m_xml_parser, nullptr);
+        XML_SetExternalEntityRefHandler(m_xml_parser, nullptr);
 
         struct CallbackData
         {
@@ -2642,6 +2691,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else
                 return;
 
+            if (!is_path_within_root(dest_file, dir)) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", path traversal detected in auxiliary file: %1%, skipping") % dest_file;
+                return;
+            }
+
             if (dest_file.find('/') != std::string::npos) {
                 boost::filesystem::path src_path = boost::filesystem::path(dest_file);
                 boost::filesystem::path parent_path = src_path.parent_path();
@@ -2665,6 +2719,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         if (stat.m_uncomp_size > 0) {
             std::string src_file = decode_path(stat.m_filename);
+
+            boost::filesystem::path backup_root(m_backup_path);
+            if (!is_path_within_root(src_file, backup_root)) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", path traversal detected in file: %1%, skipping") % src_file;
+                return;
+            }
+
             // BBS: use backup path
             //aux directory from model
             boost::filesystem::path dest_path = boost::filesystem::path(m_backup_path + "/" + src_file);
@@ -5493,6 +5554,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetUserData(object_xml_parser, (void*)this);
         XML_SetElementHandler(object_xml_parser, _BBS_3MF_Importer::ObjectImporter::_handle_object_start_model_xml_element, _BBS_3MF_Importer::ObjectImporter::_handle_object_end_model_xml_element);
         XML_SetCharacterDataHandler(object_xml_parser, _BBS_3MF_Importer::ObjectImporter::_handle_object_xml_characters);
+        XML_SetEntityDeclHandler(object_xml_parser, nullptr);
+        XML_SetExternalEntityRefHandler(object_xml_parser, nullptr);
 
         struct CallbackData
         {
@@ -7909,6 +7972,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << TIMELAPSE_TYPE_ATTR << "\" " << VALUE_ATTR << "=\"" << timelapse_type << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SLICE_PREDICTION_ATTR << "\" " << VALUE_ATTR << "=\"" << plate_data->get_gcode_prediction_str() << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SLICE_WEIGHT_ATTR      << "\" " << VALUE_ATTR << "=\"" <<  plate_data->get_gcode_weight_str() << "\"/>\n";
+                stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FIRST_LAYER_TIME_ATTR      << "\" " << VALUE_ATTR << "=\"" <<  plate_data->first_layer_time << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << OUTSIDE_ATTR      << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->toolpath_outside << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << SUPPORT_USED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->is_support_used << "\"/>\n";
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << LABEL_OBJECT_ENABLED_ATTR << "\" " << VALUE_ATTR << "=\"" << std::boolalpha<< plate_data->is_label_object_enabled << "\"/>\n";

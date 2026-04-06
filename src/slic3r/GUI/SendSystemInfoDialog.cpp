@@ -443,7 +443,7 @@ static std::string generate_system_info_json()
 
     pt::ptree hw_node;
     {
-        hw_node.put("ArchName", wxPlatformInfo::Get().GetArchName());
+        hw_node.put("ArchName", wxPlatformInfo::Get().GetBitnessName());
         size_t num = std::round(Slic3r::total_physical_memory()/107374100.);
         hw_node.put("RAM_GiB", std::to_string(num / 10) + "." + std::to_string(num % 10));
     }
@@ -481,7 +481,7 @@ static std::string generate_system_info_json()
         monitor_node.put("height", display.GetGeometry().GetHeight());
 
         // Only get the scaling on Win, it is not reliable on other platforms.
-        #if defined(_WIN32) && wxCHECK_VERSION(3, 1, 2)
+        #if defined(_WIN32)
             double scaling = display.GetPPI().GetWidth() / 96.;
             std::stringstream ss;
             ss << std::setprecision(3) << scaling;
@@ -728,7 +728,7 @@ bool SendSystemInfoDialog::send_info(wxString& message)
                 if (job_done) // UI thread wants us to cancel.
                     cancel = true;
                 if (cancel)
-                    //result = { Result::Cancelled, _L("Sending system info was cancelled.") };
+                    //result = { Result::Cancelled, _L("Sending system info was canceled.") };
                     result = {Result::Cancelled, wxEmptyString};
             })
             .perform_sync();
