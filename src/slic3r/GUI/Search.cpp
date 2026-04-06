@@ -22,6 +22,10 @@
 
 #include "imgui/imconfig.h"
 
+#if defined(__WXGTK__)
+#include "LinuxDisplayBackend.hpp"
+#endif
+
 using boost::optional;
 
 namespace Slic3r {
@@ -674,11 +678,25 @@ void SearchDialog::OnDismiss() { }
 
 void SearchDialog::Dismiss()
 {
-    auto pos = wxGetMousePosition();
     auto focus_window = wxWindow::FindFocus();
-    if (!focus_window)
+    if (!focus_window) {
         Die();
-    else if (!m_event_tag->GetScreenRect().Contains(pos) && !this->GetScreenRect().Contains(pos) && !m_search_item_tag->GetScreenRect().Contains(pos)) {
+        return;
+    }
+#if defined(__WXGTK__)
+    // On Wayland, wxGetMousePosition() returns unreliable global coords.
+    // Rely on focus tracking instead: if focus moved to a window outside
+    // this dialog and its related controls, dismiss.
+    if (Slic3r::GUI::is_running_on_wayland()) {
+        if (focus_window != this && !IsDescendant(focus_window) &&
+            focus_window != m_event_tag && focus_window != m_search_item_tag) {
+            Die();
+        }
+        return;
+    }
+#endif
+    auto pos = wxGetMousePosition();
+    if (!m_event_tag->GetScreenRect().Contains(pos) && !this->GetScreenRect().Contains(pos) && !m_search_item_tag->GetScreenRect().Contains(pos)) {
         Die();
     }
 }
@@ -904,11 +922,25 @@ void SearchObjectDialog::OnDismiss() {}
 
 void SearchObjectDialog::Dismiss()
 {
-    auto pos = wxGetMousePosition();
     auto focus_window = wxWindow::FindFocus();
-    if (!focus_window)
+    if (!focus_window) {
         Die();
-    else if (!search_line->GetScreenRect().Contains(pos) && !this->GetScreenRect().Contains(pos)) {
+        return;
+    }
+#if defined(__WXGTK__)
+    // On Wayland, wxGetMousePosition() returns unreliable global coords.
+    // Rely on focus tracking instead: if focus moved to a window outside
+    // this dialog and its related controls, dismiss.
+    if (Slic3r::GUI::is_running_on_wayland()) {
+        if (focus_window != this && !IsDescendant(focus_window) &&
+            focus_window != search_line) {
+            Die();
+        }
+        return;
+    }
+#endif
+    auto pos = wxGetMousePosition();
+    if (!search_line->GetScreenRect().Contains(pos) && !this->GetScreenRect().Contains(pos)) {
         Die();
     }
 }

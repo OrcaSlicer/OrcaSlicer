@@ -1781,7 +1781,11 @@ Sidebar::Sidebar(Plater *parent)
                 e.Skip();
             });
             w->Bind(wxEVT_LEAVE_WINDOW, [this, panel_color](wxMouseEvent &e) {
-                wxWindow* next_w = wxFindWindowAtPoint(wxGetMousePosition());
+                // Use event-relative coords instead of wxGetMousePosition() which
+                // returns (0,0) on Wayland for global screen coordinates.
+                wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
+                wxPoint screenPos = evtObj ? evtObj->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
+                wxWindow* next_w = wxFindWindowAtPoint(screenPos);
                 if (!next_w || !p->panel_printer_preset->IsDescendant(next_w)){
                     if(!p->combo_printer->HasFocus())
                         p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
@@ -1843,7 +1847,11 @@ Sidebar::Sidebar(Plater *parent)
                 e.Skip();
             });
             w->Bind(wxEVT_LEAVE_WINDOW, [this, panel_color](wxMouseEvent &e) {
-                wxWindow* next_w = wxFindWindowAtPoint(wxGetMousePosition());
+                // Use event-relative coords instead of wxGetMousePosition() which
+                // returns (0,0) on Wayland for global screen coordinates.
+                wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
+                wxPoint screenPos = evtObj ? evtObj->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
+                wxWindow* next_w = wxFindWindowAtPoint(screenPos);
                 if (!p->combo_nozzle_dia->HasFocus() && (!next_w || !p->panel_nozzle_dia->IsDescendant(next_w)))
                     p->panel_nozzle_dia->SetBorderColor(panel_color.bd_normal);
                 e.Skip();
@@ -1913,7 +1921,11 @@ Sidebar::Sidebar(Plater *parent)
                 e.Skip();
             });
             w->Bind(wxEVT_LEAVE_WINDOW, [this, w, panel_color](wxMouseEvent &e) {
-                wxWindow* next_w = wxFindWindowAtPoint(wxGetMousePosition());
+                // Use event-relative coords instead of wxGetMousePosition() which
+                // returns (0,0) on Wayland for global screen coordinates.
+                wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
+                wxPoint screenPos = evtObj ? evtObj->ClientToScreen(e.GetPosition()) : wxGetMousePosition();
+                wxWindow* next_w = wxFindWindowAtPoint(screenPos);
                 if (!p->combo_printer_bed->HasFocus() && (!next_w || !p->panel_printer_bed->IsDescendant(next_w)))
                     p->panel_printer_bed->SetBorderColor(panel_color.bd_normal);
                 if(w == p->image_printer_bed)

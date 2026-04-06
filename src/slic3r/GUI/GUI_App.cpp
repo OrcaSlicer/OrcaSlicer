@@ -7726,7 +7726,12 @@ bool GUI_App::window_pos_restore(wxTopLevelWindow* window, const std::string &na
     }
 
     const wxRect& rect = metrics->get_rect();
-    window->SetPosition(rect.GetPosition());
+#if defined(__WXGTK__)
+    // On Wayland, SetPosition() is a no-op for top-level windows.
+    // Only restore size and maximize state.
+    if (!Slic3r::GUI::is_running_on_wayland())
+#endif
+        window->SetPosition(rect.GetPosition());
     window->SetSize(rect.GetSize());
     window->Maximize(metrics->get_maximized());
     return true;

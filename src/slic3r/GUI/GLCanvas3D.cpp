@@ -4820,14 +4820,13 @@ Vec2d GLCanvas3D::get_local_mouse_position() const
     if (m_canvas == nullptr)
 		return Vec2d::Zero();
 
-    wxPoint mouse_pos = m_canvas->ScreenToClient(wxGetMousePosition());
-    const double factor =
-#if ENABLE_RETINA_GL
-        m_retina_helper->get_scale_factor();
-#else
-        1.0;
-#endif
-    return Vec2d(factor * mouse_pos.x, factor * mouse_pos.y);
+    // Use the cached mouse position from event handlers (m_mouse.position)
+    // instead of wxGetMousePosition() + ScreenToClient(), because
+    // wxGetMousePosition() returns (0,0) on Wayland for global coords.
+    // m_mouse.position already stores local canvas coordinates (set from
+    // event.GetX(), event.GetY()) and is already scaled by the retina factor
+    // in on_mouse(), so we can return it directly.
+    return m_mouse.position;
 }
 
 void GLCanvas3D::set_tooltip(const std::string& tooltip)

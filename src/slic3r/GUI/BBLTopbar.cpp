@@ -589,8 +589,8 @@ void BBLTopbar::OnCloseFrame(wxAuiToolBarEvent& event)
 
 void BBLTopbar::OnMouseLeftDClock(wxMouseEvent& mouse)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
-    wxAuiToolBarItem* item = this->FindToolByCurrentPosition();
+    wxPoint mouse_pos = this->ClientToScreen(mouse.GetPosition());
+    wxAuiToolBarItem* item = this->FindToolByPosition(mouse.GetX(), mouse.GetY());
     // check whether mouse is not on any tool item
     if (item != NULL && item->GetWindow() != m_title_ctrl) {
         mouse.Skip();
@@ -658,9 +658,11 @@ void BBLTopbar::OnCalibToolItem(wxAuiToolBarEvent &evt)
 
 void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    // Use event-relative coords converted to screen, instead of wxGetMousePosition()
+    // which returns (0,0) on Wayland for global screen coordinates.
+    wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
     wxPoint frame_pos = m_frame->GetScreenPosition();
-    wxAuiToolBarItem* item = this->FindToolByCurrentPosition();
+    wxAuiToolBarItem* item = this->FindToolByPosition(event.GetX(), event.GetY());
     m_delta = mouse_pos - frame_pos;
 
     if (item == NULL || item->GetWindow() == m_title_ctrl)
@@ -688,7 +690,7 @@ void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
 
 void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
     if (HasCapture())
     {
         ReleaseMouse();
@@ -699,7 +701,9 @@ void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 
 void BBLTopbar::OnMouseMotion(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    // Use event-relative coords converted to screen, instead of wxGetMousePosition()
+    // which returns (0,0) on Wayland for global screen coordinates.
+    wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
 
     if (!HasCapture()) {
         //m_frame->OnMouseMotion(event);
