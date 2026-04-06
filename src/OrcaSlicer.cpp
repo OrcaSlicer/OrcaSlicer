@@ -1187,7 +1187,7 @@ int CLI::run(int argc, char **argv)
 #ifdef __WXGTK__
     // Compile-time safety fallback: if wxWidgets was built without EGL support,
     // native Wayland will crash on OpenGL init. Force X11 in that case.
-    #if !wxUSE_GLCANVAS_EGL
+    #if !defined(wxUSE_GLCANVAS_EGL) || !wxUSE_GLCANVAS_EGL
     {
         const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
         if (wayland_env && *wayland_env) {
@@ -1197,10 +1197,9 @@ int CLI::run(int argc, char **argv)
     }
     #endif
 
-    // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
-    // (like the Setup Wizard) to render blank or freeze. Disabling compositing
-    // mode forces software rendering, which works reliably on all backends.
-    // Only needed under XWayland (both DISPLAY and WAYLAND_DISPLAY set).
+    // WebKit2GTK compositing can fail under XWayland. Only disable it when
+    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
+    // On pure X11 or native Wayland, compositing is left enabled.
     {
         const char* display_env_wk = ::getenv("DISPLAY");
         const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
@@ -1224,8 +1223,8 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    // On Linux, we need to tell Xlib that we will be using threads,
-    // lest we crash when we fire up GStreamer. Only call when X11 is in use.
+    // XInitThreads is needed before GStreamer may use Xlib. On native
+    // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
     #if __has_include(<X11/Xlib.h>)
     {
         const char* display_env = ::getenv("DISPLAY");
