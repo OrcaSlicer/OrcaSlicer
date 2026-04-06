@@ -89,10 +89,9 @@ else ()
 endif ()
 
 find_package(Git)
-if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-    if(DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
-        message(STATUS "Specified git commit hash: $ENV{git_commit_hash}")
-
+if(DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
+    message(STATUS "Specified git commit hash: $ENV{git_commit_hash}")
+    if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
         # Convert the given hash to short hash
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-parse --short "$ENV{git_commit_hash}"
@@ -100,17 +99,20 @@ if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
             OUTPUT_VARIABLE GIT_COMMIT_HASH
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-        add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
     else()
-        # Check current Git commit hash
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GIT_COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+        # No .git directory (e.g., Flatpak sandbox) — truncate directly
+        string(SUBSTRING "$ENV{git_commit_hash}" 0 7 GIT_COMMIT_HASH)
     endif()
+    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+elseif(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    # Check current Git commit hash
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
 
 if(DEFINED ENV{SLIC3R_STATIC})
@@ -122,7 +124,6 @@ endif()
 option(SLIC3R_STATIC 			"Compile OrcaSlicer with static libraries (Boost, TBB, glew)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI    			"Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
-option(SLIC3R_WX_STABLE         "Build against wxWidgets stable (3.0) as oppsed to dev (3.1) on Linux" 0)
 option(SLIC3R_PROFILE 			"Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
@@ -160,7 +161,7 @@ if (APPLE)
     if (CMAKE_MACOSX_BUNDLE)
         set(CMAKE_INSTALL_RPATH @executable_path/../Frameworks)
     endif()
-    SET(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.softfever3d.orca-slicer")
+    SET(CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.orcaslicer.OrcaSlicer")
 
     message(STATUS "Orca: IS_CROSS_COMPILE: ${IS_CROSS_COMPILE}")
 endif ()
@@ -171,10 +172,7 @@ option(BUILD_TESTS       "Build unit tests" OFF)
 option(ORCA_TOOLS       "Build Orca tools" OFF)
 
 if (FLATPAK)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++20")
-    set(SLIC3R_PCH OFF CACHE BOOL "" FORCE)
     set(SLIC3R_FHS ON CACHE BOOL "" FORCE)
-    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(SLIC3R_DESKTOP_INTEGRATION OFF CACHE BOOL "" FORCE)
 endif ()
 
@@ -436,7 +434,11 @@ if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMP
     endif()
 
     if((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang") AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
-        add_compile_options(-Wno-error=enum-constexpr-conversion)
+        include(CheckCXXCompilerFlag)
+        check_cxx_compiler_flag(-Wno-error=enum-constexpr-conversion HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
+        if(HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
+            add_compile_options(-Wno-error=enum-constexpr-conversion)
+        endif()
     endif()
 
     #GCC generates loads of -Wunknown-pragmas when compiling igl. The fix is not easy due to a bug in gcc, see
@@ -451,9 +453,12 @@ if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMP
         add_compile_options(-Wno-unknown-pragmas)
     endif()
 
-    # Bit of a hack for flatpak building: compress the debug info with zstd to save space in CI
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13.0)
-        add_compile_options(-gz=zstd)
+    # Compress the debug info with zstd to save space in Flatpak CI builds
+    if(FLATPAK)
+        if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13.0) OR
+           ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0))
+            add_compile_options(-gz=zstd)
+        endif()
     endif()
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14)
@@ -487,7 +492,8 @@ if (APPLE)
 endif ()
 
 if(MSVC)
-# 添加编译选项，忽略警告 C4305 （格式转换截断）
+# Ignore truncating casts in initializers & constructors
+# https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-1-c4305
 add_compile_options(/wd4305)
 endif()
 

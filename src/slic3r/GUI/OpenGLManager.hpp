@@ -62,16 +62,6 @@ public:
         void detect() const;
     };
 
-#ifdef __APPLE__
-    // Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-    struct OSInfo
-    {
-        int major{ 0 };
-        int minor{ 0 };
-        int micro{ 0 };
-    };
-#endif //__APPLE__
-
 private:
     enum class EMultisampleState : unsigned char
     {
@@ -84,10 +74,6 @@ private:
     wxGLContext* m_context{ nullptr };
     GLShadersManager m_shaders_manager;
     static GLInfo s_gl_info;
-#ifdef __APPLE__
-    // Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
-    static OSInfo s_os_info;
-#endif //__APPLE__
     static bool s_compressed_textures_supported;
     static bool s_force_power_of_two_textures;
 

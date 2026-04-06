@@ -1,0 +1,29 @@
+{
+    "type": "filament",
+    "name": "Elegoo ABS @ECC2",
+    "inherits": "Elegoo ABS @base",
+    "from": "system",
+    "setting_id": "EABSECC2",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "pressure_advance": [
+        "0.024"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri Carbon 2 0.4 nozzle",
+        "Elegoo Centauri Carbon 2 0.6 nozzle",
+        "Elegoo Centauri Carbon 2 0.8 nozzle"
+    ]
+}
+  

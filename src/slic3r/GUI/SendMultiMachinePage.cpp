@@ -439,9 +439,9 @@ void SendMultiMachinePage::refresh_user_device()
     Fit();
 }
 
-BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
+PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
 {
-    BBL::PrintParams params;
+    PrintParams params;
 
     //get all setting
     bool bed_leveling = app_config->get("print", "bed_leveling") == "1" ? true : false;
@@ -449,12 +449,10 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
     bool timelapse = app_config->get("print", "timelapse") == "1" ? true : false;
     auto use_ams = false;
 
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
-
-    while (node) {
-        AmsRadioSelector* rs = node->GetData();
+    for (auto it = m_radio_group.begin(); it != m_radio_group.end(); ++it) {
+        AmsRadioSelector* rs = *it;
         if (rs->m_param_name == "use_ams" && rs->m_radiobox->GetValue()) {
             use_ams = true;
         }
@@ -462,8 +460,6 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
         if (rs->m_param_name == "use_extra" && rs->m_radiobox->GetValue()) {
             use_ams = false;
         }
-
-        node = node->GetNext();
     }
 
     //use ams
@@ -734,7 +730,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
     }
 
 
-    std::vector<BBL::PrintParams> print_params;
+    std::vector<PrintParams> print_params;
 
     for (auto it = m_device_items.begin(); it != m_device_items.end(); ++it) {
         auto obj = it->second->get_obj();
@@ -742,7 +738,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
         if (obj && obj->is_online() && !obj->can_abort() && !obj->is_in_upgrading() && it->second->get_state_selected() == 1 && it->second->state_printable <= 2) {
 
             if (!it->second->is_blocking_printing(obj)) {
-                BBL::PrintParams params = request_params(obj);
+                PrintParams params = request_params(obj);
                 print_params.push_back(params);
             }
         }
@@ -938,7 +934,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_radiobox(wxString title, wxWindow*
 
 void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
 {
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
+    AmsRadioSelectorList::compatibility_iterator node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
     //while (node) {
@@ -975,7 +971,7 @@ void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
 
 void SendMultiMachinePage::on_select_radio(std::string param)
 {
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
+    AmsRadioSelectorList::compatibility_iterator node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
     while (node) {
@@ -995,7 +991,7 @@ void SendMultiMachinePage::on_select_radio(std::string param)
 
 bool SendMultiMachinePage::get_value_radio(std::string param)
 {
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
+    AmsRadioSelectorList::compatibility_iterator node = m_radio_group.GetFirst();
     auto                     groupid = 0;
     while (node) {
         AmsRadioSelector* rs = node->GetData();
