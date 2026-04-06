@@ -535,6 +535,28 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     update_layout();
     sizer->SetSizeHints(this);
 
+    #ifdef __WXMSW__
+    // SetMaximize causes the window to overlap the taskbar, due to the fact this window has wxMAXIMIZE_BOX off
+    // https://forums.wxwidgets.org/viewtopic.php?t=50634
+    // Fix it here
+    this->Bind(wxEVT_MAXIMIZE, [this](auto &e) {
+        wxDisplay display(this);
+        auto      size = display.GetClientArea().GetSize();
+        auto      pos  = display.GetClientArea().GetPosition();
+        HWND      hWnd = GetHandle();
+        RECT      borderThickness;
+        SetRectEmpty(&borderThickness);
+        AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE, 0);
+        const auto max_size = size + wxSize{-borderThickness.left + borderThickness.right, -borderThickness.top + borderThickness.bottom};
+        const auto current_size = GetSize();
+        SetSize({std::min(max_size.x, current_size.x), std::min(max_size.y, current_size.y)});
+        Move(pos + wxPoint{borderThickness.left, borderThickness.top});
+        e.Skip();
+    });
+
+#endif // __WXMSW__
+ 
+
     // BBS
     Fit();
 
