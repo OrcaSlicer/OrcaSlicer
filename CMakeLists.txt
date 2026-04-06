@@ -117,7 +117,7 @@ else()
     set(SLIC3R_STATIC_INITIAL 1)
 endif()
 
-option(SLIC3R_STATIC 			"Compile OrcaSlicer with static libraries (Boost, TBB, glew)" ${SLIC3R_STATIC_INITIAL})
+option(SLIC3R_STATIC 			"Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI    			"Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE 			"Compile OrcaSlicer with an invasive Shiny profiler" 0)
@@ -693,16 +693,6 @@ find_package(OpenGL REQUIRED)
 if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     set(OPENGL_LIBRARIES "-framework OpenGL" CACHE STRING "OpenGL framework" FORCE)
 endif()
-
-set(GLEW_ROOT "${CMAKE_PREFIX_PATH}")
-message("GLEW_ROOT: ${GLEW_ROOT}")
-# Find glew or use bundled version
-if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_GLEW)
-    set(GLEW_USE_STATIC_LIBS ON)
-    set(GLEW_VERBOSE ON)
-endif()
-
-find_package(GLEW REQUIRED)
 
 find_package(glfw3 REQUIRED)
 
