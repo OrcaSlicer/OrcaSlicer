@@ -1,25 +1,25 @@
 {
     "type": "filament",
     "name": "fdm_filament_abs",
-    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "cool_plate_temp": [
+    "inherits": "fdm_filament_common",
+    "cool_plate_temp" : [
         "105"
     ],
-    "eng_plate_temp": [
+    "eng_plate_temp" : [
         "105"
     ],
-    "hot_plate_temp": [
+    "hot_plate_temp" : [
         "105"
     ],
-    "cool_plate_temp_initial_layer": [
+    "cool_plate_temp_initial_layer" : [
         "105"
     ],
-    "eng_plate_temp_initial_layer": [
+    "eng_plate_temp_initial_layer" : [
         "105"
     ],
-    "hot_plate_temp_initial_layer": [
+    "hot_plate_temp_initial_layer" : [
         "105"
     ],
     "slow_down_for_layer_cooling": [

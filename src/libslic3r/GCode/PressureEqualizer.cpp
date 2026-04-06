@@ -541,10 +541,17 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                 // We don't have enough time to accel to max possible extrusion rate
                 // now we calculate the actual possible value
                 target_max_extrusion_rate = std::sqrt((2 * max_sloped_extrusion * sp * sn + sn * e0_2 + sp * e1_2) / (sp + sn));
+
+                // Worst case: we don't have enough time to do an accl-steady-decel movement at all, fallback to the old fashion
+                // single slope mode
+                if (target_max_extrusion_rate <= line.volumetric_extrusion_rate_start ||
+                    target_max_extrusion_rate <= line.volumetric_extrusion_rate_end) {
+                    goto single_slope_fallback;  // TODO: FIXIT: better way than a goto?
+                }
             }
             assert(target_max_extrusion_rate > line.volumetric_extrusion_rate_start);
             assert(target_max_extrusion_rate > line.volumetric_extrusion_rate_end);
-            assert(target_max_extrusion_rate >= line.volumetric_extrusion_rate);
+            assert(target_max_extrusion_rate <= line.volumetric_extrusion_rate);
 
             // if the extrusion rate change is trivial, then ignore this algorithm and use the single sloped version instead
             delta_volumetric_rate = std::round(std::min({ // important! it's MIN here not max!
@@ -626,7 +633,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
                 return;
             }
         }
-
+single_slope_fallback:
         bool accelerating = line.volumetric_extrusion_rate_start < line.volumetric_extrusion_rate_end;
         float feed_avg = 0.5f * (line.pos_start[4] + line.pos_end[4]);
         // Limiting volumetric extrusion rate slope for this segment.

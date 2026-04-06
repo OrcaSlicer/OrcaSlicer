@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "QIDI ASA-CF @Qidi Q2 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI ASA-CF@Q2-Series",
+    "pressure_advance": ["0.03"],
+	"compatible_printers": ["Qidi Q2 0.4 nozzle"]
+}

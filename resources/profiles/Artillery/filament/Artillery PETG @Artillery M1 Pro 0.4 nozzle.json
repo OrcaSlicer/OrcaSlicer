@@ -68,10 +68,10 @@
         "70"
     ],
     "nozzle_temperature": [
-        "240"
+        "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "240"
+        "250"
     ],
     "fan_max_speed": [
         "90"
@@ -104,7 +104,7 @@
         "220"
     ],
     "filament_flow_ratio": [
-        "1.029"
+        "0.95"
     ],
     "slow_down_min_speed": [
         "20"

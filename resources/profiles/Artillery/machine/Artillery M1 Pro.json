@@ -8,5 +8,7 @@
     "bed_model": "artillery_m1_pro_buildplate_model.stl",
     "bed_texture": "artillery_m1_pro_buildplate_texture.svg",
     "hotend_model": "",
-    "default_materials": "Artillery PLA Basic;"
+	"default_bed_type": "Textured PEI Plate",
+	"not_support_bed_type": "Engineering Plate;Textured Cool Plate;Smooth PEI Plate",
+    "default_materials": "Artillery PLA Basic;Artillery ABS;Artillery ASA;Artillery PA;Artillery PA-CF;Artillery PC;Artillery PET;Artillery PETG Basic;Artillery PETG-CF;Artillery PLA Basic;Artillery PLA Matte;Artillery PLA Silk;Artillery PLA-CF;Artillery PVA;Artillery TPU;Artillery PLA"
 }

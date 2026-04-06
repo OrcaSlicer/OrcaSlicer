@@ -57,32 +57,15 @@ void AMSMaterialsSetting::create()
     m_sizer_button->Add(0, 0, 1, wxEXPAND, 0);
 
     m_button_confirm = new Button(this, _L("Confirm"));
-    m_btn_bg_green   = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_button_confirm->SetBackgroundColor(m_btn_bg_green);
-    m_button_confirm->SetBorderColor(wxColour(0, 150, 136));
-    m_button_confirm->SetTextColor(wxColour("#FFFFFE"));
-    m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_confirm->SetCornerRadius(FromDIP(12));
+    m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_ok, this);
 
     m_button_reset = new Button(this, _L("Reset"));
-    m_btn_bg_gray = StateColor(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(*wxWHITE, StateColor::Focused),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-    m_button_reset->SetBackgroundColor(m_btn_bg_gray);
-    m_button_reset->SetBorderColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_reset->SetTextColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_reset->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_reset->SetCornerRadius(FromDIP(12));
+    m_button_reset->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_reset->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_reset, this);
 
     m_button_close = new Button(this, _L("Close"));
-    m_button_close->SetBackgroundColor(m_btn_bg_gray);
-    m_button_close->SetBorderColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_close->SetTextColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_close->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_close->SetCornerRadius(FromDIP(12));
+    m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_close->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_close, this);
 
     m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
@@ -315,11 +298,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     if (language.find("zh") == 0)
         region = "zh";
     wxString link_url = wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_pa", region);
-    m_wiki_ctrl = new wxHyperlinkCtrl(parent, wxID_ANY, "Wiki", link_url);
-    m_wiki_ctrl->SetNormalColour(*wxBLUE);
-    m_wiki_ctrl->SetHoverColour(wxColour(0, 0, 200));
-    m_wiki_ctrl->SetVisitedColour(*wxBLUE);
-    m_wiki_ctrl->SetFont(Label::Head_14);
+    m_wiki_ctrl = new HyperLink(parent, "Wiki Guide", link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
     cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -836,7 +815,7 @@ void AMSMaterialsSetting::update_widgets()
 bool AMSMaterialsSetting::Show(bool show)
 {
     if (show) {
-        m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
+        m_button_confirm->Rescale(); // ORCA re applies size
         m_input_nozzle_max->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
         m_input_nozzle_min->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
         //m_clr_picker->set_color(m_clr_picker->GetParent()->GetBackgroundColour());
@@ -1193,9 +1172,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     if ( !this->obj || m_filament_selection < 0) {
         m_input_k_val->Enable(false);
         m_input_n_val->Enable(false);
-        m_button_confirm->Disable();
-        m_button_confirm->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
-        m_button_confirm->SetBorderColor(wxColour(0x90, 0x90, 0x90));
+        m_button_confirm->Disable(); // ORCA No need to change style
         m_comboBox_cali_result->Clear();
         m_comboBox_cali_result->SetValue(wxEmptyString);
         m_input_k_val->GetTextCtrl()->SetValue(wxEmptyString);
@@ -1204,10 +1181,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
         return;
     }
     else {
-        m_button_confirm->SetBackgroundColor(m_btn_bg_green);
-        m_button_confirm->SetBorderColor(wxColour(0, 150, 136));
-        m_button_confirm->SetTextColor(wxColour("#FFFFFE"));
-        m_button_confirm->Enable(true);
+        m_button_confirm->Enable(true);  // ORCA No need to change style
     }
 
     //filament id
@@ -1357,12 +1331,9 @@ void AMSMaterialsSetting::on_dpi_changed(const wxRect &suggested_rect)
     degree->msw_rescale();
     bitmap_max_degree->SetBitmap(degree->bmp());
     bitmap_min_degree->SetBitmap(degree->bmp());
-    m_button_reset->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_reset->SetCornerRadius(FromDIP(12));
-    m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_confirm->SetCornerRadius(FromDIP(12));
-    m_button_close->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_close->SetCornerRadius(FromDIP(12));
+    m_button_reset->Rescale(); // ORCA
+    m_button_confirm->Rescale(); // ORCA
+    m_button_close->Rescale(); // ORCA
     this->Refresh();
 }
 

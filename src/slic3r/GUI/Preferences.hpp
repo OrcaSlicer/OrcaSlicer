@@ -6,6 +6,7 @@
 
 #include <wx/dialog.h>
 #include <wx/timer.h>
+#include <string>
 #include <vector>
 #include <list>
 #include <map>
@@ -13,6 +14,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -42,10 +44,12 @@ protected:
     // bool								m_settings_layout_changed {false};
     bool m_seq_top_layer_only_changed{false};
     bool m_recreate_GUI{false};
+    std::string m_pending_language;
 
 public:
     bool seq_top_layer_only_changed() const { return m_seq_top_layer_only_changed; }
     bool recreate_GUI() const { return m_recreate_GUI; }
+    const std::string& pending_language() const { return m_pending_language; }
     void on_dpi_changed(const wxRect &suggested_rect) override;
 
 public:
@@ -59,6 +63,7 @@ public:
     ~PreferencesDialog();
 
     wxString m_backup_interval_time;
+    wxTimer m_filament_height_timer;
 
     void      create();
 
@@ -67,7 +72,9 @@ public:
     ::CheckBox * m_internal_developer_mode_ckeckbox = {nullptr};
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
-    ::CheckBox * m_legacy_networking_ckeckbox     = {nullptr};
+    ::ComboBox * m_network_version_combo     = {nullptr};
+    wxBoxSizer * m_network_version_sizer     = {nullptr};
+    std::vector<NetworkLibraryVersionInfo> m_available_versions;
 
     wxString m_developer_mode_def;
     wxString m_internal_developer_mode_def;
@@ -77,7 +84,7 @@ public:
     std::vector<wxFlexGridSizer*> f_sizers;
 
     wxBoxSizer *create_item_title(wxString title);
-    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist);
+    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange = {});
     wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index);
     wxBoxSizer *create_item_region_combobox(wxString title, wxString tooltip);
     wxBoxSizer *create_item_language_combobox(wxString title, wxString tooltip);
@@ -88,8 +95,11 @@ public:
     wxBoxSizer *create_item_button(wxString title, wxString title2, wxString tooltip, wxString tooltip2, std::function<void()> onclick);
     wxBoxSizer *create_item_downloads(wxString title, wxString tooltip);
     wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {});
+    wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr);
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
+    wxBoxSizer *create_item_draco(wxString title, wxString side_label, wxString tooltip);
     wxBoxSizer *create_item_multiple_combobox(wxString title, wxString tooltip, std::string parama, std::vector<wxString> vlista, std::vector<wxString> vlistb);
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);
@@ -99,6 +109,8 @@ public:
     void create_sync_page();
     void create_shortcuts_page();
     wxBoxSizer* create_debug_page();
+
+    void UpdateSidebarLayout();
 
     // BBS
     void create_select_domain_widget();

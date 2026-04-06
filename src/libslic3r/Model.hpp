@@ -1632,6 +1632,7 @@ public:
 
     void          delete_material(t_model_material_id material_id);
     void          clear_materials();
+    // Make sure all objects have at least one instance
     bool          add_default_instances();
     // Returns approximate axis aligned bounding box of this model.
     BoundingBoxf3 bounding_box_approx() const;

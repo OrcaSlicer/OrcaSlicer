@@ -1,9 +1,17 @@
 {
     "name": "InfiMech",
-    "version": "02.03.01.10",
+    "version": "02.03.02.60",
     "force_update": "1",
     "description": "InfiMech configurations",
     "machine_model_list": [
+        {
+            "name": "InfiMech EX",
+            "sub_path": "machine/EX/InfiMech EX.json"
+        },
+        {
+            "name": "InfiMech EX+APS",
+            "sub_path": "machine/EX+APS/InfiMech EX+APS.json"
+        },
         {
             "name": "InfiMech TX",
             "sub_path": "machine/InfiMech TX.json"
@@ -17,6 +25,14 @@
         {
             "name": "fdm_process_common",
             "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_common_EX",
+            "sub_path": "process/EX/fdm_process_common_EX.json"
+        },
+        {
+            "name": "fdm_process_common_EX+APS",
+            "sub_path": "process/EX+APS/fdm_process_common_EX+APS.json"
         },
         {
             "name": "fdm_process_common_HSN",
@@ -43,6 +59,46 @@
             "sub_path": "process/0.24mm Draft @InfiMech TX.json"
         },
         {
+            "name": "0.08mm Extra Fine @InfiMech EX",
+            "sub_path": "process/EX/0.08mm Extra Fine @InfiMech EX.json"
+        },
+        {
+            "name": "0.12mm Fine @InfiMech EX",
+            "sub_path": "process/EX/0.12mm Fine @InfiMech EX.json"
+        },
+        {
+            "name": "0.16mm Optimal @InfiMech EX",
+            "sub_path": "process/EX/0.16mm Optimal @InfiMech EX.json"
+        },
+        {
+            "name": "0.20mm Standard @InfiMech EX",
+            "sub_path": "process/EX/0.20mm Standard @InfiMech EX.json"
+        },
+        {
+            "name": "0.24mm Draft @InfiMech EX",
+            "sub_path": "process/EX/0.24mm Draft @InfiMech EX.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @InfiMech EX+APS",
+            "sub_path": "process/EX+APS/0.08mm Extra Fine @InfiMech EX+APS.json"
+        },
+        {
+            "name": "0.12mm Fine @InfiMech EX+APS",
+            "sub_path": "process/EX+APS/0.12mm Fine @InfiMech EX+APS.json"
+        },
+        {
+            "name": "0.16mm Optimal @InfiMech EX+APS",
+            "sub_path": "process/EX+APS/0.16mm Optimal @InfiMech EX+APS.json"
+        },
+        {
+            "name": "0.20mm Standard @InfiMech EX+APS",
+            "sub_path": "process/EX+APS/0.20mm Standard @InfiMech EX+APS.json"
+        },
+        {
+            "name": "0.24mm Draft @InfiMech EX+APS",
+            "sub_path": "process/EX+APS/0.24mm Draft @InfiMech EX+APS.json"
+        },
+        {
             "name": "0.08mm Extra Fine @InfiMech TX HSN",
             "sub_path": "process/HSN/0.08mm Extra Fine @InfiMech TX HSN.json"
         },
@@ -67,6 +123,14 @@
         {
             "name": "fdm_filament_common",
             "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_common_EX",
+            "sub_path": "filament/EX/fdm_filament_common_EX.json"
+        },
+        {
+            "name": "fdm_filament_common_EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_common_EX+APS.json"
         },
         {
             "name": "fdm_filament_common_HSN",
@@ -127,6 +191,62 @@
         {
             "name": "fdm_filament_tpu_other",
             "sub_path": "filament/fdm_filament_tpu_other.json"
+        },
+        {
+            "name": "fdm_filament_abs @EX",
+            "sub_path": "filament/EX/fdm_filament_abs @EX.json"
+        },
+        {
+            "name": "fdm_filament_pa @EX",
+            "sub_path": "filament/EX/fdm_filament_pa @EX.json"
+        },
+        {
+            "name": "fdm_filament_pc @EX",
+            "sub_path": "filament/EX/fdm_filament_pc @EX.json"
+        },
+        {
+            "name": "fdm_filament_pet @EX",
+            "sub_path": "filament/EX/fdm_filament_pet @EX.json"
+        },
+        {
+            "name": "fdm_filament_pla @EX",
+            "sub_path": "filament/EX/fdm_filament_pla @EX.json"
+        },
+        {
+            "name": "fdm_filament_pla_Hyper @EX",
+            "sub_path": "filament/EX/fdm_filament_pla_Hyper @EX.json"
+        },
+        {
+            "name": "fdm_filament_tpu @EX",
+            "sub_path": "filament/EX/fdm_filament_tpu @EX.json"
+        },
+        {
+            "name": "fdm_filament_abs @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_abs @EX+APS.json"
+        },
+        {
+            "name": "fdm_filament_pa @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_pa @EX+APS.json"
+        },
+        {
+            "name": "fdm_filament_pc @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_pc @EX+APS.json"
+        },
+        {
+            "name": "fdm_filament_pet @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_pet @EX+APS.json"
+        },
+        {
+            "name": "fdm_filament_pla @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_pla @EX+APS.json"
+        },
+        {
+            "name": "fdm_filament_pla_Hyper @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_pla_Hyper @EX+APS.json"
+        },
+        {
+            "name": "fdm_filament_tpu @EX+APS",
+            "sub_path": "filament/EX+APS/fdm_filament_tpu @EX+APS.json"
         },
         {
             "name": "fdm_filament_abs @HSN",
@@ -241,6 +361,62 @@
             "sub_path": "filament/Other TPU.json"
         },
         {
+            "name": "InfiMech ABS @EX",
+            "sub_path": "filament/EX/InfiMech ABS @EX.json"
+        },
+        {
+            "name": "InfiMech PA-CF @EX",
+            "sub_path": "filament/EX/InfiMech PA-CF @EX.json"
+        },
+        {
+            "name": "InfiMech PC @EX",
+            "sub_path": "filament/EX/InfiMech PC @EX.json"
+        },
+        {
+            "name": "InfiMech PETG @EX",
+            "sub_path": "filament/EX/InfiMech PETG @EX.json"
+        },
+        {
+            "name": "InfiMech PLA Basic @EX",
+            "sub_path": "filament/EX/InfiMech PLA Basic @EX.json"
+        },
+        {
+            "name": "InfiMech PLA Hyper @EX",
+            "sub_path": "filament/EX/InfiMech PLA Hyper @EX.json"
+        },
+        {
+            "name": "InfiMech TPU Basic @EX",
+            "sub_path": "filament/EX/InfiMech TPU Basic @EX.json"
+        },
+        {
+            "name": "InfiMech ABS @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech ABS @EX+APS.json"
+        },
+        {
+            "name": "InfiMech PA-CF @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech PA-CF @EX+APS.json"
+        },
+        {
+            "name": "InfiMech PC @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech PC @EX+APS.json"
+        },
+        {
+            "name": "InfiMech PETG @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech PETG @EX+APS.json"
+        },
+        {
+            "name": "InfiMech PLA Basic @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech PLA Basic @EX+APS.json"
+        },
+        {
+            "name": "InfiMech PLA Hyper @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech PLA Hyper @EX+APS.json"
+        },
+        {
+            "name": "InfiMech TPU Basic @EX+APS",
+            "sub_path": "filament/EX+APS/InfiMech TPU Basic @EX+APS.json"
+        },
+        {
             "name": "InfiMech ABS @HSN",
             "sub_path": "filament/HSN/InfiMech ABS @HSN.json"
         },
@@ -305,6 +481,14 @@
         {
             "name": "fdm_klipper_common",
             "sub_path": "machine/HSN/fdm_klipper_common.json"
+        },
+        {
+            "name": "InfiMech EX 0.4 nozzle",
+            "sub_path": "machine/EX/InfiMech EX 0.4 nozzle.json"
+        },
+        {
+            "name": "InfiMech EX+APS 0.4 nozzle",
+            "sub_path": "machine/EX+APS/InfiMech EX+APS 0.4 nozzle.json"
         },
         {
             "name": "InfiMech TX 0.4 nozzle",

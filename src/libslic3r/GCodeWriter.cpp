@@ -1,5 +1,6 @@
 #include "GCodeWriter.hpp"
 #include "CustomGCode.hpp"
+#include "PrintConfig.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -41,12 +42,16 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     };
     m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
     m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
+    m_resolution = print_config.resolution.value;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
 {
     std::sort(extruder_ids.begin(), extruder_ids.end());
     m_filament_extruders.clear();
+    //ORCA: Reset current extruder ID and clear pointers to prevent dangling pointers when extruders are recreated.
+    m_curr_extruder_id = -1;
+    std::fill(m_curr_filament_extruder.begin(), m_curr_filament_extruder.end(), nullptr);
     m_filament_extruders.reserve(extruder_ids.size());
     for (unsigned int extruder_id : extruder_ids)
         m_filament_extruders.emplace_back(Extruder(extruder_id, &this->config, config.single_extruder_multi_material.value));
@@ -54,7 +59,8 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
     /*  we enable support for multiple extruder if any extruder greater than 0 is used
         (even if prints only uses that one) since we need to output Tx commands
         first extruder has index 0 */
-    this->multiple_extruders = (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
+    //ORCA: Fix undefined behavior by checking if the vector is empty before taking max_element.
+    this->multiple_extruders = !extruder_ids.empty() && (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
 }
 
 std::string GCodeWriter::preamble()
@@ -442,6 +448,28 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
+std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
+{
+    std::ostringstream gcode;
+
+    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
+        return std::string();
+
+    const bool enable = mode == PowerLossRecoveryMode::Enable;
+
+    if (m_is_bbl_printers) {
+        gcode << "M1003 S" << (enable ? "1" : "0");
+    }
+    else if (FLAVOR_IS(gcfMarlinFirmware)) {
+        gcode << "M413 S" << (enable ? "1" : "0");
+    } else {
+        return std::string();
+    }
+    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
+    gcode << "\n";
+    return gcode.str();
+}
+
 std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, bool allow_100) const
 {
     if (FLAVOR_IS_NOT(gcfMakerWare) && FLAVOR_IS_NOT(gcfSailfish))
@@ -541,7 +569,7 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
     // BBS
@@ -569,7 +597,7 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
 
@@ -769,30 +797,43 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
 
     if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
         std::ostringstream oss;
-        const double z_start = m_pos(2);
-        const int segments = 24;
-        const double cx = m_pos(0) + ij_offset(0);
-        const double cy = m_pos(1) + ij_offset(1);
-        const double radius = ij_offset.norm();
-        const double a0 = std::atan2(m_pos(1) - cy, m_pos(0) - cx);
-        const double delta = 2.0 * M_PI;
+        const double z_start = m_pos(2); // starting Z height
+
+        // --------------------------------------------------------------------
+        // Determine number of segments based on Resolution
+        // --------------------------------------------------------------------
+        const double ref_resolution = 0.01; // reference resolution in mm
+        const double ref_segments  = 16.0;  // reference number of segments at reference resolution
+        
+        // number of linear segments to use for approximating the arc, clamp between 4 and 24
+        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 24);
+        // --------------------------------------------------------------------
+
+        const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
+        const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
+        const double cx = px + ij_offset(0);            // center x
+        const double cy = py + ij_offset(1);            // center y
+        const double radius = ij_offset.norm();         // radius
+        const double a0 = std::atan2(py - cy, px - cx); // start angle
+        const double delta = 2.0 * M_PI;                // CCW full circle
 
         if (full_gcode_comment)
             oss << ";" << comment << "\n";
 
-        oss << "G1 F" << (speed * 60.0) << "\n";
+        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
 
+        // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
         for (int i = 1; i < segments; ++i) {
-            double t = double(i) / segments;
-            double a = a0 + delta * t;   // CCW arc param
-            double x = cx + radius * std::cos(a);
-            double y = cy + radius * std::sin(a);
-            double zz = z_start + (z - z_start) * t;
+            double t = double(i) / segments;            // parametric position along arc
+            double a = a0 + delta * t;                  // CCW arc param
+            double x = cx + radius * std::cos(a);       // point on circle
+            double y = cy + radius * std::sin(a);       // point on circle
+            double zz = z_start + (z - z_start) * t;    // interpolated Z height
 
             oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
         }
 
-        oss << "G1 X" << m_pos(0) << " Y" << m_pos(1) << " Z" << z << "\n";
+        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
         output = oss.str();
     } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
         output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
