@@ -678,7 +678,7 @@ void GLGizmoMeasure::on_render()
                                                                                m_mesh_raycaster_map[m_last_hit_volume]->get_transform(), m_only_select_plane) :
                                                               std::nullopt;
             }
-            if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
+            if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && curr_feature.has_value()) {
                 if (m_assembly_mode == AssemblyMode::FACE_FACE) {
                     if (curr_feature->get_type() != Measure::SurfaceFeatureType::Plane) {
                         curr_feature.reset();

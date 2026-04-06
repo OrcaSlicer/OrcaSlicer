@@ -578,7 +578,7 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                                                    "Yes - Change these settings automatically\n"
                                                    "No  - Do not change these settings for me");
 
-                            MessageDialog dialog(wxGetApp().plater(), msg_text, "Suggestion", wxICON_WARNING | wxYES | wxNO);
+                            MessageDialog dialog(wxGetApp().plater(), msg_text, _L("Suggestion"), wxICON_WARNING | wxYES | wxNO);
                             if (dialog.ShowModal() == wxID_YES) {
                                 m_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(0, false));
                                 wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
@@ -750,18 +750,51 @@ wxMenuItem* MenuFactory::append_menu_item_settings(wxMenu* menu_)
 
 wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
 {
-    return append_menu_item(menu, wxID_ANY, _L("Change type"), "",
-        [](wxCommandEvent&) { obj_list()->change_part_type(); }, "", menu,
-        []() {
-          wxDataViewItemArray selections;
-          obj_list()->GetSelections(selections);
-          if (selections.empty()) return false;
-          for (const auto& it : selections) {
-            if (!(obj_list()->GetModel()->GetItemType(it) & itVolume))
-              return false; // non-volume present -> disable
-          }
-          return true;
-        }, m_parent);
+    const wxString menu_name = _L("Change type");
+
+    // Delete old menu item if exists
+    const int item_id = menu->FindItem(menu_name);
+    if (item_id != wxNOT_FOUND)
+        menu->Destroy(item_id);
+
+    // Create submenu
+    wxMenu* type_menu = new wxMenu();
+
+    struct TypeInfo {
+        ModelVolumeType type;
+        wxString label;
+    };
+
+    std::vector<TypeInfo> types = {
+        { ModelVolumeType::MODEL_PART,         _L("Part") },
+        { ModelVolumeType::NEGATIVE_VOLUME,    _L("Negative Part") },
+        { ModelVolumeType::PARAMETER_MODIFIER, _L("Modifier") },
+        { ModelVolumeType::SUPPORT_BLOCKER,    _L("Support Blocker") },
+        { ModelVolumeType::SUPPORT_ENFORCER,   _L("Support Enforcer") }
+    };
+
+    for (const auto& info : types) {
+        wxMenuItem* item = append_menu_check_item(type_menu, wxID_ANY, info.label, "",
+            [type = info.type](wxCommandEvent&) { obj_list()->set_volume_type(type); }, type_menu);
+
+        // Update checkmark dynamically when menu is shown - check all selected volumes
+        m_parent->Bind(wxEVT_UPDATE_UI, [type = info.type](wxUpdateUIEvent& evt) {
+            bool has_type = false;
+            wxDataViewItemArray sels;
+            obj_list()->GetSelections(sels);
+            for (auto item : sels) {
+                ModelVolumeType vol_type = obj_list()->GetModel()->GetVolumeType(item);
+                if (vol_type == type) {
+                    has_type = true;
+                    break;
+                }
+            }
+            evt.Check(has_type);
+        }, item->GetId());
+    }
+
+    menu->Append(wxID_ANY, menu_name, type_menu, _L("Change part type"));
+    return nullptr;
 }
 
 wxMenuItem* MenuFactory::append_menu_item_instance_to_object(wxMenu* menu)
@@ -1572,7 +1605,7 @@ void MenuFactory::create_plate_menu()
 {
     wxMenu* menu = &m_plate_menu;
     // select objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Select All"), _L("select all objects on current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Select All"), _L("Select all objects on the current plate"),
         [](wxCommandEvent&) {
             plater()->select_curr_plate_all();
         }, "", nullptr, []() {
@@ -1582,7 +1615,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // select objects on all plates
-    append_menu_item(menu, wxID_ANY, _L("Select All Plates"), _L("select all objects on all plates"),
+    append_menu_item(menu, wxID_ANY, _L("Select All Plates"), _L("Select all objects on all plates"),
         [](wxCommandEvent&) {
             plater()->select_all();
         }, "", nullptr, []() {
@@ -1590,7 +1623,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // delete objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("delete all objects on current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("Delete all objects on the current plate"),
         [](wxCommandEvent&) {
             plater()->remove_curr_plate_all();
         }, "", nullptr, []() {
@@ -1600,7 +1633,7 @@ void MenuFactory::create_plate_menu()
         }, m_parent);
 
     // arrange objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Arrange"), _L("arrange current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Arrange"), _L("Arrange current plate"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1614,7 +1647,7 @@ void MenuFactory::create_plate_menu()
 
     // reload all objects on current plate
     append_menu_item(
-        menu, wxID_ANY, _L("Reload All"), _L("reload all from disk"),
+        menu, wxID_ANY, _L("Reload All"), _L("Reload all from disk"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);
@@ -1624,7 +1657,7 @@ void MenuFactory::create_plate_menu()
         "", nullptr, []() { return !plater()->get_partplate_list().get_selected_plate()->get_objects().empty(); }, m_parent);
 
     // orient objects on current plate
-    append_menu_item(menu, wxID_ANY, _L("Auto Rotate"), _L("auto rotate current plate"),
+    append_menu_item(menu, wxID_ANY, _L("Auto Rotate"), _L("Auto rotate current plate"),
         [](wxCommandEvent&) {
             PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
             assert(plate);

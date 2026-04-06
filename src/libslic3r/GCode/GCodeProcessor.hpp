@@ -1074,6 +1074,7 @@ class Print;
         // per-nozzle machine limits (filament_map_2 / get_config_idx_for_filament).
         float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const;

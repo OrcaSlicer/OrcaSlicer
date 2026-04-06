@@ -21,6 +21,8 @@ REQUIRED_DEV_PACKAGES=(
     libssl-dev
     libtool
     libudev-dev
+    clang
+    lld
     ninja-build
     texinfo
     wget

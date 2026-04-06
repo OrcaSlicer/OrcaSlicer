@@ -1,9 +1,9 @@
 {
-    "from": "system",
+    "type": "filament",
     "name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle",
     "inherits": "Artillery Generic PLA",
+    "from": "system",
     "instantiation": "true",
-    "is_custom_defined": "0",
     "complete_print_exhaust_fan_speed": [
         "0"
     ],
@@ -17,16 +17,16 @@
         "30"
     ],
     "fan_min_speed": [
-        "30"
+        "10"
     ],
     "filament_flow_ratio": [
         "0.93"
     ],
     "filament_max_volumetric_speed": [
-        "6"
+        "4"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "0"
     ],
     "filament_settings_id": [
         "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle"
@@ -35,10 +35,10 @@
         "PA-CF"
     ],
     "nozzle_temperature": [
-        "250"
+        "280"
     ],
     "nozzle_temperature_initial_layer": [
-        "250"
+        "280"
     ],
     "nozzle_temperature_range_high": [
         "280"
@@ -49,7 +49,6 @@
     "slow_down_layer_time": [
         "2"
     ],
-    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
@@ -69,16 +68,16 @@
         "0.6"
     ],
     "temperature_vitrification": [
-        "108"
+        "170"
     ],
     "enable_pressure_advance": [
         "1"
     ],
     "hot_plate_temp": [
-        "50"
+        "100"
     ],
     "hot_plate_temp_initial_layer": [
-        "50"
+        "100"
     ],
     "slow_down_min_speed": [
         "10"
@@ -96,10 +95,10 @@
         "100"
     ],
     "cool_plate_temp": [
-        "110"
+        "100"
     ],
     "cool_plate_temp_initial_layer": [
-        "110"
+        "100"
     ],
     "overhang_fan_speed": [
         "80"

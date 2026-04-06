@@ -1,6 +1,6 @@
 {
     "name": "OrcaFilamentLibrary",
-    "version": "02.03.02.40",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "Orca Filament Library",
     "filament_list": [
@@ -89,38 +89,6 @@
             "sub_path": "filament/base/fdm_filament_tpu.json"
         },
         {
-            "name": "Elas ASA @base",
-            "sub_path": "filament/Elas/Elas ASA @base.json"
-        },
-        {
-            "name": "Elas PETG Basic @base",
-            "sub_path": "filament/Elas/Elas PETG Basic @base.json"
-        },
-        {
-            "name": "Elas PLA Basic @base",
-            "sub_path": "filament/Elas/Elas PLA Basic @base.json"
-        },
-        {
-            "name": "Elas PLA Pro @base",
-            "sub_path": "filament/Elas/Elas PLA Pro @base.json"
-        },
-        {
-            "name": "Elas ASA @System",
-            "sub_path": "filament/Elas/Elas ASA @System.json"
-        },
-        {
-            "name": "Elas PETG Basic @System",
-            "sub_path": "filament/Elas/Elas PETG Basic @System.json"
-        },
-        {
-            "name": "Elas PLA Basic @System",
-            "sub_path": "filament/Elas/Elas PLA Basic @System.json"
-        },
-        {
-            "name": "Elas PLA Pro @System",
-            "sub_path": "filament/Elas/Elas PLA Pro @System.json"
-        },
-        {
             "name": "FusRock ABS-GF @System",
             "sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
         },
@@ -183,6 +151,14 @@
         {
             "name": "COEX ASA PRIME @base",
             "sub_path": "filament/COEX/COEX ASA PRIME @base.json"
+        },
+        {
+            "name": "Elas ASA @base",
+            "sub_path": "filament/Elas/Elas ASA @base.json"
+        },
+        {
+            "name": "Elegoo ASA @base",
+            "sub_path": "filament/Elegoo/Elegoo ASA @base.json"
         },
         {
             "name": "Eolas Prints ASA @System",
@@ -337,6 +313,22 @@
             "sub_path": "filament/COEX/COEX PETG @base.json"
         },
         {
+            "name": "Elas PETG Basic @base",
+            "sub_path": "filament/Elas/Elas PETG Basic @base.json"
+        },
+        {
+            "name": "Elegoo PETG Pro @base",
+            "sub_path": "filament/Elegoo/Elegoo PETG Pro @base.json"
+        },
+        {
+            "name": "Elegoo PETG-CF @base",
+            "sub_path": "filament/Elegoo/Elegoo PETG-CF @base.json"
+        },
+        {
+            "name": "Elegoo Rapid PETG @base",
+            "sub_path": "filament/Elegoo/Elegoo Rapid PETG @base.json"
+        },
+        {
             "name": "Eolas Prints PETG @System",
             "sub_path": "filament/Eolas Prints/Eolas Prints PETG @System.json"
         },
@@ -481,6 +473,22 @@
             "sub_path": "filament/COEX/COEX PLA PRIME @base.json"
         },
         {
+            "name": "Elas PLA Basic @base",
+            "sub_path": "filament/Elas/Elas PLA Basic @base.json"
+        },
+        {
+            "name": "Elas PLA Pro @base",
+            "sub_path": "filament/Elas/Elas PLA Pro @base.json"
+        },
+        {
+            "name": "Elegoo PLA @base",
+            "sub_path": "filament/Elegoo/Elegoo PLA @base.json"
+        },
+        {
+            "name": "Elegoo Rapid PLA+ @base",
+            "sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @base.json"
+        },
+        {
             "name": "Eolas Prints PLA Antibacterial @System",
             "sub_path": "filament/Eolas Prints/Eolas Prints PLA Antibacterial @System.json"
         },
@@ -519,6 +527,10 @@
         {
             "name": "FDplast PLA @base",
             "sub_path": "filament/FDplast/FDplast PLA @base.json"
+        },
+        {
+            "name": "FILL3D PLA Turbo @base",
+            "sub_path": "filament/FILL3D/FILL3D PLA Turbo @base.json"
         },
         {
             "name": "Generic PLA @System",
@@ -705,6 +717,18 @@
             "sub_path": "filament/eSUN/eSUN PLA+ @base.json"
         },
         {
+            "name": "eSUN PLA-Basic @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Basic @base.json"
+        },
+        {
+            "name": "eSUN PLA-Marble @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Marble @base.json"
+        },
+        {
+            "name": "eSUN PLA-Matte @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Matte @base.json"
+        },
+        {
             "name": "eSUN ePLA-LW @System",
             "sub_path": "filament/eSUN/eSUN ePLA-LW @System.json"
         },
@@ -779,6 +803,10 @@
         {
             "name": "COEX TPU 60A @base",
             "sub_path": "filament/COEX/COEX TPU 60A @base.json"
+        },
+        {
+            "name": "Elegoo TPU 95A @base",
+            "sub_path": "filament/Elegoo/Elegoo TPU 95A @base.json"
         },
         {
             "name": "Eolas Prints TPU D60 UV Resistant @System",
@@ -861,6 +889,14 @@
             "sub_path": "filament/COEX/COEX ASA PRIME @System.json"
         },
         {
+            "name": "Elas ASA @System",
+            "sub_path": "filament/Elas/Elas ASA @System.json"
+        },
+        {
+            "name": "Elegoo ASA @System",
+            "sub_path": "filament/Elegoo/Elegoo ASA @System.json"
+        },
+        {
             "name": "Overture ASA @System",
             "sub_path": "filament/Overture/Overture ASA @System.json"
         },
@@ -902,7 +938,7 @@
         },
         {
             "name": "COEX NYLEX PA6-CF @System",
-            "sub_path": "filament/COEX/COEX NYLEX UNFILLED @System.json"
+            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
         },
         {
             "name": "Fiberon PA12-CF @System",
@@ -967,6 +1003,22 @@
         {
             "name": "COEX PETG @System",
             "sub_path": "filament/COEX/COEX PETG @System.json"
+        },
+        {
+            "name": "Elas PETG Basic @System",
+            "sub_path": "filament/Elas/Elas PETG Basic @System.json"
+        },
+        {
+            "name": "Elegoo PETG Pro @System",
+            "sub_path": "filament/Elegoo/Elegoo PETG Pro @System.json"
+        },
+        {
+            "name": "Elegoo PETG-CF @System",
+            "sub_path": "filament/Elegoo/Elegoo PETG-CF @System.json"
+        },
+        {
+            "name": "Elegoo Rapid PETG @System",
+            "sub_path": "filament/Elegoo/Elegoo Rapid PETG @System.json"
         },
         {
             "name": "FDplast PETG @System",
@@ -1085,8 +1137,28 @@
             "sub_path": "filament/COEX/COEX PLA PRIME @System.json"
         },
         {
+            "name": "Elas PLA Basic @System",
+            "sub_path": "filament/Elas/Elas PLA Basic @System.json"
+        },
+        {
+            "name": "Elas PLA Pro @System",
+            "sub_path": "filament/Elas/Elas PLA Pro @System.json"
+        },
+        {
+            "name": "Elegoo PLA @System",
+            "sub_path": "filament/Elegoo/Elegoo PLA @System.json"
+        },
+        {
+            "name": "Elegoo Rapid PLA+ @System",
+            "sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @System.json"
+        },
+        {
             "name": "FDplast PLA @System",
             "sub_path": "filament/FDplast/FDplast PLA @System.json"
+        },
+        {
+            "name": "FILL3D PLA Turbo @System",
+            "sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
         },
         {
             "name": "NIT PLA @System",
@@ -1265,6 +1337,18 @@
             "sub_path": "filament/eSUN/eSUN PLA+ @System.json"
         },
         {
+            "name": "eSUN PLA-Basic @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Basic @System.json"
+        },
+        {
+            "name": "eSUN PLA-Marble @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Marble @System.json"
+        },
+        {
+            "name": "eSUN PLA-Matte @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Matte @System.json"
+        },
+        {
             "name": "COEX PLA+Silk @base",
             "sub_path": "filament/COEX/COEX PLA+Silk @base.json"
         },
@@ -1307,6 +1391,10 @@
         {
             "name": "COEX TPU 60A @System",
             "sub_path": "filament/COEX/COEX TPU 60A @System.json"
+        },
+        {
+            "name": "Elegoo TPU 95A @System",
+            "sub_path": "filament/Elegoo/Elegoo TPU 95A @System.json"
         },
         {
             "name": "FDplast TPU @System",

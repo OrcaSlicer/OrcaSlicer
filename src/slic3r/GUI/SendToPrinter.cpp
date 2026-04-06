@@ -367,7 +367,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("send completed"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -1541,7 +1541,7 @@ void SendToPrinterDialog::set_default()
     }
 
     fs::path filename_path(filename.c_str());
-    m_current_project_name = wxString::FromUTF8(filename_path.filename().string());
+    m_current_project_name = from_path(filename_path.filename());
 
     //unsupported character filter
     m_current_project_name = from_u8(filter_characters(m_current_project_name.ToUTF8().data(), "<>[]:/\\|?*\""));

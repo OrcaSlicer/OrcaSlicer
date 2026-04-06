@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <map>
 #include <climits>
+#include <cfloat>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -36,9 +37,9 @@ namespace Slic3r {
         template<class Archive> void serialize(Archive& ar) { ar(this->value); ar(this->percent); }
     };
 
-    inline bool operator==(const FloatOrPercent& l, const FloatOrPercent& r) throw() { return l.value == r.value && l.percent == r.percent; }
+    inline bool operator==(const FloatOrPercent& l, const FloatOrPercent& r) throw() { return is_approx(l.value, r.value) && l.percent == r.percent; }
     inline bool operator!=(const FloatOrPercent& l, const FloatOrPercent& r) throw() { return !(l == r); }
-    inline bool operator< (const FloatOrPercent& l, const FloatOrPercent& r) throw() { return l.value < r.value || (l.value == r.value && int(l.percent) < int(r.percent)); }
+    inline bool operator< (const FloatOrPercent& l, const FloatOrPercent& r) throw() { return l.value < r.value || (is_approx(l.value, r.value) && int(l.percent) < int(r.percent)); }
 }
 
 namespace std {
@@ -586,26 +587,30 @@ public:
             auto rhs_opt = static_cast<const ConfigOptionVector<T>*>(rhs);
             auto inherits_opt = static_cast<const ConfigOptionVector<T>*>(inherits);
 
-            if (inherits->size() != rhs->size())
-                throw ConfigurationError("ConfigOptionVector::set_with_nil(): rhs size different with inherits size");
+            if (stride <= 0)
+                throw ConfigurationError("ConfigOptionVector::set_with_nil(): invalid stride");
 
-            this->values.resize(inherits->size(), this->values.front());
+            // Tolerate legacy/transitional presets where vector sizes may diverge
+            // (for example after reducing extruder/variant count).
+            // Keep rhs as source of truth and nil-mark only on overlapping range.
+            this->values = rhs_opt->values;
 
-            for (size_t i = 0; i < inherits_opt->size(); i= i+stride) {
+            const size_t overlap_size = std::min(rhs_opt->size(), inherits_opt->size());
+
+            for (size_t i = 0; i < overlap_size; i += size_t(stride)) {
+                const size_t group_size = std::min(size_t(stride), overlap_size - i);
                 bool set_nil = true;
-                for (size_t j = 0; j < stride; j++) {
-                    if (inherits_opt->values[i +j] != rhs_opt->values[i +j]) {
+                for (size_t j = 0; j < group_size; ++j) {
+                    if (inherits_opt->values[i + j] != rhs_opt->values[i + j]) {
                         set_nil = false;
                         break;
                     }
                 }
 
-                for (size_t j = 0; j < stride; j++) {
+                for (size_t j = 0; j < group_size; ++j) {
                     if (set_nil) {
-                        this->set_at_to_nil(i +j);
+                        this->set_at_to_nil(i + j);
                     }
-                    else
-                        this->values[i +j] = rhs_opt->values[i +j];
                 }
             }
         }
@@ -761,8 +766,8 @@ public:
     ConfigOptionType        type()      const override { return static_type(); }
     double                  getFloat()  const override { return this->value; }
     ConfigOption*           clone()     const override { return new ConfigOptionFloat(*this); }
-    bool                    operator==(const ConfigOptionFloat &rhs) const throw() { return this->value == rhs.value; }
-    bool                    operator< (const ConfigOptionFloat &rhs) const throw() { return this->value <  rhs.value; }
+    bool                    operator==(const ConfigOptionFloat &rhs) const throw() { return is_approx(this->value, rhs.value); }
+    bool                    operator< (const ConfigOptionFloat &rhs) const throw() { return this->value < rhs.value; }
 
     std::string serialize() const override
     {
@@ -777,6 +782,14 @@ public:
         std::istringstream iss(str);
         iss >> this->value;
         return !iss.fail();
+    }
+
+    bool operator==(const ConfigOption &rhs) const override
+    {
+        if (rhs.type() != this->type())
+            throw ConfigurationError("ConfigOptionFloat: Comparing incompatible types");
+        assert(dynamic_cast<const ConfigOptionFloat*>(&rhs));
+        return *this == *static_cast<const ConfigOptionFloat*>(&rhs);
     }
 
     ConfigOptionFloat& operator=(const ConfigOption *opt)
@@ -905,7 +918,7 @@ protected:
     		if (v1.size() != v2.size())
     			return false;
     		for (auto it1 = v1.begin(), it2 = v2.begin(); it1 != v1.end(); ++ it1, ++ it2)
-	    		if (! ((std::isnan(*it1) && std::isnan(*it2)) || *it1 == *it2))
+	    		if (! ((std::isnan(*it1) && std::isnan(*it2)) || is_approx(*it1, *it2)))
 	    			return false;
     		return true;
     	} else
@@ -1257,11 +1270,11 @@ public:
         return *this == *static_cast<const ConfigOptionFloatOrPercent*>(&rhs);
     }
     bool                        operator==(const ConfigOptionFloatOrPercent &rhs) const throw()
-        { return this->value == rhs.value && this->percent == rhs.percent; }
+        { return is_approx(this->value, rhs.value) && this->percent == rhs.percent; }
     size_t                      hash() const throw() override
         { size_t seed = std::hash<double>{}(this->value); return this->percent ? seed ^ 0x9e3779b9 : seed; }
     bool                        operator< (const ConfigOptionFloatOrPercent &rhs) const throw()
-        { return this->value < rhs.value || (this->value == rhs.value && int(this->percent) < int(rhs.percent)); }
+        { return this->value < rhs.value || (is_approx(this->value, rhs.value) && int(this->percent) < int(rhs.percent)); }
 
     double                      get_abs_value(double ratio_over) const
         { return this->percent ? (ratio_over * this->value / 100) : this->value; }
@@ -2455,10 +2468,11 @@ public:
     // Optional width of an input field.
     int                                 width           = -1;
     // <min, max> limit of a numeric input.
-    // If not set, the <min, max> is set to <INT_MIN, INT_MAX>
+    // If not set, the <min, max> is set to <-FLT_MAX, FLT_MAX>
     // By setting min=0, only nonnegative input is allowed.
-    int                                 min = INT_MIN;
-    int                                 max = INT_MAX;
+    float                               min = -FLT_MAX;
+    float                               max =  FLT_MAX;
+    bool                                is_value_valid(const double value, const int max_precision = 4) const;
     // To check if it's not a typo and a % is missing
     double                              max_literal = 1;
     ConfigOptionMode                    mode = comSimple;

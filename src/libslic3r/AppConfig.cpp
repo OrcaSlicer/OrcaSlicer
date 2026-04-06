@@ -196,6 +196,9 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    if (get("filaments_area_preferred_count").empty())
+        set("filaments_area_preferred_count", "10");
+
     if (get("use_perspective_camera").empty())
         set_bool("use_perspective_camera", true);
 
@@ -247,6 +250,9 @@ void AppConfig::set_defaults()
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
+
+    if (get("show_plate_gridlines").empty())
+        set_bool("show_plate_gridlines", true);
 
     if (get("show_outline").empty())
         set_bool("show_outline", false);
