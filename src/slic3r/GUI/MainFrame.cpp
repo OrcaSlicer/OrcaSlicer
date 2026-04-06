@@ -310,7 +310,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     m_edge_right  = new ResizeEdgePanel(this, ResizeEdgePanel::Right);
 #endif
 
-#ifdef _WIN32
+#ifdef __WXMSW__
     if (HWND hWnd = GetHandle(); hWnd != nullptr) {
         LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
         if ((style & WS_CAPTION) != 0) {
@@ -769,7 +769,7 @@ void MainFrame::bind_diff_dialog()
 }
 
 
-#ifdef _WIN32
+#ifdef __WXMSW__
 
 // Orca: Fix maximized window overlaps taskbar when taskbar auto hide is enabled (#8085)
 // Adopted from https://gist.github.com/MortenChristiansen/6463580
