@@ -5072,7 +5072,7 @@ LayerResult GCode::process_layer(
         if (print.config().skirt_type == stPerObject &&
             print.config().print_sequence == PrintSequence::ByObject &&
             !layer.object()->object_skirt().empty() &&
-            ((layer.id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled))
+            ((layer.id() < print.config().skirt_height || print.config().draft_shield.value))
            )
         {
             for (InstanceToPrint& instance_to_print : instances_to_print) {
@@ -5109,7 +5109,7 @@ LayerResult GCode::process_layer(
                     !instance_to_print.print_object.object_skirt().empty() &&
                     print.config().print_sequence == PrintSequence::ByLayer
                     &&
-                    (layer.id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled))
+                    (layer.id() < print.config().skirt_height || print.config().draft_shield.value))
                 {
                     if (first_layer)
                         m_skirt_done.clear();
