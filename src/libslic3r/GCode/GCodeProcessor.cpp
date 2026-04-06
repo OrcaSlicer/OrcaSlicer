@@ -5354,8 +5354,10 @@ void GCodeProcessor::process_M1020(const GCodeReader::GCodeLine &line)
                 BOOST_LOG_TRIVIAL(error) << "Invalid M1020 command (" << line.raw() << ").";
         }
         else {
-            if (eid >= m_result.filaments_count)
+            if (eid >= m_result.filaments_count) {
                 BOOST_LOG_TRIVIAL(error) << "Invalid M1020 command (" << line.raw() << ").";
+                return;
+            }
             process_filament_change(eid);
         }
     }
@@ -5383,8 +5385,10 @@ void GCodeProcessor::process_T(const std::string_view command)
                 BOOST_LOG_TRIVIAL(error) << "Invalid T command (" << command << ").";
         }
         else {
-            if (eid >= m_result.filaments_count)
+            if (eid >= m_result.filaments_count) {
                 BOOST_LOG_TRIVIAL(error) << "Invalid T command (" << command << ").";
+                return;
+            }
             process_filament_change(eid);
         }
     }

@@ -196,7 +196,7 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
             surfaces.push_back(&surface);
         }
 
-        if (cfg.type != FuzzySkinType::None) {
+        if (cfg.type != FuzzySkinType::None && cfg.type != FuzzySkinType::Disabled_fuzzy) {
             g.has_fuzzy_skin = true;
             if (cfg.type != FuzzySkinType::External) {
                 g.has_fuzzy_hole = true;
