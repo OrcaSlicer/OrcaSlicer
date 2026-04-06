@@ -1,6 +1,7 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
@@ -31,6 +32,15 @@ wxDEFINE_EVENT(EVT_HID_DEVICE_DETACHED, HIDDeviceDetachedEvent);
 wxDEFINE_EVENT(EVT_VOLUME_ATTACHED, VolumeAttachedEvent);
 wxDEFINE_EVENT(EVT_VOLUME_DETACHED, VolumeDetachedEvent);
 #endif // _WIN32
+
+wxString format_nozzle_diameter(float diameter)
+{
+    if (diameter <= 0.0f) {
+        return _L("Unknown");
+    }
+
+    return wxString::Format("%smm", wxString::FromDouble(diameter));
+}
 
 CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std::string& error_message, const bool with_check)
 {

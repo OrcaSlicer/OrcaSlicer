@@ -66,6 +66,7 @@ wxDECLARE_EVENT(EVT_VOLUME_DETACHED, VolumeDetachedEvent);
 #endif /* _WIN32 */
 
 wxTopLevelWindow* find_toplevel_parent(wxWindow *window);
+wxString format_nozzle_diameter(float diameter);
 
 void on_window_geometry(wxTopLevelWindow *tlw, std::function<void()> callback);
 
