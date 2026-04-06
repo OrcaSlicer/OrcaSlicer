@@ -689,7 +689,8 @@ void SearchDialog::Dismiss()
     // this dialog and its related controls, dismiss.
     if (Slic3r::GUI::is_running_on_wayland()) {
         if (focus_window != this && !IsDescendant(focus_window) &&
-            focus_window != m_event_tag && focus_window != m_search_item_tag) {
+            focus_window != m_event_tag && focus_window != m_search_item_tag &&
+            focus_window != search_line) {
             Die();
         }
         return;
