@@ -88,7 +88,9 @@ using namespace nlohmann;
 #include <GLFW/glfw3.h>
 
 #ifdef __WXGTK__
+#if __has_include(<X11/Xlib.h>)
 #include <X11/Xlib.h>
+#endif
 #include <unistd.h>
 #endif
 
@@ -1183,15 +1185,29 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // On Linux, wxGTK has no support for Wayland, and the app crashes on
-    // startup if gtk3 is used. This env var has to be set explicitly to
-    // instruct the window manager to fall back to X server mode.
-    ::setenv("GDK_BACKEND", "x11", /* replace */ true);
+    // Compile-time safety fallback: if wxWidgets was built without EGL support,
+    // native Wayland will crash on OpenGL init. Force X11 in that case.
+    #if !wxUSE_GLCANVAS_EGL
+    {
+        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
+        if (wayland_env && *wayland_env) {
+            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but EGL not compiled in. Forcing X11.";
+            ::setenv("GDK_BACKEND", "x11", true);
+        }
+    }
+    #endif
 
     // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
     // (like the Setup Wizard) to render blank or freeze. Disabling compositing
     // mode forces software rendering, which works reliably on all backends.
-    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+    // Only needed under XWayland (both DISPLAY and WAYLAND_DISPLAY set).
+    {
+        const char* display_env_wk = ::getenv("DISPLAY");
+        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
+        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
+            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+        }
+    }
 
     // On Linux dual-GPU systems, request the high-performance discrete GPU.
     // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
@@ -1201,12 +1217,23 @@ int CLI::run(int argc, char **argv)
     // Only set if the NVIDIA kernel module is loaded to avoid breaking systems without NVIDIA.
     if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
         ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
-        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        // __GLX_VENDOR_LIBRARY_NAME is GLX-specific, only set when X11/DISPLAY is present
+        const char* display_env = ::getenv("DISPLAY");
+        if (display_env && *display_env) {
+            ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        }
     }
 
-    // Also on Linux, we need to tell Xlib that we will be using threads,
-    // lest we crash when we fire up GStreamer.
-    XInitThreads();
+    // On Linux, we need to tell Xlib that we will be using threads,
+    // lest we crash when we fire up GStreamer. Only call when X11 is in use.
+    #if __has_include(<X11/Xlib.h>)
+    {
+        const char* display_env = ::getenv("DISPLAY");
+        if (display_env && *display_env) {
+            XInitThreads();
+        }
+    }
+    #endif
 #endif
 
 	// Switch boost::filesystem to utf8.
@@ -1280,19 +1307,17 @@ int CLI::run(int argc, char **argv)
     if (start_gui) {
         BOOST_LOG_TRIVIAL(info) << "no action, start gui directly" << std::endl;
 #ifdef SLIC3R_GUI
-    /*#if !defined(_WIN32) && !defined(__APPLE__)
+    #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux / unix system
         const char *display = boost::nowide::getenv("DISPLAY");
-        // const char *wayland_display = boost::nowide::getenv("WAYLAND_DISPLAY");
-        //if (! ((display && *display) || (wayland_display && *wayland_display))) {
-        if (! (display && *display)) {
-            // DISPLAY not set.
-            boost::nowide::cerr << "DISPLAY not set, GUI mode not available." << std::endl << std::endl;
+        const char *wayland_display = boost::nowide::getenv("WAYLAND_DISPLAY");
+        if (! ((display && *display) || (wayland_display && *wayland_display))) {
+            boost::nowide::cerr << "Neither DISPLAY nor WAYLAND_DISPLAY set, GUI mode not available." << std::endl << std::endl;
             this->print_help(false);
             // Indicate an error.
             return 1;
         }
-    #endif // some linux / unix system*/
+    #endif // some linux / unix system
         Slic3r::GUI::GUI_InitParams params;
         params.argc = argc;
         params.argv = argv;
