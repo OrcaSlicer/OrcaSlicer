@@ -1,5 +1,4 @@
-#ifndef slic3r_LinuxDisplayBackend_hpp_
-#define slic3r_LinuxDisplayBackend_hpp_
+#pragma once
 
 namespace Slic3r {
 namespace GUI {
@@ -17,5 +16,3 @@ bool is_running_on_x11();
 
 } // namespace GUI
 } // namespace Slic3r
-
-#endif // slic3r_LinuxDisplayBackend_hpp_
