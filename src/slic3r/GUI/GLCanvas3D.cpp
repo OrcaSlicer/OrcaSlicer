@@ -2196,9 +2196,10 @@ void GLCanvas3D::render(bool only_init)
 
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
-    if (m_canvas->IsShownOnScreen())
+    if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
-    m_render_stats.increment_fps_counter();
+        m_render_stats.increment_fps_counter();
+    }
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,

@@ -22,9 +22,6 @@
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
 
-#ifdef __WXGTK__
-#include "LinuxDisplayBackend.hpp"
-#endif
 
 // GLAD handles both EGL and GLX contexts transparently, so no backend
 // mismatch guards are needed (unlike the former GLEW-based loader).
@@ -395,21 +392,6 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
 
 wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
 {
-#if defined(__WXGTK__) && wxUSE_GLCANVAS_EGL
-    // On X11 sessions, prefer GLX over EGL for maximum driver compatibility.
-    // On Wayland, EGL is the only option and is used by default.
-    static bool backend_configured = [] {
-        if (is_running_on_x11()) {
-            wxGLCanvas::PreferGLX();
-            BOOST_LOG_TRIVIAL(info) << "X11 detected, using GLX for OpenGL context";
-        } else {
-            BOOST_LOG_TRIVIAL(info) << "Wayland detected, using EGL for OpenGL context";
-        }
-        return true;
-    }();
-    (void)backend_configured;
-#endif
-
     int attribList[] = {
         WX_GL_RGBA,
         WX_GL_DOUBLEBUFFER,
