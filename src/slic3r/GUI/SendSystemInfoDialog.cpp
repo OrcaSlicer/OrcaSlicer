@@ -28,7 +28,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/uuid/detail/md5.hpp>
 
-#include "GL/glew.h"
+#include <glad/gl.h>
 
 #include <wx/display.h>
 #include <wx/htmllbox.h>
