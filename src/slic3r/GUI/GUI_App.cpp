@@ -310,6 +310,10 @@ public:
 
         // draw logo and constant info text
         Decorate(m_main_bitmap);
+        // Push the decorated bitmap to the splash window immediately.
+        // On Wayland, the first paint may fire before SetText() is called,
+        // so the splash would show the original blank bitmap without this.
+        set_bitmap(m_main_bitmap);
         wxGetApp().UpdateFrameDarkUI(this);
     }
 
