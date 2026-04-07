@@ -68,8 +68,7 @@ private:
 
     wxString GetString(NozzleType nozzle_type) const;
     wxString GetString(NozzleFlowType nozzle_flow_type) const;
-    wxString GetString(float diameter) const { return wxString::FromDouble(diameter); };
-};
+  };
 
 
 class PrintOptionsDialog : public DPIDialog

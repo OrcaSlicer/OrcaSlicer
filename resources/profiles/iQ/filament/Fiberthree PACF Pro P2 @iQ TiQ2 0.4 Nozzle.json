@@ -45,8 +45,6 @@
     "idle_temperature": [
         "240"
     ],
-    "is_custom_defined": "0",
-    
     "nozzle_temperature": [
         "275"
     ],
@@ -56,7 +54,6 @@
     "nozzle_temperature_range_high": [
         "275"
     ],
-    "version": "2.3.1.10",
     "activate_air_filtration": [
         "0"
     ],
@@ -245,7 +242,7 @@
     "internal_bridge_fan_speed": [
         "-1"
     ],
-     "nozzle_temperature_range_low": [
+    "nozzle_temperature_range_low": [
         "250"
     ],
     "overhang_fan_speed": [

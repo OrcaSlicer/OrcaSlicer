@@ -1,6 +1,7 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
@@ -31,6 +32,15 @@ wxDEFINE_EVENT(EVT_HID_DEVICE_DETACHED, HIDDeviceDetachedEvent);
 wxDEFINE_EVENT(EVT_VOLUME_ATTACHED, VolumeAttachedEvent);
 wxDEFINE_EVENT(EVT_VOLUME_DETACHED, VolumeDetachedEvent);
 #endif // _WIN32
+
+wxString format_nozzle_diameter(float diameter)
+{
+    if (diameter <= 0.0f) {
+        return _L("Unknown");
+    }
+
+    return wxString::Format("%smm", wxString::FromDouble(diameter));
+}
 
 CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std::string& error_message, const bool with_check)
 {
@@ -148,10 +158,6 @@ void on_window_geometry(wxTopLevelWindow *tlw, std::function<void()> callback)
 #endif
 }
 
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-wxDEFINE_EVENT(EVT_DPI_CHANGED_SLICER, DpiChangedEvent);
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
-
 #ifdef _WIN32
 template<class F> typename F::FN winapi_get_function(const wchar_t *dll, const char *fn_name) {
     static HINSTANCE dll_handle = LoadLibraryExW(dll, nullptr, 0);
@@ -247,12 +253,7 @@ bool check_dark_mode() {
         return value <= 0;
     }
 #endif
-#if wxCHECK_VERSION(3,1,3)
     return wxSystemSettings::GetAppearance().IsDark();
-#else
-    const unsigned luma = wxGetApp().get_colour_approx_luma(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-    return luma < 128;
-#endif
 }
 
 

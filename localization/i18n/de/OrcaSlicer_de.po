@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-05 17:45-0300\n"
+"POT-Creation-Date: 2026-03-20 23:26+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -1589,25 +1589,28 @@ msgid "Assemble"
 msgstr "Zusammenbauen"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
-msgstr ""
+msgstr "Bitte bestätigen Sie das Explosionsverhältnis = 1 und wählen Sie mindestens zwei Volumen aus."
 
 msgid "Please select at least two volumes."
-msgstr ""
+msgstr "Bitte wählen Sie mindestens zwei Volumen aus."
 
 msgid "(Moving)"
-msgstr ""
+msgstr "(Bewegen)"
 
 msgid "Point and point assembly"
-msgstr ""
+msgstr "Punkt-zu-Punkt-Montage"
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
+"Es wird empfohlen, die Objekte zuerst zusammenzubauen,\n"
+"da die Objekte auf das Druckbett beschränkt sind \n"
+"und nur Teile angehoben werden können."
 
 msgid "Face and face assembly"
-msgstr ""
+msgstr "Face und Face Zusammenbau"
 
 msgid "Notice"
 msgstr "Hinweis"
@@ -1651,52 +1654,52 @@ msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Basierend auf PrusaSlicer und BambuStudio"
 
 msgid "STEP files"
-msgstr ""
+msgstr "STEP Dateien"
 
 msgid "STL files"
-msgstr ""
+msgstr "STL Dateien"
 
 msgid "OBJ files"
-msgstr ""
+msgstr "OBJ Dateien"
 
 msgid "AMF files"
-msgstr ""
+msgstr "AMF Dateien"
 
 msgid "3MF files"
-msgstr ""
+msgstr "3MF Dateien"
 
 msgid "Gcode 3MF files"
-msgstr ""
+msgstr "Gcode 3MF Dateien"
 
 msgid "G-code files"
-msgstr ""
+msgstr "G-code Dateien"
 
 msgid "Supported files"
-msgstr ""
+msgstr "Unterstützte Dateien"
 
 msgid "ZIP files"
-msgstr ""
+msgstr "ZIP Dateien"
 
 msgid "Project files"
-msgstr ""
+msgstr "Projektdateien"
 
 msgid "Known files"
-msgstr ""
+msgstr "Bekannte Dateien"
 
 msgid "INI files"
-msgstr ""
+msgstr "INI Dateien"
 
 msgid "SVG files"
-msgstr ""
+msgstr "SVG Dateien"
 
 msgid "Texture"
 msgstr "Textur"
 
 msgid "Masked SLA files"
-msgstr ""
+msgstr "Maskierte SLA Dateien"
 
 msgid "Draco files"
-msgstr ""
+msgstr "Draco Dateien"
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -2147,10 +2150,10 @@ msgstr ""
 "Nein - Ändern Sie diese Einstellungen nicht für mich"
 
 msgid "Suggestion"
-msgstr ""
+msgstr "Vorschlag"
 
 msgid "Text"
-msgstr "T"
+msgstr "Text"
 
 msgid "Height range Modifier"
 msgstr "Höhen Modifizieren"
@@ -2783,7 +2786,7 @@ msgstr "Linientyp"
 
 #, c-format, boost-format
 msgid "1x1 Grid: %d mm"
-msgstr ""
+msgstr "1x1 Netz %d mm"
 
 msgid "More"
 msgstr "Mehr"
@@ -3343,36 +3346,36 @@ msgstr ""
 "einen normalen Speicher, bevor Sie etwas an den Drucker senden."
 
 msgid "Bad input data for EmbossCreateObjectJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für EmbossCreateObjectJob."
 
 msgid "Add Emboss text object"
-msgstr ""
+msgstr "Füge Emboss-Textobjekt hinzu"
 
 msgid "Bad input data for EmbossUpdateJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für EmbossUpdateJob."
 
 msgid "Created text volume is empty. Change text or font."
-msgstr ""
+msgstr "Erstelltes Textvolumen ist leer. Ändern Sie den Text oder die Schriftart."
 
 msgid "Bad input data for CreateSurfaceVolumeJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für CreateSurfaceVolumeJob."
 
 msgid "Bad input data for UseSurfaceJob."
-msgstr ""
+msgstr "Schlechter Eingabewert für UseSurfaceJob."
 
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
-msgstr ""
+msgstr "Präge Attribut ändern"
 
 msgid "Add Emboss text Volume"
-msgstr ""
+msgstr "Füge Emboss-Textvolumen hinzu"
 
 msgid "Font doesn't have any shape for given text."
-msgstr ""
+msgstr "Schrift hat keine Form für den angegebenen Text."
 
 msgid "There is no valid surface for text projection."
-msgstr ""
+msgstr "Da ist keine gültige Oberfläche für die Textprojektion."
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr "Thermische Vorkonditionierung zur Optimierung der ersten Schicht"
@@ -3384,6 +3387,9 @@ msgid ""
 "The heated bed's thermal preconditioning helps optimize the first layer "
 "print quality. Printing will start once preconditioning is complete."
 msgstr ""
+"Die thermische Vorkonditionierung des beheizten Betts hilft,"
+"die Druckqualität der ersten Schicht zu optimieren. Der Druck beginnt,"
+"sobald die Vorkonditionierung abgeschlossen ist."
 
 #, c-format, boost-format
 msgid "Remaining time: %dmin%ds"
@@ -6977,7 +6983,7 @@ msgstr ""
 "erfolgreicher Druck dieses Druckprofils erforderlich."
 
 msgid "click to add machine"
-msgstr ""
+msgstr "Klicken Sie hier, um eine Maschine hinzuzufügen"
 
 msgid "Status"
 msgstr "Status"
@@ -6995,7 +7001,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Network plug-in v%s (%s)"
-msgstr ""
+msgstr "Netzwerk Plug-In v%s (%s)"
 
 msgid "Don't show again"
 msgstr "Nicht erneut anzeigen"
@@ -8614,7 +8620,7 @@ msgid "filaments"
 msgstr "Filamente"
 
 msgid "Optimizes filament area maximum height by chosen filament count."
-msgstr ""
+msgstr "Optimiert die maximale Höhe des Filamentbereichs anhand der gewählten Filamentanzahl."
 
 msgid "Features"
 msgstr "Funktionen"
@@ -9189,7 +9195,7 @@ msgid "Packing data to 3MF"
 msgstr "Daten in 3MF packen"
 
 msgid "Uploading data"
-msgstr ""
+msgstr "Daten werden hochgeladen"
 
 msgid "Jump to webpage"
 msgstr "Zu einer Website springen"
@@ -10759,10 +10765,10 @@ msgid "Select presets to compare"
 msgstr "Wähle Profile zum Vergleich aus"
 
 msgid "Left Preset Value"
-msgstr ""
+msgstr "linker Profilwerte"
 
 msgid "Right Preset Value"
-msgstr ""
+msgstr "rechter Profilwerte"
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."
@@ -11239,10 +11245,10 @@ msgid "Login"
 msgstr "Anmelden"
 
 msgid "[Action Required] "
-msgstr ""
+msgstr "[Aktion erforderlich] "
 
 msgid "[Action Required]"
-msgstr ""
+msgstr "[Aktion erforderlich]"
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr ""
@@ -16128,7 +16134,8 @@ msgstr "Obere Oberflächen"
 msgid "Topmost surface"
 msgstr "Oberste Oberfläche"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Alle soliden Schichten"
 
 msgid "Ironing Pattern"
@@ -16661,7 +16668,8 @@ msgstr ""
 "konischem Material gefüllt wird. Ein Wert von 0 füllt alle Löcher in der "
 "Basis des Modells."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Erkennen von Wandüberhängen"
 
 #, c-format, boost-format
@@ -17370,8 +17378,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Mindestschwelle für Füllung"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Innere Füllbereiche, die kleiner als dieser Wert sind, werden durch massive "
@@ -18165,12 +18174,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Düsentemperatur nach der ersten Schicht"
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Dünne Wand erkennen"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Erkennt dünne Wände, die keine zwei Linienbreiten enthalten können. Und "
 "verwendet eine einzelne Linie zum Drucken. Diese wird vielleicht nicht sehr "
@@ -18429,7 +18440,7 @@ msgid "Rectangle"
 msgstr "Rechteck"
 
 msgid "Rib"
-msgstr ""
+msgstr "Rippe"
 
 msgid "Extra rib length"
 msgstr "Extralänge der Rippe"
@@ -18823,7 +18834,8 @@ msgstr ""
 "Dicke des Features, wird die Wand so dick wie das Feature selbst. Wird als "
 "Prozentsatz des Düsendurchmessers angegeben."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Erkennen einer schmalen internen soliden Füllung"
 
 msgid ""
@@ -20493,19 +20505,24 @@ msgstr "Input Shaper Typ"
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
 msgstr ""
+"Bitte stellen Sie sicher, dass der ausgewählte Typ mit Ihrer Firmware-Version kompatibel ist."
 
 msgid ""
 "Marlin version => 2.1.2\n"
 "Fixed-Time motion not yet implemented."
 msgstr ""
+"Marlin Version => 2.1.2\n"
+"Fixed-Time-Bewegung noch nicht implementiert."
 
 msgid "Klipper version => 0.9.0"
-msgstr ""
+msgstr "Klipper Version => 0.9.0"
 
 msgid ""
 "RepRap firmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
+"RepRap-Firmware Version => 3.4.0\n"
+"Überprüfen Sie die Dokumentation Ihrer Firmware auf unterstützte Shaper-Typen."
 
 msgid "Frequency (Start / End): "
 msgstr "Frequenz (Start / Ende): "
@@ -20548,7 +20565,7 @@ msgid "Input shaping Damp test"
 msgstr "Input Shaping Dämpfungstest"
 
 msgid "Check firmware compatibility."
-msgstr ""
+msgstr "Überprüfen Sie die Firmware-Kompatibilität."
 
 msgid "Frequency: "
 msgstr "Frequenz: "
@@ -22420,105 +22437,111 @@ msgid "More Colors"
 msgstr "Mehr Farben"
 
 msgid "Network Plug-in Update Available"
-msgstr ""
+msgstr "Netzwerk-Plug-in-Update verfügbar"
 
 msgid "Bambu Network Plug-in Required"
-msgstr ""
+msgstr "Bambu Network Plug-in erforderlich"
 
 msgid ""
 "The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
 msgstr ""
+"Das Bambu Netzwerk Plug-in ist beschädigt oder inkompatibel. Bitte installieren Sie es erneut."
 
 msgid ""
 "The Bambu Network Plug-in is required for cloud features, printer discovery, "
 "and remote printing."
 msgstr ""
+"Das Bambu Netzwerk Plug-in ist erforderlich für Cloud-Funktionen, Druckerentdeckung und Fernbedienungsdruck."
+
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr ""
+msgstr "Fehler: %s"
 
 msgid "Show details"
-msgstr ""
+msgstr "Zeige Details"
 
 msgid "Version to install:"
-msgstr ""
+msgstr "Version zum Installieren:"
 
 msgid "Download and Install"
-msgstr ""
+msgstr "Herunterladen und installieren"
 
 msgid "Skip for Now"
-msgstr ""
+msgstr "Jetzt überspringen"
 
 msgid "A new version of the Bambu Network Plug-in is available."
-msgstr ""
+msgstr "Eine neue Version des Bambu Network Plug-ins ist verfügbar."
 
 #, c-format, boost-format
 msgid "Current version: %s"
-msgstr ""
+msgstr "Aktuelle Version: %s"
 
 msgid "Update to version:"
-msgstr ""
+msgstr "Auf Version aktualisieren:"
 
 msgid "Update Now"
-msgstr ""
+msgstr "Jetzt aktualisieren"
 
 msgid "Remind Later"
-msgstr ""
+msgstr "Später erinnern"
 
 msgid "Skip Version"
-msgstr ""
+msgstr "Version überspringen"
 
 msgid "Don't Ask Again"
-msgstr ""
+msgstr "Nicht mehr fragen"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
-msgstr ""
+msgstr "Das Bambu Netzwerk-Plug-in wurde erfolgreich installiert."
 
 msgid ""
 "A restart is required to load the new plug-in. Would you like to restart now?"
 msgstr ""
+"Ein Neustart ist erforderlich, um das neue Plug-in zu laden. Möchten Sie jetzt neu starten?"
 
 msgid "Restart Now"
-msgstr ""
+msgstr "Jetzt neu starten"
 
 msgid "Restart Later"
-msgstr ""
+msgstr "Später neu starten"
 
 msgid "NO RAMMING AT ALL"
-msgstr ""
+msgstr "KEIN RAMMING ÜBERALL"
 
 msgid "Volumetric speed"
-msgstr ""
+msgstr "Volumetrische Geschwindigkeit"
 
 msgid "Step file import parameters"
-msgstr ""
+msgstr "STEP-Datei-Importparameter"
 
 msgid ""
 "Smaller linear and angular deflections result in higher-quality "
 "transformations but increase the processing time."
 msgstr ""
+"kleinere lineare und Winkelabweichungen führen zu qualitativ hochwertigeren "
+"Transformationen, erhöhen jedoch die Verarbeitungszeit."
 
 msgid "Linear Deflection"
-msgstr ""
+msgstr "Lineare Ablenkung"
 
 msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
-msgstr ""
+msgstr "Bitte geben Sie einen gültigen Wert ein (0,001 < lineare Ablenkung < 0,1)"
 
 msgid "Angle Deflection"
-msgstr ""
+msgstr "Winkelabweichung"
 
 msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
-msgstr ""
+msgstr "Bitte geben Sie einen gültigen Wert ein (0,01 < Winkelabweichung < 1,0)"
 
 msgid "Split compound and compsolid into multiple objects"
-msgstr ""
+msgstr "Teile Verbund- und Komposid-Objekte in mehrere Objekte auf"
 
 msgid "Number of triangular facets"
-msgstr ""
+msgstr "Anzahl der dreieckigen Facetten"
 
 msgid "Calculating, please wait..."
-msgstr ""
+msgstr "Berechnung läuft, bitte warten..."
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
