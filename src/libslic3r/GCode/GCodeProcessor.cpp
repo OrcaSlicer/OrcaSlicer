@@ -4772,17 +4772,21 @@ void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_G10(const GCodeReader::GCodeLine& line)
 {
+    // Emulate G1 retract, decrement G1 count as it's will be incremented in process_G1, but it's fake G1
     GCodeReader::GCodeLine g10;
     g10.set(Axis::E, -this->m_parser.config().retraction_length.get_at(m_extruder_id));
     g10.set(Axis::F,  this->m_parser.config().retraction_speed.get_at(m_extruder_id) * 60);
+    --m_g1_line_id;
     process_G1(g10);
 }
 
 void GCodeProcessor::process_G11(const GCodeReader::GCodeLine& line)
 {
+    // Emulate G1 unretract, decrement G1 count as it's will be incremented in process_G1, but it's fake G1
     GCodeReader::GCodeLine g11;
     g11.set(Axis::E, this->m_parser.config().retraction_length.get_at(m_extruder_id) + this->m_parser.config().retract_restart_extra.get_at(m_extruder_id));
     g11.set(Axis::F, this->m_parser.config().deretraction_speed.get_at(m_extruder_id) * 60);
+    --m_g1_line_id;
     process_G1(g11);
 }
 
