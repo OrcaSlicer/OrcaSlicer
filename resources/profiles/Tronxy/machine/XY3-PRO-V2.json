@@ -1,0 +1,11 @@
+{
+  "type": "machine_model",
+  "name": "XY3-PRO-V2",
+  "nozzle_diameter": "0.4",
+  "bed_model": "",
+  "bed_texture": "",
+  "model_id": "XY3PROV2",
+  "family": "XY3-PRO",
+  "machine_tech": "FFF",
+  "default_materials": "Generic PLA;Generic PETG"
+}

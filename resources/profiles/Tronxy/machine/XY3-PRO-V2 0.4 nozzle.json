@@ -1,0 +1,20 @@
+{
+  "type": "machine",
+  "name": "XY3-PRO-V2 0.4 nozzle",
+  "inherits": "fdm_machine_common",
+  "from": "system",
+  "setting_id": "XY3PROV2_04",
+  "instantiation": "true",
+  "nozzle_diameter": ["0.4"],
+  "printer_model": "XY3-PRO-V2",
+  "printer_variant": "0.4",
+  "default_filament_profile": ["Generic PLA"],
+  "default_print_profile": "0.20mm Standard @XY3-PRO-V2 0.4",
+  "printable_area": ["0x0", "300x0", "300x300", "0x300"],
+  "nozzle_type": "brass",
+  "extruders": 1,
+  "filament_diameter": 1.75,
+  "max_print_height": 400,
+  "stepper_driver": "TMC2209",
+  "bed_shape": "rectangular"
+}
