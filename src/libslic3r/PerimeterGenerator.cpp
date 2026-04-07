@@ -98,7 +98,7 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
 }
 
 static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perimeter_generator, const PerimeterGeneratorLoops &loops, ThickPolylines &thin_walls,
-    bool &steep_overhang_contour, bool &steep_overhang_hole)
+    bool &steep_overhang_contour, bool &steep_overhang_hole, bool reverse_thin_wall_hole)
 {
     // loops is an arrayref of ::Loop objects
     // turn each one into an ExtrusionLoop object
@@ -248,15 +248,24 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
         } else {
             const PerimeterGeneratorLoop &loop = loops[idx.first];
             assert(thin_walls.empty());
-            ExtrusionEntityCollection children = traverse_loops(perimeter_generator, loop.children, thin_walls, steep_overhang_contour, steep_overhang_hole);
+            const bool reverse_children_thin_wall_hole = loops.size() == 1 && loop.is_contour && loop.children.size() == 1 &&
+                                                         (!loop.children.front().is_contour) && loop.children.front().children.empty();
+            ExtrusionEntityCollection children = traverse_loops(perimeter_generator, loop.children, thin_walls, steep_overhang_contour,
+                                                                steep_overhang_hole, reverse_children_thin_wall_hole);
             out.entities.reserve(out.entities.size() + children.entities.size() + 1);
             ExtrusionLoop *eloop = static_cast<ExtrusionLoop*>(coll.entities[idx.first]);
             coll.entities[idx.first] = nullptr;
 
-            if (perimeter_generator.config->wall_direction == WallDirection::CounterClockwise)
+            if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == (loop.is_contour || reverse_thin_wall_hole))
                 eloop->make_counter_clockwise();
             else
                 eloop->make_clockwise();
+
+            // Orca: Reverse print order for thin wall holes.
+            if (reverse_thin_wall_hole) {
+                std::reverse(out.entities.begin(), out.entities.end());
+            }
+
             eloop->inset_idx = loop.depth;
             if (loop.is_contour) {
                 out.append(std::move(children.entities));
@@ -514,10 +523,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
-                if (perimeter_generator.config->wall_direction == WallDirection::CounterClockwise)
+                if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
+                    (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();
                 else
-                    extrusion_loop.make_clockwise();
+                    extrusion_loop.make_clockwise();  
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
@@ -525,8 +535,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 assert(extrusion_loop.paths.front().first_point() == extrusion_loop.paths.back().last_point());
-
                 extrusion_coll.append(std::move(extrusion_loop));
+                // Orca: Reverse the order of paths for thin wall holes. We define thin wall hole as a hole with only one perimeter.
+                const bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
+                if (thin_wall_hole && perimeter_generator.config->wall_sequence != WallSequence::OuterInner)
+                    std::reverse(extrusion_coll.entities.begin(), extrusion_coll.entities.end());
             }
             else {
                 // Because we are processing one ExtrusionLine all ExtrusionPaths should form one connected path.
@@ -1425,7 +1438,7 @@ void PerimeterGenerator::process_classic()
                 steep_overhang_contour = true;
                 steep_overhang_hole    = true;
             }
-            ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole);
+            ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole, false);
             // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
             if (config->overhang_reverse) {
                 reorient_perimeters(entities, steep_overhang_contour, steep_overhang_hole,
