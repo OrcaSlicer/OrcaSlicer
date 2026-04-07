@@ -3244,7 +3244,7 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flow rate (Wizard Dialog)
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) {
             if (!m_plater) return;
             if (!m_flow_rate_calib_dlg)
@@ -3355,7 +3355,7 @@ void MainFrame::init_menubar_as_editor()
 
     // Flowrate (with submenu)
     // ORCA: Flow rate (Wizard Dialog)
-    append_menu_item(calib_menu, wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
+    append_menu_item(calib_menu, wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) {
             if (!m_plater) return;
             if (!m_flow_rate_calib_dlg)
@@ -4318,3 +4318,4 @@ void SettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 } // GUI
 } // Slic3r
+
