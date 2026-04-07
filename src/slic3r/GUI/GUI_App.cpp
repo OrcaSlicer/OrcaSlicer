@@ -3095,7 +3095,7 @@ bool GUI_App::on_init_inner()
     // Let the libslic3r know the callback, which will translate messages on demand.
     Slic3r::I18N::set_translate_callback(libslic3r_translate_callback);
 
-#if defined(__WXGTK__) && wxUSE_GLCANVAS_EGL
+#if defined(__WXGTK__) && wxHAS_EGL
     // Configure GL backend before any wxGLCanvas is created.
     // On X11, prefer GLX for maximum driver compatibility.
     // On Wayland, EGL is used by default (only option).

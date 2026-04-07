@@ -435,7 +435,7 @@ void OpenGLManager::detect_multisample(int* attribList)
     // If wxWidgets was built without EGL, the GLX backend will crash trying
     // to access a non-existent X11 display. Disable multisample in that case.
     if (is_running_on_wayland()) {
-#if !defined(wxUSE_GLCANVAS_EGL) || !wxUSE_GLCANVAS_EGL
+#if !defined(wxHAS_EGL) || !wxHAS_EGL
         BOOST_LOG_TRIVIAL(warning) << "Wayland without EGL: disabling multisample detection";
         s_multisample = EMultisampleState::Disabled;
         return;

@@ -1188,13 +1188,13 @@ int CLI::run(int argc, char **argv)
     // Safety fallback: if wxWidgets was not built with EGL support, native
     // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
     // backend cannot access an X11 display. Force X11 mode in that case.
-    // NOTE: Do NOT remove this block even after enabling wxUSE_GLCANVAS_EGL
+    // NOTE: Do NOT remove this block even after enabling wxHAS_EGL
     // in the build — it protects against builds where deps were not rebuilt.
-#if !defined(wxUSE_GLCANVAS_EGL) || !wxUSE_GLCANVAS_EGL
+#if !defined(wxHAS_EGL) || !wxHAS_EGL
     {
         const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
         if (wayland_env && *wayland_env) {
-            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxUSE_GLCANVAS_EGL is OFF). Forcing X11 backend.";
+            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
             ::setenv("GDK_BACKEND", "x11", true);
         }
     }
