@@ -4993,6 +4993,39 @@ LayerResult GCode::process_layer(
     bool has_insert_wrapping_detection_gcode = false;
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
+    // Orca: Print unified global brim before any object.
+    // Only do this if `combine_brims` is enabled and we are printing by layer.
+    if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
+        const ObjectID unified_object_id = [&]() -> ObjectID {
+            ObjectID id;
+            bool     found = false;
+            for (const auto& [obj_id, brim] : print.m_brimMap) {
+                const bool has_printable_entities = std::any_of(brim.entities.begin(), brim.entities.end(),
+                                                                [](const ExtrusionEntity* ee) { return ee != nullptr; });
+                if (!has_printable_entities)
+                    continue;
+                if (found)
+                    return ObjectID();
+                id    = obj_id;
+                found = true;
+            }
+            return found ? id : ObjectID();
+        }();
+
+        if (unified_object_id.valid()) {
+            const auto it = print.m_brimMap.find(unified_object_id);
+            if (it != print.m_brimMap.end()) {
+                this->set_origin(0., 0.);
+                for (const ExtrusionEntity* ee : it->second.entities)
+                    if (ee != nullptr)
+                        gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
+
+                // Mark brim as printed for this object to avoid per-object brim emission later.
+                this->m_objsWithBrim.erase(unified_object_id);
+            }
+        }
+    }
+
     for (unsigned int extruder_id : layer_tools.extruders)
     {
         if (print.config().skirt_type == stCombined && !print.skirt().empty())
