@@ -22,9 +22,9 @@
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
 
-
-// GLAD handles both EGL and GLX contexts transparently, so no backend
-// mismatch guards are needed (unlike the former GLEW-based loader).
+#ifdef __WXGTK__
+#include "LinuxDisplayBackend.hpp"
+#endif
 
 namespace Slic3r {
 namespace GUI {
@@ -429,6 +429,20 @@ void OpenGLManager::detect_multisample(int* attribList)
 {
     int wxVersion = wxMAJOR_VERSION * 10000 + wxMINOR_VERSION * 100 + wxRELEASE_NUMBER;
     bool enable_multisample = wxVersion >= 30003;
+
+#if defined(__WXGTK__)
+    // On Wayland, wxGLCanvas::IsDisplaySupported() requires the EGL backend.
+    // If wxWidgets was built without EGL, the GLX backend will crash trying
+    // to access a non-existent X11 display. Disable multisample in that case.
+    if (is_running_on_wayland()) {
+#if !defined(wxUSE_GLCANVAS_EGL) || !wxUSE_GLCANVAS_EGL
+        BOOST_LOG_TRIVIAL(warning) << "Wayland without EGL: disabling multisample detection";
+        s_multisample = EMultisampleState::Disabled;
+        return;
+#endif
+    }
+#endif
+
     s_multisample =
         enable_multisample &&
         // Disable multi-sampling on ChromeOS, as the OpenGL virtualization swaps Red/Blue channels with multi-sampling enabled,
