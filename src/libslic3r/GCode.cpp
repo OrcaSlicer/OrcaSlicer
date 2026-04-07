@@ -5475,19 +5475,44 @@ LayerResult GCode::process_layer(
             double cumulative_h = 0.0;
             for (int i = 0; i < sub_idx; ++i)
                 cumulative_h += grp.sub_heights[i];
-            double sub_h = grp.sub_heights[sub_idx];
-            double sub_z = print_z - lh + cumulative_h + sub_h;
+            double default_sub_h = grp.sub_heights[sub_idx];
+            double default_sub_z = print_z - lh + cumulative_h + default_sub_h;
 
-            m_sub_layer_flow_ratio = sub_h / lh;
-            m_sub_layer_height     = sub_h;
-            m_nominal_z            = sub_z;
+            m_sub_layer_flow_ratio = default_sub_h / lh;
+            m_sub_layer_height     = default_sub_h;
+            m_nominal_z            = default_sub_z;
 
-            std::string set_ext_gcode = this->set_extruder(extruder_id, sub_z);
+            std::string set_ext_gcode = this->set_extruder(extruder_id, default_sub_z);
             gcode += set_ext_gcode;
-            gcode += m_writer.travel_to_z(sub_z, "move to sublayer Z");
 
             std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache_sub;
             for (InstanceToPrint &instance_to_print : mixed_instances_it->second) {
+                double obj_sub_h = default_sub_h;
+                double obj_sub_z = default_sub_z;
+
+                if (grp.is_gradient) {
+                    auto og_it = grp.per_object_gradient.find(&instance_to_print.print_object);
+                    if (og_it != grp.per_object_gradient.end()) {
+                        const auto &og = og_it->second;
+                        double t  = (og.total_layers > 0) ? (2.0 * og.current_idx + 1.0) / (2.0 * og.total_layers) : 0.5;
+                        double r1 = og.gradient_start + (og.gradient_end - og.gradient_start) * t;
+                        double r2 = 1.0 - r1;
+                        std::vector<double> obj_sub_heights(grp.components_0based.size());
+                        for (size_t ci = 0; ci < grp.components_0based.size(); ++ci)
+                            obj_sub_heights[ci] = (static_cast<int>(ci) == grp.gradient_first_sorted_idx) ? r1 * lh : r2 * lh;
+                        double obj_cum = 0.0;
+                        for (int ci = 0; ci < sub_idx; ++ci)
+                            obj_cum += obj_sub_heights[ci];
+                        obj_sub_h = obj_sub_heights[sub_idx];
+                        obj_sub_z = print_z - lh + obj_cum + obj_sub_h;
+                    }
+                }
+
+                m_sub_layer_flow_ratio = obj_sub_h / lh;
+                m_sub_layer_height     = obj_sub_h;
+                m_nominal_z            = obj_sub_z;
+
+                gcode += m_writer.travel_to_z(obj_sub_z, "move to sublayer Z");
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
                 m_config.apply(print.default_region_config());
                 m_config.apply(instance_to_print.print_object.config(), true);

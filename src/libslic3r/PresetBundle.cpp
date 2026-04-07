@@ -2820,6 +2820,43 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
         project_config.option<ConfigOptionFloats>("flush_multiplier")->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
     }
 
+    // Mixed filament metadata
+    size_t n_filaments = filament_presets.size();
+    if (config.has("presets", "filament_is_mixed")) {
+        std::vector<std::string> parts;
+        boost::algorithm::split(parts, config.get("presets", "filament_is_mixed"), boost::algorithm::is_any_of(","));
+        auto& vals = project_config.option<ConfigOptionBools>("filament_is_mixed")->values;
+        vals.clear();
+        for (auto& p : parts) vals.push_back(p == "1");
+        vals.resize(n_filaments, false);
+    }
+    if (config.has("presets", "filament_mixed_components")) {
+        std::vector<std::string> parts;
+        boost::algorithm::split(parts, config.get("presets", "filament_mixed_components"), boost::algorithm::is_any_of("|"));
+        parts.resize(n_filaments);
+        project_config.option<ConfigOptionStrings>("filament_mixed_components")->values = parts;
+    }
+    if (config.has("presets", "filament_mixed_sublayer_ratios")) {
+        std::vector<std::string> parts;
+        boost::algorithm::split(parts, config.get("presets", "filament_mixed_sublayer_ratios"), boost::algorithm::is_any_of("|"));
+        parts.resize(n_filaments);
+        project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values = parts;
+    }
+    if (config.has("presets", "filament_mixed_gradient")) {
+        std::vector<std::string> parts;
+        boost::algorithm::split(parts, config.get("presets", "filament_mixed_gradient"), boost::algorithm::is_any_of(","));
+        auto& vals = project_config.option<ConfigOptionBools>("filament_mixed_gradient")->values;
+        vals.clear();
+        for (auto& p : parts) vals.push_back(p == "1");
+        vals.resize(n_filaments, false);
+    }
+    if (config.has("presets", "filament_mixed_gradient_range")) {
+        std::vector<std::string> parts;
+        boost::algorithm::split(parts, config.get("presets", "filament_mixed_gradient_range"), boost::algorithm::is_any_of("|"));
+        parts.resize(n_filaments);
+        project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range")->values = parts;
+    }
+
     // Update visibility of presets based on their compatibility with the active printer.
     // Always try to select a compatible print and filament preset to the current printer preset,
     // as the application may have been closed with an active "external" preset, which does not
@@ -2944,6 +2981,30 @@ void PresetBundle::export_selections(AppConfig &config)
                                                                   boost::adaptors::transformed(static_cast<std::string (*)(double)>(std::to_string)),
                                                               "|");
     config.set_printer_setting(printer_name, "flush_multiplier", flush_multiplier_str);
+
+    // Mixed filament metadata
+    if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed")) {
+        std::string s;
+        for (size_t i = 0; i < opt->values.size(); ++i) {
+            if (i > 0) s += ",";
+            s += (opt->values[i] ? "1" : "0");
+        }
+        config.set("presets", "filament_is_mixed", s);
+    }
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
+        config.set("presets", "filament_mixed_components", boost::algorithm::join(opt->values, "|"));
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
+        config.set("presets", "filament_mixed_sublayer_ratios", boost::algorithm::join(opt->values, "|"));
+    if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient")) {
+        std::string s;
+        for (size_t i = 0; i < opt->values.size(); ++i) {
+            if (i > 0) s += ",";
+            s += (opt->values[i] ? "1" : "0");
+        }
+        config.set("presets", "filament_mixed_gradient", s);
+    }
+    if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
+        config.set("presets", "filament_mixed_gradient_range", boost::algorithm::join(opt->values, "|"));
 
     // BBS
     //config.set("presets", "sla_print",    sla_prints.get_selected_preset_name());

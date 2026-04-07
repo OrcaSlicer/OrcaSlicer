@@ -260,6 +260,7 @@ public:
     void add_mixed_filament();
     void edit_mixed_filament(size_t idx);
     void delete_mixed_filament_at(size_t idx);
+    void recalc_filament_scroll_sizes();
     void update_mixed_filament_list();
     bool has_broken_mixed_filament() const;
     Search::OptionsSearcher&        get_searcher();

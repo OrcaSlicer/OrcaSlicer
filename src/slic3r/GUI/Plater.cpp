@@ -536,9 +536,10 @@ struct Sidebar::priv
     ScalableButton *  m_bpButton_set_filament;
     int m_menu_filament_id = -1;
     wxPanel*          m_panel_filament_subtitle{nullptr};  // "Filament" subtitle row with +/-/AMS/set buttons
-    wxScrolledWindow* m_filament_scroll_area{nullptr};    // Unified scroll area for physical + mixed filaments
+    wxPanel*          m_filament_area_wrapper{nullptr};   // Wrapper panel for collapse/expand
+    wxScrolledWindow* m_physical_scroll_area{nullptr};    // Scroll area for physical filaments (max 3 rows when total > 12)
+    wxScrolledWindow* m_mixed_scroll_area{nullptr};       // Scroll area for mixed filaments (max 3 rows when total > 12)
     wxPanel*          m_panel_filament_content{nullptr};
-    wxScrolledWindow* m_scrolledWindow_filament_content;
     wxStaticLine* m_staticline2;
     wxPanel* m_panel_project_title;
     ScalableButton* m_filament_icon = nullptr;
@@ -572,7 +573,7 @@ struct Sidebar::priv
 
     // Mixed Filament sidebar controls
     wxPanel*          m_btn_add_mixed_filament{nullptr};   // "+ 添加混色" full-width button
-    wxStaticLine*     m_mixed_separator{nullptr};
+
     wxPanel*          m_panel_mixed_title{nullptr};         // title row: "Mixed Filament" + +/- buttons
     wxStaticText*     m_text_mixed_title{nullptr};
     ScalableButton*   m_btn_mixed_add{nullptr};
@@ -2280,15 +2281,13 @@ Sidebar::Sidebar(Plater *parent)
             return;
         if (p->m_purge_mode_btn->IsShown() && e.GetPosition().x > p->m_purge_mode_btn->GetPosition().x)
             return;
-        if (p->m_filament_scroll_area->GetMaxHeight() == 0) {
-            p->m_filament_scroll_area->SetMaxSize({-1, FromDIP(174)});
-            auto min_size = p->m_filament_scroll_area->GetSizer()->GetMinSize();
-            if (min_size.y > p->m_filament_scroll_area->GetMaxHeight())
-                min_size.y = p->m_filament_scroll_area->GetMaxHeight();
-            p->m_filament_scroll_area->SetMinSize({-1, min_size.y});
+        if (!p->m_filament_area_wrapper->IsShown()) {
+            p->m_filament_area_wrapper->Show();
+            p->m_panel_filament_subtitle->Show();
+            recalc_filament_scroll_sizes();
         } else {
-            p->m_filament_scroll_area->SetMinSize({-1, 0});
-            p->m_filament_scroll_area->SetMaxSize({-1, 0});
+            p->m_filament_area_wrapper->Hide();
+            p->m_panel_filament_subtitle->Hide();
         }
         m_scrolled_sizer->Layout();
     });
@@ -2348,7 +2347,6 @@ Sidebar::Sidebar(Plater *parent)
         // Figma: left-aligned with filament color swatches (10px padding)
         subtitle_sizer->Add(filament_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
 
-        // Dashed separator line
         auto* line_panel = new wxPanel(p->m_panel_filament_subtitle, wxID_ANY);
         line_panel->SetMinSize(wxSize(-1, FromDIP(1)));
         line_panel->Bind(wxEVT_PAINT, [line_panel](wxPaintEvent&) {
@@ -2402,20 +2400,22 @@ Sidebar::Sidebar(Plater *parent)
 
         subtitle_sizer->SetMinSize(-1, FromDIP(28));
         p->m_panel_filament_subtitle->SetSizer(subtitle_sizer);
-        scrolled_sizer->AddSpacer(FromDIP(6));  // top margin
-        scrolled_sizer->Add(p->m_panel_filament_subtitle, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+        scrolled_sizer->Add(p->m_panel_filament_subtitle, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(5));
     }
 
-    // ---- Unified scroll area for physical + mixed filaments ----
-    p->m_filament_scroll_area = new wxScrolledWindow(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    p->m_filament_scroll_area->SetScrollbars(0, 100, 1, 2);
-    p->m_filament_scroll_area->SetScrollRate(0, 5);
-    p->m_filament_scroll_area->SetMaxSize(wxSize{-1, FromDIP(174)});
-    p->m_filament_scroll_area->SetBackgroundColour(*wxWHITE);
-    auto* scroll_sizer = new wxBoxSizer(wxVERTICAL);
+    // ---- Wrapper panel for collapse/expand of all filament content ----
+    p->m_filament_area_wrapper = new wxPanel(p->scrolled, wxID_ANY);
+    p->m_filament_area_wrapper->SetBackgroundColour(*wxWHITE);
+    auto* wrapper_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Physical filament content (plain panel inside scroll area)
-    p->m_panel_filament_content = new wxPanel(p->m_filament_scroll_area, wxID_ANY);
+    // ---- Physical filament scroll area (independent scrollbar) ----
+    p->m_physical_scroll_area = new wxScrolledWindow(p->m_filament_area_wrapper, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    p->m_physical_scroll_area->SetScrollbars(0, 100, 1, 2);
+    p->m_physical_scroll_area->SetScrollRate(0, 5);
+    p->m_physical_scroll_area->SetBackgroundColour(*wxWHITE);
+    auto* phys_scroll_sizer = new wxBoxSizer(wxVERTICAL);
+
+    p->m_panel_filament_content = new wxPanel(p->m_physical_scroll_area, wxID_ANY);
     p->m_panel_filament_content->SetBackgroundColour(*wxWHITE);
 
     // BBS: filament double columns
@@ -2431,21 +2431,31 @@ Sidebar::Sidebar(Plater *parent)
     wxSizer *sizer_filaments2 = new wxBoxSizer(wxVERTICAL);
     sizer_filaments2->Add(p->sizer_filaments, 0, wxEXPAND, 0);
     p->m_panel_filament_content->SetSizer(sizer_filaments2);
-    scroll_sizer->Add(p->m_panel_filament_content, 0, wxEXPAND, 0);
+    phys_scroll_sizer->Add(p->m_panel_filament_content, 0, wxEXPAND, 0);
 
-    // ---- Mixed Filament section (inside scroll area) ----
+    p->m_physical_scroll_area->SetSizer(phys_scroll_sizer);
+    p->m_physical_scroll_area->EnableScrolling(false, true);
+    p->m_physical_scroll_area->ShowScrollbars(wxSHOW_SB_NEVER, wxSHOW_SB_DEFAULT);
+    p->m_physical_scroll_area->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        int w = p->m_physical_scroll_area->GetClientSize().GetWidth();
+        if (w > 0)
+            p->m_physical_scroll_area->SetVirtualSize(w, p->m_physical_scroll_area->GetVirtualSize().GetHeight());
+        e.Skip();
+    });
+    wrapper_sizer->Add(p->m_physical_scroll_area, 0, wxEXPAND, 0);
+
+    // ---- Mixed Filament section (inside wrapper, outside scroll areas) ----
     // 1) "+ 添加混色" button (shown when no mixed filaments exist)
     {
-        p->m_btn_add_mixed_filament = new wxPanel(p->m_filament_scroll_area, wxID_ANY);
-        p->m_btn_add_mixed_filament->SetBackgroundColour(wxColour("#F8F8F8"));
+        p->m_btn_add_mixed_filament = new wxPanel(p->m_filament_area_wrapper, wxID_ANY);
+        p->m_btn_add_mixed_filament->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F8F8F8")));
         p->m_btn_add_mixed_filament->SetMinSize(wxSize(-1, FromDIP(23)));
 
-        // Draw 1px #EEEEEE border
         p->m_btn_add_mixed_filament->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
             wxPaintDC dc(p->m_btn_add_mixed_filament);
             wxSize sz = p->m_btn_add_mixed_filament->GetClientSize();
-            dc.SetBrush(wxBrush(wxColour("#F8F8F8")));
-            dc.SetPen(wxPen(wxColour("#EEEEEE"), 1));
+            dc.SetBrush(wxBrush(StateColor::darkModeColorFor(wxColour("#F8F8F8"))));
+            dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#EEEEEE")), 1));
             dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
         });
 
@@ -2456,35 +2466,45 @@ Sidebar::Sidebar(Plater *parent)
         icon_add->SetCursor(wxCursor(wxCURSOR_HAND));
         icon_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { add_mixed_filament(); });
 
-        auto* add_label = new wxStaticText(p->m_btn_add_mixed_filament, wxID_ANY, _L("Add Mixed Filament"));
-        add_label->SetForegroundColour(wxColour("#262E30"));
+        auto* add_label = new wxStaticText(p->m_btn_add_mixed_filament, wxID_ANY, _L("Add Mixed Filament"),
+                                           wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+        add_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
         add_label->SetFont(::Label::Body_13);
 
         btn_sizer->AddStretchSpacer(1);
         btn_sizer->Add(icon_add, 0, wxALIGN_CENTER_VERTICAL);
-        btn_sizer->Add(add_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+        btn_sizer->Add(add_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
         btn_sizer->AddStretchSpacer(1);
 
         p->m_btn_add_mixed_filament->SetSizer(btn_sizer);
         p->m_btn_add_mixed_filament->SetCursor(wxCursor(wxCURSOR_HAND));
         p->m_btn_add_mixed_filament->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) { add_mixed_filament(); });
         add_label->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent&) { add_mixed_filament(); });
-        scroll_sizer->Add(p->m_btn_add_mixed_filament, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
+        wrapper_sizer->Add(p->m_btn_add_mixed_filament, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(8));
     }
 
     // 2) Title row: "Mixed Filament ------- + -"
     {
-        p->m_panel_mixed_title = new wxPanel(p->m_filament_scroll_area, wxID_ANY);
-        p->m_panel_mixed_title->SetBackgroundColour(*wxWHITE);
+        p->m_panel_mixed_title = new wxPanel(p->m_filament_area_wrapper, wxID_ANY);
+        p->m_panel_mixed_title->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
         auto* title_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-        p->m_text_mixed_title = new wxStaticText(p->m_panel_mixed_title, wxID_ANY, _L("Mixed Filament"));
-        p->m_text_mixed_title->SetForegroundColour(wxColour("#ACACAC"));
+        p->m_text_mixed_title = new wxStaticText(p->m_panel_mixed_title, wxID_ANY, _L("Mixed Filament"),
+                                                   wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+        p->m_text_mixed_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#ACACAC")));
         p->m_text_mixed_title->SetFont(::Label::Body_14);
         title_sizer->Add(p->m_text_mixed_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
 
-        p->m_mixed_separator = new wxStaticLine(p->m_panel_mixed_title, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
-        title_sizer->Add(p->m_mixed_separator, 1, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(8));
+        auto* mixed_line_panel = new wxPanel(p->m_panel_mixed_title, wxID_ANY);
+        mixed_line_panel->SetMinSize(wxSize(-1, FromDIP(1)));
+        mixed_line_panel->Bind(wxEVT_PAINT, [mixed_line_panel](wxPaintEvent&) {
+            wxPaintDC dc(mixed_line_panel);
+            wxSize sz = mixed_line_panel->GetClientSize();
+            int y = sz.GetHeight() / 2;
+            dc.SetPen(wxPen(wxColour("#CECECE"), 1, wxPENSTYLE_SOLID));
+            dc.DrawLine(0, y, sz.GetWidth(), y);
+        });
+        title_sizer->Add(mixed_line_panel, 1, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(8));
 
         p->m_btn_mixed_add = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "add_filament");
         p->m_btn_mixed_add->SetToolTip(_L("Add mixed filament"));
@@ -2503,13 +2523,18 @@ Sidebar::Sidebar(Plater *parent)
         title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(16));
 
         p->m_panel_mixed_title->SetSizer(title_sizer);
-        scroll_sizer->Add(p->m_panel_mixed_title, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(8));
+        wrapper_sizer->Add(p->m_panel_mixed_title, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(8));
     }
 
-    // 3) Mixed filament content panel
+    // 3) Mixed filament scroll area (independent scrollbar)
+    p->m_mixed_scroll_area = new wxScrolledWindow(p->m_filament_area_wrapper, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+    p->m_mixed_scroll_area->SetScrollbars(0, 100, 1, 2);
+    p->m_mixed_scroll_area->SetScrollRate(0, 5);
+    p->m_mixed_scroll_area->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    auto* mix_scroll_sizer = new wxBoxSizer(wxVERTICAL);
     {
-        p->m_panel_mixed_content = new wxPanel(p->m_filament_scroll_area, wxID_ANY);
-        p->m_panel_mixed_content->SetBackgroundColour(*wxWHITE);
+        p->m_panel_mixed_content = new wxPanel(p->m_mixed_scroll_area, wxID_ANY);
+        p->m_panel_mixed_content->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
         p->m_sizer_mixed_filaments = new wxBoxSizer(wxHORIZONTAL);
         p->m_sizer_mixed_filaments->Add(new wxBoxSizer(wxVERTICAL), 1, wxEXPAND);
@@ -2518,12 +2543,22 @@ Sidebar::Sidebar(Plater *parent)
         auto* sizer_mixed2 = new wxBoxSizer(wxVERTICAL);
         sizer_mixed2->Add(p->m_sizer_mixed_filaments, 0, wxEXPAND, 0);
         p->m_panel_mixed_content->SetSizer(sizer_mixed2);
-        scroll_sizer->Add(p->m_panel_mixed_content, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
+        mix_scroll_sizer->Add(p->m_panel_mixed_content, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
     }
+    p->m_mixed_scroll_area->SetSizer(mix_scroll_sizer);
+    p->m_mixed_scroll_area->EnableScrolling(false, true);
+    p->m_mixed_scroll_area->ShowScrollbars(wxSHOW_SB_NEVER, wxSHOW_SB_DEFAULT);
+    p->m_mixed_scroll_area->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        int w = p->m_mixed_scroll_area->GetClientSize().GetWidth();
+        if (w > 0)
+            p->m_mixed_scroll_area->SetVirtualSize(w, p->m_mixed_scroll_area->GetVirtualSize().GetHeight());
+        e.Skip();
+    });
+    wrapper_sizer->Add(p->m_mixed_scroll_area, 0, wxEXPAND, 0);
 
-    // 4) Mixed filament warning panel (red bar)
+    // 4) Mixed filament warning panel (red bar, outside scroll areas)
     {
-        p->m_panel_mixed_warning = new wxPanel(p->m_filament_scroll_area, wxID_ANY);
+        p->m_panel_mixed_warning = new wxPanel(p->m_filament_area_wrapper, wxID_ANY);
         p->m_panel_mixed_warning->SetBackgroundColour(wxColour("#FDE8E8"));
         auto* warn_sizer = new wxBoxSizer(wxHORIZONTAL);
         p->m_text_mixed_warning = new wxStaticText(p->m_panel_mixed_warning, wxID_ANY,
@@ -2533,23 +2568,20 @@ Sidebar::Sidebar(Plater *parent)
         p->m_text_mixed_warning->Wrap(FromDIP(360));
         warn_sizer->Add(p->m_text_mixed_warning, 1, wxALL, FromDIP(6));
         p->m_panel_mixed_warning->SetSizer(warn_sizer);
-        scroll_sizer->Add(p->m_panel_mixed_warning, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
+        wrapper_sizer->Add(p->m_panel_mixed_warning, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
     }
 
     // Initially hide mixed filament UI
     p->m_btn_add_mixed_filament->Hide();
     p->m_panel_mixed_title->Hide();
+    p->m_mixed_scroll_area->Hide();
     p->m_panel_mixed_content->Hide();
     p->m_panel_mixed_warning->Hide();
 
-    p->m_filament_scroll_area->SetSizer(scroll_sizer);
-    p->m_filament_scroll_area->Layout();
-    auto min_size = scroll_sizer->GetMinSize();
-    if (min_size.y > p->m_filament_scroll_area->GetMaxHeight())
-        min_size.y = p->m_filament_scroll_area->GetMaxHeight();
-    p->m_filament_scroll_area->SetMinSize(min_size);
-    scrolled_sizer->Add(p->m_filament_scroll_area, 0, wxEXPAND, 0);
-    // ---- End unified filament scroll area ----
+    p->m_filament_area_wrapper->SetSizer(wrapper_sizer);
+    p->m_filament_area_wrapper->Layout();
+    scrolled_sizer->Add(p->m_filament_area_wrapper, 0, wxEXPAND, 0);
+    // ---- End filament area ----
     }
 
     {
@@ -3313,6 +3345,7 @@ void Sidebar::msw_rescale()
     p->btn_export_gcode->SetMinSize(wxSize(-1, scaled_height));
     p->btn_reslice     ->SetMinSize(wxSize(-1, scaled_height));
 #endif
+    recalc_filament_scroll_sizes();
     p->scrolled->Layout();
 
     p->searcher.dlg_msw_rescale();
@@ -3390,6 +3423,17 @@ void Sidebar::sys_color_changed()
     //p->btn_send_gcode->msw_rescale();
 //    p->btn_eject_device->msw_rescale();
     //p->btn_export_gcode_removable->msw_rescale();
+
+    // Refresh mixed filament static panels and dynamic content
+    p->m_panel_mixed_title->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    p->m_text_mixed_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#ACACAC")));
+    p->m_panel_mixed_content->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    p->m_btn_add_mixed_filament->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F8F8F8")));
+    for (auto* child : p->m_btn_add_mixed_filament->GetChildren()) {
+        if (auto* st = dynamic_cast<wxStaticText*>(child))
+            st->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    }
+    update_mixed_filament_list();
 
     p->scrolled->Layout();
 
@@ -3475,10 +3519,7 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
         p->adjust_filament_title_layout();
     });
 
-    auto min_size = p->m_filament_scroll_area->GetSizer()->GetMinSize();
-    if (min_size.y > p->m_filament_scroll_area->GetMaxHeight())
-        min_size.y = p->m_filament_scroll_area->GetMaxHeight();
-    p->m_filament_scroll_area->SetMinSize(min_size);
+    recalc_filament_scroll_sizes();
 
     Layout();
     p->m_panel_filament_title->Refresh();
@@ -3538,10 +3579,7 @@ void Sidebar::on_filaments_delete(size_t filament_id)
         }
     }
 
-    auto min_size = p->m_filament_scroll_area->GetSizer()->GetMinSize();
-    if (min_size.y > p->m_filament_scroll_area->GetMaxHeight())
-        min_size.y = p->m_filament_scroll_area->GetMaxHeight();
-    p->m_filament_scroll_area->SetMinSize(min_size);
+    recalc_filament_scroll_sizes();
 
     Layout();
     p->m_panel_filament_title->Refresh();
@@ -4052,11 +4090,8 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     for (auto& c : p->combos_filament)
         c->update();
     // Expand filament list
-    p->m_filament_scroll_area->SetMaxSize({-1, FromDIP(174)});
-    auto min_size = p->m_filament_scroll_area->GetSizer()->GetMinSize();
-    if (min_size.y > p->m_filament_scroll_area->GetMaxHeight())
-        min_size.y = p->m_filament_scroll_area->GetMaxHeight();
-    p->m_filament_scroll_area->SetMinSize({-1, min_size.y});
+    p->m_filament_area_wrapper->Show();
+    recalc_filament_scroll_sizes();
     // BBS:Synchronized consumables information
     // auto calculation of flushing volumes
     for (int i = 0; i < p->combos_filament.size(); ++i) {
@@ -4486,10 +4521,47 @@ void Sidebar::udpate_combos_filament_badge() {
 
 // ---- Mixed Filament sidebar methods ----
 
+static constexpr int kMaxFilamentScrollRows  = 3;
+static constexpr int kScrollCapThreshold     = 12;
+
+void Sidebar::recalc_filament_scroll_sizes()
+{
+    size_t num_physical = p->combos_filament.size();
+    auto* plater = dynamic_cast<Plater*>(GetParent());
+    size_t num_mixed = plater ? plater->mixed_filament_config_indices().size() : 0;
+    size_t total = num_physical + num_mixed;
+
+    int max_h = (total > kScrollCapThreshold)
+        ? FromDIP(kMaxFilamentScrollRows * 34)
+        : -1;
+
+    auto recalc = [max_h](wxScrolledWindow* sw) {
+        if (!sw || !sw->GetSizer()) return;
+        auto content_size = sw->GetSizer()->GetMinSize();
+        if (max_h > 0 && content_size.y > max_h) {
+            sw->SetMaxSize({-1, max_h});
+            content_size.y = max_h;
+        } else {
+            sw->SetMaxSize({-1, -1});
+        }
+        sw->SetMinSize({0, content_size.y});
+    };
+
+    recalc(p->m_physical_scroll_area);
+    recalc(p->m_mixed_scroll_area);
+}
+
 void Sidebar::update_mixed_filament_list()
 {
     auto* plater = dynamic_cast<Plater*>(GetParent());
     if (!plater) return;
+
+    wxWindowUpdateLocker noUpdates(this);
+
+    const wxColour mc_bg     = StateColor::darkModeColorFor(*wxWHITE);
+    const wxColour mc_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
+    const wxColour mc_text   = StateColor::darkModeColorFor(wxColour("#262E30"));
+    const wxColour mc_dim    = StateColor::darkModeColorFor(wxColour("#ACACAC"));
 
     auto& project_config = wxGetApp().preset_bundle->project_config;
     auto mixed_indices = plater->mixed_filament_config_indices();
@@ -4513,6 +4585,7 @@ void Sidebar::update_mixed_filament_list()
 
     p->m_btn_add_mixed_filament->Show(can_mix && !has_mixed);
     p->m_panel_mixed_title->Show(has_mixed);
+    p->m_mixed_scroll_area->Show(has_mixed);
     p->m_panel_mixed_content->Show(has_mixed);
     p->m_panel_mixed_warning->Show(false);
 
@@ -4541,19 +4614,30 @@ void Sidebar::update_mixed_filament_list()
                 physical_colors.push_back(colours_opt->values[i]);
         }
 
-        auto make_swatch_panel = [this](wxWindow* parent, const wxColour& col, unsigned int num) -> wxPanel* {
+        auto make_swatch_panel = [this, mc_text](wxWindow* parent, const wxColour& col, unsigned int num) -> wxPanel* {
             int swatch_sz = FromDIP(20);
             auto* panel = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(swatch_sz, swatch_sz));
             panel->SetMinSize(wxSize(swatch_sz, swatch_sz));
-            panel->Bind(wxEVT_PAINT, [panel, col, num](wxPaintEvent&) {
+            bool is_dark = wxGetApp().dark_mode();
+            panel->Bind(wxEVT_PAINT, [panel, col, num, mc_text, is_dark](wxPaintEvent&) {
                 wxPaintDC dc(panel);
                 wxSize sz = panel->GetClientSize();
                 dc.SetBackground(wxBrush(col));
                 dc.Clear();
+                if (!is_dark && col.Red() > 224 && col.Green() > 224 && col.Blue() > 224) {
+                    dc.SetPen(wxPen(wxColour(130, 130, 128), 1));
+                    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+                    dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
+                }
+                if (is_dark && col.Red() < 45 && col.Green() < 45 && col.Blue() < 45) {
+                    dc.SetPen(wxPen(wxColour(207, 207, 207), 1));
+                    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+                    dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
+                }
                 wxString txt = wxString::Format("%u", num);
                 dc.SetFont(::Label::Body_14);
                 wxSize txt_sz = dc.GetTextExtent(txt);
-                dc.SetTextForeground(col.GetLuminance() > 0.5 ? wxColour("#262E30") : *wxWHITE);
+                dc.SetTextForeground(col.GetLuminance() > 0.5 ? wxColour(50, 58, 61) : *wxWHITE);
                 dc.DrawText(txt, (sz.GetWidth() - txt_sz.GetWidth()) / 2,
                                  (sz.GetHeight() - txt_sz.GetHeight()) / 2);
             });
@@ -4616,7 +4700,7 @@ void Sidebar::update_mixed_filament_list()
                 auto* grad_panel = new wxPanel(p->m_panel_mixed_content, wxID_ANY,
                                                wxDefaultPosition, wxSize(swatch_sz, swatch_sz));
                 grad_panel->SetMinSize(wxSize(swatch_sz, swatch_sz));
-                grad_panel->Bind(wxEVT_PAINT, [grad_panel, col_from, col_to, mix_num](wxPaintEvent&) {
+                grad_panel->Bind(wxEVT_PAINT, [grad_panel, col_from, col_to, mix_num, mc_text](wxPaintEvent&) {
                     wxPaintDC dc(grad_panel);
                     wxSize sz = grad_panel->GetClientSize();
                     dc.GradientFillLinear(wxRect(0, 0, sz.GetWidth(), sz.GetHeight()),
@@ -4628,7 +4712,7 @@ void Sidebar::update_mixed_filament_list()
                         (col_from.Red()   + col_to.Red())   / 2,
                         (col_from.Green() + col_to.Green()) / 2,
                         (col_from.Blue()  + col_to.Blue())  / 2);
-                    dc.SetTextForeground(mid.GetLuminance() > 0.5 ? wxColour("#262E30") : *wxWHITE);
+                    dc.SetTextForeground(mid.GetLuminance() > 0.5 ? mc_text : *wxWHITE);
                     dc.DrawText(txt, (sz.GetWidth() - txt_sz.GetWidth()) / 2,
                                      (sz.GetHeight() - txt_sz.GetHeight()) / 2);
                 });
@@ -4639,72 +4723,166 @@ void Sidebar::update_mixed_filament_list()
             }
 
             auto* content_panel = new wxPanel(p->m_panel_mixed_content, wxID_ANY);
-            content_panel->SetBackgroundColour(*wxWHITE);
-            content_panel->Bind(wxEVT_PAINT, [content_panel](wxPaintEvent&) {
-                wxPaintDC dc(content_panel);
-                wxSize sz = content_panel->GetClientSize();
-                dc.SetBrush(*wxWHITE_BRUSH);
-                dc.SetPen(wxPen(wxColour("#CECECE"), 1));
-                dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
-            });
+            content_panel->SetBackgroundColour(mc_bg);
+            content_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-            auto* content_sizer = new wxBoxSizer(wxHORIZONTAL);
-            content_sizer->Add(FromDIP(4), 0, 0, 0, 0);
+            // Pre-compute all values the paint lambda needs (avoid capturing `this` for FromDIP)
+            int cp_pad        = FromDIP(4);
+            int cp_swatch_sz  = FromDIP(20);
+            int cp_sep_margin = FromDIP(3);
+            int cp_pct_left   = FromDIP(2);
+            int cp_gap        = FromDIP(2);
+            int cp_pct_gap    = FromDIP(4);
+            bool cp_is_dark   = wxGetApp().dark_mode();
 
-            auto add_swatch = [&](unsigned int comp_id) {
-                bool comp_valid = (comp_id >= 1 && comp_id <= physical_colors.size());
-                if (comp_valid) {
-                    wxColour comp_col(physical_colors[comp_id - 1]);
-                    content_sizer->Add(make_swatch_panel(content_panel, comp_col, comp_id),
-                                       0, wxALIGN_CENTER_VERTICAL);
-                } else {
-                    int swatch_sz = FromDIP(20);
-                    auto* placeholder = new wxPanel(content_panel, wxID_ANY, wxDefaultPosition, wxSize(swatch_sz, swatch_sz));
-                    placeholder->SetMinSize(wxSize(swatch_sz, swatch_sz));
-                    placeholder->Bind(wxEVT_PAINT, [placeholder](wxPaintEvent&) {
-                        wxPaintDC dc(placeholder);
-                        wxSize sz = placeholder->GetClientSize();
-                        dc.SetBrush(*wxWHITE_BRUSH);
-                        dc.SetPen(wxPen(wxColour("#ACACAC"), 1));
-                        dc.DrawRoundedRectangle(0, 0, sz.GetWidth(), sz.GetHeight(), 2);
-                        dc.SetFont(::Label::Body_14);
-                        wxString dash = wxT("\u2014");
-                        wxSize txt_sz = dc.GetTextExtent(dash);
-                        dc.SetTextForeground(wxColour("#909090"));
-                        dc.DrawText(dash, (sz.GetWidth() - txt_sz.GetWidth()) / 2,
-                                         (sz.GetHeight() - txt_sz.GetHeight()) / 2);
-                    });
-                    content_sizer->Add(placeholder, 0, wxALIGN_CENTER_VERTICAL);
-                }
-            };
-
-            if (is_gradient && comp_ids.size() == 2) {
-                unsigned int from_id = (gradient_direction == 0) ? comp_ids[0] : comp_ids[1];
-                unsigned int to_id   = (gradient_direction == 0) ? comp_ids[1] : comp_ids[0];
-                add_swatch(from_id);
-                auto* arrow = new wxStaticText(content_panel, wxID_ANY, wxT("\u2192"));
-                arrow->SetForegroundColour(wxColour("#262E30"));
-                arrow->SetFont(::Label::Body_13);
-                content_sizer->Add(arrow, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(3));
-                add_swatch(to_id);
-            } else {
-                for (size_t ci = 0; ci < comp_ids.size(); ++ci) {
-                    if (ci > 0) {
-                        auto* plus = new wxStaticText(content_panel, wxID_ANY, wxT("+"));
-                        plus->SetForegroundColour(wxColour("#262E30"));
-                        plus->SetFont(::Label::Body_13);
-                        content_sizer->Add(plus, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, FromDIP(3));
-                    }
-                    add_swatch(comp_ids[ci]);
-                    int r = (ci < comp_ratios.size()) ? comp_ratios[ci] : 0;
-                    auto* ratio_text = new wxStaticText(content_panel, wxID_ANY, wxString::Format(wxT("%d%%"), r));
-                    ratio_text->SetForegroundColour(wxColour("#262E30"));
-                    ratio_text->SetFont(::Label::Body_13);
-                    content_sizer->Add(ratio_text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
-                }
+            // Build per-component colour list for the lambda
+            std::vector<wxColour> cp_colours;
+            std::vector<bool>     cp_valid;
+            std::vector<unsigned int> cp_ids = comp_ids;
+            std::vector<int>          cp_ratios = comp_ratios;
+            bool cp_is_gradient = is_gradient;
+            int  cp_gradient_dir = gradient_direction;
+            for (size_t ci = 0; ci < comp_ids.size(); ++ci) {
+                bool valid = (comp_ids[ci] >= 1 && comp_ids[ci] <= physical_colors.size());
+                cp_valid.push_back(valid);
+                cp_colours.push_back(valid ? wxColour(physical_colors[comp_ids[ci] - 1]) : wxColour("#D9D9D9"));
             }
 
-            content_panel->SetSizer(content_sizer);
+            // Reorder for gradient display: from -> to
+            std::vector<unsigned int> draw_ids;
+            std::vector<int>          draw_ratios;
+            std::vector<wxColour>     draw_colours;
+            std::vector<bool>         draw_valid;
+            if (cp_is_gradient && cp_ids.size() == 2) {
+                int fi = (cp_gradient_dir == 0) ? 0 : 1;
+                int ti = 1 - fi;
+                draw_ids     = { cp_ids[fi], cp_ids[ti] };
+                draw_ratios  = { cp_ratios.size() > (size_t)fi ? cp_ratios[fi] : 0,
+                                 cp_ratios.size() > (size_t)ti ? cp_ratios[ti] : 0 };
+                draw_colours = { cp_colours[fi], cp_colours[ti] };
+                draw_valid   = { cp_valid[fi], cp_valid[ti] };
+            } else {
+                draw_ids     = cp_ids;
+                draw_ratios  = cp_ratios;
+                draw_colours = cp_colours;
+                draw_valid   = cp_valid;
+            }
+
+            content_panel->Bind(wxEVT_PAINT, [content_panel, mc_bg, mc_border, mc_text, mc_dim,
+                                               cp_pad, cp_swatch_sz, cp_sep_margin, cp_pct_left,
+                                               cp_gap, cp_pct_gap, cp_is_dark,
+                                               cp_is_gradient,
+                                               draw_ids, draw_ratios, draw_colours, draw_valid](wxPaintEvent&) {
+                wxBufferedPaintDC dc(content_panel);
+                wxSize sz = content_panel->GetClientSize();
+
+                dc.SetBrush(wxBrush(mc_bg));
+                dc.SetPen(wxPen(mc_border, 1));
+                dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
+
+                dc.SetFont(::Label::Body_13);
+                int x = cp_pad;
+                int y_swatch = (sz.GetHeight() - cp_swatch_sz) / 2;
+                int text_h = dc.GetTextExtent(wxT("A")).GetHeight();
+                int y_text = y_swatch + (cp_swatch_sz - text_h) / 2;
+                int avail = sz.GetWidth() - cp_pad;
+                wxString ellipsis = wxT("...");
+                int ellipsis_w = dc.GetTextExtent(ellipsis).GetWidth();
+
+                auto fits = [&](int needed) -> bool {
+                    return (x + needed) <= (avail - ellipsis_w);
+                };
+
+                size_t n = draw_ids.size();
+                for (size_t ci = 0; ci < n; ++ci) {
+                    // Separator: "+" or arrow
+                    if (ci > 0) {
+                        wxString sep = cp_is_gradient ? wxT("\u2192") : wxT("+");
+                        int sep_w = dc.GetTextExtent(sep).GetWidth() + cp_sep_margin * 2;
+                        if (!fits(sep_w + cp_swatch_sz)) {
+                            dc.SetTextForeground(mc_text);
+                            dc.DrawText(ellipsis, x, y_text);
+                            break;
+                        }
+                        dc.SetTextForeground(mc_text);
+                        dc.DrawText(sep, x + cp_sep_margin, y_text);
+                        x += sep_w;
+                    }
+
+                    // Swatch
+                    if (!fits(cp_swatch_sz)) {
+                        dc.SetTextForeground(mc_text);
+                        dc.DrawText(ellipsis, x, y_text);
+                        break;
+                    }
+
+                    if (draw_valid[ci]) {
+                        wxColour col = draw_colours[ci];
+                        dc.SetBrush(wxBrush(col));
+                        dc.SetPen(*wxTRANSPARENT_PEN);
+                        dc.DrawRectangle(x, y_swatch, cp_swatch_sz, cp_swatch_sz);
+                        if (!cp_is_dark && col.Red() > 224 && col.Green() > 224 && col.Blue() > 224) {
+                            dc.SetPen(wxPen(wxColour(130, 130, 128), 1));
+                            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+                            dc.DrawRectangle(x, y_swatch, cp_swatch_sz, cp_swatch_sz);
+                        }
+                        if (cp_is_dark && col.Red() < 45 && col.Green() < 45 && col.Blue() < 45) {
+                            dc.SetPen(wxPen(wxColour(207, 207, 207), 1));
+                            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+                            dc.DrawRectangle(x, y_swatch, cp_swatch_sz, cp_swatch_sz);
+                        }
+                        dc.SetFont(::Label::Body_14);
+                        wxString num = wxString::Format("%u", draw_ids[ci]);
+                        wxSize num_sz = dc.GetTextExtent(num);
+                        dc.SetTextForeground(col.GetLuminance() > 0.5 ? wxColour(50, 58, 61) : *wxWHITE);
+                        dc.DrawText(num, x + (cp_swatch_sz - num_sz.GetWidth()) / 2,
+                                         y_swatch + (cp_swatch_sz - num_sz.GetHeight()) / 2);
+                        dc.SetFont(::Label::Body_13);
+                    } else {
+                        dc.SetBrush(wxBrush(mc_bg));
+                        dc.SetPen(wxPen(mc_dim, 1));
+                        dc.DrawRectangle(x, y_swatch, cp_swatch_sz, cp_swatch_sz);
+                        wxString dash = wxT("\u2014");
+                        wxSize dash_sz = dc.GetTextExtent(dash);
+                        dc.SetTextForeground(wxColour("#909090"));
+                        dc.DrawText(dash, x + (cp_swatch_sz - dash_sz.GetWidth()) / 2,
+                                          y_swatch + (cp_swatch_sz - dash_sz.GetHeight()) / 2);
+                    }
+                    x += cp_swatch_sz + cp_gap;
+
+                    // Ratio text (skip for gradient)
+                    if (!cp_is_gradient) {
+                        int r = (ci < draw_ratios.size()) ? draw_ratios[ci] : 0;
+                        wxString pct = wxString::Format("%d%%", r);
+                        int pct_w = dc.GetTextExtent(pct).GetWidth();
+                        if (!fits(pct_w)) {
+                            dc.SetTextForeground(mc_text);
+                            dc.DrawText(ellipsis, x, y_text);
+                            break;
+                        }
+                        dc.SetTextForeground(mc_text);
+                        dc.DrawText(pct, x + cp_pct_left, y_text);
+                        x += pct_w + cp_pct_gap;
+                    }
+                }
+            });
+
+            // Tooltip: always show full info
+            {
+                wxString tip;
+                for (size_t ci = 0; ci < draw_ids.size(); ++ci) {
+                    if (ci > 0) tip += cp_is_gradient ? wxT(" \u2192 ") : wxT(" + ");
+                    int r = (ci < draw_ratios.size()) ? draw_ratios[ci] : 0;
+                    tip += wxString::Format("%u (%d%%)", draw_ids[ci], r);
+                }
+                content_panel->SetToolTip(tip);
+            }
+
+            // Repaint on resize so truncation updates
+            content_panel->Bind(wxEVT_SIZE, [content_panel](wxSizeEvent& e) {
+                content_panel->Refresh();
+                e.Skip();
+            });
 
             content_panel->SetCursor(wxCursor(wxCURSOR_HAND));
             size_t panel_idx = i;
@@ -4737,17 +4915,13 @@ void Sidebar::update_mixed_filament_list()
         }
     }
 
-    // Recalculate scroll area min size after mixed UI visibility changes
-    {
-        auto min_size = p->m_filament_scroll_area->GetSizer()->GetMinSize();
-        if (min_size.y > p->m_filament_scroll_area->GetMaxHeight())
-            min_size.y = p->m_filament_scroll_area->GetMaxHeight();
-        p->m_filament_scroll_area->SetMinSize(min_size);
-    }
+    recalc_filament_scroll_sizes();
 
-    p->m_filament_scroll_area->FitInside();
+    p->m_physical_scroll_area->FitInside();
+    p->m_mixed_scroll_area->FitInside();
+    p->m_filament_area_wrapper->Layout();
     m_scrolled_sizer->Layout();
-    p->scrolled->FitInside();
+    p->scrolled->Layout();
 
     size_t total = wxGetApp().preset_bundle->filament_presets.size();
     obj_list()->update_objects_list_filament_column(total);

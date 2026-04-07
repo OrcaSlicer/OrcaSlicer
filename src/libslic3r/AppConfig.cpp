@@ -942,9 +942,16 @@ void AppConfig::save()
             j[category.first] = j_filaments;
             continue;
         } else if (category.first == "presets") {
+            auto is_filament_preset_key = [](const std::string& key) -> bool {
+                if (key == "filament") return true;
+                if (key.size() > 9 && key.substr(0, 9) == "filament_") {
+                    return std::all_of(key.begin() + 9, key.end(), ::isdigit);
+                }
+                return false;
+            };
             json j_filament_array;
             for(const auto& kvp : category.second) {
-                if (boost::starts_with(kvp.first, "filament") && kvp.first != "filament_colors" && kvp.first != "filament_multi_colors" && kvp.first != "filament_color_types") {
+                if (is_filament_preset_key(kvp.first)) {
                     j_filament_array.push_back(kvp.second);
                 } else {
                     j[category.first][kvp.first] = kvp.second;
