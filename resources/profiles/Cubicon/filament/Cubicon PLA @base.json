@@ -1,17 +1,15 @@
 {
     "type": "filament",
-	"instantiation": "true",
-    "version": "1.0.0.0",
-    "from": "system",
     "name": "Cubicon PLA @base",
-
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "P510cfa0",
+    "instantiation": "true",
     "compatible_printers": [
         "Cubicon xCeler-I 0.4 nozzle",
         "Cubicon xCeler-Plus 0.4 nozzle"
     ],
-    
     "default_filament_colour": "",
-    "filament_id": "P510cfa0",
     "filament_settings_id": [
         "CBC_MTC_0"
     ],
@@ -21,8 +19,6 @@
     "filament_vendor": [
         "Cubicon"
     ],
-    "inherits": "fdm_filament_pla",
-    "is_custom_defined": "0",
     "filament_flow_ratio": [
         "0.99"
     ],
@@ -52,10 +48,10 @@
     ],
     "fan_max_speed": [
         "80"
-    ],    
+    ],
     "fan_min_speed": [
         "100"
-    ],    
+    ],
     "nozzle_temperature_range_low": [
         "190"
     ],
@@ -64,5 +60,5 @@
     ],
     "additional_cooling_fan_speed": [
         "80"
-    ]        
+    ]
 }

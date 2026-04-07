@@ -5,7 +5,6 @@
     "instantiation": "false",
     "printer_technology": "FFF",
     "printer_settings_id": "fdm_machine_common",
-    "version": "1.0.0.0",
     "nozzle_diameter": [
         "0.4"
     ],

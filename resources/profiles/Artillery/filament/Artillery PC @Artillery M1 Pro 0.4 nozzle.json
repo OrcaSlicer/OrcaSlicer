@@ -34,7 +34,6 @@
     "filament_type": [
         "PC"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "295"
     ],
@@ -50,7 +49,6 @@
     "slow_down_layer_time": [
         "2"
     ],
-    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
@@ -76,10 +74,10 @@
         "1"
     ],
     "hot_plate_temp": [
-        "50"
+        "110"
     ],
     "hot_plate_temp_initial_layer": [
-        "50"
+        "110"
     ],
     "slow_down_min_speed": [
         "0"

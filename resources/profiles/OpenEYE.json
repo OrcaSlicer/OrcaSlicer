@@ -1,7 +1,7 @@
 {
     "name": "OpenEYE",
-	"url": "http://www.openeye.tech",
-    "version": "02.03.02.51",
+    "url": "http://www.openeye.tech",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "OpenEYE Printers Configurations",
     "machine_model_list": [
@@ -24,24 +24,24 @@
             "sub_path": "process/fdm_process_openeye_0.06_nozzle_0.2.json"
         },
         {
-            "name": "fdm_process_openeye_0.08_nozzle_0.4",
-            "sub_path": "process/fdm_process_openeye_0.08_nozzle_0.4.json"
-        },
-        {
             "name": "fdm_process_openeye_0.08_nozzle_0.2",
             "sub_path": "process/fdm_process_openeye_0.08_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.08_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.08_nozzle_0.4.json"
         },
         {
             "name": "fdm_process_openeye_0.10_nozzle_0.2",
             "sub_path": "process/fdm_process_openeye_0.10_nozzle_0.2.json"
         },
         {
-            "name": "fdm_process_openeye_0.12_nozzle_0.4",
-            "sub_path": "process/fdm_process_openeye_0.12_nozzle_0.4.json"
-        },
-        {
             "name": "fdm_process_openeye_0.12_nozzle_0.2",
             "sub_path": "process/fdm_process_openeye_0.12_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.12_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.12_nozzle_0.4.json"
         },
         {
             "name": "fdm_process_openeye_0.14_nozzle_0.2",
@@ -144,16 +144,16 @@
             "sub_path": "process/0.20mm Standard @OpenEYE Peacock V2.json"
         },
         {
-            "name": "0.24mm Balanced Quality @OpenEYE Peacock V2 0.8 nozzle",
-            "sub_path": "process/0.24mm Balanced Quality @OpenEYE Peacock V2 0.8 nozzle.json"
+            "name": "0.24mm Standard @OpenEYE Peacock V2",
+            "sub_path": "process/0.24mm Standard @OpenEYE Peacock V2.json"
         },
         {
             "name": "0.24mm Balanced Strength @OpenEYE Peacock V2 0.6 nozzle",
             "sub_path": "process/0.24mm Balanced Strength @OpenEYE Peacock V2 0.6 nozzle.json"
         },
         {
-            "name": "0.24mm Standard @OpenEYE Peacock V2",
-            "sub_path": "process/0.24mm Standard @OpenEYE Peacock V2.json"
+            "name": "0.24mm Balanced Quality @OpenEYE Peacock V2 0.8 nozzle",
+            "sub_path": "process/0.24mm Balanced Quality @OpenEYE Peacock V2 0.8 nozzle.json"
         },
         {
             "name": "0.30mm Standard @OpenEYE Peacock V2 0.6 nozzle",

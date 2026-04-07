@@ -18,7 +18,7 @@
     "detect_overhang_wall": "1",
     "detect_thin_wall": "1",
     "enable_overhang_speed": "1",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "enable_support": "0",
     "enforce_support_layers": "0",
     "extra_perimeters_on_overhangs": "0",

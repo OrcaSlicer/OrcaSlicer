@@ -105,7 +105,7 @@
     "top_shell_thickness": "0.6",
     "travel_acceleration": "12000",
     "travel_speed": "500",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "wipe_tower_no_sparse_layers": "0",
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",

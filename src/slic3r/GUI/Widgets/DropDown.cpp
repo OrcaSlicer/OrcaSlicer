@@ -420,7 +420,9 @@ int DropDown::hoverIndex()
 {
     if (hover_item < 0)
         return -1;
-    if (count == items.size())
+    // BUG FIX: Can't take the shortcut if subDropDown exists (which means there are groups)
+    // because we need to detect group headers which return negative indices
+    if (count == items.size() && subDropDown == nullptr)
         return hover_item;
     int index = -1;
     std::set<wxString> groups;
@@ -448,7 +450,9 @@ int DropDown::selectedItem()
 {
     if (selection < 0)
         return -1;
-    if (count == items.size())
+    // BUG FIX: Can't take the shortcut if subDropDown exists (which means there are groups)
+    // because the visual position differs from the actual item index when groups are shown
+    if (count == items.size() && subDropDown == nullptr)
         return selection;
     auto & sel = items[selection];
     if (group.IsEmpty() ? !sel.group.IsEmpty() : sel.group != group)

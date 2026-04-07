@@ -28,7 +28,6 @@
     "filament_start_gcode": [
         "; filament start gcode "
     ],
-    "is_custom_defined": "0",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],

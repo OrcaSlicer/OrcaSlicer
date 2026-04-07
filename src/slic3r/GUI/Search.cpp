@@ -184,7 +184,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
     found.clear();
 
     bool         full_list = search.empty();
-    std::wstring sep       = L" : ";
+    wxString sep       = L" : ";
 
     auto get_label = [this, &sep](const Option &opt, bool marked = true) {
         std::wstring out;
@@ -213,7 +213,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
     };
 
     auto get_tooltip = [this, &sep](const Option &opt) {
-        return marker_by_type(opt.type, printer_technology) + opt.category_local + sep + opt.group_local + sep + opt.label_local;
+        return wxString(marker_by_type(opt.type, printer_technology)) + opt.category_local + sep + opt.group_local + sep + opt.label_local;
     };
 
     std::vector<uint16_t> matches, matches2;

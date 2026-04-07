@@ -37,7 +37,6 @@
     "filament_type": [
         "PET"
     ],
-    "is_custom_defined": "0",
     "slow_down_layer_time": [
         "12"
     ],
@@ -57,10 +56,10 @@
         "0.4"
     ],
     "hot_plate_temp": [
-        "100"
+        "80"
     ],
     "hot_plate_temp_initial_layer": [
-        "100"
+        "80"
     ],
     "nozzle_temperature": [
         "240"
@@ -112,6 +111,5 @@
     ],
     "filament_deretraction_speed": [
         "30"
-    ],
-    "version": "2.1.2.2"
+    ]
 }

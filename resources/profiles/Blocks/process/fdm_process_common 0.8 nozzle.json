@@ -61,7 +61,7 @@
     "support_object_xy_distance": "0.5",
     "detect_thin_wall": "0",
     "infill_direction": "45",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",
     "xy_contour_compensation": "0",

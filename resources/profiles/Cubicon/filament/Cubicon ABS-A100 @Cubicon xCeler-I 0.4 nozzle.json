@@ -1,13 +1,12 @@
 {
     "type": "filament",
-	"instantiation": "true",
-    "version": "1.0.0.0",
-
+    "name": "Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle",
+    "inherits": "Cubicon ABS-A100 @base",
+    "instantiation": "true",
     "compatible_printers": [
         "Cubicon xCeler-I 0.4 nozzle"
     ],
-    
-    "inherits": "Cubicon ABS-A100 @base",
-    "name": "Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle",
-    "filament_settings_id": ["Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle"]
+    "filament_settings_id": [
+        "Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle"
+    ]
 }

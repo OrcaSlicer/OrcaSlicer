@@ -18,6 +18,11 @@ public:
 
     wxSize DoGetBestSize() const override;
 
+protected:
+#ifdef __WIN32__
+    WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
+
 private:
     wxString m_title;
 };

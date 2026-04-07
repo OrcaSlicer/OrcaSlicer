@@ -98,7 +98,7 @@
     "gap_infill_speed": "250",
     "sparse_infill_speed": "250",
     "travel_speed": "800",
-    "enable_prime_tower": "0",
+    "enable_prime_tower": "1",
     "wipe_tower_no_sparse_layers": "0",
     "prime_tower_width": "60",
     "xy_hole_compensation": "0.075",

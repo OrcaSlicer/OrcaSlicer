@@ -19,7 +19,6 @@
     "filament_settings_id": [
         "Artillery ABS @Artillery M1 Pro 0.4 nozzle"
     ],
-    "is_custom_defined": "0",
     "slow_down_layer_time": [
         "12"
     ],
@@ -103,7 +102,5 @@
     ],
     "cool_plate_temp_initial_layer": [
         "100"
-    ],
-    "version": "2.1.2.2"
-
+    ]
 }
