@@ -5575,22 +5575,44 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
                 const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
                 const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
 
-                // Orca macOS auto-update: scan assets for the matching .dmg file
+                // Orca macOS auto-update: scan assets for the best .dmg file.
+                // Priority: arch-specific (arm64/x86_64) > universal > any .dmg.
+                // Skips assets that are clearly for other platforms (windows/linux/.exe).
 #ifdef __APPLE__
                 std::string found_dmg_url;
+                std::string found_universal_url;
                 auto assets_node = node.get_child_optional("assets");
                 if (assets_node) {
                     for (const auto& asset : *assets_node) {
                         auto asset_name = asset.second.get_optional<std::string>("name");
                         auto asset_url  = asset.second.get_optional<std::string>("browser_download_url");
-                        if (asset_name && asset_url) {
-                            if (asset_name->find(".dmg") != std::string::npos &&
-                                asset_name->find(mac_arch_suffix) != std::string::npos) {
-                                found_dmg_url = *asset_url;
-                                break;
-                            }
+                        if (!asset_name || !asset_url)
+                            continue;
+                        const std::string& n = *asset_name;
+                        // Skip non-dmg and non-mac assets
+                        if (n.find(".dmg") == std::string::npos)
+                            continue;
+                        if (n.find("windows") != std::string::npos ||
+                            n.find("Windows") != std::string::npos ||
+                            n.find("linux")   != std::string::npos ||
+                            n.find("Linux")   != std::string::npos)
+                            continue;
+                        // Arch-specific match takes priority
+                        if (n.find(mac_arch_suffix) != std::string::npos) {
+                            found_dmg_url = *asset_url;
+                            break;
                         }
+                        // Universal fallback
+                        if (n.find("universal") != std::string::npos ||
+                            n.find("Universal") != std::string::npos) {
+                            found_universal_url = *asset_url;
+                        }
+                        // Last resort: any remaining .dmg
+                        if (found_universal_url.empty())
+                            found_universal_url = *asset_url;
                     }
+                    if (found_dmg_url.empty())
+                        found_dmg_url = found_universal_url;
                 }
 #endif
 
