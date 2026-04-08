@@ -4993,6 +4993,39 @@ LayerResult GCode::process_layer(
     bool has_insert_wrapping_detection_gcode = false;
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
+    // Orca: Print unified global brim before any object.
+    // Only do this if `combine_brims` is enabled and we are printing by layer.
+    if (first_layer && sequence_by_layer && m_config.combine_brims && !print.m_brimMap.empty()) {
+        const ObjectID unified_object_id = [&]() -> ObjectID {
+            ObjectID id;
+            bool     found = false;
+            for (const auto& [obj_id, brim] : print.m_brimMap) {
+                const bool has_printable_entities = std::any_of(brim.entities.begin(), brim.entities.end(),
+                                                                [](const ExtrusionEntity* ee) { return ee != nullptr; });
+                if (!has_printable_entities)
+                    continue;
+                if (found)
+                    return ObjectID();
+                id    = obj_id;
+                found = true;
+            }
+            return found ? id : ObjectID();
+        }();
+
+        if (unified_object_id.valid()) {
+            const auto it = print.m_brimMap.find(unified_object_id);
+            if (it != print.m_brimMap.end()) {
+                this->set_origin(0., 0.);
+                for (const ExtrusionEntity* ee : it->second.entities)
+                    if (ee != nullptr)
+                        gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
+
+                // Mark brim as printed for this object to avoid per-object brim emission later.
+                this->m_objsWithBrim.erase(unified_object_id);
+            }
+        }
+    }
+
     for (unsigned int extruder_id : layer_tools.extruders)
     {
         if (print.config().skirt_type == stCombined && !print.skirt().empty())
@@ -5104,19 +5137,37 @@ LayerResult GCode::process_layer(
             if (is_anything_overridden && print_wipe_extrusions == 0)
                 gcode+="; PURGING FINISHED\n";
 
+            bool skirt_generated_for_current_print_z = false;
+
             for (InstanceToPrint &instance_to_print : instances_to_print) {
                 if (print.config().skirt_type == stPerObject && 
                     !instance_to_print.print_object.object_skirt().empty() &&
-                    print.config().print_sequence == PrintSequence::ByLayer
-                    &&
-                    (layer.id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled))
+                    print.config().print_sequence == PrintSequence::ByLayer)
                 {
-                    if (first_layer)
-                        m_skirt_done.clear();
-                    const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
-                    gcode += generate_skirt(print, instance_to_print.print_object.object_skirt(), offset, instance_to_print.print_object.config().skirt_start_angle, layer_tools, layer, extruder_id);
-                    if (instances_to_print.size() > 1 && &instance_to_print != &*(instances_to_print.end() - 1))
-                        m_skirt_done.pop_back();
+                    const LayerToPrint& layer_to_print = layers[instance_to_print.layer_id];
+                    const Layer* skirt_layer = layer_to_print.object_layer;
+                    if (skirt_layer == nullptr && layer_to_print.support_layer != nullptr &&
+                        layer_to_print.support_layer->id() < layer_to_print.support_layer->object()->slicing_parameters().raft_layers()) {
+                        skirt_layer = layer_to_print.support_layer;
+                    }
+
+                    if (skirt_layer != nullptr &&
+                        (skirt_layer->id() < print.config().skirt_height || print.config().draft_shield == DraftShield::dsEnabled)) {
+                        const bool skirt_first_layer = (skirt_layer->id() == 0 && std::abs(skirt_layer->bottom_z()) < EPSILON);
+                        if (skirt_first_layer)
+                            m_skirt_done.clear();
+
+                        if (skirt_generated_for_current_print_z && !m_skirt_done.empty())
+                            m_skirt_done.pop_back();
+
+                        const Point& offset      = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
+                        std::string  skirt_gcode = generate_skirt(print, instance_to_print.print_object.object_skirt(), offset,
+                                                                  instance_to_print.print_object.config().skirt_start_angle, layer_tools,
+                                                                  *skirt_layer, extruder_id);
+                        if (!skirt_gcode.empty())
+                            skirt_generated_for_current_print_z = true;
+                        gcode += std::move(skirt_gcode);
+                    }
                 }
                 
                 const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
@@ -5549,7 +5600,10 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
 
     if (m_config.spiral_mode && !is_hole) {
         // if spiral vase, we have to ensure that all contour are in the same orientation.
-        loop.make_counter_clockwise();
+        if (m_config.wall_direction == WallDirection::CounterClockwise)
+            loop.make_counter_clockwise();
+        else
+            loop.make_clockwise();
     }
     //if (loop.loop_role() == elrSkirt && (this->m_layer->id() % 2 == 1))
     //    loop.reverse();
@@ -5611,7 +5665,7 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
     // 1 - the currently printed external perimeter and 2 - the neighbouring internal perimeter.
     if (m_config.wipe_before_external_loop.value && !paths.empty() && paths.front().size() > 1 && paths.back().size() > 1 && paths.front().role() == erExternalPerimeter && region_perimeters.size() > 1) {
         const bool is_full_loop_ccw = loop.polygon().is_counter_clockwise();
-        bool is_hole_loop = (loop.loop_role() & ExtrusionLoopRole::elrHole) != 0; // loop.make_counter_clockwise();
+        bool is_hole_loop = (loop.loop_role() & ExtrusionLoopRole::elrHole) != 0;
         const double nozzle_diam = nozzle_diameter;
 
         // note: previous & next are inverted to extrude "in the opposite direction, and we are "rewinding"
