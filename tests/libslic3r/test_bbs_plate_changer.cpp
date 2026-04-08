@@ -34,7 +34,8 @@ static std::string read_entry_from_zip(const std::string& zip_path, const char* 
 SCENARIO("Plate changer export produces single merged gcode and single plate metadata", "[bbs_3mf][plate_changer]") {
     GIVEN("A model and config with plate_change_gcode set") {
         Model model;
-        model.add_object()->add_default_instance();
+        model.add_object();
+        model.add_default_instances();
 
         DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
         config.set("plate_change_gcode", ";PLATE_CHANGE\n");
