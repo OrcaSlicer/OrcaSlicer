@@ -73,6 +73,21 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
     }
 }
 
+// Send-print-job scroll viewport: legacy 600 DIP unless plate_change_gcode is set (extra UI + screen cap).
+// dip_ref: wxWindow for FromDIP (unqualified FromDIP only works inside wxWindow member functions).
+static int select_machine_scroll_area_height_px(const wxWindow *dip_ref)
+{
+    const auto d = [dip_ref](int x) { return dip_ref ? dip_ref->FromDIP(x) : x; };
+    const bool plate_changer_preset = wxGetApp().preset_bundle &&
+        !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+    if (!plate_changer_preset)
+        return d(620);
+    const int scroll_h_target  = d(640);
+    const int scroll_h_min     = d(560);
+    const int screen_margin    = d(160);
+    return std::max(scroll_h_min, std::min(scroll_h_target, wxGetDisplaySize().GetHeight() - screen_margin));
+}
+
 std::vector<wxString> SelectMachineDialog::MACHINE_BED_TYPE_STRING;
 std::vector<string> SelectMachineDialog::MachineBedTypeString;
 void                SelectMachineDialog::init_machine_bed_types()
@@ -135,8 +150,13 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_scroll_area              = new wxScrolledWindow(this);
     m_scroll_area->SetScrollRate(0, 20);
     m_scroll_area->SetBackgroundColour(m_colour_def_color);
-    m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(600)));
-    m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(600)));
+    // Taller viewport only when plate_change_gcode is set (plate table + start/end toggles).
+    {
+        const int scroll_w  = FromDIP(700);
+        const int scroll_h  = select_machine_scroll_area_height_px(this);
+        m_scroll_area->SetMinSize(wxSize(scroll_w, scroll_h));
+        m_scroll_area->SetMaxSize(wxSize(scroll_w, scroll_h));
+    }
 
     m_line_top = new wxPanel(m_scroll_area, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
@@ -1571,6 +1591,17 @@ void SelectMachineDialog::prepare(int print_plate_idx, bool use_plate_changer_al
     if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
     if (m_panel_plate_changer_opts) m_panel_plate_changer_opts->Show(show_plate_changer_opts);
     if (m_scroll_area && m_scroll_area->GetSizer()) m_scroll_area->GetSizer()->Layout();
+    if (m_scroll_area) {
+        const int scroll_w = FromDIP(700);
+        const int want_h   = select_machine_scroll_area_height_px(this);
+        wxSize    cur      = m_scroll_area->GetMinSize();
+        if (cur.GetWidth() != scroll_w || cur.GetHeight() != want_h) {
+            m_scroll_area->SetMinSize(wxSize(scroll_w, want_h));
+            m_scroll_area->SetMaxSize(wxSize(scroll_w, want_h));
+            Layout();
+            Fit();
+        }
+    }
     sync_plate_changer_prefs_from_appconfig();
 }
 
@@ -2378,17 +2409,18 @@ void SelectMachineDialog::EnableEditing(bool enable)
     }
 }
 
-/*content height > FromDIP(650), make the area scrollable*/
-/*content height < FromDIP(650), make the area size as the content*/
+/* If content is shorter than the viewport cap, shrink to content; else cap height (scroll inside). */
 void SelectMachineDialog::update_scroll_area_size() {
+
+    const int scroll_cap = select_machine_scroll_area_height_px(this);
 
     wxSize new_size(FromDIP(700), -1);
 
     int height = m_scroll_area->GetSizer()->CalcMin().GetHeight();
-    if (height < FromDIP(650)) {
+    if (height < scroll_cap) {
         new_size.SetHeight(height);
     } else {
-        new_size.SetHeight(FromDIP(650));
+        new_size.SetHeight(scroll_cap);
     }
 
     if (m_scroll_area->GetSize() != new_size) {
@@ -3937,6 +3969,13 @@ void SelectMachineDialog::on_dpi_changed(const wxRect &suggested_rect)
     }
 
     m_mapping_popup.msw_rescale();
+
+    if (m_scroll_area) {
+        const int scroll_w = FromDIP(700);
+        const int scroll_h = select_machine_scroll_area_height_px(this);
+        m_scroll_area->SetMinSize(wxSize(scroll_w, scroll_h));
+        m_scroll_area->SetMaxSize(wxSize(scroll_w, scroll_h));
+    }
 
     Fit();
     Refresh();
