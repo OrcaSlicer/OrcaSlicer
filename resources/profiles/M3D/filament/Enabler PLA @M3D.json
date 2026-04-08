@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Enabler PLA @M3D",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "",
+    "filament_id": "Enabler PLA @M3D",
+    "instantiation": "true",
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "compatible_printers": [
+        "M3D Enabler D7500 0.4 nozzle",
+        "M3D Enabler D8500 0.4 nozzle"
+    ]
+}
