@@ -1,6 +1,7 @@
 {
     "type": "filament",
     "name": "Elegoo Rapid PLA+ @0.2 nozzle",
+    "renamed_from": "Elegoo RAPID PLA+ @0.2 nozzle",
     "inherits": "Elegoo Rapid PLA+ @base",
     "from": "system",
     "setting_id": "ERPLAPLUS00020",

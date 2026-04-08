@@ -1,6 +1,7 @@
 {
     "type": "filament",
     "name": "Elegoo Rapid PETG+",
+    "renamed_from": "Elegoo RAPID PETG+",
     "inherits": "Elegoo Rapid PETG @base",
     "from": "system",
     "setting_id": "ERPETGPLUS00",
