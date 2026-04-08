@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "Elegoo PLA Silk @base",
-    "inherits": "fdm_elegoo_filament_pla",
+    "inherits": "fdm_filament_pla",
     "from": "system",
     "filament_id": "EPLASB00",
     "instantiation": "false",

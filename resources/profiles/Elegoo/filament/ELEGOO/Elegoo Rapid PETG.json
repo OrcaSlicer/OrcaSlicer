@@ -1,9 +1,10 @@
 {
     "type": "filament",
-    "name": "Elegoo RAPID PETG+",
-    "inherits": "Elegoo RAPID PETG @base",
+    "name": "Elegoo Rapid PETG",
+    "renamed_from": "Elegoo RAPID PETG",
+    "inherits": "Elegoo Rapid PETG @base",
     "from": "system",
-    "setting_id": "ERPETGPLUS00",
+    "setting_id": "ERPETG00",
     "instantiation": "true",
     "compatible_printers": [
         "Elegoo Neptune 0.4 nozzle",

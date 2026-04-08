@@ -1,7 +1,8 @@
 {
     "type": "filament",
-    "name": "Elegoo RAPID PETG @0.2 nozzle",
-    "inherits": "Elegoo RAPID PETG @base",
+    "name": "Elegoo Rapid PETG @0.2 nozzle",
+    "renamed_from": "Elegoo RAPID PETG @0.2 nozzle",
+    "inherits": "Elegoo Rapid PETG @base",
     "from": "system",
     "setting_id": "ERPETG00020",
     "instantiation": "true",
