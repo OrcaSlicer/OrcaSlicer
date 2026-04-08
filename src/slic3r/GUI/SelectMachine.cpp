@@ -1823,7 +1823,15 @@ static bool _is_same_nozzle_diameters(MachineObject* obj, float &tag_nozzle_diam
             }
 
             tag_nozzle_diameter = float(opt_nozzle_diameters->get_at(used_nozzle_idx));
-            if (tag_nozzle_diameter != obj->GetExtderSystem()->GetNozzleDiameter(used_nozzle_idx))
+            auto machine_nozzle_diameter = obj->GetExtderSystem()->GetNozzleDiameter(used_nozzle_idx);
+
+            // Assume matching if diameter is unknown
+            if (machine_nozzle_diameter == 0.0f)
+            {
+                continue;
+            }
+
+            if (tag_nozzle_diameter != machine_nozzle_diameter)
             {
                 mismatch_nozzle_id = used_nozzle_idx;
                 return false;
@@ -1840,7 +1848,16 @@ static bool _is_same_nozzle_diameters(MachineObject* obj, float &tag_nozzle_diam
 
 bool SelectMachineDialog::is_nozzle_hrc_matched(const DevExtder* extruder, std::string& filament_type) const
 {
-    auto printer_nozzle_hrc = Print::get_hrc_by_nozzle_type(extruder->GetNozzleType());
+    if (extruder == nullptr) return false;
+
+    auto printer_nozzle_type = extruder->GetNozzleType();
+
+    // Assume matching if nozzle type unknown
+    if (printer_nozzle_type == NozzleType::ntUndefine) {
+        return true;
+    }
+
+    auto printer_nozzle_hrc = Print::get_hrc_by_nozzle_type(printer_nozzle_type);
 
     auto preset_bundle = wxGetApp().preset_bundle;
     MaterialHash::const_iterator iter = m_materialList.begin();
@@ -5154,13 +5171,11 @@ static wxString _get_tips(MachineObject* obj_)
 
     wxString ext_diameter;
     if (obj_->GetExtderSystem()->GetTotalExtderCount() == 1) {
-        ext_diameter += wxString::FromDouble(obj_->GetExtderSystem()->GetNozzleDiameter(0));
-        ext_diameter += "mm";
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
     } else if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
-        ext_diameter += wxString::FromDouble(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(1));//Left
         ext_diameter += "/";
-        ext_diameter += wxString::FromDouble(obj_->GetExtderSystem()->GetNozzleDiameter(0));
-        ext_diameter += "mm";
+        ext_diameter += format_nozzle_diameter(obj_->GetExtderSystem()->GetNozzleDiameter(0));
     } else {
         assert(0);
     }
