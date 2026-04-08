@@ -1,12 +1,12 @@
 {
     "type": "filament",
-    "name": "Elegoo RAPID PLA+ @0.2 nozzle",
-    "inherits": "Elegoo RAPID PLA+ @base",
+    "name": "Elegoo Rapid PETG @0.2 nozzle",
+    "inherits": "Elegoo Rapid PETG @base",
     "from": "system",
-    "setting_id": "ERPLAPLUS00020",
+    "setting_id": "ERPETG00020",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
-        "3.2"
+        "1"
     ],
     "compatible_printers": [
         "Elegoo Centauri 0.2 nozzle",

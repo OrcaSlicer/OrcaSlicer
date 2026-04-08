@@ -1,7 +1,7 @@
 {
     "type": "filament",
-    "name": "Elegoo RAPID PLA+ @ECC",
-    "inherits": "Elegoo RAPID PLA+ @base",
+    "name": "Elegoo Rapid PLA+ @ECC",
+    "inherits": "Elegoo Rapid PLA+ @base",
     "from": "system",
     "setting_id": "ERPLAPLUSECC",
     "instantiation": "true",
