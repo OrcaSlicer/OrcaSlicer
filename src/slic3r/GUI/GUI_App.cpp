@@ -128,6 +128,10 @@
 //#endif
 
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>  // _NSGetExecutablePath — used by perform_app_update_macos()
+#endif
+
 #ifdef __WXMSW__
 #include <dbt.h>
 #include <shlobj.h>
@@ -2967,7 +2971,17 @@ bool GUI_App::on_init_inner()
                     switch (dialog.ShowModal())
                     {
                     case wxID_YES:
+#ifdef __APPLE__
+                        // Orca macOS auto-update: if we have a direct DMG URL, install automatically;
+                        // otherwise fall back to opening the GitHub release page in the browser.
+                        if (!version_info.dmg_url.empty()) {
+                            this->perform_app_update_macos(version_info.dmg_url, version_info.version_str);
+                        } else {
+                            wxLaunchDefaultBrowser(version_info.url);
+                        }
+#else
                         wxLaunchDefaultBrowser(version_info.url);
+#endif
                         break;
                     case wxID_NO:
                         break;
@@ -5326,6 +5340,152 @@ void maybe_attach_updater_signature(Http& http, const std::string& canonical_que
 
 } // namespace
 
+#ifdef __APPLE__
+// Orca macOS auto-update: download DMG, mount it, replace the running .app, then relaunch.
+// Called on the main thread after the user confirms the update dialog.
+void GUI_App::perform_app_update_macos(const std::string& dmg_url, const std::string& version_str)
+{
+    // --- 1. Prepare download destination ---
+    fs::path tmp_dir  = fs::temp_directory_path() / "OrcaUpdater";
+    fs::create_directories(tmp_dir);
+    fs::path dmg_path = tmp_dir / ("OrcaSlicer_" + version_str + ".dmg");
+
+    // --- 2. Show progress dialog while downloading ---
+    wxProgressDialog progress_dlg(
+        _L("Updating OrcaSlicer"),
+        wxString::Format(_L("Downloading version %s..."), wxString::FromUTF8(version_str)),
+        100, this->mainframe,
+        wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_CAN_ABORT | wxPD_SMOOTH);
+    progress_dlg.Show();
+
+    bool cancelled = false;
+    bool download_ok = false;
+
+    // HTTP download with progress callback — runs synchronously on a worker thread
+    // so we pulse the dialog from the main thread via CallAfter.
+    std::thread dl_thread([&]() {
+        fs::path tmp_path = dmg_path;
+        tmp_path += ".part";
+
+        Slic3r::Http::get(dmg_url)
+            .on_progress([&](Slic3r::Http::Progress progress, bool& cancel_http) {
+                cancel_http = cancelled;
+                if (progress.dltotal > 0) {
+                    int pct = (int)(100.0 * progress.dlnow / progress.dltotal);
+                    wxGetApp().CallAfter([&progress_dlg, pct, &cancelled]() {
+                        if (!progress_dlg.Update(pct))
+                            cancelled = true;
+                    });
+                }
+            })
+            .on_error([&](std::string /*body*/, std::string error, unsigned http_status) {
+                BOOST_LOG_TRIVIAL(error) << "[Orca macOS update] download failed: HTTP "
+                                         << http_status << " — " << error;
+            })
+            .on_complete([&](std::string body, unsigned /*http_status*/) {
+                boost::nowide::ofstream f(tmp_path.string(), std::ios::binary | std::ios::trunc);
+                f.write(body.data(), body.size());
+                f.close();
+                fs::rename(tmp_path, dmg_path);
+                download_ok = true;
+            })
+            .perform_sync();
+    });
+    dl_thread.join();
+
+    progress_dlg.Hide();
+
+    if (cancelled || !download_ok) {
+        if (!cancelled)
+            MessageDialog(this->mainframe, _L("Download failed. Please update manually."),
+                          _L("Update error"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    // --- 3. Build the install shell script ---
+    // We write a small script that:
+    //   - waits for OrcaSlicer to quit  (up to 10 s)
+    //   - mounts the DMG
+    //   - rsync-copies the .app over the existing installation
+    //   - unmounts the DMG
+    //   - deletes the DMG + the script itself
+    //   - relaunches OrcaSlicer
+
+    // Detect the actual running bundle path
+    std::string bundle_path;
+    {
+        char path_buf[PATH_MAX];
+        uint32_t path_size = sizeof(path_buf);
+        if (_NSGetExecutablePath(path_buf, &path_size) == 0) {
+            // executable is e.g. /Applications/OrcaSlicer.app/Contents/MacOS/OrcaSlicer
+            // Go up three levels to reach the .app bundle
+            fs::path exec_path(path_buf);
+            bundle_path = exec_path.parent_path().parent_path().parent_path().string();
+        }
+    }
+    if (bundle_path.empty()) {
+        MessageDialog(this->mainframe,
+                      _L("Could not determine OrcaSlicer installation path. Please update manually."),
+                      _L("Update error"), wxOK | wxICON_ERROR).ShowModal();
+        return;
+    }
+
+    fs::path install_dir  = fs::path(bundle_path).parent_path(); // e.g. /Applications
+    fs::path script_path  = tmp_dir / "orca_install.sh";
+    std::string mount_pt  = (tmp_dir / "orca_dmg_mount").string();
+    std::string dmg_str   = dmg_path.string();
+    std::string script_str = script_path.string();
+
+    {
+        boost::nowide::ofstream sh(script_str);
+        sh << "#!/bin/sh\n"
+           << "# OrcaSlicer macOS auto-updater — generated, do not edit\n"
+           << "BUNDLE=\"" << bundle_path  << "\"\n"
+           << "INSTALL_DIR=\"" << install_dir.string() << "\"\n"
+           << "DMG=\"" << dmg_str << "\"\n"
+           << "MOUNT=\"" << mount_pt << "\"\n"
+           << "SCRIPT=\"" << script_str << "\"\n\n"
+           // Wait for OrcaSlicer to exit (PID of current process)
+           << "PID=" << get_current_pid() << "\n"
+           << "for i in $(seq 1 20); do\n"
+           << "  kill -0 \"$PID\" 2>/dev/null || break\n"
+           << "  sleep 0.5\n"
+           << "done\n\n"
+           // Mount
+           << "hdiutil attach \"$DMG\" -mountpoint \"$MOUNT\" -quiet -nobrowse || exit 1\n\n"
+           // Find the .app inside the DMG (first .app at root level)
+           << "APP_SRC=$(find \"$MOUNT\" -maxdepth 1 -name '*.app' | head -1)\n"
+           << "if [ -z \"$APP_SRC\" ]; then\n"
+           << "  hdiutil detach \"$MOUNT\" -quiet\n"
+           << "  exit 1\n"
+           << "fi\n\n"
+           // Replace — rsync preserves permissions, handles code-signing properly
+           << "rsync -a --delete \"$APP_SRC/\" \"$BUNDLE/\"\n\n"
+           // Unmount + cleanup
+           << "hdiutil detach \"$MOUNT\" -quiet\n"
+           << "rm -f \"$DMG\"\n"
+           << "rm -f \"$SCRIPT\"\n\n"
+           // Relaunch
+           << "open \"$BUNDLE\"\n";
+        sh.close();
+    }
+
+    // Make script executable
+    fs::permissions(script_path,
+                    fs::owner_read | fs::owner_write | fs::owner_exe |
+                    fs::group_read | fs::others_read);
+
+    // --- 4. Launch the script detached, then quit OrcaSlicer ---
+    // nohup + disown ensures the script survives after our process exits
+    std::string cmd = "nohup sh \"" + script_str + "\" >/tmp/orca_update.log 2>&1 &";
+    ::system(cmd.c_str());
+
+    // Give the script half a second to start before we quit
+    wxMilliSleep(500);
+    wxGetApp().quit_studio(0);
+}
+#endif // __APPLE__
+
 void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 {
     AppConfig* app_config = wxGetApp().app_config;
@@ -5387,6 +5547,17 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             std::string best_release_content;
             std::string best_pre_content;
 
+            // Orca macOS auto-update: track direct DMG download URLs per release type
+#ifdef __APPLE__
+            std::string best_pre_dmg_url;
+            std::string best_release_dmg_url;
+  #if defined(__aarch64__) || defined(__arm64__)
+            const std::string mac_arch_suffix = "arm64";
+  #else
+            const std::string mac_arch_suffix = "x86_64";
+  #endif
+#endif
+
             auto consider_release = [&](const boost::property_tree::ptree& node) {
                 auto tag_opt = node.get_optional<std::string>("tag_name");
                 if (!tag_opt)
@@ -5404,12 +5575,34 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
                 const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
                 const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
 
+                // Orca macOS auto-update: scan assets for the matching .dmg file
+#ifdef __APPLE__
+                std::string found_dmg_url;
+                auto assets_node = node.get_child_optional("assets");
+                if (assets_node) {
+                    for (const auto& asset : *assets_node) {
+                        auto asset_name = asset.second.get_optional<std::string>("name");
+                        auto asset_url  = asset.second.get_optional<std::string>("browser_download_url");
+                        if (asset_name && asset_url) {
+                            if (asset_name->find(".dmg") != std::string::npos &&
+                                asset_name->find(mac_arch_suffix) != std::string::npos) {
+                                found_dmg_url = *asset_url;
+                                break;
+                            }
+                        }
+                    }
+                }
+#endif
+
                 if (is_prerelease) {
                     if (!best_pre_valid || best_pre < tag_version) {
-                        best_pre        = tag_version;
-                        best_pre_url    = html_url;
+                        best_pre         = tag_version;
+                        best_pre_url     = html_url;
                         best_pre_content = body_copy;
-                        best_pre_valid  = true;
+                        best_pre_valid   = true;
+#ifdef __APPLE__
+                        best_pre_dmg_url = found_dmg_url;
+#endif
                     }
                 } else {
                     if (!best_release_valid || best_release < tag_version) {
@@ -5417,6 +5610,9 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
                         best_release_url     = html_url;
                         best_release_content = body_copy;
                         best_release_valid   = true;
+#ifdef __APPLE__
+                        best_release_dmg_url = found_dmg_url;
+#endif
                     }
                 }
             };
@@ -5461,6 +5657,10 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
             version_info.description   = prefer_release ? best_release_content : best_pre_content;
             version_info.force_upgrade = false;
+#ifdef __APPLE__
+            // Orca macOS auto-update: store direct DMG URL for silent install
+            version_info.dmg_url = prefer_release ? best_release_dmg_url : best_pre_dmg_url;
+#endif
 
             wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
             evt->SetString((prefer_release ? best_release : best_pre).to_string());

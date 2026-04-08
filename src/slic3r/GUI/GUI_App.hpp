@@ -160,6 +160,7 @@ public:
     std::string version_name;
     std::string description;
     std::string url;
+    std::string dmg_url;  // Orca macOS auto-update: direct download URL for the .dmg asset
     bool        force_upgrade{ false };
     int      ver_items[VERSION_LEN];  // AA.BB.CC.DD
     VersionInfo() {
@@ -496,6 +497,10 @@ public:
     void            check_update(bool show_tips, int by_user);
     void            check_new_version(bool show_tips = false, int by_user = 0);
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
+#ifdef __APPLE__
+    // Orca macOS auto-update: download DMG, replace .app bundle, relaunch
+    void            perform_app_update_macos(const std::string& dmg_url, const std::string& version_str);
+#endif
     bool            process_network_msg(std::string dev_id, std::string msg);
     void            request_new_version(int by_user);
     void            enter_force_upgrade();
