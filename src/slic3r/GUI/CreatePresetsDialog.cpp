@@ -109,7 +109,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "Elegoo Neptune 3 Max",    "Elegoo Neptune 4 Pro",    "Elegoo Neptune 4",        "Elegoo Neptune 4 Max",    "Elegoo Neptune 4 Plus",
                             "Elegoo OrangeStorm Giga"}},
      {"Flashforge",        {"Flashforge Adventurer 5M",       "Flashforge Adventurer 5M Pro",   "Flashforge AD5X",                "Flashforge Adventurer 3 Series", "Flashforge Adventurer 4 Series",
-                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s"}},
+                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s", "Flashforge Artemis"}},
      {"FLSun",             {"FLSun Q5",               "FLSun QQ-S Pro",         "FLSun Super Racer (SR)", "FLSun V400",             "FLSun T1",
                             "FLSun S1"}},
      {"FlyingBear",        {"FlyingBear Reborn3", "FlyingBear S1",      "FlyingBear Ghost 6"}},
