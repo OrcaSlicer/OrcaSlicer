@@ -455,6 +455,26 @@
             "sub_path": "process/0.28 Extra Draft @Snapmaker U1 (0.4 nozzle).json"
         },
         {
+            "name": "fdm_process_U1_0.6_common",
+            "sub_path": "process/fdm_process_U1_0.6_common.json"
+        },
+        {
+            "name": "0.20 Standard @Snapmaker U1 (0.6 nozzle)",
+            "sub_path": "process/0.20 Standard @Snapmaker U1 (0.6 nozzle).json"
+        },
+        {
+            "name": "0.30 Draft @Snapmaker U1 (0.6 nozzle)",
+            "sub_path": "process/0.30 Draft @Snapmaker U1 (0.6 nozzle).json"
+        },
+        {
+            "name": "0.40 Extra Draft @Snapmaker U1 (0.6 nozzle)",
+            "sub_path": "process/0.40 Extra Draft @Snapmaker U1 (0.6 nozzle).json"
+        },
+        {
+            "name": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",
+            "sub_path": "process/0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle).json"
+        },
+        {
             "name": "0.06 Standard @Snapmaker Artisan (0.2 nozzle)",
             "sub_path": "process/0.06 Standard @Snapmaker Artisan (0.2 nozzle).json"
         }
@@ -1529,6 +1549,14 @@
         {
             "name": "Snapmaker U1 (0.4 nozzle)",
             "sub_path": "machine/Snapmaker U1 (0.4 nozzle).json"
+        },
+        {
+            "name": "Snapmaker U1 (0.6 nozzle)",
+            "sub_path": "machine/Snapmaker U1 (0.6 nozzle).json"
+        },
+        {
+            "name": "Snapmaker U1 (0.4+0.6 nozzle)",
+            "sub_path": "machine/Snapmaker U1 (0.4+0.6 nozzle).json"
         },
         {
             "name": "Snapmaker A250 BKit (0.2 nozzle)",
