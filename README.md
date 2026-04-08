@@ -44,7 +44,7 @@ If you come across any of these in search results, please <b>report them</b> as 
 
 # Main features
 
-- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/Calibration)**  
+- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/calibration_guide)**  
   Comprehensive suite: temperature towers, flow rate, retraction & more for optimal performance.
 - **[Precise Wall](https://www.orcaslicer.com/wiki/quality_settings_precision#precise-wall) and [Seam Control](https://www.orcaslicer.com/wiki/quality_settings_seam)**  
   Adjust outer wall spacing and apply scarf seams to enhance print accuracy.
