@@ -1354,7 +1354,7 @@ msgstr "Empotrar"
 
 #. TRN: Tooltip for the menu item.
 msgid "Bake into model as uneditable part"
-msgstr "Empotrar en el modelo como parte no editable"
+msgstr "Fijar en el modelo como parte no editable"
 
 msgid "Save as"
 msgstr "Guardar como"
@@ -3532,7 +3532,7 @@ msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factores de calibración de dinámicas de flujo"
 
 msgid "PA Profile"
-msgstr "Perfil de «pressure advance»"
+msgstr "Perfil de «Pressure advance»"
 
 msgid "Factor K"
 msgstr "Factor K"
