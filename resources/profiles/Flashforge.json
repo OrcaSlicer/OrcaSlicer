@@ -10,6 +10,10 @@
             "sub_path": "machine/Flashforge AD5X.json"
         },
         {
+            "name": "Flashforge Artemis",
+            "sub_path": "machine/Flashforge Artemis.json"
+        },
+        {
             "name": "Flashforge Adventurer 3 Series",
             "sub_path": "machine/Flashforge Adventurer 3 Series.json"
         },
@@ -70,6 +74,10 @@
         {
             "name": "0.20mm Standard @Flashforge AD4 0.4 Nozzle",
             "sub_path": "process/0.20mm Standard @Flashforge AD4 0.4 Nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Flashforge Artemis 0.4 Nozzle",
+            "sub_path": "process/0.20mm Standard @Flashforge Artemis 0.4 Nozzle.json"
         },
         {
             "name": "0.20mm Standard @Flashforge Guider 2s 0.4 nozzle",
@@ -2472,6 +2480,10 @@
             "sub_path": "machine/fdm_adventurer5m_common.json"
         },
         {
+            "name": "fdm_artemis_common",
+            "sub_path": "machine/fdm_artemis_common.json"
+        },
+        {
             "name": "fdm_guider3_common",
             "sub_path": "machine/fdm_guider3_common.json"
         },
@@ -2530,6 +2542,10 @@
         {
             "name": "Flashforge Adventurer 5M Pro 0.8 Nozzle",
             "sub_path": "machine/Flashforge Adventurer 5M Pro 0.8 Nozzle.json"
+        },
+        {
+            "name": "Flashforge Artemis 0.4 Nozzle",
+            "sub_path":"machine/Flashforge Artemis 0.4 Nozzle.json"
         },
         {
             "name": "Flashforge Guider 3 Ultra 0.4 Nozzle",
