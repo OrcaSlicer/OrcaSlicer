@@ -12871,7 +12871,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
 
 void Plater::calib_retraction(const Calib_Params& params)
 {
-    const auto calib_retraction_name = wxString::Format(L"Retraction test");
+    const auto calib_retraction_name = wxString::Format(L"Retraction");
     new_project(false, false, calib_retraction_name);
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Retraction_tower)
