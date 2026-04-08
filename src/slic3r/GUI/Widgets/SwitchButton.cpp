@@ -180,8 +180,15 @@ void SwitchButton::Rescale()
 			(i == 0 ? m_off : m_on).bmp() = bmp;
 		}
 	}
-	SetSize(m_on.GetBmpSize());
 	update();
+#ifdef __WXGTK__
+	wxSize bestSize = GetBestSize();
+	bestSize.IncTo(m_on.GetBmpSize());
+	SetSize(bestSize);
+	SetMinSize(bestSize);
+#else
+	SetSize(m_on.GetBmpSize());
+#endif
 }
 
 void SwitchButton::update()
