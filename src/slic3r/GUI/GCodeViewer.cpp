@@ -39,6 +39,7 @@
 #include <boost/nowide/fstream.hpp>
 #include <wx/progdlg.h>
 #include <wx/numformatter.h>
+#include <wx/utils.h>
 
 #include <array>
 #include <algorithm>
@@ -397,7 +398,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Temperature"), [&vertex, &buff]() {
-                    sprintf(buff, ("%.0f " + _u8L("\u2103" /* °C */)).c_str(), vertex.temperature);
+                    sprintf(buff, ("%.0f " + _u8L("°C")).c_str(), vertex.temperature);
                     ImGuiWrapper::text(std::string(buff));
                 });
 // ORCA: Add Pressure Advance visualization support
@@ -1629,7 +1630,29 @@ void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned in
                 levels.push_back(std::make_pair(value, libvgcode::convert(color_range.get_color_at(value))));
                 levels.back().second.a(0.5f);
             }
-            m_sequential_view.marker.set_actual_speed_data(actual_speed_data);
+
+            // ORCA Compress consecutive duplicate speeds with 0.1 precision
+            auto sameSpeed = [](float a, float b) {
+                return static_cast<int>(std::roundf(a * 10.0f)) == static_cast<int>(std::roundf(b * 10.0f));
+            };
+            std::vector<SequentialView::ActualSpeedImguiWidget::Item> compressed;
+            if (!actual_speed_data.empty()) {
+                compressed.push_back(actual_speed_data[0]);
+                for (int i = 1; i < (int)actual_speed_data.size(); ++i) {
+                    const bool same_as_prev = sameSpeed(actual_speed_data[i].speed, actual_speed_data[i - 1].speed);
+                    const bool same_as_next = (i + 1 < (int)actual_speed_data.size()) && sameSpeed(actual_speed_data[i].speed, actual_speed_data[i + 1].speed);
+                    if (!same_as_prev) {
+                        if (!sameSpeed(compressed.back().speed, actual_speed_data[i - 1].speed))
+                            compressed.push_back(actual_speed_data[i - 1]);
+                        compressed.push_back(actual_speed_data[i]);
+                    } else if (!same_as_next)
+                        compressed.push_back(actual_speed_data[i]);
+                }
+                if (compressed.back().pos != actual_speed_data.back().pos)
+                    compressed.push_back(actual_speed_data.back());
+            }
+
+            m_sequential_view.marker.set_actual_speed_data(compressed);
             m_sequential_view.marker.set_actual_speed_y_range(std::make_pair(interval[0], interval[1]));
             m_sequential_view.marker.set_actual_speed_levels(levels);
         }
@@ -3514,7 +3537,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan Speed (%)")); break; }
-    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (\u2103)"/* °C */)); break; }
+    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (°C)")); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:{ imgui.title(_u8L("Pressure Advance")); break; }
     case libvgcode::EViewType::VolumetricFlowRate:
@@ -3666,7 +3689,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
@@ -3683,7 +3706,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
         const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
-        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();

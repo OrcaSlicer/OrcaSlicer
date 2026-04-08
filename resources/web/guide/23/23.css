@@ -143,14 +143,12 @@
 #CFilament_List
 {
 	display:flex;
-	overflow-x:auto;
+	overflow-y:auto;
 	flex-wrap:wrap;
-	flex-direction: column;
 	justify-content:flex-start;
 	align-items: flex-start;
 	align-content:flex-start;
 	line-height: 32px;
-
 	height: 100%;
 }
 
@@ -158,12 +156,17 @@
 {
 	display: flex;
 	align-items: center;
-	margin-right: 30px;
+	margin-right: 10%;
+	width: 44%;
+}
+
+.CFilament_Item:nth-of-type(2n) {
+	margin-right: 2%;
 }
 
 .CFilament_Name
 {
-	width: 220px;
+	width: 100%;
 	overflow: hidden;
     white-space: nowrap; /* ?????? */
     text-overflow: ellipsis; /* ????????? */
@@ -268,6 +271,11 @@ body:has(#SystemFilamentBtn.TitleSelected) #Content { /* :has selector browser s
 .cbr-filter-box {
 	position: relative;
 	margin: 3px;
+}
+
+.list-item-count {
+	color:var(--fg-color-label);
+	margin-left:10px
 }
 
 .cbr-filter-btns {

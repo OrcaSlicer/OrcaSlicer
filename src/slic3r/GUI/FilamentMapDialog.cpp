@@ -169,9 +169,9 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     else
         m_default_map_panel = nullptr;
 
-    panel_sizer->Add(m_manual_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
-    panel_sizer->Add(m_auto_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
-    if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
+    panel_sizer->Add(m_manual_map_panel, 0, wxEXPAND);
+    panel_sizer->Add(m_auto_map_panel, 0, wxEXPAND);
+    if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxEXPAND);
     main_sizer->Add(panel_sizer, 0, wxEXPAND);
 
     wxPanel* bottom_panel = new wxPanel(this);
@@ -207,6 +207,17 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
     m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancle, this);
+    SetEscapeId(wxID_CANCEL);
+    Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+        if (e.GetKeyCode() == WXK_ESCAPE) {
+            if (IsModal())
+                EndModal(wxID_CANCEL);
+            else
+                Close();
+            return;
+        }
+        e.Skip();
+    });
 
     m_auto_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_switch_mode, this);
     m_manual_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_switch_mode, this);

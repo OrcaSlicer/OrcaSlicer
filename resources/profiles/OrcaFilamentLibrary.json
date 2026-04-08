@@ -1,6 +1,6 @@
 {
     "name": "OrcaFilamentLibrary",
-    "version": "02.03.02.40",
+    "version": "02.03.02.60",
     "force_update": "0",
     "description": "Orca Filament Library",
     "filament_list": [
@@ -529,6 +529,10 @@
             "sub_path": "filament/FDplast/FDplast PLA @base.json"
         },
         {
+            "name": "FILL3D PLA Turbo @base",
+            "sub_path": "filament/FILL3D/FILL3D PLA Turbo @base.json"
+        },
+        {
             "name": "Generic PLA @System",
             "sub_path": "filament/Generic PLA @System.json"
         },
@@ -711,6 +715,18 @@
         {
             "name": "eSUN PLA+ @base",
             "sub_path": "filament/eSUN/eSUN PLA+ @base.json"
+        },
+        {
+            "name": "eSUN PLA-Basic @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Basic @base.json"
+        },
+        {
+            "name": "eSUN PLA-Marble @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Marble @base.json"
+        },
+        {
+            "name": "eSUN PLA-Matte @base",
+            "sub_path": "filament/eSUN/eSUN PLA-Matte @base.json"
         },
         {
             "name": "eSUN ePLA-LW @System",
@@ -1141,6 +1157,10 @@
             "sub_path": "filament/FDplast/FDplast PLA @System.json"
         },
         {
+            "name": "FILL3D PLA Turbo @System",
+            "sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
+        },
+        {
             "name": "NIT PLA @System",
             "sub_path": "filament/NIT/NIT PLA @System.json"
         },
@@ -1315,6 +1335,18 @@
         {
             "name": "eSUN PLA+ @System",
             "sub_path": "filament/eSUN/eSUN PLA+ @System.json"
+        },
+        {
+            "name": "eSUN PLA-Basic @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Basic @System.json"
+        },
+        {
+            "name": "eSUN PLA-Marble @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Marble @System.json"
+        },
+        {
+            "name": "eSUN PLA-Matte @System",
+            "sub_path": "filament/eSUN/eSUN PLA-Matte @System.json"
         },
         {
             "name": "COEX PLA+Silk @base",

@@ -5,7 +5,7 @@
 
 #include <wx/dataview.h>
 
-#if wxUSE_MARKUP && wxCHECK_VERSION(3, 1, 1)
+#if wxUSE_MARKUP
     #define SUPPORTS_MARKUP
 #endif
 

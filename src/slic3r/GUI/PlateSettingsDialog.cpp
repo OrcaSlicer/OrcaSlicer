@@ -313,7 +313,7 @@ void OtherLayersSeqPanel::append_layer(const LayerSeqInfo* layer_info)
     single_layer_input_sizer->Add(end_layer_input, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
     single_layer_input_sizer->AddStretchSpacer();
     single_layer_input_sizer->Add(drag_canvas, 0, wxLEFT | wxALIGN_CENTER, FromDIP(5));
-    layer_panel_sizer->Add(single_layer_input_sizer, 0, wxEXPAND | wxALIGN_CENTER | wxBOTTOM, FromDIP(10));
+    layer_panel_sizer->Add(single_layer_input_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
     m_layer_input_sizer_list.push_back(single_layer_input_sizer);
     m_begin_layer_input_list.push_back(begin_layer_input);
     m_end_layer_input_list.push_back(end_layer_input);
