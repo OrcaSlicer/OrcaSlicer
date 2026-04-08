@@ -5707,6 +5707,16 @@ bool PartPlateList::set_shapes(const Pointfs              &shape,
 
 	update_logo_texture_filename(texture_filename);
 
+	// Keep SceneRaycaster Bed entries in sync with PickingModel raycasters rebuilt by set_shape().
+	// Without this, SceneRaycasterItem may keep dangling MeshRaycaster* pointers.
+	if (m_plater != nullptr) {
+		GLCanvas3D* canvas = m_plater->get_view3D_canvas3D();
+		if (canvas != nullptr) {
+			canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed);
+			register_raycasters_for_picking(*canvas);
+		}
+	}
+
 	return true;
 }
 
