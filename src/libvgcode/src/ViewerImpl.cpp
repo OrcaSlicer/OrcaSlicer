@@ -1469,7 +1469,7 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     if (v.type == EMoveType::Noop)
         return DUMMY_COLOR;
 
-    if ((v.is_wipe() && (m_settings.view_type != EViewType::Speed && m_settings.view_type != EViewType::ActualSpeed)) || v.is_option())
+    if ((v.is_wipe() && (m_settings.view_type != EViewType::Speed && m_settings.view_type != EViewType::ActualSpeed && m_settings.view_type != EViewType::Acceleration)) || v.is_option())
         return get_option_color(move_type_to_option(v.type));
 
     switch (m_settings.view_type)
@@ -1506,6 +1506,11 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     case EViewType::PressureAdvance:
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_pressure_advance_range.get_color_at(v.pressure_advance);
+    }
+    // ORCA: Add Acceleration visualization support
+    case EViewType::Acceleration:
+    {
+        return m_acceleration_range.get_color_at(v.acceleration);
     }
     case EViewType::VolumetricFlowRate:
     {
@@ -1598,6 +1603,8 @@ const ColorRange& ViewerImpl::get_color_range(EViewType type) const
     case EViewType::Temperature:              { return m_temperature_range; }
 // ORCA: Add Pressure Advance visualization support
     case EViewType::PressureAdvance:          { return m_pressure_advance_range; }
+    // ORCA: Add Acceleration visualization support
+    case EViewType::Acceleration:             { return m_acceleration_range; }
     case EViewType::VolumetricFlowRate:       { return m_volumetric_rate_range; }
     case EViewType::ActualVolumetricFlowRate: { return m_actual_volumetric_rate_range; }
     case EViewType::LayerTimeLinear:          { return m_layer_time_range[0]; }
@@ -1618,6 +1625,8 @@ void ViewerImpl::set_color_range_palette(EViewType type, const Palette& palette)
     case EViewType::Temperature:              { m_temperature_range.set_palette(palette);     break; }
 // ORCA: Add Pressure Advance visualization support
     case EViewType::PressureAdvance:          { m_pressure_advance_range.set_palette(palette); break; }
+    // ORCA: Add Acceleration visualization support
+    case EViewType::Acceleration:             { m_acceleration_range.set_palette(palette);     break; }
     case EViewType::VolumetricFlowRate:       { m_volumetric_rate_range.set_palette(palette); break; }
     case EViewType::ActualVolumetricFlowRate: { m_actual_volumetric_rate_range.set_palette(palette); break; }
     case EViewType::LayerTimeLinear:          { m_layer_time_range[0].set_palette(palette);   break; }
@@ -1657,6 +1666,8 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += m_temperature_range.size_in_bytes_cpu();
     // ORCA: Add Pressure Advance visualization support
     ret += m_pressure_advance_range.size_in_bytes_cpu();
+    // ORCA: Add Acceleration visualization support
+    ret += m_acceleration_range.size_in_bytes_cpu();
     ret += m_volumetric_rate_range.size_in_bytes_cpu();
     ret += m_actual_volumetric_rate_range.size_in_bytes_cpu();
     for (size_t i = 0; i < COLOR_RANGE_TYPES_COUNT; ++i) {
@@ -1809,6 +1820,8 @@ void ViewerImpl::update_color_ranges()
     m_temperature_range.reset();
     // ORCA: Add Pressure Advance visualization support
     m_pressure_advance_range.reset();
+    // ORCA: Add Acceleration visualization support
+    m_acceleration_range.reset();
     m_volumetric_rate_range.reset();
     m_actual_volumetric_rate_range.reset();
     m_layer_time_range[0].reset(); // ColorRange::EType::Linear
@@ -1834,6 +1847,8 @@ void ViewerImpl::update_color_ranges()
              v.is_extrusion()) {
             m_speed_range.update(v.feedrate);
             m_actual_speed_range.update(v.actual_feedrate);
+            // ORCA: Add Acceleration visualization support
+            m_acceleration_range.update(v.acceleration);
         }
     }
 

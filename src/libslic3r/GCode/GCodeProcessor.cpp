@@ -5480,6 +5480,11 @@ void GCodeProcessor::process_filament_change(int id)
 void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)
 {
     int filament_id = get_filament_id();
+    const auto normal_mode = PrintEstimatedStatistics::ETimeMode::Normal;
+    const float move_acceleration =
+        (type == EMoveType::Travel) ? get_travel_acceleration(normal_mode) :
+        ((type == EMoveType::Retract || type == EMoveType::Unretract) ? get_retract_acceleration(normal_mode) :
+                                                                    get_acceleration(normal_mode));
     m_last_line_id = (type == EMoveType::Color_change || type == EMoveType::Pause_Print || type == EMoveType::Custom_GCode) ?
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
@@ -5503,6 +5508,8 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_extruder_temps[filament_id],
 // ORCA: Add Pressure Advance visualization support
         m_pressure_advance,
+        // ORCA: Add Acceleration visualization support
+        move_acceleration,
         { 0.0f, 0.0f }, // time
         static_cast<float>(m_layer_id), //layer_duration: set later
         std::max<unsigned int>(1, m_layer_id) - 1,

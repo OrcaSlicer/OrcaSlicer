@@ -171,6 +171,8 @@ public:
     // EViewType::Temperature
     // ORCA: Add Pressure Advance visualization support
     // EViewType::PressureAdvance
+    // ORCA: Add Acceleration visualization support
+    // EViewType::Acceleration
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear
@@ -189,6 +191,8 @@ public:
     // EViewType::Temperature
     // ORCA: Add Pressure Advance visualization support
     // EViewType::PressureAdvance
+    // ORCA: Add Acceleration visualization support
+    // EViewType::Acceleration
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear

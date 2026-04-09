@@ -94,6 +94,8 @@ enum class EViewType : uint8_t
     Temperature,
 // ORCA: Add Pressure Advance visualization support
     PressureAdvance,
+    // ORCA: Add Acceleration visualization support
+    Acceleration,
     Tool,
     COUNT
 };
