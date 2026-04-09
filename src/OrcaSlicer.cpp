@@ -446,7 +446,7 @@ void record_exit_reson(std::string outputdir, int code, int plate_id, std::strin
 
         boost::nowide::ofstream c;
         c.open(result_file, std::ios::out | std::ios::trunc);
-        c << std::setw(4) << j << std::endl;
+        c << j.dump(1, '\t') << std::endl;
         c.close();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%result_file;
