@@ -384,8 +384,10 @@ protected:
     wxStaticText*                       m_rename_text{nullptr};
     Label*                              m_stext_time{ nullptr };
     Label*                              m_stext_weight{ nullptr };
-    wxSimplebook*                       m_stats_switch{ nullptr };
+    // Holds single-line stats vs plate table; wxSimplebook was avoided so the hidden page does not reserve height.
+    wxPanel*                            m_stats_switch{ nullptr };
     wxPanel*                            m_stats_single_line_panel{ nullptr };
+    wxPanel*                            m_stats_table_panel{ nullptr };
     Label*                              m_stext_plate_count{ nullptr };
     wxFlexGridSizer*                    m_plate_table_grid_sizer{ nullptr };
     PrinterMsgPanel *                   m_statictext_ams_msg{nullptr};
@@ -394,6 +396,8 @@ protected:
     Label*                              m_label_ext_change_assist{ nullptr };
     wxPanel*                            m_line_plate_changer{ nullptr };
     wxPanel*                            m_panel_plate_changer_opts{ nullptr };
+    // Fills the last cell when an odd number of print options are visible (2-col grid).
+    wxPanel*                            m_options_grid_pad{ nullptr };
     PrintOption*                        m_opt_start_with_new_plate{ nullptr };
     PrintOption*                        m_opt_end_with_new_plate{ nullptr };
 

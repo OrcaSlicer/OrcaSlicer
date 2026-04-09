@@ -254,9 +254,12 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_panel_image->SetSizer(sizer_thumbnail);
     m_panel_image->Layout();
 
-    m_stats_switch = new wxSimplebook(m_scrollable_region, wxID_ANY);
+    m_stats_switch = new wxPanel(m_scrollable_region, wxID_ANY);
+    m_stats_switch->SetBackgroundColour(m_colour_def_color);
+    auto *sizer_stats_outer = new wxBoxSizer(wxVERTICAL);
 
     m_stats_single_line_panel = new wxPanel(m_stats_switch, wxID_ANY);
+    m_stats_single_line_panel->SetBackgroundColour(m_colour_def_color);
     wxBoxSizer *sizer_basic        = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *sizer_basic_weight = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *sizer_basic_time   = new wxBoxSizer(wxHORIZONTAL);
@@ -274,27 +277,29 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     sizer_basic_time->Add(m_stext_weight, 0, wxALL, FromDIP(5));
     sizer_basic->Add(sizer_basic_time, 0, wxALIGN_CENTER, 0);
     m_stats_single_line_panel->SetSizer(sizer_basic);
-    m_stats_switch->AddPage(m_stats_single_line_panel, wxEmptyString);
 
-    wxPanel *table_panel = new wxPanel(m_stats_switch, wxID_ANY);
-    table_panel->SetBackgroundColour(GetBackgroundColour());
-    table_panel->SetMinSize(wxSize(FromDIP(480), -1));
+    m_stats_table_panel = new wxPanel(m_stats_switch, wxID_ANY);
+    m_stats_table_panel->SetBackgroundColour(m_colour_def_color);
+    m_stats_table_panel->SetMinSize(wxSize(FromDIP(480), -1));
     wxBoxSizer *table_hsizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *left_col_sizer = new wxBoxSizer(wxVERTICAL);
-    m_stext_project_name_in_table = new wxStaticText(table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    m_stext_project_name_in_table = new wxStaticText(m_stats_table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     m_stext_project_name_in_table->SetFont(::Label::Head_14);
     m_stext_project_name_in_table->SetForegroundColour(m_colour_bold_color);
     left_col_sizer->Add(m_stext_project_name_in_table, 0, wxBOTTOM, FromDIP(4));
-    m_stext_plate_count = new wxStaticText(table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
+    m_stext_plate_count = new wxStaticText(m_stats_table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
     m_stext_plate_count->SetFont(::Label::Body_13);
     left_col_sizer->Add(m_stext_plate_count, 0);
     table_hsizer->Add(left_col_sizer, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(20));
 
     m_plate_table_grid_sizer = new wxFlexGridSizer(0, 4, FromDIP(1), FromDIP(1));
     table_hsizer->Add(m_plate_table_grid_sizer, 1, wxEXPAND);
-    table_panel->SetSizer(table_hsizer);
-    m_stats_switch->AddPage(table_panel, wxEmptyString);
-    m_stats_switch->SetSelection(0);
+    m_stats_table_panel->SetSizer(table_hsizer);
+
+    sizer_stats_outer->Add(m_stats_single_line_panel, 0, wxEXPAND, 0);
+    sizer_stats_outer->Add(m_stats_table_panel, 0, wxEXPAND, 0);
+    m_stats_table_panel->Hide();
+    m_stats_switch->SetSizer(sizer_stats_outer);
 
     m_line_materia = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line_materia->SetForegroundColour(wxColour(238, 238, 238));
@@ -1787,7 +1792,8 @@ void SendToPrinterDialog::update_time_and_weight_labels()
     // Only show plate count + table when using plate changer (all plates). Otherwise show single-line time/weight only.
     // Plate/time/weight grid is shared with SelectMachineDialog and PlateChangerExportOptionsDialog.
     if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
-        m_stats_switch->SetSelection(1);
+        m_stats_single_line_panel->Hide();
+        m_stats_table_panel->Show();
 
         const int n_plates = partplate_list.get_plate_count();
         if (m_plate_changer_plate_included.size() != static_cast<size_t>(n_plates))
@@ -1796,11 +1802,13 @@ void SendToPrinterDialog::update_time_and_weight_labels()
         m_stext_project_name_in_table->SetLabel(m_current_project_name);
         m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d of %d plates."), n_included, n_plates));
 
-        wxWindow *table_panel = m_stext_plate_count->GetParent();
-        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, table_panel, this, partplate_list, m_plate_changer_plate_included,
+        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, m_stats_table_panel, this, partplate_list, m_plate_changer_plate_included,
                                                 [this]() { update_time_and_weight_labels(); });
+        m_stats_switch->Layout();
     } else {
-        m_stats_switch->SetSelection(0);
+        m_stats_table_panel->Hide();
+        m_stats_single_line_panel->Show();
+        m_stats_switch->Layout();
 
         wxString time;
         char     weight[64];
