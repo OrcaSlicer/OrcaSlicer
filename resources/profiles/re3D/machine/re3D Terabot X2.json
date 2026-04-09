@@ -7,6 +7,6 @@
     "family": "re3D",
     "bed_model": "",
     "bed_texture": "Gigabot 4_buildplate_texture.png",
-    "hotend_model": "GBX-HOTEND.stl",
+    "hotend_model": "GBX-HOTEND.drc",
     "default_materials": "re3D rPP;re3D Greengate rPETG;"
 }
