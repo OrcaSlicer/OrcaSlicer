@@ -5482,7 +5482,7 @@ void GUI_App::perform_app_update_macos(const std::string& dmg_url, const std::st
 
     // Give the script half a second to start before we quit
     wxMilliSleep(500);
-    wxGetApp().quit_studio(0);
+    wxGetApp().mainframe->Close(true);
 }
 #endif // __APPLE__
 
