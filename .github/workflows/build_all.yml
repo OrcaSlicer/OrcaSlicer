@@ -160,6 +160,7 @@ jobs:
             runner: ubuntu-24.04-arm
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
     if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+
     runs-on: ${{ matrix.variant.runner }}
     env:
       date:

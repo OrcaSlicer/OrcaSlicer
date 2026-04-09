@@ -41,6 +41,10 @@
             "sub_path": "filament/base/fdm_filament_pa.json"
         },
         {
+            "name": "fdm_filament_paht",
+            "sub_path": "filament/base/fdm_filament_paht.json"
+        },
+        {
             "name": "fdm_filament_pc",
             "sub_path": "filament/base/fdm_filament_pc.json"
         },
@@ -111,6 +115,10 @@
         {
             "name": "COEX ABS PRIME @base",
             "sub_path": "filament/COEX/COEX ABS PRIME @base.json"
+        },
+        {
+            "name": "Elegoo ABS @base",
+            "sub_path": "filament/Elegoo/Elegoo ABS @base.json"
         },
         {
             "name": "Eolas Prints ABS @System",
@@ -257,12 +265,20 @@
             "sub_path": "filament/Generic PA-CF @System.json"
         },
         {
+            "name": "Elegoo PAHT @base",
+            "sub_path": "filament/Elegoo/Elegoo PAHT @base.json"
+        },
+        {
             "name": "Bambu PC @base",
             "sub_path": "filament/Bambu/Bambu PC @base.json"
         },
         {
             "name": "Bambu PC FR @base",
             "sub_path": "filament/Bambu/Bambu PC FR @base.json"
+        },
+        {
+            "name": "Elegoo PC @base",
+            "sub_path": "filament/Elegoo/Elegoo PC @base.json"
         },
         {
             "name": "Generic PC @System",
@@ -317,8 +333,12 @@
             "sub_path": "filament/Elas/Elas PETG Basic @base.json"
         },
         {
-            "name": "Elegoo PETG Pro @base",
-            "sub_path": "filament/Elegoo/Elegoo PETG Pro @base.json"
+            "name": "Elegoo PETG @base",
+            "sub_path": "filament/Elegoo/Elegoo PETG @base.json"
+        },
+        {
+            "name": "Elegoo PETG PRO @base",
+            "sub_path": "filament/Elegoo/Elegoo PETG PRO @base.json"
         },
         {
             "name": "Elegoo PETG-CF @base",
@@ -483,6 +503,18 @@
         {
             "name": "Elegoo PLA @base",
             "sub_path": "filament/Elegoo/Elegoo PLA @base.json"
+        },
+        {
+            "name": "Elegoo PLA Matte @base",
+            "sub_path": "filament/Elegoo/Elegoo PLA Matte @base.json"
+        },
+        {
+            "name": "Elegoo PLA Silk @base",
+            "sub_path": "filament/Elegoo/Elegoo PLA Silk @base.json"
+        },
+        {
+            "name": "Elegoo PLA-CF @base",
+            "sub_path": "filament/Elegoo/Elegoo PLA-CF @base.json"
         },
         {
             "name": "Elegoo Rapid PLA+ @base",
@@ -809,6 +841,10 @@
             "sub_path": "filament/Elegoo/Elegoo TPU 95A @base.json"
         },
         {
+            "name": "Elegoo TPU @base",
+            "sub_path": "filament/Elegoo/Elegoo TPU @base.json"
+        },
+        {
             "name": "Eolas Prints TPU D60 UV Resistant @System",
             "sub_path": "filament/Eolas Prints/Eolas Prints TPU Flex D60 UV Resistant @System.json"
         },
@@ -1009,8 +1045,8 @@
             "sub_path": "filament/Elas/Elas PETG Basic @System.json"
         },
         {
-            "name": "Elegoo PETG Pro @System",
-            "sub_path": "filament/Elegoo/Elegoo PETG Pro @System.json"
+            "name": "Elegoo PETG PRO @System",
+            "sub_path": "filament/Elegoo/Elegoo PETG PRO @System.json"
         },
         {
             "name": "Elegoo PETG-CF @System",
