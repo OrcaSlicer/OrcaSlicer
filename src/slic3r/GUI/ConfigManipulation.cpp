@@ -795,7 +795,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_line(el, has_ironing);
     bool has_rectilinear_ironing = (config->opt_enum<InfillPattern>("ironing_pattern") == InfillPattern::ipRectilinear);
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
-        toggle_line(el, has_ironing && has_rectilinear_ironing);
+        toggle_field(el, has_ironing && has_rectilinear_ironing);
     
     toggle_line("ironing_speed", has_ironing || has_support_ironing);
 
