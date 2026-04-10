@@ -173,6 +173,8 @@ public:
     // EViewType::PressureAdvance
     // ORCA: Add Acceleration visualization support
     // EViewType::Acceleration
+    // ORCA: Add Jerk visualization support
+    // EViewType::Jerk
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear
@@ -193,6 +195,8 @@ public:
     // EViewType::PressureAdvance
     // ORCA: Add Acceleration visualization support
     // EViewType::Acceleration
+    // ORCA: Add Jerk visualization support
+    // EViewType::Jerk
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear

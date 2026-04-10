@@ -5481,10 +5481,30 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
 {
     int filament_id = get_filament_id();
     const auto normal_mode = PrintEstimatedStatistics::ETimeMode::Normal;
+    const float delta_x = std::abs(m_end_position[X] - m_start_position[X]);
+    const float delta_y = std::abs(m_end_position[Y] - m_start_position[Y]);
+    const float delta_z = std::abs(m_end_position[Z] - m_start_position[Z]);
+    const float delta_e = std::abs(m_end_position[E] - m_start_position[E]);
+    const bool has_x = delta_x > 0.0f;
+    const bool has_y = delta_y > 0.0f;
+    const bool has_z = delta_z > 0.0f;
+    const bool has_e = delta_e > 0.0f;
+    const float jerk_x = get_axis_max_jerk(normal_mode, X);
+    const float jerk_y = get_axis_max_jerk(normal_mode, Y);
+    const float jerk_z = get_axis_max_jerk(normal_mode, Z);
+    const float jerk_e = get_axis_max_jerk(normal_mode, E);
     const float move_acceleration =
         (type == EMoveType::Travel) ? get_travel_acceleration(normal_mode) :
         ((type == EMoveType::Retract || type == EMoveType::Unretract) ? get_retract_acceleration(normal_mode) :
                                                                     get_acceleration(normal_mode));
+    const float move_jerk =
+        (has_e && !has_x && !has_y && !has_z) ? jerk_e :
+        (has_z && !has_x && !has_y) ? jerk_z :
+        (has_x && has_y) ? std::min(jerk_x, jerk_y) :
+        has_x ? jerk_x :
+        has_y ? jerk_y :
+        has_z ? jerk_z :
+                std::min(jerk_x, jerk_y);
     m_last_line_id = (type == EMoveType::Color_change || type == EMoveType::Pause_Print || type == EMoveType::Custom_GCode) ?
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
@@ -5510,6 +5530,8 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_pressure_advance,
         // ORCA: Add Acceleration visualization support
         move_acceleration,
+        // ORCA: Add Jerk visualization support
+        move_jerk,
         { 0.0f, 0.0f }, // time
         static_cast<float>(m_layer_id), //layer_duration: set later
         std::max<unsigned int>(1, m_layer_id) - 1,

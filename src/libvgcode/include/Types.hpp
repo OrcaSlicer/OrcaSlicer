@@ -96,6 +96,8 @@ enum class EViewType : uint8_t
     PressureAdvance,
     // ORCA: Add Acceleration visualization support
     Acceleration,
+    // ORCA: Add Jerk visualization support
+    Jerk,
     Tool,
     COUNT
 };
