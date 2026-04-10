@@ -3766,7 +3766,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
             }
             else if (evt.GetEventType() == wxEVT_KEY_DOWN) {
                 m_tab_down = keyCode == WXK_TAB && !evt.HasAnyModifiers();
-                if (keyCode == WXK_SHIFT) {
+                if (keyCode == 'U') {
                     if  (evt.AltDown()) 
                     {
                         Slic3r::GUI::UnitSystem::Get().TogglePermanent();

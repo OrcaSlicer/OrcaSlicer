@@ -946,6 +946,16 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         if (temp_swap)
             ImGui::PopStyleColor();
     }
+    
+    if (ImGui::IsItemHovered()) {
+        imgui_wrapper->tooltip(
+            imperial_display
+                ? "Hold Alt: preview metric  |  Hold Alt + Press U: switch permanently"
+                : "Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently",
+            ImGui::CalcTextSize("Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently").x + 20.f
+        );
+    }
+    
     bool is_avoid_one_update{false};
     if (combox_changed) {
         combox_changed = false;
@@ -1364,6 +1374,15 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         imgui_wrapper->text(unit_str);
         if (temp_swap)
             ImGui::PopStyleColor();
+    }
+    
+    if (ImGui::IsItemHovered()) {
+        imgui_wrapper->tooltip(
+            imperial_display
+                ? "Hold Alt: preview metric  |  Hold Alt + Press U: switch permanently"
+                : "Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently",
+            ImGui::CalcTextSize("Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently").x + 20.f
+        );
     }
 
     // Clamp display size
