@@ -5481,6 +5481,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
 {
     int filament_id = get_filament_id();
     const auto normal_mode = PrintEstimatedStatistics::ETimeMode::Normal;
+    const size_t normal_mode_id = static_cast<size_t>(normal_mode);
     const float delta_x = std::abs(m_end_position[X] - m_start_position[X]);
     const float delta_y = std::abs(m_end_position[Y] - m_start_position[Y]);
     const float delta_z = std::abs(m_end_position[Z] - m_start_position[Z]);
@@ -5489,14 +5490,19 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     const bool has_y = delta_y > 0.0f;
     const bool has_z = delta_z > 0.0f;
     const bool has_e = delta_e > 0.0f;
-    const float jerk_x = get_axis_max_jerk(normal_mode, X);
-    const float jerk_y = get_axis_max_jerk(normal_mode, Y);
-    const float jerk_z = get_axis_max_jerk(normal_mode, Z);
-    const float jerk_e = get_axis_max_jerk(normal_mode, E);
     const float move_acceleration =
         (type == EMoveType::Travel) ? get_travel_acceleration(normal_mode) :
         ((type == EMoveType::Retract || type == EMoveType::Unretract) ? get_retract_acceleration(normal_mode) :
                                                                     get_acceleration(normal_mode));
+    const float junction_deviation = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, normal_mode_id);
+    const bool use_jd_jerk = (m_flavor == gcfMarlinFirmware && junction_deviation > 0.0f);
+    const auto axis_jerk_for_preview = [this, normal_mode, use_jd_jerk, move_acceleration](Axis axis) {
+        return use_jd_jerk ? get_axis_max_jerk_with_jd(normal_mode, axis, move_acceleration) : get_axis_max_jerk(normal_mode, axis);
+    };
+    const float jerk_x = axis_jerk_for_preview(X);
+    const float jerk_y = axis_jerk_for_preview(Y);
+    const float jerk_z = axis_jerk_for_preview(Z);
+    const float jerk_e = axis_jerk_for_preview(E);
     const float move_jerk =
         (has_e && !has_x && !has_y && !has_z) ? jerk_e :
         (has_z && !has_x && !has_y) ? jerk_z :
@@ -5607,7 +5613,7 @@ float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeM
     }
 }
 
-float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
+float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const
 {
     if (axis != X && axis != Y && axis != Z && axis != E)
         return 0.0f;
@@ -5618,10 +5624,20 @@ float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeM
         return 0.0f;
 
     const float axis_max_acc = get_axis_max_acceleration(mode, axis);
-    const float generic_acc = get_acceleration(mode);
-    const float effective_acc = axis_max_acc > 0.0f ? axis_max_acc : generic_acc;
+    float effective_acc = acceleration;
+    if (effective_acc <= 0.0f)
+        effective_acc = get_acceleration(mode);
+    if (axis_max_acc > 0.0f)
+        effective_acc = effective_acc > 0.0f ? std::min(effective_acc, axis_max_acc) : axis_max_acc;
+    if (effective_acc <= 0.0f)
+        return 0.0f;
 
     return std::sqrt(jd * effective_acc * 2.5f);
+}
+
+float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
+{
+    return get_axis_max_jerk_with_jd(mode, axis, get_acceleration(mode));
 }
 
 float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
