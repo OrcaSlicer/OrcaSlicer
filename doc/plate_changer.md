@@ -2,17 +2,31 @@
 
 This document describes OrcaSlicer’s plate changer (multi-plate / plate swap) behaviour: how it works for users, its limitations, and where it is implemented.
 
+## On plate changing
+
+Several third-party add-on devices have been developed to enable automatic plate swapping on 3D printers –particularly for the Bambu A1 Mini and A1. These plate swaps allow longer print jobs of up to 10 plates to run unattended, which is especially useful for print farms or for printing many objects on the smaller print bed of the A1 Mini. Notable example devices include the [Swapmod A1m from Novibar](https://swap-systems.com) (available outside the USA), the [Chitu Platecycler C1M](https://www.chitusystems.com/products/chitu-systems-platecycler-c1m-for-bambu-lab-a1-mini), and the [Innocube Swapmod A1](https://www.innocube3d.com/?gad_source=1&gad_campaignid=23365249185&gbraid=0AAAAA_YAiIQV-CB7mE9I9k6BipCXT2nxF&gclid=Cj0KCQjwv-LOBhCdARIsAM5hdKfjJKMKgPiHXqMFacOdWHcVyWGvmJAizSgBBiP5muUBKLl7SI5TDLQaAmvUEALw_wcB) for the larger Bambu A1.
+
+These swappers are not official hardware add-ons made by the printer manufacturers, and no support for them is included in the printers' firmware; instead, they work by moving the printhead to a designated location where it pushes a lever, while a mechanical sequence is triggered by G-code commands. These commands cause the bed to be lifted and a new plate to be loaded, while the old one is ejected by the movement of the gantry. Users of these devices employ external utilities such as Novibar's swaplist web app (https://swaplist.app) or Innocube's ASwap tools (http://www.aswapsc.com) to merge multiple 3mf files. These utilities manually insert the required plate change G-code blocks in between, to print multi-plate jobs on these devices.
+
+Given that OrcaSlicer already manages projects with multiple plates, it's natural for the application to support these plate swap workflows directly within the slicer. To do this, OrcaSlicer introduces new features to insert user-specified plate change G-code between plates, intelligently set up the print and filament context for each plate as required, and provide UI tools so users can easily direct which plates to include and when to trigger plate swaps. Because the majority of users do not use plate swap hardware, care was taken to ensure that these plate changer UI functions and workflows are **only** visible if plate change G-code has been defined for the current printer.
+
+
 ## User experience
 
 ### Enabling plate change G-code
 
-Plate changer behaviour is gated by the **Plate change G-code** setting:
+Plate changer behaviour is controlled by the **Plate change G-code** setting (fig 1):
+
+![Plate changer G-code UI](images/plate_change_UI-01.png)
 
 - **Location:** Printer Settings → Machine G-code → **Plate change G-code**
-- If this field is empty, “Print all (plate changer)”, “Send all (plate changer)”, and “Export all (plate changer)” are not offered, and the start/end plate toggles are hidden.
-- When set, the same G-code block is inserted between plates and optionally at the start and end of the job (see below).
+- If this field is empty, the options for “Print all (plate changer)”, “Send all (plate changer)”, and “Export all (plate changer)” will not appear, and the start/end plate toggles are hidden.
+- When this field is set, the specified G-code block is automatically inserted between plates and, optionally, at the start and/or end of the job (see below).
 
 ### Sending or exporting all plates (plate changer)
+
+![Plate changer Export menu](images/plate_change_UI-03.png)
+
 
 When the current printer has **Plate change G-code** configured, the following actions merge all sliced plates into a single job with plate-change G-code between them:
 
@@ -24,14 +38,13 @@ In all cases:
 
 1. Each plate’s G-code is written as usual, then concatenated in plate order.
 2. The **Plate change G-code** string is inserted between consecutive plates (after plate N, before plate N+1).
-3. Optionally, the same G-code can be inserted **before the first plate** and/or **after the last plate** using the “Start with new plate?” and “End with new plate?” toggles in the Send/Print dialogs.
+3. Optionally, the same G-code can be inserted **before the first plate** and/or **after the last plate** using the “Start with new plate?” and “End with new plate?” toggles in the Send/Print dialogs. (fig 3)
 
-### Start / End with new plate toggles
+### Start / End with new plate toggles (fig 3)
 
 In both the **Send to Printer** (LAN) and **Select Machine** (cloud) flows:
 
 - When you choose **Send all (plate changer)** (or equivalent), the dialog shows an extra section below the main options:
-  - A horizontal separator.
   - **Start with new plate?** (default off) – insert the plate change G-code once before the first plate’s G-code. Tooltip: *When enabled, the plate change G-code runs before the first plate so the printer ejects the current plate and loads a fresh one before the print starts.*
   - **End with new plate?** (default off) – insert the plate change G-code once after the last plate’s G-code. Tooltip: *When enabled, the plate change G-code runs after the last plate so the printer ejects the final plate when the job finishes.*
 
@@ -46,19 +59,21 @@ Example with two plates and both toggles on:
 
 ### Plate details table (Include / Plate / Time / Weight)
 
+![Plate changer G-code UI](images/plate_change_UI-02.png)
+
 For **Print all (plate changer)**, **Send all (plate changer)**, and **Export all (plate changer)** (when the export options dialog is shown), the dialog includes a small grid:
 
 | Column | Meaning |
 |--------|---------|
 | **Include** | Checkbox: whether this physical plate is part of the merged job. |
-| **Plate** | Plate number (1-based). |
+| **Plate** | Plate number. |
 | **Time** / **Weight** | Estimates from slicing for that plate. |
 
 **Behaviour:**
 
 - **All** row: **Time** and **Weight** are totals **only for included** plates.
-- **Unchecked** plates are shown with **dimmed text**; they are **not** concatenated into merged G-code and are **not** counted in those totals.
-- You **cannot** uncheck every plate: the last remaining checkbox stays on if you try.
+- **Unchecked** plates are shown with **dimmed text**; they are not concatenated into merged G-code and are not counted in those totals.
+- You cannot uncheck every plate: the last remaining checkbox stays on if you try.
 - The header shows **“Printing *n* of *m* plates”** (or **“Exporting …”** on the export options dialog), where *n* is the included count.
 
 **Semantics for the job:**
@@ -73,9 +88,12 @@ For **Print all (plate changer)**, **Send all (plate changer)**, and **Export al
 ### Single vs. additional initial G-code
 
 - **Between plates** (and at the end): OrcaSlicer always uses the printer preset’s **Plate change G-code**.
-- **Start of job**: when “Start with new plate?” is enabled, OrcaSlicer first runs the optional **Additional initial plate change G-code** (if non-empty) and then runs the regular **Plate change G-code**.
+- **Start of job**: when “Start with new plate?” is enabled, OrcaSlicer first runs the optional **Additional initial plate change G-code** (if non-empty) and then runs the regular **Plate change G-code**. 
 
-This matches setups like swapmod/swaplist.app where a small, **start-only wrapper** is used to lift Z and safely load a plate when the current Z height is unknown, while the main swap routine is reused for both mid-queue and end-of-job swaps.
+This matches setups like swapmod/swaplist.app where a small, **start-only wrapper** is used to lift Z and safely load a plate when the current Z height is unknown, while the main swap routine is reused for both mid-queue and end-of-job swaps. 
+
+#### Caveat
+The default additional initial code assumes that it can safely home the z-axis at position 'X25 Y175', an assumption borrowed from the standard A1 mini 'machine start' gcode. If the plate on the printer contains a printed item at those coordinates, that could present an issue.
 
 ### Visibility of start/end toggles
 

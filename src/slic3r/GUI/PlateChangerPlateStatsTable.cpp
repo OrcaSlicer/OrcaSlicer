@@ -43,9 +43,8 @@ void populate_plate_changer_time_weight_grid(wxFlexGridSizer* grid_sizer,
     double              total_time_s   = 0.0;
     double              total_weight_g = 0.0;
 
+    // Per-plate time/weight always from slice data so deselected rows still show estimates; totals sum included only.
     for (int i = 0; i < n_plates; ++i) {
-        if (!plate_included[static_cast<size_t>(i)])
-            continue;
         PartPlate* p = partplate_list.get_plate(i);
         if (p && p->get_slice_result())
             plate_times[static_cast<size_t>(i)] =
@@ -55,8 +54,10 @@ void populate_plate_changer_time_weight_grid(wxFlexGridSizer* grid_sizer,
             p->get_print(&pbase, nullptr, nullptr);
         if (Slic3r::Print* print = dynamic_cast<Slic3r::Print*>(pbase))
             plate_weights[static_cast<size_t>(i)] = print->print_statistics().total_weight;
-        total_time_s += plate_times[static_cast<size_t>(i)];
-        total_weight_g += plate_weights[static_cast<size_t>(i)];
+        if (plate_included[static_cast<size_t>(i)]) {
+            total_time_s += plate_times[static_cast<size_t>(i)];
+            total_weight_g += plate_weights[static_cast<size_t>(i)];
+        }
     }
 
     grid_sizer->Clear(true);
