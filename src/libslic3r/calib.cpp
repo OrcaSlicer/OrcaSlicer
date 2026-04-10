@@ -490,6 +490,15 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     const double      fast = CalibPressureAdvance::speed_adjust(m_fast_speed);
     const double      slow = CalibPressureAdvance::speed_adjust(m_slow_speed);
     std::stringstream gcode;
+    if (config.default_acceleration.value > 0 && config.initial_layer_acceleration.value > 0) {
+        gcode << "; Set initial layer acceleration\n";
+        gcode << writer.set_print_acceleration((unsigned int)floor(config.initial_layer_acceleration.value + 0.5));
+    }
+
+    if (config.default_jerk.value > 0 && config.initial_layer_jerk.value > 0) {
+        gcode << "; Set initial layer jerk\n";
+        gcode << writer.set_jerk_xy(config.initial_layer_jerk.value);
+    }
     gcode << mp_gcodegen->writer().travel_to_z(m_height_layer + z_offset);
     double y_pos = start_y;
 
