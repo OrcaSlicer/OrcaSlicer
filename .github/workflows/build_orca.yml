@@ -155,7 +155,7 @@ jobs:
 
       - name: Delete intermediate per-arch artifacts
         if: runner.os == 'macOS' && inputs.macos-combine-only
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: |
             OrcaSlicer_Mac_bundle_arm64_${{ github.sha }}
