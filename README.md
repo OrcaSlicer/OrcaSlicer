@@ -29,7 +29,7 @@ Optimize your prints with ultra-fast slicing, intelligent support generation, an
 <table border="2" style="border-color: #ffa500; background-color:rgb(232, 220, 180); color: #856404;">
 <tr>
 <td>
-<strong>⚠️ CAUTION:</strong><br>
+<strong>⚠️ CAUTION:</strong><br>RR
 Several clickbait and malicious websites, such as <b>orca-slicer[.]com</b> and <b>orcaslicer[.]net</b>, are pretending to be the official OrcaSlicer site. These sites may redirect you to dangerous downloads or contain misleading information.<br>
 <b>Our only official website is <a href="https://www.orcaslicer.com/">www.orcaslicer.com</a>.</b><br><br>
 If you come across any of these in search results, please <b>report them</b> as unsafe or phishing to help keep the community secure with:<br>
