@@ -3,6 +3,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 #include <wx/app.h>
 #include <wx/button.h>
@@ -67,7 +68,7 @@ AddMachinePanel::AddMachinePanel(wxWindow* parent, wxWindowID id, const wxPoint&
     m_button_add_machine->SetBorderColor(0x909090);
     m_button_add_machine->SetMinSize(wxSize(96, 39));
     btn_sizer->Add(m_button_add_machine, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
-    m_staticText_add_machine = new wxStaticText(this, wxID_ANY, wxT("click to add machine"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_add_machine = new wxStaticText(this, wxID_ANY, _L("click to add machine"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_add_machine->Wrap(-1);
     m_staticText_add_machine->SetForegroundColour(0x909090);
     btn_sizer->Add(m_staticText_add_machine, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
@@ -199,7 +200,7 @@ void MonitorPanel::init_tabpanel()
 
     std::string network_ver = Slic3r::NetworkAgent::get_version();
     if (!network_ver.empty()) {
-        m_tabpanel->SetFooterText(wxString::Format("Network plugin v%s", network_ver));
+        m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
     }
 
     m_initialized = true;
@@ -342,7 +343,10 @@ void MonitorPanel::update_all()
         show_status((int)MONITOR_NO_PRINTER);
         m_hms_panel->clear_hms_tag();
         m_tabpanel->GetBtnsListCtrl()->showNewTag(3, false);
-        m_status_info_panel->update(obj);
+        if (m_status_info_panel->IsShown()) {
+            m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
+            m_status_info_panel->update(obj);
+        }
         return;
     }
 
@@ -369,9 +373,11 @@ void MonitorPanel::update_all()
 
     auto current_page = m_tabpanel->GetCurrentPage();
     if (current_page == m_status_info_panel) {
-        m_status_info_panel->obj = obj;
-        m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
-        m_status_info_panel->update(obj);
+        if (m_status_info_panel->IsShown()) {
+            m_status_info_panel->obj = obj;
+            m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
+            m_status_info_panel->update(obj);
+        }
     } else if (current_page == m_upgrade_panel) {
         m_upgrade_panel->update(obj);
     } else if (current_page == m_media_file_panel) {
@@ -532,14 +538,14 @@ void MonitorPanel::update_network_version_footer()
         return;
 
     std::string configured_version = wxGetApp().app_config->get_network_plugin_version();
-    std::string suffix = BBL::extract_suffix(configured_version);
-    std::string configured_base = BBL::extract_base_version(configured_version);
+    std::string suffix = extract_suffix(configured_version);
+    std::string configured_base = extract_base_version(configured_version);
 
     wxString footer_text;
     if (!suffix.empty() && configured_base == binary_version) {
-        footer_text = wxString::Format("Network plugin v%s (%s)", binary_version, suffix);
+        footer_text = wxString::Format(_L("Network plug-in v%s (%s)"), binary_version, suffix);
     } else {
-        footer_text = wxString::Format("Network plugin v%s", binary_version);
+        footer_text = wxString::Format(_L("Network plug-in v%s"), binary_version);
     }
 
     m_tabpanel->SetFooterText(footer_text);

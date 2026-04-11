@@ -69,15 +69,13 @@ namespace {
 		// Code taken from desktop_open_datadir_folder()
 
 		// Execute command to open a file explorer, platform dependent.
-		// FIXME: The const_casts aren't needed in wxWidgets 3.1, remove them when we upgrade.
-
 #ifdef _WIN32
 		const wxString widepath = from_u8(path);
 		const wchar_t* argv[] = { L"explorer", widepath.GetData(), nullptr };
-		::wxExecute(const_cast<wchar_t**>(argv), wxEXEC_ASYNC, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #elif __APPLE__
 		const char* argv[] = { "open", path.data(), nullptr };
-		::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #else
 		const char* argv[] = { "xdg-open", path.data(), nullptr };
 
@@ -105,11 +103,11 @@ namespace {
 				exec_env.cwd = std::move(owd);
 			}
 
-			::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, &exec_env);
+			::wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env);
 		}
 		else {
 			// Looks like we're NOT running from AppImage, we'll make no changes to the environment.
-			::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, nullptr);
+			::wxExecute(argv, wxEXEC_ASYNC, nullptr, nullptr);
 		}
 #endif
 	}
@@ -322,6 +320,13 @@ void NotificationManager::PopNotification::render(GLCanvas3D& canvas, float init
 			render_minimize_button(imgui, win_pos.x, win_pos.y);
         render_close_button(imgui, win_size.x, win_size.y, win_pos.x, win_pos.y); // ORCA draw it after minimize button since its position related to minimize button
 	}
+
+	const bool gcode_window_visible = canvas.get_canvas_type() == GLCanvas3D::ECanvasType::CanvasPreview && wxGetApp().show_gcode_window();
+	if (!gcode_window_visible)
+	{
+		ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+	}
+	
 	imgui.end();
 
 	restore_default_theme();

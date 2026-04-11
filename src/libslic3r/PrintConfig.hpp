@@ -58,6 +58,11 @@ enum class NoiseType {
     Voronoi,
 };
 
+enum class WipeTowerType {
+    Type1,
+    Type2,
+};
+
 enum PrintHostType {
     htPrusaLink, htPrusaConnect, htOctoPrint, htDuet, htFlashAir, htAstroBox, htRepetier, htMKS, htESP3D, htCrealityPrint, htObico, htFlashforge, htSimplyPrint, htElegooLink
 };
@@ -121,7 +126,6 @@ enum class WallSequence {
 // Orca
 enum class WallDirection
 {
-    Auto,
     CounterClockwise,
     Clockwise,
     Count,
@@ -160,7 +164,7 @@ enum SupportMaterialPattern {
 };
 
 enum SupportMaterialStyle {
-    smsDefault, smsGrid, smsSnug, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic,
+    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
 enum LongRectrationLevel
@@ -490,6 +494,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrinterTechnology)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeFlavor)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
@@ -1321,6 +1326,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,              retract_restart_extra))
     ((ConfigOptionFloats,              retract_restart_extra_toolchange))
     ((ConfigOptionFloats,              retraction_speed))
+    ((ConfigOptionString,              file_start_gcode))
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
@@ -1375,6 +1381,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_cooling_moves))
     ((ConfigOptionFloats,              filament_cooling_initial_speed))
     ((ConfigOptionFloats,              filament_minimal_purge_on_wipe_tower))
+    ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_dist))
+    ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_length))
+    ((ConfigOptionFloats,              filament_tower_ironing_area))
+    ((ConfigOptionFloats,              filament_tower_interface_purge_volume))
+    ((ConfigOptionInts,                filament_tower_interface_print_temp))
     ((ConfigOptionFloats,              filament_cooling_final_speed))
     ((ConfigOptionStrings,             filament_ramming_parameters))
     ((ConfigOptionBools,               filament_multitool_ramming))
@@ -1382,6 +1393,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,              filament_multitool_ramming_flow))
     ((ConfigOptionFloats,              filament_stamping_loading_speed))
     ((ConfigOptionFloats,              filament_stamping_distance))
+    ((ConfigOptionEnum<WipeTowerType>, wipe_tower_type))
     ((ConfigOptionBool,                purge_in_prime_tower))
     ((ConfigOptionBool,                enable_filament_ramming))
     ((ConfigOptionBool,                support_multi_bed_types))
@@ -1504,6 +1516,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercent,            prime_tower_infill_gap))
     ((ConfigOptionBool,               prime_tower_skip_points))
     ((ConfigOptionBool,               prime_tower_flat_ironing))
+    ((ConfigOptionBool,               enable_tower_interface_features))
+    ((ConfigOptionBool,               enable_tower_interface_cooldown_during_tower))
     ((ConfigOptionFloat,              wipe_tower_bridging))
     ((ConfigOptionPercent,            wipe_tower_extra_flow))
     ((ConfigOptionFloats,             flush_volumes_matrix))
@@ -1535,6 +1549,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionString,             thumbnails))
     // BBS: move from PrintObjectConfig
     ((ConfigOptionBool, independent_support_layer_height))
+    ((ConfigOptionBool,               combine_brims))
     // SoftFever
     ((ConfigOptionPercents,            filament_shrink))
     ((ConfigOptionPercents,            filament_shrinkage_compensation_z))

@@ -414,6 +414,8 @@ public:
 
     ModelVolume* get_selected_model_volume();
     void change_part_type();
+	void set_volume_type(ModelVolumeType new_type);
+    ModelVolumeType get_selected_volume_type();
 
     void last_volume_is_deleted(const int obj_idx);
     void update_and_show_object_settings_item();
@@ -428,6 +430,7 @@ public:
     void rename_item();
     void fix_through_netfabb();
     void simplify();
+    void smooth_mesh();
     void update_item_error_icon(const int obj_idx, int vol_idx) const ;
 
     void copy_layers_to_clipboard();
