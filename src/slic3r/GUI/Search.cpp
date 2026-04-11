@@ -37,6 +37,17 @@ wxDEFINE_EVENT(wxCUSTOMEVT_JUMP_TO_OBJECT, wxCommandEvent);
 using GUI::from_u8;
 using GUI::into_u8;
 
+namespace {
+
+bool focus_left_popup(wxWindow* popup, wxWindow* focus_window, wxWindow* related_window_1 = nullptr,
+    wxWindow* related_window_2 = nullptr, wxWindow* related_window_3 = nullptr)
+{
+    return focus_window != popup && !popup->IsDescendant(focus_window) && focus_window != related_window_1 &&
+        focus_window != related_window_2 && focus_window != related_window_3;
+}
+
+} // namespace
+
 namespace Search {
 
 static char marker_by_type(Preset::Type type, PrinterTechnology pt)
@@ -688,9 +699,7 @@ void SearchDialog::Dismiss()
     // Rely on focus tracking instead: if focus moved to a window outside
     // this dialog and its related controls, dismiss.
     if (Slic3r::GUI::is_running_on_wayland()) {
-        if (focus_window != this && !IsDescendant(focus_window) &&
-            focus_window != m_event_tag && focus_window != m_search_item_tag &&
-            focus_window != search_line) {
+        if (focus_left_popup(this, focus_window, m_event_tag, m_search_item_tag, search_line)) {
             Die();
         }
         return;
@@ -933,8 +942,7 @@ void SearchObjectDialog::Dismiss()
     // Rely on focus tracking instead: if focus moved to a window outside
     // this dialog and its related controls, dismiss.
     if (Slic3r::GUI::is_running_on_wayland()) {
-        if (focus_window != this && !IsDescendant(focus_window) &&
-            focus_window != search_line) {
+        if (focus_left_popup(this, focus_window, search_line)) {
             Die();
         }
         return;
