@@ -6,6 +6,7 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#include "LinuxDisplayBackend.hpp"
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
@@ -56,9 +57,9 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
         wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, wxMax(0, rect.GetWidth() - FromDIP(8)));
 
         int y = rect.y + (rect.height - textHeight) / 2;
-        int x = rect.x + (ellipsized != m_title)                       // is ellipsized
+        int x = rect.x + ((ellipsized != m_title)                      // is ellipsized
             ? FromDIP(4)                                               // align to left when clipped
-            : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2; // centered when has available space
+            : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2); // centered when has available space
 
         dc.DrawText(ellipsized, x, y);
     });
@@ -346,6 +347,10 @@ void BBLTopbar::Init(wxFrame* parent)
     this->Bind(wxEVT_LEFT_DCLICK, &BBLTopbar::OnMouseLeftDClock, this);
     this->Bind(wxEVT_LEFT_DOWN, &BBLTopbar::OnMouseLeftDown, this);
     this->Bind(wxEVT_LEFT_UP, &BBLTopbar::OnMouseLeftUp, this);
+    this->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& event) {
+        m_last_mouse_position = wxDefaultPosition;
+        event.Skip();
+    });
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnOpenProject, this, wxID_OPEN);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnSaveProject, this, wxID_SAVE);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnRedo, this, wxID_REDO);
@@ -589,6 +594,7 @@ void BBLTopbar::OnCloseFrame(wxAuiToolBarEvent& event)
 
 void BBLTopbar::OnMouseLeftDClock(wxMouseEvent& mouse)
 {
+    m_last_mouse_position = mouse.GetPosition();
     wxPoint mouse_pos = this->ClientToScreen(mouse.GetPosition());
     wxAuiToolBarItem* item = this->FindToolByPosition(mouse.GetX(), mouse.GetY());
     // check whether mouse is not on any tool item
@@ -658,6 +664,7 @@ void BBLTopbar::OnCalibToolItem(wxAuiToolBarEvent &evt)
 
 void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
 {
+    m_last_mouse_position = event.GetPosition();
     // Use event-relative coords converted to screen, instead of wxGetMousePosition()
     // which returns (0,0) on Wayland for global screen coordinates.
     wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
@@ -690,6 +697,7 @@ void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
 
 void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 {
+    m_last_mouse_position = event.GetPosition();
     wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
     if (HasCapture())
     {
@@ -701,6 +709,7 @@ void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 
 void BBLTopbar::OnMouseMotion(wxMouseEvent& event)
 {
+    m_last_mouse_position = event.GetPosition();
     // Use event-relative coords converted to screen, instead of wxGetMousePosition()
     // which returns (0,0) on Wayland for global screen coordinates.
     wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
@@ -747,6 +756,12 @@ void BBLTopbar::OnMenuClose(wxMenuEvent& event)
 
 wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
 {
+    if (m_last_mouse_position != wxDefaultPosition && GetClientRect().Contains(m_last_mouse_position))
+        return this->FindToolByPosition(m_last_mouse_position.x, m_last_mouse_position.y);
+
+    if (Slic3r::GUI::is_running_on_wayland())
+        return nullptr;
+
     wxPoint mouse_pos = ::wxGetMousePosition();
     wxPoint client_pos = this->ScreenToClient(mouse_pos);
     return this->FindToolByPosition(client_pos.x, client_pos.y);

@@ -165,6 +165,7 @@ private:
     GLTexture m_name_texture;
     wxCoord m_name_texture_width;
     wxCoord m_name_texture_height;
+    bool m_name_texture_dirty{ true };
 
     void init();
     bool valid_instance(int obj_id, int instance_id);
@@ -200,6 +201,7 @@ private:
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
+    void invalidate_plate_name_texture();
     void register_raycasters_for_picking(GLCanvas3D& canvas);
     int picking_id_component(int idx) const;
 
