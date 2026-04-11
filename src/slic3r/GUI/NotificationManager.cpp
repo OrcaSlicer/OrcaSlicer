@@ -1848,8 +1848,10 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 			[id = mo ? mo->id() : 0, opt = error.opt_key](wxEvtHandler*) {
 			auto& objects = wxGetApp().model().objects;
 			auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
-			if (iter != objects.end())
+			if (iter != objects.end()) {
 				wxGetApp().obj_list()->select_items({ {*iter, nullptr} });
+                wxGetApp().obj_list()->update_selections_on_canvas();
+            }
 			if (!opt.empty()) {
 				if (iter != objects.end())
 					wxGetApp().params_panel()->switch_to_object();
@@ -2457,8 +2459,10 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
             
             if (!sel_items.empty()) {
                 obj_list->select_items(sel_items);
+                obj_list->update_selections_on_canvas();
             } else if (!fallback_ovs.empty()) {
                 obj_list->select_items(fallback_ovs);
+                obj_list->update_selections_on_canvas();
             }
             
             return false;

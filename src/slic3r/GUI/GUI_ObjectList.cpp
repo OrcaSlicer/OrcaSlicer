@@ -5082,8 +5082,6 @@ void ObjectList::select_items(const wxDataViewItemArray& sels)
         on_plate_selected(curr_plate_idx);
     }
 
-    update_selections_on_canvas();
-
     part_selection_changed();
 
     m_prevent_list_manipulation = false;

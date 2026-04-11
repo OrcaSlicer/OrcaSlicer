@@ -7645,12 +7645,14 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
                              wxDataViewItemArray sel_items;
                              sel_items.Add(item);
                              wxGetApp().obj_list()->select_items(sel_items);
+                             wxGetApp().obj_list()->update_selections_on_canvas();
                              selected = true;
                          }
                       }
 
                       if (!selected) {
                            wxGetApp().obj_list()->select_items({ {obj, nullptr} });
+                           wxGetApp().obj_list()->update_selections_on_canvas();
                       }
                  }
             } else {
@@ -7658,6 +7660,7 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
                 if (iter != objects.end()) {
                     wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
 			        wxGetApp().obj_list()->select_items({{*iter, nullptr}});
+                    wxGetApp().obj_list()->update_selections_on_canvas();
                 }
             }
             if (!opt.empty()) {
