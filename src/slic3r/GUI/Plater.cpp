@@ -4965,6 +4965,15 @@ void Sidebar::update_mixed_filament_list()
         plater->canvas3D()->set_as_dirty();
         plater->get_view3D_canvas3D()->reload_scene(false);
     }
+
+    if (p->m_mixed_filament_broken) {
+        auto* mf = wxGetApp().mainframe;
+        if (mf)
+            mf->update_slice_print_status(MainFrame::eEventObjectUpdate, false);
+    }
+
+    if (auto *tab = dynamic_cast<TabPrintPlate *>(wxGetApp().plate_tab))
+        tab->update_mixed_filament_seq_state();
 }
 
 bool Sidebar::has_broken_mixed_filament() const

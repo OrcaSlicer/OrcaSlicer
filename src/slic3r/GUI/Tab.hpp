@@ -526,6 +526,8 @@ public:
 	~TabPrintPlate() {}
 	void build() override;
 	void reset_model_config() override;
+	void update_bed_type_list();
+    void update_mixed_filament_seq_state();
 	int show_spiral_mode_settings_dialog(bool is_object_config) { return m_config_manipulation.show_spiral_mode_settings_dialog(is_object_config); }
 
 protected:

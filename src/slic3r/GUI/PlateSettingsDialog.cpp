@@ -1,6 +1,7 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;
@@ -493,6 +494,28 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
             this->Close();
         });
 
+    {
+        auto &proj_cfg     = wxGetApp().preset_bundle->project_config;
+        auto *is_mixed_opt = proj_cfg.option<ConfigOptionBools>("filament_is_mixed");
+        if (is_mixed_opt && Slic3r::has_any_mixed_filament(is_mixed_opt->values)) {
+            m_first_layer_print_seq_choice->Enable(false);
+            m_other_layers_seq_panel->enable_seq_choice(false);
+
+            auto *warn_sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto *warn_icon = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("warning", this, 16),
+                                                 wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
+            auto *warn_text = new wxStaticText(this, wxID_ANY,
+                _L("The filament list contains mixed filaments. Custom filament sequence will not take effect."));
+            warn_text->SetForegroundColour(wxColour(255, 111, 0));
+            warn_text->SetFont(Label::Body_12);
+            warn_text->Wrap(FromDIP(540));
+
+            warn_sizer->Add(warn_icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
+            warn_sizer->Add(warn_text, 1, wxALIGN_CENTER_VERTICAL, 0);
+            m_sizer_main->Add(warn_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(30));
+        }
+    }
+
     m_sizer_main->AddSpacer(FromDIP(20));
     m_sizer_main->Add(dlg_btns, 0, wxEXPAND);
 
@@ -503,6 +526,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     CenterOnParent();
 
     wxGetApp().UpdateDlgDarkUI(this);
+
 
     if (only_layer_seq) {
         for (auto item : top_sizer->GetChildren()) {
