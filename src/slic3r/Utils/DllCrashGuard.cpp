@@ -254,10 +254,13 @@ void install_dll_crash_handler()
     });
 }
 
-// MSVC does not allow __try and C++ try/catch in the same function (C2712/C2713).
-// Split into two functions: inner does C++ exception handling, outer does SEH.
-static int dll_safe_call_cpp(std::function<int()>& fn, int fallback, const char* context)
+// MSVC does not allow __try in any function that has objects requiring unwinding (C2712).
+// The SEH wrapper must be a plain C-style function with no C++ objects on the stack.
+// We pass everything through raw pointers.
+
+static int dll_safe_call_cpp(void* fn_ptr, int fallback, const char* context)
 {
+    auto& fn = *static_cast<std::function<int()>*>(fn_ptr);
     try {
         return fn();
     } catch (const std::exception& e) {
@@ -271,23 +274,30 @@ static int dll_safe_call_cpp(std::function<int()>& fn, int fallback, const char*
     }
 }
 
-int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
+// SEH wrapper: no C++ objects with destructors allowed in this function.
+static int dll_safe_call_seh(void* fn_ptr, int fallback, const char* context)
 {
-    // Layer 1: SEH protection — catches access violations from DLL calls we initiate.
     int result = fallback;
     __try {
-        // Layer 2: C++ exception protection (in separate function for MSVC compatibility).
-        result = dll_safe_call_cpp(fn, fallback, context);
+        result = dll_safe_call_cpp(fn_ptr, fallback, context);
     } __except (
         GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH
     ) {
+        g_networking_dll_crashed.store(true, std::memory_order_release);
+        result = fallback;
+    }
+    return result;
+}
+
+int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
+{
+    int result = dll_safe_call_seh(&fn, fallback, context);
+    if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
         BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: RECOVERED from access violation (SEH) in " << context
                                  << " — the networking DLL has a bug. Returning error code.";
         set_crash_message(std::string("Crash recovered in ") + context +
                          ": the Bambu networking library crashed (access violation). "
                          "This is a bug in the networking plugin.");
-        g_networking_dll_crashed.store(true, std::memory_order_release);
-        result = fallback;
     }
     return result;
 }
