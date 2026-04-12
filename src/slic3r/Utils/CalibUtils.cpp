@@ -1,7 +1,7 @@
 #include "CalibUtils.hpp"
 #include "../GUI/I18N.hpp"
 #include "../GUI/GUI_App.hpp"
-#include "../GUI/DeviceCore/DevStorage.h" 
+#include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceManager.hpp"
 #include "../GUI/Jobs/ProgressIndicator.hpp"
 #include "../GUI/PartPlate.hpp"
@@ -759,10 +759,11 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
     full_config.apply(print_config);
     full_config.apply(filament_config);
     full_config.apply(printer_config);
+    const auto& config_pattern = SuggestedConfigCalibPAPattern();
 
     float nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
 
-    for (const auto& opt : SuggestedConfigCalibPAPattern().float_pairs) {
+    for (const auto& opt : config_pattern.float_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second));
     }
 
@@ -771,16 +772,16 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
             full_config, print_config.get_abs_value("line_width"),
             print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0)));
 
-    for (const auto& opt : SuggestedConfigCalibPAPattern().nozzle_ratio_pairs) {
+    for (const auto& opt : config_pattern.nozzle_ratio_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloatOrPercent(nozzle_diameter * opt.second / 100, false));
     }
 
-    for (const auto& opt : SuggestedConfigCalibPAPattern().int_pairs) {
+    for (const auto& opt : config_pattern.int_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second));
     }
 
-    print_config.set_key_value(SuggestedConfigCalibPAPattern().brim_pair.first,
-        new ConfigOptionEnum<BrimType>(SuggestedConfigCalibPAPattern().brim_pair.second));
+    print_config.set_key_value(config_pattern.brim_pair.first,
+        new ConfigOptionEnum<BrimType>(config_pattern.brim_pair.second));
 
     //DynamicPrintConfig full_config;
     full_config.apply(FullPrintConfig::defaults());
@@ -810,7 +811,9 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     float nozzle_diameter = full_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
     int extruder_count = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
-    for (const auto opt : SuggestedConfigCalibPAPattern().float_pairs) { print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second)); }
+    const auto& config_pattern = SuggestedConfigCalibPAPattern();
+
+    for (const auto& opt : config_pattern.float_pairs) { print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second)); }
 
     std::vector<CalibInfo> sorted_calib_infos = calib_infos;
     std::sort(sorted_calib_infos.begin(), sorted_calib_infos.end(), [](const CalibInfo &left_item, const CalibInfo &right_item) {
@@ -825,13 +828,13 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
                 print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0)));
     }
 
-    for (const auto opt : SuggestedConfigCalibPAPattern().nozzle_ratio_pairs) {
+    for (const auto& opt : config_pattern.nozzle_ratio_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloatOrPercent(nozzle_diameter * opt.second / 100, false));
     }
 
-    for (const auto opt : SuggestedConfigCalibPAPattern().int_pairs) { print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second)); }
+    for (const auto& opt : config_pattern.int_pairs) { print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second)); }
 
-    print_config.set_key_value(SuggestedConfigCalibPAPattern().brim_pair.first, new ConfigOptionEnum<BrimType>(SuggestedConfigCalibPAPattern().brim_pair.second));
+    print_config.set_key_value(config_pattern.brim_pair.first, new ConfigOptionEnum<BrimType>(config_pattern.brim_pair.second));
 
     auto* _wall_generator = print_config.option<ConfigOptionEnum<PerimeterGeneratorType>>("wall_generator");
     _wall_generator->value   = PerimeterGeneratorType::Arachne;
@@ -995,7 +998,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
 
         js["nozzle_diameter"] = nozzle_diameter;
         std::string filament_ids;
-        for (const auto calib_info : calib_infos) {
+        for (const auto& calib_info : calib_infos) {
             filament_ids += calib_info.filament_prest->filament_id;
             filament_ids += " ";
         }
@@ -1034,7 +1037,7 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
     Model model;
     std::string input_file;
     if (params.mode == CalibMode::Calib_PA_Line)
-        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.stl";
+        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.drc";
     else if (params.mode == CalibMode::Calib_PA_Pattern)
         input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pa_pattern.3mf";
 
@@ -1136,7 +1139,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
         return;
 
     Model       model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step";
+    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1214,7 +1217,7 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
         return;
 
     Model model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/vfa/VFA.stl";
+    std::string input_file = Slic3r::resources_dir() + "/calib/vfa/vfa.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1273,7 +1276,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
         return;
 
     Model model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.stl";
+    std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1380,7 +1383,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
-            error_message = wxString::Format(_L("The nozzle diameter of %sextruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
 
@@ -1440,7 +1443,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
-            error_message = wxString::Format(_L("The nozzle diameter of %sextruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
 
@@ -1788,10 +1791,10 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
 
 #if !BBL_RELEASE_TO_PUBLIC
     print_job->m_local_use_ssl_for_ftp = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-    print_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+    print_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
     print_job->m_local_use_ssl_for_ftp = obj_->local_use_ssl_for_ftp;
-    print_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+    print_job->m_local_use_ssl = obj_->local_use_ssl;
 #endif
 
     print_job->connection_type  = obj_->connection_type();
@@ -1893,10 +1896,10 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
 
 #if !BBL_RELEASE_TO_PUBLIC
     print_job->m_local_use_ssl_for_ftp  = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-    print_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+    print_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
     print_job->m_local_use_ssl_for_ftp  = obj_->local_use_ssl_for_ftp;
-    print_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+    print_job->m_local_use_ssl = obj_->local_use_ssl;
 #endif
 
     print_job->connection_type  = obj_->connection_type();

@@ -90,6 +90,25 @@ namespace Slic3r
         userMachineList.clear();
     }
 
+    void DeviceManager::set_agent(NetworkAgent* agent)
+    {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": updating agent for "
+                                << localMachineList.size() << " local and "
+                                << userMachineList.size() << " user machines";
+        m_agent = agent;
+
+        std::lock_guard<std::mutex> lock(listMutex);
+        for (auto& it : localMachineList) {
+            if (it.second) {
+                it.second->set_agent(agent);
+            }
+        }
+        for (auto& it : userMachineList) {
+            if (it.second) {
+                it.second->set_agent(agent);
+            }
+        }
+    }
 
     void DeviceManager::EnableMultiMachine(bool enable)
     {
@@ -499,7 +518,7 @@ namespace Slic3r
 #if !BBL_RELEASE_TO_PUBLIC
                         it->second->connect(Slic3r::GUI::wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
 #else
-                        it->second->connect(it->second->local_use_ssl_for_mqtt);
+                        it->second->connect(it->second->local_use_ssl);
 #endif
                         it->second->set_lan_mode_connection_state(true);
                     }
@@ -523,7 +542,7 @@ namespace Slic3r
 #if !BBL_RELEASE_TO_PUBLIC
                         it->second->connect(Slic3r::GUI::wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
 #else
-                        it->second->connect(it->second->local_use_ssl_for_mqtt);
+                        it->second->connect(it->second->local_use_ssl);
 #endif
                         it->second->set_lan_mode_connection_state(true);
                     }
@@ -839,7 +858,10 @@ namespace Slic3r
     {
         if (MachineObject* obj_ = get_selected_machine()) {
             GUI::wxGetApp().sidebar().update_sync_status(obj_);
-            GUI::wxGetApp().sidebar().load_ams_list(obj_);
+            if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)
+            {
+                GUI::wxGetApp().sidebar().load_ams_list(obj_);
+            }
         };
     }
 
