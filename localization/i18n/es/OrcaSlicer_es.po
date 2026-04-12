@@ -12435,7 +12435,7 @@ msgid ""
 "Orca Slicer can upload G-code files to a printer host. This field should "
 "contain the API Key or the password required for authentication."
 msgstr ""
-"OrcaSlicer puede cargar archivos G-Cpde a un host de impresora. Este campo "
+"OrcaSlicer puede cargar archivos G-Code a un host de impresora. Este campo "
 "debería contener una clave API o una contraseña requerida para la "
 "autenticación."
 
