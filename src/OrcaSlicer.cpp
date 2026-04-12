@@ -1211,21 +1211,6 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    // On Linux dual-GPU systems, request the high-performance discrete GPU.
-    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
-    ::setenv("DRI_PRIME", "1", /* replace */ false);
-
-    // For NVIDIA proprietary driver PRIME render offload, set additional variables.
-    // Only set if the NVIDIA kernel module is loaded to avoid breaking systems without NVIDIA.
-    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
-        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
-        // __GLX_VENDOR_LIBRARY_NAME is GLX-specific, only set when X11/DISPLAY is present
-        const char* display_env = ::getenv("DISPLAY");
-        if (display_env && *display_env) {
-            ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
-        }
-    }
-
     // XInitThreads is needed before GStreamer may use Xlib. On native
     // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
     #if __has_include(<X11/Xlib.h>)

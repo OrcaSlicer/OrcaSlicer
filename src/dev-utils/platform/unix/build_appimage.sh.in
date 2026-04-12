@@ -23,6 +23,8 @@ Name=@SLIC3R_APP_KEY@
 Exec=AppRun %F
 Icon=@SLIC3R_APP_KEY@
 Type=Application
+PrefersNonDefaultGPU=true
+X-KDE-RunOnDiscreteGpu=true
 Categories=Utility;
 MimeType=model/stl;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;
 EOF
