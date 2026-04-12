@@ -1076,7 +1076,7 @@ void PartPlate::render_icon_texture(GLModel &buffer, GLTexture &texture)
 
 void PartPlate::render_plate_name_texture()
 {
-	if (m_name_texture_dirty)
+	if (m_plate_name_edit_icon.mesh_raycaster == nullptr)
 		generate_plate_name_texture();
 
 	if (m_name_texture.get_id() == 0)
@@ -1491,7 +1491,7 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
     canvas.remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(6));
 	// Plate-name edit picking is built lazily together with the plate-name texture.
 	// During reset / reload_scene the icon may not have a raycaster yet, which is valid.
-	if (!m_name_texture_dirty && m_plate_name_edit_icon.mesh_raycaster != nullptr)
+	if (m_plate_name_edit_icon.mesh_raycaster != nullptr)
 		register_model_for_picking(canvas, m_plate_name_edit_icon, picking_id_component(6));
     register_model_for_picking(canvas, m_move_front_icon, picking_id_component(7));
 
@@ -2378,12 +2378,11 @@ void PartPlate::generate_plate_name_texture()
     canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(6));
     calc_vertex_for_plate_name_edit_icon(&m_name_texture, 0, m_plate_name_edit_icon);
     register_model_for_picking(*canvas, m_plate_name_edit_icon, picking_id_component(6));
-	m_name_texture_dirty = false;
 }
 
 void PartPlate::invalidate_plate_name_texture()
 {
-	m_name_texture_dirty = true;
+	m_plate_name_edit_icon.mesh_raycaster.reset();
 
 	auto canvas = (m_plater != nullptr) ? m_plater->get_view3D_canvas3D() : nullptr;
 	if (canvas != nullptr) {

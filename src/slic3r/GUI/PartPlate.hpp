@@ -165,7 +165,6 @@ private:
     GLTexture m_name_texture;
     wxCoord m_name_texture_width;
     wxCoord m_name_texture_height;
-    bool m_name_texture_dirty{ true };
 
     void init();
     bool valid_instance(int obj_id, int instance_id);

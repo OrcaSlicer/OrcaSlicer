@@ -59,38 +59,6 @@ namespace GUI {
 static const std::string SEND_SYSTEM_INFO_DOMAIN = "bambu-lab.com";
 static const std::string SEND_SYSTEM_INFO_URL = "https://files." + SEND_SYSTEM_INFO_DOMAIN + "/wp-json/v1/ps";
 
-static const char* get_linux_display_backend_name()
-{
-#ifdef __linux__
-    switch (get_linux_display_backend()) {
-    case LinuxDisplayBackend::Wayland:
-        return "wayland";
-    case LinuxDisplayBackend::X11:
-        return "x11";
-    default:
-        return "unknown";
-    }
-#else
-    return "unknown";
-#endif
-}
-
-static const char* get_linux_gl_backend_hint()
-{
-#ifdef __linux__
-    switch (get_linux_display_backend()) {
-    case LinuxDisplayBackend::Wayland:
-        return "EGL";
-    case LinuxDisplayBackend::X11:
-        return "GLX";
-    default:
-        return "Unknown";
-    }
-#else
-    return "Unknown";
-#endif
-}
-
 
 // Declaration of a free function defined in OpenGLManager.cpp:
 std::string gl_get_string_safe(GLenum param, const std::string& default_value);
@@ -453,8 +421,23 @@ static std::string generate_system_info_json()
     data_node.put("Linux_DistroID", distro_id);
     data_node.put("Linux_DistroVer", distro_ver);
     data_node.put("Linux_Wayland", wxGetEnv("WAYLAND_DISPLAY", nullptr));
-    data_node.put("Linux_DisplayBackend", get_linux_display_backend_name());
-    data_node.put("Linux_GLBackendHint", get_linux_gl_backend_hint());
+    const LinuxDisplayBackend display_backend = get_linux_display_backend();
+    const char* display_backend_name = "unknown";
+    const char* gl_backend_hint = "Unknown";
+    switch (display_backend) {
+    case LinuxDisplayBackend::Wayland:
+        display_backend_name = "wayland";
+        gl_backend_hint = "EGL";
+        break;
+    case LinuxDisplayBackend::X11:
+        display_backend_name = "x11";
+        gl_backend_hint = "GLX";
+        break;
+    default:
+        break;
+    }
+    data_node.put("Linux_DisplayBackend", display_backend_name);
+    data_node.put("Linux_GLBackendHint", gl_backend_hint);
 #endif
     data_node.put("wxWidgets", wxVERSION_NUM_DOT_STRING);
 #ifdef __WXGTK__
