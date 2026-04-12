@@ -1931,6 +1931,15 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
 
+    def = this->add("top_surface_pattern_reverse", coBool);
+    def->label = L("Reverse top surface fill direction");
+    def->category = L("Strength");
+    def->tooltip = L("Reverse the fill direction for Concentric and Archimedean top surface patterns. "
+                     "For Concentric, switches from outside-in to inside-out. "
+                     "For Archimedean, switches from inside-out to outside-in.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
     def->category = L("Strength");
@@ -1939,6 +1948,15 @@ void PrintConfigDef::init_fff_params()
     def->enum_values = def_top_fill_pattern->enum_values;
     def->enum_labels = def_top_fill_pattern->enum_labels;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+
+    def = this->add("bottom_surface_pattern_reverse", coBool);
+    def->label = L("Reverse bottom surface fill direction");
+    def->category = L("Strength");
+    def->tooltip = L("Reverse the fill direction for Concentric and Archimedean bottom surface patterns. "
+                     "For Concentric, switches from outside-in to inside-out. "
+                     "For Archimedean, switches from inside-out to outside-in.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
 	def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");

@@ -41,7 +41,11 @@ void FillConcentric::_fill_surface_single(
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops
     loops = union_pt_chained_outside_in(loops);
-    
+
+    // Reverse to inside-out if requested
+    if (params.reverse_fill_direction)
+        std::reverse(loops.begin(), loops.end());
+
     // split paths using a nearest neighbor search
     size_t iPathFirst = polylines_out.size();
     Point last_pos(0, 0);
@@ -108,6 +112,10 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
                 all_extrusions.emplace_back(&wall);
         }
 
+        // Reverse to inside-out if requested
+        if (params.reverse_fill_direction)
+            std::reverse(all_extrusions.begin(), all_extrusions.end());
+
         // Split paths using a nearest neighbor search.
         size_t firts_poly_idx = thick_polylines_out.size();
         Point  last_pos(0, 0);
@@ -136,7 +144,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
         if (j < thick_polylines_out.size())
             thick_polylines_out.erase(thick_polylines_out.begin() + int(j), thick_polylines_out.end());
 
-        reorder_by_shortest_traverse(thick_polylines_out);
+        if (!params.reverse_fill_direction)
+            reorder_by_shortest_traverse(thick_polylines_out);
     }
     else {
         Polylines polylines;

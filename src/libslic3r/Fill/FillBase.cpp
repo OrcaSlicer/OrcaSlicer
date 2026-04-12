@@ -165,7 +165,7 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         // ORCA: special flag for flow rate calibration
         auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
                              this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
-        if (is_flow_calib) {
+        if (is_flow_calib || params.reverse_fill_direction) {
             eec->no_sort = true;
         }
         size_t idx   = eec->entities.size();
@@ -180,7 +180,7 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 params.extrusion_role,
                 flow_mm3_per_mm, float(flow_width), params.flow.height());
         }
-        if (!params.can_reverse || is_flow_calib) {
+        if (!params.can_reverse || is_flow_calib || params.reverse_fill_direction) {
             for (size_t i = idx; i < eec->entities.size(); i++)
                 eec->entities[i]->set_reverse();
         }
