@@ -47,13 +47,13 @@ jobs:
               .join(', ')} and \`${allowedLabels[allowedLabels.length - 1]}\`.`;
             const examplesText = [
               '```',
-              '/LabelBot add:bug-fix',
+              '/bot add-label bug-fix',
               '```',
               '```',
-              '/LabelBot add:bug-fix, UI/UX',
+              '/bot add-label bug-fix, UI/UX',
               '```',
               '```',
-              '/LabelBot remove:bug-fix, UI/UX',
+              '/bot remove-label bug-fix, UI/UX',
               '```'
             ].join('\n');
 
@@ -63,7 +63,7 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: pr.number,
                 body:
-                  `Hi @${pr.user.login}, you can manage the labels for this PR by \`/LabelBot add:\` and \`/LabelBot remove:\`\n\n` +
+                  `Hi @${pr.user.login}, you can manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`\n\n` +
                   `Allowed labels are:\n${labelsList}\n\n` +
                   `Examples:\n${examplesText}`
               });
@@ -115,20 +115,20 @@ jobs:
             const commandLine = body
               .split('\n')
               .map((line) => line.trim())
-              .find((line) => /^\/labelbot\s+(add|remove):/i.test(line));
+              .find((line) => /^\/bot\s+(add-label|remove-label)(?:\s*:\s*|\s+)/i.test(line));
 
             if (!commandLine) {
-              core.info('No /LabelBot add:label or /LabelBot remove:label command found.');
+              core.info('No /bot add-label or /bot remove-label command found.');
               return;
             }
 
-            const commandMatch = commandLine.match(/^\/labelbot\s+(add|remove):\s*(.+)\s*$/i);
+            const commandMatch = commandLine.match(/^\/bot\s+(add-label|remove-label)(?:\s*:\s*|\s+)(.+)\s*$/i);
             if (!commandMatch) {
               core.info('Label command format is invalid.');
               return;
             }
 
-            const action = commandMatch[1].toLowerCase();
+            const action = commandMatch[1].toLowerCase() === 'add-label' ? 'add' : 'remove';
             let labelsExpr = (commandMatch[2] || '').trim();
             if (!labelsExpr) {
               core.info('Label command is missing label name.');
@@ -189,9 +189,9 @@ jobs:
                     `@${commenter} invalid label(s): ${invalidText}.\n\n` +
                     `Allowed labels: ${allowedText}\n\n` +
                     `Use:\n` +
-                    `- \`/LabelBot add:label\`\n` +
-                    `- \`/LabelBot remove:label\`\n` +
-                    `- \`/LabelBot add:label1, label2\``
+                    `- \`/bot add-label label\`\n` +
+                    `- \`/bot remove-label label\`\n` +
+                    `- \`/bot add-label label1, label2\``
                 });
               } catch (error) {
                 if (isPermissionDenied(error)) {
