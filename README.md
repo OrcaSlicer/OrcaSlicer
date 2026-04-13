@@ -44,7 +44,7 @@ If you come across any of these in search results, please <b>report them</b> as 
 
 # Main features
 
-- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/Calibration)**  
+- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/calibration_guide)**  
   Comprehensive suite: temperature towers, flow rate, retraction & more for optimal performance.
 - **[Precise Wall](https://www.orcaslicer.com/wiki/quality_settings_precision#precise-wall) and [Seam Control](https://www.orcaslicer.com/wiki/quality_settings_seam)**  
   Adjust outer wall spacing and apply scarf seams to enhance print accuracy.
@@ -71,7 +71,7 @@ If you come across any of these in search results, please <b>report them</b> as 
 The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
 
 - **[Access the wiki here](https://www.orcaslicer.com/wiki)**
-- **[Contribute to the wiki](https://www.orcaslicer.com/wiki/How-to-wiki)**
+- **[Contribute to the wiki](https://www.orcaslicer.com/wiki/how_to_wiki)**
 
 # Download
 
@@ -144,7 +144,7 @@ winget install --id=SoftFever.OrcaSlicer -e
 
 # How to Compile
 
-All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/How-to-build) page.
+All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/how_to_build) page.
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
