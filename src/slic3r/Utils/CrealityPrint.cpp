@@ -261,6 +261,23 @@ bool CrealityPrint::supports_multi_color_print() const
         || m_model == "F021";   // K2
 }
 
+std::string CrealityPrint::query_boxes_info() const
+{
+    try {
+        net::io_context ioc;
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        ws_connect(ioc, ws, m_host, "9999");
+
+        json boxs_query = {{"method", "get"}, {"params", {{"boxsInfo", 1}}}};
+        std::string result = ws_send_and_read(ws, boxs_query, "boxsInfo");
+        ws.close(websocket::close_code::normal);
+        return result;
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Failed to query boxsInfo: " << e.what();
+        return {};
+    }
+}
+
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename) const
 {
     try {

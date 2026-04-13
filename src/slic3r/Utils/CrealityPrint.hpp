@@ -30,6 +30,7 @@ public:
     PrintHostPostUploadActions         get_post_upload_actions() const;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
     bool supports_multi_color_print() const;
+    std::string query_boxes_info() const;
 
 protected:
     virtual void set_auth(Http& http) const;
