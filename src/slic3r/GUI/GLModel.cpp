@@ -20,7 +20,7 @@
 #include <igl/per_vertex_normals.h>
 #endif // ENABLE_SMOOTH_NORMALS
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 namespace Slic3r {
 namespace GUI {

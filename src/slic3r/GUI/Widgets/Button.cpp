@@ -516,7 +516,9 @@ void Button::OnParentMotion(wxMouseEvent& event)
             tipWindow->SetLabel(tip);
         }
 
-        tipWindow->Position(wxGetMousePosition(), wxSize(0, 0));
+        // Position tooltip relative to the button widget itself rather than
+        // using wxGetMousePosition() which returns (0,0) on Wayland.
+        tipWindow->Position(this->ClientToScreen(wxPoint(0, 0)), this->GetSize());
         tipWindow->Popup();
     }
     else

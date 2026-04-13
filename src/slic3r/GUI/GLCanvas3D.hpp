@@ -954,7 +954,7 @@ public:
                                              Camera::ViewAngleType              camera_view_angle_type = Camera::ViewAngleType::Iso,
                                              bool                               for_picking  = false,
                                              bool                               ban_light    = false);
-    // render thumbnail using an off-screen framebuffer when GLEW_EXT_framebuffer_object is supported
+    // render thumbnail using an off-screen framebuffer when GL_EXT_framebuffer_object is supported
     static void render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
         PartPlateList& partplate_list, ModelObjectPtrs& model_objects, const GLVolumeCollection& volumes, std::vector<ColorRGBA>& extruder_colors,
                                                  GLShaderProgram *                  shader,
