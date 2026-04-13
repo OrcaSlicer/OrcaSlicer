@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Anycubic ABS @System",
+    "inherits": "Anycubic ABS @base",
+    "from": "system",
+    "setting_id": "OGFSA01_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

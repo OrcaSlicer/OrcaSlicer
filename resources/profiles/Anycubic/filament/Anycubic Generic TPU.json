@@ -1,14 +1,11 @@
 {
     "type": "filament",
     "name": "Anycubic Generic TPU",
-    "inherits": "fdm_filament_tpu",
+    "inherits": "Anycubic TPU @base",
     "from": "system",
     "setting_id": "GFSA04",
     "filament_id": "GFU99",
     "instantiation": "true",
-    "filament_max_volumetric_speed": [
-        "3.2"
-    ],
     "compatible_printers": [
         "Anycubic i3 Mega S 0.4 nozzle",
         "Anycubic Chiron 0.4 nozzle",

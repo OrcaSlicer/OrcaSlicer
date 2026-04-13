@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Anycubic TPU @System",
+    "inherits": "Anycubic TPU @base",
+    "from": "system",
+    "setting_id": "OGFSA10_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

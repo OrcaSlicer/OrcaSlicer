@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Anycubic PLA @System",
+    "inherits": "Anycubic PLA @base",
+    "from": "system",
+    "setting_id": "OGFSA07_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

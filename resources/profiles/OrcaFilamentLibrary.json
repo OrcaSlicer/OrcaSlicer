@@ -97,6 +97,10 @@
             "sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
         },
         {
+            "name": "Anycubic ABS @base",
+            "sub_path": "filament/Anycubic/Anycubic ABS @base.json"
+        },
+        {
             "name": "Bambu ABS @base",
             "sub_path": "filament/Bambu/Bambu ABS @base.json"
         },
@@ -143,6 +147,10 @@
         {
             "name": "PolyLite ABS @base",
             "sub_path": "filament/Polymaker/PolyLite ABS @base.json"
+        },
+        {
+            "name": "Anycubic ASA @base",
+            "sub_path": "filament/Anycubic/Anycubic ASA @base.json"
         },
         {
             "name": "Bambu ASA @base",
@@ -209,6 +217,14 @@
             "sub_path": "filament/AliZ/AliZ PA-CF @base.json"
         },
         {
+            "name": "Anycubic PA @base",
+            "sub_path": "filament/Anycubic/Anycubic PA @base.json"
+        },
+        {
+            "name": "Anycubic PA-CF @base",
+            "sub_path": "filament/Anycubic/Anycubic PA-CF @base.json"
+        },
+        {
             "name": "Bambu PA-CF @base",
             "sub_path": "filament/Bambu/Bambu PA-CF @base.json"
         },
@@ -269,6 +285,10 @@
             "sub_path": "filament/Elegoo/Elegoo PAHT @base.json"
         },
         {
+            "name": "Anycubic PC @base",
+            "sub_path": "filament/Anycubic/Anycubic PC @base.json"
+        },
+        {
             "name": "Bambu PC @base",
             "sub_path": "filament/Bambu/Bambu PC @base.json"
         },
@@ -303,6 +323,10 @@
         {
             "name": "AliZ PETG @base",
             "sub_path": "filament/AliZ/AliZ PETG @base.json"
+        },
+        {
+            "name": "Anycubic PETG @base",
+            "sub_path": "filament/Anycubic/Anycubic PETG @base.json"
         },
         {
             "name": "Bambu PET-CF @base",
@@ -411,6 +435,14 @@
         {
             "name": "AliZ PLA @base",
             "sub_path": "filament/AliZ/AliZ PLA @base.json"
+        },
+        {
+            "name": "Anycubic PLA @base",
+            "sub_path": "filament/Anycubic/Anycubic PLA @base.json"
+        },
+        {
+            "name": "Anycubic PLA-CF @base",
+            "sub_path": "filament/Anycubic/Anycubic PLA-CF @base.json"
         },
         {
             "name": "Bambu PLA Aero @base",
@@ -797,6 +829,10 @@
             "sub_path": "filament/Bambu/Bambu PPS-CF @base.json"
         },
         {
+            "name": "Anycubic PVA @base",
+            "sub_path": "filament/Anycubic/Anycubic PVA @base.json"
+        },
+        {
             "name": "Bambu PVA @base",
             "sub_path": "filament/Bambu/Bambu PVA @base.json"
         },
@@ -811,6 +847,10 @@
         {
             "name": "Generic SBS @System",
             "sub_path": "filament/Generic SBS @System.json"
+        },
+        {
+            "name": "Anycubic TPU @base",
+            "sub_path": "filament/Anycubic/Anycubic TPU @base.json"
         },
         {
             "name": "Bambu TPU 95A @base",
@@ -873,6 +913,10 @@
             "sub_path": "filament/Overture/Overture TPU @base.json"
         },
         {
+            "name": "Anycubic ABS @System",
+            "sub_path": "filament/Anycubic/Anycubic ABS @System.json"
+        },
+        {
             "name": "Bambu ABS @System",
             "sub_path": "filament/Bambu/Bambu ABS @System.json"
         },
@@ -907,6 +951,10 @@
         {
             "name": "PolyLite ABS @System",
             "sub_path": "filament/Polymaker/PolyLite ABS @System.json"
+        },
+        {
+            "name": "Anycubic ASA @System",
+            "sub_path": "filament/Anycubic/Anycubic ASA @System.json"
         },
         {
             "name": "Bambu ASA @System",
@@ -947,6 +995,14 @@
         {
             "name": "AliZ PA-CF @System",
             "sub_path": "filament/AliZ/AliZ PA-CF @System.json"
+        },
+        {
+            "name": "Anycubic PA @System",
+            "sub_path": "filament/Anycubic/Anycubic PA @System.json"
+        },
+        {
+            "name": "Anycubic PA-CF @System",
+            "sub_path": "filament/Anycubic/Anycubic PA-CF @System.json"
         },
         {
             "name": "Bambu PA-CF @System",
@@ -993,6 +1049,10 @@
             "sub_path": "filament/Polymaker/Fiberon PA612-CF @System.json"
         },
         {
+            "name": "Anycubic PC @System",
+            "sub_path": "filament/Anycubic/Anycubic PC @System.json"
+        },
+        {
             "name": "Bambu PC @System",
             "sub_path": "filament/Bambu/Bambu PC @System.json"
         },
@@ -1015,6 +1075,10 @@
         {
             "name": "AliZ PETG-Metal @base",
             "sub_path": "filament/AliZ/AliZ PETG-Metal @base.json"
+        },
+        {
+            "name": "Anycubic PETG @System",
+            "sub_path": "filament/Anycubic/Anycubic PETG @System.json"
         },
         {
             "name": "Bambu PET-CF @System",
@@ -1091,6 +1155,14 @@
         {
             "name": "AliZ PLA @System",
             "sub_path": "filament/AliZ/AliZ PLA @System.json"
+        },
+        {
+            "name": "Anycubic PLA @System",
+            "sub_path": "filament/Anycubic/Anycubic PLA @System.json"
+        },
+        {
+            "name": "Anycubic PLA-CF @System",
+            "sub_path": "filament/Anycubic/Anycubic PLA-CF @System.json"
         },
         {
             "name": "Bambu PLA Aero @System",
@@ -1397,12 +1469,20 @@
             "sub_path": "filament/Bambu/Bambu PPA-CF @System.json"
         },
         {
+            "name": "Anycubic PVA @System",
+            "sub_path": "filament/Anycubic/Anycubic PVA @System.json"
+        },
+        {
             "name": "Bambu PVA @System",
             "sub_path": "filament/Bambu/Bambu PVA @System.json"
         },
         {
             "name": "FDplast SBS @System",
             "sub_path": "filament/FDplast/FDplast SBS @System.json"
+        },
+        {
+            "name": "Anycubic TPU @System",
+            "sub_path": "filament/Anycubic/Anycubic TPU @System.json"
         },
         {
             "name": "Bambu TPU 95A @System",

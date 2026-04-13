@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Anycubic PA-CF @System",
+    "inherits": "Anycubic PA-CF @base",
+    "from": "system",
+    "setting_id": "OGFSA04_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

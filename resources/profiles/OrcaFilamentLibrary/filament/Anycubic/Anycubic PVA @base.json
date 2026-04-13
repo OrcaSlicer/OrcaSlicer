@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Anycubic PVA @base",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "filament_id": "ACPVAB00",
+    "instantiation": "false",
+    "filament_vendor": [
+        "Anycubic"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ]
+}

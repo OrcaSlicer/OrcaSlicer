@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Anycubic ASA @base",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "ACASAB00",
+    "instantiation": "false",
+    "filament_vendor": [
+        "Anycubic"
+    ],
+    "filament_flow_ratio": [
+        "0.93"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ]
+}

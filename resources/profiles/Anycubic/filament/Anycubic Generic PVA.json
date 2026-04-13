@@ -1,23 +1,11 @@
 {
     "type": "filament",
     "name": "Anycubic Generic PVA",
-    "inherits": "fdm_filament_pva",
+    "inherits": "Anycubic PVA @base",
     "from": "system",
     "setting_id": "GFSA04",
     "filament_id": "GFS99",
     "instantiation": "true",
-    "filament_flow_ratio": [
-        "0.95"
-    ],
-    "filament_max_volumetric_speed": [
-        "12"
-    ],
-    "slow_down_layer_time": [
-        "7"
-    ],
-    "slow_down_min_speed": [
-        "10"
-    ],
     "compatible_printers": [
         "Anycubic i3 Mega S 0.4 nozzle",
         "Anycubic Chiron 0.4 nozzle",

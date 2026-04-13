@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Anycubic PA-CF @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "ACPACFB0",
+    "instantiation": "false",
+    "filament_type": [
+        "PA-CF"
+    ],
+    "filament_vendor": [
+        "Anycubic"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ]
+}

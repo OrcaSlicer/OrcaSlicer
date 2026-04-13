@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Anycubic PC @System",
+    "inherits": "Anycubic PC @base",
+    "from": "system",
+    "setting_id": "OGFSA05_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

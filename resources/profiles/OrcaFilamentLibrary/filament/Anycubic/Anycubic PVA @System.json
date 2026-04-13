@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Anycubic PVA @System",
+    "inherits": "Anycubic PVA @base",
+    "from": "system",
+    "setting_id": "OGFSA09_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

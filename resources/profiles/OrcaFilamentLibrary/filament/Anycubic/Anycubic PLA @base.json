@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Anycubic PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "ACPLAB00",
+    "instantiation": "false",
+    "filament_vendor": [
+        "Anycubic"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ]
+}

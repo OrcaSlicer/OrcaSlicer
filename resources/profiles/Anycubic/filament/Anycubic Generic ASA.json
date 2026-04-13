@@ -1,17 +1,11 @@
 {
     "type": "filament",
     "name": "Anycubic Generic ASA",
-    "inherits": "fdm_filament_asa",
+    "inherits": "Anycubic ASA @base",
     "from": "system",
     "setting_id": "GFSA04",
     "filament_id": "GFB98",
     "instantiation": "true",
-    "filament_flow_ratio": [
-        "0.93"
-    ],
-    "filament_max_volumetric_speed": [
-        "12"
-    ],
     "compatible_printers": [
         "Anycubic i3 Mega S 0.4 nozzle",
         "Anycubic Chiron 0.4 nozzle",
