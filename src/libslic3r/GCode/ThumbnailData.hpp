@@ -32,13 +32,24 @@ using ThumbnailsList = std::vector<ThumbnailData>;
 
 struct ThumbnailsParams
 {
-	const Vec2ds 	sizes;
-	bool 			printable_only;
-	bool 			parts_only;
-	bool 			show_bed;
-	bool 			transparent_background;
+    enum class EThumbnailMode : int {
+        Model = 0,
+        Sliced = 1
+    };
+
+    const Vec2ds     sizes;
+    bool            printable_only;
+    bool            parts_only;
+    bool            show_bed;
+    bool            transparent_background;
     int             plate_id;
     bool            use_plate_box{true};
+    EThumbnailMode  thumbnail_mode{EThumbnailMode::Model}; // model or sliced
+    bool            show_support{true};
+    int             sliced_view_type{0};
+    void*           slice_result{nullptr}; // GCodeProcessorResult* for sliced preview
+    bool            force_thumbnail_mode{false}; // Force thumbnail mode (from global AppConfig setting)
+    int             thumbnail_shading_mode{0}; // 0 = rolling average, 1 = hybrid (normal + Z-gradient) - for sliced preview
 };
 
 typedef std::function<ThumbnailsList(const ThumbnailsParams&)> ThumbnailsGeneratorCallback;

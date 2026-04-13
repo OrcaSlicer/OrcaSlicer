@@ -246,12 +246,26 @@ bool OpenGLManager::init_gl(bool popup_error)
 {
     if (!m_gl_initialized) {
         glewExperimental = true;
+        
         GLenum result = glewInit();
+        
+        // Handle GLEW_ERROR_NO_GL_VERSION (code 4) - this can happen even with valid GL context
+        // when using certain backend configurations. Check if GL functions actually work.
         if (result != GLEW_OK) {
-            BOOST_LOG_TRIVIAL(error) << "Unable to init glew library, Error: " << glewGetErrorString(result);
-            return false;
+            // Check if we have valid GL context despite GLEW error
+            GLint major = 0, minor = 0;
+            glGetIntegerv(GL_MAJOR_VERSION, &major);
+            GLenum glErr = glGetError();
+            
+            // If GL version query works, we have a valid context - continue anyway
+            if (major > 0 && glErr != GL_INVALID_ENUM) {
+                BOOST_LOG_TRIVIAL(info) << "GLEW returned " << glewGetErrorString(result) << " but GL context is valid, continuing";
+            } else {
+                BOOST_LOG_TRIVIAL(error) << "Unable to init glew library, Error: " << glewGetErrorString(result);
+                return false;
+            }
         }
-	//BOOST_LOG_TRIVIAL(info) << "glewInit Success."<< std::endl;
+        
         m_gl_initialized = true;
         if (GLEW_EXT_texture_compression_s3tc)
             s_compressed_textures_supported = true;

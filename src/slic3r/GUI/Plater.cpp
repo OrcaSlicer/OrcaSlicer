@@ -4684,6 +4684,8 @@ struct Plater::priv
                                       bool                    for_picking            = false,
                                       bool                    ban_light              = false);
     ThumbnailsList generate_thumbnails(const ThumbnailsParams& params, Camera::EType camera_type);
+    ThumbnailsList generate_sliced_preview_thumbnails(const ThumbnailsParams& params, GCodeProcessorResult* slice_result, const ModelObjectPtrs& model_objects);
+    void render_sliced_preview_thumbnail(ThumbnailData& thumbnail_data, GCodeProcessorResult* slice_result, const ThumbnailsParams& params, const ModelObjectPtrs& model_objects);
     PlateBBoxData generate_first_layer_bbox();
 
     void bring_instance_forward() const;
@@ -4865,7 +4867,14 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     sla_print.set_status_callback(statuscb); */
 
     // BBS: to be checked. Not follow patch.
-    background_process.set_thumbnail_cb([this](const ThumbnailsParams& params) { return this->generate_thumbnails(params, Camera::EType::Ortho); });
+    background_process.set_thumbnail_cb([this](ThumbnailsParams params) { 
+        std::string thumb_mode = get_app_config()->get("thumbnail_mode");
+        if (thumb_mode == "sliced") {
+            params.force_thumbnail_mode = true;
+            params.thumbnail_shading_mode = std::stoi(get_app_config()->get("thumbnail_shading_mode"));
+        }
+        return this->generate_thumbnails(params, Camera::EType::Ortho); 
+    });
     background_process.set_slicing_completed_event(EVT_SLICING_COMPLETED);
     background_process.set_finished_event(EVT_PROCESS_COMPLETED);
     background_process.set_export_began_event(EVT_EXPORT_BEGAN);
@@ -10291,6 +10300,39 @@ void Plater::priv::generate_thumbnail(ThumbnailData &         data,
 ThumbnailsList Plater::priv::generate_thumbnails(const ThumbnailsParams& params, Camera::EType camera_type)
 {
     ThumbnailsList thumbnails;
+    
+    // Handle sliced preview mode
+    if (params.thumbnail_mode == ThumbnailsParams::EThumbnailMode::Sliced || params.force_thumbnail_mode) {
+        GCodeProcessorResult* slice_result = nullptr;
+        
+        // Use slice_result from params if provided (from GCode export) and if it has data
+        if (params.slice_result && static_cast<GCodeProcessorResult*>(params.slice_result)->moves.size() > 0) {
+            slice_result = static_cast<GCodeProcessorResult*>(params.slice_result);
+        } else {
+            // Fallback to PartPlate (for preview during editing)
+            slice_result = partplate_list.get_curr_plate()->get_slice_result();
+        }
+        
+        // Get model objects for this plate to handle negative volumes
+        ModelObjectPtrs model_objects = partplate_list.get_curr_plate()->get_objects_on_this_plate();
+        
+        if (slice_result && !slice_result->moves.empty()) {
+            thumbnails = generate_sliced_preview_thumbnails(params, slice_result, model_objects);
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "generate_thumbnails: no slice result available for sliced preview, falling back to 3D model";
+            // Fallback to 3D model rendering
+            for (const Vec2d& size : params.sizes) {
+                thumbnails.push_back(ThumbnailData());
+                Point isize(size); // round to ints
+                generate_thumbnail(thumbnails.back(), isize.x(), isize.y(), params, camera_type);
+                if (!thumbnails.back().is_valid())
+                    thumbnails.pop_back();
+            }
+        }
+        return thumbnails;
+    }
+    
+    // Original 3D model rendering path
     for (const Vec2d& size : params.sizes) {
         thumbnails.push_back(ThumbnailData());
         Point isize(size); // round to ints
@@ -10299,6 +10341,267 @@ ThumbnailsList Plater::priv::generate_thumbnails(const ThumbnailsParams& params,
             thumbnails.pop_back();
     }
     return thumbnails;
+}
+
+// Generate thumbnail from sliced preview (GCode toolpaths instead of 3D model)
+ThumbnailsList Plater::priv::generate_sliced_preview_thumbnails(const ThumbnailsParams& params, GCodeProcessorResult* slice_result, const ModelObjectPtrs& model_objects)
+{
+    ThumbnailsList thumbnails;
+    
+    if (!slice_result || slice_result->moves.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "generate_sliced_preview_thumbnails: empty slice result";
+        return thumbnails;
+    }
+    
+    BOOST_LOG_TRIVIAL(info) << "generate_sliced_preview_thumbnails: processing " << slice_result->moves.size() << " moves";
+    
+    for (const Vec2d& size : params.sizes) {
+        ThumbnailData thumbnail_data;
+        thumbnail_data.set(static_cast<unsigned int>(size.x()), static_cast<unsigned int>(size.y()));
+        
+        BOOST_LOG_TRIVIAL(info) << "generate_sliced_preview_thumbnails: thumbnail_data set to " << size.x() << "x" << size.y() << ", pixels size = " << thumbnail_data.pixels.size() << ", is_valid = " << thumbnail_data.is_valid();
+        
+        // Render sliced preview to thumbnail
+        render_sliced_preview_thumbnail(thumbnail_data, slice_result, params, model_objects);
+        
+        BOOST_LOG_TRIVIAL(info) << "generate_sliced_preview_thumbnails: after render, is_valid = " << thumbnail_data.is_valid();
+        
+        if (thumbnail_data.is_valid()) {
+            thumbnails.push_back(std::move(thumbnail_data));
+        }
+    }
+    
+    return thumbnails;
+}
+
+// Render sliced preview (toolpaths) to thumbnail data
+void Plater::priv::render_sliced_preview_thumbnail(ThumbnailData& thumbnail_data, GCodeProcessorResult* slice_result, const ThumbnailsParams& params, const ModelObjectPtrs& model_objects)
+{
+    if (!slice_result || slice_result->moves.empty() || thumbnail_data.pixels.empty()) {
+        return;
+    }
+    
+    // Collect negative volume bounding boxes from model objects
+    std::vector<BoundingBoxf> negative_volumes_bboxes;
+    for (const ModelObject* obj : model_objects) {
+        for (const ModelVolume* vol : obj->volumes) {
+            if (vol->is_negative_volume()) {
+                // Get bounding box from the mesh
+                const TriangleMesh& mesh = vol->mesh();
+                BoundingBoxf3 mesh_bbox = mesh.bounding_box();
+                BoundingBoxf bbox(mesh_bbox.min.head<2>(), mesh_bbox.max.head<2>());
+                // Transform bbox by object instance transformations
+                for (const ModelInstance* inst : obj->instances) {
+                    const Transform3d& tr = inst->get_transformation().get_matrix();
+                    // Transform all 4 corners of the 2D bbox and find min/max
+                    double min_x = std::numeric_limits<double>::max();
+                    double min_y = std::numeric_limits<double>::max();
+                    double max_x = std::numeric_limits<double>::lowest();
+                    double max_y = std::numeric_limits<double>::lowest();
+                    
+                    std::array<Vec2d, 4> corners = {{
+                        Vec2d(bbox.min.x(), bbox.min.y()),
+                        Vec2d(bbox.max.x(), bbox.min.y()),
+                        Vec2d(bbox.min.x(), bbox.max.y()),
+                        Vec2d(bbox.max.x(), bbox.max.y())
+                    }};
+                    
+                    for (const auto& corner : corners) {
+                        Vec3d transformed = tr * Vec3d(corner.x(), corner.y(), 0);
+                        min_x = std::min(min_x, transformed.x());
+                        min_y = std::min(min_y, transformed.y());
+                        max_x = std::max(max_x, transformed.x());
+                        max_y = std::max(max_y, transformed.y());
+                    }
+                    
+                    negative_volumes_bboxes.push_back(BoundingBoxf(Vec2d(min_x, min_y), Vec2d(max_x, max_y)));
+                }
+            }
+        }
+    }
+    
+    auto is_in_negative_volume = [&negative_volumes_bboxes](const Vec2d& point) {
+        for (const auto& neg_bbox : negative_volumes_bboxes) {
+            if (neg_bbox.contains(point)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    
+    unsigned int width = thumbnail_data.width;
+    unsigned int height = thumbnail_data.height;
+    
+    // Get extruder colors from slice result
+    std::vector<std::string> tool_colors = slice_result->extruder_colors;
+    if (tool_colors.empty()) {
+        tool_colors = wxGetApp().app_config->get_filament_colors();
+    }
+    if (tool_colors.empty()) {
+        tool_colors = {"#26A69A"};
+    }
+    
+    // Calculate bounding box of all moves
+    BoundingBoxf moves_bbox;
+    bool has_moves = false;
+    
+    // Filter support structures if needed
+    bool show_support = params.show_support;
+    
+    for (const auto& move : slice_result->moves) {
+        // Skip non-extrusion moves
+        if (move.type != EMoveType::Extrude && move.type != EMoveType::Travel) {
+            continue;
+        }
+        
+        // Skip support structures if not requested
+        if (!show_support && (move.extrusion_role == erSupportMaterial || move.extrusion_role == erSupportMaterialInterface)) {
+            continue;
+        }
+        
+        moves_bbox.merge(Vec2d(move.position.x(), move.position.y()));
+        has_moves = true;
+    }
+    
+    if (!has_moves) {
+        BOOST_LOG_TRIVIAL(warning) << "render_sliced_preview_thumbnail: no valid moves found";
+        return;
+    }
+    
+    // Add some padding
+    double padding = std::max(moves_bbox.size().x(), moves_bbox.size().y()) * 0.05;
+    moves_bbox.min.x() -= padding;
+    moves_bbox.min.y() -= padding;
+    moves_bbox.max.x() += padding;
+    moves_bbox.max.y() += padding;
+    
+    double bbox_width = moves_bbox.size().x();
+    double bbox_height = moves_bbox.size().y();
+    
+    if (bbox_width <= 0 || bbox_height <= 0) {
+        BOOST_LOG_TRIVIAL(warning) << "render_sliced_preview_thumbnail: invalid bounding box";
+        return;
+    }
+    
+    // Calculate scale to fit in thumbnail
+    double scale_x = width / bbox_width;
+    double scale_y = height / bbox_height;
+    double scale = std::min(scale_x, scale_y);
+    
+    // Helper to parse hex color to RGB
+    auto hex_to_rgb = [](const std::string& hex) -> std::array<unsigned char, 3> {
+        std::array<unsigned char, 3> rgb = {200, 200, 200};
+        if (hex.length() >= 7 && hex[0] == '#') {
+            try {
+                int r = std::stoi(hex.substr(1, 2), nullptr, 16);
+                int g = std::stoi(hex.substr(3, 2), nullptr, 16);
+                int b = std::stoi(hex.substr(5, 2), nullptr, 16);
+                rgb = {static_cast<unsigned char>(r), static_cast<unsigned char>(g), static_cast<unsigned char>(b)};
+            } catch (...) {
+                // Keep default gray on parse error
+            }
+        }
+        return rgb;
+    };
+    
+    // Get color print info if available
+    std::vector<CustomGCode::Item> color_print_values = slice_result->custom_gcode_per_print_z;
+    std::vector<std::string> color_print_colors;
+    if (!color_print_values.empty()) {
+        color_print_colors = q->get_colors_for_color_print(slice_result);
+        if (!color_print_colors.empty()) {
+            color_print_colors.push_back("#808080"); // gray for custom G-code
+        }
+    }
+    
+    // Get extrusion role colors (matching GCodeViewer's colors)
+    auto get_role_color = [](ExtrusionRole role) -> std::array<unsigned char, 3> {
+        switch (role) {
+            case erExternalPerimeter: return {255, 255, 0};    // Yellow - outer wall
+            case erPerimeter: return {255, 200, 0};            // Darker yellow - inner wall
+            case erOverhangPerimeter: return {255, 140, 0};    // Orange - overhang wall
+            case erBridgeInfill: return {255, 165, 0};         // Orange - bridge
+            case erInternalBridgeInfill: return {255, 200, 100}; // Light orange - internal bridge
+            case erSolidInfill: return {255, 127, 127};        // Light red - solid infill
+            case erTopSolidInfill: return {200, 100, 100};     // Darker red - top surface
+            case erBottomSurface: return {150, 100, 100};      // Even darker - bottom surface
+            case erInternalInfill: return {127, 127, 255};    // Blue - sparse infill
+            case erGapFill: return {180, 180, 255};            // Light blue - gap fill
+            case erSkirt:
+            case erBrim:
+            case erWipeTower: return {127, 255, 127};         // Green - skirt/brim/wipe tower
+            case erIroning: return {200, 200, 200};            // Gray - ironing
+            default: return {200, 200, 200};                   // Default gray
+        }
+    };
+    
+    // Render moves to pixel buffer
+    for (const auto& move : slice_result->moves) {
+        // Skip non-extrusion moves
+        if (move.type != EMoveType::Extrude) {
+            continue;
+        }
+        
+        // Skip support structures if not requested
+        if (!show_support && (move.extrusion_role == erSupportMaterial || move.extrusion_role == erSupportMaterialInterface)) {
+            continue;
+        }
+        
+        // Skip moves in negative volumes
+        Vec2d move_pos(move.position.x(), move.position.y());
+        if (is_in_negative_volume(move_pos)) {
+            continue;
+        }
+        
+        // Get color for this move
+        std::array<unsigned char, 3> rgb = {200, 200, 200};
+        unsigned char extruder_id = move.extruder_id;
+        unsigned char color_id = move.cp_color_id;
+        
+        // Priority: 1) Color print (filament change at layer) 2) Extrusion role color 3) Tool color
+        if (!color_print_colors.empty() && color_id > 0) {
+            // Use color print color (filament changes at specific layers)
+            size_t color_idx = static_cast<size_t>(color_id) % color_print_colors.size();
+            rgb = hex_to_rgb(color_print_colors[color_idx]);
+        } else {
+            // Use extrusion role color (Inner/Outer wall, infill, etc.)
+            rgb = get_role_color(move.extrusion_role);
+            
+            // If not a special role, try tool color
+            if (move.extrusion_role == erNone || move.extrusion_role == erCustom) {
+                if (extruder_id > 0 && extruder_id <= tool_colors.size()) {
+                    rgb = hex_to_rgb(tool_colors[extruder_id - 1]);
+                }
+            }
+        }
+        
+        // Convert 3D position to 2D thumbnail position
+        double x = (move.position.x() - moves_bbox.min.x()) * scale;
+        double y = (move.position.y() - moves_bbox.min.y()) * scale;
+        // Flip Y because image coordinates are top-down
+        y = height - 1 - y;
+        
+        // Draw a filled circle (brush) for better visibility
+        int brush_size = 2;
+        for (int dy = -brush_size; dy <= brush_size; dy++) {
+            for (int dx = -brush_size; dx <= brush_size; dx++) {
+                int ix = static_cast<int>(x) + dx;
+                int iy = static_cast<int>(y) + dy;
+                
+                if (ix >= 0 && ix < static_cast<int>(width) && iy >= 0 && iy < static_cast<int>(height)) {
+                    size_t idx = (static_cast<size_t>(iy) * width + static_cast<size_t>(ix)) * 4;
+                    if (idx + 2 < thumbnail_data.pixels.size()) {
+                        thumbnail_data.pixels[idx] = rgb[0];
+                        thumbnail_data.pixels[idx + 1] = rgb[1];
+                        thumbnail_data.pixels[idx + 2] = rgb[2];
+                        thumbnail_data.pixels[idx + 3] = 255;
+                    }
+                }
+            }
+        }
+    }
+    
+    BOOST_LOG_TRIVIAL(info) << "render_sliced_preview_thumbnail: completed " << width << "x" << height;
 }
 
 PlateBBoxData Plater::priv::generate_first_layer_bbox()

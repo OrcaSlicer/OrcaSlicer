@@ -12,6 +12,9 @@
 #include <string_view>
 
 #include <boost/beast/core/detail/base64.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/nowide/fstream.hpp>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
     enum class ThumbnailError : int { InvalidVal, OutOfRange, InvalidExt };
@@ -44,9 +47,10 @@ std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbna
 template<typename WriteToOutput, typename ThrowIfCanceledCallback>
 inline void export_thumbnails_to_file(ThumbnailsGeneratorCallback&                                thumbnail_cb,
                                       int                                                         plate_id,
-                                      const std::vector<std::pair<GCodeThumbnailsFormat, Vec2d>>& thumbnails_list,
-                                      WriteToOutput                                               output,
-                                      ThrowIfCanceledCallback                                     throw_if_canceled)
+                                       const std::vector<std::pair<GCodeThumbnailsFormat, Vec2d>>& thumbnails_list,
+                                       WriteToOutput                                               output,
+                                       ThrowIfCanceledCallback                                     throw_if_canceled,
+                                       void*                                                      slice_result = nullptr)
 {
     // Write thumbnails using base64 encoding
     if (thumbnail_cb == nullptr)
@@ -55,19 +59,35 @@ inline void export_thumbnails_to_file(ThumbnailsGeneratorCallback&              
     bool first_ColPic = true;
     for (const auto& [format, size] : thumbnails_list) {
         static constexpr const size_t max_row_length = 78;
-        ThumbnailsList                thumbnails     = thumbnail_cb(ThumbnailsParams{{size}, true, true, true, true, plate_id});
+        
+        // Check if this is sliced preview mode (from format or config)
+        bool sliced_preview = (format == GCodeThumbnailsFormat::SLICED_PREVIEW);
+        
+        ThumbnailsParams params = {{size}, true, true, true, true, plate_id};
+        params.slice_result = slice_result;
+        
+        ThumbnailsList thumbnails = thumbnail_cb(params);
+        
+        // If callback returned thumbnails, determine format from params or use SLICED_PREVIEW
+        GCodeThumbnailsFormat actual_format = format;
+        if (!thumbnails.empty()) {
+            if (params.force_thumbnail_mode || sliced_preview) {
+                actual_format = GCodeThumbnailsFormat::SLICED_PREVIEW;
+            }
+        }
+        
         for (const ThumbnailData &data : thumbnails) {
             if (data.is_valid()) {
-                auto compressed = compress_thumbnail(data, format);
+                auto compressed = compress_thumbnail(data, actual_format);
                 if (compressed->data && compressed->size) {
-                    if (format == GCodeThumbnailsFormat::BTT_TFT) {
+                    if (actual_format == GCodeThumbnailsFormat::BTT_TFT) {
                         // write BTT_TFT header
                         output((";" + rjust(get_hex(data.width), 4, '0') + rjust(get_hex(data.height), 4, '0') + "\r\n").c_str());
                         output((char *) compressed->data);
                         if (i == (thumbnails_list.size() - 1))
                             output("; bigtree thumbnail end\r\n\r\n");
                     }
-                    else if (format == GCodeThumbnailsFormat::ColPic) {
+                    else if (actual_format == GCodeThumbnailsFormat::ColPic) {
                         if (first_ColPic) {
                             output((boost::format("\n\n;gimage:%s\n\n") % reinterpret_cast<char*>(compressed->data)).str().c_str());
                         } else {

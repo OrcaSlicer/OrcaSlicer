@@ -17,9 +17,12 @@
 
 // Print now includes tbb, and tbb includes Windows. This breaks compilation of wxWidgets if included before wx.
 #include "libslic3r/Print.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/GCode/PostProcessor.hpp"
+#include "libslic3r/GCode/SlicedPreviewThumbnail.hpp"
+#include "libslic3r/GCode/Thumbnails.hpp"
 #include "libslic3r/Format/SL1.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/libslic3r.h"
@@ -244,6 +247,48 @@ void BackgroundSlicingProcess::process_fff()
 		m_fff_print->export_gcode(m_temp_output_path, m_gcode_result, [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
 		if(m_fff_print->is_BBL_printer())
 			run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+
+		// Generate sliced preview thumbnails after export (when gcode_result has all moves populated)
+		std::string thumbnail_mode = GUI::wxGetApp().app_config->get("thumbnail_mode");
+		if (thumbnail_mode == "sliced" && m_gcode_result && !m_gcode_result->moves.empty()) {
+			// Get thumbnail sizes from machine settings
+			std::vector<Vec2d> sizes;
+			std::vector<std::pair<GCodeThumbnailsFormat, Vec2d>> sliced_thumbnails;
+			
+			const ConfigOptionString* thumbnails_opt = m_fff_print->full_print_config().option<ConfigOptionString>("thumbnails");
+			if (thumbnails_opt && !thumbnails_opt->value.empty()) {
+				auto [thumb_defs, errors] = GCodeThumbnails::make_and_check_thumbnail_list(thumbnails_opt->value);
+				for (auto& [format, size] : thumb_defs) {
+					// Use sizes from machine settings, but always render as SLICED_PREVIEW format
+					sliced_thumbnails.push_back({GCodeThumbnailsFormat::SLICED_PREVIEW, size});
+					sizes.push_back(size);
+				}
+			}
+			
+			// Fallback if no sizes in settings
+			if (sliced_thumbnails.empty()) {
+				sizes = { Vec2d(300, 300), Vec2d(96, 96) };
+				for (const auto& size : sizes) {
+					sliced_thumbnails.push_back(std::make_pair(GCodeThumbnailsFormat::SLICED_PREVIEW, size));
+				}
+			}
+
+			int plate_index = 0;
+			if (m_current_plate)
+				plate_index = m_current_plate->get_index();
+
+			int shading_mode = std::stoi(GUI::wxGetApp().app_config->get("thumbnail_shading_mode"));
+			
+			ThumbnailsParams params{sizes, true, true, true, true, plate_index, true, ThumbnailsParams::EThumbnailMode::Sliced, 0};
+			params.slice_result = m_gcode_result;
+			params.thumbnail_shading_mode = shading_mode;
+
+			auto generated_thumbs = SlicedPreviewThumbnails::generate_sliced_preview_thumbnails(params, m_gcode_result);
+
+			if (!generated_thumbs.empty()) {
+				SlicedPreviewThumbnails::append_sliced_preview_thumbnails_to_file(m_temp_output_path, generated_thumbs, sliced_thumbnails);
+			}
+		}
 
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
 	}

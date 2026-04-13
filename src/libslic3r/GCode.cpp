@@ -2054,7 +2054,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     }
 
     try {
-        this->_do_export(*print, file, thumbnail_cb);
+        this->_do_export(*print, file, thumbnail_cb, std::string(path), result);
         file.flush();
         if (file.is_error()) {
             file.close();
@@ -2390,7 +2390,7 @@ static BambuBedType to_bambu_bed_type(BedType type)
     return bambu_bed_type;
 }
 
-void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
+void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb, const std::string &gcode_path, void* slice_result)
 {
     PROFILE_FUNC();
 
@@ -2399,6 +2399,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
+    
     const bool is_bbl_printers = print.is_BBL_printer();
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
     m_calib_config.clear();
@@ -2584,9 +2585,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 "; first_layer_temperature = %d\n",
                 print.config().nozzle_temperature_initial_layer.get_at(0));
             file.write("; CONFIG_BLOCK_END\n\n");
-        } else if (thumbnail_cb != nullptr) {
-            // generate the thumbnails
-            auto [thumbnails, errors] = GCodeThumbnails::make_and_check_thumbnail_list(print.full_print_config());
+        }
+
+        if (thumbnail_cb != nullptr) {
+            auto full_config = print.full_print_config();
+            auto [thumbnails, errors] = GCodeThumbnails::make_and_check_thumbnail_list(full_config);
 
             if (errors != enum_bitmask<ThumbnailError>()) {
                 std::string error_str = format("Invalid thumbnails value:");
@@ -2596,7 +2599,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
             if (!thumbnails.empty())
                 GCodeThumbnails::export_thumbnails_to_file(
-                    thumbnail_cb, print.get_plate_index(), thumbnails, [&file](const char* sz) { file.write(sz); }, [&print]() { print.throw_if_canceled(); });
+                    thumbnail_cb, print.get_plate_index(), thumbnails, [&file](const char* sz) { file.write(sz); }, [&print]() { print.throw_if_canceled(); }, slice_result);
         }
     }
 

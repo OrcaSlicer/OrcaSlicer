@@ -1466,7 +1466,12 @@ void PreferencesDialog::create_items()
 
     auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
     g_sizer->Add(item_mix_print_high_low_temperature);
- 
+
+    std::vector<wxString> ThumbnailMode = {_L("3D Model"), _L("Sliced Preview")};
+    std::vector<std::string> ThumbnailModeConfig = {"model", "sliced"};
+    auto item_thumbnail_mode = create_item_combobox(_L("Thumbnail mode"), _L("Thumbnail rendering mode for G-code files. 3D Model shows the 3D model, Sliced Preview shows toolpaths colored by filament."), "thumbnail_mode", ThumbnailMode, ThumbnailModeConfig);
+    g_sizer->Add(item_thumbnail_mode);
+
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
 

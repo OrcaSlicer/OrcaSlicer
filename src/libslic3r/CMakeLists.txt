@@ -243,6 +243,8 @@ set(lisbslic3r_sources
     GCode/SpiralVase.hpp
     GCode/ThumbnailData.cpp
     GCode/ThumbnailData.hpp
+    GCode/SlicedPreviewThumbnail.cpp
+    GCode/SlicedPreviewThumbnail.hpp
     GCode/Thumbnails.cpp
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
