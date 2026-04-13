@@ -262,7 +262,6 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WallSequence)
 
 //Orca
 static t_config_enum_values s_keys_map_WallDirection{
-    { "auto", int(WallDirection::Auto) },
     { "ccw",  int(WallDirection::CounterClockwise) },
     { "cw",   int(WallDirection::Clockwise)},
 };
@@ -1594,6 +1593,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("combine_brims", coBool);
+    def->label = L("Combine brims");
+    def->category = L("Support");
+    def->tooltip  = L("Combine multiple brims into one when they are close to each other. This can improve brim adhesion.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("brim_ears", coBool);
     def->label = L("Brim ears");
     def->category = L("Support");
@@ -2019,16 +2025,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wall_direction", coEnum);
     def->label = L("Wall loop direction");
     def->category = L("Quality");
-    def->tooltip = L("The direction which the wall loops are extruded when looking down from the top.\n\nBy default all walls are extruded in counter-clockwise, unless Reverse on even is enabled. Set this to any option other than Auto will force the wall direction regardless of the Reverse on even.\n\nThis option will be disabled if spiral vase mode is enabled.");
+    def->tooltip = L("The direction which the contour wall loops are extruded when looking down from the top.\nHoles are printed in the opposite direction to the contour to maintain alignment with layers whose contour polygons are incomplete and change direction, also partially forming the contour of a hole.\n\nThis option will be disabled if spiral vase mode is enabled.");
     def->enum_keys_map = &ConfigOptionEnum<WallDirection>::get_enum_values();
-    def->enum_values.push_back("auto");
     def->enum_values.push_back("ccw");
     def->enum_values.push_back("cw");
-    def->enum_labels.push_back(L("Auto"));
     def->enum_labels.push_back(L("Counter clockwise"));
     def->enum_labels.push_back(L("Clockwise"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<WallDirection>(WallDirection::Auto));
+    def->set_default_value(new ConfigOptionEnum<WallDirection>(WallDirection::CounterClockwise));
 
     def = this->add("extruder", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
@@ -7684,6 +7688,9 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "extruder_clearance_radius";
     } else if (opt_key == "machine_switch_extruder_time") {
         opt_key = "machine_tool_change_time";
+    }
+    else if (opt_key == "wall_direction" && value == "auto") {
+        value = "ccw";
     }
 
     // Ignore the following obsolete configuration keys:

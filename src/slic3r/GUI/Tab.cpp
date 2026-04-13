@@ -2368,9 +2368,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("gap_fill_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
         optgroup->append_single_option_line("support_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
         optgroup->append_single_option_line("support_interface_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");
+        optgroup->append_single_option_line("only_one_wall_first_layer", "quality_settings_wall_and_surfaces#only-one-wall");
         optgroup->append_single_option_line("only_one_wall_top", "quality_settings_wall_and_surfaces#only-one-wall");
         optgroup->append_single_option_line("min_width_top_surface", "quality_settings_wall_and_surfaces#threshold");
-        optgroup->append_single_option_line("only_one_wall_first_layer", "quality_settings_wall_and_surfaces#only-one-wall");
         optgroup->append_single_option_line("reduce_crossing_wall", "quality_settings_wall_and_surfaces#avoid-crossing-walls");
         optgroup->append_single_option_line("max_travel_detour_distance", "quality_settings_wall_and_surfaces#max-detour-length");
 
@@ -2658,6 +2658,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("brim_width", "others_settings_brim#width");
         optgroup->append_single_option_line("brim_object_gap", "others_settings_brim#brim-object-gap");
         optgroup->append_single_option_line("brim_use_efc_outline", "others_settings_brim#brim-use-efc-outline");
+        optgroup->append_single_option_line("combine_brims", "others_settings_brim#combine-brims");
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
         optgroup->append_single_option_line("brim_ears_detection_length", "others_settings_brim#ear-detection-radius");
 

@@ -14,6 +14,7 @@ find_package(libnoise REQUIRED)
 add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)
+    add_subdirectory(glad)
     # imgui, imguizmo, and hidapi are now included from deps_src
     add_subdirectory(libvgcode)
 

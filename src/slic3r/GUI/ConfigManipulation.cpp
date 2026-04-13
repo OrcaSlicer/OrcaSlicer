@@ -327,7 +327,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
            config->opt_int("enforce_support_layers") == 0 &&
            ! config->opt_bool("detect_thin_wall") &&
            ! config->opt_bool("overhang_reverse") &&
-            config->opt_enum<WallDirection>("wall_direction") == WallDirection::Auto &&
             config->opt_enum<TimelapseType>("timelapse_type") == TimelapseType::tlTraditional &&
             !config->opt_bool("enable_wrapping_detection")))
     {
@@ -342,7 +341,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             new_conf.set_key_value("enforce_support_layers", new ConfigOptionInt(0));
             new_conf.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
             new_conf.set_key_value("overhang_reverse", new ConfigOptionBool(false));
-            new_conf.set_key_value("wall_direction", new ConfigOptionEnum<WallDirection>(WallDirection::Auto));
             new_conf.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
             new_conf.set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
             sparse_infill_density = 0;
@@ -661,8 +659,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell);
     toggle_field("bottom_shell_thickness", ! has_spiral_vase && has_bottom_shell);
 
-    toggle_field("wall_direction", !has_spiral_vase);
-
     // Gap fill is newly allowed in between perimeter lines even for empty infill (see GH #1476).
     toggle_field("gap_infill_speed", have_perimeters);
 
@@ -706,6 +702,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
     toggle_field("brim_object_gap", have_brim);
     toggle_field("brim_use_efc_outline", have_brim);
+    toggle_field("combine_brims", have_brim);
     bool have_brim_width = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     toggle_field("brim_width", have_brim_width);
@@ -796,6 +793,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
     for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
         toggle_line(el, has_ironing);
+    bool has_rectilinear_ironing = (config->opt_enum<InfillPattern>("ironing_pattern") == InfillPattern::ipRectilinear);
+    for (auto el : {"ironing_angle", "ironing_angle_fixed"})
+        toggle_field(el, has_ironing && has_rectilinear_ironing);
     
     toggle_line("ironing_speed", has_ironing || has_support_ironing);
 
@@ -905,8 +905,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
-    bool force_wall_direction     = config->opt_enum<WallDirection>("wall_direction") != WallDirection::Auto;
-    bool allow_overhang_reverse   = !has_spiral_vase && !force_wall_direction;
+    bool allow_overhang_reverse   = !has_spiral_vase;
     toggle_line("overhang_reverse", allow_overhang_reverse);
     toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse);
     bool has_overhang_reverse_internal_only = config->opt_bool("overhang_reverse_internal_only");
