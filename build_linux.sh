@@ -343,7 +343,6 @@ function run_in_docker() {
         -e "CI=true"
         -e "GITHUB_ACTIONS=true"
         -e "GITHUB_WORKSPACE=${container_workspace}"
-        -e "GIT_CEILING_DIRECTORIES=${container_workspace}/deps/build"
         -e "RUNNER_OS=Linux"
         -e "RUNNER_TEMP=/tmp"
         -e "HOST_UID=${host_uid}"
@@ -423,7 +422,6 @@ fi
 sudo -H -u "${HOST_USER}" env \
     CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL-}" \
     GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
-    GIT_CEILING_DIRECTORIES="${GIT_CEILING_DIRECTORIES-}" \
     ORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY-}" \
     bash -c '
         set -e

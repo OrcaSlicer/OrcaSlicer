@@ -13,9 +13,7 @@ appimage_is_host_library() {
         libgstreamer-1.0.so*|libgst*.so*|libsoup-*.so*|libwebkit2gtk-*.so*|libjavascriptcoregtk-*.so*|libsecret-1.so*|libmanette-0.2.so*|libenchant-2.so*|libhyphen.so*|libtasn1.so*|\
         libfontconfig.so*|libfreetype.so*|libharfbuzz*.so*|libfribidi.so*|libgraphite2.so*|libthai.so*|libdatrie.so*|libepoxy.so*|libpixman-1.so*|\
         libstdc++.so*|libgcc_s.so*|libatomic.so*|libdbus-1.so*|libuuid.so*|libffi.so*|libselinux.so*|libmount.so*|libblkid.so*|libpcre2-*.so*|libsystemd.so*|libcap.so*|libseccomp.so*|\
-        libexpat.so*|libz.so*|liblzma.so*|libdeflate.so*|libzstd.so*|libpng*.so*|libjpeg.so*|libtiff.so*|libwebp*.so*|libwoff2*.so*|libjbig.so*|libLerc.so*|liblcms2.so*|libjxl*.so*|libhwy.so*|libsharpyuv.so*|\
-        libxml2.so*|libxslt.so*|libsqlite3.so*|libicu*.so*|libpsl.so*|libnghttp2.so*|libbrotli*.so*|libidn2.so*|libunistring.so*|libgcrypt.so*|libgpg-error.so*|\
-        libgssapi_krb5.so*|libkrb5.so*|libkrb5support.so*|libk5crypto.so*|libcom_err.so*|libkeyutils.so*|liborc-0.4.so*|libgudev-1.0.so*)
+        liborc-0.4.so*|libgudev-1.0.so*)
             return 0
             ;;
         *)
