@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <epoxy/gl.h>
 
 #include "3DScene.hpp"
 #include "GLShader.hpp"

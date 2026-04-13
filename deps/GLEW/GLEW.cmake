@@ -6,7 +6,7 @@ orcaslicer_add_cmake_project(
   GLEW
   SOURCE_DIR  ${CMAKE_CURRENT_LIST_DIR}/glew
   CMAKE_ARGS
-    -DGLEW_USE_EGL=OFF
+    -DGLEW_USE_EGL=ON
 )
 
 if (MSVC)

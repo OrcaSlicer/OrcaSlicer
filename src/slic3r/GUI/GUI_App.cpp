@@ -282,12 +282,8 @@ class SplashScreen : public wxSplashScreen
 {
 public:
     SplashScreen(const wxBitmap& bitmap, long splashStyle, int milliseconds, wxPoint pos = wxDefaultPosition)
-        : wxSplashScreen(bitmap, splashStyle, milliseconds, static_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY, wxDefaultPosition, wxDefaultSize,
-#ifdef __APPLE__
+        : wxSplashScreen(bitmap, splashStyle, milliseconds, nullptr, wxID_ANY, wxDefaultPosition, wxDefaultSize,
             wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP
-#else
-            wxBORDER_NONE | wxFRAME_NO_TASKBAR
-#endif // !__APPLE__
         )
     {
         int init_dpi = get_dpi_for_window(this);
@@ -314,6 +310,10 @@ public:
 
         // draw logo and constant info text
         Decorate(m_main_bitmap);
+        // Push the decorated bitmap to the splash window immediately.
+        // On Wayland, the first paint may fire before SetText() is called,
+        // so the splash would show the original blank bitmap without this.
+        set_bitmap(m_main_bitmap);
         wxGetApp().UpdateFrameDarkUI(this);
     }
 
@@ -909,6 +909,10 @@ void GUI_App::post_init()
         }
         else {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << "Found glcontext not ready, postpone the init";
+            // On Wayland, IsShownOnScreen() may return false during boot because
+            // EGL surfaces are created lazily. Re-enable rendering so the canvas
+            // can initialise on its first actual paint event.
+            plater_->canvas3D()->enable_render(true);
         }
 //#endif
         if (is_editor())

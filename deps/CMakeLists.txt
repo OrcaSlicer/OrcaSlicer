@@ -323,7 +323,7 @@ include(Boost/Boost.cmake)
 # The order of includes respects the dependencies between libraries
 include(Cereal/Cereal.cmake)
 include(Qhull/Qhull.cmake)
-include(GLEW/GLEW.cmake)
+include(libepoxy/libepoxy.cmake)
 
 include(GLFW/GLFW.cmake)
 include(OpenCSG/OpenCSG.cmake)

@@ -2,7 +2,7 @@
 #include "GLGizmoAdvancedCut.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
-#include <GL/glew.h>
+#include <epoxy/gl.h>
 
 #include <wx/button.h>
 #include <wx/checkbox.h>

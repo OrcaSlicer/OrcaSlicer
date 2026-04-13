@@ -1365,7 +1365,9 @@ void GLGizmosManager::update_hover_state(const EType &type)
 
 bool GLGizmosManager::activate_gizmo(EType type)
 {
-    assert(!m_gizmos.empty());
+    // On Wayland, GL init is deferred and gizmos may not be populated yet.
+    if (m_gizmos.empty())
+        return type == Undefined;
 
     // already activated
     if (m_current == type) return true;

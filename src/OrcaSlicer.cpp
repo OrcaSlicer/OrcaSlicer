@@ -75,6 +75,7 @@ using namespace nlohmann;
 #include "OrcaSlicer.hpp"
 //BBS: add exception handler for win32
 #include <wx/stdpaths.h>
+#include <wx/glcanvas.h>
 #ifdef WIN32
 #include "dev-utils/BaseException.h"
 #endif
@@ -1183,30 +1184,46 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // On Linux, wxGTK has no support for Wayland, and the app crashes on
-    // startup if gtk3 is used. This env var has to be set explicitly to
-    // instruct the window manager to fall back to X server mode.
-    ::setenv("GDK_BACKEND", "x11", /* replace */ true);
+    // Detect display server at runtime.
+    // GTK3 auto-detects Wayland vs X11 -- we do NOT force GDK_BACKEND.
+    // wxWidgets 3.3.2 with EGL support creates EGL contexts on both
+    // Wayland and X11; libepoxy handles EGL/GLX dispatch at runtime.
+    const char* wayland_display = ::getenv("WAYLAND_DISPLAY");
+    const char* session_type = ::getenv("XDG_SESSION_TYPE");
+    const char* gdk_backend = ::getenv("GDK_BACKEND");
+    // Wayland if GDK_BACKEND=wayland explicitly, or if GDK_BACKEND is unset
+    // and the session environment indicates Wayland.
+    const bool is_wayland = (gdk_backend != nullptr && strcmp(gdk_backend, "wayland") == 0) ||
+                            (gdk_backend == nullptr &&
+                             ((wayland_display && *wayland_display) ||
+                              (session_type && strcmp(session_type, "wayland") == 0)));
 
-    // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
-    // (like the Setup Wizard) to render blank or freeze. Disabling compositing
-    // mode forces software rendering, which works reliably on all backends.
+    // WebKit2GTK compositing workaround -- keep for stability.
+    // Safe on both X11 and Wayland; forces software rendering for WebViews.
     ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
 
-    // On Linux dual-GPU systems, request the high-performance discrete GPU.
-    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
+    // Request discrete GPU on dual-GPU systems (works on both X11 and Wayland).
     ::setenv("DRI_PRIME", "1", /* replace */ false);
 
-    // For NVIDIA proprietary driver PRIME render offload, set additional variables.
-    // Only set if the NVIDIA kernel module is loaded to avoid breaking systems without NVIDIA.
+    // NVIDIA PRIME render offload for proprietary driver.
     if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
         ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
-        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        if (!is_wayland) {
+            // __GLX_VENDOR_LIBRARY_NAME is GLX-specific; skip on Wayland EGL.
+            ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
+        }
     }
 
-    // Also on Linux, we need to tell Xlib that we will be using threads,
-    // lest we crash when we fire up GStreamer.
-    XInitThreads();
+    if (!is_wayland) {
+        // XInitThreads() is for X11 thread safety (GStreamer).
+        // On Wayland, X11 threads are not used.
+        XInitThreads();
+        // Force GLX backend for wxGLCanvas on X11.
+        // Must be called before any wxGLCanvas is created.
+        wxGLCanvas::PreferGLX();
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Display server: " << (is_wayland ? "Wayland" : "X11");
 #endif
 
 	// Switch boost::filesystem to utf8.
@@ -6453,7 +6470,7 @@ int CLI::run(int argc, char **argv)
                     BOOST_LOG_TRIVIAL(error) << "init opengl failed! skip thumbnail generating" << std::endl;
                 }
                 else {
-                    BOOST_LOG_TRIVIAL(info) << "glewInit Success." << std::endl;
+                    BOOST_LOG_TRIVIAL(info) << "OpenGL loader ready." << std::endl;
                     GLVolumeCollection glvolume_collection;
                     Model &model = m_models[0];
                     int obj_extruder_id = 1, volume_extruder_id = 1;
