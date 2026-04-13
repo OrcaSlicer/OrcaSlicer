@@ -15,6 +15,10 @@
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <wx/webview.h>
 
+#ifdef __linux__
+#include <webkit2/webkit2.h>
+#endif
+
 namespace pt = boost::property_tree;
 
 namespace Slic3r {
@@ -32,6 +36,14 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
         wxLogError("Could not init m_browser");
         return;
     }
+
+#ifdef __linux__
+    auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
+    auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
+    auto wv_ctx = webkit_web_view_get_context(wv);
+    auto cookieManager = webkit_web_context_get_cookie_manager(wv_ctx);
+    webkit_cookie_manager_set_persistent_storage(cookieManager, cookiesPath.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+#endif
 
     m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PrinterWebView::OnError, this);
     m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
