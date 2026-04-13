@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "filament_id": "GFB99",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_settings_id": ["QIDI ASA-CF @Qidi Q1 Pro 0.4 nozzle"],
+    "inherits": "QIDI ASA-CF",
+    "name": "QIDI ASA-CF @Qidi Q1 Pro 0.4 nozzle",
+    "during_print_exhaust_fan_speed": ["0"],
+    "compatible_printers": ["Qidi Q1 Pro 0.4 nozzle"]
+}

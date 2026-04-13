@@ -48,7 +48,7 @@ Button::Button(wxWindow* parent, wxString text, wxString icon, long style, int i
 bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, int iconSize, wxWindowID btn_id)
 {
     StaticBox::Create(parent, btn_id, wxDefaultPosition, wxDefaultSize, style);
-    state_handler.attach({&text_color});
+    state_handler.attach(std::vector<StateColor const*>{&text_color});
     state_handler.update_binds();
     //BBS set default font
     SetFont(Label::Body_14);
@@ -365,14 +365,6 @@ void Button::render(wxDC& dc)
         dc.SetPen(wxPen(*wxLIGHT_GREY));
         dc.DrawRectangle(pt, textSize.GetSize());
 #endif
-#ifdef __WXOSX__
-        pt.y -= this->textSize.x / 2;
-#endif
-#ifdef __APPLE__
-        if (Slic3r::is_mac_version_15()) {
-        pt.y -= FromDIP(1);
-    }
-#endif
         dc.DrawText(text, pt);
     }
 }
@@ -524,7 +516,9 @@ void Button::OnParentMotion(wxMouseEvent& event)
             tipWindow->SetLabel(tip);
         }
 
-        tipWindow->Position(wxGetMousePosition(), wxSize(0, 0));
+        // Position tooltip relative to the button widget itself rather than
+        // using wxGetMousePosition() which returns (0,0) on Wayland.
+        tipWindow->Position(this->ClientToScreen(wxPoint(0, 0)), this->GetSize());
         tipWindow->Popup();
     }
     else
