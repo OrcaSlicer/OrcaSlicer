@@ -52,7 +52,7 @@ jobs:
 
       - name: setup dev on Windows
         if: runner.os == 'Windows'
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Get the date on Ubuntu and macOS
         if: runner.os != 'Windows'

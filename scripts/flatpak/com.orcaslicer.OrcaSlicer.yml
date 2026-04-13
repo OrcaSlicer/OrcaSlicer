@@ -329,7 +329,6 @@ modules:
       - | # Desktop integration files
         install -Dm644 -t /app/share/icons/hicolor/scalable/apps/ resources/images/OrcaSlicer.svg
         install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
-        mv /app/share/applications/OrcaSlicer.desktop /app/share/applications/${FLATPAK_ID}.desktop
         desktop-file-edit --set-key=Exec --set-value="entrypoint %U" /app/share/applications/${FLATPAK_ID}.desktop
         install -Dm755 entrypoint /app/bin
         install -Dm755 umount /app/bin

@@ -1871,26 +1871,59 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
     bool has_pla = false;
     bool has_petg = false;
 
-    std::vector<int> used_filaments = get_extruders(true); // 1 base
+    // On a toolchanger (machine_tool_change_time > 0) each filament slot maps to a
+    // separate physical nozzle: only one nozzle is ever mounted or heated at a time, so
+    // there is no cross-nozzle contamination between PLA and PETG.  Track which physical
+    // nozzle each material is on; warn only when PLA and PETG would pass through the
+    // *same* nozzle.
+    //
+    // NOTE: if MMU-on-toolchanger support is added (#10586), the nozzle-mapping logic
+    // will need to be revisited because multiple filaments may then share one tool slot.
+    bool is_toolchanger = false;
+    auto *tool_change_time = config.option<ConfigOptionFloat>("machine_tool_change_time");
+    if (tool_change_time && tool_change_time->value > 0)
+        is_toolchanger = true;
+
+    // nozzle index → whether it carries PLA / PETG
+    std::map<int, bool> nozzle_has_pla;
+    std::map<int, bool> nozzle_has_petg;
+
+    std::vector<int> used_filaments = get_extruders(true); // 1-based
     if (!used_filaments.empty()) {
+        const auto *filament_types = config.option<ConfigOptionStrings>("filament_type");
         for (auto filament_idx : used_filaments) {
-            int                 filament_id        = filament_idx - 1;
-            if (filament_id < config.option<ConfigOptionStrings>("filament_type")->values.size()) {
-                std::string filament_type = config.option<ConfigOptionStrings>("filament_type")->values.at(filament_id);
-                if (filament_type == "PLA")
+            int filament_id = filament_idx - 1;
+            if (filament_id < (int)filament_types->values.size()) {
+                const std::string &filament_type = filament_types->values[filament_id];
+                if (filament_type == "PLA") {
                     has_pla = true;
-                if (filament_type == "PETG")
+                    nozzle_has_pla[filament_id] = true;
+                }
+                if (filament_type == "PETG") {
                     has_petg = true;
+                    nozzle_has_petg[filament_id] = true;
+                }
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " check error:array bound";
             }
         }
     }
 
-    if (has_pla && has_petg)
-        return false;
+    if (!has_pla || !has_petg)
+        return true; // no mixture — no warning
 
-    return true;
+    if (is_toolchanger) {
+        // Warn only if any single nozzle slot carries both PLA and PETG (e.g. future MMU
+        // on toolchanger).  On a pure toolchanger each slot is independent, so this loop
+        // will never fire and the warning is correctly suppressed. (#12073)
+        for (const auto &kv : nozzle_has_pla) {
+            if (nozzle_has_petg.count(kv.first))
+                return false; // same nozzle → warn
+        }
+        return true; // different nozzles → safe, no warning
+    }
+
+    return false; // non-toolchanger with both PLA and PETG → warn
 }
 
 bool PartPlate::check_mixture_filament_compatible(const DynamicPrintConfig &config, std::string &error_msg)
@@ -2812,7 +2845,6 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 	new_conf.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
 	new_conf.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
 	new_conf.set_key_value("overhang_reverse", new ConfigOptionBool(false));
-	new_conf.set_key_value("wall_direction", new ConfigOptionEnum<WallDirection>(WallDirection::Auto));
 	auto applying_keys = global_config->diff(new_conf);
 
 	for (ModelObject* object : obj_ptrs) {
