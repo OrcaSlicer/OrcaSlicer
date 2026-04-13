@@ -88,7 +88,8 @@ bool CrealityPrint::test(wxString& msg) const
     // Here we do not have to add custom "Host" header - the url contains host filled by user and libCurl will set the header by itself.
     auto http = Http::get(std::move(url));
     set_auth(http);
-    http.on_error([&](std::string body, std::string error, unsigned status) {
+    http.timeout_max(5)
+        .on_error([&](std::string body, std::string error, unsigned status) {
             BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting version: %2%, HTTP %3%, body: `%4%`") % name % error % status %
                                             body;
             res = false;
@@ -96,6 +97,15 @@ bool CrealityPrint::test(wxString& msg) const
         })
         .on_complete([&, this](std::string body, unsigned) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got version: %2%") % name % body;
+            try {
+                auto info = json::parse(body);
+                if (info.contains("model")) {
+                    m_model = info["model"].get<std::string>();
+                    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Detected model: %2%") % name % m_model;
+                }
+            } catch (const json::exception& e) {
+                BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse /info response: %2%") % name % e.what();
+            }
         })
 #ifdef WIN32
         .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
@@ -184,6 +194,24 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
     std::replace(safe_filename.begin(), safe_filename.end(), ' ', '_');
 
     return safe_filename;
+}
+
+void CrealityPrint::query_model() const
+{
+    if (!m_model.empty())
+        return;
+
+    wxString msg;
+    test(msg);
+}
+
+bool CrealityPrint::supports_multi_color_print() const
+{
+    query_model();
+    // K2-platform printers with CFS support
+    return m_model == "F008"    // K2 Plus
+        || m_model == "F012"    // K2 Pro
+        || m_model == "F021";   // K2
 }
 
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename) const
