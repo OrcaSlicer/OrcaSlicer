@@ -75,7 +75,9 @@
 #include "GUI_App.hpp"
 #include "GuiColor.hpp"
 #include "GUI_ObjectList.hpp"
+#ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
+#endif
 #include "GUI_Utils.hpp"
 #include "GUI_Factories.hpp"
 #include "wxExtensions.hpp"
@@ -351,6 +353,7 @@ static wxString temp_dir;
 
 namespace {
 
+#ifdef __WXGTK__
 wxString sanitize_window_layout_for_wayland(const wxString& layout, bool* removed_floating_state = nullptr)
 {
     if (!Slic3r::GUI::is_running_on_wayland() || layout.empty()) {
@@ -395,6 +398,7 @@ wxString sanitize_window_layout_for_wayland(const wxString& layout, bool* remove
 
     return modified ? wxString::FromUTF8(output) : layout;
 }
+#endif
 
 } // namespace
 
@@ -4897,12 +4901,16 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
 {
     m_is_dark = wxGetApp().app_config->get("dark_color_mode") == "1";
 
+#ifdef __WXGTK__
     const bool disable_wayland_floating = Slic3r::GUI::is_running_on_wayland();
+#endif
 
     m_aui_mgr.SetManagedWindow(q);
     m_aui_mgr.SetDockSizeConstraint(1, 1);
+#ifdef __WXGTK__
     if (disable_wayland_floating)
         m_aui_mgr.SetFlags(m_aui_mgr.GetFlags() & ~wxAUI_MGR_ALLOW_FLOATING);
+#endif
     //m_aui_mgr.GetArtProvider()->SetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE, 0);
     //m_aui_mgr.GetArtProvider()->SetMetric(wxAUI_DOCKART_SASH_SIZE, 2);
     m_aui_mgr.GetArtProvider()->SetMetric(wxAUI_DOCKART_CAPTION_SIZE, 18);
@@ -5013,8 +5021,10 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         wxString   layout = wxString::FromUTF8(cfg->get("window_layout"));
         if (!layout.empty()) {
             bool removed_floating_state = false;
+#ifdef __WXGTK__
             if (disable_wayland_floating)
                 layout = sanitize_window_layout_for_wayland(layout, &removed_floating_state);
+#endif
 
             if (!m_aui_mgr.LoadPerspective(layout, false)) {
                 BOOST_LOG_TRIVIAL(warning) << "Failed to restore saved window layout";

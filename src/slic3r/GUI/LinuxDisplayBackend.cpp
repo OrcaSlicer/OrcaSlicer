@@ -1,6 +1,6 @@
 #include "LinuxDisplayBackend.hpp"
 
-#if defined(__linux__) && defined(__WXGTK__)
+#if defined(__WXGTK__)
 
 #include <gdk/gdk.h>
 
@@ -50,27 +50,4 @@ bool is_running_on_x11()
 } // namespace GUI
 } // namespace Slic3r
 
-#else // non-Linux or non-GTK
-
-namespace Slic3r {
-namespace GUI {
-
-LinuxDisplayBackend get_linux_display_backend()
-{
-    return LinuxDisplayBackend::Unknown;
-}
-
-bool is_running_on_wayland()
-{
-    return false;
-}
-
-bool is_running_on_x11()
-{
-    return false;
-}
-
-} // namespace GUI
-} // namespace Slic3r
-
-#endif
+#endif // defined(__WXGTK__)

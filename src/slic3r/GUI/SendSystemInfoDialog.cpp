@@ -17,7 +17,9 @@
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
+#endif
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "OpenGLManager.hpp"
@@ -421,6 +423,7 @@ static std::string generate_system_info_json()
     data_node.put("Linux_DistroID", distro_id);
     data_node.put("Linux_DistroVer", distro_ver);
     data_node.put("Linux_Wayland", wxGetEnv("WAYLAND_DISPLAY", nullptr));
+#ifdef __WXGTK__
     const LinuxDisplayBackend display_backend = get_linux_display_backend();
     const char* display_backend_name = "unknown";
     const char* gl_backend_hint = "Unknown";
@@ -438,6 +441,10 @@ static std::string generate_system_info_json()
     }
     data_node.put("Linux_DisplayBackend", display_backend_name);
     data_node.put("Linux_GLBackendHint", gl_backend_hint);
+#else
+    data_node.put("Linux_DisplayBackend", "unknown");
+    data_node.put("Linux_GLBackendHint", "Unknown");
+#endif
 #endif
     data_node.put("wxWidgets", wxVERSION_NUM_DOT_STRING);
 #ifdef __WXGTK__

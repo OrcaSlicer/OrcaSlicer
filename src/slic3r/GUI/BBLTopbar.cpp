@@ -6,7 +6,9 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
+#endif
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
@@ -759,8 +761,10 @@ wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
     if (m_last_mouse_position != wxDefaultPosition && GetClientRect().Contains(m_last_mouse_position))
         return this->FindToolByPosition(m_last_mouse_position.x, m_last_mouse_position.y);
 
+#ifdef __WXGTK__
     if (Slic3r::GUI::is_running_on_wayland())
         return nullptr;
+#endif
 
     wxPoint mouse_pos = ::wxGetMousePosition();
     wxPoint client_pos = this->ScreenToClient(mouse_pos);
