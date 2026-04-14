@@ -25,6 +25,7 @@
 #include <wx/tbarbase.h>
 #include "wx/textctrl.h"
 #include <wx/timer.h>
+#include <memory>
 
 
 namespace Slic3r {
@@ -41,20 +42,24 @@ public:
     void OnClose(wxCloseEvent& evt);
     void OnError(wxWebViewEvent& evt);
     void OnLoaded(wxWebViewEvent& evt);
+    void OnNewWindow(wxWebViewEvent& evt);
+    void OnScriptMessage(wxWebViewEvent& evt);
     void reload();
     void update_mode();
 
     bool Show(bool show = true) override;
 
 private:
+    struct ElegooImpl;
+
     void SendAPIKey();
 
     wxWebView* m_browser;
     long m_zoomFactor;
     wxString m_apikey;
     bool m_apikey_sent;
-
     wxString m_url_deferred;
+    std::unique_ptr<ElegooImpl> m_elegooImpl;
 
     // DECLARE_EVENT_TABLE()
 };

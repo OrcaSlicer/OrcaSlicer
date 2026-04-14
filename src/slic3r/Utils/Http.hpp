@@ -109,6 +109,8 @@ public:
 	Http& set_range(const std::string& range);
 	// Sets a HTTP header field.
 	Http& header(std::string name, const std::string &value);
+	// Clears all custom headers and restores default implicit headers.
+	Http& headers_reset();
 	// Removes a header field.
 	Http& remove_header(std::string name);
 	// Authorization by HTTP digest, based on RFC2617.

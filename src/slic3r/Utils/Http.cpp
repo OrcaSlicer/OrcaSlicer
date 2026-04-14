@@ -570,6 +570,21 @@ Http& Http::header(std::string name, const std::string &value)
 	return *this;
 }
 
+Http& Http::headers_reset()
+{
+	if (!p) { return *this; }
+
+	::curl_slist_free_all(p->headerlist);
+	p->headerlist = nullptr;
+	p->headerlist = curl_slist_append(p->headerlist, "Expect:");
+
+	std::lock_guard<std::mutex> l(g_mutex);
+	for (auto it = extra_headers.begin(); it != extra_headers.end(); ++it)
+		this->header(it->first, it->second);
+
+	return *this;
+}
+
 Http& Http::remove_header(std::string name)
 {
 	if (p) {
