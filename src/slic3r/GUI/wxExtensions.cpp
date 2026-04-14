@@ -468,6 +468,10 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
         throw Slic3r::RuntimeError("Could not load bitmap: " + bmp_name);
     }
 
+#ifdef __WXMSW__
+    // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+    bmp->SetScaleFactor(win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0));
+#endif
     return *bmp;
 }
 
@@ -487,6 +491,10 @@ wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::Bitm
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Could not load bitmap: " << bmp_name;
         throw Slic3r::RuntimeError("Could not load bitmap: " + bmp_name);
     }
+#ifdef __WXMSW__
+    // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+    bmp->SetScaleFactor(win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0));
+#endif
     return *bmp;
 }
 
@@ -500,7 +508,8 @@ wxBitmap* get_default_extruder_color_icon(bool thin_icon/* = false*/)
     const int icon_height = lround(2 * em);
     bool dark_mode = Slic3r::GUI::wxGetApp().dark_mode();
 
-    wxClientDC cdc((wxWindow*)Slic3r::GUI::wxGetApp().mainframe);
+    auto win = (wxWindow*)Slic3r::GUI::wxGetApp().mainframe;
+    wxClientDC cdc(win);
     wxMemoryDC dc(&cdc);
     dc.SetFont(::Label::Body_12);
 
@@ -525,6 +534,12 @@ wxBitmap* get_default_extruder_color_icon(bool thin_icon/* = false*/)
         dc.DrawText(label, (icon_width - size.x) / 2, (icon_height - size.y) / 2);
         dc.SelectObject(wxNullBitmap);
     }
+
+    #ifdef __WXMSW__
+    // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+    double scale = win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0);
+    bitmap->SetScaleFactor(scale);
+    #endif
 
     return bitmap;
 }
@@ -633,6 +648,9 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
     bitmap_key += "h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
 
     wxBitmap *bitmap = bmp_cache.find(bitmap_key);
+    #ifdef __WXMSW__
+        auto win = (wxWindow *) Slic3r::GUI::wxGetApp().mainframe;
+    #endif
     if (bitmap == nullptr) {
 
         std::vector<wxColour> wx_colors;
@@ -656,8 +674,11 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
 #ifndef __WXMSW__
             wxMemoryDC dc(base_bitmap);
 #else
-            wxClientDC cdc((wxWindow *) Slic3r::GUI::wxGetApp().mainframe);
+            wxClientDC cdc(win);
             wxMemoryDC dc(&cdc);
+            // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+            double scale = win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0);
+            base_bitmap.SetScaleFactor(scale);
             dc.SelectObject(base_bitmap);
 #endif
 
@@ -694,6 +715,11 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
         // cache result
         bitmap = bmp_cache.insert(bitmap_key, base_bitmap);
     }
+    #ifdef __WXMSW__
+        // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+        double scale = win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0);
+        bitmap->SetScaleFactor(scale);
+    #endif
     return bitmap;
 }
 
@@ -704,6 +730,9 @@ wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon
     std::string bitmap_key = color + "-h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
 
     wxBitmap *bitmap = bmp_cache.find(bitmap_key);
+    #ifdef __WXMSW__
+        auto win = (wxWindow *) Slic3r::GUI::wxGetApp().mainframe;
+    #endif
     if (bitmap == nullptr) {
         // Paint the color icon.
         // Slic3r::GUI::BitmapCache::parse_color(color, rgb);
@@ -714,7 +743,7 @@ wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon
         bitmap->UseAlpha();
         wxMemoryDC dc(*bitmap);
 #elif defined(__WXMSW__)
-        wxClientDC cdc((wxWindow *) Slic3r::GUI::wxGetApp().mainframe);
+        wxClientDC cdc(win);
         wxMemoryDC dc(&cdc);
         dc.SelectObject(*bitmap);
 #else
@@ -748,6 +777,11 @@ wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon
         dc.DrawText(label, (icon_width - size.x) / 2, (icon_height - size.y) / 2);
         dc.SelectObject(wxNullBitmap);
     }
+    #ifdef __WXMSW__
+        // ORCA MSW needs to set scale factor for bitmaps loaded from cache because they arent auto scaled by wxBitmapBundle like bitmaps
+        double scale = win ? win->GetDPIScaleFactor() : (wxWindow::FromDIP(100, nullptr) / 100.0);
+        bitmap->SetScaleFactor(scale);
+    #endif
     return bitmap;
 }
 void apply_extruder_selector(Slic3r::GUI::BitmapComboBox** ctrl,
