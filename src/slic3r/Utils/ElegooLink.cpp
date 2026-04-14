@@ -878,7 +878,7 @@ namespace Slic3r {
     {
         const char* name = get_name();
 
-        boost::nowide::ifstream file(path_to_utf8(path), std::ios::binary);
+        boost::nowide::ifstream file(path, std::ios::binary);
         if (!file.is_open()) {
             error_fn(_L("Failed to open file for upload."));
             return false;
@@ -948,12 +948,12 @@ namespace Slic3r {
     {
         BOOST_LOG_TRIVIAL(info) << get_name() << ": Uploading file to Elegoo CC2";
         const auto  upload_filename = filename_to_utf8(upload_data.upload_path);
-        auto        source_path     = upload_data.source_path;
+        std::string source_path     = path_to_utf8(upload_data.source_path);
         std::string md5;
-        bbl_calc_md5(path_to_utf8(source_path), md5);
+        bbl_calc_md5(source_path, md5);
         std::transform(md5.begin(), md5.end(), md5.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
 
-        boost::nowide::ifstream file(path_to_utf8(source_path), std::ios::binary | std::ios::ate);
+        boost::nowide::ifstream file(source_path, std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
             error_fn(_L("Failed to open file for upload."));
             return false;
