@@ -8651,7 +8651,7 @@ msgid "Send print job"
 msgstr "发送打印作业"
 
 msgid "On"
-msgstr "在"
+msgstr "开"
 
 msgid "Not satisfied with the grouping of filaments? Regroup and slice ->"
 msgstr "对细丝的分组不满意？重组并切片 ->"
