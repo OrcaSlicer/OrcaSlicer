@@ -14868,7 +14868,7 @@ msgstr ""
 "注意：此参数禁用圆弧拟合。"
 
 msgid "mm³/s²"
-msgstr "毫米立方/秒平方"
+msgstr "mm³/s²"
 
 msgid "Smoothing segment length"
 msgstr "平滑段长度"
@@ -15213,7 +15213,7 @@ msgstr "切料回抽距离"
 msgid ""
 "Experimental feature: Retraction length before cutting off during filament "
 "change."
-msgstr "实验性选项。在更换耗材丝时，切断前的回抽长度"
+msgstr "实验性选项：在更换耗材丝时，切断前的回抽长度"
 
 msgid "Long retraction when extruder change"
 msgstr "更换挤出机时长回缩"
