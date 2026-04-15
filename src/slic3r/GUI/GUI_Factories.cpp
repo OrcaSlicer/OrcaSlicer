@@ -855,6 +855,23 @@ wxMenuItem* MenuFactory::append_menu_item_printable(wxMenu* menu)
     return menu_item_printable;
 }
 
+wxMenuItem* MenuFactory::append_menu_item_auto_drop(wxMenu* menu)
+{
+    wxString    menu_text                       = _L("Auto Drop");
+    wxString    menu_tooltip                    = _L("Automatically drops the selected object to the build plate");
+    wxMenuItem* menu_item_auto_drop = append_menu_check_item(
+        menu, wxID_ANY, menu_text, menu_tooltip,
+        [](wxCommandEvent&) { obj_list()->toggle_auto_drop(); }, menu);
+
+    m_parent->Bind(wxEVT_UPDATE_UI, [](wxUpdateUIEvent& evt) {
+        bool check = wxGetApp().plater()->get_selection().get_auto_drop();
+        evt.Check(check);
+    },
+    menu_item_auto_drop->GetId());
+
+    return menu_item_auto_drop;
+}
+
 void MenuFactory::append_menu_item_rename(wxMenu* menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Rename"), "",
@@ -1416,6 +1433,10 @@ void MenuFactory::create_extra_object_menu()
     // Set filament insert menu item here
     // Set Printable
     wxMenuItem* menu_item_printable = append_menu_item_printable(&m_object_menu);
+    m_object_menu.AppendSeparator();
+    wxMenuItem* menu_item_auto_drop = append_menu_item_auto_drop(&m_object_menu);
+    m_object_menu.AppendSeparator();
+
     append_menu_item_per_object_process(&m_object_menu);
     // Enter per object parameters
     append_menu_item_per_object_settings(&m_object_menu);
@@ -1845,8 +1866,14 @@ wxMenu* MenuFactory::multi_selection_menu()
         menu->AppendSeparator();
 
         append_menu_item_set_printable(menu);
+        menu->AppendSeparator();
+        
+        append_menu_item_set_auto_drop(menu);
+        menu->AppendSeparator();
+        
         append_menu_item_per_object_process(menu);
         menu->AppendSeparator();
+        
         append_menu_items_convert_unit(menu);
         append_menu_item_replace_all_with_stl(menu);
         //BBS
@@ -2032,7 +2059,7 @@ void MenuFactory::append_menu_item_drop(wxMenu* menu)
             if (plater()->canvas3D()->get_canvas_type() != GLCanvas3D::ECanvasType::CanvasView3D)
                 return false;
             else {
-                return (plater()->get_view3D_canvas3D()->get_selection().get_bounding_box().min.z() != 0);
+                return (plater()->get_view3D_canvas3D()->get_selection().get_bounding_box().min.z() > SINKING_Z_THRESHOLD);
             } //disable if model is on the bed / not in View3D
         }, m_parent);
 }
@@ -2184,7 +2211,7 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
 void MenuFactory::append_menu_item_set_printable(wxMenu* menu)
 {
     const Selection& selection = plater()->canvas3D()->get_selection();
-    bool all_printable = true;
+    bool all_printable = true; 
     ObjectList* list = obj_list();
     wxDataViewItemArray sels;
     list->GetSelections(sels);
@@ -2210,6 +2237,29 @@ void MenuFactory::append_menu_item_set_printable(wxMenu* menu)
         plater()->set_current_canvas_as_dirty();
 
         }, menu_item_set_printable->GetId());
+}
+
+void MenuFactory::append_menu_item_set_auto_drop(wxMenu* menu)
+{
+    const Selection& selection = plater()->canvas3D()->get_selection();
+    const bool current_auto_drop = selection.get_auto_drop();
+
+    wxString menu_text      = _L("Auto Drop");
+    wxString menu_tooltip   = _L("Automatically snaps the selected object to the build plate");
+    wxMenuItem* menu_item_set_auto_drop = append_menu_check_item(
+        menu, wxID_ANY, menu_text, menu_tooltip,
+        [this, current_auto_drop](wxCommandEvent&) {
+            Selection& selection = plater()->canvas3D()->get_selection();
+            selection.set_auto_drop(!current_auto_drop);
+        },
+        menu);
+    m_parent->Bind(
+        wxEVT_UPDATE_UI,
+        [current_auto_drop](wxUpdateUIEvent& evt) {
+            evt.Check(current_auto_drop);
+            plater()->set_current_canvas_as_dirty();
+        },
+        menu_item_set_auto_drop->GetId());
 }
 
 void MenuFactory::append_menu_item_locked(wxMenu* menu)

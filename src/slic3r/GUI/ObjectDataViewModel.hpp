@@ -241,7 +241,7 @@ public:
     void            SetExtruder(const wxString &extruder) { m_extruder = extruder; }
     void            SetWarningIconName(const std::string& warning_icon_name) { m_warning_icon_name = warning_icon_name; }
     void            SetLock(bool has_lock)                                   { m_has_lock = has_lock; }
-    const wxBitmap& GetBitmap() const         { return m_bmp; }
+    const wxBitmap& GetBitmap() const               { return m_bmp; }
     const wxString& GetName() const                 { return m_name; }
     ItemType        GetType() const                 { return m_type; }
     InfoItemType    GetInfoItemType() const         { return m_info_item_type; }
@@ -249,16 +249,16 @@ public:
 	int             GetIdx() const                  { return m_idx; }
     //BBS: add part plate related logic
     void            SetPlateIdx(const int& idx);
-    int             GetPlateIdx() const { return m_plate_idx; }
+    int             GetPlateIdx() const             { return m_plate_idx; }
     ModelVolumeType GetVolumeType()                 { return m_volume_type; }
 	t_layer_height_range    GetLayerRange() const   { return m_layer_range; }
     wxString        GetExtruder()                   { return m_extruder; }
     PrintIndicator  IsPrintable() const             { return m_printable; }
-    VaryHeightIndicator  IsVaribaleHeight() const { return m_variable_height; }
+    VaryHeightIndicator  IsVaribaleHeight() const   { return m_variable_height; }
     // BBS
     bool            HasColorPainting() const        { return m_color_enable; }
-    bool            HasSupportPainting() const { return m_support_enable; }
-    bool            HasSinking() const { return m_sink_enable; }
+    bool            HasSupportPainting() const      { return m_support_enable; }
+    bool            HasSinking() const              { return m_sink_enable; }
     bool            IsActionEnabled() const         { return m_action_enable; }
     void            UpdateExtruderAndColorIcon(wxString extruder = "");
 

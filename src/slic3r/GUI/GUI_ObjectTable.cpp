@@ -1520,12 +1520,7 @@ void ObjectGridTable::update_value_to_object(Model* model, ObjectGridRow* grid_r
             object->printable = grid_row->printable.value;
             object->instances[0]->printable = object->printable;
 
-            std::vector<ObjectVolumeID> object_volume_ids;
-            ObjectVolumeID object_volume_id;
-            object_volume_id.object = object;
-            object_volume_id.volume = nullptr;
-            object_volume_ids.push_back(object_volume_id);
-            wxGetApp().obj_list()->printable_state_changed(object_volume_ids);
+            wxGetApp().obj_list()->printable_state_changed({object});
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", change object %1%'s printable to %2%")%object->module_name %object->printable;
         }
     }
