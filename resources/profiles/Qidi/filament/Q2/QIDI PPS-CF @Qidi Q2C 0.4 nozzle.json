@@ -1,10 +1,14 @@
 {
-    "type": "filament",
-    "setting_id": "GFSN99",
-    "name": "QIDI PPS-CF @Qidi Q2C 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI PPS-CF@Q2C-Series",
-    "pressure_advance": ["0.03"],
-	"compatible_printers": ["Qidi Q2C 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSN99",
+	"name": "QIDI PPS-CF @Qidi Q2C 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PPS-CF@Q2C-Series",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
 }

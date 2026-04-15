@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-05 17:45-0300\n"
+"POT-Creation-Date: 2026-03-20 23:26+0800\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -16,35 +16,37 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && (n%100<11 || n%100>19) ? 0 : n"
-"%10>=2 && n%10<=9 && (n%100<11 || n%100>19) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && (n%100<11 || n%100>19) ? 0 : "
+"n%10>=2 && n%10<=9 && (n%100<11 || n%100>19) ? 1 : 2);\n"
 "X-Generator: Poedit 3.6\n"
 
 msgid "right"
-msgstr ""
+msgstr "dešinė"
 
 msgid "left"
-msgstr ""
+msgstr "kairė"
 
 msgid "right extruder"
-msgstr ""
+msgstr "dešinysis ekstruderis"
 
 msgid "left extruder"
-msgstr ""
+msgstr "kairysis ekstruderis"
 
 msgid "extruder"
-msgstr ""
+msgstr "ekstruderis"
 
 msgid "TPU is not supported by AMS."
 msgstr "AMS nepalaiko TPU."
 
 msgid "AMS does not support 'Bambu Lab PET-CF'."
-msgstr ""
+msgstr "AMS does not support 'Bambu Lab PET-CF'."
 
 msgid ""
 "Please cold pull before printing TPU to avoid clogging. You may use cold "
 "pull maintenance on the printer."
 msgstr ""
+"Please cold pull before printing TPU to avoid clogging. You may use cold "
+"pull maintenance on the printer."
 
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
@@ -54,12 +56,14 @@ msgstr ""
 "išdžiovinkite."
 
 msgid "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
-msgstr ""
+msgstr "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
 
 msgid ""
 "The rough surface of PLA Glow can accelerate wear on the AMS system, "
 "particularly on the internal components of the AMS Lite."
 msgstr ""
+"The rough surface of PLA Glow can accelerate wear on the AMS system, "
+"particularly on the internal components of the AMS Lite."
 
 msgid ""
 "CF/GF filaments are hard and brittle, it's easy to break or get stuck in "
@@ -69,14 +73,14 @@ msgstr ""
 "gali įstrigti AMS. Naudokite atsargiai."
 
 msgid "PPS-CF is brittle and could break in bended PTFE tube above Toolhead."
-msgstr ""
+msgstr "PPS-CF is brittle and could break in bended PTFE tube above Toolhead."
 
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
-msgstr ""
+msgstr "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
-msgstr ""
+msgstr "%s is not supported by %s extruder."
 
 msgid "Current AMS humidity"
 msgstr "Dabartinė AMS drėgmė"
@@ -287,7 +291,7 @@ msgid "Painted using: Filament %1%"
 msgstr "Piešta naudojant: Gija %1%"
 
 msgid "To:"
-msgstr ""
+msgstr "To:"
 
 msgid "Paint-on fuzzy skin"
 msgstr "Piešti grublėtą paviršių"
@@ -299,20 +303,21 @@ msgid "Brush shape"
 msgstr "Teptuko forma"
 
 msgid "Add fuzzy skin"
-msgstr ""
+msgstr "Add fuzzy skin"
 
 msgid "Remove fuzzy skin"
-msgstr ""
+msgstr "Remove fuzzy skin"
 
 msgid "Reset selection"
-msgstr ""
+msgstr "Reset selection"
 
 msgid ""
 "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 msgstr ""
+"Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 
 msgid "Enable painted fuzzy skin for this object"
-msgstr ""
+msgstr "Enable painted fuzzy skin for this object"
 
 msgid "Move"
 msgstr "Perkelti"
@@ -345,7 +350,7 @@ msgid "Error: Please close all toolbar menus first"
 msgstr "Klaida: Prašome pirmiau uždaryti visus įrankių juostos meniu"
 
 msgid "in"
-msgstr ""
+msgstr "in"
 
 msgid "mm"
 msgstr "mm"
@@ -399,7 +404,7 @@ msgid "World coordinates"
 msgstr "Pasaulio koordinatės"
 
 msgid "Translate(Relative)"
-msgstr ""
+msgstr "Translate(Relative)"
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr ""
@@ -1566,25 +1571,28 @@ msgid "Assemble"
 msgstr "Surinkti"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
-msgstr ""
+msgstr "Please confirm explosion ratio = 1 and select at least two volumes."
 
 msgid "Please select at least two volumes."
-msgstr ""
+msgstr "Please select at least two volumes."
 
 msgid "(Moving)"
-msgstr ""
+msgstr "(Moving)"
 
 msgid "Point and point assembly"
-msgstr ""
+msgstr "Point and point assembly"
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
 "because the objects is restriced to bed \n"
 "and only parts can be lifted."
 msgstr ""
+"It is recommended to assemble the objects first,\n"
+"because the objects is restriced to bed \n"
+"and only parts can be lifted."
 
 msgid "Face and face assembly"
-msgstr ""
+msgstr "Face and face assembly"
 
 msgid "Notice"
 msgstr "Įspėjimas"
@@ -1627,52 +1635,52 @@ msgid "Based on PrusaSlicer and BambuStudio"
 msgstr "Remiantis „PrusaSlicer“ ir „BambuStudio“"
 
 msgid "STEP files"
-msgstr ""
+msgstr "STEP files"
 
 msgid "STL files"
-msgstr ""
+msgstr "STL files"
 
 msgid "OBJ files"
-msgstr ""
+msgstr "OBJ files"
 
 msgid "AMF files"
-msgstr ""
+msgstr "AMF files"
 
 msgid "3MF files"
-msgstr ""
+msgstr "3MF files"
 
 msgid "Gcode 3MF files"
-msgstr ""
+msgstr "Gcode 3MF files"
 
 msgid "G-code files"
-msgstr ""
+msgstr "G-code files"
 
 msgid "Supported files"
-msgstr ""
+msgstr "Supported files"
 
 msgid "ZIP files"
-msgstr ""
+msgstr "ZIP files"
 
 msgid "Project files"
-msgstr ""
+msgstr "Project files"
 
 msgid "Known files"
-msgstr ""
+msgstr "Known files"
 
 msgid "INI files"
-msgstr ""
+msgstr "INI files"
 
 msgid "SVG files"
-msgstr ""
+msgstr "SVG files"
 
 msgid "Texture"
 msgstr "Tekstūra"
 
 msgid "Masked SLA files"
-msgstr ""
+msgstr "Masked SLA files"
 
 msgid "Draco files"
-msgstr ""
+msgstr "Draco files"
 
 msgid ""
 "OrcaSlicer will terminate because of running out of memory. It may be a bug. "
@@ -1703,10 +1711,10 @@ msgid "Untitled"
 msgstr "Be pavadinimo"
 
 msgid "Reloading network plug-in..."
-msgstr ""
+msgstr "Reloading network plug-in..."
 
 msgid "Downloading Network Plug-in"
-msgstr ""
+msgstr "Downloading Network Plug-in"
 
 msgid "Downloading Bambu Network Plug-in"
 msgstr "Siunčiamas Bambu tinklo papildinys"
@@ -1803,7 +1811,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "Pasirinkite vieną failą (GCODE/3MF):"
 
 msgid "Ext"
-msgstr ""
+msgstr "Ext"
 
 msgid "Some presets are modified."
 msgstr "Kai kurie nustatymai pakeisti."
@@ -1834,25 +1842,31 @@ msgstr ""
 "naujausią versiją."
 
 msgid "Retrieving printer information, please try again later."
-msgstr ""
+msgstr "Retrieving printer information, please try again later."
 
 msgid "Please try updating OrcaSlicer and then try again."
-msgstr ""
+msgstr "Please try updating OrcaSlicer and then try again."
 
 msgid ""
 "The certificate has expired. Please check the time settings or update "
 "OrcaSlicer and try again."
 msgstr ""
+"The certificate has expired. Please check the time settings or update "
+"OrcaSlicer and try again."
 
 msgid ""
 "The certificate is no longer valid and the printing functions are "
 "unavailable."
 msgstr ""
+"The certificate is no longer valid and the printing functions are "
+"unavailable."
 
 msgid ""
 "Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
 "the issue persists, contact support."
 msgstr ""
+"Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
+"the issue persists, contact support."
 
 msgid ""
 "To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
@@ -1865,9 +1879,18 @@ msgid ""
 "Developer mode allows the printer to work exclusively through local network "
 "access, enabling full functionality with OrcaSlicer."
 msgstr ""
+"To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
+"Developer mode on your printer.\n"
+"\n"
+"Please go to your printer's settings and:\n"
+"1. Turn on LAN mode\n"
+"2. Enable Developer mode\n"
+"\n"
+"Developer mode allows the printer to work exclusively through local network "
+"access, enabling full functionality with OrcaSlicer."
 
 msgid "Network Plug-in Restriction"
-msgstr ""
+msgstr "Network Plug-in Restriction"
 
 msgid "Privacy Policy Update"
 msgstr "Privatumo politikos atnaujinimas"
@@ -1896,6 +1919,9 @@ msgstr "Kalba"
 
 msgid "*"
 msgstr "*"
+
+msgid "Changing application language"
+msgstr "Keičiama programos kalba"
 
 msgid "The uploads are still ongoing"
 msgstr "Įkėlimai vis dar vyksta"
@@ -2074,7 +2100,7 @@ msgid "3DBenchy"
 msgstr "3DBenchy"
 
 msgid "Cali Cat"
-msgstr ""
+msgstr "Cali Cat"
 
 msgid "Autodesk FDM Test"
 msgstr "Autodesk FDM testas"
@@ -2104,7 +2130,7 @@ msgstr ""
 "Ne - Nekeisti šių nustatymų"
 
 msgid "Suggestion"
-msgstr ""
+msgstr "Suggestion"
 
 msgid "Text"
 msgstr "Teskstas"
@@ -2143,10 +2169,10 @@ msgid "Export as STLs"
 msgstr "Eksportuoti kaip kelis STL"
 
 msgid "Export as one DRC"
-msgstr ""
+msgstr "Export as one DRC"
 
 msgid "Export as DRCs"
-msgstr ""
+msgstr "Export as DRCs"
 
 msgid "Reload from disk"
 msgstr "Iš naujo įkelti iš disko"
@@ -2155,16 +2181,16 @@ msgid "Reload the selected parts from disk"
 msgstr "Iš naujo įkelti pasirinktas dalis iš disko"
 
 msgid "Replace 3D file"
-msgstr ""
+msgstr "Replace 3D file"
 
 msgid "Replace the selected part with a new 3D file"
-msgstr ""
+msgstr "Replace the selected part with a new 3D file"
 
 msgid "Replace all with 3D files"
-msgstr ""
+msgstr "Replace all with 3D files"
 
 msgid "Replace all selected parts with 3D files from folder"
-msgstr ""
+msgstr "Replace all selected parts with 3D files from folder"
 
 msgid "Change filament"
 msgstr "Pakeisti giją"
@@ -2303,10 +2329,10 @@ msgid "Edit"
 msgstr "Redaguoti"
 
 msgid "Delete this filament"
-msgstr ""
+msgstr "Delete this filament"
 
 msgid "Merge with"
-msgstr ""
+msgstr "Merge with"
 
 msgid "Select All"
 msgstr "Pasirinkti viską"
@@ -2315,10 +2341,10 @@ msgid "Select all objects on the current plate"
 msgstr "pasirinkti visus objektus pasirinktoje plokštėje"
 
 msgid "Select All Plates"
-msgstr ""
+msgstr "Select All Plates"
 
 msgid "Select all objects on all plates"
-msgstr ""
+msgstr "Select all objects on all plates"
 
 msgid "Delete All"
 msgstr "Ištrinti visus"
@@ -2351,28 +2377,28 @@ msgid "Remove the selected plate"
 msgstr "Pašalinti pasirinktą plokštę"
 
 msgid "Add instance"
-msgstr ""
+msgstr "Add instance"
 
 msgid "Add one more instance of the selected object"
-msgstr ""
+msgstr "Add one more instance of the selected object"
 
 msgid "Remove instance"
-msgstr ""
+msgstr "Remove instance"
 
 msgid "Remove one instance of the selected object"
-msgstr ""
+msgstr "Remove one instance of the selected object"
 
 msgid "Set number of instances"
-msgstr ""
+msgstr "Set number of instances"
 
 msgid "Change the number of instances of the selected object"
-msgstr ""
+msgstr "Change the number of instances of the selected object"
 
 msgid "Fill bed with instances"
-msgstr ""
+msgstr "Fill bed with instances"
 
 msgid "Fill the remaining area of bed with instances of the selected object"
-msgstr ""
+msgstr "Fill the remaining area of bed with instances of the selected object"
 
 msgid "Clone"
 msgstr "Klonuoti"
@@ -2381,10 +2407,10 @@ msgid "Simplify Model"
 msgstr "Supaprastinti modelį"
 
 msgid "Subdivision mesh"
-msgstr ""
+msgstr "Subdivision mesh"
 
 msgid "(Lost color)"
-msgstr ""
+msgstr "(Lost color)"
 
 msgid "Center"
 msgstr "Centras"
@@ -2396,10 +2422,10 @@ msgid "Edit Process Settings"
 msgstr "Taisyti proceso nustatymus"
 
 msgid "Copy Process Settings"
-msgstr ""
+msgstr "Copy Process Settings"
 
 msgid "Paste Process Settings"
-msgstr ""
+msgstr "Paste Process Settings"
 
 msgid "Edit print parameters for a single object"
 msgstr "Taisyti atskiro objekto spausdinimo parametrus"
@@ -2643,13 +2669,12 @@ msgid ""
 "\"%s\" will exceed 1 million faces after this subdivision, which may "
 "increase slicing time. Do you want to continue?"
 msgstr ""
-
-msgid "BambuStudio warning"
-msgstr ""
+"\"%s\" will exceed 1 million faces after this subdivision, which may "
+"increase slicing time. Do you want to continue?"
 
 #, c-format, boost-format
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
-msgstr ""
+msgstr "\"%s\" part's mesh contains errors. Please repair it first."
 
 msgid "Additional process preset"
 msgstr "Papildomas apdorojimo nustatymas"
@@ -2734,7 +2759,7 @@ msgstr "Linijos tipas"
 
 #, c-format, boost-format
 msgid "1x1 Grid: %d mm"
-msgstr ""
+msgstr "1x1 Grid: %d mm"
 
 msgid "More"
 msgstr "Daugiau"
@@ -2874,17 +2899,21 @@ msgid ""
 "Filament type is unknown which is required to perform this action. Please "
 "set target filament's informations."
 msgstr ""
+"Filament type is unknown which is required to perform this action. Please "
+"set target filament's informations."
 
 msgid ""
 "Changing fan speed during printing may affect print quality, please choose "
 "carefully."
 msgstr ""
+"Changing fan speed during printing may affect print quality, please choose "
+"carefully."
 
 msgid "Change Anyway"
-msgstr ""
+msgstr "Change Anyway"
 
 msgid "Off"
-msgstr ""
+msgstr "Išjungta"
 
 msgid "Filter"
 msgstr "Filtras"
@@ -2893,37 +2922,43 @@ msgid ""
 "Enabling filtration redirects the right fan to filter gas, which may reduce "
 "cooling performance."
 msgstr ""
+"Enabling filtration redirects the right fan to filter gas, which may reduce "
+"cooling performance."
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
 "quality. Please choose carefully."
 msgstr ""
+"Enabling filtration during printing may reduce cooling and affect print "
+"quality. Please choose carefully."
 
 msgid ""
 "The selected material only supports the current fan mode, and it can't be "
 "changed during printing."
 msgstr ""
+"The selected material only supports the current fan mode, and it can't be "
+"changed during printing."
 
 msgid "Cooling"
 msgstr "Aušinimas"
 
 msgid "Heating"
-msgstr ""
+msgstr "Šildymas"
 
 msgid "Exhaust"
-msgstr ""
+msgstr "Exhaust"
 
 msgid "Full Cooling"
-msgstr ""
+msgstr "Full Cooling"
 
 msgid "Init"
-msgstr ""
+msgstr "Init"
 
 msgid "Chamber"
-msgstr ""
+msgstr "Kamera"
 
 msgid "Innerloop"
-msgstr ""
+msgstr "Innerloop"
 
 #. TRN To be shown in the main menu View->Top
 msgid "Top"
@@ -2934,57 +2969,66 @@ msgid ""
 "The system automatically adjusts the fan's switch and speed according to "
 "different printing materials."
 msgstr ""
+"The fan controls the temperature during printing to improve print quality. "
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 
 msgid ""
 "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the "
 "chamber air."
 msgstr ""
+"Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the "
+"chamber air."
 
 msgid ""
 "Heating mode is suitable for printing ABS/ASA/PC/PA materials and circulates "
 "filters the chamber air."
 msgstr ""
+"Heating mode is suitable for printing ABS/ASA/PC/PA materials and circulates "
+"filters the chamber air."
 
 msgid ""
 "Strong cooling mode is suitable for printing PLA/TPU materials. In this "
 "mode, the printouts will be fully cooled."
 msgstr ""
+"Strong cooling mode is suitable for printing PLA/TPU materials. In this "
+"mode, the printouts will be fully cooled."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials."
-msgstr ""
+msgstr "Cooling mode is suitable for printing PLA/PETG/TPU materials."
 
 msgctxt "air_duct"
 msgid "Right(Aux)"
-msgstr ""
+msgstr "Right(Aux)"
 
 msgctxt "air_duct"
 msgid "Right(Filter)"
-msgstr ""
+msgstr "Right(Filter)"
 
 msgctxt "air_duct"
 msgid "Left(Aux)"
-msgstr ""
+msgstr "Left(Aux)"
 
 msgid "Hotend"
-msgstr ""
+msgstr "Hotend"
 
 msgid "Parts"
-msgstr ""
+msgstr "Parts"
 
 msgid "Aux"
 msgstr "Papild"
 
 msgid "Nozzle1"
-msgstr ""
+msgstr "Nozzle1"
 
 msgid "MC Board"
-msgstr ""
+msgstr "MC Board"
 
 msgid "Heat"
-msgstr ""
+msgstr "Heat"
 
 msgid "Fan"
-msgstr ""
+msgstr "Ventiliatorius"
 
 msgid "Idling..."
 msgstr "Laisvinama..."
@@ -3014,10 +3058,10 @@ msgid "Check filament location"
 msgstr "Patikrinti gijos padėtį"
 
 msgid "The maximum temperature cannot exceed "
-msgstr ""
+msgstr "The maximum temperature cannot exceed "
 
 msgid "The minmum temperature should not be less than "
-msgstr ""
+msgstr "The minmum temperature should not be less than "
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3206,25 +3250,32 @@ msgid "Access code:%s IP address:%s"
 msgstr "Prieigos kodas: %s IP adresas: %s"
 
 msgid "A Storage needs to be inserted before printing via LAN."
-msgstr ""
+msgstr "A Storage needs to be inserted before printing via LAN."
 
 msgid ""
 "Sending print job over LAN, but the Storage in the printer is abnormal and "
 "print-issues may be caused by this."
 msgstr ""
+"Sending print job over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
 
 msgid ""
 "The Storage in the printer is abnormal. Please replace it with a normal "
 "Storage before sending print job to printer."
 msgstr ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending print job to printer."
 
 msgid ""
 "The Storage in the printer is read-only. Please replace it with a normal "
 "Storage before sending print job to printer."
 msgstr ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending print job to printer."
 
 msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
+"Encountered an unknown error with the Storage status. Please try again."
 
 msgid "Sending G-code file over LAN"
 msgstr "Vietiniu tinklu siunčiamas G-kodo failas"
@@ -3237,69 +3288,77 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "Sėkmingai išsiųsta. Dabartinis puslapis užsivers po %s sek"
 
 msgid "Storage needs to be inserted before sending to printer."
-msgstr ""
+msgstr "Storage needs to be inserted before sending to printer."
 
 msgid ""
 "Sending G-code file over LAN, but the Storage in the printer is abnormal and "
 "print-issues may be caused by this."
 msgstr ""
+"Sending G-code file over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
 
 msgid ""
 "The Storage in the printer is abnormal. Please replace it with a normal "
 "Storage before sending to printer."
 msgstr ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending to printer."
 
 msgid ""
 "The Storage in the printer is read-only. Please replace it with a normal "
 "Storage before sending to printer."
 msgstr ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending to printer."
 
 msgid "Bad input data for EmbossCreateObjectJob."
-msgstr ""
+msgstr "Bad input data for EmbossCreateObjectJob."
 
 msgid "Add Emboss text object"
-msgstr ""
+msgstr "Add Emboss text object"
 
 msgid "Bad input data for EmbossUpdateJob."
-msgstr ""
+msgstr "Bad input data for EmbossUpdateJob."
 
 msgid "Created text volume is empty. Change text or font."
-msgstr ""
+msgstr "Created text volume is empty. Change text or font."
 
 msgid "Bad input data for CreateSurfaceVolumeJob."
-msgstr ""
+msgstr "Bad input data for CreateSurfaceVolumeJob."
 
 msgid "Bad input data for UseSurfaceJob."
-msgstr ""
+msgstr "Bad input data for UseSurfaceJob."
 
 #. TRN: This is the title of the action appearing in undo/redo stack.
 #. It is same for Text and SVG.
 msgid "Emboss attribute change"
-msgstr ""
+msgstr "Emboss attribute change"
 
 msgid "Add Emboss text Volume"
-msgstr ""
+msgstr "Add Emboss text Volume"
 
 msgid "Font doesn't have any shape for given text."
-msgstr ""
+msgstr "Font doesn't have any shape for given text."
 
 msgid "There is no valid surface for text projection."
-msgstr ""
+msgstr "There is no valid surface for text projection."
 
 msgid "Thermal Preconditioning for first layer optimization"
-msgstr ""
+msgstr "Thermal Preconditioning for first layer optimization"
 
 msgid "Remaining time: Calculating..."
-msgstr ""
+msgstr "Remaining time: Calculating..."
 
 msgid ""
 "The heated bed's thermal preconditioning helps optimize the first layer "
 "print quality. Printing will start once preconditioning is complete."
 msgstr ""
+"The heated bed's thermal preconditioning helps optimize the first layer "
+"print quality. Printing will start once preconditioning is complete."
 
 #, c-format, boost-format
 msgid "Remaining time: %dmin%ds"
-msgstr ""
+msgstr "Remaining time: %dmin%ds"
 
 msgid "Importing SLA archive"
 msgstr "Importuojamas SLA archyvas"
@@ -3470,6 +3529,9 @@ msgid ""
 "the filament.\n"
 "'Device -> Print parts'"
 msgstr ""
+"The nozzle flow is not set. Please set the nozzle flow rate before editing "
+"the filament.\n"
+"'Device -> Print parts'"
 
 msgid "AMS"
 msgstr "AMS"
@@ -3559,7 +3621,7 @@ msgid "Step"
 msgstr "Žingsnis"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Unmapped"
 
 msgid ""
 "Upper half area:  Original\n"
@@ -3567,30 +3629,40 @@ msgid ""
 "unmapped.\n"
 "And you can click it to modify"
 msgstr ""
+"Upper half area:  Original\n"
+"Lower half area: The filament from original project will be used when "
+"unmapped.\n"
+"And you can click it to modify"
 
 msgid ""
 "Upper half area:  Original\n"
 "Lower half area:  Filament in AMS\n"
 "And you can click it to modify"
 msgstr ""
+"Upper half area:  Original\n"
+"Lower half area:  Filament in AMS\n"
+"And you can click it to modify"
 
 msgid ""
 "Upper half area:  Original\n"
 "Lower half area:  Filament in AMS\n"
 "And you cannot click it to modify"
 msgstr ""
+"Upper half area:  Original\n"
+"Lower half area:  Filament in AMS\n"
+"And you cannot click it to modify"
 
 msgid "AMS Slots"
 msgstr "AMS angos"
 
 msgid "Please select from the following filaments"
-msgstr ""
+msgstr "Please select from the following filaments"
 
 msgid "Select filament that installed to the left nozzle"
-msgstr ""
+msgstr "Select filament that installed to the left nozzle"
 
 msgid "Select filament that installed to the right nozzle"
-msgstr ""
+msgstr "Select filament that installed to the right nozzle"
 
 msgid "Left AMS"
 msgstr "Kairysis AMS"
@@ -3599,16 +3671,16 @@ msgid "External"
 msgstr "Išorinis"
 
 msgid "Reset current filament mapping"
-msgstr ""
+msgstr "Reset current filament mapping"
 
 msgid "Right AMS"
 msgstr "Dešinysis AMS"
 
 msgid "Left Nozzle"
-msgstr ""
+msgstr "Left Nozzle"
 
 msgid "Right Nozzle"
-msgstr ""
+msgstr "Right Nozzle"
 
 msgid "Nozzle"
 msgstr "Purkštukas"
@@ -3619,15 +3691,20 @@ msgid ""
 "slicing file. If you want to use this slot, you can install %s instead of %s "
 "and change slot information on the 'Device' page."
 msgstr ""
+"Note: the filament type(%s) does not match with the filament type(%s) in the "
+"slicing file. If you want to use this slot, you can install %s instead of %s "
+"and change slot information on the 'Device' page."
 
 #, c-format, boost-format
 msgid ""
 "Note: the slot is empty or undefined. If you want to use this slot, you can "
 "install %s and change slot information on the 'Device' page."
 msgstr ""
+"Note: the slot is empty or undefined. If you want to use this slot, you can "
+"install %s and change slot information on the 'Device' page."
 
 msgid "Note: Only filament-loaded slots can be selected."
-msgstr ""
+msgstr "Note: Only filament-loaded slots can be selected."
 
 msgid "Enable AMS"
 msgstr "Įjungti AMS"
@@ -3692,7 +3769,7 @@ msgstr ""
 "Pasibaigus esamai medžiagai, spausdintuvas toliau spausdins šia tvarka."
 
 msgid "Identical filament: same brand, type and color."
-msgstr ""
+msgstr "Identical filament: same brand, type and color."
 
 msgid "Group"
 msgstr "Grupė"
@@ -3701,6 +3778,8 @@ msgid ""
 "When the current material runs out, the printer would use identical filament "
 "to continue printing."
 msgstr ""
+"When the current material runs out, the printer would use identical filament "
+"to continue printing."
 
 msgid "The printer does not currently support auto refill."
 msgstr "Šiuo metu spausdintuvas nepalaiko automatinio papildymo."
@@ -3714,6 +3793,9 @@ msgid ""
 "to continue printing.\n"
 "*Identical filament: same brand, type and color."
 msgstr ""
+"When the current filament runs out, the printer will use identical filament "
+"to continue printing.\n"
+"*Identical filament: same brand, type and color."
 
 msgid "DRY"
 msgstr "SAUSA"
@@ -3774,6 +3856,8 @@ msgid ""
 "AMS will attempt to estimate the remaining capacity of the Bambu Lab "
 "filaments."
 msgstr ""
+"AMS will attempt to estimate the remaining capacity of the Bambu Lab "
+"filaments."
 
 msgid "AMS filament backup"
 msgstr "AMS atsarginė gija"
@@ -3796,27 +3880,30 @@ msgstr ""
 "karto sustabdo spausdinimą."
 
 msgid "AMS Type"
-msgstr ""
+msgstr "AMS Type"
 
 msgid "Switching"
-msgstr ""
+msgstr "Switching"
 
 msgid "The printer is busy and cannot switch AMS type."
-msgstr ""
+msgstr "The printer is busy and cannot switch AMS type."
 
 msgid "Please unload all filament before switching."
-msgstr ""
+msgstr "Please unload all filament before switching."
 
 msgid "AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
+"AMS type switching needs firmware update, taking about 30s. Switch now?"
 
 msgid "Arrange AMS Order"
-msgstr ""
+msgstr "Arrange AMS Order"
 
 msgid ""
 "AMS ID will be reset. If you want a specific ID sequence, disconnect all AMS "
 "before resetting and connect them in the desired order after resetting."
 msgstr ""
+"AMS ID will be reset. If you want a specific ID sequence, disconnect all AMS "
+"before resetting and connect them in the desired order after resetting."
 
 msgid "File"
 msgstr "Failas"
@@ -3836,6 +3923,9 @@ msgid ""
 "restart OrcaSlicer and try again. Also check whether it is blocked or "
 "deleted by anti-virus software."
 msgstr ""
+"Failed to install the plug-in. The plug-in file may be in use. Please "
+"restart OrcaSlicer and try again. Also check whether it is blocked or "
+"deleted by anti-virus software."
 
 msgid "Click here to see more info"
 msgstr "spustelėkite norėdami gauti daugiau informacijos"
@@ -3844,9 +3934,11 @@ msgid ""
 "The network plug-in was installed but could not be loaded. Please restart "
 "the application."
 msgstr ""
+"The network plug-in was installed but could not be loaded. Please restart "
+"the application."
 
 msgid "Restart Required"
-msgstr ""
+msgstr "Restart Required"
 
 msgid "Please home all axes (click "
 msgstr "Prašome sugrąžinti visas ašis į pradinę padėtį (spauskite "
@@ -4049,11 +4141,11 @@ msgstr "Pagrindo forma"
 
 #, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
-msgstr ""
+msgstr "A minimum temperature above %d℃ is recommended for %s.\n"
 
 #, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
-msgstr ""
+msgstr "A maximum temperature below %d℃ is recommended for %s.\n"
 
 msgid ""
 "The recommended minimum temperature cannot be higher than the recommended "
@@ -4119,7 +4211,7 @@ msgid ""
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
-"Netinkamas pradinio sluoksnio aukštis.\n"
+"Nulinis pradinio sluoksnio aukštis yra netinkamas.\n"
 "\n"
 "Pirmojo sluoksnio aukštis bus atstatytas į 0,2."
 
@@ -4245,6 +4337,9 @@ msgid ""
 "detection by probing is disabled, top shell layers is 0, sparse infill "
 "density is 0 and timelapse type is traditional."
 msgstr ""
+"Spiral mode only works when wall loops is 1, support is disabled, clumping "
+"detection by probing is disabled, top shell layers is 0, sparse infill "
+"density is 0 and timelapse type is traditional."
 
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr ""
@@ -4279,13 +4374,13 @@ msgid "M400 pause"
 msgstr "M400 pauzė"
 
 msgid "Paused (filament ran out)"
-msgstr ""
+msgstr "Paused (filament ran out)"
 
 msgid "Heating nozzle"
-msgstr ""
+msgstr "Heating nozzle"
 
 msgid "Calibrating dynamic flow"
-msgstr ""
+msgstr "Calibrating dynamic flow"
 
 msgid "Scanning bed surface"
 msgstr "Skenuojamas pagrindo paviršius"
@@ -4309,28 +4404,28 @@ msgid "Checking extruder temperature"
 msgstr "Tikrinama ekstruderio temperatūra"
 
 msgid "Paused by the user"
-msgstr ""
+msgstr "Paused by the user"
 
 msgid "Pause (front cover fall off)"
-msgstr ""
+msgstr "Pause (front cover fall off)"
 
 msgid "Calibrating the micro lidar"
 msgstr "Mikro lidaro kalibravimas"
 
 msgid "Calibrating flow ratio"
-msgstr ""
+msgstr "Calibrating flow ratio"
 
 msgid "Pause (nozzle temperature malfunction)"
-msgstr ""
+msgstr "Pause (nozzle temperature malfunction)"
 
 msgid "Pause (heatbed temperature malfunction)"
-msgstr ""
+msgstr "Pause (heatbed temperature malfunction)"
 
 msgid "Filament unloading"
 msgstr "Gija išstumiama"
 
 msgid "Pause (step loss)"
-msgstr ""
+msgstr "Pause (step loss)"
 
 msgid "Filament loading"
 msgstr "Gija įtraukiama"
@@ -4339,103 +4434,103 @@ msgid "Motor noise cancellation"
 msgstr "Variklių garso sumažinimas"
 
 msgid "Pause (AMS offline)"
-msgstr ""
+msgstr "Pause (AMS offline)"
 
 msgid "Pause (low speed of the heatbreak fan)"
-msgstr ""
+msgstr "Pause (low speed of the heatbreak fan)"
 
 msgid "Pause (chamber temperature control problem)"
-msgstr ""
+msgstr "Pause (chamber temperature control problem)"
 
 msgid "Cooling chamber"
 msgstr "Aušinama kamera"
 
 msgid "Pause (G-code inserted by user)"
-msgstr ""
+msgstr "Pause (G-code inserted by user)"
 
 msgid "Motor noise showoff"
 msgstr "Variklio triukšmo demonstravimas"
 
 msgid "Pause (nozzle clumping)"
-msgstr ""
+msgstr "Pause (nozzle clumping)"
 
 msgid "Pause (cutter error)"
-msgstr ""
+msgstr "Pause (cutter error)"
 
 msgid "Pause (first layer error)"
-msgstr ""
+msgstr "Pause (first layer error)"
 
 msgid "Pause (nozzle clog)"
-msgstr ""
+msgstr "Pause (nozzle clog)"
 
 msgid "Measuring motion precision"
-msgstr ""
+msgstr "Measuring motion precision"
 
 msgid "Enhancing motion precision"
-msgstr ""
+msgstr "Enhancing motion precision"
 
 msgid "Measure motion accuracy"
-msgstr ""
+msgstr "Measure motion accuracy"
 
 msgid "Nozzle offset calibration"
-msgstr ""
+msgstr "Nozzle offset calibration"
 
 msgid "High temperature auto bed leveling"
-msgstr ""
+msgstr "High temperature auto bed leveling"
 
 msgid "Auto Check: Quick Release Lever"
-msgstr ""
+msgstr "Auto Check: Quick Release Lever"
 
 msgid "Auto Check: Door and Upper Cover"
-msgstr ""
+msgstr "Auto Check: Door and Upper Cover"
 
 msgid "Laser Calibration"
-msgstr ""
+msgstr "Laser Calibration"
 
 msgid "Auto Check: Platform"
-msgstr ""
+msgstr "Auto Check: Platform"
 
 msgid "Confirming BirdsEye Camera location"
-msgstr ""
+msgstr "Confirming BirdsEye Camera location"
 
 msgid "Calibrating BirdsEye Camera"
-msgstr ""
+msgstr "Calibrating BirdsEye Camera"
 
 msgid "Auto bed leveling -phase 1"
-msgstr ""
+msgstr "Auto bed leveling -phase 1"
 
 msgid "Auto bed leveling -phase 2"
-msgstr ""
+msgstr "Auto bed leveling -phase 2"
 
 msgid "Heating chamber"
-msgstr ""
+msgstr "Heating chamber"
 
 msgid "Cooling heatbed"
-msgstr ""
+msgstr "Cooling heatbed"
 
 msgid "Printing calibration lines"
-msgstr ""
+msgstr "Printing calibration lines"
 
 msgid "Auto Check: Material"
-msgstr ""
+msgstr "Auto Check: Material"
 
 msgid "Live View Camera Calibration"
-msgstr ""
+msgstr "Live View Camera Calibration"
 
 msgid "Waiting for heatbed to reach target temperature"
-msgstr ""
+msgstr "Waiting for heatbed to reach target temperature"
 
 msgid "Auto Check: Material Position"
-msgstr ""
+msgstr "Auto Check: Material Position"
 
 msgid "Cutting Module Offset Calibration"
-msgstr ""
+msgstr "Cutting Module Offset Calibration"
 
 msgid "Measuring Surface"
-msgstr ""
+msgstr "Measuring Surface"
 
 msgid "Calibrating the detection position of nozzle clumping"
-msgstr ""
+msgstr "Calibrating the detection position of nozzle clumping"
 
 msgid "Unknown"
 msgstr "Nežinomas"
@@ -4453,21 +4548,23 @@ msgid "Update failed."
 msgstr "Atnaujinimas nepavyko."
 
 msgid "Timelapse is not supported on this printer."
-msgstr ""
+msgstr "Timelapse is not supported on this printer."
 
 msgid "Timelapse is not supported while the storage does not exist."
-msgstr ""
+msgstr "Timelapse is not supported while the storage does not exist."
 
 msgid "Timelapse is not supported while the storage is unavailable."
-msgstr ""
+msgstr "Timelapse is not supported while the storage is unavailable."
 
 msgid "Timelapse is not supported while the storage is readonly."
-msgstr ""
+msgstr "Timelapse is not supported while the storage is readonly."
 
 msgid ""
 "To ensure your safety, certain processing tasks (such as laser) can only be "
 "resumed on printer."
 msgstr ""
+"To ensure your safety, certain processing tasks (such as laser) can only be "
+"resumed on printer."
 
 #, c-format, boost-format
 msgid ""
@@ -4475,12 +4572,17 @@ msgid ""
 "Please wait until the chamber temperature drops below %d℃. You may open the "
 "front door or enable fans to cool down."
 msgstr ""
+"The chamber temperature is too high, which may cause the filament to soften. "
+"Please wait until the chamber temperature drops below %d℃. You may open the "
+"front door or enable fans to cool down."
 
 #, c-format, boost-format
 msgid ""
 "AMS temperature is too high, which may cause the filament to soften. Please "
 "wait until the AMS temperature drops below %d℃."
 msgstr ""
+"AMS temperature is too high, which may cause the filament to soften. Please "
+"wait until the AMS temperature drops below %d℃."
 
 #, fuzzy
 msgid ""
@@ -4496,6 +4598,8 @@ msgid ""
 "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
 "to avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
+"to avoid extruder clogging, it is not allowed to set the chamber temperature."
 
 msgid ""
 "When you set the chamber temperature below 40℃, the chamber temperature "
@@ -4530,10 +4634,10 @@ msgid "Resume Printing"
 msgstr "Tęsti spausdinimą"
 
 msgid "Resume (defects acceptable)"
-msgstr ""
+msgstr "Resume (defects acceptable)"
 
 msgid "Resume (problem solved)"
-msgstr ""
+msgstr "Resume (problem solved)"
 
 msgid "Stop Printing"
 msgstr "Nutraukti spausdinimą"
@@ -4560,28 +4664,28 @@ msgid "View Liveview"
 msgstr "Peržiūrėti tiesioginį vaizdą"
 
 msgid "No Reminder Next Time"
-msgstr ""
+msgstr "No Reminder Next Time"
 
 msgid "Ignore. Don't Remind Next Time"
-msgstr ""
+msgstr "Ignore. Don't Remind Next Time"
 
 msgid "Ignore this and Resume"
-msgstr ""
+msgstr "Ignore this and Resume"
 
 msgid "Problem Solved and Resume"
-msgstr ""
+msgstr "Problem Solved and Resume"
 
 msgid "Got it, Turn off the Fire Alarm."
-msgstr ""
+msgstr "Got it, Turn off the Fire Alarm."
 
 msgid "Retry (problem solved)"
-msgstr ""
+msgstr "Retry (problem solved)"
 
 msgid "Stop Drying"
-msgstr ""
+msgstr "Stop Drying"
 
 msgid "Proceed"
-msgstr ""
+msgstr "Proceed"
 
 msgid "Done"
 msgstr "Atlikta"
@@ -4593,7 +4697,7 @@ msgid "Resume"
 msgstr "Pratęsti"
 
 msgid "Unknown error."
-msgstr ""
+msgstr "Nežinoma klaida."
 
 msgid "default"
 msgstr "numatytas"
@@ -4665,8 +4769,14 @@ msgstr "Spausdintuvo nustatymai"
 msgid "parameter name"
 msgstr "parametro pavadinimas"
 
+msgid "layers"
+msgstr "sluoksniai"
+
 msgid "Range"
 msgstr "Diapazonas"
+
+msgid "Empty string"
+msgstr "Tuščia eilutė"
 
 msgid "Value is out of range."
 msgstr "Dydis netelpa į ribas."
@@ -4731,7 +4841,7 @@ msgid "Pick"
 msgstr "Pasirinkite"
 
 msgid "Summary"
-msgstr ""
+msgstr "Santrauka"
 
 msgid "Layer Height"
 msgstr "Sluoksnio aukštis"
@@ -4761,10 +4871,10 @@ msgid "Layer Time (log)"
 msgstr "Sluoksnio laikas (log)"
 
 msgid "Pressure Advance"
-msgstr ""
+msgstr "Pressure Advance"
 
 msgid "Noop"
-msgstr ""
+msgstr "Noop"
 
 msgid "Retract"
 msgstr "Įtraukti"
@@ -4779,10 +4889,10 @@ msgid "Tool Change"
 msgstr "Įrankių keitimas"
 
 msgid "Color Change"
-msgstr ""
+msgstr "Color Change"
 
 msgid "Pause Print"
-msgstr ""
+msgstr "Pause Print"
 
 msgid "Travel"
 msgstr "Judėjimas"
@@ -4791,7 +4901,7 @@ msgid "Wipe"
 msgstr "Valymas"
 
 msgid "Extrude"
-msgstr ""
+msgstr "Extrude"
 
 msgid "Inner wall"
 msgstr "Vidinė siena"
@@ -4830,22 +4940,22 @@ msgid "Bottom surface"
 msgstr "Apatinis paviršius"
 
 msgid "Internal bridge"
-msgstr ""
+msgstr "Internal bridge"
 
 msgid "Support transition"
 msgstr "Atramų perėjimas"
 
 msgid "Mixed"
-msgstr ""
+msgstr "Mixed"
 
 msgid "mm/s"
-msgstr ""
+msgstr "mm/s"
 
 msgid "Flow rate"
 msgstr "Srauto greitis"
 
 msgid "mm³/s"
-msgstr ""
+msgstr "mm³/s"
 
 msgid "Fan speed"
 msgstr "Ventiliatoriaus greitis"
@@ -4857,7 +4967,7 @@ msgid "Time"
 msgstr "Laikas"
 
 msgid "Actual speed profile"
-msgstr ""
+msgstr "Actual speed profile"
 
 msgid "Speed: "
 msgstr "Greitis: "
@@ -4881,16 +4991,16 @@ msgid "Layer Time: "
 msgstr "Sluoksnio laikas: "
 
 msgid "Tool: "
-msgstr ""
+msgstr "Tool: "
 
 msgid "Color: "
-msgstr ""
+msgstr "Color: "
 
 msgid "Actual Speed: "
 msgstr "Faktinis greitis: "
 
 msgid "PA: "
-msgstr ""
+msgstr "PA: "
 
 msgid "Statistics of All Plates"
 msgstr "Visų plokščių statistika"
@@ -4920,64 +5030,73 @@ msgid ""
 "Automatically re-slice according to the optimal filament grouping, and the "
 "grouping results will be displayed after slicing."
 msgstr ""
+"Automatically re-slice according to the optimal filament grouping, and the "
+"grouping results will be displayed after slicing."
 
 msgid "Filament Grouping"
-msgstr ""
+msgstr "Filament Grouping"
 
 msgid "Why this grouping"
-msgstr ""
+msgstr "Why this grouping"
 
 msgid "Left nozzle"
-msgstr ""
+msgstr "Left nozzle"
 
 msgid "Right nozzle"
-msgstr ""
+msgstr "Right nozzle"
 
 msgid "Please place filaments on the printer based on grouping result."
-msgstr ""
+msgstr "Please place filaments on the printer based on grouping result."
 
 msgid "Tips:"
 msgstr "Patarimai:"
 
 msgid "Current grouping of slice result is not optimal."
-msgstr ""
+msgstr "Current grouping of slice result is not optimal."
 
 #, boost-format
 msgid "Increase %1%g filament and %2% changes compared to optimal grouping."
-msgstr ""
+msgstr "Increase %1%g filament and %2% changes compared to optimal grouping."
 
 #, boost-format
 msgid ""
 "Increase %1%g filament and save %2% changes compared to optimal grouping."
 msgstr ""
+"Increase %1%g filament and save %2% changes compared to optimal grouping."
 
 #, boost-format
 msgid ""
 "Save %1%g filament and increase %2% changes compared to optimal grouping."
 msgstr ""
+"Save %1%g filament and increase %2% changes compared to optimal grouping."
 
 #, boost-format
 msgid ""
 "Save %1%g filament and %2% changes compared to a printer with one nozzle."
 msgstr ""
+"Save %1%g filament and %2% changes compared to a printer with one nozzle."
 
 #, boost-format
 msgid ""
 "Save %1%g filament and increase %2% changes compared to a printer with one "
 "nozzle."
 msgstr ""
+"Save %1%g filament and increase %2% changes compared to a printer with one "
+"nozzle."
 
 #, boost-format
 msgid ""
 "Increase %1%g filament and save %2% changes compared to a printer with one "
 "nozzle."
 msgstr ""
+"Increase %1%g filament and save %2% changes compared to a printer with one "
+"nozzle."
 
 msgid "Set to Optimal"
-msgstr ""
+msgstr "Set to Optimal"
 
 msgid "Regroup filament"
-msgstr ""
+msgstr "Regroup filament"
 
 msgid "Tips"
 msgstr "Patarimai"
@@ -5016,7 +5135,7 @@ msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tūrinis srautas (mm³/s)"
 
 msgid "Actual volumetric flow rate (mm³/s)"
-msgstr ""
+msgstr "Actual volumetric flow rate (mm³/s)"
 
 msgid "Seams"
 msgstr "Siūlės"
@@ -5064,10 +5183,10 @@ msgid "Model printing time"
 msgstr "Modelio spausdinimo laikas"
 
 msgid "Show stealth mode"
-msgstr ""
+msgstr "Show stealth mode"
 
 msgid "Show normal mode"
-msgstr ""
+msgstr "Show normal mode"
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
@@ -5075,6 +5194,10 @@ msgid ""
 "Please ensure the filaments used by this object are not arranged to other "
 "nozzles."
 msgstr ""
+"An object is placed in the left/right nozzle-only area or exceeds the "
+"printable height of the left nozzle.\n"
+"Please ensure the filaments used by this object are not arranged to other "
+"nozzles."
 
 msgid ""
 "An object is laid over the boundary of plate or exceeds the height limit.\n"
@@ -5137,38 +5260,44 @@ msgid ""
 "Following objects are laid over the boundary of plate or exceeds the height "
 "limit:\n"
 msgstr ""
+"Following objects are laid over the boundary of plate or exceeds the height "
+"limit:\n"
 
 msgid ""
 "Please solve the problem by moving it totally on or off the plate, and "
 "confirming that the height is within the build volume.\n"
 msgstr ""
+"Please solve the problem by moving it totally on or off the plate, and "
+"confirming that the height is within the build volume.\n"
 
 msgid "left nozzle"
-msgstr ""
+msgstr "left nozzle"
 
 msgid "right nozzle"
-msgstr ""
+msgstr "right nozzle"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
-msgstr ""
+msgstr "The position or size of some models exceeds the %s's printable range."
 
 #, c-format, boost-format
 msgid "The position or size of the model %s exceeds the %s's printable range."
-msgstr ""
+msgstr "The position or size of the model %s exceeds the %s's printable range."
 
 msgid ""
 " Please check and adjust the part's position or size to fit the printable "
 "range:\n"
 msgstr ""
+" Please check and adjust the part's position or size to fit the printable "
+"range:\n"
 
 #, boost-format
 msgid "Left nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
-msgstr ""
+msgstr "Left nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 
 #, boost-format
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
-msgstr ""
+msgstr "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 msgid "Mirror Object"
 msgstr "Atspindėti objektą"
@@ -5217,11 +5346,11 @@ msgstr "Išlygiuoti pagal Y ašį"
 
 msgctxt "Camera"
 msgid "Left"
-msgstr ""
+msgstr "Kairė"
 
 msgctxt "Camera"
 msgid "Right"
-msgstr ""
+msgstr "Dešinė"
 
 msgid "Add"
 msgstr "Įtraukti"
@@ -5275,34 +5404,34 @@ msgid "Return"
 msgstr "Grąžinti"
 
 msgid "Canvas Toolbar"
-msgstr ""
+msgstr "Canvas Toolbar"
 
 msgid "Fit camera to scene or selected object."
-msgstr ""
+msgstr "Fit camera to scene or selected object."
 
 msgid "3D Navigator"
-msgstr ""
+msgstr "3D Navigator"
 
 msgid "Zoom button"
-msgstr ""
+msgstr "Zoom button"
 
 msgid "Overhangs"
 msgstr "Iškyšos"
 
 msgid "Outline"
-msgstr ""
+msgstr "Outline"
 
 msgid "Perspective"
-msgstr ""
+msgstr "Perspective"
 
 msgid "Axes"
-msgstr ""
+msgstr "Axes"
 
 msgid "Gridlines"
-msgstr ""
+msgstr "Gridlines"
 
 msgid "Labels"
-msgstr ""
+msgstr "Labels"
 
 msgid "Paint Toolbar"
 msgstr "Piešimo įrankių juosta"
@@ -5331,7 +5460,7 @@ msgstr "Tūris:"
 msgid "Size:"
 msgstr "Dydis:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5349,72 +5478,79 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "G-kode judėjimo maršrutas išeina už spausdinimo plokštės ribų."
 
 msgid "Not support printing 2 or more TPU filaments."
-msgstr ""
+msgstr "Not support printing 2 or more TPU filaments."
 
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr ""
+msgstr "Tool %d"
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
+"Filament %s is placed in the %s, but the generated G-code path exceeds the "
+"printable range of the %s."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
+"printable range of the %s."
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
+"Filament %s is placed in the %s, but the generated G-code path exceeds the "
+"printable height of the %s."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
+"printable height of the %s."
 
 msgid "Open wiki for more information."
-msgstr ""
+msgstr "Open wiki for more information."
 
 msgid "Only the object being edited is visible."
 msgstr "Matomas tik redaguojamas objektas."
 
 #, c-format, boost-format
 msgid "Filaments %s cannot be printed directly on the surface of this plate."
-msgstr ""
+msgstr "Filaments %s cannot be printed directly on the surface of this plate."
 
 msgid ""
 "PLA and PETG filaments detected in the mixture. Adjust parameters according "
 "to the Wiki to ensure print quality."
 msgstr ""
+"PLA and PETG filaments detected in the mixture. Adjust parameters according "
+"to the Wiki to ensure print quality."
 
 msgid "The prime tower extends beyond the plate boundary."
-msgstr ""
-
-msgid ""
-"Prime tower position exceeded build plate boundaries and was repositioned to "
-"the nearest valid edge."
-msgstr ""
+msgstr "The prime tower extends beyond the plate boundary."
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
 "mixing in models. Please readjust flushing settings."
 msgstr ""
+"Partial flushing volume set to 0. Multi-color printing may cause color "
+"mixing in models. Please readjust flushing settings."
 
 msgid "Click Wiki for help."
-msgstr ""
+msgstr "Click Wiki for help."
 
 msgid "Click here to regroup"
-msgstr ""
+msgstr "Click here to regroup"
 
 msgid "Flushing Volume"
-msgstr ""
+msgstr "Flushing Volume"
 
 msgid "Calibration step selection"
 msgstr "Kalibravimo žingsnio pasirinkimas"
@@ -5426,10 +5562,10 @@ msgid "Bed leveling"
 msgstr "Spausdinimo pagrindo išlyginimas"
 
 msgid "High-temperature Heatbed Calibration"
-msgstr ""
+msgstr "High-temperature Heatbed Calibration"
 
 msgid "Nozzle clumping detection Calibration"
-msgstr ""
+msgstr "Nozzle clumping detection Calibration"
 
 msgid "Calibration program"
 msgstr "Kalibravimo programa"
@@ -5492,11 +5628,15 @@ msgid ""
 "You can find it in \"Settings > Network > Access code\"\n"
 "on the printer, as shown in the figure:"
 msgstr ""
+"You can find it in \"Settings > Network > Access code\"\n"
+"on the printer, as shown in the figure:"
 
 msgid ""
 "You can find it in \"Setting > Setting > LAN only > Access Code\"\n"
 "on the printer, as shown in the figure:"
 msgstr ""
+"You can find it in \"Setting > Setting > LAN only > Access Code\"\n"
+"on the printer, as shown in the figure:"
 
 msgid "Invalid input."
 msgstr "Netinkama įvestis."
@@ -5582,8 +5722,8 @@ msgstr "Rodyti konfigūravimo katalogą"
 msgid "Show Tip of the Day"
 msgstr "Rodyti dienos patarimą"
 
-msgid "Check for Update"
-msgstr "Patikrinti ar nėra atnaujinimų"
+msgid "Check for Updates"
+msgstr "Tikrinti atnaujinimus"
 
 msgid "Open Network Test"
 msgstr "Atidaryti tinklo testą"
@@ -5684,10 +5824,10 @@ msgid "Export all objects as STLs"
 msgstr "Eksportuoti visus objektus kaip STL"
 
 msgid "Export all objects as one DRC"
-msgstr ""
+msgstr "Export all objects as one DRC"
 
 msgid "Export all objects as DRCs"
-msgstr ""
+msgstr "Export all objects as DRCs"
 
 msgid "Export Generic 3MF"
 msgstr "Eksportuoti pagrindinį 3MF"
@@ -5808,10 +5948,10 @@ msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr "Rodyti 3D navigatorių paruošimo ir peržiūros scenose."
 
 msgid "Show Gridlines"
-msgstr ""
+msgstr "Show Gridlines"
 
 msgid "Show Gridlines on plate"
-msgstr ""
+msgstr "Show Gridlines on plate"
 
 msgid "Reset Window Layout"
 msgstr "Atstatyti lango išdėstymą"
@@ -5858,26 +5998,29 @@ msgstr "Filamento tiekimas posūkio metu"
 msgid "Pass 1"
 msgstr "1 fazė"
 
-msgid "Flow rate test - Pass 1"
-msgstr "Srauto testas - 1 fazė"
+msgid "Flow ratio test - Pass 1"
+msgstr "Srauto santykio testas - 1 fazė"
 
 msgid "Pass 2"
 msgstr "2 fazė"
 
-msgid "Flow rate test - Pass 2"
-msgstr "Srauto testas - 2 fazė"
+msgid "Flow ratio test - Pass 2"
+msgstr "Srauto santykio testas - 2 fazė"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO (rekomenduojama)"
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
-msgstr "„Orca YOLO“ srauto kalibravimas, 0,01 žingsnis"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
+msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,01 žingsnis"
 
 msgid "YOLO (perfectionist version)"
 msgstr "YOLO (perfekcionistinė versija)"
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
-msgstr "„Orca YOLO“ srauto kalibravimas, 0,005 žingsnis"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,005 žingsnis"
+
+msgid "Flow ratio"
+msgstr "Srauto santykis"
 
 msgid "Retraction test"
 msgstr "Įtraukimo testas"
@@ -5886,7 +6029,7 @@ msgid "Cornering"
 msgstr "Posūkiai"
 
 msgid "Cornering calibration"
-msgstr ""
+msgstr "Cornering calibration"
 
 msgid "Input Shaping Frequency"
 msgstr "Įvesties formavimo dažnis"
@@ -6195,12 +6338,14 @@ msgid ""
 "Browsing file in storage is not supported in current firmware. Please update "
 "the printer firmware."
 msgstr ""
+"Browsing file in storage is not supported in current firmware. Please update "
+"the printer firmware."
 
 msgid "LAN Connection Failed (Failed to view sdcard)"
 msgstr "LAN ryšio klaida (Nepavyko pasiekti SD kortelės)"
 
 msgid "Browsing file in storage is not supported in LAN Only Mode."
-msgstr ""
+msgstr "Browsing file in storage is not supported in LAN Only Mode."
 
 #, c-format, boost-format
 msgid "You are going to delete %u file from printer. Are you sure to continue?"
@@ -6265,7 +6410,7 @@ msgid "Downloading %d%%..."
 msgstr "Atsisiunčiama %d%%..."
 
 msgid "Air Condition"
-msgstr ""
+msgstr "Air Condition"
 
 msgid ""
 "Reconnecting the printer, the operation cannot be completed immediately, "
@@ -6275,7 +6420,7 @@ msgstr ""
 "karto. Pabandykite dar kartą vėliau."
 
 msgid "Timeout, please try again."
-msgstr ""
+msgstr "Timeout, please try again."
 
 msgid "File does not exist."
 msgstr "Failas neegzistuoja."
@@ -6290,42 +6435,46 @@ msgid ""
 "Please check if the storage is inserted into the printer.\n"
 "If it still cannot be read, you can try formatting the storage."
 msgstr ""
+"Please check if the storage is inserted into the printer.\n"
+"If it still cannot be read, you can try formatting the storage."
 
 msgid ""
 "The firmware version of the printer is too low. Please update the firmware "
 "and try again."
 msgstr ""
+"The firmware version of the printer is too low. Please update the firmware "
+"and try again."
 
 msgid "The file already exists, do you want to replace it?"
-msgstr ""
+msgstr "The file already exists, do you want to replace it?"
 
 msgid "Insufficient storage space, please clear the space and try again."
-msgstr ""
+msgstr "Insufficient storage space, please clear the space and try again."
 
 msgid "File creation failed, please try again."
-msgstr ""
+msgstr "File creation failed, please try again."
 
 msgid "File write failed, please try again."
-msgstr ""
+msgstr "File write failed, please try again."
 
 msgid "MD5 verification failed, please try again."
-msgstr ""
+msgstr "MD5 verification failed, please try again."
 
 msgid "File renaming failed, please try again."
-msgstr ""
+msgstr "File renaming failed, please try again."
 
 msgid "File upload failed, please try again."
-msgstr ""
+msgstr "File upload failed, please try again."
 
 #, c-format, boost-format
 msgid "Error code: %d"
 msgstr "Klaidos kodas: %d"
 
 msgid "User cancels task."
-msgstr ""
+msgstr "User cancels task."
 
 msgid "Failed to read file, please try again."
-msgstr ""
+msgstr "Failed to read file, please try again."
 
 msgid "Speed:"
 msgstr "Greitis:"
@@ -6418,7 +6567,7 @@ msgid "The name is not allowed to end with space character."
 msgstr "Neleidžiama, kad pavadinimas baigtųsi tarpo simboliu."
 
 msgid "The name is not allowed to exceed 32 characters."
-msgstr ""
+msgstr "The name is not allowed to exceed 32 characters."
 
 msgid "Bind with Pin Code"
 msgstr "Susieti su PIN kodu"
@@ -6428,19 +6577,19 @@ msgstr "Susieti su prieigos kodu"
 
 msgctxt "Quit_Switching"
 msgid "Quit"
-msgstr ""
+msgstr "Išeiti"
 
 msgid "Switching..."
-msgstr ""
+msgstr "Switching..."
 
 msgid "Switching failed"
-msgstr ""
+msgstr "Switching failed"
 
 msgid "Printing Progress"
 msgstr "Spausdinimo eiga"
 
 msgid "Parts Skip"
-msgstr ""
+msgstr "Parts Skip"
 
 msgid "Stop"
 msgstr "Sustabdyti"
@@ -6449,7 +6598,7 @@ msgid "Layer: N/A"
 msgstr "Sluoksnis: N/A"
 
 msgid "Click to view thermal preconditioning explanation"
-msgstr ""
+msgstr "Click to view thermal preconditioning explanation"
 
 msgid "Clear"
 msgstr "Išvalyti"
@@ -6496,7 +6645,7 @@ msgid "Print Options"
 msgstr "Spausdinimo parametrai"
 
 msgid "Safety Options"
-msgstr ""
+msgstr "Safety Options"
 
 msgid "Lamp"
 msgstr "Apšvietimas"
@@ -6508,7 +6657,7 @@ msgid "Debug Info"
 msgstr "Derinimo informacija"
 
 msgid "Filament loading..."
-msgstr ""
+msgstr "Filament loading..."
 
 msgid "No Storage"
 msgstr "Nėra saugyklos"
@@ -6520,7 +6669,7 @@ msgid "Cancel print"
 msgstr "Atšaukti spausdinimą"
 
 msgid "Are you sure you want to stop this print?"
-msgstr ""
+msgstr "Are you sure you want to stop this print?"
 
 msgid "The printer is busy with another print job."
 msgstr "Spausdintuvas užimtas kitu spausdinimo darbu."
@@ -6529,18 +6678,20 @@ msgid ""
 "When printing is paused, filament loading and unloading are only supported "
 "for external slots."
 msgstr ""
+"When printing is paused, filament loading and unloading are only supported "
+"for external slots."
 
 msgid "Current extruder is busy changing filament."
-msgstr ""
+msgstr "Current extruder is busy changing filament."
 
 msgid "Current slot has already been loaded."
-msgstr ""
+msgstr "Current slot has already been loaded."
 
 msgid "The selected slot is empty."
-msgstr ""
+msgstr "The selected slot is empty."
 
 msgid "Printer 2D mode does not support 3D calibration"
-msgstr ""
+msgstr "Printer 2D mode does not support 3D calibration"
 
 msgid "Downloading..."
 msgstr "Atsisunčiama..."
@@ -6568,12 +6719,14 @@ msgstr ""
 "laipsnių."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
-msgstr ""
+msgstr "Chamber temperature cannot be changed in cooling mode while printing."
 
 msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
 "to heating mode. Please confirm whether to switch."
 msgstr ""
+"If the chamber temperature exceeds 40℃, the system will automatically switch "
+"to heating mode. Please confirm whether to switch."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Prieš kalibruodami pasirinkite AMS lizdą"
@@ -6604,15 +6757,17 @@ msgid ""
 "Turning off the lights during the task will cause the failure of AI "
 "monitoring, like spaghetti detection. Please choose carefully."
 msgstr ""
+"Turning off the lights during the task will cause the failure of AI "
+"monitoring, like spaghetti detection. Please choose carefully."
 
 msgid "Keep it On"
-msgstr ""
+msgstr "Keep it On"
 
 msgid "Turn it Off"
-msgstr ""
+msgstr "Turn it Off"
 
 msgid "Can't start this without storage."
-msgstr ""
+msgstr "Can't start this without storage."
 
 msgid "Rate the Print Profile"
 msgstr "Įvertinkite spausdinimo profilį"
@@ -6718,34 +6873,34 @@ msgstr ""
 "bent vienas sėkmingas spausdinimo rezultatas su šiuo spausdinimo profiliu."
 
 msgid "click to add machine"
-msgstr ""
+msgstr "click to add machine"
 
 msgid "Status"
 msgstr "Būsena"
 
 msgctxt "Firmware"
 msgid "Update"
-msgstr ""
+msgstr "Atnaujinti"
 
 msgid "Assistant(HMS)"
-msgstr ""
+msgstr "Assistant(HMS)"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s"
-msgstr ""
+msgstr "Network plug-in v%s"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s (%s)"
-msgstr ""
+msgstr "Network plug-in v%s (%s)"
 
 msgid "Don't show again"
 msgstr "Daugiau nerodyti"
 
 msgid "Go to"
-msgstr ""
+msgstr "Go to"
 
 msgid "Later"
-msgstr ""
+msgstr "Later"
 
 #, c-format, boost-format
 msgid "%s error"
@@ -6809,7 +6964,7 @@ msgstr "Paskutinė versija: "
 
 msgctxt "Software"
 msgid "Update"
-msgstr ""
+msgstr "Atnaujinti"
 
 msgid "Not for now"
 msgstr "Dabar ne"
@@ -6865,7 +7020,7 @@ msgid "New printer config available."
 msgstr "Pasiekiama nauja spausdintuvo konfigūracija."
 
 msgid "Wiki Guide"
-msgstr ""
+msgstr "Wiki Guide"
 
 msgid "Undo integration failed."
 msgstr "Integracijos atšaukimas nepavyko."
@@ -6974,6 +7129,8 @@ msgid ""
 "The application cannot run normally because OpenGL version is lower than "
 "3.2.\n"
 msgstr ""
+"The application cannot run normally because OpenGL version is lower than "
+"3.2.\n"
 
 msgid "Please upgrade your graphics card driver."
 msgstr "Prašome atnaujinti jūsų grafinės plokštės programinę įrangą."
@@ -7011,47 +7168,51 @@ msgstr ""
 "pristabdytas, jei žymė išeis už nustatytų ribų."
 
 msgid "Build Plate Detection"
-msgstr ""
+msgstr "Build Plate Detection"
 
 msgid ""
 "Identifies the type and position of the build plate on the heatbed. Pausing "
 "printing if a mismatch is detected."
 msgstr ""
+"Identifies the type and position of the build plate on the heatbed. Pausing "
+"printing if a mismatch is detected."
 
 msgid "AI Detections"
-msgstr ""
+msgstr "AI Detections"
 
 msgid ""
 "Printer will send assistant message or pause printing if any of the "
 "following problem is detected."
 msgstr ""
+"Printer will send assistant message or pause printing if any of the "
+"following problem is detected."
 
 msgid "Enable AI monitoring of printing"
 msgstr "Įjungti DI spausdinimo stebėjimą"
 
 msgid "Pausing Sensitivity:"
-msgstr ""
+msgstr "Pausing Sensitivity:"
 
 msgid "Spaghetti Detection"
-msgstr ""
+msgstr "Spaghetti Detection"
 
-msgid "Detect spaghetti failure(scattered lose filament)."
-msgstr ""
+msgid "Detect spaghetti failures (scattered lose filament)."
+msgstr "Aptikti spagečių gedimus (išsisklaidęs laisvas filamentas)."
 
 msgid "Purge Chute Pile-Up Detection"
-msgstr ""
+msgstr "Purge Chute Pile-Up Detection"
 
 msgid "Monitor if the waste is piled up in the purge chute."
-msgstr ""
+msgstr "Monitor if the waste is piled up in the purge chute."
 
 msgid "Nozzle Clumping Detection"
 msgstr "Antgalio užsikimšimo aptikimas"
 
 msgid "Check if the nozzle is clumping by filaments or other foreign objects."
-msgstr ""
+msgstr "Check if the nozzle is clumping by filaments or other foreign objects."
 
 msgid "Detects air printing caused by nozzle clogging or filament grinding."
-msgstr ""
+msgstr "Detects air printing caused by nozzle clogging or filament grinding."
 
 msgid "First Layer Inspection"
 msgstr "Pirmojo sluoksnio apžiūra"
@@ -7060,12 +7221,14 @@ msgid "Auto-recovery from step loss"
 msgstr "Atstatymas po žingsnių praleidimo"
 
 msgid "Store Sent Files on External Storage"
-msgstr ""
+msgstr "Store Sent Files on External Storage"
 
 msgid ""
 "Save the printing files initiated from Bambu Studio, Bambu Handy and "
 "MakerWorld on External Storage"
 msgstr ""
+"Save the printing files initiated from Bambu Studio, Bambu Handy and "
+"MakerWorld on External Storage"
 
 msgid "Allow Prompt Sound"
 msgstr "Leisti garsus"
@@ -7077,28 +7240,28 @@ msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr "Patikrinti, ar purkštukas neužsikimšo dėl gijos ar pašalinių objektų."
 
 msgid "Open Door Detection"
-msgstr ""
+msgstr "Open Door Detection"
 
 msgid "Notification"
-msgstr ""
+msgstr "Notification"
 
 msgid "Pause printing"
-msgstr ""
+msgstr "Pause printing"
 
 msgctxt "Nozzle Type"
 msgid "Type"
-msgstr ""
+msgstr "Tipas"
 
 msgctxt "Nozzle Diameter"
 msgid "Diameter"
-msgstr ""
+msgstr "Skersmuo"
 
 msgctxt "Nozzle Flow"
 msgid "Flow"
-msgstr ""
+msgstr "Srautas"
 
 msgid "Please change the nozzle settings on the printer."
-msgstr ""
+msgstr "Please change the nozzle settings on the printer."
 
 msgid "Hardened Steel"
 msgstr "Grūdintas plienas"
@@ -7107,28 +7270,28 @@ msgid "Stainless Steel"
 msgstr "Nerūdijantis plienas"
 
 msgid "Tungsten Carbide"
-msgstr ""
+msgstr "Tungsten Carbide"
 
 msgid "Brass"
 msgstr "Žalvaris"
 
 msgid "High flow"
-msgstr ""
+msgstr "High flow"
 
 msgid "No wiki link available for this printer."
-msgstr ""
+msgstr "No wiki link available for this printer."
 
 msgid "Refreshing"
-msgstr ""
+msgstr "Refreshing"
 
 msgid "Unavailable while heating maintenance function is on."
-msgstr ""
+msgstr "Unavailable while heating maintenance function is on."
 
 msgid "Idle Heating Protection"
-msgstr ""
+msgstr "Idle Heating Protection"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
-msgstr ""
+msgstr "Stops heating automatically after 5 mins of idle to ensure safety."
 
 msgid "Global"
 msgstr "Bendras"
@@ -7137,7 +7300,7 @@ msgid "Objects"
 msgstr "Objektai"
 
 msgid "Show/Hide advanced parameters"
-msgstr ""
+msgstr "Show/Hide advanced parameters"
 
 msgid "Compare presets"
 msgstr "Palyginti išankstinius nustatymus"
@@ -7164,7 +7327,7 @@ msgid "Lock current plate"
 msgstr "Užrakinti dabartinę plokštę"
 
 msgid "Filament grouping"
-msgstr ""
+msgstr "Filament grouping"
 
 msgid "Edit current plate name"
 msgstr "Taisyti dabartinės plokštės pavadinimą"
@@ -7177,28 +7340,31 @@ msgstr "Individualizuoti esamą plokštę"
 
 #, c-format, boost-format
 msgid "The %s nozzle can not print %s."
-msgstr ""
+msgstr "The %s nozzle can not print %s."
 
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
-msgstr ""
+msgstr "Mixing %1% with %2% in printing is not recommended.\n"
 
 msgid " nozzle"
-msgstr ""
+msgstr " nozzle"
 
 #, boost-format
 msgid ""
 "It is not recommended to print the following filament(s) with %1%: %2%\n"
 msgstr ""
+"It is not recommended to print the following filament(s) with %1%: %2%\n"
 
 msgid ""
 "It is not recommended to use the following nozzle and filament "
 "combinations:\n"
 msgstr ""
+"It is not recommended to use the following nozzle and filament "
+"combinations:\n"
 
 #, boost-format
 msgid "%1% with %2%\n"
-msgstr ""
+msgstr "%1% with %2%\n"
 
 #, boost-format
 msgid " plate %1%:"
@@ -7229,16 +7395,16 @@ msgid "Filament changes"
 msgstr "Gijos keitimai"
 
 msgid "Set the number of AMS installed on the nozzle."
-msgstr ""
+msgstr "Set the number of AMS installed on the nozzle."
 
 msgid "AMS(4 slots)"
-msgstr ""
+msgstr "AMS(4 slots)"
 
 msgid "AMS(1 slot)"
-msgstr ""
+msgstr "AMS(1 slot)"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Not installed"
 
 msgid ""
 "The software does not support using different diameter of nozzles for one "
@@ -7246,49 +7412,58 @@ msgid ""
 "with single-head printing. Please confirm which nozzle you would like to use "
 "for this project."
 msgstr ""
+"The software does not support using different diameter of nozzles for one "
+"print. If the left and right nozzles are inconsistent, we can only proceed "
+"with single-head printing. Please confirm which nozzle you would like to use "
+"for this project."
 
 msgid "Switch diameter"
-msgstr ""
+msgstr "Switch diameter"
 
 #, c-format, boost-format
 msgid "Left nozzle: %smm"
-msgstr ""
+msgstr "Left nozzle: %smm"
 
 #, c-format, boost-format
 msgid "Right nozzle: %smm"
-msgstr ""
+msgstr "Right nozzle: %smm"
 
 msgid "Configuration incompatible"
 msgstr "Nesuderinama konfigūracija"
 
 msgid "Sync printer information"
-msgstr ""
+msgstr "Sync printer information"
 
 msgid ""
 "The currently selected machine preset is inconsistent with the connected "
 "printer type.\n"
 "Are you sure to continue syncing?"
 msgstr ""
+"The currently selected machine preset is inconsistent with the connected "
+"printer type.\n"
+"Are you sure to continue syncing?"
 
 msgid ""
 "There are unset nozzle types. Please set the nozzle types of all extruders "
 "before synchronizing."
 msgstr ""
+"There are unset nozzle types. Please set the nozzle types of all extruders "
+"before synchronizing."
 
 msgid "Sync extruder infomation"
-msgstr ""
+msgstr "Sync extruder infomation"
 
 msgid "Connection"
 msgstr "Ryšys"
 
 msgid "Synchronize nozzle information and the number of AMS"
-msgstr ""
+msgstr "Synchronize nozzle information and the number of AMS"
 
 msgid "Click to edit preset"
 msgstr "Spustelėkite norėdami redaguoti išankstinį nustatymą"
 
 msgid "Project Filaments"
-msgstr ""
+msgstr "Project Filaments"
 
 msgid "Flushing volumes"
 msgstr "Valymo tūriai"
@@ -7316,6 +7491,8 @@ msgid ""
 "After completing your operation, %s project will be closed and create a new "
 "project."
 msgstr ""
+"After completing your operation, %s project will be closed and create a new "
+"project."
 
 msgid "There are no compatible filaments, and sync is not performed."
 msgstr "Čia nėra suderinamų gijų, sinchronizacija nebuvo atlikta."
@@ -7328,14 +7505,19 @@ msgid ""
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
+"Please update Orca Slicer or restart Orca Slicer to check if there is an "
+"update to system presets."
 
 msgid "Only filament color information has been synchronized from printer."
-msgstr ""
+msgstr "Only filament color information has been synchronized from printer."
 
 msgid ""
 "Filament type and color information have been synchronized, but slot "
 "information is not included."
 msgstr ""
+"Filament type and color information have been synchronized, but slot "
+"information is not included."
 
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
@@ -7389,6 +7571,8 @@ msgid ""
 "Smooth mode for timelapse is enabled, but the prime tower is off, which may "
 "cause print defects. Please enable the prime tower, re-slice and print again."
 msgstr ""
+"Smooth mode for timelapse is enabled, but the prime tower is off, which may "
+"cause print defects. Please enable the prime tower, re-slice and print again."
 
 msgid "Expand sidebar"
 msgstr "Išskleisti šoninę juostą"
@@ -7448,6 +7632,8 @@ msgid ""
 "The 3MF file was generated by an old OrcaSlicer version, loading geometry "
 "data only."
 msgstr ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 
 msgid "Invalid values found in the 3MF:"
 msgstr "3MF rasti netinkami duomenys:"
@@ -7537,11 +7723,14 @@ msgstr "Aptiktas objektas su keliomis detalėmis"
 msgid ""
 "Connected printer is %s. It must match the project preset for printing.\n"
 msgstr ""
+"Connected printer is %s. It must match the project preset for printing.\n"
 
 msgid ""
 "Do you want to sync the printer information and automatically switch the "
 "preset?"
 msgstr ""
+"Do you want to sync the printer information and automatically switch the "
+"preset?"
 
 msgid "The file does not contain any geometry data."
 msgstr "Faile nėra jokių geometrinių duomenų."
@@ -7560,7 +7749,7 @@ msgid "Export STL file:"
 msgstr "Eksportuoti STL failą:"
 
 msgid "Export Draco file:"
-msgstr ""
+msgstr "Export Draco file:"
 
 msgid "Export AMF file:"
 msgstr "Eksportuoti AMF failą:"
@@ -7616,32 +7805,32 @@ msgid "File for the replace wasn't selected"
 msgstr "Nepasirinktas keičiamas failas"
 
 msgid "Select folder to replace from"
-msgstr ""
+msgstr "Select folder to replace from"
 
 msgid "Directory for the replace wasn't selected"
-msgstr ""
+msgstr "Directory for the replace wasn't selected"
 
 msgid "Replaced with 3D files from directory:\n"
-msgstr ""
+msgstr "Replaced with 3D files from directory:\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: same file.\n"
-msgstr ""
+msgstr "✖ Skipped %1%: same file.\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr ""
+msgstr "✖ Skipped %1%: file does not exist.\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr ""
+msgstr "✖ Skipped %1%: failed to replace.\n"
 
 #, boost-format
 msgid "✔ Replaced %1%.\n"
-msgstr ""
+msgstr "✔ Replaced %1%.\n"
 
 msgid "Replaced volumes"
-msgstr ""
+msgstr "Replaced volumes"
 
 msgid "Please select a file"
 msgstr "Prašome pasirinkti failą"
@@ -7700,9 +7889,14 @@ msgid ""
 "slicing.\n"
 "Would you like to sync now?"
 msgstr ""
+"The nozzle type and AMS quantity information has not been synced from the "
+"connected printer.\n"
+"After syncing, software can optimize printing time and filament usage when "
+"slicing.\n"
+"Would you like to sync now?"
 
 msgid "Sync now"
-msgstr ""
+msgstr "Sync now"
 
 msgid "You can keep the modified presets to the new project or discard them"
 msgstr ""
@@ -7763,7 +7957,7 @@ msgstr ""
 "vertę "
 
 msgid "mm/s²"
-msgstr ""
+msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "Kalibravimo greičiai nenumatyti. Naudokite numatytąjį optimalų greitį "
@@ -7855,10 +8049,10 @@ msgstr ""
 "spausdintuve."
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
-msgstr ""
+msgstr "The nozzle type is not set. Please set the nozzle and try again."
 
 msgid "The nozzle type is not set. Please check."
-msgstr ""
+msgstr "The nozzle type is not set. Please check."
 
 msgid ""
 "Unable to perform boolean operation on model meshes. Only positive parts "
@@ -7927,34 +8121,44 @@ msgid ""
 "Printer not connected. Please go to the device page to connect %s before "
 "syncing."
 msgstr ""
+"Printer not connected. Please go to the device page to connect %s before "
+"syncing."
 
 #, c-format, boost-format
 msgid ""
 "OrcaSlicer can't connect to %s. Please check if the printer is powered on "
 "and connected to the network."
 msgstr ""
+"OrcaSlicer can't connect to %s. Please check if the printer is powered on "
+"and connected to the network."
 
 #, c-format, boost-format
 msgid ""
 "The currently connected printer on the device page is not %s. Please switch "
 "to %s before syncing."
 msgstr ""
+"The currently connected printer on the device page is not %s. Please switch "
+"to %s before syncing."
 
 msgid ""
 "There are no filaments on the printer. Please load the filaments on the "
 "printer first."
 msgstr ""
+"There are no filaments on the printer. Please load the filaments on the "
+"printer first."
 
 msgid ""
 "The filaments on the printer are all unknown types. Please go to the printer "
 "screen or software device page to set the filament type."
 msgstr ""
+"The filaments on the printer are all unknown types. Please go to the printer "
+"screen or software device page to set the filament type."
 
 msgid "Device Page"
-msgstr ""
+msgstr "Device Page"
 
 msgid "Synchronize AMS Filament Information"
-msgstr ""
+msgstr "Synchronize AMS Filament Information"
 
 msgid "Plate Settings"
 msgstr "Plokštės parametrai"
@@ -8015,27 +8219,29 @@ msgid ""
 "Currently, the object configuration form cannot be used with a multiple-"
 "extruder printer."
 msgstr ""
+"Currently, the object configuration form cannot be used with a multiple-"
+"extruder printer."
 
 msgid "Not available"
-msgstr ""
+msgstr "Not available"
 
 msgid "isometric"
-msgstr ""
+msgstr "isometric"
 
 msgid "top_front"
-msgstr ""
+msgstr "top_front"
 
 msgid "top"
-msgstr ""
+msgstr "top"
 
 msgid "bottom"
-msgstr ""
+msgstr "bottom"
 
 msgid "front"
-msgstr ""
+msgstr "front"
 
 msgid "rear"
-msgstr ""
+msgstr "rear"
 
 msgid "Switching the language requires application restart.\n"
 msgstr "Kalbos keitimas reikalauja programos paleidimo iš naujo.\n"
@@ -8048,9 +8254,6 @@ msgstr "Kalbos pasirinkimas"
 
 msgid "Switching application language while some presets are modified."
 msgstr "Keičiama programos kalba esant kai kurių nustatymų pakeitimams."
-
-msgid "Changing application language"
-msgstr "Keičiama programos kalba"
 
 msgid "Asia-Pacific"
 msgstr "Azija-Ramusis vandenynas"
@@ -8074,13 +8277,13 @@ msgid "Region selection"
 msgstr "Regiono pasirinkimas"
 
 msgid "sec"
-msgstr ""
+msgstr "sec"
 
 msgid "The period of backup in seconds."
 msgstr "Atsarginės kopijos kūrimo laikotarpis sekundėmis."
 
 msgid "Bed Temperature Difference Warning"
-msgstr ""
+msgstr "Bed Temperature Difference Warning"
 
 msgid ""
 "Using filaments with significantly different temperatures may cause:\n"
@@ -8090,12 +8293,18 @@ msgid ""
 "\n"
 "Continue with enabling this feature?"
 msgstr ""
+"Using filaments with significantly different temperatures may cause:\n"
+"• Extruder clogging\n"
+"• Nozzle damage\n"
+"• Layer adhesion issues\n"
+"\n"
+"Continue with enabling this feature?"
 
 msgid "Browse"
 msgstr "Naršyti"
 
 msgid "Choose folder for downloaded items"
-msgstr ""
+msgstr "Choose folder for downloaded items"
 
 msgid "Choose Download Directory"
 msgstr "Pasirinkite parsisiuntimo katalogą"
@@ -8170,7 +8379,7 @@ msgid "Downloads folder"
 msgstr "Atsisiuntimų aplankas"
 
 msgid "Target folder for downloaded items"
-msgstr ""
+msgstr "Target folder for downloaded items"
 
 msgid "Load All"
 msgstr "Įkelti viską"
@@ -8237,34 +8446,31 @@ msgstr ""
 "konfigūracijas kiekvienams spausdintuvui."
 
 msgid "Group user filament presets"
-msgstr ""
+msgstr "Group user filament presets"
 
 msgid "Group user filament presets based on selection"
-msgstr ""
+msgstr "Group user filament presets based on selection"
 
 msgid "All"
 msgstr "Visi"
 
 msgid "By type"
-msgstr ""
+msgstr "By type"
 
 msgid "By vendor"
-msgstr ""
+msgstr "By vendor"
 
 msgid "Optimize filaments area height for..."
-msgstr ""
-
-msgid "(Requires restart)"
-msgstr "(Reikia paleisti iš naujo)"
+msgstr "Optimize filaments area height for..."
 
 msgid "filaments"
-msgstr ""
+msgstr "filaments"
 
 msgid "Optimizes filament area maximum height by chosen filament count."
-msgstr ""
+msgstr "Optimizes filament area maximum height by chosen filament count."
 
 msgid "Features"
-msgstr ""
+msgstr "Features"
 
 msgid "Multi device management"
 msgstr "Kelių įrenginių valdymas"
@@ -8276,14 +8482,17 @@ msgstr ""
 "Kai įjungta ši funkcija, jūs galite siųsti užduotį keliems įrenginiams vienu "
 "metu, taip apt kontroliuoti keletą įrenginių."
 
+msgid "(Requires restart)"
+msgstr "(Reikia paleisti iš naujo)"
+
 msgid "Pop up to select filament grouping mode"
-msgstr ""
+msgstr "Pop up to select filament grouping mode"
 
 msgid "Quality level for Draco export"
-msgstr ""
+msgstr "Quality level for Draco export"
 
 msgid "bits"
-msgstr ""
+msgstr "bits"
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco "
@@ -8293,39 +8502,51 @@ msgid ""
 "Lower values produce smaller files but lose more geometric detail; higher "
 "values preserve more detail at the cost of larger files."
 msgstr ""
+"Controls the quantization bit depth used when compressing the mesh to Draco "
+"format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid "
+"lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher "
+"values preserve more detail at the cost of larger files."
 
 msgid "Behaviour"
 msgstr "Elgsena"
 
 msgid "Auto flush after changing..."
-msgstr ""
+msgstr "Auto flush after changing..."
 
 msgid "Auto calculate flushing volumes when selected values changed"
-msgstr ""
+msgstr "Auto calculate flushing volumes when selected values changed"
 
 msgid "Auto arrange plate after cloning"
 msgstr "Automatinis plokštės sutvarkymas po klonavimo"
 
 msgid "Auto slice after changes"
-msgstr ""
+msgstr "Auto slice after changes"
 
 msgid ""
 "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
 "settings change."
 msgstr ""
+"If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
+"settings change."
 
 msgid ""
 "Delay in seconds before auto slicing starts, allowing multiple edits to be "
 "grouped. Use 0 to slice immediately."
 msgstr ""
+"Delay in seconds before auto slicing starts, allowing multiple edits to be "
+"grouped. Use 0 to slice immediately."
 
 msgid "Remove mixed temperature restriction"
-msgstr ""
+msgstr "Remove mixed temperature restriction"
 
 msgid ""
 "With this option enabled, you can print materials with a large temperature "
 "difference together."
 msgstr ""
+"With this option enabled, you can print materials with a large temperature "
+"difference together."
 
 msgid "Touchpad"
 msgstr "Jutiklinis kilimėlis"
@@ -8384,26 +8605,27 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Jei įjungta, apverčia didinimo ar mažinimo kryptį pelės ratuku."
 
 msgid "Clear my choice on..."
-msgstr ""
+msgstr "Clear my choice on..."
 
 msgid "Unsaved projects"
-msgstr ""
+msgstr "Unsaved projects"
 
 msgid "Clear my choice on the unsaved projects."
 msgstr "Išvalyti mano pasirinkimus neišsaugotuose projektuose."
 
 msgid "Unsaved presets"
-msgstr ""
+msgstr "Unsaved presets"
 
 msgid "Clear my choice on the unsaved presets."
 msgstr "Išvalyti mano pasirinkimą neišsaugotuose nustatymuose."
 
 msgid "Synchronizing printer preset"
-msgstr ""
+msgstr "Synchronizing printer preset"
 
 msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
 msgstr ""
+"Clear my choice for synchronizing printer preset after loading the file."
 
 msgid "Login region"
 msgstr "Prisijungimo regionas"
@@ -8426,7 +8648,7 @@ msgid "Test"
 msgstr "Testas"
 
 msgid "Update & sync"
-msgstr ""
+msgstr "Update & sync"
 
 msgid "Check for stable updates only"
 msgstr "Tikrinti tik stabilius atnaujinimus"
@@ -8440,28 +8662,31 @@ msgid "Update built-in Presets automatically."
 msgstr "Automatinis įmontuotų nustatymų atnaujinimas."
 
 msgid "Use encrypted file for token storage"
-msgstr ""
+msgstr "Use encrypted file for token storage"
 
 msgid ""
 "Store authentication tokens in an encrypted file instead of the system "
 "keychain. (Requires restart)"
 msgstr ""
+"Store authentication tokens in an encrypted file instead of the system "
+"keychain. (Requires restart)"
 
 msgid "Filament Sync Options"
-msgstr ""
+msgstr "Filament Sync Options"
 
 msgid "Filament sync mode"
-msgstr ""
+msgstr "Filament sync mode"
 
 msgid ""
 "Choose whether sync updates both filament preset and color, or only color."
 msgstr ""
+"Choose whether sync updates both filament preset and color, or only color."
 
 msgid "Filament & Color"
-msgstr ""
+msgstr "Filament & Color"
 
 msgid "Color only"
-msgstr ""
+msgstr "Color only"
 
 msgid "Network plug-in"
 msgstr "Tinklo įskiepis"
@@ -8470,22 +8695,22 @@ msgid "Enable network plug-in"
 msgstr "Įjungti tinklo papildinį"
 
 msgid "Network plug-in version"
-msgstr ""
+msgstr "Network plug-in version"
 
 msgid "Select the network plug-in version to use"
-msgstr ""
+msgstr "Select the network plug-in version to use"
 
 msgid "(Latest)"
-msgstr ""
+msgstr "(Latest)"
 
 msgid "Network plug-in switched successfully."
-msgstr ""
+msgstr "Network plug-in switched successfully."
 
 msgid "Success"
-msgstr ""
+msgstr "Success"
 
 msgid "Failed to load network plug-in. Please restart the application."
-msgstr ""
+msgstr "Failed to load network plug-in. Please restart the application."
 
 #, c-format, boost-format
 msgid ""
@@ -8495,9 +8720,14 @@ msgid ""
 "\n"
 "Note: The application may need to restart after installation."
 msgstr ""
+"You've selected network plug-in version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
 
 msgid "Download Network Plug-in"
-msgstr ""
+msgstr "Download Network Plug-in"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Susieti failus su Orca Slicer"
@@ -8513,10 +8743,10 @@ msgstr ""
 "įrankis"
 
 msgid "Associate DRC files to OrcaSlicer"
-msgstr ""
+msgstr "Associate DRC files to OrcaSlicer"
 
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr ""
+msgstr "If enabled, sets OrcaSlicer as default application to open DRC files."
 
 #, fuzzy
 msgid "Associate STL files to OrcaSlicer"
@@ -8542,7 +8772,7 @@ msgid "Associate web links to OrcaSlicer"
 msgstr "Susieti interneto nuorodas su Orca Slicer"
 
 msgid "Developer"
-msgstr ""
+msgstr "Developer"
 
 msgid "Develop mode"
 msgstr "Kūrėjo režimas"
@@ -8551,12 +8781,14 @@ msgid "Skip AMS blacklist check"
 msgstr "Praleisti AMS draudžiamo sąrašo tikrinimą"
 
 msgid "Allow Abnormal Storage"
-msgstr ""
+msgstr "Allow Abnormal Storage"
 
 msgid ""
 "This allows the use of Storage that is marked as abnormal by the Printer.\n"
 "Use at your own risk, can cause issues!"
 msgstr ""
+"This allows the use of Storage that is marked as abnormal by the Printer.\n"
+"Use at your own risk, can cause issues!"
 
 msgid "Log Level"
 msgstr "Žurnalų lygmuo"
@@ -8577,22 +8809,22 @@ msgid "trace"
 msgstr "sekimas"
 
 msgid "Reload"
-msgstr ""
+msgstr "Reload"
 
 msgid "Reload the network plug-in without restarting the application"
-msgstr ""
+msgstr "Reload the network plug-in without restarting the application"
 
 msgid "Network plug-in reloaded successfully."
-msgstr ""
+msgstr "Network plug-in reloaded successfully."
 
 msgid "Failed to reload network plug-in. Please restart the application."
-msgstr ""
+msgstr "Failed to reload network plug-in. Please restart the application."
 
 msgid "Reload Failed"
-msgstr ""
+msgstr "Reload Failed"
 
 msgid "Debug"
-msgstr ""
+msgstr "Debug"
 
 msgid "Sync settings"
 msgstr "Sinchronizavimo nustatymai"
@@ -8609,14 +8841,14 @@ msgstr "Pasirinkimų sinchronizavimas"
 msgid "View control settings"
 msgstr "Peržiūrėti valdymo nustatymus"
 
-msgid "Rotate of view"
-msgstr "Vaizdo sukimas"
+msgid "Rotate view"
+msgstr "Pasukti vaizdą"
 
-msgid "Move of view"
-msgstr "Vaizdo perkėlimas"
+msgid "Pan view"
+msgstr "Judinti vaizdą"
 
-msgid "Zoom of view"
-msgstr "Vaizdo didinimas"
+msgid "Zoom view"
+msgstr "Padidinti vaizdą"
 
 msgid "Other"
 msgstr "Kita"
@@ -8670,16 +8902,16 @@ msgid "Incompatible presets"
 msgstr "Nesuderinami išankstiniai nustatymai"
 
 msgid "My Printer"
-msgstr ""
+msgstr "My Printer"
 
 msgid "Left filaments"
-msgstr ""
+msgstr "Left filaments"
 
 msgid "AMS filaments"
 msgstr "AMS gijos"
 
 msgid "Right filaments"
-msgstr ""
+msgstr "Right filaments"
 
 msgid "Click to select filament color"
 msgstr "Paspauskite gijos spalvos pasirinkimui"
@@ -8691,19 +8923,19 @@ msgid "Edit preset"
 msgstr "Redaguoti išankstinį nustatymą"
 
 msgid "Unspecified"
-msgstr ""
+msgstr "Unspecified"
 
 msgid "Project-inside presets"
 msgstr "Projekto vidiniai nustatymai"
 
 msgid "System"
-msgstr ""
+msgstr "Sistema"
 
 msgid "Unsupported presets"
-msgstr ""
+msgstr "Unsupported presets"
 
 msgid "Unsupported"
-msgstr ""
+msgstr "Unsupported"
 
 msgid "Add/Remove filaments"
 msgstr "Pridėti / pašalinkite gijas"
@@ -8808,7 +9040,7 @@ msgid "Packing data to 3MF"
 msgstr "Duomenys pakuojami į 3mf"
 
 msgid "Uploading data"
-msgstr ""
+msgstr "Uploading data"
 
 msgid "Jump to webpage"
 msgstr "Pereiti į interneto puslapį"
@@ -8824,7 +9056,7 @@ msgid "Preset Inside Project"
 msgstr "Nustatymai projekto viduje"
 
 msgid "Detach from parent"
-msgstr ""
+msgstr "Detach from parent"
 
 msgid "Name is unavailable."
 msgstr "Nėra pavadinimo."
@@ -8900,28 +9132,29 @@ msgid "Bambu Textured PEI Plate"
 msgstr "Bambu stabaus PEI plokštė"
 
 msgid "Bambu Cool Plate SuperTack"
-msgstr ""
+msgstr "Bambu Cool Plate SuperTack"
 
 msgid "Send print job"
-msgstr ""
+msgstr "Send print job"
 
 msgid "On"
-msgstr ""
+msgstr "Įjungta"
 
 msgid "Not satisfied with the grouping of filaments? Regroup and slice ->"
-msgstr ""
+msgstr "Not satisfied with the grouping of filaments? Regroup and slice ->"
 
 msgid "Manually change external spool during printing for multi-color printing"
 msgstr ""
+"Manually change external spool during printing for multi-color printing"
 
 msgid "Multi-color with external"
-msgstr ""
+msgstr "Multi-color with external"
 
 msgid "Your filament grouping method in the sliced file is not optimal."
-msgstr ""
+msgstr "Your filament grouping method in the sliced file is not optimal."
 
 msgid "Auto Bed Leveling"
-msgstr ""
+msgstr "Auto Bed Leveling"
 
 msgid ""
 "This checks the flatness of heatbed. Leveling makes extruded height "
@@ -8929,6 +9162,10 @@ msgid ""
 "*Automatic mode: Run a leveling check(about 10 seconds). Skip if surface is "
 "fine."
 msgstr ""
+"This checks the flatness of heatbed. Leveling makes extruded height "
+"uniform.\n"
+"*Automatic mode: Run a leveling check(about 10 seconds). Skip if surface is "
+"fine."
 
 msgid "Flow Dynamics Calibration"
 msgstr "Gijos srauto kalibravimas"
@@ -8938,14 +9175,19 @@ msgid ""
 "quality.\n"
 "*Automatic mode: Skip if the filament was calibrated recently."
 msgstr ""
+"This process determines the dynamic flow values to improve overall print "
+"quality.\n"
+"*Automatic mode: Skip if the filament was calibrated recently."
 
 msgid "Nozzle Offset Calibration"
-msgstr ""
+msgstr "Nozzle Offset Calibration"
 
 msgid ""
 "Calibrate nozzle offsets to enhance print quality.\n"
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
+"Calibrate nozzle offsets to enhance print quality.\n"
+"*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 
 msgid "Send complete"
 msgstr "siuntimas baigtas"
@@ -8954,7 +9196,7 @@ msgid "Error code"
 msgstr "Klaidos kodas"
 
 msgid "High Flow"
-msgstr ""
+msgstr "High Flow"
 
 #, c-format, boost-format
 msgid ""
@@ -8962,6 +9204,9 @@ msgid ""
 "Please make sure the nozzle installed matches with settings in printer, then "
 "set the corresponding printer preset while slicing."
 msgstr ""
+"The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "
+"Please make sure the nozzle installed matches with settings in printer, then "
+"set the corresponding printer preset while slicing."
 
 #, c-format, boost-format
 msgid ""
@@ -8984,6 +9229,9 @@ msgid ""
 "(%s). Please adjust the printer preset in the prepare page or choose a "
 "compatible printer on this page."
 msgstr ""
+"The selected printer (%s) is incompatible with the print file configuration "
+"(%s). Please adjust the printer preset in the prepare page or choose a "
+"compatible printer on this page."
 
 msgid ""
 "When enable spiral vase mode, machines with I3 structure will not generate "
@@ -8996,6 +9244,8 @@ msgid ""
 "The current printer does not support timelapse in Traditional Mode when "
 "printing By-Object."
 msgstr ""
+"The current printer does not support timelapse in Traditional Mode when "
+"printing By-Object."
 
 msgid "Errors"
 msgstr "Klaidos"
@@ -9004,11 +9254,15 @@ msgid ""
 "More than one filament types have been mapped to the same external spool, "
 "which may cause printing issues. The printer won't pause during printing."
 msgstr ""
+"More than one filament types have been mapped to the same external spool, "
+"which may cause printing issues. The printer won't pause during printing."
 
 msgid ""
 "The filament type setting of external spool is different from the filament "
 "in the slicing file."
 msgstr ""
+"The filament type setting of external spool is different from the filament "
+"in the slicing file."
 
 msgid ""
 "The printer type selected when generating G-code is not consistent with the "
@@ -9044,11 +9298,14 @@ msgstr ""
 msgid ""
 "This checks the flatness of heatbed. Leveling makes extruded height uniform."
 msgstr ""
+"This checks the flatness of heatbed. Leveling makes extruded height uniform."
 
 msgid ""
 "This process determines the dynamic flow values to improve overall print "
 "quality."
 msgstr ""
+"This process determines the dynamic flow values to improve overall print "
+"quality."
 
 msgid "Preparing print job"
 msgstr "Spausdinimo užduoties rengimas"
@@ -9058,18 +9315,20 @@ msgstr "Pavadinimas viršijo leistiną dydį."
 
 #, c-format, boost-format
 msgid "Cost %dg filament and %d changes more than optimal grouping."
-msgstr ""
+msgstr "Cost %dg filament and %d changes more than optimal grouping."
 
 msgid "nozzle"
-msgstr ""
+msgstr "nozzle"
 
 msgid "both extruders"
-msgstr ""
+msgstr "both extruders"
 
 msgid ""
 "Tips: If you changed your nozzle of your printer lately, Please go to "
 "'Device -> Printer parts' to change your nozzle setting."
 msgstr ""
+"Tips: If you changed your nozzle of your printer lately, Please go to "
+"'Device -> Printer parts' to change your nozzle setting."
 
 #, c-format, boost-format
 msgid ""
@@ -9077,6 +9336,9 @@ msgid ""
 "file (%.1fmm). Please make sure the nozzle installed matches with settings "
 "in printer, then set the corresponding printer preset when slicing."
 msgstr ""
+"The %s diameter(%.1fmm) of current printer doesn't match with the slicing "
+"file (%.1fmm). Please make sure the nozzle installed matches with settings "
+"in printer, then set the corresponding printer preset when slicing."
 
 #, c-format, boost-format
 msgid ""
@@ -9084,38 +9346,47 @@ msgid ""
 "(%.1fmm). Please make sure the nozzle installed matches with settings in "
 "printer, then set the corresponding printer preset when slicing."
 msgstr ""
+"The current nozzle diameter (%.1fmm) doesn't match with the slicing file "
+"(%.1fmm). Please make sure the nozzle installed matches with settings in "
+"printer, then set the corresponding printer preset when slicing."
 
 #, c-format, boost-format
 msgid ""
 "The hardness of current material (%s) exceeds the hardness of %s(%s). Please "
 "verify the nozzle or material settings and try again."
 msgstr ""
+"The hardness of current material (%s) exceeds the hardness of %s(%s). Please "
+"verify the nozzle or material settings and try again."
 
 #, c-format, boost-format
 msgid ""
 "[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
+"[ %s ] requires printing in a high-temperature environment. Please close the "
+"door."
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment."
-msgstr ""
+msgstr "[ %s ] requires printing in a high-temperature environment."
 
 #, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
-msgstr ""
+msgstr "The filament on %s may soften. Please unload."
 
 #, c-format, boost-format
 msgid "The filament on %s is unknown and may soften. Please set filament."
-msgstr ""
+msgstr "The filament on %s is unknown and may soften. Please set filament."
 
 msgid ""
 "Unable to automatically match to suitable filament. Please click to manually "
 "match."
 msgstr ""
+"Unable to automatically match to suitable filament. Please click to manually "
+"match."
 
 msgid "Install toolhead enhanced cooling fan to prevent filament softening."
-msgstr ""
+msgstr "Install toolhead enhanced cooling fan to prevent filament softening."
 
 msgid "Smooth Cool Plate"
 msgstr "Glotni vėsi plokštė"
@@ -9150,7 +9421,7 @@ msgid "Synchronizing device information timed out."
 msgstr "Baigėsi įrenginio informacijos sinchronizavimo laikas"
 
 msgid "Cannot send a print job when the printer is not at FDM mode."
-msgstr ""
+msgstr "Cannot send a print job when the printer is not at FDM mode."
 
 msgid "Cannot send a print job while the printer is updating firmware."
 msgstr ""
@@ -9164,29 +9435,33 @@ msgstr ""
 "spausdinimą iš naujo"
 
 msgid "AMS is setting up. Please try again later."
-msgstr ""
+msgstr "AMS is setting up. Please try again later."
 
 msgid ""
 "Not all filaments used in slicing are mapped to the printer. Please check "
 "the mapping of filaments."
 msgstr ""
+"Not all filaments used in slicing are mapped to the printer. Please check "
+"the mapping of filaments."
 
 msgid "Please do not mix-use the Ext with AMS."
-msgstr ""
+msgstr "Please do not mix-use the Ext with AMS."
 
 msgid ""
 "Invalid nozzle information, please refresh or manually set nozzle "
 "information."
 msgstr ""
+"Invalid nozzle information, please refresh or manually set nozzle "
+"information."
 
 msgid "Storage needs to be inserted before printing via LAN."
-msgstr ""
+msgstr "Storage needs to be inserted before printing via LAN."
 
 msgid "Storage is in abnormal state or is in read-only mode."
-msgstr ""
+msgstr "Storage is in abnormal state or is in read-only mode."
 
 msgid "Storage needs to be inserted before printing."
-msgstr ""
+msgstr "Storage needs to be inserted before printing."
 
 msgid ""
 "Cannot send the print job to a printer whose firmware is required to get "
@@ -9199,21 +9474,26 @@ msgid "Cannot send a print job for an empty plate."
 msgstr "Negalima siųsti spausdinimo užduoties tuščiai plokštei"
 
 msgid "Storage needs to be inserted to record timelapse."
-msgstr ""
+msgstr "Storage needs to be inserted to record timelapse."
 
 msgid ""
 "You have selected both external and AMS filaments for an extruder. You will "
 "need to manually switch the external filament during printing."
 msgstr ""
+"You have selected both external and AMS filaments for an extruder. You will "
+"need to manually switch the external filament during printing."
 
 msgid ""
 "TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics "
 "calibration."
 msgstr ""
+"TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics "
+"calibration."
 
 msgid ""
 "Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value."
 msgstr ""
+"Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value."
 
 msgid "This printer does not support printing all plates."
 msgstr "Spausdintuvas nepalaiko visų plokščių spausdinimo"
@@ -9224,33 +9504,37 @@ msgid ""
 "try updating the firmware. If you are still restricted after the update, "
 "please wait for subsequent firmware support."
 msgstr ""
+"The current firmware supports a maximum of 16 materials. You can either "
+"reduce the number of materials to 16 or fewer on the Preparation Page, or "
+"try updating the firmware. If you are still restricted after the update, "
+"please wait for subsequent firmware support."
 
 msgid "Please refer to Wiki before use->"
-msgstr ""
+msgstr "Please refer to Wiki before use->"
 
 msgid "Current firmware does not support file transfer to internal storage."
-msgstr ""
+msgstr "Current firmware does not support file transfer to internal storage."
 
 msgid "Send to Printer storage"
-msgstr ""
+msgstr "Send to Printer storage"
 
 msgid "Try to connect"
-msgstr ""
+msgstr "Try to connect"
 
 msgid "Internal Storage"
-msgstr ""
+msgstr "Internal Storage"
 
 msgid "External Storage"
-msgstr ""
+msgstr "External Storage"
 
 msgid "Upload file timeout, please check if the firmware version supports it."
-msgstr ""
+msgstr "Upload file timeout, please check if the firmware version supports it."
 
 msgid "Connection timed out, please check your network."
-msgstr ""
+msgstr "Connection timed out, please check your network."
 
 msgid "Connection failed. Click the icon to retry"
-msgstr ""
+msgstr "Connection failed. Click the icon to retry"
 
 msgid "Cannot send the print task when the upgrade is in progress"
 msgstr ""
@@ -9262,21 +9546,23 @@ msgstr ""
 "nustatymais."
 
 msgid "Storage needs to be inserted before send to printer."
-msgstr ""
+msgstr "Storage needs to be inserted before send to printer."
 
 msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgstr "Spausdintuvas privalo būti tame pačiame tinkle kaip ir Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
-msgstr ""
+msgstr "The printer does not support sending to printer storage."
 
 msgid "Sending..."
-msgstr ""
+msgstr "Sending..."
 
 msgid ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 msgstr ""
+"File upload timed out. Please check if the firmware version supports this "
+"operation or verify if the printer is functioning properly."
 
 msgid "Slice ok."
 msgstr "Sluoksniavimas baigtas."
@@ -9450,18 +9736,29 @@ msgid ""
 "A prime tower is required for clumping detection. There may be flaws on the "
 "model without prime tower. Are you sure you want to disable prime tower?"
 msgstr ""
+"A prime tower is required for clumping detection. There may be flaws on the "
+"model without prime tower. Are you sure you want to disable prime tower?"
 
 msgid ""
-"Enabling both precise Z height and the prime tower may cause the size of "
-"prime tower to increase. Do you still want to enable?"
+"Enabling both precise Z height and the prime tower may cause slicing errors. "
+"Do you still want to enable?"
 msgstr ""
-"Įjungus tikslaus Z aukščio ir pagrindinio bokšto funkcijas, pagrindinio "
-"bokšto dydis gali padidėti. Ar vis tiek norite įjungti?"
+"Tikslaus Z aukščio ir pirminio bokšto įjungimas gali sukelti pjaustymo "
+"klaidų. Ar vis tiek norite įjungti?"
 
 msgid ""
 "A prime tower is required for clumping detection. There may be flaws on the "
 "model without prime tower. Do you still want to enable clumping detection?"
 msgstr ""
+"A prime tower is required for clumping detection. There may be flaws on the "
+"model without prime tower. Do you still want to enable clumping detection?"
+
+msgid ""
+"Enabling both precise Z height and the prime tower may cause slicing errors. "
+"Do you still want to enable precise Z height?"
+msgstr ""
+"Tikslaus Z aukščio ir pirminio bokšto įjungimas gali sukelti pjaustymo "
+"klaidų. Ar vis tiek norite įjungti tikslų Z aukštį?"
 
 msgid ""
 "A prime tower is required for smooth timelapse. There may be flaws on the "
@@ -9478,6 +9775,8 @@ msgid ""
 "Non-soluble support materials are not recommended for support base.\n"
 "Are you sure to use them for support base?\n"
 msgstr ""
+"Non-soluble support materials are not recommended for support base.\n"
+"Are you sure to use them for support base?\n"
 
 msgid ""
 "When using support material for the support interface, we recommend the "
@@ -9506,6 +9805,11 @@ msgid ""
 "disable independent support layer height\n"
 "and use soluble materials for both support interface and support base."
 msgstr ""
+"When using soluble material for the support interface, we recommend the "
+"following settings:\n"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 
 msgid ""
 "Enabling this option will modify the model's shape. If your print requires "
@@ -9583,8 +9887,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Įrašant pakadrinį vaizdo įrašą be spausdinimo galvutės judesių, "
 "rekomenduojama naudoti „Pakadrinio valymo bokštą“.\n"
@@ -9693,7 +9997,7 @@ msgstr "Sienos"
 msgid "Top/bottom shells"
 msgstr "Viršutiniai/apatiniai paviršiai"
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "Pradinio sluoksnio greitis"
 
 msgid "Other layers speed"
@@ -9923,7 +10227,7 @@ msgid "Wipe tower parameters"
 msgstr "Valymo bokšto parametrai"
 
 msgid "Multi Filament"
-msgstr ""
+msgstr "Multi Filament"
 
 msgid "Tool change parameters with single extruder MM printers"
 msgstr ""
@@ -9974,7 +10278,7 @@ msgid "Machine G-code"
 msgstr "Įrenginio gkodas"
 
 msgid "File header G-code"
-msgstr ""
+msgstr "File header G-code"
 
 msgid "Machine start G-code"
 msgstr "Įrangos paleidimo G-kodas"
@@ -9995,7 +10299,7 @@ msgid "Timelapse G-code"
 msgstr "Pakadrinio filmavimo G-kodas"
 
 msgid "Clumping Detection G-code"
-msgstr ""
+msgstr "Clumping Detection G-code"
 
 msgid "Change filament G-code"
 msgstr "Gijos keitimo G-kodas"
@@ -10088,9 +10392,11 @@ msgid ""
 "Switching to a printer with different extruder types or numbers will discard "
 "or reset changes to extruder or multi-nozzle-related parameters."
 msgstr ""
+"Switching to a printer with different extruder types or numbers will discard "
+"or reset changes to extruder or multi-nozzle-related parameters."
 
 msgid "Use Modified Value"
-msgstr ""
+msgstr "Use Modified Value"
 
 msgid "Detached"
 msgstr "Atjungta"
@@ -10139,11 +10445,11 @@ msgstr "Ar tikrai naudojate %1% pasirinktą išankstinį nustatymą?"
 
 #, c-format, boost-format
 msgid "Left: %s"
-msgstr ""
+msgstr "Left: %s"
 
 #, c-format, boost-format
 msgid "Right: %s"
-msgstr ""
+msgstr "Right: %s"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr ""
@@ -10269,8 +10575,8 @@ msgstr ""
 "Galite atsisakyti pakeistų iš anksto nustatytų reikšmių arba nuspręsti "
 "perkelti pakeistas reikšmes į naują projektą"
 
-msgid "Extruders count"
-msgstr "Ekstruderių kiekis"
+msgid "Extruder count"
+msgstr "Ekstruderių skaičius"
 
 msgid "Capabilities"
 msgstr "Galimybės"
@@ -10282,10 +10588,10 @@ msgid "Select presets to compare"
 msgstr "Pasirinkite išankstinius nustatymus, kuriuos norite palyginti"
 
 msgid "Left Preset Value"
-msgstr ""
+msgstr "Left Preset Value"
 
 msgid "Right Preset Value"
-msgstr ""
+msgstr "Right Preset Value"
 
 msgid ""
 "You can only transfer to current active profile because it has been modified."
@@ -10387,34 +10693,34 @@ msgid "OBJ file import color"
 msgstr "Obj failo importavimo spalva"
 
 msgid "Some faces don't have color defined."
-msgstr ""
+msgstr "Some faces don't have color defined."
 
 msgid "MTL file exist error, could not find the material:"
-msgstr ""
+msgstr "MTL file exist error, could not find the material:"
 
 msgid "Please check OBJ or MTL file."
-msgstr ""
+msgstr "Please check OBJ or MTL file."
 
 msgid "Specify number of colors:"
 msgstr "Nurodykite spalvų kiekį:"
 
 msgid "Enter or click the adjustment button to modify number again"
-msgstr ""
+msgstr "Enter or click the adjustment button to modify number again"
 
 msgid "Recommended "
 msgstr "Rekomenduojama "
 
 msgid "view"
-msgstr ""
+msgstr "view"
 
 msgid "Current filament colors"
-msgstr ""
+msgstr "Current filament colors"
 
 msgid "Matching"
-msgstr ""
+msgstr "Matching"
 
 msgid "Quick set"
-msgstr ""
+msgstr "Quick set"
 
 msgid "Color match"
 msgstr "Spalvų atitikimas"
@@ -10426,135 +10732,159 @@ msgid "Append"
 msgstr "Pridėti"
 
 msgid "Append to existing filaments"
-msgstr ""
+msgstr "Append to existing filaments"
 
 msgid "Reset mapped extruders."
 msgstr "Iš naujo nustatykite pažymėtus ekstruderius."
 
 msgid "Note"
-msgstr ""
+msgstr "Note"
 
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
 msgstr ""
+"The color has been selected, you can choose OK \n"
+" to continue or manually adjust it."
+
+msgid "—> "
+msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament "
 "presets.\n"
 "Are you sure you want to continue?"
 msgstr ""
+"Synchronizing AMS filaments will discard your modified but unsaved filament "
+"presets.\n"
+"Are you sure you want to continue?"
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr ""
+msgstr "Original"
 
 msgid "After mapping"
-msgstr ""
+msgstr "After mapping"
 
 msgid "After overwriting"
-msgstr ""
+msgstr "After overwriting"
 
 msgctxt "Sync_AMS"
 msgid "Plate"
-msgstr ""
+msgstr "Plate"
 
 msgid ""
 "The connected printer does not match the currently selected printer. Please "
 "change the selected printer."
 msgstr ""
+"The connected printer does not match the currently selected printer. Please "
+"change the selected printer."
 
 msgid "Mapping"
-msgstr ""
+msgstr "Mapping"
 
 msgid "Overwriting"
-msgstr ""
+msgstr "Overwriting"
 
 msgid "Reset all filament mapping"
-msgstr ""
+msgstr "Reset all filament mapping"
 
 msgid "Left Extruder"
-msgstr ""
+msgstr "Left Extruder"
 
 msgid "(Recommended filament)"
-msgstr ""
+msgstr "(Recommended filament)"
 
 msgid "Right Extruder"
-msgstr ""
+msgstr "Right Extruder"
 
 msgid "Advanced Options"
-msgstr ""
+msgstr "Advanced Options"
 
 msgid ""
 "Check heatbed flatness. Leveling makes extruded height uniform.\n"
 "*Automatic mode: Level first (about 10 seconds). Skip if surface is fine."
 msgstr ""
+"Check heatbed flatness. Leveling makes extruded height uniform.\n"
+"*Automatic mode: Level first (about 10 seconds). Skip if surface is fine."
 
 msgid ""
 "Calibrate nozzle offsets to enhance print quality.\n"
 "*Automatic mode: Check for calibration before printing; skip if unnecessary."
 msgstr ""
+"Calibrate nozzle offsets to enhance print quality.\n"
+"*Automatic mode: Check for calibration before printing; skip if unnecessary."
 
 msgid "Use AMS"
 msgstr "Naudoti AMS"
 
 msgid "Tip"
-msgstr ""
+msgstr "Tip"
 
 msgid ""
 "Only synchronize filament type and color, not including AMS slot information."
 msgstr ""
+"Only synchronize filament type and color, not including AMS slot information."
 
 msgid ""
 "Replace the project filaments list sequentially based on printer filaments. "
 "And unused printer filaments will be automatically added to the end of the "
 "list."
 msgstr ""
+"Replace the project filaments list sequentially based on printer filaments. "
+"And unused printer filaments will be automatically added to the end of the "
+"list."
 
 msgid "Advanced settings"
-msgstr ""
+msgstr "Advanced settings"
 
 msgid "Add unused AMS filaments to filaments list."
-msgstr ""
+msgstr "Add unused AMS filaments to filaments list."
 
 msgid "Automatically merge the same colors in the model after mapping."
-msgstr ""
+msgstr "Automatically merge the same colors in the model after mapping."
 
 msgid "After being synced, this action cannot be undone."
-msgstr ""
+msgstr "After being synced, this action cannot be undone."
 
 msgid ""
 "After being synced, the project's filament presets and colors will be "
 "replaced with the mapped filament types and colors. This action cannot be "
 "undone."
 msgstr ""
+"After being synced, the project's filament presets and colors will be "
+"replaced with the mapped filament types and colors. This action cannot be "
+"undone."
 
 msgid "Are you sure to synchronize the filaments?"
-msgstr ""
+msgstr "Are you sure to synchronize the filaments?"
 
 msgid "Synchronize now"
-msgstr ""
+msgstr "Synchronize now"
 
 msgid "Synchronize Filament Information"
-msgstr ""
+msgstr "Synchronize Filament Information"
 
 msgid "Add unused filaments to filaments list."
-msgstr ""
+msgstr "Add unused filaments to filaments list."
 
 msgid ""
 "Only synchronize filament type and color, not including slot information."
 msgstr ""
+"Only synchronize filament type and color, not including slot information."
 
 msgid "Ext spool"
-msgstr ""
+msgstr "Ext spool"
 
 msgid ""
 "Please check whether the nozzle type of the device is the same as the preset "
 "nozzle type."
 msgstr ""
+"Please check whether the nozzle type of the device is the same as the preset "
+"nozzle type."
 
 msgid "Storage is not available or is in read-only mode."
-msgstr ""
+msgstr "Storage is not available or is in read-only mode."
 
 #, c-format, boost-format
 msgid ""
@@ -10574,29 +10904,31 @@ msgid ""
 "You selected external and AMS filament at the same time in an extruder, you "
 "will need manually change external filament."
 msgstr ""
+"You selected external and AMS filament at the same time in an extruder, you "
+"will need manually change external filament."
 
 msgid "Successfully synchronized nozzle information."
-msgstr ""
+msgstr "Successfully synchronized nozzle information."
 
 msgid "Successfully synchronized nozzle and AMS number information."
-msgstr ""
+msgstr "Successfully synchronized nozzle and AMS number information."
 
 msgid "Continue to sync filaments"
-msgstr ""
+msgstr "Continue to sync filaments"
 
 msgctxt "Sync_Nozzle_AMS"
 msgid "Cancel"
-msgstr ""
+msgstr "Atšaukti"
 
 msgid "Successfully synchronized filament color from printer."
-msgstr ""
+msgstr "Successfully synchronized filament color from printer."
 
 msgid "Successfully synchronized color and type of filament from printer."
-msgstr ""
+msgstr "Successfully synchronized color and type of filament from printer."
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr ""
+msgstr "Gerai"
 
 msgid "Ramming customization"
 msgstr "Spasdinimo galvutės stūmimo pritaikymas"
@@ -10628,7 +10960,7 @@ msgstr ""
 "Norėdami išlaikyti pastovų srauto greitį, vilkdami laikykite nuspaudę %1%."
 
 msgid "ms"
-msgstr ""
+msgstr "ms"
 
 msgid "Total ramming"
 msgstr "Bendras rammingas"
@@ -10644,6 +10976,9 @@ msgid ""
 "changed or filaments changed. You could disable the auto-calculate in Orca "
 "Slicer > Preferences"
 msgstr ""
+"Orca would re-calculate your flushing volumes everytime the filaments color "
+"changed or filaments changed. You could disable the auto-calculate in Orca "
+"Slicer > Preferences"
 
 msgid "Flushing volume (mm³) for each filament pair."
 msgstr "Kiekvienos gijų poros išmetimo tūris (mm³)."
@@ -10660,10 +10995,10 @@ msgid "Re-calculate"
 msgstr "Perskaičiuoti"
 
 msgid "Left extruder"
-msgstr ""
+msgstr "Left extruder"
 
 msgid "Right extruder"
-msgstr ""
+msgstr "Right extruder"
 
 msgid "Multiplier"
 msgstr "Daugiklis"
@@ -10672,7 +11007,7 @@ msgid "Flushing volumes for filament change"
 msgstr "Išmetimo tūris keičiant gijas"
 
 msgid "Please choose the filament colour"
-msgstr ""
+msgstr "Please choose the filament colour"
 
 msgid ""
 "Windows Media Player is required for this task! Do you want to enable "
@@ -10690,10 +11025,10 @@ msgstr ""
 
 msgid ""
 "Missing BambuSource component registered for media playing! Please re-"
-"install BambuStudio or seek after-sales help."
+"install OrcaSlicer or seek community help."
 msgstr ""
-"Trūksta „BambuSource“ komponento, registruoto medijos atkūrimui! Iš naujo "
-"įdiekite „BambuStudio“ arba kreipkitės į pagalbą po pardavimo."
+"Trūksta BambuSource komponento, užregistruoto medijos atkūrimui! Iš naujo "
+"įdiekite OrcaSlicer arba kreipkitės pagalbos į bendruomenę."
 
 msgid ""
 "Using a BambuSource from a different install, video play may not work "
@@ -10721,10 +11056,10 @@ msgid "Login"
 msgstr "Prisijungti"
 
 msgid "[Action Required] "
-msgstr ""
+msgstr "[Action Required] "
 
 msgid "[Action Required]"
-msgstr ""
+msgstr "[Action Required]"
 
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "Konfigūracijos paketas pakeistas ankstesniame Config Guide"
@@ -10755,15 +11090,6 @@ msgstr "Rodyti sparčiųjų klavišų sąrašą"
 
 msgid "Global shortcuts"
 msgstr "Bendrieji spartieji klavišai"
-
-msgid "Pan View"
-msgstr "Judinti vaizdą"
-
-msgid "Rotate View"
-msgstr "Pasukti vaizdą"
-
-msgid "Zoom View"
-msgstr "Padidinti vaizdą"
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -10996,19 +11322,25 @@ msgid ""
 "Try the following methods to update the connection parameters and reconnect "
 "to the printer."
 msgstr ""
+"Try the following methods to update the connection parameters and reconnect "
+"to the printer."
 
 msgid "1. Please confirm Orca Slicer and your printer are in the same LAN."
-msgstr ""
+msgstr "1. Please confirm Orca Slicer and your printer are in the same LAN."
 
 msgid ""
 "2. If the IP and Access Code below are different from the actual values on "
 "your printer, please correct them."
 msgstr ""
+"2. If the IP and Access Code below are different from the actual values on "
+"your printer, please correct them."
 
 msgid ""
 "3. Please obtain the device SN from the printer side; it is usually found in "
 "the device information on the printer screen."
 msgstr ""
+"3. Please obtain the device SN from the printer side; it is usually found in "
+"the device information on the printer screen."
 
 msgid "IP"
 msgstr "IP"
@@ -11063,33 +11395,35 @@ msgstr ""
 "pereikite prie 3 žingsnio, skirto tinklo problemoms šalinti"
 
 msgid "Connection failed! Please refer to the wiki page."
-msgstr ""
+msgstr "Connection failed! Please refer to the wiki page."
 
 msgid "sending failed"
-msgstr ""
+msgstr "sending failed"
 
 msgid ""
 "Failed to send. Click Retry to attempt sending again. If retrying does not "
 "work, please check the reason."
 msgstr ""
+"Failed to send. Click Retry to attempt sending again. If retrying does not "
+"work, please check the reason."
 
 msgid "reconnect"
-msgstr ""
+msgstr "reconnect"
 
 msgid "Air Pump"
 msgstr "Oro siurblys"
 
 msgid "Laser 10W"
-msgstr ""
+msgstr "Laser 10W"
 
 msgid "Laser 40W"
-msgstr ""
+msgstr "Laser 40W"
 
 msgid "Cutting Module"
 msgstr "Pjovimo modulis"
 
 msgid "Auto Fire Extinguishing System"
-msgstr ""
+msgstr "Auto Fire Extinguishing System"
 
 msgid "Update firmware"
 msgstr "Atnaujinti programinę įrangą"
@@ -11129,8 +11463,8 @@ msgid ""
 msgstr ""
 "Įterptinės programinės įrangos versija yra nenormali. Prieš spausdinant "
 "reikia pataisyti ir atnaujinti. Ar norite atnaujinti dabar? Taip pat galite "
-"atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami \"Orca"
-"\"."
+"atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami "
+"\"Orca\"."
 
 msgid "Extension Board"
 msgstr "Išplėtimo plokštė"
@@ -11201,7 +11535,7 @@ msgid "Open G-code file:"
 msgstr "Atidaryti G-kodo failą:"
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr ""
 "Vienas objektas turi tuščią pradinį sluoksnį ir jo negalima spausdinti. "
@@ -11249,13 +11583,13 @@ msgid "Generating G-code: layer %1%"
 msgstr "G-kodo generavimas: sluoksnis %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
-msgstr ""
+msgstr "Flush volumes matrix do not match to the correct size!"
 
 msgid "Grouping error: "
-msgstr ""
+msgstr "Grouping error: "
 
 msgid " can not be placed in the "
-msgstr ""
+msgstr " can not be placed in the "
 
 msgid "Internal Bridge"
 msgstr "Vidinis tiltas"
@@ -11389,6 +11723,8 @@ msgid ""
 " is too close to clumping detection area, there may be collisions when "
 "printing."
 msgstr ""
+" is too close to clumping detection area, there may be collisions when "
+"printing."
 
 msgid "Prime Tower"
 msgstr "Pirminis bokštas"
@@ -11402,32 +11738,44 @@ msgstr " yra per arti uždraustosios zonos, todėl įvyks susidūrimai.\n"
 msgid ""
 " is too close to clumping detection area, and collisions will be caused.\n"
 msgstr ""
+" is too close to clumping detection area, and collisions will be caused.\n"
 
 msgid ""
 "Printing high-temp and low-temp filaments together may cause nozzle clogging "
 "or printer damage."
 msgstr ""
+"Printing high-temp and low-temp filaments together may cause nozzle clogging "
+"or printer damage."
 
 msgid ""
 "Printing high-temp and low-temp filaments together may cause nozzle clogging "
 "or printer damage. If you still want to print, you can enable the option in "
 "Preferences."
 msgstr ""
+"Printing high-temp and low-temp filaments together may cause nozzle clogging "
+"or printer damage. If you still want to print, you can enable the option in "
+"Preferences."
 
 msgid ""
 "Printing different-temp filaments together may cause nozzle clogging or "
 "printer damage."
 msgstr ""
+"Printing different-temp filaments together may cause nozzle clogging or "
+"printer damage."
 
 msgid ""
 "Printing high-temp and mid-temp filaments together may cause nozzle clogging "
 "or printer damage."
 msgstr ""
+"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
+"or printer damage."
 
 msgid ""
 "Printing mid-temp and low-temp filaments together may cause nozzle clogging "
 "or printer damage."
 msgstr ""
+"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
+"or printer damage."
 
 msgid "No extrusions under current settings."
 msgstr "Pagal dabartinius nustatymus nėra išspaudimų."
@@ -11442,11 +11790,20 @@ msgstr ""
 msgid ""
 "Clumping detection is not supported when \"by object\" sequence is enabled."
 msgstr ""
+"Clumping detection is not supported when \"by object\" sequence is enabled."
+
+msgid ""
+"Enabling both precise Z height and the prime tower may cause slicing errors."
+msgstr ""
+"Tikslaus Z aukščio ir pirminio bokšto įjungimas gali sukelti pjaustymo "
+"klaidų."
 
 msgid ""
 "A prime tower is required for clumping detection; otherwise, there may be "
 "flaws on the model."
 msgstr ""
+"A prime tower is required for clumping detection; otherwise, there may be "
+"flaws on the model."
 
 msgid ""
 "Please select \"By object\" print sequence to print multiple objects in "
@@ -11519,8 +11876,8 @@ msgid ""
 "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, "
 "RepRapFirmware and Repetier G-code flavors."
 msgstr ""
-"Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/Sprinter"
-"\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
+"Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/"
+"Sprinter\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
 
 msgid "The prime tower is not supported in \"By object\" print."
 msgstr "Pirminis bokštas nepalaikomas spausdinant \"Pagal objektą\"."
@@ -11603,11 +11960,15 @@ msgid ""
 "For Organic supports, two walls are supported only with the Hollow/Default "
 "base pattern."
 msgstr ""
+"For Organic supports, two walls are supported only with the Hollow/Default "
+"base pattern."
 
 msgid ""
 "The Lightning base pattern is not supported by this support type; "
 "Rectilinear will be used instead."
 msgstr ""
+"The Lightning base pattern is not supported by this support type; "
+"Rectilinear will be used instead."
 
 msgid ""
 "Organic support tree tip diameter must not be smaller than support material "
@@ -11629,6 +11990,13 @@ msgid ""
 msgstr ""
 "Organinės atraminės šakos skersmuo neturi būti mažesnis už atraminio medžio "
 "viršūnės skersmenį."
+
+msgid ""
+"The Hollow base pattern is not supported by this support type; Rectilinear "
+"will be used instead."
+msgstr ""
+"Tuščiavidurio pagrindo raštas nepalaikomas šio atramos tipo; Vietoj to bus "
+"naudojamas tiesialinis."
 
 msgid ""
 "Support enforcers are used but support is not enabled. Please enable support."
@@ -11765,7 +12133,7 @@ msgid "Printable area"
 msgstr "Spausdinama sritis"
 
 msgid "Extruder printable area"
-msgstr ""
+msgstr "Extruder printable area"
 
 msgid "Bed exclude area"
 msgstr "Nespausdinama pagrindo sritis"
@@ -11789,7 +12157,7 @@ msgid "Elephant foot compensation"
 msgstr "Dramblio pėdos kompensacija"
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr ""
 "Taip sutraukiamas pirmasis spausdinio sluoksnis, kad būtų kompensuotas "
@@ -11808,9 +12176,6 @@ msgstr ""
 "sluoksnis bus sumažintas pagal dramblio pėdos kompensavimo vertę, tada kiti "
 "sluoksniai bus tiesiškai mažinami mažiau, iki šia verte nurodyto sluoksnio."
 
-msgid "layers"
-msgstr "sluoksniai"
-
 msgid ""
 "Slicing height for each layer. Smaller layer height means more accurate and "
 "more printing time."
@@ -11826,12 +12191,14 @@ msgstr ""
 "Tai didžiausias spausdinamas aukštis, kurį riboja spausdinimo zonos aukštis."
 
 msgid "Extruder printable height"
-msgstr ""
+msgstr "Extruder printable height"
 
 msgid ""
 "Maximum printable height of this extruder which is limited by mechanism of "
 "printer."
 msgstr ""
+"Maximum printable height of this extruder which is limited by mechanism of "
+"printer."
 
 msgid "Preferred orientation"
 msgstr "Pageidautina orientacija"
@@ -11851,10 +12218,10 @@ msgstr ""
 "prieglobą."
 
 msgid "Printer Agent"
-msgstr ""
+msgstr "Printer Agent"
 
 msgid "Select the network agent implementation for printer communication."
-msgstr ""
+msgstr "Select the network agent implementation for printer communication."
 
 msgid "Hostname, IP or URL"
 msgstr "Hosto pavadinimas, IP arba URL"
@@ -12008,50 +12375,50 @@ msgstr ""
 "Pagrindo temperatūra po pirmojo sluoksnio. 0 reiškia, kad gija nepalaiko "
 "spausdinimo ant tekstūruotos PEI plokštės."
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "Pradinis sluoksnis"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "Pradinė sluoksnio pagrindo temperatūra"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Cool Plate SuperTack."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Cool Plate SuperTack."
 msgstr ""
 "Pradinio sluoksnio pagrindo temperatūra. Reikšmė 0 reiškia, kad gija "
 "nepalaiko spausdinimo ant šaltos plokštės „SuperTack“."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Cool Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Cool Plate."
 msgstr ""
 "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant "
 "šaltos plokštės."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Textured Cool Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Textured Cool Plate."
 msgstr ""
 "Pradinio sluoksnio pagrindo temperatūra. Reikšmė 0 reiškia, kad gija "
 "nepalaiko spausdinimo ant tekstūruotos šaltos plokštės."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Engineering Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Engineering Plate."
 msgstr ""
 "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant "
 "inžinerinės plokštės."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the High Temp Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the High Temp Plate."
 msgstr ""
 "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant "
 "aukštos temperatūros plokštės."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Textured PEI Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Textured PEI Plate."
 msgstr ""
 "Pirmojo sluoksnio temperatūra. 0 reiškia, kad gija nepalaiko spausdinimo ant "
 "tekstūruotos PEI plokštės."
@@ -12280,6 +12647,15 @@ msgid ""
 "provide additional support during printing. Maximum is 120%.\n"
 "Note: Bridge density that is too high can cause warping or overextrusion."
 msgstr ""
+"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+"\n"
+"Lower density external bridges can help improve reliability as there is more "
+"space for air to circulate around the extruded bridge, improving its cooling "
+"speed. Minimum is 10%.\n"
+"\n"
+"Higher densities can produce smoother bridge surfaces, as overlapping lines "
+"provide additional support during printing. Maximum is 120%.\n"
+"Note: Bridge density that is too high can cause warping or overextrusion."
 
 msgid "Internal bridge density"
 msgstr "Vidinių tiltų tankis"
@@ -12377,13 +12753,13 @@ msgstr ""
 "koeficiento."
 
 msgid "Set other flow ratios"
-msgstr ""
+msgstr "Set other flow ratios"
 
 msgid "Change flow ratios for other extrusion path types."
-msgstr ""
+msgstr "Change flow ratios for other extrusion path types."
 
 msgid "First layer flow ratio"
-msgstr ""
+msgstr "First layer flow ratio"
 
 msgid ""
 "This factor affects the amount of material on the first layer for the "
@@ -12392,9 +12768,14 @@ msgid ""
 "For the first layer, the actual flow ratio for each path role (does not "
 "affect brims and skirts) will be multiplied by this value."
 msgstr ""
+"This factor affects the amount of material on the first layer for the "
+"extrusion path roles listed in this section.\n"
+"\n"
+"For the first layer, the actual flow ratio for each path role (does not "
+"affect brims and skirts) will be multiplied by this value."
 
 msgid "Outer wall flow ratio"
-msgstr ""
+msgstr "Outer wall flow ratio"
 
 msgid ""
 "This factor affects the amount of material for outer walls.\n"
@@ -12402,9 +12783,13 @@ msgid ""
 "The actual outer wall flow used is calculated by multiplying this value by "
 "the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for outer walls.\n"
+"\n"
+"The actual outer wall flow used is calculated by multiplying this value by "
+"the filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Inner wall flow ratio"
-msgstr ""
+msgstr "Inner wall flow ratio"
 
 msgid ""
 "This factor affects the amount of material for inner walls.\n"
@@ -12412,9 +12797,13 @@ msgid ""
 "The actual inner wall flow used is calculated by multiplying this value by "
 "the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for inner walls.\n"
+"\n"
+"The actual inner wall flow used is calculated by multiplying this value by "
+"the filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Overhang flow ratio"
-msgstr ""
+msgstr "Overhang flow ratio"
 
 msgid ""
 "This factor affects the amount of material for overhangs.\n"
@@ -12422,9 +12811,13 @@ msgid ""
 "The actual overhang flow used is calculated by multiplying this value by the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for overhangs.\n"
+"\n"
+"The actual overhang flow used is calculated by multiplying this value by the "
+"filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Sparse infill flow ratio"
-msgstr ""
+msgstr "Sparse infill flow ratio"
 
 msgid ""
 "This factor affects the amount of material for sparse infill.\n"
@@ -12432,9 +12825,13 @@ msgid ""
 "The actual sparse infill flow used is calculated by multiplying this value "
 "by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for sparse infill.\n"
+"\n"
+"The actual sparse infill flow used is calculated by multiplying this value "
+"by the filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Internal solid infill flow ratio"
-msgstr ""
+msgstr "Internal solid infill flow ratio"
 
 msgid ""
 "This factor affects the amount of material for internal solid infill.\n"
@@ -12442,9 +12839,13 @@ msgid ""
 "The actual internal solid infill flow used is calculated by multiplying this "
 "value by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for internal solid infill.\n"
+"\n"
+"The actual internal solid infill flow used is calculated by multiplying this "
+"value by the filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Gap fill flow ratio"
-msgstr ""
+msgstr "Gap fill flow ratio"
 
 msgid ""
 "This factor affects the amount of material for filling the gaps.\n"
@@ -12452,9 +12853,13 @@ msgid ""
 "The actual gap filling flow used is calculated by multiplying this value by "
 "the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for filling the gaps.\n"
+"\n"
+"The actual gap filling flow used is calculated by multiplying this value by "
+"the filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Support flow ratio"
-msgstr ""
+msgstr "Support flow ratio"
 
 msgid ""
 "This factor affects the amount of material for support.\n"
@@ -12462,9 +12867,13 @@ msgid ""
 "The actual support flow used is calculated by multiplying this value by the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for support.\n"
+"\n"
+"The actual support flow used is calculated by multiplying this value by the "
+"filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Support interface flow ratio"
-msgstr ""
+msgstr "Support interface flow ratio"
 
 msgid ""
 "This factor affects the amount of material for the support interface.\n"
@@ -12472,6 +12881,10 @@ msgid ""
 "The actual support interface flow used is calculated by multiplying this "
 "value by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
+"This factor affects the amount of material for the support interface.\n"
+"\n"
+"The actual support interface flow used is calculated by multiplying this "
+"value by the filament flow ratio, and if set, the object's flow ratio."
 
 msgid "Precise wall"
 msgstr "Tiksli siena"
@@ -13417,7 +13830,7 @@ msgstr ""
 "būti išplėsta adaptyviojo pagrindo figūros sritis."
 
 msgid "Grab length"
-msgstr ""
+msgstr "Grab length"
 
 msgid "Extruder Color"
 msgstr "Ekstruderio spalva"
@@ -13427,9 +13840,6 @@ msgstr "Naudojama tik kaip vaizdinė pagalba vartotojo sąsajai."
 
 msgid "Extruder offset"
 msgstr "Ekstruderio poslinkis"
-
-msgid "Flow ratio"
-msgstr "Srauto santykis"
 
 msgid ""
 "The material may have volumetric change after switching between molten and "
@@ -13696,32 +14106,36 @@ msgstr ""
 "reiškia, kad antgalio HRC netikrinama."
 
 msgid "Filament map to extruder"
-msgstr ""
+msgstr "Filament map to extruder"
 
 msgid "Filament map to extruder."
-msgstr ""
+msgstr "Filament map to extruder."
 
 msgid "Auto For Flush"
-msgstr ""
+msgstr "Auto For Flush"
 
 msgid "Auto For Match"
-msgstr ""
+msgstr "Auto For Match"
 
 msgid "Flush temperature"
-msgstr ""
+msgstr "Flush temperature"
 
 msgid ""
 "Temperature when flushing filament. 0 indicates the upper bound of the "
 "recommended nozzle temperature range."
 msgstr ""
+"Temperature when flushing filament. 0 indicates the upper bound of the "
+"recommended nozzle temperature range."
 
 msgid "Flush volumetric speed"
-msgstr ""
+msgstr "Flush volumetric speed"
 
 msgid ""
 "Volumetric speed when flushing filament. 0 indicates the max volumetric "
 "speed."
 msgstr ""
+"Volumetric speed when flushing filament. 0 indicates the max volumetric "
+"speed."
 
 msgid ""
 "This setting stands for how much volume of filament can be melted and "
@@ -13769,19 +14183,22 @@ msgstr ""
 "jis paprastai lygus 0. Tik statistiniams duomenims."
 
 msgid "Bed temperature type"
-msgstr ""
+msgstr "Bed temperature type"
 
 msgid ""
 "This option determines how the bed temperature is set during slicing: based "
 "on the temperature of the first filament or the highest temperature of the "
 "printed filaments."
 msgstr ""
+"This option determines how the bed temperature is set during slicing: based "
+"on the temperature of the first filament or the highest temperature of the "
+"printed filaments."
 
 msgid "By First filament"
-msgstr ""
+msgstr "By First filament"
 
 msgid "By Highest Temp"
-msgstr ""
+msgstr "By Highest Temp"
 
 msgid ""
 "Filament diameter is used to calculate extrusion in G-code, so it is "
@@ -13811,16 +14228,25 @@ msgstr ""
 "filament_diameter = sqrt( (4 * granulių srauto koeficientas) / PI )"
 
 msgid "Adaptive volumetric speed"
-msgstr ""
+msgstr "Adaptive volumetric speed"
 
 msgid ""
 "When enabled, the extrusion flow is limited by the smaller of the fitted "
 "value (calculated from line width and layer height) and the user-defined "
-"maximum flow. When disabled, only the user-defined maximum flow is applied."
+"maximum flow. When disabled, only the user-defined maximum flow is applied.\n"
+"\n"
+"Note: Experimental and incomplete feature imported from BBS. Functional for "
+"some profiles that already have the variable saved."
 msgstr ""
+"When enabled, the extrusion flow is limited by the smaller of the fitted "
+"value (calculated from line width and layer height) and the user-defined "
+"maximum flow. When disabled, only the user-defined maximum flow is applied.\n"
+"\n"
+"Note: Experimental and incomplete feature imported from BBS. Functional for "
+"some profiles that already have the variable saved."
 
 msgid "Max volumetric speed multinomial coefficients"
-msgstr ""
+msgstr "Max volumetric speed multinomial coefficients"
 
 msgid "Shrinkage (XY)"
 msgstr "Susitraukimas (XY)"
@@ -13854,10 +14280,10 @@ msgstr ""
 "kompensuota."
 
 msgid "Adhesiveness Category"
-msgstr ""
+msgstr "Adhesiveness Category"
 
 msgid "Filament category."
-msgstr ""
+msgstr "Filament category."
 
 msgid "Loading speed"
 msgstr "Pakrovimo greitis"
@@ -13952,47 +14378,57 @@ msgstr ""
 "vienas po kito einantys užpildų arba apsauginių objektų išspaudimai."
 
 msgid "Interface layer pre-extrusion distance"
-msgstr ""
+msgstr "Interface layer pre-extrusion distance"
 
 msgid ""
 "Pre-extrusion distance for prime tower interface layer (where different "
 "materials meet)."
 msgstr ""
+"Pre-extrusion distance for prime tower interface layer (where different "
+"materials meet)."
 
 msgid "Interface layer pre-extrusion length"
-msgstr ""
+msgstr "Interface layer pre-extrusion length"
 
 msgid ""
 "Pre-extrusion length for prime tower interface layer (where different "
 "materials meet)."
 msgstr ""
+"Pre-extrusion length for prime tower interface layer (where different "
+"materials meet)."
 
 msgid "Tower ironing area"
-msgstr ""
+msgstr "Tower ironing area"
 
 msgid ""
 "Ironing area for prime tower interface layer (where different materials "
 "meet)."
 msgstr ""
+"Ironing area for prime tower interface layer (where different materials "
+"meet)."
 
 msgid "mm²"
 msgstr "mm²"
 
 msgid "Interface layer purge length"
-msgstr ""
+msgstr "Interface layer purge length"
 
 msgid ""
 "Purge length for prime tower interface layer (where different materials "
 "meet)."
 msgstr ""
+"Purge length for prime tower interface layer (where different materials "
+"meet)."
 
 msgid "Interface layer print temperature"
-msgstr ""
+msgstr "Interface layer print temperature"
 
 msgid ""
 "Print temperature for prime tower interface layer (where different materials "
 "meet). If set to -1, use max recommended nozzle temperature."
 msgstr ""
+"Print temperature for prime tower interface layer (where different materials "
+"meet). If set to -1, use max recommended nozzle temperature."
 
 msgid "Speed of the last cooling move"
 msgstr "Paskutinio aušinimo judesio greitis"
@@ -14044,7 +14480,7 @@ msgid "Filament density. For statistics only."
 msgstr "Gijų tankis, tik statistikai."
 
 msgid "g/cm³"
-msgstr ""
+msgstr "g/cm³"
 
 msgid "The material type of filament."
 msgstr "Gijos medžiagos tipas."
@@ -14058,12 +14494,14 @@ msgstr ""
 "Tirpi medžiaga paprastai naudojama spausdinant atramą ir atramos sąsają."
 
 msgid "Filament ramming length"
-msgstr ""
+msgstr "Filament ramming length"
 
 msgid ""
 "When changing the extruder, it is recommended to extrude a certain length of "
 "filament from the original extruder. This helps minimize nozzle oozing."
 msgstr ""
+"When changing the extruder, it is recommended to extrude a certain length of "
+"filament from the original extruder. This helps minimize nozzle oozing."
 
 msgid "Support material"
 msgstr "Atramų medžiaga"
@@ -14075,10 +14513,10 @@ msgstr ""
 "spausdinti."
 
 msgid "Filament printable"
-msgstr ""
+msgstr "Filament printable"
 
 msgid "The filament is printable in extruder."
-msgstr ""
+msgstr "The filament is printable in extruder."
 
 msgid "Softening temperature"
 msgstr "Minkštėjimo temperatūra"
@@ -14357,8 +14795,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² arba %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Retų užpildų pagreitis. Jei reikšmė išreikšta procentais (pvz., 100 %), ji "
 "bus apskaičiuota pagal numatytąjį pagreitį."
@@ -14372,7 +14810,7 @@ msgstr ""
 "100 %), ji bus apskaičiuota pagal numatytąjį pagreitį."
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr ""
 "Tai pirmojo sluoksnio spausdinimo pagreitis. Naudojant ribotą pagreitį "
@@ -14417,43 +14855,44 @@ msgstr "Viršutinio paviršiaus trūkčiojimas."
 msgid "Jerk for infill."
 msgstr "Užpildymo trūkčiojimas."
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr "Pradinio sluoksnio trūkčiojimas."
 
 msgid "Jerk for travel."
 msgstr "Judėjimo trūkčiojimas."
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
 "Pradinio sluoksnio linijos plotis. Jei išreiškiamas %, jis apskaičiuojamas "
 "pagal purkštuko skersmenį."
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "Pradinio sluoksnio aukštis"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr ""
 "Pradinio sluoksnio aukštis. Šiek tiek padidinus pradinio sluoksnio aukštį "
 "galima pagerinti pagrindo plokštės sukibimą."
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr ""
 "Greitis taikomas pirmajam sluoksniui, išskyrus vientiso užpildo ruožus."
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "Pradinio sluoksnio užpildymas"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "Pirmojo sluoksnio vientiso užpildo dalių greitis."
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr "Pradinio sluoksnio judėjimo greitis"
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr "Pradinio sluoksnio judėjimo greitis."
 
 msgid "Number of slow layers"
@@ -14466,10 +14905,11 @@ msgstr ""
 "Keli pirmieji sluoksniai spausdinami lėčiau nei įprastai. Greitis "
 "palaipsniui linijiniu būdu didinamas per nurodytą sluoksnių skaičių."
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "Pradinė sluoksnio purkštuko temperatūra"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr ""
 "Purkštuko temperatūra pradiniam sluoksniui spausdinti, kai naudojama ši gija."
 
@@ -14478,10 +14918,10 @@ msgstr "Visas ventiliatoriaus greitis sluoksnyje"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Ventiliatoriaus greitis bus didinamas tiesiškai nuo nulio sluoksnyje "
 "\"close_fan_the_first_x_layers\" iki maksimalaus sluoksnyje "
@@ -14552,6 +14992,9 @@ msgid ""
 "the ironing flow for each filament type. Too high value results in "
 "overextrusion on the surface."
 msgstr ""
+"Filament-specific override for ironing flow. This allows you to customize "
+"the ironing flow for each filament type. Too high value results in "
+"overextrusion on the surface."
 
 msgid "Ironing line spacing"
 msgstr "Tarpai tarp lyginimo linijų"
@@ -14560,6 +15003,8 @@ msgid ""
 "Filament-specific override for ironing line spacing. This allows you to "
 "customize the spacing between ironing lines for each filament type."
 msgstr ""
+"Filament-specific override for ironing line spacing. This allows you to "
+"customize the spacing between ironing lines for each filament type."
 
 msgid "Ironing inset"
 msgstr "Lyginimo intarpas"
@@ -14568,6 +15013,8 @@ msgid ""
 "Filament-specific override for ironing inset. This allows you to customize "
 "the distance to keep from the edges when ironing for each filament type."
 msgstr ""
+"Filament-specific override for ironing inset. This allows you to customize "
+"the distance to keep from the edges when ironing for each filament type."
 
 msgid "Ironing speed"
 msgstr "Lyginimo greitis"
@@ -14576,6 +15023,8 @@ msgid ""
 "Filament-specific override for ironing speed. This allows you to customize "
 "the print speed of ironing lines for each filament type."
 msgstr ""
+"Filament-specific override for ironing speed. This allows you to customize "
+"the print speed of ironing lines for each filament type."
 
 msgid ""
 "Randomly jitter while printing the wall, so that the surface has a rough "
@@ -14824,7 +15273,7 @@ msgstr ""
 "pirmojo sluoksnio kokybę."
 
 msgid "Power Loss Recovery"
-msgstr ""
+msgstr "Power Loss Recovery"
 
 msgid ""
 "Choose how to control power loss recovery. When set to Printer "
@@ -14832,9 +15281,13 @@ msgid ""
 "leave the printer's configuration unchanged. Applicable to Bambu Lab or "
 "Marlin 2 firmware based printers."
 msgstr ""
+"Choose how to control power loss recovery. When set to Printer "
+"configuration, the slicer will not emit power loss recovery G-code and will "
+"leave the printer's configuration unchanged. Applicable to Bambu Lab or "
+"Marlin 2 firmware based printers."
 
 msgid "Printer configuration"
-msgstr ""
+msgstr "Printer configuration"
 
 msgid "Nozzle type"
 msgstr "Purkštuko tipas"
@@ -14856,7 +15309,7 @@ msgid "Stainless steel"
 msgstr "Nerūdijantis plienas"
 
 msgid "Tungsten carbide"
-msgstr ""
+msgstr "Tungsten carbide"
 
 msgid "Nozzle HRC"
 msgstr "Purkštuko HRC"
@@ -15188,19 +15641,19 @@ msgstr ""
 "vertes (pvz., 80 %). Ši vertė neturi būti didesnė už purkštuko skersmenį."
 
 msgid "Enable clumping detection"
-msgstr ""
+msgstr "Enable clumping detection"
 
 msgid "Clumping detection layers"
-msgstr ""
+msgstr "Clumping detection layers"
 
 msgid "Clumping detection layers."
-msgstr ""
+msgstr "Clumping detection layers."
 
 msgid "Probing exclude area of clumping"
-msgstr ""
+msgstr "Probing exclude area of clumping"
 
 msgid "Probing exclude area of clumping."
-msgstr ""
+msgstr "Probing exclude area of clumping."
 
 msgid "Filament to print internal sparse infill."
 msgstr "Gija, skirta spausdinti vidinį retą užpildą."
@@ -15360,7 +15813,8 @@ msgstr "Viršutiniai paviršiai"
 msgid "Topmost surface"
 msgstr "Aukščiausias paviršius"
 
-msgid "All solid layer"
+#, fuzzy
+msgid "All solid layers"
 msgstr "Visas vientisas sluoksnis"
 
 msgid "Ironing Pattern"
@@ -15391,22 +15845,22 @@ msgid "Print speed of ironing lines."
 msgstr "Lyginimo linijų spausdinimo greitis."
 
 msgid "Ironing angle offset"
-msgstr ""
+msgstr "Ironing angle offset"
 
 msgid "The angle of ironing lines offset from the top surface."
-msgstr ""
+msgstr "The angle of ironing lines offset from the top surface."
 
 msgid "Fixed ironing angle"
-msgstr ""
+msgstr "Fixed ironing angle"
 
 msgid "Use a fixed absolute angle for ironing."
-msgstr ""
+msgstr "Use a fixed absolute angle for ironing."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "Šis G kodas įterpiamas po kiekvieno sluoksnio keitimo po Z pakėlimo."
 
 msgid "Clumping detection G-code"
-msgstr ""
+msgstr "Clumping detection G-code"
 
 msgid "Supports silent mode"
 msgstr "Palaikomas tylusis režimas"
@@ -15541,6 +15995,9 @@ msgid ""
 "Firmware\n"
 "If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 msgstr ""
+"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+"Firmware\n"
+"If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 
 msgid "Minimum speed for extruding"
 msgstr "Mažiausias ekstruzijos greitis"
@@ -15889,7 +16346,8 @@ msgstr ""
 "Didžiausias modelio pagrindo skylės plotas prieš ją užpildant kūgine "
 "medžiaga. 0 reikšmė užpildys visas modelio pagrindo skyles."
 
-msgid "Detect overhang wall"
+#, fuzzy
+msgid "Detect overhang walls"
 msgstr "Aptikti išsikišusią sieną"
 
 #, c-format, boost-format
@@ -15982,13 +16440,13 @@ msgstr "Platformos išplėtimas"
 msgid "Expand all raft layers in XY plane."
 msgstr "Tai išplečia visus platformos sluoksnius XY plokštumoje."
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "Pradinio sluoksnio tankis"
 
 msgid "Density of the first raft or support layer."
 msgstr "Pirmojo platformos arba atraminio sluoksnio tankis."
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "Pradinio sluoksnio išplėtimas"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -16072,10 +16530,10 @@ msgid ""
 msgstr "Eksperimentinė savybė: Įtraukimo ilgis prieš nupjaunant keičiant giją."
 
 msgid "Long retraction when extruder change"
-msgstr ""
+msgstr "Long retraction when extruder change"
 
 msgid "Retraction distance when extruder change"
-msgstr ""
+msgstr "Retraction distance when extruder change"
 
 msgid "Z-hop height"
 msgstr "Z šuolio aukštis"
@@ -16175,7 +16633,7 @@ msgid "Top and Bottom"
 msgstr "Viršus ir apačia"
 
 msgid "Direct Drive"
-msgstr ""
+msgstr "Direct Drive"
 
 msgid "Bowden"
 msgstr "Bowden"
@@ -16402,8 +16860,8 @@ msgid "Role base wipe speed"
 msgstr "Vaidmens pagrindo nuvalymo greitis"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -16579,8 +17037,9 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Minimali reto užpildymo riba"
 
+#, fuzzy
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Reto užpildymo sritys, kurios yra mažesnės už šią ribinę vertę, pakeičiamos "
@@ -16702,7 +17161,7 @@ msgstr ""
 "vertė."
 
 msgid "∆℃"
-msgstr ""
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "Įkaitinimo laikas"
@@ -16734,6 +17193,10 @@ msgid ""
 "of the file (e.g. estimated print time, filament usage). Supports "
 "placeholders like {print_time_sec} and {used_filament_length}."
 msgstr ""
+"G-code written at the very top of the output file, before any other content. "
+"Useful for adding metadata that printer firmware reads from the first lines "
+"of the file (e.g. estimated print time, filament usage). Supports "
+"placeholders like {print_time_sec} and {used_filament_length}."
 
 msgid "Start G-code"
 msgstr "Pradžios G-kodas"
@@ -16765,6 +17228,26 @@ msgstr ""
 "praleista viso spausdinimo metu. Tai naudinga spausdinant keliomis "
 "medžiagomis rankiniu būdu, kai rankinio gijos keitimo veiksmui įjungti "
 "naudojame M600/PAUSE."
+
+msgid "Wipe tower type"
+msgstr "Valymo bokšto tipas"
+
+msgid ""
+"Choose the wipe tower implementation for multi-material prints. Type 1 is "
+"recommended for Bambu and Qidi printers with a filament cutter. Type 2 "
+"offers better compatibility with multi-tool and MMU printers and provide "
+"overall better compatibility."
+msgstr ""
+"Choose the wipe tower implementation for multi-material prints. Type 1 is "
+"recommended for Bambu and Qidi printers with a filament cutter. Type 2 "
+"offers better compatibility with multi-tool and MMU printers and provide "
+"overall better compatibility."
+
+msgid "Type 1"
+msgstr "1 tipas"
+
+msgid "Type 2"
+msgstr "2 tipas"
 
 msgid "Purge in prime tower"
 msgstr "Valymas pagrindiniame bokšte"
@@ -16911,10 +17394,10 @@ msgstr ""
 "Atramas kurkite tik kritinėse srityse, įskaitant aštrų galą, konsolę ir pan."
 
 msgid "Ignore small overhangs"
-msgstr ""
+msgstr "Ignore small overhangs"
 
 msgid "Ignore small overhangs that possibly don't require support."
-msgstr ""
+msgstr "Ignore small overhangs that possibly don't require support."
 
 msgid "Top Z distance"
 msgstr "Viršutinis Z atstumas"
@@ -17021,6 +17504,15 @@ msgid ""
 "Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
 "will be used instead of Lightning."
 msgstr ""
+"Line pattern of support.\n"
+"\n"
+"The Default option for Tree supports is Hollow, which means no base pattern. "
+"For other support types, the Default option is the Rectilinear pattern.\n"
+"\n"
+"NOTE: For Organic supports, the two walls are supported only with the Hollow/"
+"Default base pattern. The Lightning base pattern is supported only by Tree "
+"Slim/Strong/Hybrid supports. For the other support types, the Rectilinear "
+"will be used instead of Lightning."
 
 msgid "Rectilinear grid"
 msgstr "Tiesus tinklelis"
@@ -17276,8 +17768,8 @@ msgstr "Suaktyvinti temperatūros reguliavimą"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -17340,12 +17832,14 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Po pradinio sluoksnio esančių sluoksnių purkštuko temperatūra."
 
-msgid "Detect thin wall"
+#, fuzzy
+msgid "Detect thin walls"
 msgstr "Aptikti plonas sieneles"
 
+#, fuzzy
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "Aptikti ploną sienelę, kurioje negali būti dviejų eilučių pločio. "
 "Spausdinimui naudoti vieną liniją. Gali būti, kad nebus išspausdinta labai "
@@ -17483,10 +17977,10 @@ msgstr ""
 "išvengta paviršiaus defektų."
 
 msgid "Internal ribs"
-msgstr ""
+msgstr "Internal ribs"
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
-msgstr ""
+msgstr "Enable internal ribs to increase the stability of the prime tower."
 
 msgid "Purging volumes"
 msgstr "Valymo tūriai"
@@ -17520,6 +18014,8 @@ msgid ""
 "Brim width of prime tower, negative number means auto calculated width based "
 "on the height of prime tower."
 msgstr ""
+"Brim width of prime tower, negative number means auto calculated width based "
+"on the height of prime tower."
 
 msgid "Stabilization cone apex angle"
 msgstr "Stabilizavimo kūgio viršūnės kampas"
@@ -17598,7 +18094,7 @@ msgid "Rectangle"
 msgstr "Stačiakampis"
 
 msgid "Rib"
-msgstr ""
+msgstr "Rib"
 
 msgid "Extra rib length"
 msgstr "Papildomas briaunų ilgis"
@@ -17616,7 +18112,7 @@ msgid "Rib width"
 msgstr "Briaunų plotis"
 
 msgid "Rib width is always less than half the prime tower side length."
-msgstr ""
+msgstr "Rib width is always less than half the prime tower side length."
 
 msgid "Fillet wall"
 msgstr "Užapvalinta siena"
@@ -17645,33 +18141,38 @@ msgstr ""
 "supaprastinti toliau pateiktų išvalymo tūrių kūrimą."
 
 msgid "Skip points"
-msgstr ""
+msgstr "Skip points"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
-msgstr ""
+msgstr "The wall of prime tower will skip the start points of wipe path."
 
 msgid "Enable tower interface features"
-msgstr ""
+msgstr "Enable tower interface features"
 
 msgid ""
 "Enable optimized prime tower interface behavior when different materials "
 "meet."
 msgstr ""
+"Enable optimized prime tower interface behavior when different materials "
+"meet."
 
 msgid "Cool down from interface boost during prime tower"
-msgstr ""
+msgstr "Cool down from interface boost during prime tower"
 
 msgid ""
 "When interface-layer temperature boost is active, set the nozzle back to "
 "print temperature at the start of the prime tower so it cools down during "
 "the tower."
 msgstr ""
+"When interface-layer temperature boost is active, set the nozzle back to "
+"print temperature at the start of the prime tower so it cools down during "
+"the tower."
 
 msgid "Infill gap"
-msgstr ""
+msgstr "Infill gap"
 
 msgid "Infill gap."
-msgstr ""
+msgstr "Infill gap."
 
 msgid ""
 "Purging after filament change will be done inside objects' infills. This may "
@@ -17973,7 +18474,8 @@ msgstr ""
 "siena taps tokio pat storio kaip ir pats elementas. Jis išreiškiamas "
 "procentais nuo purkštuko skersmens."
 
-msgid "Detect narrow internal solid infill"
+#, fuzzy
+msgid "Detect narrow internal solid infills"
 msgstr "Aptikti siaurą vidinį vientisą užpildą"
 
 msgid ""
@@ -18245,8 +18747,8 @@ msgid "Debug level"
 msgstr "Derinimo lygis"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
 "Nustato derinimo žurnalizavimo lygį. 0: mirtinas, 1: klaida, 2: įspėjimas, "
 "3: informacija, 4: derinimas, 5: sekimas\n"
@@ -18314,13 +18816,13 @@ msgid "Metadata name list"
 msgstr "Metaduomenų pavadinimų sąrašas"
 
 msgid "Metadata name list added into 3MF."
-msgstr ""
+msgstr "Metadata name list added into 3MF."
 
 msgid "Metadata value list"
 msgstr "Metaduomenų reikšmių sąrašas"
 
 msgid "Metadata value list added into 3MF."
-msgstr ""
+msgstr "Metadata value list added into 3MF."
 
 msgid "Allow 3MF with newer version to be sliced"
 msgstr "Leisti 3MF su naujesne versija sluoksniuoti"
@@ -18483,64 +18985,76 @@ msgid "Number of layers in the entire print."
 msgstr "Viso spaudinio sluoksnių skaičius."
 
 msgid "Print time (normal mode)"
-msgstr ""
+msgstr "Print time (normal mode)"
 
 msgid ""
 "Estimated print time when printed in normal mode (i.e. not in silent mode). "
 "Same as print_time."
 msgstr ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as print_time."
 
 msgid ""
 "Estimated print time when printed in normal mode (i.e. not in silent mode). "
 "Same as normal_print_time."
 msgstr ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as normal_print_time."
 
 msgid "Print time (silent mode)"
-msgstr ""
+msgstr "Print time (silent mode)"
 
 msgid "Estimated print time when printed in silent mode."
-msgstr ""
+msgstr "Estimated print time when printed in silent mode."
 
 msgid ""
 "Total cost of all material used in the print. Calculated from filament_cost "
 "value in Filament Settings."
 msgstr ""
+"Total cost of all material used in the print. Calculated from filament_cost "
+"value in Filament Settings."
 
 msgid "Total wipe tower cost"
-msgstr ""
+msgstr "Total wipe tower cost"
 
 msgid ""
 "Total cost of the material wasted on the wipe tower. Calculated from "
 "filament_cost value in Filament Settings."
 msgstr ""
+"Total cost of the material wasted on the wipe tower. Calculated from "
+"filament_cost value in Filament Settings."
 
 msgid "Wipe tower volume"
-msgstr ""
+msgstr "Wipe tower volume"
 
 msgid "Total filament volume extruded on the wipe tower."
-msgstr ""
+msgstr "Total filament volume extruded on the wipe tower."
 
 msgid "Used filament"
 msgstr "Naudota gija"
 
 msgid "Total length of filament used in the print."
-msgstr ""
+msgstr "Total length of filament used in the print."
 
 msgid "Print time (seconds)"
-msgstr ""
+msgstr "Print time (seconds)"
 
 msgid ""
 "Total estimated print time in seconds. Replaced with actual value during "
 "post-processing."
 msgstr ""
+"Total estimated print time in seconds. Replaced with actual value during "
+"post-processing."
 
 msgid "Filament length (meters)"
-msgstr ""
+msgstr "Filament length (meters)"
 
 msgid ""
 "Total filament length used in meters. Replaced with actual value during post-"
 "processing."
 msgstr ""
+"Total filament length used in meters. Replaced with actual value during post-"
+"processing."
 
 msgid "Number of objects"
 msgstr "Objektų skaičius"
@@ -18598,10 +19112,10 @@ msgstr ""
 "Pirmojo sluoksnio išgaubtojo korpuso taškų vektorius. Kiekvienas elementas "
 "yra tokio formato: \"[x, y]\" (x ir y yra slankiojo kablelio skaičiai mm)."
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr "Pirmojo sluoksnio ribų lango apatinis kairysis kampas"
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr "Pirmojo sluoksnio ribų lango viršutinis dešinysis kampas"
 
 msgid "Size of the first layer bounding box"
@@ -18769,7 +19283,7 @@ msgid "Loading of a model file failed."
 msgstr "Nepavyko įkelti modelio failo."
 
 msgid "Meshing of a model file failed or no valid shape."
-msgstr ""
+msgstr "Meshing of a model file failed or no valid shape."
 
 msgid "The supplied file couldn't be read because it's empty"
 msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
@@ -18777,13 +19291,13 @@ msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .stl, .obj, ."
-"amf(.xml)."
+"Nežinomas failo formatas. Įvesties failo plėtinys turi "
+"būti .stl, .obj, .amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf arba .zip."
-"amf."
+"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf "
+"arba .zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: nepavyko apdoroti"
@@ -18901,7 +19415,7 @@ msgstr "sukurti naują profilį nepavyko."
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
-msgstr ""
+msgstr "Could not find parameter: %s."
 
 msgid ""
 "Are you sure to cancel the current calibration and return to the home page?"
@@ -18939,6 +19453,8 @@ msgid ""
 "Only one of the results with the same name: %s will be saved. Are you sure "
 "you want to override the other results?"
 msgstr ""
+"Only one of the results with the same name: %s will be saved. Are you sure "
+"you want to override the other results?"
 
 #, c-format, boost-format
 msgid ""
@@ -18956,6 +19472,9 @@ msgid ""
 "type, nozzle diameter, and nozzle flow are the same.\n"
 "Are you sure you want to override the historical result?"
 msgstr ""
+"Within the same extruder, the name(%s) must be unique when the filament "
+"type, nozzle diameter, and nozzle flow are the same.\n"
+"Are you sure you want to override the historical result?"
 
 #, c-format, boost-format
 msgid ""
@@ -19252,28 +19771,30 @@ msgid "Printing Parameters"
 msgstr "Spausdinimo parametrai"
 
 msgid "- ℃"
-msgstr ""
+msgstr "- ℃"
 
 msgid "Synchronize nozzle and AMS information"
-msgstr ""
+msgstr "Synchronize nozzle and AMS information"
 
 msgid "Please connect the printer first before synchronizing."
-msgstr ""
+msgstr "Please connect the printer first before synchronizing."
 
 #, c-format, boost-format
 msgid ""
 "Printer %s nozzle information has not been set. Please configure it before "
 "proceeding with the calibration."
 msgstr ""
+"Printer %s nozzle information has not been set. Please configure it before "
+"proceeding with the calibration."
 
 msgid "AMS and nozzle information are synced"
-msgstr ""
+msgstr "AMS and nozzle information are synced"
 
 msgid "Nozzle Flow"
-msgstr ""
+msgstr "Nozzle Flow"
 
 msgid "Nozzle Info"
-msgstr ""
+msgstr "Nozzle Info"
 
 msgid "Plate Type"
 msgstr "Plokštės tipas"
@@ -19316,12 +19837,14 @@ msgstr ""
 "atveju, spausdinimo metu gali užsikimšti purkštukas arba sugesti ekstruderiai"
 
 msgid "Sync AMS and nozzle information"
-msgstr ""
+msgstr "Sync AMS and nozzle information"
 
 msgid ""
 "Calibration only supports cases where the left and right nozzle diameters "
 "are identical."
 msgstr ""
+"Calibration only supports cases where the left and right nozzle diameters "
+"are identical."
 
 msgid "From k Value"
 msgstr "Nuo k reikšmės"
@@ -19377,6 +19900,9 @@ msgid ""
 "type, nozzle diameter, and nozzle flow are identical. Please choose a "
 "different name."
 msgstr ""
+"Within the same extruder, the name '%s' must be unique when the filament "
+"type, nozzle diameter, and nozzle flow are identical. Please choose a "
+"different name."
 
 msgid "New Flow Dynamic Calibration"
 msgstr "Naujas srauto dinaminis kalibravimas"
@@ -19385,10 +19911,10 @@ msgid "The filament must be selected."
 msgstr "Turi būti pasirinkta gija."
 
 msgid "The extruder must be selected."
-msgstr ""
+msgstr "The extruder must be selected."
 
 msgid "The nozzle must be selected."
-msgstr ""
+msgstr "The nozzle must be selected."
 
 msgid "Network lookup"
 msgstr "Tinklo paieška"
@@ -19479,6 +20005,8 @@ msgid ""
 "Acceleration values must be greater than speed values.\n"
 "Please verify the inputs."
 msgstr ""
+"Acceleration values must be greater than speed values.\n"
+"Please verify the inputs."
 
 msgid "Temperature calibration"
 msgstr "Temperatūros kalibravimas"
@@ -19522,6 +20050,10 @@ msgid ""
 "End temp: >= 155\n"
 "Start temp >= End temp + 5"
 msgstr ""
+"Please input valid values:\n"
+"Start temp: <= 500\n"
+"End temp: >= 155\n"
+"Start temp >= End temp + 5"
 
 msgid "Max volumetric speed test"
 msgstr "Didžiausio tūrio greičio bandymas"
@@ -19582,27 +20114,32 @@ msgid "Fast Tower"
 msgstr "Greitasis bokštas"
 
 msgid "Input shaper type"
-msgstr ""
+msgstr "Input shaper type"
 
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
 msgstr ""
+"Please ensure the selected type is compatible with your firmware version."
 
 msgid ""
 "Marlin version => 2.1.2\n"
 "Fixed-Time motion not yet implemented."
 msgstr ""
+"Marlin version => 2.1.2\n"
+"Fixed-Time motion not yet implemented."
 
 msgid "Klipper version => 0.9.0"
-msgstr ""
+msgstr "Klipper version => 0.9.0"
 
 msgid ""
 "RepRap firmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
+"RepRap firmware version => 3.4.0\n"
+"Check your firmware documentation for supported shaper types."
 
 msgid "Frequency (Start / End): "
-msgstr ""
+msgstr "Frequency (Start / End): "
 
 msgid "Start / End"
 msgstr "Pradžia / Pabaiga"
@@ -19611,10 +20148,10 @@ msgid "Frequency settings"
 msgstr "Dažnio nustatymai"
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr ""
+msgstr "RepRap firmware uses the same frequency range for both axes."
 
 msgid "Damp: "
 msgstr "Slopinimas: "
@@ -19623,6 +20160,8 @@ msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
 msgstr ""
+"Recommended: Set Damp to 0.\n"
+"This will use the printer's default or saved value."
 
 msgid ""
 "Please input valid values:\n"
@@ -19640,10 +20179,10 @@ msgid "Input shaping Damp test"
 msgstr "Įvesties formavimas slopinimo bandymas"
 
 msgid "Check firmware compatibility."
-msgstr ""
+msgstr "Check firmware compatibility."
 
 msgid "Frequency: "
-msgstr ""
+msgstr "Frequency: "
 
 msgid "Frequency"
 msgstr "Dažnis"
@@ -19652,7 +20191,7 @@ msgid "Damp"
 msgstr "Slopinimas"
 
 msgid "RepRap firmware uses the same frequency for both axes."
-msgstr ""
+msgstr "RepRap firmware uses the same frequency for both axes."
 
 msgid "Note: Use previously calculated frequencies."
 msgstr "Pastaba: Naudokite anksčiau apskaičiuotus dažnius."
@@ -19671,49 +20210,59 @@ msgstr ""
 "Slopinimo pabaiga <= 1)"
 
 msgid "Cornering test"
-msgstr ""
+msgstr "Cornering test"
 
 msgid "SCV-V2"
-msgstr ""
+msgstr "SCV-V2"
 
 msgid "Start: "
-msgstr ""
+msgstr "Start: "
 
 msgid "End: "
-msgstr ""
+msgstr "End: "
 
 msgid "Cornering settings"
-msgstr ""
+msgstr "Cornering settings"
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
-msgstr ""
+msgid "Note: Lower values = sharper corners but slower speeds."
+msgstr "Note: Lower values = sharper corners but slower speeds."
 
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
 "To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
 "0."
 msgstr ""
+"Marlin 2 Junction Deviation detected:\n"
+"To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
+"0."
 
 msgid ""
 "Marlin 2 Classic Jerk detected:\n"
 "To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
 "ability to a value > 0."
 msgstr ""
+"Marlin 2 Classic Jerk detected:\n"
+"To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
+"ability to a value > 0."
 
 msgid ""
 "RepRap detected: Jerk in mm/s.\n"
 "OrcaSlicer will convert the values to mm/min when necessary."
 msgstr ""
+"RepRap detected: Jerk in mm/s.\n"
+"OrcaSlicer will convert the values to mm/min when necessary."
 
 #, c-format, boost-format
 msgid ""
 "Please input valid values:\n"
 "(0 <= Cornering <= %s)"
 msgstr ""
+"Please input valid values:\n"
+"(0 <= Cornering <= %s)"
 
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
-msgstr ""
+msgstr "NOTE: High values may cause Layer shift (>%s)"
 
 msgid "Send G-code to printer host"
 msgstr "Siųsti G-kodą tinkliniam spausdintuvui"
@@ -19977,8 +20526,8 @@ msgstr ""
 "Ar norite jį perrašyti?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Būtų galima pervadinti iš anksto nustatytus nustatymus į \"Pardavėjo tipo "
@@ -20022,10 +20571,10 @@ msgid "Can't find my printer model"
 msgstr "Negaliu rasti savo spausdintuvo modelio"
 
 msgid "Input Custom Nozzle Diameter"
-msgstr ""
+msgstr "Input Custom Nozzle Diameter"
 
 msgid "Can't find my nozzle diameter"
-msgstr ""
+msgstr "Can't find my nozzle diameter"
 
 msgid "Printable Space"
 msgstr "Spausdintina erdvė"
@@ -20150,12 +20699,14 @@ msgstr ""
 "Dar nepasirinkote spausdintuvo, kuriuo norite pakeisti antgalį, pasirinkite."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"
-msgstr ""
+msgstr "The entered nozzle diameter is invalid, please re-enter:\n"
 
 msgid ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
+"The system preset does not allow creation. \n"
+"Please re-enter the printer model or nozzle diameter."
 
 msgid "Printer Created Successfully"
 msgstr "Sėkmingai sukurtas spausdintuvas"
@@ -20408,41 +20959,49 @@ msgid ""
 "The printer nozzle information has not been set.\n"
 "Please configure it before proceeding with the calibration."
 msgstr ""
+"The printer nozzle information has not been set.\n"
+"Please configure it before proceeding with the calibration."
 
 msgid ""
 "The nozzle type does not match the actual printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
 msgstr ""
+"The nozzle type does not match the actual printer nozzle type.\n"
+"Please click the Sync button above and restart the calibration."
 
 #, c-format, boost-format
 msgid "nozzle size in preset: %d"
-msgstr ""
+msgstr "nozzle size in preset: %d"
 
 #, c-format, boost-format
 msgid "nozzle size memorized: %d"
-msgstr ""
+msgstr "nozzle size memorized: %d"
 
 msgid ""
 "The size of nozzle type in preset is not consistent with memorized nozzle. "
 "Did you change your nozzle lately?"
 msgstr ""
+"The size of nozzle type in preset is not consistent with memorized nozzle. "
+"Did you change your nozzle lately?"
 
 #, c-format, boost-format
 msgid "nozzle[%d] in preset: %.1f"
-msgstr ""
+msgstr "nozzle[%d] in preset: %.1f"
 
 #, c-format, boost-format
 msgid "nozzle[%d] memorized: %.1f"
-msgstr ""
+msgstr "nozzle[%d] memorized: %.1f"
 
 msgid ""
 "Your nozzle type in preset is not consistent with memorized nozzle. Did you "
 "change your nozzle lately?"
 msgstr ""
+"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
+"change your nozzle lately?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
-msgstr ""
+msgstr "Printing %1s material with %2s nozzle may cause nozzle damage."
 
 msgid "Need select printer"
 msgstr "Reikia pasirinkti spausdintuvą"
@@ -20454,12 +21013,16 @@ msgid ""
 "The number of printer extruders and the printer selected for calibration "
 "does not match."
 msgstr ""
+"The number of printer extruders and the printer selected for calibration "
+"does not match."
 
 #, c-format, boost-format
 msgid ""
 "The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr ""
+"The nozzle diameter of %s extruder is 0.2mm which does not support automatic "
+"Flow Dynamics calibration."
 
 #, c-format, boost-format
 msgid ""
@@ -20467,11 +21030,16 @@ msgid ""
 "actual nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
 msgstr ""
+"The currently selected nozzle diameter of %s extruder does not match the "
+"actual nozzle diameter.\n"
+"Please click the Sync button above and restart the calibration."
 
 msgid ""
 "The nozzle diameter does not match the actual printer nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
 msgstr ""
+"The nozzle diameter does not match the actual printer nozzle diameter.\n"
+"Please click the Sync button above and restart the calibration."
 
 #, c-format, boost-format
 msgid ""
@@ -20479,6 +21047,9 @@ msgid ""
 "printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
 msgstr ""
+"The currently selected nozzle type of %s extruder does not match the actual "
+"printer nozzle type.\n"
+"Please click the Sync button above and restart the calibration."
 
 msgid ""
 "Unable to calibrate: maybe because the set calibration value range is too "
@@ -20497,6 +21068,8 @@ msgid ""
 "Select the network agent implementation for printer communication. Available "
 "agents are registered at startup."
 msgstr ""
+"Select the network agent implementation for printer communication. Available "
+"agents are registered at startup."
 
 msgid "Could not get a valid Printer Host reference"
 msgstr "Nepavyko gauti galiojančios tinklinio spausdintuvo nuorodos"
@@ -20804,9 +21377,9 @@ msgid ""
 "quality but much longer print time."
 msgstr ""
 "Palyginti su numatytuoju 0,4 mm purkštuko profiliu, jo sluoksnio aukštis "
-"mažesnis, greitis ir pagreitis mažesni, o retas užpildymo raštas yra \"Gyroid"
-"\". Taigi, dėl jo mažiau matomų sluoksnio linijų ir daug geresnė spausdinimo "
-"kokybė, tačiau daug ilgesnis spausdinimo laikas."
+"mažesnis, greitis ir pagreitis mažesni, o retas užpildymo raštas yra "
+"\"Gyroid\". Taigi, dėl jo mažiau matomų sluoksnio linijų ir daug geresnė "
+"spausdinimo kokybė, tačiau daug ilgesnis spausdinimo laikas."
 
 msgid ""
 "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer "
@@ -20943,28 +21516,42 @@ msgid ""
 "vendor for suitable profile before printing and adjust some parameters "
 "according to its performances."
 msgstr ""
+"This is neither a commonly used filament, nor one of Bambu filaments, and it "
+"varies a lot from brand to brand. So, it's highly recommended to ask its "
+"vendor for suitable profile before printing and adjust some parameters "
+"according to its performances."
 
 msgid ""
 "When printing this filament, there's a risk of warping and low layer "
 "adhesion strength. To get better results, please refer to this wiki: "
 "Printing Tips for High Temp / Engineering materials."
 msgstr ""
+"When printing this filament, there's a risk of warping and low layer "
+"adhesion strength. To get better results, please refer to this wiki: "
+"Printing Tips for High Temp / Engineering materials."
 
 msgid ""
 "When printing this filament, there's a risk of nozzle clogging, oozing, "
 "warping and low layer adhesion strength. To get better results, please refer "
 "to this wiki: Printing Tips for High Temp / Engineering materials."
 msgstr ""
+"When printing this filament, there's a risk of nozzle clogging, oozing, "
+"warping and low layer adhesion strength. To get better results, please refer "
+"to this wiki: Printing Tips for High Temp / Engineering materials."
 
 msgid ""
 "To get better transparent or translucent results with the corresponding "
 "filament, please refer to this wiki: Printing tips for transparent PETG."
 msgstr ""
+"To get better transparent or translucent results with the corresponding "
+"filament, please refer to this wiki: Printing tips for transparent PETG."
 
 msgid ""
 "To make the prints get higher gloss, please dry the filament before use, and "
 "set the outer wall speed to be 40 to 60 mm/s when slicing."
 msgstr ""
+"To make the prints get higher gloss, please dry the filament before use, and "
+"set the outer wall speed to be 40 to 60 mm/s when slicing."
 
 msgid ""
 "This filament is only used to print models with a low density usually, and "
@@ -20972,24 +21559,37 @@ msgid ""
 "refer to this wiki: Instructions for printing RC model with foaming PLA (PLA "
 "Aero)."
 msgstr ""
+"This filament is only used to print models with a low density usually, and "
+"some special parameters are required. To get better printing quality, please "
+"refer to this wiki: Instructions for printing RC model with foaming PLA (PLA "
+"Aero)."
 
 msgid ""
 "This filament is only used to print models with a low density usually, and "
 "some special parameters are required. To get better printing quality, please "
 "refer to this wiki: ASA Aero Printing Guide."
 msgstr ""
+"This filament is only used to print models with a low density usually, and "
+"some special parameters are required. To get better printing quality, please "
+"refer to this wiki: ASA Aero Printing Guide."
 
 msgid ""
 "This filament is too soft and not compatible with the AMS. Printing it is of "
 "many requirements, and to get better printing quality, please refer to this "
 "wiki: TPU printing guide."
 msgstr ""
+"This filament is too soft and not compatible with the AMS. Printing it is of "
+"many requirements, and to get better printing quality, please refer to this "
+"wiki: TPU printing guide."
 
 msgid ""
 "This filament has high enough hardness (about 67D)  and is compatible with "
 "the AMS. Printing it is of many requirements, and to get better printing "
 "quality, please refer to this wiki: TPU printing guide."
 msgstr ""
+"This filament has high enough hardness (about 67D)  and is compatible with "
+"the AMS. Printing it is of many requirements, and to get better printing "
+"quality, please refer to this wiki: TPU printing guide."
 
 msgid ""
 "If you are to print a kind of soft TPU, please don't slice with this "
@@ -20997,6 +21597,10 @@ msgid ""
 "55D) and is compatible with the AMS. To get better printing quality, please "
 "refer to this wiki: TPU printing guide."
 msgstr ""
+"If you are to print a kind of soft TPU, please don't slice with this "
+"profile, and it is only for TPU that has high enough hardness (not less than "
+"55D) and is compatible with the AMS. To get better printing quality, please "
+"refer to this wiki: TPU printing guide."
 
 msgid ""
 "This is a water-soluble support filament, and usually it is only for the "
@@ -21004,6 +21608,10 @@ msgid ""
 "many requirements, and to get better printing quality, please refer to this "
 "wiki: PVA Printing Guide."
 msgstr ""
+"This is a water-soluble support filament, and usually it is only for the "
+"support structure and not for the model body. Printing this filament is of "
+"many requirements, and to get better printing quality, please refer to this "
+"wiki: PVA Printing Guide."
 
 msgid ""
 "This is a non-water-soluble support filament, and usually it is only for the "
@@ -21011,51 +21619,64 @@ msgid ""
 "quality, please refer to this wiki: Printing Tips for Support Filament and "
 "Support Function."
 msgstr ""
+"This is a non-water-soluble support filament, and usually it is only for the "
+"support structure and not for the model body. To get better printing "
+"quality, please refer to this wiki: Printing Tips for Support Filament and "
+"Support Function."
 
 msgid ""
 "The generic presets are conservatively tuned for compatibility with a wider "
 "range of filaments. For higher printing quality and speeds, please use Bambu "
 "filaments with Bambu presets."
 msgstr ""
+"The generic presets are conservatively tuned for compatibility with a wider "
+"range of filaments. For higher printing quality and speeds, please use Bambu "
+"filaments with Bambu presets."
 
 msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
-msgstr ""
+msgstr "High quality profile for 0.2mm nozzle, prioritizing print quality."
 
 msgid ""
 "High quality profile for 0.16mm layer height, prioritizing print quality and "
 "strength."
 msgstr ""
+"High quality profile for 0.16mm layer height, prioritizing print quality and "
+"strength."
 
 msgid "Standard profile for 0.16mm layer height, prioritizing speed."
-msgstr ""
+msgstr "Standard profile for 0.16mm layer height, prioritizing speed."
 
 msgid ""
 "High quality profile for 0.2mm layer height, prioritizing strength and print "
 "quality."
 msgstr ""
+"High quality profile for 0.2mm layer height, prioritizing strength and print "
+"quality."
 
 msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
-msgstr ""
+msgstr "Standard profile for 0.4mm nozzle, prioritizing speed."
 
 msgid ""
 "High quality profile for 0.6mm nozzle, prioritizing print quality and "
 "strength."
 msgstr ""
+"High quality profile for 0.6mm nozzle, prioritizing print quality and "
+"strength."
 
 msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
-msgstr ""
+msgstr "Strength profile for 0.6mm nozzle, prioritizing strength."
 
 msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
-msgstr ""
+msgstr "Standard profile for 0.6mm nozzle, prioritizing speed."
 
 msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
-msgstr ""
+msgstr "High quality profile for 0.8mm nozzle, prioritizing print quality."
 
 msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
-msgstr ""
+msgstr "Strength profile for 0.8mm nozzle, prioritizing strength."
 
 msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
-msgstr ""
+msgstr "Standard profile for 0.8mm nozzle, prioritizing speed."
 
 msgid "No AMS"
 msgstr "Be AMS"
@@ -21201,50 +21822,57 @@ msgid "Removed"
 msgstr "Pašalinta"
 
 msgid "Don't remind me again"
-msgstr ""
+msgstr "Don't remind me again"
 
 msgid "No further pop-up will appear. You can reopen it in 'Preferences'"
-msgstr ""
+msgstr "No further pop-up will appear. You can reopen it in 'Preferences'"
 
 msgid "Filament-Saving Mode"
-msgstr ""
+msgstr "Filament-Saving Mode"
 
 msgid "Convenience Mode"
-msgstr ""
+msgstr "Convenience Mode"
 
 msgid "Custom Mode"
-msgstr ""
+msgstr "Custom Mode"
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the most "
 "filament-saving principles to minimize waste."
 msgstr ""
+"Generates filament grouping for the left and right nozzles based on the most "
+"filament-saving principles to minimize waste."
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the "
 "printer's actual filament status, reducing the need for manual filament "
 "adjustment."
 msgstr ""
+"Generates filament grouping for the left and right nozzles based on the "
+"printer's actual filament status, reducing the need for manual filament "
+"adjustment."
 
 msgid "Manually assign filament to the left or right nozzle"
-msgstr ""
+msgstr "Manually assign filament to the left or right nozzle"
 
 msgid "Global settings"
-msgstr ""
+msgstr "Global settings"
 
 msgid "(Sync with printer)"
-msgstr ""
+msgstr "(Sync with printer)"
 
 msgid "We will slice according to this grouping method:"
-msgstr ""
+msgstr "We will slice according to this grouping method:"
 
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
-msgstr ""
+msgstr "Tip: You can drag the filaments to reassign them to different nozzles."
 
 msgid ""
 "The filament grouping method for current plate is determined by the dropdown "
 "option at the slicing plate button."
 msgstr ""
+"The filament grouping method for current plate is determined by the dropdown "
+"option at the slicing plate button."
 
 msgid "Connected to Obico successfully!"
 msgstr "Sėkmingai prisijungta prie \"Obico\"!"
@@ -21337,181 +21965,192 @@ msgid "Please select single object."
 msgstr "Pasirinkite vieną objektą."
 
 msgid "Zoom Out"
-msgstr ""
+msgstr "Zoom Out"
 
 msgid "Zoom In"
-msgstr ""
+msgstr "Zoom In"
 
 msgid "Load skipping objects information failed. Please try again."
-msgstr ""
+msgstr "Load skipping objects information failed. Please try again."
 
 #, c-format, boost-format
 msgid "/%d Selected"
-msgstr ""
+msgstr "/%d Selected"
 
 msgid "Nothing selected"
-msgstr ""
+msgstr "Nothing selected"
 
 msgid "Over 64 objects in single plate"
-msgstr ""
+msgstr "Over 64 objects in single plate"
 
 msgid "The current print job cannot be skipped"
-msgstr ""
+msgstr "The current print job cannot be skipped"
 
 msgid "Skipping all objects."
-msgstr ""
+msgstr "Skipping all objects."
 
 msgid "The printing job will be stopped. Continue?"
-msgstr ""
+msgstr "The printing job will be stopped. Continue?"
 
 #, c-format, boost-format
 msgid "Skipping %d objects."
-msgstr ""
+msgstr "Skipping %d objects."
 
 msgid "This action cannot be undone. Continue?"
-msgstr ""
+msgstr "This action cannot be undone. Continue?"
 
 msgid "Skipping objects."
-msgstr ""
+msgstr "Skipping objects."
 
 msgid "Continue"
-msgstr ""
+msgstr "Tęsti"
 
 msgid "Select Filament"
-msgstr ""
+msgstr "Select Filament"
 
 msgid "Null Color"
-msgstr ""
+msgstr "Null Color"
 
 msgid "Multiple Color"
-msgstr ""
+msgstr "Multiple Color"
 
 msgid "Official Filament"
-msgstr ""
+msgstr "Official Filament"
 
 msgid "More Colors"
-msgstr ""
+msgstr "More Colors"
 
 msgid "Network Plug-in Update Available"
-msgstr ""
+msgstr "Network Plug-in Update Available"
 
 msgid "Bambu Network Plug-in Required"
-msgstr ""
+msgstr "Bambu Network Plug-in Required"
 
 msgid ""
 "The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
 msgstr ""
+"The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
 
 msgid ""
 "The Bambu Network Plug-in is required for cloud features, printer discovery, "
 "and remote printing."
 msgstr ""
+"The Bambu Network Plug-in is required for cloud features, printer discovery, "
+"and remote printing."
 
 #, c-format, boost-format
 msgid "Error: %s"
-msgstr ""
+msgstr "Error: %s"
 
 msgid "Show details"
-msgstr ""
+msgstr "Show details"
 
 msgid "Version to install:"
-msgstr ""
+msgstr "Version to install:"
 
 msgid "Download and Install"
-msgstr ""
+msgstr "Download and Install"
 
 msgid "Skip for Now"
-msgstr ""
+msgstr "Skip for Now"
 
 msgid "A new version of the Bambu Network Plug-in is available."
-msgstr ""
+msgstr "A new version of the Bambu Network Plug-in is available."
 
 #, c-format, boost-format
 msgid "Current version: %s"
-msgstr ""
+msgstr "Current version: %s"
 
 msgid "Update to version:"
-msgstr ""
+msgstr "Update to version:"
 
 msgid "Update Now"
-msgstr ""
+msgstr "Update Now"
 
 msgid "Remind Later"
-msgstr ""
+msgstr "Remind Later"
 
 msgid "Skip Version"
-msgstr ""
+msgstr "Skip Version"
 
 msgid "Don't Ask Again"
-msgstr ""
+msgstr "Don't Ask Again"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
-msgstr ""
+msgstr "The Bambu Network Plug-in has been installed successfully."
 
 msgid ""
 "A restart is required to load the new plug-in. Would you like to restart now?"
 msgstr ""
+"A restart is required to load the new plug-in. Would you like to restart now?"
 
 msgid "Restart Now"
-msgstr ""
+msgstr "Restart Now"
 
 msgid "Restart Later"
-msgstr ""
+msgstr "Restart Later"
 
 msgid "NO RAMMING AT ALL"
-msgstr ""
+msgstr "NO RAMMING AT ALL"
 
 msgid "Volumetric speed"
-msgstr ""
+msgstr "Volumetric speed"
 
 msgid "Step file import parameters"
-msgstr ""
+msgstr "Step file import parameters"
 
 msgid ""
 "Smaller linear and angular deflections result in higher-quality "
 "transformations but increase the processing time."
 msgstr ""
+"Smaller linear and angular deflections result in higher-quality "
+"transformations but increase the processing time."
 
 msgid "Linear Deflection"
-msgstr ""
+msgstr "Linear Deflection"
 
 msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
-msgstr ""
+msgstr "Please input a valid value (0.001 < linear deflection < 0.1)"
 
 msgid "Angle Deflection"
-msgstr ""
+msgstr "Angle Deflection"
 
 msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
-msgstr ""
+msgstr "Please input a valid value (0.01 < angle deflection < 1.0)"
 
 msgid "Split compound and compsolid into multiple objects"
-msgstr ""
+msgstr "Split compound and compsolid into multiple objects"
 
 msgid "Number of triangular facets"
-msgstr ""
+msgstr "Number of triangular facets"
 
 msgid "Calculating, please wait..."
-msgstr ""
+msgstr "Calculating, please wait..."
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
 "Generic filament presets will be used."
 msgstr ""
+"The filament may not be compatible with the current machine settings. "
+"Generic filament presets will be used."
 
 msgid ""
 "The filament model is unknown. Still using the previous filament preset."
 msgstr ""
+"The filament model is unknown. Still using the previous filament preset."
 
 msgid "The filament model is unknown. Generic filament presets will be used."
-msgstr ""
+msgstr "The filament model is unknown. Generic filament presets will be used."
 
 msgid ""
 "The filament may not be compatible with the current machine settings. A "
 "random filament preset will be used."
 msgstr ""
+"The filament may not be compatible with the current machine settings. A "
+"random filament preset will be used."
 
 msgid "The filament model is unknown. A random filament preset will be used."
-msgstr ""
+msgstr "The filament model is unknown. A random filament preset will be used."
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -21900,6 +22539,44 @@ msgstr ""
 "Ar žinojote, kad spausdinant medžiagas, kurios linkusios deformuotis, "
 "pavyzdžiui, ABS, tinkamai padidinus kaitinimo pagrindo temperatūrą galima "
 "sumažinti deformavimosi tikimybę."
+
+#~ msgid ""
+#~ "Zero first layer height is invalid.\n"
+#~ "\n"
+#~ "The first layer height will be reset to 0.2."
+#~ msgstr ""
+#~ "Netinkamas pradinio sluoksnio aukštis.\n"
+#~ "\n"
+#~ "Pirmojo sluoksnio aukštis bus atstatytas į 0,2."
+
+#~ msgid "Check for Update"
+#~ msgstr "Patikrinti ar nėra atnaujinimų"
+
+#~ msgid "Rotate of view"
+#~ msgstr "Vaizdo sukimas"
+
+#~ msgid "Move of view"
+#~ msgstr "Vaizdo perkėlimas"
+
+#~ msgid "Zoom of view"
+#~ msgstr "Vaizdo didinimas"
+
+#~ msgid ""
+#~ "Enabling both precise Z height and the prime tower may cause the size of "
+#~ "prime tower to increase. Do you still want to enable?"
+#~ msgstr ""
+#~ "Įjungus tikslaus Z aukščio ir pagrindinio bokšto funkcijas, pagrindinio "
+#~ "bokšto dydis gali padidėti. Ar vis tiek norite įjungti?"
+
+#~ msgid "Extruders count"
+#~ msgstr "Ekstruderių kiekis"
+
+#~ msgid ""
+#~ "Missing BambuSource component registered for media playing! Please re-"
+#~ "install BambuStudio or seek after-sales help."
+#~ msgstr ""
+#~ "Trūksta „BambuSource“ komponento, registruoto medijos atkūrimui! Iš naujo "
+#~ "įdiekite „BambuStudio“ arba kreipkitės į pagalbą po pardavimo."
 
 #~ msgid "Line pattern of support."
 #~ msgstr "Linijinis atramų raštas."

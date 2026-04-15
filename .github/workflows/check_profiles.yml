@@ -15,12 +15,11 @@ on:
         default: 'warning'
 
 permissions:
-  pull-requests: write
   contents: read
 
 
 jobs:
-  check_translation:
+  check_profiles:
     name: Check profiles
     runs-on: ubuntu-24.04
     steps:
@@ -62,11 +61,11 @@ jobs:
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
           exit ${PIPESTATUS[0]}
 
-      - name: Post error comment on PR
+      - name: Prepare comment artifact
         if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p ${{ runner.temp }}/profile-check-results
+
           {
             echo "## :x: Profile Validation Errors"
             echo ""
@@ -100,16 +99,20 @@ jobs:
 
             echo "---"
             echo "*Please fix the above errors and push a new commit.*"
-          } > ${{ runner.temp }}/pr_comment.md
+          } > ${{ runner.temp }}/profile-check-results/pr_comment.md
 
-          gh pr comment ${{ github.event.pull_request.number }} --body-file ${{ runner.temp }}/pr_comment.md
+          echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
+
+      - name: Upload comment artifact
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: profile-check-results
+          path: ${{ runner.temp }}/profile-check-results/
+          retention-days: 1
 
       - name: Fail if any check failed
         if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           echo "One or more profile checks failed. See above for details."
           exit 1
-
-
-
-

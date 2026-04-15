@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-05 17:45-0300\n"
+"POT-Creation-Date: 2026-03-20 23:26+0800\n"
 "PO-Revision-Date: 2025-05-18 09:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -1823,6 +1823,9 @@ msgstr ""
 msgid "*"
 msgstr ""
 
+msgid "Changing application language"
+msgstr ""
+
 msgid "The uploads are still ongoing"
 msgstr ""
 
@@ -2538,9 +2541,6 @@ msgstr ""
 msgid ""
 "\"%s\" will exceed 1 million faces after this subdivision, which may "
 "increase slicing time. Do you want to continue?"
-msgstr ""
-
-msgid "BambuStudio warning"
 msgstr ""
 
 #, c-format, boost-format
@@ -3937,9 +3937,6 @@ msgid ""
 "\n"
 "The first layer height will be reset to 0.2."
 msgstr ""
-"Zero first layer height is invalid.\n"
-"\n"
-"The first layer height will be reset to 0.2."
 
 msgid ""
 "This setting is only used for model size tunning with small value in some "
@@ -4438,7 +4435,13 @@ msgstr ""
 msgid "parameter name"
 msgstr ""
 
+msgid "layers"
+msgstr ""
+
 msgid "Range"
+msgstr ""
+
+msgid "Empty string"
 msgstr ""
 
 msgid "Value is out of range."
@@ -5094,7 +5097,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5156,11 +5159,6 @@ msgid ""
 msgstr ""
 
 msgid "The prime tower extends beyond the plate boundary."
-msgstr ""
-
-msgid ""
-"Prime tower position exceeded build plate boundaries and was repositioned to "
-"the nearest valid edge."
 msgstr ""
 
 msgid ""
@@ -5340,8 +5338,8 @@ msgstr ""
 msgid "Show Tip of the Day"
 msgstr ""
 
-msgid "Check for Update"
-msgstr "Check for Updates"
+msgid "Check for Updates"
+msgstr ""
 
 msgid "Open Network Test"
 msgstr ""
@@ -5614,25 +5612,28 @@ msgstr ""
 msgid "Pass 1"
 msgstr ""
 
-msgid "Flow rate test - Pass 1"
+msgid "Flow ratio test - Pass 1"
 msgstr ""
 
 msgid "Pass 2"
 msgstr ""
 
-msgid "Flow rate test - Pass 2"
+msgid "Flow ratio test - Pass 2"
 msgstr ""
 
 msgid "YOLO (Recommended)"
 msgstr ""
 
-msgid "Orca YOLO flowrate calibration, 0.01 step"
+msgid "Orca YOLO flowratio calibration, 0.01 step"
 msgstr ""
 
 msgid "YOLO (perfectionist version)"
 msgstr ""
 
-msgid "Orca YOLO flowrate calibration, 0.005 step"
+msgid "Orca YOLO flowratio calibration, 0.005 step"
+msgstr ""
+
+msgid "Flow ratio"
 msgstr ""
 
 msgid "Retraction test"
@@ -6722,7 +6723,7 @@ msgstr ""
 msgid "Spaghetti Detection"
 msgstr ""
 
-msgid "Detect spaghetti failure(scattered lose filament)."
+msgid "Detect spaghetti failures (scattered lose filament)."
 msgstr ""
 
 msgid "Purge Chute Pile-Up Detection"
@@ -7695,9 +7696,6 @@ msgstr ""
 msgid "Switching application language while some presets are modified."
 msgstr ""
 
-msgid "Changing application language"
-msgstr ""
-
 msgid "Asia-Pacific"
 msgstr ""
 
@@ -7888,9 +7886,6 @@ msgstr ""
 msgid "Optimize filaments area height for..."
 msgstr ""
 
-msgid "(Requires restart)"
-msgstr ""
-
 msgid "filaments"
 msgstr ""
 
@@ -7906,6 +7901,9 @@ msgstr ""
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
+msgstr ""
+
+msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -8219,14 +8217,14 @@ msgstr ""
 msgid "View control settings"
 msgstr ""
 
-msgid "Rotate of view"
-msgstr "Rotate View"
+msgid "Rotate view"
+msgstr ""
 
-msgid "Move of view"
-msgstr "Pan View"
+msgid "Pan view"
+msgstr ""
 
-msgid "Zoom of view"
-msgstr "Zoom View"
+msgid "Zoom view"
+msgstr ""
 
 msgid "Other"
 msgstr ""
@@ -9015,13 +9013,18 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Enabling both precise Z height and the prime tower may cause the size of "
-"prime tower to increase. Do you still want to enable?"
+"Enabling both precise Z height and the prime tower may cause slicing errors. "
+"Do you still want to enable?"
 msgstr ""
 
 msgid ""
 "A prime tower is required for clumping detection. There may be flaws on the "
 "model without prime tower. Do you still want to enable clumping detection?"
+msgstr ""
+
+msgid ""
+"Enabling both precise Z height and the prime tower may cause slicing errors. "
+"Do you still want to enable precise Z height?"
 msgstr ""
 
 msgid ""
@@ -9116,8 +9119,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 
 msgid ""
@@ -9210,7 +9213,7 @@ msgstr ""
 msgid "Top/bottom shells"
 msgstr ""
 
-msgid "Initial layer speed"
+msgid "First layer speed"
 msgstr "First layer speed"
 
 msgid "Other layers speed"
@@ -9739,8 +9742,8 @@ msgid ""
 "the modified values to the new project"
 msgstr ""
 
-msgid "Extruders count"
-msgstr "Extruder count"
+msgid "Extruder count"
+msgstr ""
 
 msgid "Capabilities"
 msgstr ""
@@ -9898,6 +9901,9 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
+msgstr ""
+
+msgid "—> "
 msgstr ""
 
 msgid ""
@@ -10133,7 +10139,7 @@ msgstr ""
 
 msgid ""
 "Missing BambuSource component registered for media playing! Please re-"
-"install BambuStudio or seek after-sales help."
+"install OrcaSlicer or seek community help."
 msgstr ""
 
 msgid ""
@@ -10190,15 +10196,6 @@ msgid "Show keyboard shortcuts list"
 msgstr ""
 
 msgid "Global shortcuts"
-msgstr ""
-
-msgid "Pan View"
-msgstr ""
-
-msgid "Rotate View"
-msgstr ""
-
-msgid "Zoom View"
 msgstr ""
 
 msgid ""
@@ -10624,7 +10621,7 @@ msgid "Open G-code file:"
 msgstr ""
 
 msgid ""
-"One object has empty initial layer and can't be printed. Please Cut the "
+"One object has an empty first layer and can't be printed. Please Cut the "
 "bottom or enable supports."
 msgstr ""
 
@@ -10854,6 +10851,10 @@ msgid ""
 msgstr ""
 
 msgid ""
+"Enabling both precise Z height and the prime tower may cause slicing errors."
+msgstr ""
+
+msgid ""
 "A prime tower is required for clumping detection; otherwise, there may be "
 "flaws on the model."
 msgstr ""
@@ -11005,6 +11006,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The Hollow base pattern is not supported by this support type; Rectilinear "
+"will be used instead."
+msgstr ""
+
+msgid ""
 "Support enforcers are used but support is not enabled. Please enable support."
 msgstr ""
 
@@ -11121,7 +11127,7 @@ msgid "Elephant foot compensation"
 msgstr ""
 
 msgid ""
-"Shrinks the initial layer on build plate to compensate for elephant foot "
+"Shrinks the first layer on build plate to compensate for elephant foot "
 "effect."
 msgstr ""
 "This shrinks the first layer on the build plate to compensate for elephant "
@@ -11135,9 +11141,6 @@ msgid ""
 "The first layer will be shrunk by the elephant foot compensation value, then "
 "the next layers will be linearly shrunk less, up to the layer indicated by "
 "this value."
-msgstr ""
-
-msgid "layers"
 msgstr ""
 
 msgid ""
@@ -11321,50 +11324,50 @@ msgstr ""
 "This is the bed temperature for layers except for the first one. A value of "
 "0 means the filament does not support printing on the Textured PEI Plate."
 
-msgid "Initial layer"
+msgid "First layer"
 msgstr "First layer"
 
-msgid "Initial layer bed temperature"
+msgid "First layer bed temperature"
 msgstr "First layer bed temperature"
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Cool Plate SuperTack."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Cool Plate SuperTack."
 msgstr ""
 "This is the bed temperature of the first layer. A value of 0 means the "
 "filament does not support printing on the Cool Plate SuperTack."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Cool Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Cool Plate."
 msgstr ""
 "This is the bed temperature of the first layer. A value of 0 means the "
 "filament does not support printing on the Cool Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Textured Cool Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Textured Cool Plate."
 msgstr ""
 "This is the bed temperature of the first layer. A value of 0 means the "
 "filament does not support printing on the Textured Cool Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Engineering Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Engineering Plate."
 msgstr ""
 "This is the bed temperature of the first layer. A value of 0 means the "
 "filament does not support printing on the Engineering Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the High Temp Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the High Temp Plate."
 msgstr ""
 "This is the bed temperature of the first layer. A value of 0 means the "
 "filament does not support printing on the High Temp Plate."
 
 msgid ""
-"Bed temperature of the initial layer. A value of 0 means the filament does "
-"not support printing on the Textured PEI Plate."
+"Bed temperature of the first layer. A value of 0 means the filament does not "
+"support printing on the Textured PEI Plate."
 msgstr ""
 "This is the bed temperature of the first layer. A value of 0 means the "
 "filament does not support printing on the Textured PEI Plate."
@@ -12430,9 +12433,6 @@ msgstr ""
 msgid "Extruder offset"
 msgstr ""
 
-msgid "Flow ratio"
-msgstr ""
-
 msgid ""
 "The material may have volumetric change after switching between molten and "
 "crystalline states. This setting changes all extrusion flow of this filament "
@@ -12718,7 +12718,10 @@ msgstr ""
 msgid ""
 "When enabled, the extrusion flow is limited by the smaller of the fitted "
 "value (calculated from line width and layer height) and the user-defined "
-"maximum flow. When disabled, only the user-defined maximum flow is applied."
+"maximum flow. When disabled, only the user-defined maximum flow is applied.\n"
+"\n"
+"Note: Experimental and incomplete feature imported from BBS. Functional for "
+"some profiles that already have the variable saved."
 msgstr ""
 
 msgid "Max volumetric speed multinomial coefficients"
@@ -13185,8 +13188,8 @@ msgid "mm/s² or %"
 msgstr ""
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 
 msgid ""
@@ -13196,7 +13199,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Acceleration of initial layer. Using a lower value can improve build plate "
+"Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
 msgstr ""
 "This is the printing acceleration for the first layer. Using limited "
@@ -13239,41 +13242,42 @@ msgstr ""
 msgid "Jerk for infill."
 msgstr ""
 
-msgid "Jerk for initial layer."
+msgid "Jerk for the first layer."
 msgstr ""
 
 msgid "Jerk for travel."
 msgstr ""
 
 msgid ""
-"Line width of initial layer. If expressed as a %, it will be computed over "
+"Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
 
-msgid "Initial layer height"
+msgid "First layer height"
 msgstr "First layer height"
 
+#, fuzzy
 msgid ""
-"Height of initial layer. Making initial layer height to be thick slightly "
-"can improve build plate adhesion."
+"Height of the first layer. Making the first layer height thicker can improve "
+"build plate adhesion."
 msgstr ""
 "This is the height of the first layer. Making the first layer height thicker "
 "can improve build plate adhesion."
 
-msgid "Speed of initial layer except the solid infill part."
+msgid "Speed of the first layer except the solid infill part."
 msgstr ""
 "This is the speed for the first layer except for solid infill sections."
 
-msgid "Initial layer infill"
+msgid "First layer infill"
 msgstr "First layer infill"
 
-msgid "Speed of solid infill part of initial layer."
+msgid "Speed of solid infill part of the first layer."
 msgstr "This is the speed for solid infill parts of the first layer."
 
-msgid "Initial layer travel speed"
+msgid "First layer travel speed"
 msgstr ""
 
-msgid "Travel speed of initial layer."
+msgid "Travel speed of the first layer."
 msgstr ""
 
 #, fuzzy
@@ -13285,10 +13289,11 @@ msgid ""
 "increased in a linear fashion over the specified number of layers."
 msgstr ""
 
-msgid "Initial layer nozzle temperature"
+msgid "First layer nozzle temperature"
 msgstr "First layer nozzle temperature"
 
-msgid "Nozzle temperature for printing initial layer when using this filament."
+msgid ""
+"Nozzle temperature for printing the first layer when using this filament."
 msgstr "Nozzle temperature for printing the first layer with this filament"
 
 msgid "Full fan speed at layer"
@@ -13296,10 +13301,10 @@ msgstr ""
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 
 msgid "layer"
@@ -14004,8 +14009,8 @@ msgstr "All top surfaces"
 msgid "Topmost surface"
 msgstr "Topmost surface only"
 
-msgid "All solid layer"
-msgstr "All solid layers"
+msgid "All solid layers"
+msgstr ""
 
 msgid "Ironing Pattern"
 msgstr ""
@@ -14442,8 +14447,8 @@ msgid ""
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
 
-msgid "Detect overhang wall"
-msgstr "Detect overhang walls"
+msgid "Detect overhang walls"
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -14518,13 +14523,13 @@ msgstr ""
 msgid "Expand all raft layers in XY plane."
 msgstr "This expands all raft layers in XY plane."
 
-msgid "Initial layer density"
+msgid "First layer density"
 msgstr "First layer density"
 
 msgid "Density of the first raft or support layer."
 msgstr "This is the density of the first raft or support layer."
 
-msgid "Initial layer expansion"
+msgid "First layer expansion"
 msgstr "First layer expansion"
 
 msgid "Expand the first raft or support layer to improve bed plate adhesion."
@@ -14873,8 +14878,8 @@ msgid "Role base wipe speed"
 msgstr ""
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15006,7 +15011,7 @@ msgid "Minimum sparse infill threshold"
 msgstr ""
 
 msgid ""
-"Sparse infill area which is smaller than threshold value is replaced by "
+"Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
 "Sparse infill areas which are smaller than this threshold value are replaced "
@@ -15159,6 +15164,22 @@ msgid ""
 "throughout the entire print. This is useful for manual multi-material "
 "printing, where we use M600/PAUSE to trigger the manual filament change "
 "action."
+msgstr ""
+
+msgid "Wipe tower type"
+msgstr ""
+
+msgid ""
+"Choose the wipe tower implementation for multi-material prints. Type 1 is "
+"recommended for Bambu and Qidi printers with a filament cutter. Type 2 "
+"offers better compatibility with multi-tool and MMU printers and provide "
+"overall better compatibility."
+msgstr ""
+
+msgid "Type 1"
+msgstr ""
+
+msgid "Type 2"
 msgstr ""
 
 msgid "Purge in prime tower"
@@ -15602,8 +15623,8 @@ msgstr ""
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -15639,12 +15660,12 @@ msgstr ""
 msgid "Nozzle temperature for layers after the initial one."
 msgstr "Nozzle temperature after the first layer"
 
-msgid "Detect thin wall"
-msgstr "Detect thin walls"
+msgid "Detect thin walls"
+msgstr ""
 
 msgid ""
-"Detect thin wall which can't contain two line width. And use single line to "
-"print. Maybe printed not very well, because it's not closed loop."
+"Detect thin walls which can't contain two line widths, and use single line "
+"to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
 "This detects thin walls which can’t contain two lines and uses a single line "
 "to print. It may not print as well because it’s not a closed loop."
@@ -16146,7 +16167,7 @@ msgid ""
 "itself. It's expressed as a percentage over nozzle diameter."
 msgstr ""
 
-msgid "Detect narrow internal solid infill"
+msgid "Detect narrow internal solid infills"
 msgstr ""
 
 msgid ""
@@ -16168,7 +16189,7 @@ msgid " not in range "
 msgstr ""
 
 msgid "Export 3MF"
-msgstr "Export 3mf"
+msgstr ""
 
 msgid "Export project as 3MF."
 msgstr "This exports the project as a 3MF file."
@@ -16401,8 +16422,8 @@ msgid "Debug level"
 msgstr ""
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
 
 msgid "Enable timelapse for print"
@@ -16713,10 +16734,10 @@ msgid ""
 "following format:'[x, y]' (x and y are floating-point numbers in mm)."
 msgstr ""
 
-msgid "Bottom-left corner of first layer bounding box"
+msgid "Bottom-left corner of the first layer bounding box"
 msgstr ""
 
-msgid "Top-right corner of first layer bounding box"
+msgid "Top-right corner of the first layer bounding box"
 msgstr ""
 
 msgid "Size of the first layer bounding box"
@@ -17686,7 +17707,7 @@ msgstr ""
 msgid "Cornering settings"
 msgstr ""
 
-msgid "Note: Lower values = sharper corners but slower speeds.\n"
+msgid "Note: Lower values = sharper corners but slower speeds."
 msgstr ""
 
 msgid ""
@@ -17967,8 +17988,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -19632,6 +19653,30 @@ msgstr ""
 "Did you know that when printing materials that are prone to warping such as "
 "ABS, appropriately increasing the heatbed temperature can reduce the "
 "probability of warping?"
+
+#~ msgid ""
+#~ "Zero first layer height is invalid.\n"
+#~ "\n"
+#~ "The first layer height will be reset to 0.2."
+#~ msgstr ""
+#~ "Zero first layer height is invalid.\n"
+#~ "\n"
+#~ "The first layer height will be reset to 0.2."
+
+#~ msgid "Check for Update"
+#~ msgstr "Check for Updates"
+
+#~ msgid "Rotate of view"
+#~ msgstr "Rotate view"
+
+#~ msgid "Move of view"
+#~ msgstr "Pan view"
+
+#~ msgid "Zoom of view"
+#~ msgstr "Zoom view"
+
+#~ msgid "Extruders count"
+#~ msgstr "Extruder count"
 
 #~ msgid "Line pattern of support."
 #~ msgstr "This is the line pattern for support."

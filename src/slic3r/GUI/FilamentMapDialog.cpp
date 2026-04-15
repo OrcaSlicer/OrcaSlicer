@@ -46,6 +46,14 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     if (nozzle_diameters->size() <= 1)
         return true;
 
+    // The filament-grouping dialog is specifically designed for BBL dual-nozzle printers
+    // (e.g. H2D) where filaments must be assigned to a left or right nozzle.
+    // For toolchangers (≥3 tools) and all non-BBL printers the dialog is irrelevant and
+    // confusing; skip it entirely so slicing proceeds without interruption. (#12390)
+    PresetBundle* preset = wxGetApp().preset_bundle;
+    if (!preset || !preset->is_bbl_vendor() || nozzle_diameters->size() != 2)
+        return true;
+
     bool sync_plate = true;
 
     std::vector<std::string> filament_colors = full_config.option<ConfigOptionStrings>("filament_colour")->values;
@@ -169,9 +177,9 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     else
         m_default_map_panel = nullptr;
 
-    panel_sizer->Add(m_manual_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
-    panel_sizer->Add(m_auto_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
-    if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxALIGN_CENTER | wxEXPAND);
+    panel_sizer->Add(m_manual_map_panel, 0, wxEXPAND);
+    panel_sizer->Add(m_auto_map_panel, 0, wxEXPAND);
+    if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxEXPAND);
     main_sizer->Add(panel_sizer, 0, wxEXPAND);
 
     wxPanel* bottom_panel = new wxPanel(this);
@@ -207,6 +215,17 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     m_ok_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_ok, this);
     m_cancel_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_cancle, this);
+    SetEscapeId(wxID_CANCEL);
+    Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+        if (e.GetKeyCode() == WXK_ESCAPE) {
+            if (IsModal())
+                EndModal(wxID_CANCEL);
+            else
+                Close();
+            return;
+        }
+        e.Skip();
+    });
 
     m_auto_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_switch_mode, this);
     m_manual_btn->Bind(wxEVT_BUTTON, &FilamentMapDialog::on_switch_mode, this);
