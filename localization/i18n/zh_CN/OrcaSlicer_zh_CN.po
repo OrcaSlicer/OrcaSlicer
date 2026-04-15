@@ -2854,7 +2854,7 @@ msgstr "内环"
 
 #. TRN To be shown in the main menu View->Top
 msgid "Top"
-msgstr "上"
+msgstr "顶部"
 
 msgid ""
 "The fan controls the temperature during printing to improve print quality. "
@@ -5088,11 +5088,11 @@ msgstr "对齐到Y轴"
 
 msgctxt "Camera"
 msgid "Left"
-msgstr "左边"
+msgstr "左"
 
 msgctxt "Camera"
 msgid "Right"
-msgstr "正确的"
+msgstr "右"
 
 msgid "Add"
 msgstr "添加"
@@ -5475,13 +5475,13 @@ msgstr "顶部视图"
 
 #. TRN To be shown in the main menu View->Bottom
 msgid "Bottom"
-msgstr "下"
+msgstr "底部"
 
 msgid "Bottom View"
 msgstr "底部视图"
 
 msgid "Front"
-msgstr "前"
+msgstr "前面"
 
 msgid "Front View"
 msgstr "前视图"
