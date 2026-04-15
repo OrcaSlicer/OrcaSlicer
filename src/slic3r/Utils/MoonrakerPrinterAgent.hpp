@@ -89,7 +89,7 @@ protected:
 
     // Tray data for AMS payload building
     struct AmsTrayData {
-        int         slot_index = 0;      // 0-based slot index
+        int         slot_index = 0;      // 0-based global lane index (used by legacy 4-per-AMS bucketing)
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
@@ -99,6 +99,12 @@ protected:
         std::string vendor_name;         // Spoolman vendor name (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
+        // AFC-aware grouping. When unit_name is non-empty the payload builder
+        // groups trays by (unit_name, extruder_tool_number) instead of
+        // bucketing every 4 lanes into a new AMS unit. extruder_tool_number is
+        // the Klipper tool number the lane's extruder resolves to (0..13).
+        std::string unit_name;
+        int         extruder_tool_number = 0;
     };
 
     // Build ams JSON and call parser
@@ -166,6 +172,10 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    // AFC live status endpoint (/printer/afc/status). Populates unit_name and
+    // extruder_tool_number on every tray so build_ams_payload can group lanes
+    // by AFC unit and tag each synthesized AMS unit to the correct extruder.
+    bool fetch_afc_status(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);

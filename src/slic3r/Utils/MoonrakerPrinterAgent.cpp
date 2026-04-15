@@ -18,7 +18,9 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <cctype>
+#include <map>
 #include <thread>
 
 namespace {
@@ -495,74 +497,164 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         return normalized;
     };
 
+    // Helper that populates a tray JSON object from an AmsTrayData entry.
+    auto fill_tray_json = [&](const AmsTrayData* tray, int slot_id, nlohmann::json& tray_json, bool& has_filament_out) {
+        tray_json["id"]      = std::to_string(slot_id);
+        tray_json["tag_uid"] = "0000000000000000";
+        has_filament_out     = tray && tray->has_filament;
+        if (tray && tray->has_filament) {
+            tray_json["tray_info_idx"] = tray->tray_info_idx;
+            tray_json["tray_type"]     = tray->tray_type;
+            tray_json["tray_color"]    = normalize_color(tray->tray_color);
+            if (!tray->spoolman_id.empty()) {
+                tray_json["spoolman_id"] = tray->spoolman_id;
+            }
+            if (!tray->filament_name.empty()) {
+                tray_json["spoolman_filament_name"] = tray->filament_name;
+            }
+            if (tray->bed_temp > 0) {
+                tray_json["bed_temp"] = std::to_string(tray->bed_temp);
+            }
+            if (tray->nozzle_temp > 0) {
+                tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
+                tray_json["nozzle_temp_min"] = std::to_string(tray->nozzle_temp);
+            }
+            if (!tray->vendor_name.empty()) {
+                tray_json["spoolman_vendor_name"] = tray->vendor_name;
+            }
+        } else {
+            tray_json["tray_info_idx"]         = "";
+            tray_json["tray_type"]             = "";
+            tray_json["tray_color"]            = "00000000";
+            tray_json["tray_slot_placeholder"] = "1";
+        }
+    };
+
+    // Encode the AMS "info" hex string. Low nibble (bits 0-3) is the AMS
+    // type_id (2 = AMS_LITE); bits 8-11 are the extruder tool number which
+    // DevFilaSystemParser reads via DevUtil::get_flag_bits(info, 8, 4). Values
+    // >=14 are reserved by the parser (0xE = uninitialized), so clamp to 13.
+    auto encode_info = [](int tool_number, int type_id) {
+        if (tool_number < 0) tool_number = 0;
+        if (tool_number > 13) tool_number = 13;
+        char buf[8];
+        std::snprintf(buf, sizeof(buf), "%04X", ((tool_number & 0xF) << 8) | (type_id & 0xF));
+        return std::string(buf);
+    };
+
     // Build BBL-format JSON for DevFilaSystemParser::ParseV1_0
     nlohmann::json ams_json  = nlohmann::json::object();
     nlohmann::json ams_array = nlohmann::json::array();
 
-    // Calculate ams_exist_bits and tray_exist_bits
     unsigned long ams_exist_bits  = 0;
     unsigned long tray_exist_bits = 0;
 
-    for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
-        ams_exist_bits |= (1 << ams_id);
-
-        nlohmann::json ams_unit = nlohmann::json::object();
-        ams_unit["id"]          = std::to_string(ams_id);
-        ams_unit["info"]        = "0002"; // treat as AMS_LITE
-
-        nlohmann::json tray_array           = nlohmann::json::array();
-        int            max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
-        for (int slot_id = 0; slot_id <= max_slot_in_this_ams; ++slot_id) {
-            int slot_index = ams_id * 4 + slot_id;
-
-            // Find tray with matching slot_index
-            const AmsTrayData* tray = nullptr;
-            for (const auto& t : trays) {
-                if (t.slot_index == slot_index) {
-                    tray = &t;
-                    break;
-                }
-            }
-
-            nlohmann::json tray_json = nlohmann::json::object();
-            tray_json["id"]          = std::to_string(slot_id);
-            tray_json["tag_uid"]     = "0000000000000000";
-
-            if (tray && tray->has_filament) {
-                tray_exist_bits |= (1 << slot_index);
-
-                tray_json["tray_info_idx"] = tray->tray_info_idx;
-                tray_json["tray_type"]     = tray->tray_type;
-                tray_json["tray_color"]    = normalize_color(tray->tray_color);
-                if (!tray->spoolman_id.empty()) {
-                    tray_json["spoolman_id"] = tray->spoolman_id;
-                }
-                if (!tray->filament_name.empty()) {
-                    tray_json["spoolman_filament_name"] = tray->filament_name;
-                }
-
-                // Add temperature data if provided
-                if (tray->bed_temp > 0) {
-                    tray_json["bed_temp"] = std::to_string(tray->bed_temp);
-                }
-                if (tray->nozzle_temp > 0) {
-                    tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
-                    tray_json["nozzle_temp_min"] = std::to_string(tray->nozzle_temp);
-                }
-                if (!tray->vendor_name.empty()) {
-                    tray_json["spoolman_vendor_name"] = tray->vendor_name;
-                }
-            } else {
-                tray_json["tray_info_idx"]         = "";
-                tray_json["tray_type"]             = "";
-                tray_json["tray_color"]            = "00000000";
-                tray_json["tray_slot_placeholder"] = "1";
-            }
-
-            tray_array.push_back(tray_json);
+    // Detect whether the callers supplied AFC unit grouping. When any tray
+    // carries a unit_name we group by (unit, extruder) and tag each synthesized
+    // AMS unit with its extruder tool number. Otherwise fall back to the
+    // legacy 4-lanes-per-AMS bucketing (extruder 0) used by the lane_data path.
+    bool use_unit_grouping = false;
+    for (const auto& t : trays) {
+        if (!t.unit_name.empty()) {
+            use_unit_grouping = true;
+            break;
         }
-        ams_unit["tray"] = tray_array;
-        ams_array.push_back(ams_unit);
+    }
+
+    if (use_unit_grouping) {
+        // Group by (unit_name, extruder_tool_number), preserving original order.
+        struct GroupKey
+        {
+            std::string unit;
+            int         tool;
+            bool operator==(const GroupKey& o) const { return unit == o.unit && tool == o.tool; }
+        };
+        std::vector<GroupKey>                       group_order;
+        std::vector<std::vector<const AmsTrayData*>> groups;
+        for (const auto& t : trays) {
+            GroupKey key{t.unit_name, t.extruder_tool_number};
+            auto     it = std::find(group_order.begin(), group_order.end(), key);
+            if (it == group_order.end()) {
+                group_order.push_back(key);
+                groups.emplace_back();
+                groups.back().push_back(&t);
+            } else {
+                groups[std::distance(group_order.begin(), it)].push_back(&t);
+            }
+        }
+
+        // Sort lanes within each group by their original slot_index so slot_id
+        // 0..3 follows the lane numbering inside the AFC unit.
+        for (auto& g : groups) {
+            std::sort(g.begin(), g.end(),
+                      [](const AmsTrayData* a, const AmsTrayData* b) { return a->slot_index < b->slot_index; });
+        }
+
+        int next_ams_id = 0;
+        for (size_t gi = 0; gi < groups.size(); ++gi) {
+            const auto& key   = group_order[gi];
+            const auto& lanes = groups[gi];
+            // Split groups larger than 4 lanes into multiple 4-slot AMS units.
+            for (size_t chunk_start = 0; chunk_start < lanes.size(); chunk_start += 4) {
+                size_t chunk_end = std::min(chunk_start + 4, lanes.size());
+
+                nlohmann::json ams_unit = nlohmann::json::object();
+                ams_unit["id"]          = std::to_string(next_ams_id);
+                ams_unit["info"]        = encode_info(key.tool, /*type_id=AMS_LITE*/ 2);
+
+                nlohmann::json tray_array = nlohmann::json::array();
+                for (size_t slot_id = 0; slot_id < chunk_end - chunk_start; ++slot_id) {
+                    const AmsTrayData* tray = lanes[chunk_start + slot_id];
+                    nlohmann::json     tray_json;
+                    bool               has_filament = false;
+                    fill_tray_json(tray, static_cast<int>(slot_id), tray_json, has_filament);
+                    if (has_filament && next_ams_id < 8) {
+                        tray_exist_bits |= (1UL << (next_ams_id * 4 + slot_id));
+                    }
+                    tray_array.push_back(tray_json);
+                }
+
+                ams_unit["tray"] = tray_array;
+                ams_array.push_back(ams_unit);
+                if (next_ams_id < 32) {
+                    ams_exist_bits |= (1UL << next_ams_id);
+                }
+                ++next_ams_id;
+            }
+        }
+    } else {
+        // Legacy path: bucket every 4 lanes into a new AMS unit, all on extruder 0.
+        for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
+            if (ams_id < 32) {
+                ams_exist_bits |= (1UL << ams_id);
+            }
+
+            nlohmann::json ams_unit = nlohmann::json::object();
+            ams_unit["id"]          = std::to_string(ams_id);
+            ams_unit["info"]        = "0002"; // AMS_LITE, extruder 0
+
+            nlohmann::json tray_array           = nlohmann::json::array();
+            int            max_slot_in_this_ams = std::min(3, max_lane_index - ams_id * 4);
+            for (int slot_id = 0; slot_id <= max_slot_in_this_ams; ++slot_id) {
+                int                slot_index = ams_id * 4 + slot_id;
+                const AmsTrayData* tray       = nullptr;
+                for (const auto& t : trays) {
+                    if (t.slot_index == slot_index) {
+                        tray = &t;
+                        break;
+                    }
+                }
+                nlohmann::json tray_json;
+                bool           has_filament = false;
+                fill_tray_json(tray, slot_id, tray_json, has_filament);
+                if (has_filament && slot_index < 32) {
+                    tray_exist_bits |= (1UL << slot_index);
+                }
+                tray_array.push_back(tray_json);
+            }
+            ams_unit["tray"] = tray_array;
+            ams_array.push_back(ams_unit);
+        }
     }
 
     // Format as hex strings (matching BBL protocol)
@@ -612,6 +704,20 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
+    // Prefer the live AFC status endpoint, which exposes the lane->extruder
+    // mapping needed to place each lane under the correct OrcaSlicer extruder.
+    // Fall back to the persistent Moonraker DB (lane_data) when AFC isn't
+    // running or the endpoint is unavailable.
+    {
+        std::vector<AmsTrayData> trays;
+        int                      max_lane_index = 0;
+        if (fetch_afc_status(trays, max_lane_index) && !trays.empty()) {
+            int ams_count = (max_lane_index + 4) / 4; // only used by legacy path; grouping ignores it
+            build_ams_payload(ams_count, max_lane_index, trays);
+            return true;
+        }
+    }
+
     // Fetch AFC lane data from Moonraker database (inline)
     std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
 
@@ -2554,6 +2660,309 @@ std::string MoonrakerPrinterAgent::sanitize_filename(const std::string& filename
         return "print.gcode";
     }
     return basename;
+}
+
+bool MoonrakerPrinterAgent::fetch_afc_status(std::vector<AmsTrayData>& trays, int& max_lane_index)
+{
+    trays.clear();
+    max_lane_index = 0;
+
+    std::string url = join_url(device_info.base_url, "/printer/afc/status");
+
+    std::string response_body;
+    bool        success = false;
+    std::string http_error;
+
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty()) {
+        http.header("X-Api-Key", device_info.api_key);
+    }
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) {
+                response_body = body;
+                success       = true;
+            } else {
+                http_error = "HTTP error: " + std::to_string(status);
+            }
+        })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            http_error = err;
+            if (status > 0) {
+                http_error += " (HTTP " + std::to_string(status) + ")";
+            }
+        })
+        .perform_sync();
+
+    if (!success) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_status: endpoint unavailable (" << http_error
+                                << "), falling back to lane_data";
+        return false;
+    }
+
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_status: invalid JSON";
+        return false;
+    }
+
+    // Locate the AFC payload. Moonraker wraps responses in {"result": ...}.
+    // The status block key is literally "status:" (trailing colon) in the
+    // observed samples, but we'll accept either "status" or "status:" to be
+    // resilient. Inside we expect an "AFC" object with unit keys and a
+    // "system" sub-object describing extruders.
+    const nlohmann::json* afc = nullptr;
+    if (json.contains("result") && json["result"].is_object()) {
+        const auto& result = json["result"];
+        for (const char* key : {"status:", "status"}) {
+            if (result.contains(key) && result[key].is_object() && result[key].contains("AFC") &&
+                result[key]["AFC"].is_object()) {
+                afc = &result[key]["AFC"];
+                break;
+            }
+        }
+        if (!afc && result.contains("AFC") && result["AFC"].is_object()) {
+            afc = &result["AFC"];
+        }
+    }
+    if (!afc) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_status: no AFC block in response";
+        return false;
+    }
+
+    auto safe_string = [](const nlohmann::json& obj, const char* key) -> std::string {
+        auto it = obj.find(key);
+        if (it == obj.end() || it->is_null())
+            return "";
+        if (it->is_string())
+            return it->get<std::string>();
+        if (it->is_number_integer())
+            return std::to_string(it->get<long long>());
+        if (it->is_number_unsigned())
+            return std::to_string(it->get<unsigned long long>());
+        if (it->is_number())
+            return std::to_string(it->get<double>());
+        return "";
+    };
+    auto safe_int = [](const nlohmann::json& obj, const char* key) -> int {
+        auto it = obj.find(key);
+        if (it == obj.end() || it->is_null())
+            return 0;
+        if (it->is_number())
+            return it->get<int>();
+        if (it->is_string()) {
+            try {
+                return std::stoi(it->get<std::string>());
+            } catch (...) {
+                return 0;
+            }
+        }
+        return 0;
+    };
+
+    // Build extruder name -> tool_number map from AFC system info.
+    std::map<std::string, int> extruder_tool_map;
+    if (afc->contains("system") && (*afc)["system"].is_object()) {
+        const auto& system = (*afc)["system"];
+        if (system.contains("extruders") && system["extruders"].is_object()) {
+            for (const auto& [name, info] : system["extruders"].items()) {
+                if (!info.is_object())
+                    continue;
+                int tool = safe_int(info, "tool_number");
+                extruder_tool_map[name] = tool;
+            }
+        }
+    }
+
+    // Helper to resolve a Spoolman spool id to full filament data via Moonraker proxy.
+    struct SpoolData
+    {
+        std::string spool_name;
+        std::string filament_name;
+        std::string vendor_name;
+        std::string color_hex;
+        std::string material;
+        int         nozzle_temp = 0;
+        int         bed_temp    = 0;
+    };
+    auto fetch_spool_data = [&](const std::string& spool_id) -> SpoolData {
+        SpoolData data;
+        if (spool_id.empty())
+            return data;
+        // Moonraker exposes Spoolman via its proxy endpoint, matching the pattern
+        // used by fetch_moonraker_filament_data in the lane_data path.
+        std::string spool_url =
+            join_url(device_info.base_url, "/server/spoolman/proxy?path=/api/v1/spool/") + spool_id;
+        std::string body;
+        bool        ok = false;
+        auto        req = Http::get(spool_url);
+        if (!device_info.api_key.empty()) {
+            req.header("X-Api-Key", device_info.api_key);
+        }
+        req.timeout_connect(5)
+            .timeout_max(8)
+            .on_complete([&](std::string b, unsigned st) {
+                if (st == 200) {
+                    body = std::move(b);
+                    ok   = true;
+                }
+            })
+            .perform_sync();
+        if (!ok)
+            return data;
+        auto parsed = nlohmann::json::parse(body, nullptr, false, true);
+        if (parsed.is_discarded())
+            return data;
+        // Moonraker proxy wraps the response; Spoolman direct returns the object.
+        const nlohmann::json* spool = nullptr;
+        if (parsed.contains("result") && parsed["result"].is_object())
+            spool = &parsed["result"];
+        else if (parsed.is_object())
+            spool = &parsed;
+        if (!spool)
+            return data;
+        if (spool->contains("name") && (*spool)["name"].is_string())
+            data.spool_name = (*spool)["name"].get<std::string>();
+        if (spool->contains("filament") && (*spool)["filament"].is_object()) {
+            const auto& fil = (*spool)["filament"];
+            if (fil.contains("name") && fil["name"].is_string())
+                data.filament_name = fil["name"].get<std::string>();
+            if (fil.contains("material") && fil["material"].is_string())
+                data.material = fil["material"].get<std::string>();
+            if (fil.contains("color_hex") && fil["color_hex"].is_string())
+                data.color_hex = fil["color_hex"].get<std::string>();
+            if (fil.contains("settings_extruder_temp") && fil["settings_extruder_temp"].is_number())
+                data.nozzle_temp = fil["settings_extruder_temp"].get<int>();
+            if (fil.contains("settings_bed_temp") && fil["settings_bed_temp"].is_number())
+                data.bed_temp = fil["settings_bed_temp"].get<int>();
+            if (fil.contains("vendor") && fil["vendor"].is_object() && fil["vendor"].contains("name") &&
+                fil["vendor"]["name"].is_string())
+                data.vendor_name = fil["vendor"]["name"].get<std::string>();
+        }
+        return data;
+    };
+
+    // Iterate AFC units. Each key in the AFC object is either a unit name
+    // (Ace_1, AMS_1, Turtle_1, ...) or the shared "system" / "Tools" helpers.
+    // Units contain a "system" metadata entry plus one child object per lane.
+    int global_lane_counter = 0;
+    for (const auto& [unit_name, unit_obj] : afc->items()) {
+        if (!unit_obj.is_object())
+            continue;
+        if (unit_name == "system" || unit_name == "Tools")
+            continue;
+
+        // Track per-unit lane count so Tools-only units with no actual lanes
+        // (e.g. "Toolchanger" placeholder) are skipped.
+        bool has_any_lane = false;
+
+        for (const auto& [lane_key, lane_obj] : unit_obj.items()) {
+            if (!lane_obj.is_object())
+                continue;
+            if (lane_key == "system")
+                continue;
+
+            has_any_lane = true;
+
+            AmsTrayData tray;
+            tray.unit_name = unit_name;
+
+            // Resolve extruder tool number via the lane.extruder string.
+            std::string extruder_name = safe_string(lane_obj, "extruder");
+            auto        it_ex         = extruder_tool_map.find(extruder_name);
+            tray.extruder_tool_number = (it_ex != extruder_tool_map.end()) ? it_ex->second : 0;
+
+            // Use the "map" field (T0..T15) as a stable global lane index when
+            // available; otherwise fall back to numeric suffix of the lane key
+            // (e.g. "lane12" -> 12); last resort, an incrementing counter.
+            int         global_lane = -1;
+            std::string map_str     = safe_string(lane_obj, "map");
+            if (!map_str.empty() && (map_str[0] == 'T' || map_str[0] == 't')) {
+                try {
+                    global_lane = std::stoi(map_str.substr(1));
+                } catch (...) {
+                    global_lane = -1;
+                }
+            }
+            if (global_lane < 0) {
+                size_t      digit_start = lane_key.find_first_of("0123456789");
+                if (digit_start != std::string::npos) {
+                    try {
+                        global_lane = std::stoi(lane_key.substr(digit_start));
+                    } catch (...) {
+                        global_lane = -1;
+                    }
+                }
+            }
+            if (global_lane < 0) {
+                global_lane = global_lane_counter;
+            }
+            tray.slot_index = global_lane;
+            ++global_lane_counter;
+            max_lane_index  = std::max(max_lane_index, global_lane);
+
+            tray.tray_type  = safe_string(lane_obj, "material");
+            tray.tray_color = safe_string(lane_obj, "color");
+
+            // Spool id: AFC exposes numeric "spool_id" directly.
+            tray.spoolman_id = safe_string(lane_obj, "spool_id");
+            if (tray.spoolman_id.empty()) {
+                tray.spoolman_id = safe_string(lane_obj, "spoolman_id");
+            }
+
+            int lane_nozzle_temp = safe_int(lane_obj, "extruder_temp");
+            int lane_bed_temp    = safe_int(lane_obj, "bed_temp");
+            if (lane_nozzle_temp > 0) tray.nozzle_temp = lane_nozzle_temp;
+            if (lane_bed_temp > 0) tray.bed_temp = lane_bed_temp;
+
+            // Enrich with Spoolman data where AFC alone is insufficient.
+            if (!tray.spoolman_id.empty()) {
+                SpoolData data = fetch_spool_data(tray.spoolman_id);
+                if (tray.tray_type.empty() && !data.material.empty())
+                    tray.tray_type = data.material;
+                if (tray.tray_color.empty() && !data.color_hex.empty())
+                    tray.tray_color = data.color_hex;
+                if (tray.nozzle_temp == 0 && data.nozzle_temp > 0)
+                    tray.nozzle_temp = data.nozzle_temp;
+                if (tray.bed_temp == 0 && data.bed_temp > 0)
+                    tray.bed_temp = data.bed_temp;
+                if (!data.vendor_name.empty())
+                    tray.vendor_name = data.vendor_name;
+
+                std::string display_name;
+                if (!data.spool_name.empty())
+                    display_name = data.spool_name;
+                else if (!data.filament_name.empty())
+                    display_name = data.filament_name;
+                if (!tray.spoolman_id.empty() && !display_name.empty() &&
+                    display_name.find(tray.spoolman_id) == std::string::npos) {
+                    display_name += " #" + tray.spoolman_id;
+                }
+                tray.filament_name = display_name;
+            }
+
+            tray.has_filament  = !tray.tray_type.empty() || !tray.tray_color.empty() || !tray.spoolman_id.empty();
+            auto* bundle       = GUI::wxGetApp().preset_bundle;
+            tray.tray_info_idx = bundle ? bundle->filaments.filament_id_by_type(tray.tray_type) :
+                                          map_filament_type_to_generic_id(tray.tray_type);
+
+            trays.push_back(std::move(tray));
+        }
+
+        if (!has_any_lane) {
+            continue;
+        }
+    }
+
+    if (trays.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_status: no AFC lanes found";
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_status: parsed " << trays.size()
+                            << " lanes across " << extruder_tool_map.size() << " extruders";
+    return true;
 }
 
 } // namespace Slic3r
