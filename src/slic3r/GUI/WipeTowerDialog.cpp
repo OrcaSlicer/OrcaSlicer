@@ -404,7 +404,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";
-    wxString filepath_str = wxString::FromUTF8(filepath.string());
+    wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
         wxString url = wxFileSystem::FileNameToURL(fn);
@@ -496,6 +496,15 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to parse json message: " << message;
         }
         });
+
+    m_webview->Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+    if (e.GetKeyCode() == WXK_ESCAPE) {
+            if (IsModal()) EndModal(wxID_CANCEL);
+            else Close();
+            return;
+    }
+        e.Skip();
+    });
 }
 
 

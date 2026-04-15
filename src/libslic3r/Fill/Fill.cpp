@@ -167,7 +167,7 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                                     idx          = std::min(idx, (int) object->layers().size() - 1);
                                     limit_fill_z = object->get_layer(idx)->print_z + sdx * object->config().layer_height;
                                 }
-                                repeats = std::max(--repeats, 0);
+                                repeats = std::max(repeats - 1, 0);
                             } else
                                 _noop = true; // set the dumb cycle
                             if (_absolute) {  // is absolute
@@ -882,6 +882,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         if (surface.is_top()) {
                             params.pattern = region_config.top_surface_pattern.value;
                             params.density = float(region_config.top_surface_density);
+                            if (params.density <= 0.0f) continue;
                         } else { // Surface is bottom
                             params.pattern = region_config.bottom_surface_pattern.value;
                             params.density = float(region_config.bottom_surface_density);

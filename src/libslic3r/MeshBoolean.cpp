@@ -343,7 +343,7 @@ void segment(CGALMesh& src, std::vector<CGALMesh>& dst, double smoothing_alpha =
             std::cout << "* Number of facets in constructed patch: " << patch_facets.size() << std::endl;
             std::cout << "  Number of vertices in constructed patch: " << patch_vertices.size() << std::endl;
 #else
-            CGAL::Polygon_mesh_processing::triangulate_hole(out, h, std::back_inserter(patch_facets));
+            CGAL::Polygon_mesh_processing::triangulate_hole(out, h, CGAL::parameters::default_values().face_output_iterator(std::back_inserter(patch_facets)));
 #endif
         }
 

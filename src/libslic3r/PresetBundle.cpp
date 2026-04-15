@@ -730,9 +730,16 @@ void PresetBundle::reset_project_embedded_presets()
                 current_printer.config.option<ConfigOptionStrings>("default_filament_profile")->values;
             const std::string prefered_filament_profile = prefered_filament_profiles.empty() ? std::string() :
                                                                                                prefered_filament_profiles.front();
-            if (!prefered_filament_profile.empty())
-                filament_presets[i] = prefered_filament_profile;
-            else
+            if (!prefered_filament_profile.empty()) {
+                // Check if preferred filament exists and is visible
+                const Preset* preferred_preset = this->filaments.find_preset(prefered_filament_profile, false);
+                if (preferred_preset && preferred_preset->is_visible) {
+                    filament_presets[i] = prefered_filament_profile;
+                } else {
+                    // Fall back to first visible filament
+                    filament_presets[i] = this->filaments.first_visible().name;
+                }
+            } else
                 filament_presets[i] = this->filaments.first_visible().name;
         }
     }
@@ -2027,8 +2034,14 @@ void PresetBundle::load_selections(AppConfig& config, const PresetPreferences& p
 
         const std::vector<std::string>& prefered_filament_profiles =
             preferred_printer->config.option<ConfigOptionStrings>("default_filament_profile")->values;
-        if ((!initial_filament_profile_name.compare("Default Filament")) && (prefered_filament_profiles.size() > 0))
-            initial_filament_profile_name = prefered_filament_profiles[0];
+        if ((!initial_filament_profile_name.compare("Default Filament")) && (prefered_filament_profiles.size() > 0)) {
+            // Check if preferred filament is visible
+            const Preset* preferred_preset = this->filaments.find_preset(prefered_filament_profiles[0], false);
+            if (preferred_preset && preferred_preset->is_visible) {
+                initial_filament_profile_name = prefered_filament_profiles[0];
+            }
+            // If not visible, keep the default "Default Filament" which will be resolved later
+        }
     }
 
     // Selects the profile, leaves it to -1 if the initial profile name is empty or if it was not found.
@@ -2839,7 +2852,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                                          bool                                                      use_map,
                                          std::map<int, AMSMapInfo>&                                maps,
                                          bool                                                      enable_append,
-                                         MergeFilamentInfo&                                        merge_info)
+                                         MergeFilamentInfo&                                        merge_info,
+                                         bool                                                      color_only)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "use_map:" << use_map << " enable_append:" << enable_append;
     std::vector<std::string>                     ams_filament_presets;
@@ -3165,8 +3179,72 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " missing project filament options for AMS sync";
         return 0;
     }
-    if (use_map) {
-        auto check_has_merge_info = [](std::map<int, AMSMapInfo>& maps, MergeFilamentInfo& merge_info, int exist_colors_size) {
+    if (color_only) {
+        auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
+            for (int i = 0; i < infos.size(); i++) {
+                if (infos[i].slot_id == temp.slot_id && infos[i].ams_id == temp.ams_id) {
+                    ams_infos[i].is_map = true;
+                    return i;
+                }
+            }
+            return -1;
+        };
+
+        auto exist_colors = filament_color->values;
+        std::vector<std::vector<std::string>> exist_multi_color_filment(exist_colors.size());
+        for (size_t i = 0; i < exist_colors.size(); i++) {
+            exist_multi_color_filment[i] = {exist_colors[i]};
+        }
+
+        ConfigOptionStrings *project_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+        if (project_multi_color) {
+            for (size_t i = 0; i < std::min(exist_multi_color_filment.size(), project_multi_color->values.size()); i++) {
+                std::vector<std::string> colors = split_string(project_multi_color->values[i], ' ');
+                if (!colors.empty()) {
+                    exist_multi_color_filment[i] = colors;
+                }
+            }
+        }
+
+        bool mapped_any = false;
+        if (use_map && !maps.empty()) {
+            for (size_t i = 0; i < exist_colors.size(); i++) {
+                if (maps.find(i) == maps.end()) {
+                    continue;
+                }
+                int valid_index = get_map_index(ams_array_maps, maps[i]);
+                if (valid_index >= 0 && valid_index < int(ams_filament_colors.size()) && !ams_filament_colors[valid_index].empty()) {
+                    exist_colors[i] = ams_filament_colors[valid_index];
+                    mapped_any = true;
+                    if (valid_index < int(ams_multi_color_filment.size()) && !ams_multi_color_filment[valid_index].empty()) {
+                        exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
+                    } else {
+                        exist_multi_color_filment[i] = {ams_filament_colors[valid_index]};
+                    }
+                }
+            }
+        }
+        // Fallback to index-based color sync if no mapping was applied.
+        if (!use_map || maps.empty() || !mapped_any) {
+            size_t sync_count = std::min(exist_colors.size(), ams_filament_colors.size());
+            for (size_t i = 0; i < sync_count; i++) {
+                if (ams_filament_colors[i].empty()) {
+                    continue;
+                }
+                exist_colors[i] = ams_filament_colors[i];
+                if (i < ams_multi_color_filment.size() && !ams_multi_color_filment[i].empty()) {
+                    exist_multi_color_filment[i] = ams_multi_color_filment[i];
+                } else {
+                    exist_multi_color_filment[i] = {ams_filament_colors[i]};
+                }
+            }
+        }
+
+        filament_color->values = exist_colors;
+        ams_multi_color_filment = exist_multi_color_filment;
+        merge_info.merges.clear();
+    } else if (use_map) {
+        auto check_has_merge_info = [](std::map<int, AMSMapInfo> &maps, MergeFilamentInfo &merge_info, int exist_colors_size) {
             std::set<int> done;
             for (auto it_i = maps.begin(); it_i != maps.end(); ++it_i) {
                 std::vector<int> same_ams;
@@ -5126,7 +5204,7 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
         int operator()(const Preset& preset) const
         {
             // Don't match any properties of the "-- default --" profile or the external profiles when switching printer profile.
-            if (preset.is_default || preset.is_external)
+            if (preset.is_default || preset.is_external || !preset.is_visible)
                 return 0;
             if (!m_prefered_alias.empty() && m_prefered_alias == preset.alias)
                 // Matching an alias, always take this preset with priority.

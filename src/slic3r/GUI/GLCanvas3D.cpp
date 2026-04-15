@@ -44,7 +44,7 @@
 #include "slic3r/Utils/RetinaHelper.hpp"
 #endif
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <wx/glcanvas.h>
 #include <wx/bitmap.h>
@@ -53,6 +53,7 @@
 #include <wx/settings.h>
 #include <wx/tooltip.h>
 #include <wx/debug.h>
+#include <wx/utils.h>
 #include <wx/fontutil.h>
 // Print now includes tbb, and tbb includes Windows. This breaks compilation of wxWidgets if included before wx.
 #include "libslic3r/Print.hpp"
@@ -77,6 +78,13 @@
 #include <imgui/imgui_internal.h>
 
 #include <imguizmo/ImGuizmo.h>
+
+#ifdef __WXMSW__
+#if wxUSE_POPUPWIN
+#include <wx/popupwin.h>
+extern wxPopupWindow* wxCurrentPopupWindow;
+#endif
+#endif
 
 static constexpr const float TRACKBALLSIZE = 0.8f;
 
@@ -1215,12 +1223,12 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     m_selection.set_volumes(&m_volumes.volumes);
 
     m_assembly_view_desc["object_selection_caption"] = _L("Left mouse button");
-    m_assembly_view_desc["object_selection"]         = _L("object selection");
+    m_assembly_view_desc["object_selection"]         = _L("Object selection");
     // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
     m_assembly_view_desc["part_selection_caption"]   = _L("Alt+") + _L("Left mouse button");
-    m_assembly_view_desc["part_selection"]           = _L("part selection");
+    m_assembly_view_desc["part_selection"]           = _L("Part selection");
     m_assembly_view_desc["number_key_caption"]       = "1~16 " + _L("number keys");
-    m_assembly_view_desc["number_key"]       = _L("number keys can quickly change the color of objects");
+    m_assembly_view_desc["number_key"]       = _L("Number keys can quickly change the color of objects");
 }
 
 GLCanvas3D::~GLCanvas3D()
@@ -1249,6 +1257,11 @@ bool GLCanvas3D::init()
     on_change_color_mode(wxGetApp().app_config->get("dark_color_mode") == "1", false);
 
     m_show_world_axes = wxGetApp().app_config->get("show_axes") == "true";
+    
+    // Controls the display of object names directly over the object
+    m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
+    // Controls the color coding of overhang surfaces
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_overhang"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
@@ -2181,8 +2194,12 @@ void GLCanvas3D::render(bool only_init)
 
     wxGetApp().imgui()->render();
 
-    m_canvas->SwapBuffers();
-    m_render_stats.increment_fps_counter();
+    // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
+    // occluded. Skip the swap to avoid stalling the render loop.
+    if (m_canvas->IsShownOnScreen()) {
+        m_canvas->SwapBuffers();
+        m_render_stats.increment_fps_counter();
+    }
 }
 
 void GLCanvas3D::render_thumbnail(ThumbnailData &         thumbnail_data,
@@ -3245,8 +3262,12 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
 #else /* __APPLE__ */
         case WXK_CONTROL_A:
 #endif /* __APPLE__ */
-            if (!is_in_painting_mode && !m_layers_editing.is_enabled())
-                post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+            if (!is_in_painting_mode && !m_layers_editing.is_enabled()) {
+                if (evt.ShiftDown())
+                    post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+                else
+                    post_event(SimpleEvent(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL));
+            }
         break;
 #ifdef __APPLE__
         case 'c':
@@ -4246,15 +4267,26 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_canvas->SetFocus();
 
     if (evt.Entering()) {
-//#if defined(__WXMSW__) || defined(__linux__)
-//        // On Windows and Linux needs focus in order to catch key events
-        // Set focus in order to remove it from sidebar fields
+        // Set focus in order to remove it from sidebar fields and ensure hotkeys work
         if (m_canvas != nullptr) {
-            // Only set focus, if the top level window of this canvas is active.
-            auto p = dynamic_cast<wxWindow*>(evt.GetEventObject());
-            while (p->GetParent())
-                p = p->GetParent();
-            auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
+#if defined(__WXMSW__) && wxUSE_POPUPWIN
+            // Don't steal focus when a popup window is active (e.g., search dropdown).
+            // Stealing focus triggers MSWDismissUnfocusedPopup, closing the popup unexpectedly.
+            if (!wxCurrentPopupWindow)
+#endif
+            {
+                // Only set focus if the top level window of this canvas is active.
+                auto p = dynamic_cast<wxWindow*>(evt.GetEventObject());
+                while (p->GetParent())
+                    p = p->GetParent();
+                auto *top_level_wnd = dynamic_cast<wxTopLevelWindow*>(p);
+                //Orca: Set focus so hotkeys like 'tab' work when a notification is shown.
+                //But don't steal focus from text input controls.
+                wxWindow* focused            = wxWindow::FindFocus();
+                bool      focus_in_text_ctrl = dynamic_cast<wxTextCtrl*>(focused) != nullptr;
+                if (top_level_wnd != nullptr && top_level_wnd->IsActive() && !focus_in_text_ctrl)
+                    m_canvas->SetFocus();
+            }
             m_mouse.position = pos.cast<double>();
             m_tooltip_enabled = false;
             // 1) forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
@@ -4266,7 +4298,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_tooltip_enabled = true;
         }
         m_mouse.set_start_position_2D_as_invalid();
-//#endif
     }
     else if (evt.Leaving()) {
         // to remove hover on objects when the mouse goes out of this canvas
@@ -4715,11 +4746,19 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
 void GLCanvas3D::on_paint(wxPaintEvent& evt)
 {
-    if (m_initialized)
+    if (m_initialized) {
+#ifdef __WXMSW__
+        // Idle events are not dispatched during the Windows resize modal loop,
+        // so render immediately to avoid blank frames.
+        _refresh_if_shown_on_screen();
+        m_dirty = false;
+#else
         m_dirty = true;
-    else
+#endif
+    } else {
         // Call render directly, so it gets initialized immediately, not from On Idle handler.
         this->render();
+    }
 }
 
 void GLCanvas3D::force_set_focus() {
@@ -4781,14 +4820,13 @@ Vec2d GLCanvas3D::get_local_mouse_position() const
     if (m_canvas == nullptr)
 		return Vec2d::Zero();
 
-    wxPoint mouse_pos = m_canvas->ScreenToClient(wxGetMousePosition());
-    const double factor =
-#if ENABLE_RETINA_GL
-        m_retina_helper->get_scale_factor();
-#else
-        1.0;
-#endif
-    return Vec2d(factor * mouse_pos.x, factor * mouse_pos.y);
+    // Use the cached mouse position from event handlers (m_mouse.position)
+    // instead of wxGetMousePosition() + ScreenToClient(), because
+    // wxGetMousePosition() returns (0,0) on Wayland for global coords.
+    // m_mouse.position already stores local canvas coordinates (set from
+    // event.GetX(), event.GetY()) and is already scaled by the retina factor
+    // in on_mouse(), so we can return it directly.
+    return m_mouse.position;
 }
 
 void GLCanvas3D::set_tooltip(const std::string& tooltip)
@@ -6352,21 +6390,21 @@ void GLCanvas3D::render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data,
     //    glsafe(::glEnable(GL_MULTISAMPLE));
 
     GLint max_samples;
-    glsafe(::glGetIntegerv(GL_MAX_SAMPLES_EXT, &max_samples));
+    glsafe(::glGetIntegerv(GL_MAX_SAMPLES, &max_samples));
     GLsizei num_samples = max_samples / 2;
 
     GLuint render_fbo;
-    glsafe(::glGenFramebuffersEXT(1, &render_fbo));
-    glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, render_fbo));
+    glsafe(::glGenFramebuffers(1, &render_fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, render_fbo));
 
     GLuint render_tex = 0;
     GLuint render_tex_buffer = 0;
     if (multisample) {
         // use renderbuffer instead of texture to avoid the need to use glTexImage2DMultisample which is available only since OpenGL 3.2
-        glsafe(::glGenRenderbuffersEXT(1, &render_tex_buffer));
-        glsafe(::glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, render_tex_buffer));
-        glsafe(::glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, num_samples, GL_RGBA8, w, h));
-        glsafe(::glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_RENDERBUFFER_EXT, render_tex_buffer));
+        glsafe(::glGenRenderbuffers(1, &render_tex_buffer));
+        glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, render_tex_buffer));
+        glsafe(::glRenderbufferStorageMultisample(GL_RENDERBUFFER, num_samples, GL_RGBA8, w, h));
+        glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_tex_buffer));
     }
     else {
         glsafe(::glGenTextures(1, &render_tex));
@@ -6374,31 +6412,31 @@ void GLCanvas3D::render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data,
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, render_tex, 0));
+        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_tex, 0));
     }
 
     GLuint render_depth;
-    glsafe(::glGenRenderbuffersEXT(1, &render_depth));
-    glsafe(::glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, render_depth));
+    glsafe(::glGenRenderbuffers(1, &render_depth));
+    glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, render_depth));
     if (multisample)
-        glsafe(::glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, num_samples, GL_DEPTH_COMPONENT24, w, h));
+        glsafe(::glRenderbufferStorageMultisample(GL_RENDERBUFFER, num_samples, GL_DEPTH_COMPONENT24, w, h));
     else
-        glsafe(::glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT, w, h));
+        glsafe(::glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h));
 
-    glsafe(::glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, render_depth));
+    glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth));
 
     GLenum drawBufs[] = { GL_COLOR_ATTACHMENT0 };
     glsafe(::glDrawBuffers(1, drawBufs));
 
-    if (::glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) == GL_FRAMEBUFFER_COMPLETE_EXT) {
+    if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
         render_thumbnail_internal(thumbnail_data, thumbnail_params, partplate_list, model_objects, volumes, extruder_colors, shader, camera_type, camera_view_angle_type,
                                   for_picking,
                                   ban_light);
 
         if (multisample) {
             GLuint resolve_fbo;
-            glsafe(::glGenFramebuffersEXT(1, &resolve_fbo));
-            glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, resolve_fbo));
+            glsafe(::glGenFramebuffers(1, &resolve_fbo));
+            glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, resolve_fbo));
 
             GLuint resolve_tex;
             glsafe(::glGenTextures(1, &resolve_tex));
@@ -6406,21 +6444,21 @@ void GLCanvas3D::render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data,
             glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
             glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
             glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-            glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, resolve_tex, 0));
+            glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, resolve_tex, 0));
 
             glsafe(::glDrawBuffers(1, drawBufs));
 
-            if (::glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) == GL_FRAMEBUFFER_COMPLETE_EXT) {
-                glsafe(::glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, render_fbo));
-                glsafe(::glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, resolve_fbo));
-                glsafe(::glBlitFramebufferEXT(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR));
+            if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
+                glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, render_fbo));
+                glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolve_fbo));
+                glsafe(::glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR));
 
-                glsafe(::glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, resolve_fbo));
+                glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, resolve_fbo));
                 glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (void*)thumbnail_data.pixels.data()));
             }
 
             glsafe(::glDeleteTextures(1, &resolve_tex));
-            glsafe(::glDeleteFramebuffersEXT(1, &resolve_fbo));
+            glsafe(::glDeleteFramebuffers(1, &resolve_fbo));
         }
         else
             glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (void*)thumbnail_data.pixels.data()));
@@ -6430,13 +6468,13 @@ void GLCanvas3D::render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data,
 #endif // ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT
     }
 
-    glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0));
-    glsafe(::glDeleteRenderbuffersEXT(1, &render_depth));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    glsafe(::glDeleteRenderbuffers(1, &render_depth));
     if (render_tex_buffer != 0)
-        glsafe(::glDeleteRenderbuffersEXT(1, &render_tex_buffer));
+        glsafe(::glDeleteRenderbuffers(1, &render_tex_buffer));
     if (render_tex != 0)
         glsafe(::glDeleteTextures(1, &render_tex));
-    glsafe(::glDeleteFramebuffersEXT(1, &render_fbo));
+    glsafe(::glDeleteFramebuffers(1, &render_fbo));
 
     //if (!multisample)
     //    glsafe(::glDisable(GL_MULTISAMPLE));
@@ -7213,8 +7251,8 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                 glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, render_fbo));
             }
             else {
-                glsafe(::glGenFramebuffersEXT(1, &render_fbo));
-                glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, render_fbo));
+                glsafe(::glGenFramebuffers(1, &render_fbo));
+                glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, render_fbo));
             }
             glsafe(::glGenTextures(1, &render_tex));
             glsafe(::glBindTexture(GL_TEXTURE_2D, render_tex));
@@ -7229,11 +7267,11 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                 glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth));
             }
             else {
-                glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, render_tex, 0));
-                glsafe(::glGenRenderbuffersEXT(1, &render_depth));
-                glsafe(::glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, render_depth));
-                glsafe(::glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT, width, height));
-                glsafe(::glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, render_depth));
+                glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_tex, 0));
+                glsafe(::glGenRenderbuffers(1, &render_depth));
+                glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, render_depth));
+                glsafe(::glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height));
+                glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth));
             }
             const GLenum drawBufs[] = { GL_COLOR_ATTACHMENT0 };
             glsafe(::glDrawBuffers(1, drawBufs));
@@ -7242,7 +7280,7 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                     use_framebuffer = false;
             }
             else {
-                if (::glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE_EXT)
+                if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                     use_framebuffer = false;
             }
         }
@@ -7281,6 +7319,7 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                 rect_near_top = rect_near_bottom + ratio_y;
 
             framebuffer_camera.look_at(camera->get_position(), camera->get_target(), camera->get_dir_up());
+            framebuffer_camera.set_type(camera->get_type());
             framebuffer_camera.apply_projection(rect_near_left, rect_near_right, rect_near_bottom, rect_near_top, camera->get_near_z(), camera->get_far_z());
             framebuffer_camera.set_viewport(0, 0, width, height);
             framebuffer_camera.apply_viewport();
@@ -7352,11 +7391,11 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                     glsafe(::glDeleteFramebuffers(1, &render_fbo));
             }
             else if (framebuffers_type == OpenGLManager::EFramebufferType::Ext) {
-                glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0));
+                glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
                 if (render_depth != 0)
-                    glsafe(::glDeleteRenderbuffersEXT(1, &render_depth));
+                    glsafe(::glDeleteRenderbuffers(1, &render_depth));
                 if (render_fbo != 0)
-                    glsafe(::glDeleteFramebuffersEXT(1, &render_fbo));
+                    glsafe(::glDeleteFramebuffers(1, &render_fbo));
             }
 
             if (render_tex != 0)
@@ -8444,11 +8483,27 @@ void GLCanvas3D::_render_return_toolbar() const
     ImVec2 margin = ImVec2(10.0f, 5.0f);
 
     if (ImGui::ImageTextButton(real_size,_utf8(L("Return")).c_str(), m_return_toolbar.get_return_texture_id(), button_icon_size, uv0, uv1, -1, bg_col, tint_col, margin)) {
-        if (m_canvas != nullptr)
-            wxPostEvent(m_canvas, SimpleEvent(EVT_GLVIEWTOOLBAR_3D));
         const_cast<GLGizmosManager*>(&m_gizmos)->reset_all_states();
-        wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().reset_all_states();
-        wxGetApp().plater()->get_view3D_canvas3D()->reload_scene(true);
+        if (m_canvas != nullptr && !wxGetApp().is_closing()) {
+            m_canvas->CallAfter([]() {
+                auto& app = wxGetApp();
+                if (app.is_closing())
+                    return;
+
+                auto* plater = app.plater();
+                if (plater == nullptr)
+                    return;
+
+                plater->select_view_3D("3D");
+
+                auto* view3d_canvas = plater->get_view3D_canvas3D();
+                if (view3d_canvas == nullptr)
+                    return;
+
+                view3d_canvas->get_gizmos_manager().reset_all_states();
+                view3d_canvas->reload_scene(true);
+            });
+        }
     }
     ImGui::PopStyleColor(5);
     ImGui::PopStyleVar(1);
@@ -8513,9 +8568,11 @@ void GLCanvas3D::_render_canvas_toolbar()
                 zoom_to_selection();
             }
         } else if (ImGui::IsItemHovered()) {
-            auto tooltip = _L("Fit camera to scene or selected object.");
-            auto width   = ImGui::CalcTextSize(tooltip.c_str()).x + imgui.scaled(2.0f);
-            imgui.tooltip(tooltip, width);
+            auto tooltip_str_wx = _L("Fit camera to scene or selected object.");
+            std::string tooltip_str = tooltip_str_wx.ToUTF8().data();
+
+            float width = ImGui::CalcTextSize(tooltip_str.c_str()).x + imgui.scaled(2.0f);
+            imgui.tooltip(tooltip_str, width);
         }
     }
 
@@ -8554,7 +8611,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
 
-        create_menu_item( "3D Navigator",
+        create_menu_item( _utf8(L("3D Navigator")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_3d_navigator(),
             [this]{
@@ -8563,7 +8620,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             }
         );
 
-        create_menu_item( "Zoom button",
+        create_menu_item( _utf8(L("Zoom button")),
             true, // work on all
             wxGetApp().show_canvas_zoom_button(),
             [this]{
@@ -8574,13 +8631,13 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Overhangs",
+        create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
             [this, p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
         );
 
-        create_menu_item( "Outline",
+        create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
             [this]{wxGetApp().toggle_show_outline();}
@@ -8588,7 +8645,7 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Perspective",
+        create_menu_item( _utf8(L("Perspective")),
             true, // work on all
             cfg->get_bool("use_perspective_camera"),
             [this, &cfg]{
@@ -8599,15 +8656,21 @@ void GLCanvas3D::_render_canvas_toolbar()
 
         ImGui::Separator();
 
-        create_menu_item( "Axes",
+        create_menu_item( _utf8(L("Axes")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             m_show_world_axes,
             [this]{toggle_world_axes_visibility(false);}
         );
 
-        // will add an option for gridlines in here
+        create_menu_item( _utf8(L("Gridlines")),
+            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
+            wxGetApp().show_plate_gridlines(),
+            [this]{wxGetApp().toggle_show_plate_gridlines();}
+        );
 
-        create_menu_item( "Labels",
+        ImGui::Separator();
+
+        create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
             [this, p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
@@ -8894,7 +8957,7 @@ void GLCanvas3D::_render_assemble_control()
             caption_max = std::max(caption_max, imgui->calc_text_size(m_assembly_view_desc.at(t + "_caption")).x);
         }
         const ImVec2 pos = ImGui::GetCursorScreenPos();
-        const float text_y =imgui->calc_text_size(_L("part selection")).y;
+        const float text_y = imgui->calc_text_size(_L("Part selection")).y;
         float get_cur_x = pos.x;
         float get_cur_y = pos.y - ImGui::GetFrameHeight() - 4 * text_y;
         tip_icon_size =_show_assembly_tooltip_information(caption_max, get_cur_x, get_cur_y);
@@ -9614,7 +9677,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             warning += std::to_string(filament + 1);
             warning += " ";
         }
-        text  = (boost::format(_u8L("filaments %s cannot be printed directly on the surface of this plate.")) % warning).str();
+        text  = (boost::format(_u8L("Filaments %s cannot be printed directly on the surface of this plate.")) % warning).str();
         error = ErrorType::SLICING_ERROR;
         break;
     }
@@ -9633,7 +9696,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         break;
     }
     case EWarning::FlushingVolumeZero:
-        text = _u8L("Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please redjust flushing settings.");
+        text = _u8L("Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please readjust flushing settings.");
         error = ErrorType::SLICING_ERROR;
         break;
     }
@@ -9653,7 +9716,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
                         wxString    region = L"en";
                         if (language.find("zh") == 0)
                         	region = L"zh";
-                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/h2d-pla-and-petg-mutual-support", region));
+                        // Use the generic dual-nozzle PLA+PETG guide rather than the H2D-specific page
+                        // so the link is relevant for all dual-extrusion printers, not just Bambu H2D. (#12073)
+                        wxGetApp().open_browser_with_warning_dialog(wxString::Format(L"https://wiki.bambulab.com/%s/filament-acc/filament/pla-and-petg-dual-extrusion", region));
                         return false;
                     });
             }
@@ -9777,6 +9842,10 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
 }
 
 bool GLCanvas3D::is_flushing_matrix_error() {
+
+    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers
+    if (!Sidebar::should_show_SEMM_buttons())
+        return false;
 
     const auto                &project_config = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
