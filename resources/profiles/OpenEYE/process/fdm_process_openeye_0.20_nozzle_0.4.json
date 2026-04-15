@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "fdm_process_openeye_0.20_nozzle_0.4",
+    "inherits": "fdm_process_openeye_common",
+    "from": "system",
+    "instantiation": "false",
+    "bridge_flow": "1",
+    "elefant_foot_compensation": "0.15",
+    "gap_infill_speed": "250",
+    "initial_layer_speed": "20",
+    "inner_wall_speed": "300",
+    "internal_solid_infill_speed": "250",
+    "initial_layer_infill_speed": "105",
+    "sparse_infill_speed": "270",
+    "top_shell_layers": "5",
+    "top_color_penetration_layers": "5",
+    "top_shell_thickness": "1.0"
+}

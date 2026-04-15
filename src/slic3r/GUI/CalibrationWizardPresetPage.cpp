@@ -764,7 +764,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
     m_filament_from_panel = new wxPanel(parent);
     m_filament_from_panel->Hide();
     auto filament_from_sizer = new wxBoxSizer(wxVERTICAL);
-    auto filament_from_text = new Label(m_filament_from_panel, _L("filament position"));
+    auto filament_from_text = new Label(m_filament_from_panel, _L("Filament position"));
     filament_from_text->SetFont(Label::Head_14);
     filament_from_sizer->Add(filament_from_text, 0);
 
@@ -1139,8 +1139,8 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
     else {
         m_main_sizer->GetStaticBox()->SetLabel(_L("Right Nozzle"));
         m_deputy_sizer->GetStaticBox()->SetLabel(_L("Left Nozzle"));
-        m_multi_exturder_ams_sizer->Add(m_deputy_sizer, 1, wxEXPAND | wxALL | wxALIGN_BOTTOM, 10);
-        m_multi_exturder_ams_sizer->Add(m_main_sizer, 1, wxEXPAND | wxALL | wxALIGN_BOTTOM, 10);
+        m_multi_exturder_ams_sizer->Add(m_deputy_sizer, 1, wxEXPAND | wxALL, 10);
+        m_multi_exturder_ams_sizer->Add(m_main_sizer, 1, wxEXPAND | wxALL, 10);
     }
     m_multi_extruder_ams_panel_sizer->Add(m_multi_exturder_ams_sizer);
 
@@ -2152,8 +2152,8 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
 
             m_main_sizer->GetStaticBox()->SetLabel(_L("Right Nozzle"));
             m_deputy_sizer->GetStaticBox()->SetLabel(_L("Left Nozzle"));
-            m_multi_exturder_ams_sizer->Add(m_deputy_sizer, 1, wxEXPAND | wxALL | wxALIGN_BOTTOM, 10);
-            m_multi_exturder_ams_sizer->Add(m_main_sizer, 1, wxEXPAND | wxALL | wxALIGN_BOTTOM, 10);
+            m_multi_exturder_ams_sizer->Add(m_deputy_sizer, 1, wxEXPAND | wxALL, 10);
+            m_multi_exturder_ams_sizer->Add(m_main_sizer, 1, wxEXPAND | wxALL, 10);
 
             m_main_extruder_on_left = false;
         }
@@ -2163,8 +2163,8 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
 
             m_main_sizer->GetStaticBox()->SetLabel(_L("Left Nozzle"));
             m_deputy_sizer->GetStaticBox()->SetLabel(_L("Right Nozzle"));
-            m_multi_exturder_ams_sizer->Add(m_main_sizer, 1, wxEXPAND | wxALL | wxALIGN_BOTTOM, 10);
-            m_multi_exturder_ams_sizer->Add(m_deputy_sizer, 1, wxEXPAND | wxALL | wxALIGN_BOTTOM, 10);
+            m_multi_exturder_ams_sizer->Add(m_main_sizer, 1, wxEXPAND | wxALL, 10);
+            m_multi_exturder_ams_sizer->Add(m_deputy_sizer, 1, wxEXPAND | wxALL, 10);
 
             m_main_extruder_on_left = true;
         }

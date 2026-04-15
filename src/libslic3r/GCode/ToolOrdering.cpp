@@ -306,6 +306,26 @@ void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
     }
 }
 
+bool ToolOrdering::insert_wipe_tower_extruder()
+{
+    if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
+        return false;
+    if (m_print_config_ptr->wipe_tower_filament == 0)
+        return false;
+
+    bool changed = false;
+    const unsigned int wipe_extruder = (unsigned int)(m_print_config_ptr->wipe_tower_filament - 1);
+    for (LayerTools &lt : m_layer_tools) {
+        if (lt.wipe_tower_partitions > 0) {
+            if (std::find(lt.extruders.begin(), lt.extruders.end(), wipe_extruder) == lt.extruders.end()) {
+                lt.extruders.emplace_back(wipe_extruder);
+                changed = true;
+            }
+        }
+    }
+    return changed;
+}
+
 void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_extruder, bool prime_multi_material)
 {
     // if first extruder is -1, we can decide the first layer tool order before doing reorder function
@@ -328,9 +348,13 @@ void ToolOrdering::sort_and_build_data(const Print& print, unsigned int first_ex
 
     max_layer_height = calc_max_layer_height(print.config(), max_layer_height);
 
-    this->collect_extruder_statistics(prime_multi_material);
-
     this->fill_wipe_tower_partitions(print.config(), object_bottom_z, max_layer_height);
+    if (this->insert_wipe_tower_extruder()) {
+        reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
+        this->fill_wipe_tower_partitions(print.config(), object_bottom_z, max_layer_height);
+    }
+
+    this->collect_extruder_statistics(prime_multi_material);
 }
 
 void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int first_extruder, bool prime_multi_material)
@@ -343,9 +367,13 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
 
     double max_layer_height = calc_max_layer_height(object.print()->config(), object.config().layer_height);
 
-    this->collect_extruder_statistics(prime_multi_material);
-
     this->fill_wipe_tower_partitions(object.print()->config(), object.layers().front()->print_z - object.layers().front()->height, max_layer_height);
+    if (this->insert_wipe_tower_extruder()) {
+        reorder_extruders_for_minimum_flush_volume(reorder_first_layer);
+        this->fill_wipe_tower_partitions(object.print()->config(), object.layers().front()->print_z - object.layers().front()->height, max_layer_height);
+    }
+
+    this->collect_extruder_statistics(prime_multi_material);
 }
 
 
@@ -353,7 +381,6 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
 // (print->config().print_sequence == PrintSequence::ByObject is true).
 ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material)
 {
-    m_is_BBL_printer = object.print()->is_BBL_printer();
     m_print_full_config = &object.print()->full_print_config();
     m_print_object_ptr = &object;
     m_print = const_cast<Print*>(object.print());
@@ -399,7 +426,6 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
 // (print->config().print_sequence == PrintSequence::ByObject is false).
 ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool prime_multi_material)
 {
-    m_is_BBL_printer = print.is_BBL_printer();
     m_print_full_config = &print.full_print_config();
     m_print = const_cast<Print *>(&print);  // for update the context of print
     m_print_config_ptr = &print.config();
@@ -1194,12 +1220,13 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
 
     using FlushMatrix = std::vector<std::vector<float>>;
     size_t             nozzle_nums = print_config->nozzle_diameter.values.size();
+    const auto wipe_tower_type = m_print->wipe_tower_type();
 
     std::vector<FlushMatrix> nozzle_flush_mtx;
     for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
         std::vector<float> flush_matrix(cast<float>(get_flush_volumes_matrix(print_config->flush_volumes_matrix.values, nozzle_id, nozzle_nums)));
         std::vector<std::vector<float>> wipe_volumes;
-        if ((print_config->purge_in_prime_tower && print_config->single_extruder_multi_material) || m_is_BBL_printer) {
+        if ((print_config->purge_in_prime_tower && print_config->single_extruder_multi_material) || wipe_tower_type == WipeTowerType::Type1) {
             for (unsigned int i = 0; i < number_of_extruders; ++i)
                 wipe_volumes.push_back(std::vector<float>(flush_matrix.begin() + i * number_of_extruders, flush_matrix.begin() + (i + 1) * number_of_extruders));
         } else {
@@ -1293,19 +1320,18 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         return false;
         };
 
-    if (m_print->is_BBL_printer() || number_of_extruders == 1){
+    auto maps_without_group = filament_maps;
+    for (auto& item : maps_without_group)
+        item = 0;
+
     reorder_filaments_for_minimum_flush_volume(
         filament_lists,
-        filament_maps,
+        m_print->is_BBL_printer() ? filament_maps : maps_without_group, // non-bbl printers do not support filament group yet
         layer_filaments,
         nozzle_flush_mtx,
         get_custom_seq,
         &filament_sequences
     );
-    } else {
-        // For non-bbl multi-extruder printers we don't support filament group yet, so we keep the layer sequence because we don't flush based on order
-        filament_sequences = layer_filaments;
-    }
 
     auto curr_flush_info = calc_filament_change_info_by_toolorder(print_config, filament_maps, nozzle_flush_mtx, filament_sequences);
     if (nozzle_nums <= 1)
@@ -1321,9 +1347,6 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         // always calculate the info by one extruder
         {
             std::vector<std::vector<unsigned int>>filament_sequences_one_extruder;
-            auto maps_without_group = filament_maps;
-            for (auto& item : maps_without_group)
-                item = 0;
             reorder_filaments_for_minimum_flush_volume(
                 filament_lists,
                 maps_without_group,
