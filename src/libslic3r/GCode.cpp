@@ -2464,6 +2464,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_config.apply(print.default_object_config());
     m_config.apply(print.default_region_config());
 
+    // Orca: Install the AFC T# remap transform on the output stream now that
+    // m_config is populated. The transform is a no-op unless the project carries
+    // per-filament AFC tool-number overrides (filament_map_tool_number).
+    {
+        bool has_afc_override = false;
+        for (int v : m_config.filament_map_tool_number.values) {
+            if (v >= 0) { has_afc_override = true; break; }
+        }
+        if (has_afc_override) {
+            file.set_transform([this](std::string s) {
+                return this->remap_afc_tool_numbers(std::move(s));
+            });
+        }
+    }
+
     //m_volumetric_speed = DoExport::autospeed_volumetric_limit(print);
     print.throw_if_canceled();
 
@@ -3527,6 +3542,75 @@ size_t GCode::get_extruder_id(unsigned int filament_id) const
     return 0;
 }
 
+// Orca: Rewrite emitted T<filament_id> instructions so they use the AFC (Klipper)
+// tool number configured via filament_map_tool_number. Scans for lines whose first
+// non-space token is the writer's toolchange prefix (typically "T", but also
+// "M135 T" or "M108 T" on some flavors) and rewrites the integer that follows.
+// A negative override (-1) leaves the emitted filament index unchanged.
+std::string GCode::remap_afc_tool_numbers(std::string gcode) const
+{
+    const auto &overrides = this->config().filament_map_tool_number.values;
+    if (overrides.empty())
+        return gcode;
+
+    bool has_override = false;
+    for (int v : overrides) {
+        if (v >= 0) { has_override = true; break; }
+    }
+    if (!has_override)
+        return gcode;
+
+    const std::string prefix = m_writer.toolchange_prefix();
+    if (prefix.empty())
+        return gcode;
+
+    std::string out;
+    out.reserve(gcode.size());
+
+    size_t pos = 0;
+    while (pos < gcode.size()) {
+        // Find the start of the next line (consider line_start = pos at the start).
+        size_t line_end = gcode.find('\n', pos);
+        if (line_end == std::string::npos)
+            line_end = gcode.size();
+        size_t line_terminator_len = (line_end < gcode.size()) ? 1 : 0;
+
+        // Skip leading whitespace on this line.
+        size_t scan = pos;
+        while (scan < line_end && (gcode[scan] == ' ' || gcode[scan] == '\t'))
+            ++scan;
+
+        bool rewrote = false;
+        if (scan + prefix.size() <= line_end &&
+            gcode.compare(scan, prefix.size(), prefix) == 0) {
+            size_t digit_start = scan + prefix.size();
+            size_t digit_end   = digit_start;
+            while (digit_end < line_end && gcode[digit_end] >= '0' && gcode[digit_end] <= '9')
+                ++digit_end;
+            if (digit_end > digit_start) {
+                int filament_id = std::atoi(gcode.c_str() + digit_start);
+                if (filament_id >= 0 && (size_t)filament_id < overrides.size()) {
+                    int afc_tool = overrides[filament_id];
+                    if (afc_tool >= 0 && afc_tool != filament_id) {
+                        // Emit everything up to the digits, then the override, then the remainder of the line.
+                        out.append(gcode, pos, digit_start - pos);
+                        out.append(std::to_string(afc_tool));
+                        out.append(gcode, digit_end, (line_end + line_terminator_len) - digit_end);
+                        rewrote = true;
+                    }
+                }
+            }
+        }
+
+        if (!rewrote)
+            out.append(gcode, pos, (line_end + line_terminator_len) - pos);
+
+        pos = line_end + line_terminator_len;
+    }
+
+    return out;
+}
+
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
 // and export G-code into file.
@@ -3592,7 +3676,11 @@ void GCode::process_layers(
                 return pa_processor.process_layer(std::move(in));
             }
         );
-    
+
+    // Orca: The AFC T<filament_id> -> T<afc_tool_number> remap is applied at
+    // GCodeOutputStream::write time (see GCode::GCodeOutputStream::set_transform)
+    // so the GCodeProcessor analyser still sees filament indices while Klipper
+    // receives the remapped tool numbers.
     const auto output = tbb::make_filter<std::string, void>(slic3r_tbb_filtermode::serial_in_order,
         [&output_stream](std::string s) { output_stream.write(s); }
     );
@@ -3692,7 +3780,9 @@ void GCode::process_layers(
             return pa_processor.process_layer(std::move(in));
         }
     );
-    
+
+    // Orca: AFC T<filament_id> -> T<afc_tool_number> remap is applied at
+    // GCodeOutputStream::write time, see GCode::GCodeOutputStream::set_transform.
     const auto output = tbb::make_filter<std::string, void>(slic3r_tbb_filtermode::serial_in_order,
         [&output_stream](std::string s) { output_stream.write(s); }
     );
@@ -6078,11 +6168,22 @@ void GCode::GCodeOutputStream::close()
 void GCode::GCodeOutputStream::write(const char *what)
 {
     if (what != nullptr) {
-        const char* gcode = what;
-        // writes string to file
-        fwrite(gcode, 1, ::strlen(gcode), this->f);
-        //FIXME don't allocate a string, maybe process a batch of lines?
-        m_processor.process_buffer(std::string(gcode));
+        // Orca: If an AFC tool-number transform is set, apply it ONLY to the bytes
+        // going to the file. Feed the un-transformed (filament-index) G-code to the
+        // GCodeProcessor analyser so the preview keeps using filament indices for
+        // color coding, per-filament time estimates, etc., while Klipper receives
+        // the remapped T<N> values it actually needs.
+        if (m_transform) {
+            std::string transformed = m_transform(std::string(what));
+            fwrite(transformed.data(), 1, transformed.size(), this->f);
+            m_processor.process_buffer(std::string(what));
+        } else {
+            const char* gcode = what;
+            // writes string to file
+            fwrite(gcode, 1, ::strlen(gcode), this->f);
+            //FIXME don't allocate a string, maybe process a batch of lines?
+            m_processor.process_buffer(std::string(gcode));
+        }
     }
 }
 

@@ -100,9 +100,12 @@ protected:
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
         // AFC-aware grouping. When unit_name is non-empty the payload builder
-        // groups trays by (unit_name, extruder_tool_number) instead of
-        // bucketing every 4 lanes into a new AMS unit. extruder_tool_number is
-        // the Klipper tool number the lane's extruder resolves to (0..13).
+        // groups trays by (unit_name, extruder_tool_number) so the sidebar
+        // shows AMS units that mirror AFC units (e.g. "box0", "box1").
+        // extruder_tool_number is the lane's AFC "map=T<N>" value (0..63). It
+        // is carried through the payload as a per-tray afc_tool_number field
+        // and consumed by GCodeWriter::toolchange to remap T<filament_index>
+        // to T<afc_tool_number>, decoupling UI layout from G-code T# routing.
         std::string unit_name;
         int         extruder_tool_number = 0;
     };

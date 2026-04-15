@@ -29,6 +29,7 @@
 
 #include "GCode/TimelapsePosPicker.hpp"
 
+#include <functional>
 #include <memory>
 #include <map>
 #include <set>
@@ -324,9 +325,16 @@ private:
         // Formats and write into a file the given data.
         void write_format(const char* format, ...);
 
+        // Orca: Optional transform applied to every string written out. Used to
+        // rewrite emitted T<filament_id> to T<afc_tool_number> for Klipper/AFC
+        // setups on direct-write paths (start/end G-code, header/config blocks)
+        // that don't go through the TBB pipeline filters.
+        void set_transform(std::function<std::string(std::string)> t) { m_transform = std::move(t); }
+
     private:
         FILE *f = nullptr;
         GCodeProcessor &m_processor;
+        std::function<std::string(std::string)> m_transform;
     };
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
 
@@ -380,6 +388,13 @@ private:
     //BBS
     void check_placeholder_parser_failed();
     size_t get_extruder_id(unsigned int filament_id) const;
+
+    // Orca: Rewrite emitted T<filament_id> instructions so they use the AFC (Klipper)
+    // tool number configured via filament_map_tool_number. Applied as a pipeline filter
+    // AFTER CoolingBuffer / FanMover / pressure-advance processor, so those passes still
+    // see the slicer's filament index consistently and only the bytes written out pick
+    // up the sparse/remapped T<N> values.
+    std::string remap_afc_tool_numbers(std::string gcode) const;
 
     void            set_last_pos(const Point &pos) { m_last_pos = pos; m_last_pos_defined = true; }
     bool            last_pos_defined() const { return m_last_pos_defined; }

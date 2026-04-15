@@ -2343,6 +2343,19 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{0});
 
+    // Per-filament AFC tool-number override. Used by Moonraker/Klipper AFC
+    // printers where Klipper lanes are addressed by "T<N>" but the slicer's
+    // filament index order (which drives T# emission for non-BBL firmwares)
+    // is free to reflect UI grouping rather than raw T# order. When a value
+    // is >= 0, GCodeWriter::toolchange emits T<value> instead of T<filament_id>
+    // for that filament. -1 means "use the filament index as-is" (legacy).
+    def = this->add("filament_map_tool_number", coInts);
+    // internal use only, don't need translation
+    def->label = "AFC tool number override";
+    def->tooltip = "Per-filament override for the G-code T<N> number (used by Klipper AFC).";
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInts{-1});
+
     def = this->add("filament_map_mode", coEnum);
     // internal use only, don't need translation
     def->label = "filament mapping mode";

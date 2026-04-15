@@ -498,10 +498,17 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     };
 
     // Helper that populates a tray JSON object from an AmsTrayData entry.
-    auto fill_tray_json = [&](const AmsTrayData* tray, int slot_id, nlohmann::json& tray_json, bool& has_filament_out) {
+    // slot_id is the AMS-local slot (0..3); afc_tool_number is the real AFC
+    // "map = T<N>" value carried through to GCodeWriter::toolchange so that
+    // G-code T# is independent of UI grouping order. -1 = no override.
+    auto fill_tray_json = [&](const AmsTrayData* tray, int slot_id, int afc_tool_number,
+                              nlohmann::json& tray_json, bool& has_filament_out) {
         tray_json["id"]      = std::to_string(slot_id);
         tray_json["tag_uid"] = "0000000000000000";
-        has_filament_out     = tray && tray->has_filament;
+        if (afc_tool_number >= 0) {
+            tray_json["afc_tool_number"] = afc_tool_number;
+        }
+        has_filament_out = tray && tray->has_filament;
         if (tray && tray->has_filament) {
             tray_json["tray_info_idx"] = tray->tray_info_idx;
             tray_json["tray_type"]     = tray->tray_type;
@@ -531,14 +538,17 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     };
 
     // Encode the AMS "info" hex string. Low nibble (bits 0-3) is the AMS
-    // type_id (2 = AMS_LITE); bits 8-11 are the extruder tool number which
-    // DevFilaSystemParser reads via DevUtil::get_flag_bits(info, 8, 4). Values
-    // >=14 are reserved by the parser (0xE = uninitialized), so clamp to 13.
-    auto encode_info = [](int tool_number, int type_id) {
-        if (tool_number < 0) tool_number = 0;
-        if (tool_number > 13) tool_number = 13;
+    // type_id (2 = AMS_LITE). The extruder nibble (bits 8-11, read by the
+    // parser via DevUtil::get_flag_bits(info, 8, 4)) is intentionally left
+    // at 0 for AFC-sourced payloads: the real per-lane T# now travels via
+    // the tray-level "afc_tool_number" field and is consumed by
+    // GCodeWriter::toolchange. Leaving the nibble at 0 keeps every lane on
+    // the "main" BBL extruder convention so the filament_ams_list sort key
+    // (Plater.cpp: (GetExtruderId()?0:0x10000) + ams_id*4+slot_id) remains
+    // stable regardless of how many Klipper toolheads the lanes map to.
+    auto encode_info = [](int /*tool_number*/, int type_id) {
         char buf[8];
-        std::snprintf(buf, sizeof(buf), "%04X", ((tool_number & 0xF) << 8) | (type_id & 0xF));
+        std::snprintf(buf, sizeof(buf), "%04X", (type_id & 0xF));
         return std::string(buf);
     };
 
@@ -546,8 +556,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     nlohmann::json ams_json  = nlohmann::json::object();
     nlohmann::json ams_array = nlohmann::json::array();
 
-    unsigned long ams_exist_bits  = 0;
-    unsigned long tray_exist_bits = 0;
+    // 64-bit bitmasks: supports up to 64 lanes (16 AMS units * 4 slots).
+    uint64_t ams_exist_bits  = 0;
+    uint64_t tray_exist_bits = 0;
 
     // Detect whether the callers supplied AFC unit grouping. When any tray
     // carries a unit_name we group by (unit, extruder) and tag each synthesized
@@ -607,26 +618,32 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                     const AmsTrayData* tray = lanes[chunk_start + slot_id];
                     nlohmann::json     tray_json;
                     bool               has_filament = false;
-                    fill_tray_json(tray, static_cast<int>(slot_id), tray_json, has_filament);
-                    if (has_filament && next_ams_id < 8) {
-                        tray_exist_bits |= (1UL << (next_ams_id * 4 + slot_id));
+                    // Carry the real AFC tool number (the lane's "map=T<N>") so
+                    // GCodeWriter::toolchange can emit the correct T# regardless
+                    // of where this tray ends up in the sidebar's iteration order.
+                    int afc_tool = tray ? tray->extruder_tool_number : -1;
+                    fill_tray_json(tray, static_cast<int>(slot_id), afc_tool, tray_json, has_filament);
+                    if (has_filament && next_ams_id < 16) {
+                        tray_exist_bits |= (1ULL << (next_ams_id * 4 + slot_id));
                     }
                     tray_array.push_back(tray_json);
                 }
 
                 ams_unit["tray"] = tray_array;
                 ams_array.push_back(ams_unit);
-                if (next_ams_id < 32) {
-                    ams_exist_bits |= (1UL << next_ams_id);
+                if (next_ams_id < 64) {
+                    ams_exist_bits |= (1ULL << next_ams_id);
                 }
                 ++next_ams_id;
             }
         }
     } else {
         // Legacy path: bucket every 4 lanes into a new AMS unit, all on extruder 0.
+        // Here each tray's slot_index already equals the real T# (fetch_afc_status
+        // sets slot_index = tool_number), so afc_tool == slot_index.
         for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
-            if (ams_id < 32) {
-                ams_exist_bits |= (1UL << ams_id);
+            if (ams_id < 64) {
+                ams_exist_bits |= (1ULL << ams_id);
             }
 
             nlohmann::json ams_unit = nlohmann::json::object();
@@ -646,9 +663,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 }
                 nlohmann::json tray_json;
                 bool           has_filament = false;
-                fill_tray_json(tray, slot_id, tray_json, has_filament);
-                if (has_filament && slot_index < 32) {
-                    tray_exist_bits |= (1UL << slot_index);
+                fill_tray_json(tray, slot_id, slot_index, tray_json, has_filament);
+                if (has_filament && slot_index < 64) {
+                    tray_exist_bits |= (1ULL << slot_index);
                 }
                 tray_array.push_back(tray_json);
             }

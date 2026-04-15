@@ -3334,6 +3334,11 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("tray_bed_temp", new ConfigOptionStrings{tray.bed_temp});
         tray_config.set_key_value("tray_nozzle_temp", new ConfigOptionStrings{tray.nozzle_temp_max});
         tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{tray.is_slot_placeholder});
+        // Orca: AFC lane -> T<N> override (see DevAmsTray::afc_tool_number).
+        // Forwarded to project_config->filament_map_tool_number so
+        // GCodeWriter::toolchange can emit T<afc_tool_number> instead of
+        // T<filament_index> on Klipper AFC printers.
+        tray_config.set_key_value("filament_map_tool_number", new ConfigOptionInts{tray.afc_tool_number});
         std::optional<FilamentBaseInfo> info;
         if (wxGetApp().preset_bundle) {
             info = wxGetApp().preset_bundle->get_filament_by_filament_id(tray.setting_id);

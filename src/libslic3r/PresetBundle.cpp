@@ -42,7 +42,7 @@ static std::vector<std::string> s_project_options{"flush_volumes_vector", "flush
                                                   // BBS
                                                   "filament_colour", "filament_colour_type", "filament_multi_colour", "wipe_tower_x",
                                                   "wipe_tower_y", "wipe_tower_rotation_angle", "curr_bed_type", "flush_multiplier",
-                                                  "nozzle_volume_type", "filament_map_mode", "filament_map"};
+                                                  "nozzle_volume_type", "filament_map_mode", "filament_map", "filament_map_tool_number"};
 
 // Orca: add custom as default
 const char* PresetBundle::ORCA_DEFAULT_BUNDLE          = "Custom";
@@ -2865,6 +2865,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     std::vector<std::string>                     ams_filament_colors;
     std::vector<std::string>                     ams_filament_color_types;
     std::vector<AMSMapInfo>                      ams_array_maps;
+    // Orca: per-tray AFC tool-number override gathered from filament_ams_list.
+    // Parallel to ams_filament_presets; index-aligned with the tray iteration.
+    std::vector<int>                             ams_tool_numbers;
     std::unordered_map<std::string, std::string> assigned_spoolman_ids;
     ams_multi_color_filment.clear();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_ams_list size: %1%") % filament_ams_list.size();
@@ -3061,6 +3064,14 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_infos.push_back({filament_id.empty() ? false : true, false, is_placeholder, filament_color});
         AMSMapInfo temp = {ams_id, slot_id};
         ams_array_maps.push_back(temp);
+        // Orca: carry AFC T# override (from DevAmsTray::afc_tool_number via
+        // build_tray_config). -1 means "no override; emit filament index as T#".
+        int tray_tool_number = -1;
+        if (const auto* tool_opt = ams.option<ConfigOptionInts>("filament_map_tool_number")) {
+            if (!tool_opt->values.empty())
+                tray_tool_number = tool_opt->values.front();
+        }
+        ams_tool_numbers.push_back(tray_tool_number);
         index++;
         if (filament_id.empty()) {
             if (use_map) {
@@ -3456,6 +3467,32 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     // Update ams_multi_color_filment
     update_filament_multi_color();
     update_multi_material_filament_presets();
+
+    // Orca: propagate AFC T# overrides to project_config->filament_map_tool_number
+    // so GCodeWriter::toolchange can remap T<filament_index> -> T<afc_tool_number>.
+    // In overwrite mode we carry the values position-for-position from the tray
+    // iteration. In use_map/color_only we preserve any existing values and just
+    // resize to match the final filament count.
+    if (auto* tool_num_opt = project_config.option<ConfigOptionInts>("filament_map_tool_number", true)) {
+        const size_t filament_count = this->filament_presets.size();
+        std::vector<int> tool_numbers(filament_count, -1);
+        if (!use_map && !color_only) {
+            // overwrite: ams_tool_numbers is index-aligned with the iteration
+            // that produced filament_presets (minus placeholders that were
+            // skipped; those keep -1 and are filled from existing values below).
+            for (size_t i = 0; i < filament_count && i < ams_tool_numbers.size(); ++i) {
+                tool_numbers[i] = ams_tool_numbers[i];
+            }
+        } else {
+            // Preserve existing overrides across non-overwrite syncs.
+            const auto& existing = tool_num_opt->values;
+            for (size_t i = 0; i < filament_count && i < existing.size(); ++i) {
+                tool_numbers[i] = existing[i];
+            }
+        }
+        tool_num_opt->values = std::move(tool_numbers);
+    }
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish sync ams list";
     return this->filament_presets.size();
 }

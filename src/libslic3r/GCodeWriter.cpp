@@ -519,6 +519,13 @@ std::string GCodeWriter::toolchange(unsigned int filament_id)
     m_curr_extruder_id = filament_extruder_iter->extruder_id();
     m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
 
+    // Note: this emits T<filament_id> (the slicer's 0-based filament index).
+    // Per-filament AFC T# overrides (config.filament_map_tool_number, used by
+    // Klipper AFC where lanes have sparse T<N> assignments) are applied at
+    // GCodeOutputStream::write time via GCode::remap_afc_tool_numbers. That keeps
+    // the GCodeProcessor analyser seeing filament indices (so the in-app preview
+    // and per-filament estimates stay correct) while the bytes written to disk
+    // carry the sparse/remapped T<N> Klipper expects.
     // return the toolchange command
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;

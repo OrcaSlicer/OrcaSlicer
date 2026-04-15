@@ -295,12 +295,12 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
         {
             if (jj["ams"].contains("ams_exist_bits"))
             {
-                obj->ams_exist_bits = stol(jj["ams"]["ams_exist_bits"].get<std::string>(), nullptr, 16);
+                obj->ams_exist_bits = stoull(jj["ams"]["ams_exist_bits"].get<std::string>(), nullptr, 16);
             }
 
             if (jj["ams"].contains("tray_exist_bits"))
             {
-                obj->tray_exist_bits = stol(jj["ams"]["tray_exist_bits"].get<std::string>(), nullptr, 16);
+                obj->tray_exist_bits = stoull(jj["ams"]["tray_exist_bits"].get<std::string>(), nullptr, 16);
             }
 
             if (jj["ams"].contains("cali_stat")) { system->m_ams_cali_stat = jj["ams"]["cali_stat"].get<int>(); }
@@ -309,15 +309,15 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
             {
                 if (jj["ams"].contains("tray_read_done_bits"))
                 {
-                    obj->tray_read_done_bits = stol(jj["ams"]["tray_read_done_bits"].get<std::string>(), nullptr, 16);
+                    obj->tray_read_done_bits = stoull(jj["ams"]["tray_read_done_bits"].get<std::string>(), nullptr, 16);
                 }
                 if (jj["ams"].contains("tray_reading_bits"))
                 {
-                    obj->tray_reading_bits = stol(jj["ams"]["tray_reading_bits"].get<std::string>(), nullptr, 16);
+                    obj->tray_reading_bits = stoull(jj["ams"]["tray_reading_bits"].get<std::string>(), nullptr, 16);
                 }
                 if (jj["ams"].contains("tray_is_bbl_bits"))
                 {
-                    obj->tray_is_bbl_bits = stol(jj["ams"]["tray_is_bbl_bits"].get<std::string>(), nullptr, 16);
+                    obj->tray_is_bbl_bits = stoull(jj["ams"]["tray_is_bbl_bits"].get<std::string>(), nullptr, 16);
                 }
                 if (jj["ams"].contains("version"))
                 {
@@ -416,7 +416,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
                             if (type_id < 4)
                             {
-                                curr_ams->m_exist = (obj->ams_exist_bits & (1 << ams_id_int)) != 0 ? true : false;
+                                curr_ams->m_exist = (obj->ams_exist_bits & (1ULL << ams_id_int)) != 0 ? true : false;
                             }
                             else
                             {
@@ -630,6 +630,13 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             if (tray_it->contains("tray_slot_placeholder")) {
                                 curr_tray->is_slot_placeholder = true;
                             }
+                            // Orca: optional per-tray AFC tool number. Pull-mode agents
+                            // (e.g. Moonraker+AFC) emit this so GCodeWriter::toolchange
+                            // can emit T<afc_tool_number> instead of T<filament_index>,
+                            // letting the UI group by AFC unit without misrouting lanes.
+                            if (tray_it->contains("afc_tool_number") && (*tray_it)["afc_tool_number"].is_number()) {
+                                curr_tray->afc_tool_number = (*tray_it)["afc_tool_number"].get<int>();
+                            }
                             int ams_id_int = 0;
                             int tray_id_int = 0;
                             try
@@ -641,7 +648,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
                                     if (type_id < 4)
                                     {
-                                        curr_tray->is_exists = (obj->tray_exist_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
+                                        curr_tray->is_exists = (obj->tray_exist_bits & (1ULL << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
                                     }
                                     else
                                     {

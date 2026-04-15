@@ -811,11 +811,13 @@ public:
     BBLSubTask *   last_subtask{nullptr};
     std::string    last_profile_id;
     std::string    last_task_id;
-    long           last_tray_exist_bits { -1 };
-    long           last_ams_exist_bits { -1 };
-    long           last_tray_is_bbl_bits{ -1 };
-    long           last_read_done_bits{ -1 };
-    long           last_reading_bits { -1 };
+    // Orca: widened to 64-bit to match ams_exist_bits/tray_exist_bits, which now
+    // cover up to 64 AFC lanes. Signed so -1 (all ones) still means "never set".
+    int64_t        last_tray_exist_bits { -1 };
+    int64_t        last_ams_exist_bits { -1 };
+    int64_t        last_tray_is_bbl_bits{ -1 };
+    int64_t        last_read_done_bits{ -1 };
+    int64_t        last_reading_bits { -1 };
     long           last_ams_version { -1 };
     std::optional<int> last_cali_version;
 

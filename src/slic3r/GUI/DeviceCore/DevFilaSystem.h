@@ -59,6 +59,11 @@ public:
     bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
+    // Orca: AFC (Klipper) lane -> T<N> mapping carried from the printer. -1 means
+    // "no override; emit the filament index as T#". Populated by pull-mode agents
+    // (e.g. MoonrakerPrinterAgent) and consumed by GCodeWriter::toolchange to
+    // decouple the UI's lane order from the G-code T# emitted to Klipper.
+    int             afc_tool_number = -1;
 
 public:
     // operators
