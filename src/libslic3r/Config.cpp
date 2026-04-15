@@ -1498,7 +1498,7 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
 
     boost::nowide::ofstream c;
     c.open(file, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
+    c << j.dump(1, '\t') << std::endl;
     c.close();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;

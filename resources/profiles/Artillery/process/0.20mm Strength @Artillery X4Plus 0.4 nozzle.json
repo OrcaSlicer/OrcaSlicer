@@ -1,10 +1,10 @@
 {
-    "type": "process",
-    "name": "0.20mm Strength @Artillery X4Plus 0.4 nozzle",
-    "inherits": "0.20mm Standard @Artillery X4Plus 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "outer_wall_speed": "60",
-    "print_settings_id": "0.20mm Strength @Artillery X4Plus 0.4 nozzle",
-    "wall_loops": "6"
+	"type": "process",
+	"name": "0.20mm Strength @Artillery X4Plus 0.4 nozzle",
+	"inherits": "0.20mm Standard @Artillery X4Plus 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"outer_wall_speed": "60",
+	"print_settings_id": "0.20mm Strength @Artillery X4Plus 0.4 nozzle",
+	"wall_loops": "6"
 }

@@ -1,9 +1,11 @@
 {
-    "type": "filament",
-    "setting_id": "GFSR98",
-    "name": "QIDI TPU-Aero @Qidi Q2C 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI TPU-Aero@Q2C-Series",
-	"compatible_printers": ["Qidi Q2C 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSR98",
+	"name": "QIDI TPU-Aero @Qidi Q2C 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI TPU-Aero@Q2C-Series",
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
 }

@@ -1,26 +1,26 @@
 {
-    "type": "filament",
-    "name": "eSUN PLA-Marble @base",
-    "inherits": "fdm_filament_pla",
-    "from": "system",
-    "filament_id": "OGFL06",
-    "instantiation": "false",
-    "filament_cost": [
-        "28.99"
-    ],
-    "filament_density": [
-        "1.27"
-    ],
-    "filament_flow_ratio": [
-        "0.99"
-    ],
-    "filament_max_volumetric_speed": [
-        "8"
-    ],
-    "filament_vendor": [
-        "eSUN"
-    ],
-    "slow_down_layer_time": [
-        "6"
-    ]
+	"type": "filament",
+	"name": "eSUN PLA-Marble @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OGFL06",
+	"instantiation": "false",
+	"filament_cost": [
+		"28.99"
+	],
+	"filament_density": [
+		"1.27"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"filament_vendor": [
+		"eSUN"
+	],
+	"slow_down_layer_time": [
+		"6"
+	]
 }

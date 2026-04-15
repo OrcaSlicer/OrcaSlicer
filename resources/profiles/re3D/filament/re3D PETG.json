@@ -1,27 +1,26 @@
 {
-    "type": "filament",
+	"type": "filament",
 	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
-    "name": "re3D PETG",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "fdm_filament_pet",
-    "filament_start_gcode": [
-        "; Filament gcode"
-    ],
-    "filament_end_gcode": [
-        "; filament end gcode"
-    ],
-    "filament_retraction_length":[
-        "1"
-    ],
-    "compatible_printers": [
-	  "re3D Gigabot 4 0.4 nozzle",
-      "re3D Gigabot 4 XLT 0.4 nozzle",
-      "re3D Terabot 4 0.4 nozzle",
-      "re3D Gigabot 4 0.8 nozzle",
-      "re3D Gigabot 4 XLT 0.8 nozzle",
-      "re3D Terabot 4 0.8 nozzle"
-
-    ]
+	"setting_id": "GFSG99",
+	"name": "re3D PETG",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_start_gcode": [
+		"; Filament gcode"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode"
+	],
+	"filament_retraction_length": [
+		"1"
+	],
+	"compatible_printers": [
+		"re3D Gigabot 4 0.4 nozzle",
+		"re3D Gigabot 4 XLT 0.4 nozzle",
+		"re3D Terabot 4 0.4 nozzle",
+		"re3D Gigabot 4 0.8 nozzle",
+		"re3D Gigabot 4 XLT 0.8 nozzle",
+		"re3D Terabot 4 0.8 nozzle"
+	]
 }

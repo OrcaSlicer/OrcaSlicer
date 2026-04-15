@@ -242,7 +242,7 @@ int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string 
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ofstream json_file(encode_path(dir_str.c_str()));
     if (json_file.is_open()) {
-        json_file << std::setw(4) << save_json << std::endl;
+        json_file << save_json.dump(1, '\t') << std::endl;
         json_file.close();
         return 0;
     }

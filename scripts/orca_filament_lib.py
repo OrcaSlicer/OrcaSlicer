@@ -131,7 +131,7 @@ def update_profile_library(vendor="",profile_type="filament"):
                 library = json.load(f)
                 library[profile_section] = sorted_profiles
                 f.seek(0)
-                json.dump(library, f, indent=4, ensure_ascii=False)
+                json.dump(library, f, indent="\t", ensure_ascii=False)
                 f.truncate()
                 
             print(f"Profile library for {vendor} updated successfully!")
@@ -229,7 +229,7 @@ def clean_up_profile(vendor="", profile_type="", force=False):
                                 # write back to file
                                 f.seek(0)
                                 ordered_profile = create_ordered_profile(_profile, ['type', 'name', 'renamed_from', 'inherits', 'from', 'setting_id', 'filament_id', 'instantiation'])
-                                json.dump(ordered_profile, f, indent=4, ensure_ascii=False)
+                                json.dump(ordered_profile, f, indent="\t", ensure_ascii=False)
                                 f.truncate()
                                 print(f"Updated profile: {full_path}")
                     except Exception as e:
@@ -273,7 +273,7 @@ def rename_filament_system(vendor="OrcaFilamentLibrary"):
                         
                         if modified:
                             with open(full_path, 'w', encoding='utf-8') as f:
-                                json.dump(data, f, indent=4, ensure_ascii=False)
+                                json.dump(data, f, indent="\t", ensure_ascii=False)
                             print(f"Updated {full_path}")
                             
                 except Exception as e:

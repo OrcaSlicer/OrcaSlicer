@@ -1,9 +1,11 @@
 {
-    "type": "filament",
-    "setting_id": "GFSR99",
-    "name": "Generic TPU 95A @Qidi X-Max 4 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Generic TPU 95A@X-Max 4-Series",
-	"compatible_printers": ["Qidi X-Max 4 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSR99",
+	"name": "Generic TPU 95A @Qidi X-Max 4 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Generic TPU 95A@X-Max 4-Series",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
 }
