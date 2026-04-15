@@ -37,7 +37,7 @@ public:
 
 private:
     uint8_t m_resolution{ 0 };
-    uint16_t m_vertices_count{ 0 };
+    uint8_t m_vertices_count{ 0 };
     //
     // gpu buffers ids.
     //
