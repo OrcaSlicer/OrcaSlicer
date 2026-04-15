@@ -2855,7 +2855,12 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                                          MergeFilamentInfo&                                        merge_info,
                                          bool                                                      color_only)
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "use_map:" << use_map << " enable_append:" << enable_append;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "use_map:" << use_map << " enable_append:" << enable_append
+                            << " color_only:" << color_only;
+    // When the user chose "Mapping" (use_map) or "Color only" the sync should not
+    // create or modify user filament profiles. Only in "Overwrite" mode do we
+    // materialize new Spoolman-backed user presets for newly synced spools.
+    const bool overwrite_mode = !use_map && !color_only;
     std::vector<std::string>                     ams_filament_presets;
     std::vector<std::string>                     ams_filament_colors;
     std::vector<std::string>                     ams_filament_color_types;
@@ -2966,8 +2971,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         if (!spoolman_id.empty()) {
             if (auto matched_id = find_filament_id_by_spoolman_id(filaments, spoolman_id)) {
                 filament_id = *matched_id;
-                update_spoolman_metadata(filaments, filament_id, spoolman_id, spool_display_name, filament_type, spoolman_vendor,
-                                         compatible_printers, nozzle_temp, bed_temp);
+                if (overwrite_mode) {
+                    update_spoolman_metadata(filaments, filament_id, spoolman_id, spool_display_name, filament_type, spoolman_vendor,
+                                             compatible_printers, nozzle_temp, bed_temp);
+                }
                 filament_changed = true;
                 ams.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
                 const auto normalized_spoolman_id = normalize_spoolman_id(spoolman_id);
@@ -2990,7 +2997,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             }
             if (matched_id) {
                 filament_id = *matched_id;
-                if (!spoolman_id.empty()) {
+                if (overwrite_mode && !spoolman_id.empty()) {
                     update_spoolman_metadata(filaments, filament_id, spoolman_id, spool_display_name, filament_type, spoolman_vendor,
                                              compatible_printers, nozzle_temp, bed_temp);
                 }
@@ -3011,8 +3018,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             }
             if (matched_id) {
                 filament_id = *matched_id;
-                update_spoolman_metadata(filaments, filament_id, spoolman_id, filament_name, filament_type, spoolman_vendor,
-                                         compatible_printers, nozzle_temp, bed_temp);
+                if (overwrite_mode) {
+                    update_spoolman_metadata(filaments, filament_id, spoolman_id, filament_name, filament_type, spoolman_vendor,
+                                             compatible_printers, nozzle_temp, bed_temp);
+                }
                 filament_changed = true;
                 ams.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
                 if (!spoolman_id.empty()) {
@@ -3023,7 +3032,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 }
             }
         }
-        if (!spoolman_id.empty() && (filament_id.empty() || !has_user_filament_id(filaments, filament_id))) {
+        if (overwrite_mode && !spoolman_id.empty() && (filament_id.empty() || !has_user_filament_id(filaments, filament_id))) {
             const Preset* base_preset = find_base_filament_preset(filaments, filament_id, filament_type);
             if (base_preset) {
                 std::string preset_name     = build_spool_name(filament_name, filament_type, spoolman_id, spoolman_vendor);
