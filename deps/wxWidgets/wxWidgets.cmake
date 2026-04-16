@@ -52,6 +52,7 @@ orcaslicer_add_cmake_project(
         -DwxUSE_ZLIB=sys
         -DwxUSE_LIBJPEG=sys
         -DwxUSE_LIBTIFF=OFF
+        -DwxUSE_LIBWEBP=builtin
         -DwxUSE_EXPAT=sys
         -DwxUSE_NANOSVG=OFF
 )
