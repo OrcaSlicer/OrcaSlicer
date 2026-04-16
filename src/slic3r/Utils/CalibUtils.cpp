@@ -442,8 +442,21 @@ static void cut_model(Model &model, double z, ModelObjectCutAttributes attribute
     }
 }
 
-static void read_model_from_file(const std::string& input_file, Model& model)
+static bool read_model_from_file(const std::string &input_file, Model &model, wxString *error_message = nullptr)
 {
+    fs::path resolved_path(input_file);
+#ifdef _WIN32
+    // Keep Windows path separators consistent with the main model import flow.
+    resolved_path.make_preferred();
+#endif
+
+    if (!fs::exists(resolved_path)) {
+        BOOST_LOG_TRIVIAL(error) << "read_model_from_file: calibration model does not exist: " << resolved_path.string();
+        if (error_message != nullptr)
+            *error_message = _L("Failed to load calibration model file.");
+        return false;
+    }
+
     LoadStrategy              strategy = LoadStrategy::LoadModel;
     ConfigSubstitutionContext config_substitutions{ForwardCompatibilitySubstitutionRule::Enable};
     int                       plate_to_slice = 0;
@@ -454,12 +467,26 @@ static void read_model_from_file(const std::string& input_file, Model& model)
     PlateDataPtrs         plate_data_src;
     std::vector<Preset *> project_presets;
 
-    model = Model::read_from_file(input_file, &config, &config_substitutions, strategy, &plate_data_src, &project_presets,
-        &is_bbl_3mf, &file_version, nullptr, nullptr, nullptr, plate_to_slice);
+    try {
+        model = Model::read_from_file(resolved_path.string(), &config, &config_substitutions, strategy, &plate_data_src, &project_presets,
+            &is_bbl_3mf, &file_version, nullptr, nullptr, nullptr, plate_to_slice);
+    } catch (const std::exception &e) {
+        BOOST_LOG_TRIVIAL(error) << "read_model_from_file: failed to load model from " << resolved_path.string() << ", error: " << e.what();
+        if (error_message != nullptr)
+            *error_message = _L("Failed to load calibration model file.");
+        return false;
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "read_model_from_file: failed to load model from " << resolved_path.string() << ", unknown error";
+        if (error_message != nullptr)
+            *error_message = _L("Failed to load calibration model file.");
+        return false;
+    }
 
     model.add_default_instances();
     for (auto object : model.objects)
         object->ensure_on_bed();
+
+    return true;
 }
 
 std::array<Vec3d, 4> get_cut_plane_points(const BoundingBoxf3 &bbox, const double &cut_height)
@@ -658,7 +685,8 @@ bool CalibUtils::calib_flowrate(int pass, const CalibInfo &calib_info, wxString 
     else
         input_file = Slic3r::resources_dir() + "/calib/filament_flow/flowrate-test-pass2.3mf";
 
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return false;
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
@@ -952,7 +980,8 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
     else
         input_file = Slic3r::resources_dir() + "/calib/pressure_advance/auto_pa_line_single.3mf";
 
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return false;
 
     DynamicPrintConfig print_config    = calib_infos[0].print_prest->config;
     DynamicPrintConfig filament_config = calib_infos[0].filament_prest->config;
@@ -1041,7 +1070,8 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
     else if (params.mode == CalibMode::Calib_PA_Pattern)
         input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pa_pattern.3mf";
 
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return false;
 
     if (params.mode == CalibMode::Calib_PA_Pattern)
         calib_pa_pattern(calib_info, model);
@@ -1078,7 +1108,8 @@ void CalibUtils::calib_temptue(const CalibInfo &calib_info, wxString &error_mess
 
     Model                     model;
     std::string               input_file = Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.stl";
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return;
 
     // cut upper
     auto obj_bb      = model.objects[0]->bounding_box_exact();
@@ -1140,7 +1171,8 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
 
     Model       model;
     std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc";
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return;
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
@@ -1218,7 +1250,8 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
 
     Model model;
     std::string input_file = Slic3r::resources_dir() + "/calib/vfa/vfa.drc";
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return;
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
@@ -1277,7 +1310,8 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
 
     Model model;
     std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc";
-    read_model_from_file(input_file, model);
+    if (!read_model_from_file(input_file, model, &error_message))
+        return;
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
