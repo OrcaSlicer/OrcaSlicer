@@ -40,8 +40,6 @@
 
 #include <slic3r/GUI/GUI_Utils.hpp>
 
-#include "UnitConversion.hpp"
-
 #if ENABLE_RETINA_GL
 #include "slic3r/Utils/RetinaHelper.hpp"
 #endif

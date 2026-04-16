@@ -178,6 +178,40 @@ private:
     Transform3d                     m_init_rotation_scale_tran;
 };
 
+// ── Unit system singleton ─────────────────────────────────────────────────
+// Declared here since GizmoObjectManipulation is the primary consumer.
+// Other files may use it via #include "GizmoObjectManipulation.hpp" or
+// read app_config->get("use_inches") directly (existing pattern).
+
+wxDECLARE_EVENT(wxEVT_UNIT_SYSTEM_CHANGED, wxCommandEvent);
+
+class UnitSystem
+{
+public:
+    static UnitSystem& Get();
+
+    bool IsImperial()       const { return m_imperial; }
+    bool IsTempSwapActive() const { return m_temp_active; }
+
+    void SetImperial(bool imperial);   // permanent, saves to app_config
+    void TogglePermanent();            // Alt+U — commits temp swap permanently
+    void BeginTemporarySwap();         // Alt down
+    void EndTemporarySwap();           // Alt up
+
+    void Register(wxWindow* listener);
+    void Unregister(wxWindow* listener);
+
+private:
+    UnitSystem();
+    void Apply(bool imperial, bool save);
+
+    bool m_imperial               = false;
+    bool m_temp_active            = false;
+    bool m_perm_toggled_this_hold = false;
+    bool m_pre_swap_state         = false;
+    std::vector<wxWindow*> m_listeners;
+};
+
 }}
 
 #endif // slic3r_GizmoObjectManipulation_hpp_

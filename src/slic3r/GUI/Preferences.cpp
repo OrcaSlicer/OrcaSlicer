@@ -18,7 +18,6 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
-#include "UnitConversion.hpp"
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
