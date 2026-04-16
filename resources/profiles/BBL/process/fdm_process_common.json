@@ -113,6 +113,7 @@
 	"skin_infill_line_width": "0.45",
 	"skin_infill_depth": "2.0",
 	"skeleton_infill_line_width": "0.45",
+	"slowdown_for_curled_perimeters": "0",
 	"sparse_infill_pattern": "crosshatch",
 	"sparse_infill_speed": [
 		"50"
