@@ -830,55 +830,23 @@ void GUI_App::post_init()
         throw Slic3r::RuntimeError("Calling post_init() while not yet initialized");
 
     m_open_method = "double_click";
-    bool switch_to_3d = false;
+    const bool has_input_files = !this->init_params->input_files.empty();
 
-    if (!this->init_params->input_files.empty()) {
-
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", init with input files, size %1%, input_gcode %2%")
-            %this->init_params->input_files.size() %this->init_params->input_gcode;
-
-        switch_to_3d = true;
-
-        const auto first_url = this->init_params->input_files.front();
-        if (this->init_params->input_files.size() == 1 && is_supported_open_protocol(first_url)) {
-            start_download(first_url);
-            m_open_method = "url";
-        } else {
-            if (this->init_params->input_gcode) {
-                mainframe->select_tab(size_t(MainFrame::tp3DEditor));
-                plater_->select_view_3D("3D");
-                this->plater()->load_gcode(from_u8(this->init_params->input_files.front()));
-                m_open_method = "gcode";
-            } else {
-                mainframe->select_tab(size_t(MainFrame::tp3DEditor));
-                plater_->select_view_3D("3D");
-                wxArrayString input_files;
-                for (auto& file : this->init_params->input_files) {
-                    input_files.push_back(wxString::FromUTF8(file));
-                }
-                this->plater()->set_project_filename(_L("Untitled"));
-                this->plater()->load_files(input_files);
-                try {
-                    if (!input_files.empty()) {
-                        std::string           file_path = input_files.front().ToStdString();
-                        std::filesystem::path path(file_path);
-                        m_open_method = "file_" + path.extension().string();
-                    }
-                } catch (...) {
-                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", file path exception!";
-                    m_open_method = "file";
-                }
-            }
-        }
-    }
-
+    // Always initialize OpenGL/canvas before loading any input files. When
+    // orca-slicer is launched with a positional argument (e.g. `orca-slicer
+    // foo.stl`), post_init() runs before paint/focus events have fired to
+    // initialize GL. The input-files branch previously set switch_to_3d and
+    // skipped the GL init block, so load_files() ran against an
+    // uninitialized canvas and silently produced zero objects, which
+    // triggered the "The file does not contain any geometry data" dialog.
+    // Closes #8592.
 //#if BBL_HAS_FIRST_PAGE
     bool slow_bootup = false;
     if (app_config->get("slow_bootup") == "true") {
         slow_bootup = true;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", slow bootup, won't render gl here.";
     }
-    if (!switch_to_3d) {
+    {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", begin load_gl_resources";
 #ifndef __linux__
         mainframe->Freeze();
@@ -917,14 +885,56 @@ void GUI_App::post_init()
             plater_->canvas3D()->set_as_dirty();
         }
 //#endif
-        if (is_editor())
-            mainframe->select_tab(size_t(0));
-        if (app_config->get("default_page") == "1")
-            mainframe->select_tab(size_t(1));
+        // Only apply the "Home" / default-page tab when no input files were
+        // requested on the command line, so we don't clobber the 3D view that
+        // the file-loading path below wants.
+        if (!has_input_files) {
+            if (is_editor())
+                mainframe->select_tab(size_t(0));
+            if (app_config->get("default_page") == "1")
+                mainframe->select_tab(size_t(1));
+        }
 #ifndef __linux__
         mainframe->Thaw();
 #endif
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
+    }
+
+    if (has_input_files) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", init with input files, size %1%, input_gcode %2%")
+            %this->init_params->input_files.size() %this->init_params->input_gcode;
+
+        const auto first_url = this->init_params->input_files.front();
+        if (this->init_params->input_files.size() == 1 && is_supported_open_protocol(first_url)) {
+            start_download(first_url);
+            m_open_method = "url";
+        } else {
+            if (this->init_params->input_gcode) {
+                mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+                plater_->select_view_3D("3D");
+                this->plater()->load_gcode(from_u8(this->init_params->input_files.front()));
+                m_open_method = "gcode";
+            } else {
+                mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+                plater_->select_view_3D("3D");
+                wxArrayString input_files;
+                for (auto& file : this->init_params->input_files) {
+                    input_files.push_back(wxString::FromUTF8(file));
+                }
+                this->plater()->set_project_filename(_L("Untitled"));
+                this->plater()->load_files(input_files);
+                try {
+                    if (!input_files.empty()) {
+                        std::string           file_path = input_files.front().ToStdString();
+                        std::filesystem::path path(file_path);
+                        m_open_method = "file_" + path.extension().string();
+                    }
+                } catch (...) {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", file path exception!";
+                    m_open_method = "file";
+                }
+            }
+        }
     }
 
     plater_->trigger_restore_project(1);
