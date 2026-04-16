@@ -20,7 +20,7 @@ void OptionTemplate::init(uint8_t resolution)
     if (m_top_vao_id != 0)
         return;
 
-    m_resolution = std::max<uint8_t>(resolution, 3);
+    m_resolution = std::clamp<uint8_t>(resolution, 3, 85);
     m_vertices_count = static_cast<uint8_t>(3 * m_resolution);
     const float step = 2.0f * PI / float(m_resolution);
 
