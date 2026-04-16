@@ -4,15 +4,14 @@
 #include "wx/dcgraph.h"
 #include "I18N.hpp"
 #include "PartPlate.hpp"
+#include "Widgets/HyperLink.hpp"
 
 namespace Slic3r { namespace GUI {
 
 static const wxColour LabelEnableColor = wxColour("#262E30");
 static const wxColour LabelDisableColor = wxColour("#ACACAC");
 static const wxColour GreyColor = wxColour("#6B6B6B");
-static const wxColour GreenColor = wxColour("#009688");
 static const wxColour BackGroundColor = wxColour("#FFFFFF");
-
 
 static bool should_pop_up()
 {
@@ -45,6 +44,37 @@ static void set_prefered_map_mode(FilamentMapMode mode)
 
     if (mode_str.empty()) BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("Set empty prefered_filament_map_mode to app config");
     app_config->set("prefered_filament_map_mode", mode_str);
+}
+
+bool play_dual_extruder_slice_video()
+{
+    if (wxLaunchDefaultBrowser("https://e.bambulab.com/t?c=HDB24RlwSmt77YFH")) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Video is being played using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
+bool play_dual_extruder_print_tpu_video()
+{
+    const wxString video_url = "https://e.bambulab.com/t?c=fwWqpBg37Liel92N";
+    if (wxLaunchDefaultBrowser(video_url)){
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Print Tpu Video is being played using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
+}
+
+bool open_filament_group_wiki()
+{
+    if (wxLaunchDefaultBrowser("https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9")) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("Wiki is being displayed using the system's default browser.");
+        return true;
+    }
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format("launch system's default browser failed");
+    return false;
 }
 
 void FilamentGroupPopup::CreateBmps()
@@ -146,15 +176,19 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
 
     {
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-        const std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html"; // NEEDFIX this link is broken
-
-        auto* wiki_sizer = new wxBoxSizer(wxHORIZONTAL);
-        wiki_link = new HyperLink(this, _L("Wiki Guide"), wxString(wiki_path.c_str())); // ORCA
-        wiki_sizer->Add(wiki_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
-
-        button_sizer->Add(wiki_sizer, 0, wxLEFT, horizontal_margin);
+        // ORCA Unified hyperlinks
+        video_link = new HyperLink(this, _L("Video tutorial"));
+        video_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& e)
+            {
+                play_dual_extruder_slice_video();
+                wxGetApp().app_config->set("play_slicing_video", "false");
+            });
+        button_sizer->Add(video_link, 0, wxLEFT, horizontal_margin + FromDIP(3));
         button_sizer->AddStretchSpacer();
+
+        wiki_link = new HyperLink(this, _L("Wiki Guide"));
+        wiki_link->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { open_filament_group_wiki(); });
+        button_sizer->Add(wiki_link, 0, wxLEFT, horizontal_margin);
 
         top_sizer->Add(button_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, horizontal_margin);
     }
