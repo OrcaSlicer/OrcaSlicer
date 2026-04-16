@@ -1163,7 +1163,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     m_ori_full_print_config = new_full_config;
     new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
-    std::vector<int> filament_maps =  new_full_config.option<ConfigOptionInts>("filament_map")->values;
+    auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
+    std::vector<int> filament_maps = opt_filament_map ? opt_filament_map->values : std::vector<int>();
 
     // Find modified keys of the various configs. Resolve overrides extruder retract values by filament profiles.
     DynamicPrintConfig   filament_overrides;
