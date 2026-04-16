@@ -8,6 +8,8 @@
     "printer_settings_id": "Z-Bolt",
     "printer_structure": "corexy",
     "printer_model": "Z-Bolt S1000",
+    "manual_filament_change": "0",
+	"single_extruder_multi_material": "0",
     "nozzle_diameter": [
         "0.4"
     ],
@@ -125,7 +127,6 @@
         "30"
     ],
     "nozzle_type": "hardened_steel",
-    "single_extruder_multi_material": "1",
     "support_chamber_temp_control": "1",
     "machine_start_gcode": "START_PRINT T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[nozzle_temperature_initial_layer] T_CHAMBER=[chamber_temperature]",
     "machine_end_gcode": "END_PRINT T_BED=[bed_temperature] T_CHAMBER=[chamber_temperature] COOLDOWN_TIME=120",
