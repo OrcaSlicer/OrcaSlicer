@@ -3063,7 +3063,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0.f;
-    def->max = 0.5f;
+    def->max = 0.3f;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.f));
 
@@ -4218,7 +4218,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware\nIf your Marlin 2 printer uses Classic Jerk set this value to 0.)");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0.f;
-    def->max = 0.5f;
+    def->max = 0.3f;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats{ 0.01f });
 

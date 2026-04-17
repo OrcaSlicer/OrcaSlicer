@@ -82,6 +82,10 @@
 		"0.4",
 		"0.4"
 	],
+	"machine_max_junction_deviation": [
+		"0.1",
+		"0"
+	],
 	"max_layer_height": [
 		"0.16"
 	],

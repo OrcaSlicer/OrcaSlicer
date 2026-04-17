@@ -19,12 +19,14 @@
 		"0.16"
 	],
 	"retraction_length": [
-		"3"
+		"0.8"
 	],
 	"retract_length_toolchange": [
 		"3"
 	],
 	"retraction_minimum_travel": [
 		"3"
-	]
+	],
+	"thumbnails": "144x144/PNG,900x900/PNG",
+	"thumbnails_format": "PNG"
 }
