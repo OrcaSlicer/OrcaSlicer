@@ -2,6 +2,7 @@
 #include "ExtrusionCalibration.hpp"
 #include "MsgDialog.hpp"
 #include "GUI_App.hpp"
+#include "FilamentPresetUtils.hpp"
 #include "libslic3r/Preset.hpp"
 #include "I18N.hpp"
 #include <boost/log/trivial.hpp>
@@ -1099,6 +1100,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
 
     m_filament_type = "";
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    const Preset* selected_filament_preset = nullptr;
     if (preset_bundle) {
         std::ostringstream stream;
         if (obj)
@@ -1121,6 +1123,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
                         }
                     }
                     if (!it->is_system && !has_compatible_printer) continue;
+                    selected_filament_preset = &(*it);
                     // ) if nozzle_temperature_range is found
                     ConfigOption* opt_min = it->config.option("nozzle_temperature_range_low");
                     if (opt_min) {
@@ -1200,9 +1203,23 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             if (it->alias.compare(m_comboBox_filament->GetValue().ToStdString()) == 0) {
                 ams_filament_id = it->filament_id;
                 ams_setting_id = it->setting_id;
+                if (!selected_filament_preset) {
+                    selected_filament_preset = &(*it);
+                }
                 break;
             }
         }
+    }
+
+    if (!selected_filament_preset && preset_bundle && !ams_filament_id.empty()) {
+        selected_filament_preset = find_filament_preset_by_id(preset_bundle, ams_filament_id);
+    }
+
+    std::string default_color = filament_default_colour(selected_filament_preset);
+    if (!default_color.empty()) {
+        wxColour color = DevAmsTray::decode_color(default_color);
+        set_color(color);
+        set_colors({ color });
     }
 
     wxArrayString items;

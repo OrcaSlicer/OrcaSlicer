@@ -73,6 +73,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "FilamentPresetUtils.hpp"
 #include "GuiColor.hpp"
 #include "GUI_ObjectList.hpp"
 #ifdef __WXGTK__
@@ -9322,6 +9323,19 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 
     if (preset_type == Preset::TYPE_FILAMENT) {
         wxGetApp().preset_bundle->set_filament_preset(idx, preset_name);
+        if (idx >= 0) {
+            auto* preset = find_preset_by_name_or_alias(wxGetApp().preset_bundle, Preset::TYPE_FILAMENT, &wxGetApp().preset_bundle->filaments, preset_name);
+            std::string color = filament_default_colour(preset);
+            if (!color.empty()) {
+                auto& project_config = wxGetApp().preset_bundle->project_config;
+                if (auto* color_opt = project_config.option<ConfigOptionStrings>("filament_colour");
+                    color_opt && static_cast<size_t>(idx) < color_opt->values.size())
+                    color_opt->values[idx] = color;
+                if (auto* multi_color_opt = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+                    multi_color_opt && static_cast<size_t>(idx) < multi_color_opt->values.size())
+                    multi_color_opt->values[idx] = color;
+            }
+        }
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
         sidebar->update_dynamic_filament_list();
