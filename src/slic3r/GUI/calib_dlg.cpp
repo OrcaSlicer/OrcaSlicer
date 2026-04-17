@@ -1407,8 +1407,8 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
         !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
         preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
             // Using Junction Deviation (mm)
-            max_end_value = 1.0;
-            warning_threshold = 0.3;
+            max_end_value = 0.3;
+            warning_threshold = 0.25;
     }
 
     if (!read_double || m_params.start < 0 || m_params.end > max_end_value || m_params.start >= m_params.end) {
