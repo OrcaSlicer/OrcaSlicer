@@ -79,6 +79,10 @@
 		"0.4",
 		"0.4"
 	],
+	"machine_max_junction_deviation": [
+		"0.08",
+		"0"
+	],
 	"machine_min_extruding_rate": [
 		"0",
 		"0"

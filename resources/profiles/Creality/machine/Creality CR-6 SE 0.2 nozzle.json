@@ -23,5 +23,9 @@
 	],
 	"printable_height": "250",
 	"nozzle_type": "undefine",
-	"auxiliary_fan": "0"
+	"auxiliary_fan": "0",
+	"machine_max_junction_deviation": [
+		"0.05",
+		"0"
+	]
 }

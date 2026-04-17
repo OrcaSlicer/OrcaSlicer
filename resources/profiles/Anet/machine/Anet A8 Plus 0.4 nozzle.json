@@ -100,7 +100,7 @@
 		"0.2"
 	],
 	"machine_max_junction_deviation": [
-		"0",
+		"0.10",
 		"0"
 	],
 	"machine_max_speed_e": [

@@ -19,5 +19,9 @@
 	"printable_height": "175",
 	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",
+	"machine_max_junction_deviation": [
+		"0.058",
+		"0"
+	],
 	"default_print_profile": "0.30mm Standard @FT 0.6 Nozzle"
 }
