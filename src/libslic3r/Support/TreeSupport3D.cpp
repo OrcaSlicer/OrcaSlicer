@@ -898,6 +898,7 @@ public:
         size_t dtt_roof_tip;
         for (dtt_roof_tip = 0; dtt_roof_tip < roof_tip_layers && insert_layer_idx - dtt_roof_tip >= 1; ++ dtt_roof_tip) {
             size_t this_layer_idx = insert_layer_idx - dtt_roof_tip;
+            const size_t roof_recovery_depth = dtt_roof_tip + supports_roof_layers;
             auto evaluateRoofWillGenerate = [&](const std::pair<Point, LineStatus> &p) {
                 //FIXME Vojtech: The circle is just shifted, it has a known size, the infill should fit all the time!
     #if 0
@@ -927,7 +928,9 @@ public:
                             // don't move until
                             roof_tip_layers - dtt_roof_tip,
                             // supports roof
-                            dtt_roof_tip + supports_roof_layers > 0,
+                            roof_recovery_depth > 0,
+                            // recovered roof/contact depth for this slice
+                            roof_recovery_depth,
                             // disable ovalization
                             false);
             }
@@ -942,9 +945,10 @@ public:
                     roof_circle.translate(p.first);
                     new_roofs.emplace_back(std::move(roof_circle));
                 }
-            this->add_roof(std::move(new_roofs), this_layer_idx, dtt_roof_tip + supports_roof_layers);
+            this->add_roof(std::move(new_roofs), this_layer_idx, roof_recovery_depth);
         }
 
+        const size_t roof_recovery_depth = dtt_roof_tip + supports_roof_layers;
         for (const LineInformation &line : lines) {
             // If a line consists of enough tips, the assumption is that it is not a single tip, but part of a simulated support pattern.
             // Ovalisation should be disabled for these to improve the quality of the lines when tip_diameter=line_width
@@ -954,14 +958,16 @@ public:
                     // don't move until
                     dont_move_until > dtt_roof_tip ? dont_move_until - dtt_roof_tip : 0,
                     // supports roof
-                    dtt_roof_tip + supports_roof_layers > 0,
+                    roof_recovery_depth > 0,
+                    // recovered roof/contact depth for this slice
+                    roof_recovery_depth,
                     disable_ovalistation);
         }
     }
 
 private:
     // called by this->add_points_along_lines()
-    void add_point_as_influence_area(std::pair<Point, LineStatus> p, LayerIndex insert_layer, size_t dont_move_until, bool roof, bool skip_ovalisation)
+    void add_point_as_influence_area(std::pair<Point, LineStatus> p, LayerIndex insert_layer, size_t dont_move_until, bool roof, size_t roof_recovery_dtt, bool skip_ovalisation)
     {
         bool to_bp = p.second == LineStatus::TO_BP || p.second == LineStatus::TO_BP_SAFE;
         bool gracious = to_bp || p.second == LineStatus::TO_MODEL_GRACIOUS || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
@@ -997,7 +1003,7 @@ private:
                 state.supports_roof = roof;
                 state.dont_move_until = dont_move_until;
                 state.can_use_safe_radius = safe_radius;
-                state.missing_roof_layers = force_tip_to_roof ? dont_move_until : 0;
+                state.set_pending_roof_recovery(force_tip_to_roof ? dont_move_until : 0, roof_recovery_dtt);
                 state.skip_ovalisation = skip_ovalisation;
                 move_bounds[insert_layer].emplace_back(state, std::move(circle));
             }
@@ -1095,10 +1101,9 @@ void finalize_raft_contact(
 // 1) Maximum num_support_roof_layers roof (top interface & contact) layers.
 // 2) Tree tips supporting either the roof layers or the object itself.
 // num_support_roof_layers should always be respected:
-// If num_support_roof_layers contact layers could not be produced, then the tree tip
-// is augmented with SupportElementState::missing_roof_layers
-// and the top "missing_roof_layers" of such particular tree tips are supposed to be coverted to
-// roofs aka interface layers by the tool path generator.
+// If the requested roof/contact stack cannot be generated directly, the affected tree tips
+// carry explicit pending roof recovery metadata so the sliced branch geometry can later be
+// promoted back to top contacts / interfaces at the correct contact depth.
 void sample_overhang_area(
     // Area to support
     Polygons                           &&overhang_area,
@@ -1606,7 +1611,6 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
     if (settings.increase_radius)
         current_elem.effective_radius_height += 1;
     coord_t radius = support_element_collision_radius(config, current_elem);
-
     const auto _tiny_area_threshold = tiny_area_threshold();
     if (settings.move) {
         increased = relevant_offset;
@@ -2059,7 +2063,10 @@ static void increase_areas_one_layer(
     out.supports_roof   = first.supports_roof || second.supports_roof;
     out.dont_move_until = std::max(first.dont_move_until, second.dont_move_until);
     out.can_use_safe_radius = first.can_use_safe_radius || second.can_use_safe_radius;
-    out.missing_roof_layers = std::min(first.missing_roof_layers, second.missing_roof_layers);
+    // Preserve the deepest outstanding roof recovery request across merged sub-branches.
+    out.set_pending_roof_recovery(
+        std::max(first.missing_roof_layers, second.missing_roof_layers),
+        std::max(first.roof_recovery_dtt, second.roof_recovery_dtt));
     out.skip_ovalisation = false;
     if (first.target_height > second.target_height) {
         out.target_height   = first.target_height;
@@ -3473,7 +3480,6 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 
             // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in draw_areas
             std::vector<SupportElements> move_bounds(num_support_layers);
-
             // ### Place tips of the support tree
             for (size_t mesh_idx : processing.second)
                 generate_initial_areas(*print.get_object(mesh_idx), volumes, config, overhangs, 
@@ -3591,7 +3597,33 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 //   storage.support.generated = true;
 }
 
-// Organic specific: Smooth branches and produce one cummulative mesh to be sliced.
+static void recover_pending_branch_roofs(
+    InterfacePlacer        &interface_placer,
+    const std::vector<const SupportElement*> &branch_path,
+    const LayerIndex        layer_begin,
+    std::vector<Polygons>  &slices)
+{
+    if (! interface_placer.support_parameters.has_top_contacts)
+        return;
+
+    for (auto it = branch_path.rbegin(); it != branch_path.rend(); ++ it) {
+        const SupportElement &el = **it;
+        if (! el.state.has_pending_roof_recovery())
+            break;
+
+        const LayerIndex slice_idx = el.state.layer_idx - layer_begin;
+        if (slice_idx < 0 || slice_idx >= LayerIndex(slices.size()))
+            continue;
+        if (slices[size_t(slice_idx)].empty())
+            continue;
+        if (el.state.roof_recovery_dtt > interface_placer.support_parameters.num_top_interface_layers)
+            continue;
+
+        interface_placer.add_roof(std::move(slices[size_t(slice_idx)]), el.state.layer_idx, el.state.roof_recovery_dtt);
+    }
+}
+
+// Organic specific: Smooth branches and produce one cumulative mesh to be sliced.
 void organic_draw_branches(
     PrintObject                     &print_object,
     TreeModelVolumes                &volumes, 
@@ -3770,13 +3802,12 @@ void organic_draw_branches(
 //            ++ ielement;
         }
     }
-
     const SlicingParameters &slicing_params = print_object.slicing_parameters();
     MeshSlicingParams mesh_slicing_params;
     mesh_slicing_params.mode = MeshSlicingParams::SlicingMode::Positive;
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, trees.size(), 1),
-        [&trees, &volumes, &config, &slicing_params, &move_bounds, &mesh_slicing_params, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+        [&trees, &volumes, &config, &slicing_params, &move_bounds, &mesh_slicing_params, &interface_placer, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
             indexed_triangle_set    partial_mesh;
             std::vector<float>      slice_z;
             std::vector<Polygons>   bottom_contacts;
@@ -3811,7 +3842,7 @@ void organic_draw_branches(
                         num_empty = std::find_if(slices.begin(), slices.end(), [](auto &s) { return !s.empty(); }) - slices.begin();
                     } else {
                         if (branch.has_root) {
-                            if (branch.path.front()->state.to_model_gracious) {
+                            if (config.support_rests_on_model && branch.path.front()->state.to_model_gracious) {
                                 if (config.settings.support_floor_layers > 0)
                                     //FIXME one may just take the whole tree slice as bottom interface.
                                     bottom_contacts.emplace_back(intersection_clipped(slices.front(), volumes.getPlaceableAreas(0, layer_begin, [] {})));
@@ -3860,7 +3891,7 @@ void organic_draw_branches(
                                     }
                                 }
 #endif
-                                if (config.settings.support_floor_layers > 0)
+                                if (config.support_rests_on_model && config.settings.support_floor_layers > 0)
                                     for (int i = int(bottom_extra_slices.size()) - 2; i >= 0; -- i)
                                         bottom_contacts.emplace_back(
                                             intersection_clipped(bottom_extra_slices[i].polygons, volumes.getPlaceableAreas(0, layer_begin - i - 1, [] {})));
@@ -3872,19 +3903,7 @@ void organic_draw_branches(
                             }
                         }
                         
-#if 0
-                        //FIXME branch.has_tip seems to not be reliable.
-                        if (branch.has_tip && interface_placer.support_parameters.has_top_contacts)
-                            // Add top slices to top contacts / interfaces / base interfaces.
-                            for (int i = int(branch.path.size()) - 1; i >= 0; -- i) {
-                                const SupportElement &el = *branch.path[i];
-                                if (el.state.missing_roof_layers == 0)
-                                    break;
-                                //FIXME Move or not?
-                                interface_placer.add_roof(std::move(slices[int(slices.size()) - i - 1]), el.state.layer_idx,
-                                    interface_placer.support_parameters.num_top_interface_layers + 1 - el.state.missing_roof_layers);
-                            }
-#endif
+                        recover_pending_branch_roofs(interface_placer, branch.path, layer_begin, slices);
                     }
 
                     layer_begin += LayerIndex(num_empty);
