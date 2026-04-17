@@ -35,6 +35,24 @@ static std::string float_to_string_with_precision(float value, int precision = 3
     return stream.str();
 }
 
+static std::string normalize_preset_colour_for_ams(std::string color)
+{
+    if (!color.empty() && color.front() == '#')
+        color.erase(color.begin());
+
+    if (color.size() == 6)
+        color += "FF";
+
+    if (color.size() != 8)
+        return std::string();
+
+    for (char c : color)
+        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+            return std::string();
+
+    return color;
+}
+
 AMSMaterialsSetting::AMSMaterialsSetting(wxWindow *parent, wxWindowID id)
     : DPIDialog(parent, id, _L("AMS Materials Setting"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
     , m_color_picker_popup(ColorPickerPopup(this))
@@ -1216,8 +1234,9 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     }
 
     std::string default_color = filament_default_colour(selected_filament_preset);
-    if (!default_color.empty()) {
-        wxColour color = DevAmsTray::decode_color(default_color);
+    std::string ams_color     = normalize_preset_colour_for_ams(default_color);
+    if (!ams_color.empty()) {
+        wxColour color = DevAmsTray::decode_color(ams_color);
         set_color(color);
         set_colors({ color });
     }
