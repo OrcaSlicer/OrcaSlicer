@@ -74,6 +74,47 @@ std::array<unsigned char, 4>  PlateTextureForeground = {0x0, 0xae, 0x42, 0xff};
 namespace Slic3r {
 namespace GUI {
 
+namespace {
+
+float wipe_tower_brim_width_for_layout(const DynamicPrintConfig& config, const Vec3d& wipe_tower_size)
+{
+    float brim_width = 0.f;
+    if (const auto *brim_opt = config.option<ConfigOptionFloat>("prime_tower_brim_width")) {
+        brim_width = brim_opt->value;
+        if (brim_width < 0.f)
+            brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
+    }
+    return brim_width;
+}
+
+Polygon local_wipe_tower_polygon_for_layout(const DynamicPrintConfig& config, const Vec3d& wipe_tower_size)
+{
+    const float brim_width = wipe_tower_brim_width_for_layout(config, wipe_tower_size);
+    return Polygon({
+        Point::new_scale(-brim_width, -brim_width),
+        Point::new_scale((float) wipe_tower_size(0) + brim_width, -brim_width),
+        Point::new_scale((float) wipe_tower_size(0) + brim_width, (float) wipe_tower_size(1) + brim_width),
+        Point::new_scale(-brim_width, (float) wipe_tower_size(1) + brim_width)
+    });
+}
+
+BoundingBoxf rotated_wipe_tower_local_bbox_for_layout(const DynamicPrintConfig& config, const Vec3d& wipe_tower_size)
+{
+    Polygon polygon = local_wipe_tower_polygon_for_layout(config, wipe_tower_size);
+    polygon.rotate(Geometry::deg2rad(config.opt_float("wipe_tower_rotation_angle")));
+    BoundingBox bbox = get_extents(polygon);
+    return BoundingBoxf(unscaled(bbox.min).cast<double>(), unscaled(bbox.max).cast<double>());
+}
+
+double clamp_wipe_tower_anchor(double value, double min_value, double max_value)
+{
+    if (min_value > max_value)
+        return 0.5 * (min_value + max_value);
+    return std::clamp(value, min_value, max_value);
+}
+
+} // namespace
+
 class Bed3D;
 
 ColorRGBA PartPlate::SELECT_COLOR		= { 0.2666f, 0.2784f, 0.2784f, 1.0f }; //{ 0.4196f, 0.4235f, 0.4235f, 1.0f };
@@ -2151,18 +2192,17 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
         depth = std::sqrt(volume / layer_height * extra_spacing);
         if (need_wipe_tower || plate_extruder_size > 1) {
             float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-            double volume_depth         = depth;
+            double volume_depth        = depth;
             depth = std::max((double) min_wipe_tower_depth, depth);
             rib_width = std::min(rib_width, depth / 2);
             depth = rib_width / std::sqrt(2) + std::max(depth + m_print->config().wipe_tower_extra_rib_length.value, volume_depth);
             wipe_tower_size(0) = wipe_tower_size(1) = depth;
         }
-    }
-    else {
-        depth  =  volume/ (layer_height * w) *extra_spacing;
+    } else {
+        depth = volume / (layer_height * w) * extra_spacing;
         if (need_wipe_tower || depth > EPSILON) {
             float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-            depth = std::max((double)min_wipe_tower_depth, depth);
+            depth = std::max((double) min_wipe_tower_depth, depth);
         }
         wipe_tower_size(0) = w;
         wipe_tower_size(1) = depth;
@@ -2176,41 +2216,34 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	float x = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_x"))->get_at(plate_index);
 	float y = dynamic_cast<const ConfigOptionFloats*>(config.option("wipe_tower_y"))->get_at(plate_index);
 	float w = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_width"))->value;
-	//float a = dynamic_cast<const ConfigOptionFloat*>(config.option("wipe_tower_rotation_angle"))->value;
 	float v = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_volume"))->value;
-    float tower_brim_width = dynamic_cast<const ConfigOptionFloat*>(config.option("prime_tower_brim_width"))->value;
     const ConfigOptionBool * wrapping_opt = dynamic_cast<const ConfigOptionBool *>(config.option("enable_wrapping_detection"));
 	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
 	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
-	int plate_width=m_width, plate_depth=m_depth;
-	float depth = wt_size(1);
-	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
-	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");
-	if (wipe_tower_brim_width_opt) {
-		wp_brim_width = wipe_tower_brim_width_opt->getFloat();
-        if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wt_size.z());
-		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%") % wp_brim_width;
-	}
+    const double angle = Geometry::deg2rad(config.opt_float("wipe_tower_rotation_angle"));
+    const float  margin = WIPE_TOWER_MARGIN;
+    const auto   local_bbox = rotated_wipe_tower_local_bbox_for_layout(config, wt_size);
 
-	x = std::clamp(x, margin, (float)plate_width - w - margin - wp_brim_width);
-    y = std::clamp(y, margin, (float)plate_depth - depth - margin - wp_brim_width);
+    x = (float) clamp_wipe_tower_anchor(x,
+        margin - local_bbox.min(0),
+        m_width - margin - local_bbox.max(0));
+    y = (float) clamp_wipe_tower_anchor(y,
+        margin - local_bbox.min(1),
+        m_depth - margin - local_bbox.max(1));
+
     wt_pos(0) = x;
     wt_pos(1) = y;
     wt_pos(2) = 0.f;
+    wt_size(0) = local_bbox.max(0) - local_bbox.min(0);
+    wt_size(1) = local_bbox.max(1) - local_bbox.min(1);
 
 	arrangement::ArrangePolygon wipe_tower_ap;
-	Polygon ap({
-		{scaled(x - wp_brim_width), scaled(y - wp_brim_width)},
-		{scaled(x + w + wp_brim_width), scaled(y - wp_brim_width)},
-		{scaled(x + w + wp_brim_width), scaled(y + depth + wp_brim_width)},
-		{scaled(x - wp_brim_width), scaled(y + depth + wp_brim_width)}
-		});
 	wipe_tower_ap.bed_idx = plate_index;
 	wipe_tower_ap.setter = NULL; // do not move wipe tower
 
-	wipe_tower_ap.poly.contour = std::move(ap);
-	wipe_tower_ap.translation = { scaled(0.f), scaled(0.f) };
-	//wipe_tower_ap.rotation = a;
+	wipe_tower_ap.poly.contour = local_wipe_tower_polygon_for_layout(config, wt_size);
+	wipe_tower_ap.translation = { scaled(x), scaled(y) };
+	wipe_tower_ap.rotation = angle;
 	wipe_tower_ap.name = "WipeTower";
 	wipe_tower_ap.is_virt_object = true;
 	wipe_tower_ap.is_wipe_tower = true;
@@ -4141,6 +4174,7 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
 
     coordf_t plate_bbox_x_min_local_coord = plate_bbox_2d.min(0) - plate_origin(0);
     coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
+    coordf_t plate_bbox_y_min_local_coord = plate_bbox_2d.min(1) - plate_origin(1);
     coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
 
     std::vector<int> filament_maps = part_plate->get_real_filament_maps(proj_cfg);
@@ -4158,28 +4192,17 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
         wipe_tower_size = part_plate->estimate_wipe_tower_size(print_cfg, w, v, nozzle_nums, 2, false, enable_wrapping);
     }
 
-    // Compute brim-aware margin: brim extends outward from tower position
-    float brim_width = 0.f;
-    const ConfigOptionFloat *brim_opt = print_cfg.option<ConfigOptionFloat>("prime_tower_brim_width");
-    if (brim_opt) {
-        brim_width = brim_opt->value;
-        if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
-    }
-    const float margin = WIPE_TOWER_MARGIN + brim_width;
+    const float margin = WIPE_TOWER_MARGIN;
+    const auto  local_bbox = rotated_wipe_tower_local_bbox_for_layout(print_cfg, wipe_tower_size);
 
     // clamp wipe tower position within plate boundaries
     {
-        if (x + margin + wipe_tower_size(0) > plate_bbox_x_max_local_coord) {
-            x = plate_bbox_x_max_local_coord - wipe_tower_size(0) - margin;
-        } else if (x < margin + plate_bbox_x_min_local_coord) {
-            x = margin + plate_bbox_x_min_local_coord;
-        }
-
-        if (y + margin + wipe_tower_size(1) > plate_bbox_y_max_local_coord) {
-            y = plate_bbox_y_max_local_coord - wipe_tower_size(1) - margin;
-        } else if (y < margin) {
-            y = margin;
-        }
+        x = (float) clamp_wipe_tower_anchor(x,
+            plate_bbox_x_min_local_coord + margin - local_bbox.min(0),
+            plate_bbox_x_max_local_coord - margin - local_bbox.max(0));
+        y = (float) clamp_wipe_tower_anchor(y,
+            plate_bbox_y_min_local_coord + margin - local_bbox.min(1),
+            plate_bbox_y_max_local_coord - margin - local_bbox.max(1));
     }
 
     ConfigOptionFloat wt_x_opt(x);

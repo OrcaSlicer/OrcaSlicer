@@ -441,6 +441,7 @@ public:
     WipeTowerHelper(const Slic3r::Print& print) : m_print(print) {
         const Slic3r::PrintConfig& config = m_print.config();
         const Slic3r::WipeTowerData& wipe_tower_data = m_print.wipe_tower_data();
+        const int plate_idx = print.get_plate_index();
         if (wipe_tower_data.priming && config.single_extruder_multi_material_priming) {
             for (size_t i = 0; i < wipe_tower_data.priming.get()->size(); ++i) {
                 m_priming.emplace_back(wipe_tower_data.priming.get()->at(i));
@@ -449,9 +450,8 @@ public:
         if (wipe_tower_data.final_purge)
             m_final.emplace_back(*wipe_tower_data.final_purge.get());
 
-        m_angle = print.model().wipe_tower.rotation / 180.0f * PI;
-        // ORCA/BBS: plate index
-        m_position = print.model().wipe_tower.positions[print.get_plate_index()].cast<float>();
+        m_angle = float(Slic3r::Geometry::deg2rad(config.wipe_tower_rotation_angle.value));
+        m_position = Slic3r::Vec2f(float(config.wipe_tower_x.get_at(plate_idx)), float(config.wipe_tower_y.get_at(plate_idx))) + print.get_rib_offset();
         m_layers_count = wipe_tower_data.tool_changes.size() + (m_priming.empty() ? 0 : 1);
     }
 
@@ -819,4 +819,3 @@ GCodeInputData convert(const Slic3r::Print& print, const std::vector<std::string
 }
 
 } // namespace libvgcode
-

@@ -2601,16 +2601,15 @@ void TabPrint::build()
         optgroup->append_single_option_line("prime_volume", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_brim_width", "multimaterial_settings_prime_tower#brim-width");
         optgroup->append_single_option_line("prime_tower_infill_gap", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("wipe_tower_wall_type", "multimaterial_settings_prime_tower#wall-type");
+        optgroup->append_single_option_line("wipe_tower_extra_rib_length", "multimaterial_settings_prime_tower#extra-rib-length");
+        optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");
+        optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_rotation_angle", "multimaterial_settings_prime_tower#wipe-tower-rotation-angle");
         optgroup->append_single_option_line("wipe_tower_bridging", "multimaterial_settings_prime_tower#maximal-bridging-distance");
         optgroup->append_single_option_line("wipe_tower_extra_spacing", "multimaterial_settings_prime_tower#wipe-tower-purge-lines-spacing");
         optgroup->append_single_option_line("wipe_tower_extra_flow", "multimaterial_settings_prime_tower#extra-flow-for-purge");
         optgroup->append_single_option_line("wipe_tower_max_purge_speed", "multimaterial_settings_prime_tower#maximum-wipe-tower-print-speed");
-        optgroup->append_single_option_line("wipe_tower_wall_type", "multimaterial_settings_prime_tower#wall-type");
-        optgroup->append_single_option_line("wipe_tower_cone_angle", "multimaterial_settings_prime_tower#stabilization-cone-apex-angle");
-        optgroup->append_single_option_line("wipe_tower_extra_rib_length", "multimaterial_settings_prime_tower#extra-rib-length");
-        optgroup->append_single_option_line("wipe_tower_rib_width", "multimaterial_settings_prime_tower#rib-width");
-        optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_no_sparse_layers", "multimaterial_settings_prime_tower#no-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
 
@@ -2784,26 +2783,6 @@ void TabPrint::toggle_options()
         cb->SetValue(n);
     }
 
-    // BBL printers do not support cone wipe tower
-    field = m_active_page->get_field("wipe_tower_wall_type");
-    if (auto choice = dynamic_cast<Choice*>(field)) {
-        auto def = print_config_def.get("wipe_tower_wall_type");
-        std::vector<int> enum_set_bbl      = {wtwRectangle, wtwRib};
-        std::vector<int> enum_set_none_bbl = {wtwRectangle, wtwCone, wtwRib};
-        auto&            set               = m_config_manipulation.get_is_BBL_Printer() ? enum_set_bbl : enum_set_none_bbl;
-        auto&            opt               = const_cast<ConfigOptionDef&>(field->m_opt);
-        auto             cb                = dynamic_cast<ComboBox*>(choice->window);
-        auto             n                 = cb->GetValue();
-        opt.enum_values.clear();
-        opt.enum_labels.clear();
-        cb->Clear();
-        for (auto i : set) {
-            opt.enum_values.push_back(def->enum_values[i]);
-            opt.enum_labels.push_back(def->enum_labels[i]);
-            cb->Append(_(def->enum_labels[i]));
-        }
-        cb->SetValue(n);
-    }
 }
 
 void TabPrint::update()

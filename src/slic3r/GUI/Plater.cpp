@@ -181,6 +181,20 @@ static const std::pair<unsigned int, unsigned int> THUMBNAIL_SIZE_3MF = { 512, 5
 namespace Slic3r {
 namespace GUI {
 
+namespace {
+
+bool sync_wipe_tower_rotation_config(DynamicPrintConfig& config, double rotation_deg)
+{
+    ConfigOptionFloat* rotation_opt = config.option<ConfigOptionFloat>("wipe_tower_rotation_angle", true);
+    if (rotation_opt == nullptr || rotation_opt->value == rotation_deg)
+        return false;
+
+    *rotation_opt = ConfigOptionFloat(rotation_deg);
+    return true;
+}
+
+} // namespace
+
 wxDEFINE_EVENT(EVT_SCHEDULE_BACKGROUND_PROCESS,     SimpleEvent);
 wxDEFINE_EVENT(EVT_SLICING_UPDATE,                  SlicingStatusEvent);
 wxDEFINE_EVENT(EVT_SLICING_COMPLETED,               wxCommandEvent);
@@ -10495,7 +10509,9 @@ PlateBBoxData Plater::priv::generate_first_layer_bbox()
         auto   wt_corners = print->first_layer_wipe_tower_corners();
         // when loading gcode.3mf, wipe tower info may not be correct
         if (!wt_corners.empty()) {
-            BoundingBox bb_scaled = {wt_corners[0], wt_corners[2]};
+            BoundingBox bb_scaled;
+            for (const Point &corner : wt_corners)
+                bb_scaled.merge(corner);
             auto        bb        = unscaled(bb_scaled);
             bb.min -= orig2d;
             bb.max -= orig2d;
@@ -11423,7 +11439,7 @@ void Plater::priv::take_snapshot(const std::string& snapshot_name, const UndoRed
             ModelWipeTower& tower = model.wipe_tower;
 
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const GLGizmosManager& gizmos = get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : view3D->get_canvas3d()->get_gizmos_manager();
@@ -11533,7 +11549,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
             ModelWipeTower& tower = model.wipe_tower;
 
             tower.positions[plate_idx] = Vec2d(tower_x_opt->get_at(plate_idx), tower_y_opt->get_at(plate_idx));
-            tower.rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            tower.rotation = config.opt_float("wipe_tower_rotation_angle");
         }
     }
     const int layer_range_idx = it_snapshot->snapshot_data.layer_range_idx;
@@ -11589,12 +11605,10 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
         // This is a workaround until we refactor the Wipe Tower position / orientation to live solely inside the Model, not in the Print config.
         // BBS: add partplate logic
         if (this->printer_technology == ptFFF) {
-            const DynamicPrintConfig& config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-            const DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
-            ConfigOptionFloats* tower_x_opt = const_cast<ConfigOptionFloats*>(proj_cfg.option<ConfigOptionFloats>("wipe_tower_x"));
-            ConfigOptionFloats* tower_y_opt = const_cast<ConfigOptionFloats*>(proj_cfg.option<ConfigOptionFloats>("wipe_tower_y"));
-            // BBS: don't support wipe tower rotation
-            //double current_rotation = proj_cfg.opt_float("wipe_tower_rotation_angle");
+            DynamicPrintConfig& print_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+            DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+            ConfigOptionFloats* tower_x_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_x");
+            ConfigOptionFloats* tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y");
             bool need_update = false;
             if (tower_x_opt->values.size() != model.wipe_tower.positions.size()) {
                 tower_x_opt->clear();
@@ -11620,6 +11634,9 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                     break;
                 }
             }
+
+            need_update |= sync_wipe_tower_rotation_config(proj_cfg, model.wipe_tower.rotation);
+            need_update |= sync_wipe_tower_rotation_config(print_cfg, model.wipe_tower.rotation);
 
             if (need_update) {
                 // update print to current plate (preview->m_process)
@@ -16321,6 +16338,8 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     bool bed_shape_changed = false;
     //bool print_sequence_changed = false;
     t_config_option_keys diff_keys = p->config->diff(config);
+    DynamicPrintConfig& project_config = wxGetApp().preset_bundle->project_config;
+    bool project_config_changed = false;
 
     size_t old_nozzle_size = 1, new_nozzle_size = 1;
     auto * opt_old = p->config->option<ConfigOptionFloats>("nozzle_diameter");
@@ -16331,6 +16350,9 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     }
 
     for (auto opt_key : diff_keys) {
+        if (opt_key == "wipe_tower_rotation_angle") {
+            project_config_changed |= sync_wipe_tower_rotation_config(project_config, config.opt_float(opt_key));
+        }
         if (opt_key == "filament_colour") {
             update_scheduled = true; // update should be scheduled (for update 3DScene) #2738
 
@@ -16411,6 +16433,9 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 
     if (bed_shape_changed)
         set_bed_shape();
+
+    if (project_config_changed)
+        update_project_dirty_from_presets();
 
     config_change_notification(config, std::string("print_sequence"));
 

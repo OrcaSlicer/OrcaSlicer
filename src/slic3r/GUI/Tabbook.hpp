@@ -184,7 +184,7 @@ public:
         return true;
     }
 
-    bool RemovePage(size_t n)
+    bool RemovePage(size_t n) override
     {
         if (!wxBookCtrlBase::RemovePage(n))
             return false;

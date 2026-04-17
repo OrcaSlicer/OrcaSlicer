@@ -1289,6 +1289,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     } else {
         //BBS: replace model custom gcode with current plate custom gcode
         m_model.curr_plate_index = model.curr_plate_index;
+        if (m_model.wipe_tower.positions != model.wipe_tower.positions || m_model.wipe_tower.rotation != model.wipe_tower.rotation) {
+            m_model.wipe_tower.positions = model.wipe_tower.positions;
+            m_model.wipe_tower.rotation  = model.wipe_tower.rotation;
+        }
         if (m_model.get_curr_plate_custom_gcodes() != model.get_curr_plate_custom_gcodes()) {
             update_apply_status(num_extruders_changed ||
                 // Tool change G-codes are applied as color changes for a single extruder printer, no need to invalidate tool ordering.

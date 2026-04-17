@@ -5037,9 +5037,6 @@ int CLI::run(int argc, char **argv)
                             x = dynamic_cast<const ConfigOptionFloats *>(m_print_config.option("wipe_tower_x"))->get_at(plate_to_slice-1);
                             y = dynamic_cast<const ConfigOptionFloats *>(m_print_config.option("wipe_tower_y"))->get_at(plate_to_slice-1);
                         }
-                        float w = dynamic_cast<const ConfigOptionFloat *>(m_print_config.option("prime_tower_width"))->value;
-                        float a = dynamic_cast<const ConfigOptionFloat *>(m_print_config.option("wipe_tower_rotation_angle"))->value;
-                        float v = dynamic_cast<const ConfigOptionFloat *>(m_print_config.option("prime_volume"))->value;
                         unsigned int filaments_cnt = plate_data_src[plate_to_slice-1]->slice_filaments_info.size();
                         if ((filaments_cnt == 0) || need_skip)
                         {
@@ -5055,47 +5052,6 @@ int CLI::run(int argc, char **argv)
                         }
                         else
                         {
-                            float layer_height = 0.2;
-                            ConfigOption* layer_height_opt = m_print_config.option("layer_height");
-                            if (layer_height_opt)
-                                layer_height = layer_height_opt->getFloat();
-
-                            //float depth = v * (filaments_cnt - 1) / (layer_height * w);
-
-                            const ConfigOptionBool *wrapping_detection = m_print_config.option<ConfigOptionBool>("enable_wrapping_detection");
-                            bool   enable_wrapping    = (wrapping_detection != nullptr) && wrapping_detection->value;
-
-                            Vec3d wipe_tower_size = cur_plate->estimate_wipe_tower_size(m_print_config, w, v, new_extruder_count, filaments_cnt, false, enable_wrapping);
-                            Vec3d plate_origin = cur_plate->get_origin();
-                            int plate_width, plate_depth, plate_height;
-                            partplate_list.get_plate_size(plate_width, plate_depth, plate_height);
-                            float depth = wipe_tower_size(1);
-                            float margin = 15.f, wp_brim_width = 0.f;
-                            ConfigOption *wipe_tower_brim_width_opt = m_print_config.option("prime_tower_brim_width");
-                            if (wipe_tower_brim_width_opt ) {
-                                wp_brim_width = wipe_tower_brim_width_opt->getFloat();
-                                if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%")%wp_brim_width;
-                            }
-                            w = wipe_tower_size(0);
-
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: x=%1%, y=%2%, width=%3%, depth=%4%, angle=%5%, prime_volume=%6%, filaments_cnt=%7%, layer_height=%8%, plate_width=%9%, plate_depth=%10%")
-                                                            %x %y %w %depth %a %v %filaments_cnt %layer_height %plate_width %plate_depth;
-                            if ((y + depth + margin + wp_brim_width) > (float)plate_depth) {
-                                y = (float)plate_depth - depth - margin - wp_brim_width;
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: exceeds the border, change y to %1%, plate_depth=%2%")%y %plate_depth;
-                            }
-
-                            if ((x + w + margin + wp_brim_width) > (float)plate_width) {
-                                x = (float)plate_width - w - margin - wp_brim_width;
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: exceeds the border, change x to %1%, plate_width=%2%")%y %plate_width;
-                            }
-                            if (x < margin) {
-                                x = margin;
-                            }
-                            if (y < margin) {
-                                y = margin;
-                            }
                             //update wipe_tower_x and wipe_tower_y
                             ConfigOptionFloat wt_x_opt(x);
                             ConfigOptionFloat wt_y_opt(y);
@@ -5105,20 +5061,17 @@ int CLI::run(int argc, char **argv)
                             wipe_x_option->set_at(&wt_x_opt, plate_to_slice-1, 0);
                             wipe_y_option->set_at(&wt_y_opt, plate_to_slice-1, 0);
 
-                            ArrangePolygon wipe_tower_ap;
+                            Vec3d wipe_tower_pos;
+                            Vec3d wipe_tower_size;
+                            ArrangePolygon wipe_tower_ap = cur_plate->estimate_wipe_tower_polygon(
+                                m_print_config, plate_to_slice - 1, wipe_tower_pos, wipe_tower_size, new_extruder_count, filaments_cnt, false);
 
-                            Polygon ap({
-                                {scaled(x - wp_brim_width), scaled(y - wp_brim_width)},
-                                {scaled(x + w + wp_brim_width), scaled(y - wp_brim_width)},
-                                {scaled(x + w + wp_brim_width), scaled(y + depth + wp_brim_width)},
-                                {scaled(x - wp_brim_width), scaled(y + depth + wp_brim_width)}
-                                });
+                            wt_x_opt.value = wipe_tower_pos(0);
+                            wt_y_opt.value = wipe_tower_pos(1);
+                            wipe_x_option->set_at(&wt_x_opt, plate_to_slice - 1, 0);
+                            wipe_y_option->set_at(&wt_y_opt, plate_to_slice - 1, 0);
+
                             wipe_tower_ap.bed_idx = 0;
-                            wipe_tower_ap.setter = NULL; // do not move wipe tower
-
-                            wipe_tower_ap.poly.contour = std::move(ap);
-                            wipe_tower_ap.translation  = {scaled(0.f), scaled(0.f)};
-                            wipe_tower_ap.rotation     = a;
                             wipe_tower_ap.name = "WipeTower";
                             wipe_tower_ap.is_virt_object = true;
                             wipe_tower_ap.is_wipe_tower = true;
@@ -6910,7 +6863,9 @@ int CLI::run(int argc, char **argv)
                 auto   wt_corners = print->first_layer_wipe_tower_corners();
                 // when loading gcode.3mf, wipe tower info may not be correct
                 if (!wt_corners.empty()) {
-                    BoundingBox bb_scaled = {wt_corners[0], wt_corners[2]};
+                    BoundingBox bb_scaled;
+                    for (const Point &corner : wt_corners)
+                        bb_scaled.merge(corner);
                     auto        bb        = unscaled(bb_scaled);
                     bb.min -= orig2d;
                     bb.max -= orig2d;

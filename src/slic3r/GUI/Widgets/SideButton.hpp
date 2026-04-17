@@ -31,7 +31,7 @@ public:
 
     void SetLayoutStyle(int style);
 
-    void SetLabel(const wxString& label);
+    void SetLabel(const wxString& label) override;
 
     bool SetForegroundColour(wxColour const & colour) override;
 
@@ -47,7 +47,7 @@ public:
 
     void SetBackgroundColor(StateColor const &color);
 
-    bool Enable(bool enable = true);
+    bool Enable(bool enable = true) override;
 
     void Rescale();
 

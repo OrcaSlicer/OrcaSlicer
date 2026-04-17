@@ -333,7 +333,7 @@ public:
     UnsavedChangesDialog(const wxString& caption, const wxString& header, const std::string& app_config_key, int act_buttons);
     ~UnsavedChangesDialog() override = default;
 
-    int ShowModal();
+    int ShowModal() override;
 
     void        build(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, const wxString &header = "");
     void update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header);

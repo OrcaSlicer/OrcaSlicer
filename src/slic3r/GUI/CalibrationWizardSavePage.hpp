@@ -190,7 +190,7 @@ public:
 
     void show_panels(CalibrationMethod method, const PrinterSeries printer_ser);
 
-    void on_device_connected(MachineObject* obj);
+    void on_device_connected(MachineObject* obj) override;
 
     void update(MachineObject* obj) override;
 

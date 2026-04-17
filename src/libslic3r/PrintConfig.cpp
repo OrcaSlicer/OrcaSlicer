@@ -518,9 +518,9 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CounterboreHoleBridgingOption)
 
 static const t_config_enum_values s_keys_map_WipeTowerWallType{
     {"rectangle", wtwRectangle},
-    {"cone", wtwCone},
-    {"rib", wtwRib},
-};
+    {"rib", wtwRib}
+    };
+
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerWallType)
 
 static const t_config_enum_values s_keys_map_ExtruderType = {
@@ -6362,7 +6362,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");
     def->tooltip = L("Width of the prime tower.");
-    def->sidetext = L("mm");	// milimeters, CIS languages need translation
+    def->sidetext = L("mm");    // milimeters, CIS languages need translation
     def->min = 2.0;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(60.));
@@ -6412,14 +6412,11 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Wall type");
     def->tooltip = L("Wipe tower outer wall type.\n"
                     "1. Rectangle: The default wall type, a rectangle with fixed width and height.\n"
-                    "2. Cone: A cone with a fillet at the bottom to help stabilize the wipe tower.\n"
-                    "3. Rib: Adds four ribs to the tower wall for enhanced stability.");
+                    "2. Rib: Adds four ribs to the tower wall for enhanced stability.");
     def->enum_keys_map = &ConfigOptionEnum<WipeTowerWallType>::get_enum_values();
     def->enum_values.emplace_back("rectangle");
-    def->enum_values.emplace_back("cone");
     def->enum_values.emplace_back("rib");
     def->enum_labels.emplace_back(L("Rectangle"));
-    def->enum_labels.emplace_back(L("Cone"));
     def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
@@ -6451,7 +6448,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_filament", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
-    def->label = L("Wipe tower");
+    def->label = L("Wipe tower wall");
     def->category = L("Extruders");
     def->tooltip = L("The extruder to use when printing perimeter of the wipe tower. "
                      "Set to 0 to use the one that is available (non-soluble would be preferred).");

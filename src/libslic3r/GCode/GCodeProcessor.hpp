@@ -761,6 +761,9 @@ class Print;
         std::vector<float> m_remaining_volume;
         ExtruderTemps m_filament_nozzle_temp;
         ExtruderTemps m_filament_nozzle_temp_first_layer;
+        ExtruderTemps m_nozzle_temperature_range_high;
+        bool m_enable_tower_interface_features{ false };
+        std::vector<int> m_filament_tower_interface_print_temp;
         std::vector<int> m_physical_extruder_map;
         bool m_manual_filament_change;
 

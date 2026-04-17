@@ -333,8 +333,7 @@ PrintObjectSupportMaterial::PrintObjectSupportMaterial(const PrintObject *object
     m_print_config          (&object->print()->config()),
     m_object_config         (&object->config()),
     m_slicing_params        (slicing_params),
-    m_support_params        (*object),
-	m_object                (object)
+    m_support_params        (*object)
 {
 }
 
@@ -1586,7 +1585,7 @@ static inline std::tuple<Polygons, Polygons, double> detect_contacts(
 
         // Cache support trimming polygons derived from lower layer polygons, possible merged with "on build plate only" trimming polygons.
         auto slices_margin_update =
-            [&slices_margin, &layer, &lower_layer, &lower_layer_polygons, buildplate_only, has_enforcer, &annotations, layer_id]
+            [&slices_margin, &lower_layer, &lower_layer_polygons, buildplate_only, has_enforcer, &annotations, layer_id]
         (float slices_margin_offset, float no_interface_offset) {
             if (slices_margin.offset != slices_margin_offset) {
                 slices_margin.offset = slices_margin_offset;

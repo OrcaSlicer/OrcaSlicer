@@ -530,9 +530,10 @@ public:
     m_gcode_flavor(flavor),
     m_filpar(filament_parameters)
     {
-            // ORCA: This class is only used by BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = true;
+            // NOTE: GCodeProcessor::s_IsBBLPrinter is set in Print::_make_wipe_tower() before
+            // generate() is called, so the correct tag format (BBL vs compatible) is already in
+            // effect here.  Do NOT override it — non-BBL printers need the compatible "TYPE:"
+            // prefix so that GCodeProcessor attributes wipe-tower extrusions to the tower in stats.
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << std::to_string(m_layer_height) << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -1490,7 +1491,8 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_tower_framework(config.prime_tower_enable_framework.value),
     m_flat_ironing(config.prime_tower_flat_ironing.value),
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
-    m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
+    m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value),
+    m_wipe_tower_filament(config.wipe_tower_filament.value)
 {
     m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
     // Read absolute value of first layer speed, if given as percentage,
@@ -1628,7 +1630,7 @@ Vec2f WipeTower::get_next_pos(const WipeTower::box_coordinates &cleaning_box, fl
     const float &xr = cleaning_box.rd.x();
     int line_count = wipe_length / (xr - xl);
 
-    float dy = m_layer_info->extra_spacing * m_perimeter_width;
+    float dy = m_layer_info->extra_spacing * get_block_gap_width(m_current_tool, false);
     float y_offset = float(line_count) * dy;
     const Vec2f pos_offset = Vec2f(0.f, m_depth_traversed);
 
@@ -2517,19 +2519,11 @@ void WipeTower::plan_tower()
     for (auto& info : m_plan)
         max_depth = std::max(max_depth, info.toolchanges_depth());
 
-    float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(m_wipe_tower_height);
-
     {
         if (m_enable_wrapping_detection && max_depth < EPSILON)
             max_depth = wrapping_wipe_tower_depth;
 
-        if (m_enable_timelapse_print && max_depth < EPSILON)
-            max_depth = min_wipe_tower_depth;
-
-        if (max_depth + EPSILON < min_wipe_tower_depth && !has_tpu_filament())
-            m_extra_spacing = min_wipe_tower_depth / max_depth;
-        else
-            m_extra_spacing = 1.f;
+        m_extra_spacing = 1.f;
 
         for (int idx = 0; idx < m_plan.size(); idx++) {
             auto& info = m_plan[idx];
@@ -2578,7 +2572,7 @@ void WipeTower::plan_tower()
             this_layer_depth = wrapping_wipe_tower_depth;
 
         if (m_enable_timelapse_print && this_layer_depth < EPSILON)
-            this_layer_depth = min_wipe_tower_depth;
+            this_layer_depth = 0.f;
 
 		m_plan[layer_index].depth = this_layer_depth;
 
@@ -2706,27 +2700,36 @@ static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
     return out;
 }
 
-void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
+void WipeTower::get_all_wall_skip_points()
 {
     m_wall_skip_points.clear();
+    m_wall_skip_points.resize(m_plan.size());
+    for (int i = 0; i < int(m_plan.size()); ++i)
+        get_wall_skip_points(m_plan[i], i);
+}
+
+void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer, int layer_id)
+{
+    const int pre_access_layer = 4;
     std::unordered_map<int, float> cur_block_depth;
     for (int i = 0; i < int(layer.tool_changes.size()); ++i) {
         const WipeTowerInfo::ToolChange &tool_change         = layer.tool_changes[i];
         size_t                           old_filament        = tool_change.old_tool;
         size_t                           new_filament        = tool_change.new_tool;
-        float                            spacing             = m_layer_info->extra_spacing;
-        if (has_tpu_filament() && m_layer_info->extra_spacing < m_tpu_fixed_spacing) spacing = 1;
+        float                            spacing             = layer.extra_spacing;
+        if (has_tpu_filament() && layer.extra_spacing < m_tpu_fixed_spacing)
+            spacing = 1.f;
         float nozzle_change_depth = tool_change.nozzle_change_depth * spacing;
-        //float                            nozzle_change_depth = tool_change.nozzle_change_depth * (has_tpu_filament() ? m_tpu_fixed_spacing : layer.extra_spacing);
-        auto* block = get_block_by_category(m_filpar[new_filament].category, false);
+        auto                            *block               = get_block_by_category(m_filpar[new_filament].category, false);
         if (!block)
             continue;
-        //float wipe_depth    = tool_change.required_depth - nozzle_change_depth;
-        float wipe_depth    = ceil(tool_change.wipe_length / (m_wipe_tower_width - 2 * m_perimeter_width)) * m_perimeter_width*layer.extra_spacing;
-        float                            process_depth       = 0.f;
+
+        float wipe_depth = ceil(tool_change.wipe_length / (m_wipe_tower_width - 2 * m_perimeter_width)) * m_perimeter_width * layer.extra_spacing;
+        float process_depth = 0.f;
         if (!cur_block_depth.count(m_filpar[new_filament].category))
             cur_block_depth[m_filpar[new_filament].category] = block->start_depth;
         process_depth = cur_block_depth[m_filpar[new_filament].category];
+
         if (!m_filament_map.empty() && new_filament < m_filament_map.size() && m_filament_map[old_filament] != m_filament_map[new_filament]) {
             if (m_filament_categories[new_filament] == m_filament_categories[old_filament])
                 process_depth += nozzle_change_depth;
@@ -2740,22 +2743,64 @@ void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
                 cur_block_depth[m_filpar[old_filament].category] += nozzle_change_depth;
             }
         }
-            {
+
+        {
             Vec2f res;
-            int   index = m_cur_layer_id % 4;
+            int   index = layer_id % 4;
             switch (index % 4) {
             case 0: res = Vec2f(0, process_depth); break;
-            case 1: res = Vec2f(m_wipe_tower_width, process_depth + wipe_depth - layer.extra_spacing*m_perimeter_width); break;
+            case 1: res = Vec2f(m_wipe_tower_width, process_depth + wipe_depth - layer.extra_spacing * m_perimeter_width); break;
             case 2: res = Vec2f(m_wipe_tower_width, process_depth); break;
             case 3: res = Vec2f(0, process_depth + wipe_depth - layer.extra_spacing * m_perimeter_width); break;
             default: break;
             }
 
-            m_wall_skip_points.emplace_back(res);
+            m_wall_skip_points[layer_id].emplace_back(res);
+
+            if (block->layers_type.size() > size_t(layer_id) && block->layers_type[layer_id] != WipeTowerLayerType::Normal) {
+                for (int j = 0; j < pre_access_layer; ++j) {
+                    int pre_layer_id = layer_id - j;
+                    if (pre_layer_id < 0)
+                        break;
+                    m_wall_skip_points[pre_layer_id].push_back(res);
+                }
+            }
         }
         cur_block_depth[m_filpar[new_filament].category] = process_depth + tool_change.required_depth - tool_change.nozzle_change_depth * layer.extra_spacing;
     }
+
+    if (!m_enable_tower_interface_features)
+        return;
+
+    for (auto &block : m_wipe_tower_blocks) {
+        if (block.layers_type.size() <= size_t(layer_id) || block.layers_type[layer_id] == WipeTowerLayerType::Normal)
+            continue;
+
+        float block_depth = cur_block_depth[block.filament_adhesiveness_category];
+        if (block_depth + EPSILON >= block.start_depth + block.layer_depths[layer_id] - m_perimeter_width)
+            continue;
+
+        Vec2f res;
+        int   index      = layer_id % 4;
+        float grid_depth = ((int) (block.layer_depths[layer_id] - m_perimeter_width + 0.25f * m_perimeter_width) / m_perimeter_width + 1) *
+                           m_perimeter_width;
+        switch (index % 4) {
+        case 0: res = Vec2f(0, block.start_depth); break;
+        case 1: res = Vec2f(m_wipe_tower_width, block.start_depth + grid_depth); break;
+        case 2: res = Vec2f(m_wipe_tower_width, block.start_depth); break;
+        case 3: res = Vec2f(0, block.start_depth + grid_depth); break;
+        default: break;
+        }
+
+        m_wall_skip_points[layer_id].emplace_back(res);
+        for (int j = 0; j < pre_access_layer; ++j) {
+            int pre_layer_id = layer_id - j;
+            if (pre_layer_id < 0)
+                break;
+            m_wall_skip_points[pre_layer_id].push_back(res);
+        }
     }
+}
 
 WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool solid_toolchange,bool solid_nozzlechange)
 {
@@ -2786,7 +2831,7 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
             }
     }
 
-    bool interface_layer = solid_toolchange && m_enable_tower_interface_features;
+    bool interface_layer = (solid_toolchange || (new_tool < m_filpar.size() && m_filpar[new_tool].is_support)) && m_enable_tower_interface_features;
     if (interface_layer && new_tool < m_filpar.size()) {
         float extra_purge_length = m_filpar[new_tool].tower_interface_purge_length;
         if (extra_purge_length > 0.f) {
@@ -2848,9 +2893,9 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
         }
 
         if (m_is_multi_extruder && is_tpu_filament(new_tool)) {
-            float dy = m_layer_info->extra_spacing * m_nozzle_change_perimeter_width;
+            float dy = m_layer_info->extra_spacing * get_block_gap_width(new_tool, true);
             if (m_layer_info->extra_spacing < m_tpu_fixed_spacing) {
-                dy = m_tpu_fixed_spacing * m_nozzle_change_perimeter_width;
+                dy = m_tpu_fixed_spacing * get_block_gap_width(new_tool, true);
             }
 
             float nozzle_change_speed = 60.0f * m_filpar[new_tool].max_e_speed / m_extrusion_flow;
@@ -2863,18 +2908,21 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
             bool   left_to_right     = true;
             int tpu_line_count = (nozzle_change_line_count + 2 - 1) / 2; // nozzle_change_line_count / 2 round up
 
-            writer.travel(start_pos);
+            if (tpu_line_count > 0) {
+                writer.travel(start_pos);
 
-            for (int i = 0; true; ++i) {
-                if (left_to_right)
-                    writer.travel(xr - m_perimeter_width, writer.y(), nozzle_change_speed);
-                else
-                    writer.travel(xl + m_perimeter_width, writer.y(), nozzle_change_speed);
+                for (int i = 0; i < tpu_line_count; ++i) {
+                    if (left_to_right)
+                        writer.travel(xr - m_perimeter_width, writer.y(), nozzle_change_speed);
+                    else
+                        writer.travel(xl + m_perimeter_width, writer.y(), nozzle_change_speed);
 
-                if (i == tpu_line_count - 1) break;
+                    if (i == tpu_line_count - 1)
+                        break;
 
-                writer.travel(writer.x(), writer.y() + dy);
-                left_to_right = !left_to_right;
+                    writer.travel(writer.x(), writer.y() + dy);
+                    left_to_right = !left_to_right;
+                }
             }
             writer.travel(initial_position);
         }
@@ -2948,9 +2996,9 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change_new(int old_filament_id, 
         return WipeTower::NozzleChangeResult();
     }
     m_cur_block           = block;
-    float dy = m_layer_info->extra_spacing * m_nozzle_change_perimeter_width;
-    if (has_tpu_filament() && m_extra_spacing < m_tpu_fixed_spacing)
-        dy = m_tpu_fixed_spacing * m_nozzle_change_perimeter_width;
+    float dy = m_layer_info->extra_spacing * get_block_gap_width(m_current_tool, true);
+    if (has_tpu_filament() && m_layer_info->extra_spacing < m_tpu_fixed_spacing)
+        dy = m_tpu_fixed_spacing * get_block_gap_width(m_current_tool, true);
 
     float x_offset = m_perimeter_width + (m_nozzle_change_perimeter_width - m_perimeter_width) / 2;
     box_coordinates cleaning_box(Vec2f(x_offset,block->cur_depth + (m_nozzle_change_perimeter_width - m_perimeter_width) / 2),
@@ -3001,19 +3049,21 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change_new(int old_filament_id, 
         bool   left_to_right     = !m_left_to_right;
         int  tpu_line_count = (real_nozzle_change_line_count + 2 - 1) / 2; // nozzle_change_line_count / 2 round up
         nozzle_change_speed *= 2;
-        writer.travel(writer.x(), writer.y() - m_nozzle_change_perimeter_width);
+        if (tpu_line_count > 0) {
+            writer.travel(writer.x(), writer.y() - m_nozzle_change_perimeter_width);
 
-        for (int i = 0; true; ++i) {
-            if (left_to_right)
-                writer.travel(xr - m_perimeter_width, writer.y(), nozzle_change_speed);
-            else
-                writer.travel(xl + m_perimeter_width, writer.y(), nozzle_change_speed);
+            for (int i = 0; i < tpu_line_count; ++i) {
+                if (left_to_right)
+                    writer.travel(xr - m_perimeter_width, writer.y(), nozzle_change_speed);
+                else
+                    writer.travel(xl + m_perimeter_width, writer.y(), nozzle_change_speed);
 
-            if (i == tpu_line_count - 1)
-                break;
+                if (i == tpu_line_count - 1)
+                    break;
 
-            writer.travel(writer.x(), writer.y() - dy);
-            left_to_right = !left_to_right;
+                writer.travel(writer.x(), writer.y() - dy);
+                left_to_right = !left_to_right;
+            }
         }
     } else {
         result.wipe_path.push_back(writer.pos_rotated());
@@ -3321,7 +3371,7 @@ WipeTower::ToolChangeResult WipeTower::finish_block_solid(const WipeTowerBlock &
 {
     float layer_height = m_layer_height;
     float e_flow = m_extrusion_flow;
-    if (m_cur_layer_id > 1 && !block.solid_infill[m_cur_layer_id - 1] && m_extrusion_flow < extrusion_flow(0.2)) {
+    if (m_cur_layer_id > 1 && (block.layers_type.size() <= size_t(m_cur_layer_id - 1) || block.layers_type[m_cur_layer_id - 1] == WipeTowerLayerType::Normal) && m_extrusion_flow < extrusion_flow(0.2)) {
         layer_height = 0.2;
         e_flow = extrusion_flow(0.2);
     }
@@ -3407,7 +3457,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
     const float &xr = cleaning_box.rd.x();
 
     float x_to_wipe = wipe_length;
-    float dy        = solid_tool_toolchange ? m_perimeter_width :m_layer_info->extra_spacing * m_perimeter_width;
+    float dy        = solid_tool_toolchange ? m_perimeter_width : m_layer_info->extra_spacing * get_block_gap_width(m_current_tool, false);
     x_to_wipe                = solid_tool_toolchange ? std::numeric_limits<float>::max(): x_to_wipe;
     float target_speed = is_first_layer() ? std::min(m_first_layer_speed * 60.f, 4800.f) : 4800.f;
     target_speed             = solid_tool_toolchange ? 20.f * 60.f : target_speed;
@@ -3594,10 +3644,10 @@ void WipeTower::update_all_layer_depth(float wipe_tower_depth)
         for (auto& layer_depth : block.layer_depths) {
             layer_depth *= m_extra_spacing;
         }
-
-        for (WipeTowerInfo& plan_info : m_plan) {
-            plan_info.depth *= m_extra_spacing;
-        }
+    }
+    // Scale plan layer depths once — not once per block.
+    for (WipeTowerInfo& plan_info : m_plan) {
+        plan_info.depth *= m_extra_spacing;
     }
     if (m_wipe_tower_depth > 0)
         m_wipe_tower_depth += start_offset;
@@ -3611,7 +3661,7 @@ void WipeTower::update_all_layer_depth(float wipe_tower_depth)
     }
 }
 
-void WipeTower::generate_wipe_tower_blocks()
+void WipeTower::generate_wipe_tower_blocks(bool add_solid_flag)
 {
     // 1. generate all layer depth
     m_all_layers_depth.clear();
@@ -3646,13 +3696,13 @@ void WipeTower::generate_wipe_tower_blocks()
 
     // 3. generate wipe tower block
     m_wipe_tower_blocks.clear();
-    for (int layer_id = 0; layer_id < all_layer_category_to_depth.size(); ++layer_id) {
+    for (int layer_id = 0; layer_id < (int)all_layer_category_to_depth.size(); ++layer_id) {
         const auto &layer_category_depths = all_layer_category_to_depth[layer_id];
         for (auto iter = layer_category_depths.begin(); iter != layer_category_depths.end(); ++iter) {
             auto* block = get_block_by_category(iter->first, true);
             if (block->layer_depths.empty()) {
                 block->layer_depths.resize(all_layer_category_to_depth.size(), 0);
-                block->solid_infill.resize(all_layer_category_to_depth.size(), false);
+                block->layers_type.resize(all_layer_category_to_depth.size(), WipeTowerLayerType::Normal);
                 block->finish_depth.resize(all_layer_category_to_depth.size(), 0);
             }
             block->depth = std::max(block->depth, iter->second);
@@ -3660,39 +3710,18 @@ void WipeTower::generate_wipe_tower_blocks()
         }
     }
 
-    // add solid infill flag
-    int solid_infill_layer = 4;
-    for (WipeTowerBlock& block : m_wipe_tower_blocks) {
-        for (int layer_id = 0; layer_id < all_layer_category_to_depth.size(); ++layer_id) {
-            std::unordered_map<int, float> &category_to_depth = all_layer_category_to_depth[layer_id];
-            if (is_approx(category_to_depth[block.filament_adhesiveness_category], 0.f)) {
-                int layer_count = solid_infill_layer;
-                while (layer_count > 0) {
-                    if (layer_id + layer_count < all_layer_category_to_depth.size()) {
-                        std::unordered_map<int, float>& up_layer_depth = all_layer_category_to_depth[layer_id + layer_count];
-                        if (!is_approx(up_layer_depth[block.filament_adhesiveness_category], 0.f)) {
-                            block.solid_infill[layer_id] = true;
-                            break;
-                        }
-                    }
-                    --layer_count;
-                }
-            }
-        }
-    }
-
     // 4. get real depth for every layer
-    for (int layer_id = m_plan.size() - 1; layer_id >= 0; --layer_id) {
+    for (int layer_id = (int)m_plan.size() - 1; layer_id >= 0; --layer_id) {
         m_plan[layer_id].depth = 0;
         for (auto& block : m_wipe_tower_blocks) {
-            if (layer_id < m_plan.size() - 1)
+            if (layer_id < (int)m_plan.size() - 1)
                 block.layer_depths[layer_id] = std::max(block.layer_depths[layer_id], block.layer_depths[layer_id + 1]);
             m_plan[layer_id].depth += block.layer_depths[layer_id];
         }
     }
 
     if (m_tower_framework) {
-        for (int layer_id = 1; layer_id < m_plan.size(); ++layer_id) {
+        for (int layer_id = 1; layer_id < (int)m_plan.size(); ++layer_id) {
             m_plan[layer_id].depth = 0;
             for (auto &block : m_wipe_tower_blocks) {
                 block.layer_depths[layer_id] = block.layer_depths[0];
@@ -3700,32 +3729,174 @@ void WipeTower::generate_wipe_tower_blocks()
             }
         }
     }
+
+    // add solid infill flag
+    if (add_solid_flag) {
+        int solid_infill_layer_low = 4;
+        std::vector<std::unordered_set<int>> layers_used_tools;
+
+        int first_tool = -1;
+        for (const auto &layer : m_plan) {
+            if (!layer.tool_changes.empty()) {
+                first_tool = layer.tool_changes.front().old_tool;
+                break;
+            }
+        }
+        for (auto &info : m_plan) {
+            std::unordered_set<int> used_tools;
+            if (info.tool_changes.empty()) {
+                if (first_tool != -1)
+                    used_tools.insert(get_filament_category(first_tool));
+            } else {
+                for (const WipeTowerInfo::ToolChange &tool_change : info.tool_changes) {
+                    used_tools.insert(get_filament_category(tool_change.old_tool));
+                    used_tools.insert(get_filament_category(tool_change.new_tool));
+                }
+                first_tool = info.tool_changes.back().new_tool;
+            }
+            layers_used_tools.push_back(used_tools);
+        }
+
+        for (WipeTowerBlock &block : m_wipe_tower_blocks) {
+            for (int layer_id = 0; layer_id < (int)all_layer_category_to_depth.size(); ++layer_id) {
+                std::unordered_map<int, float> &category_to_depth = all_layer_category_to_depth[layer_id];
+                if (category_to_depth[block.filament_adhesiveness_category] < block.layer_depths[layer_id] - m_perimeter_width) {
+                    bool cur_has_block_category = layers_used_tools[layer_id].count(block.filament_adhesiveness_category);
+                    int  layer_count            = solid_infill_layer_low;
+                    while (layer_count > 0) {
+                        if (layer_id + layer_count < (int)all_layer_category_to_depth.size()) {
+                            bool up_has_block_category = layers_used_tools[layer_id + layer_count].count(block.filament_adhesiveness_category);
+                            if (cur_has_block_category != up_has_block_category) {
+                                block.layers_type[layer_id] = WipeTowerLayerType::Solid;
+                                break;
+                            }
+                        }
+                        --layer_count;
+                    }
+                }
+                if (layer_id > 0) {
+                    bool cur_has_block_category = layers_used_tools[layer_id].count(block.filament_adhesiveness_category);
+                    bool pre_has_block_category = layers_used_tools[layer_id - 1].count(block.filament_adhesiveness_category);
+                    if (cur_has_block_category != pre_has_block_category) { block.layers_type[layer_id] = WipeTowerLayerType::Contact; }
+                    if (block.layers_type[layer_id - 1] == WipeTowerLayerType::Contact && block.layers_type[layer_id] != WipeTowerLayerType::Contact) {
+                        block.layers_type[layer_id] = WipeTowerLayerType::Contact_UP;
+                    }
+                }
+            }
+        }
+    }
+}
+
+float WipeTower::get_block_gap_width(int tool, bool is_nozzlechange) const
+{
+    int cat = (tool >= 0 && tool < (int)m_filament_categories.size()) ? m_filament_categories[tool] : 0;
+    auto it = m_block_infill_gap_width.find(cat);
+    if (it == m_block_infill_gap_width.end())
+        return is_nozzlechange ? m_nozzle_change_perimeter_width : m_perimeter_width;
+    return is_nozzlechange ? it->second.second : it->second.first;
+}
+
+void WipeTower::calc_block_infill_gap()
+{
+    m_block_infill_gap_width.clear();
+
+    // Collect per-category depth and ramming info across all layers (highest-depth wins).
+    struct BlockInfo {
+        bool  has_ramming = false;
+        float depth       = 0.f;
+    };
+    std::unordered_map<int, BlockInfo> block_info;
+    std::unordered_map<int, BlockInfo> high_block_info;
+
+    for (int i = (int)m_plan.size() - 1; i >= 0; --i) {
+        for (const auto &tc : m_plan[i].tool_changes) {
+            bool needs_ramming = !is_in_same_extruder(tc.old_tool, tc.new_tool);
+            int  old_cat       = get_filament_category(tc.old_tool);
+            int  new_cat       = get_filament_category(tc.new_tool);
+            if (needs_ramming) {
+                block_info[old_cat].has_ramming = true;
+                block_info[old_cat].depth += tc.nozzle_change_depth;
+            }
+            if (!block_info.count(new_cat))
+                block_info.insert({new_cat, BlockInfo{}});
+            block_info[new_cat].depth += tc.required_depth - tc.nozzle_change_depth;
+        }
+        for (auto &b : block_info) {
+            if (high_block_info.count(b.first) && high_block_info[b.first].depth > b.second.depth)
+                b.second.depth = high_block_info[b.first].depth;
+        }
+        high_block_info = block_info;
+        for (auto &b : block_info) b.second.depth = 0.f;
+        if (i == 0) block_info = high_block_info;
+    }
+
+    // Compute per-block gap widths based on ramming requirements.
+    float extra_width = (m_extra_spacing - 1.f) * m_perimeter_width;
+    for (const auto &info : block_info) {
+        if (!info.second.has_ramming) {
+            // No ramming: use tight aligned spacing (same line width for both)
+            m_block_infill_gap_width[info.first] = {extra_width + m_perimeter_width,
+                                                    extra_width + m_perimeter_width};
+        } else if (!has_tpu_filament()) {
+            // Ramming, no TPU: nozzle-change section uses wider nozzle_change line width
+            m_block_infill_gap_width[info.first] = {m_perimeter_width + extra_width,
+                                                    m_nozzle_change_perimeter_width + extra_width};
+        } else {
+            // Ramming + TPU: apply tpu_fixed_spacing compensation
+            float tpu_extra = (m_tpu_fixed_spacing - 1.f) * m_perimeter_width;
+            m_block_infill_gap_width[info.first] = {m_perimeter_width + extra_width,
+                                                    m_nozzle_change_perimeter_width + std::max(tpu_extra, extra_width)};
+        }
+    }
+
+    // Recalculate toolchange depths using per-block gap widths.
+    const float width            = m_wipe_tower_width - 2.f * m_perimeter_width;
+    const float nozzle_chg_width = m_wipe_tower_width - (m_nozzle_change_perimeter_width + m_perimeter_width);
+    for (int idx = 0; idx < (int)m_plan.size(); ++idx) {
+        for (auto &tc : m_plan[idx].tool_changes) {
+            float tc_gap = get_block_gap_width(tc.new_tool, false);
+            float nc_gap = get_block_gap_width(tc.old_tool, true);
+            float depth  = std::ceil(tc.wipe_length / width) * tc_gap;
+            float nozzle_change_depth = 0.f;
+            if (!is_in_same_extruder(tc.old_tool, tc.new_tool) && nozzle_chg_width > 0.f) {
+                double e_flow   = nozzle_change_extrusion_flow(m_plan[idx].height);
+                double length   = m_filaments_change_length[tc.old_tool] / e_flow;
+                int    nc_lines = (int)std::ceil(length / nozzle_chg_width);
+                nozzle_change_depth = (float)nc_lines * nc_gap;
+                depth += nozzle_change_depth;
+            }
+            tc.required_depth      = depth;
+            tc.nozzle_change_depth = nozzle_change_depth;
+        }
+    }
+
+    m_extra_spacing = 1.f;
 }
 
 void WipeTower::plan_tower_new()
 {
     if (m_wipe_tower_brim_width < 0) m_wipe_tower_brim_width = get_auto_brim_by_height(m_wipe_tower_height);
+    calc_block_infill_gap();
     if (m_use_rib_wall) {
         // recalculate wipe_tower_with and layer's depth
-        generate_wipe_tower_blocks();
+        generate_wipe_tower_blocks(false);
         float max_depth    = std::accumulate(m_wipe_tower_blocks.begin(), m_wipe_tower_blocks.end(), 0.f, [](float a, const auto &t) { return a + t.depth; }) + m_perimeter_width;
         float square_width = align_ceil(std::sqrt(max_depth * m_wipe_tower_width * m_extra_spacing), m_perimeter_width);
         //std::cout << " before  m_wipe_tower_width = " << m_wipe_tower_width << "  max_depth = " << max_depth << std::endl;
         m_wipe_tower_width = square_width;
-        float width        = m_wipe_tower_width - 2 * m_perimeter_width;
-        for (int idx = 0; idx < m_plan.size(); idx++) {
+        float width            = m_wipe_tower_width - 2 * m_perimeter_width;
+        float nozzle_chg_width = m_wipe_tower_width - (m_nozzle_change_perimeter_width + m_perimeter_width);
+        for (int idx = 0; idx < (int)m_plan.size(); idx++) {
             for (auto &toolchange : m_plan[idx].tool_changes) {
-                float length_to_extrude   = toolchange.wipe_length;
-                float depth               = std::ceil(length_to_extrude / width) * m_perimeter_width;
+                float tc_gap              = get_block_gap_width(toolchange.new_tool, false);
+                float nc_gap              = get_block_gap_width(toolchange.old_tool, true);
+                float depth               = std::ceil(toolchange.wipe_length / width) * tc_gap;
                 float nozzle_change_depth = 0;
-                if (!m_filament_map.empty() && m_filament_map[toolchange.old_tool] != m_filament_map[toolchange.new_tool]) {
+                if (!is_in_same_extruder(toolchange.old_tool, toolchange.new_tool) && nozzle_chg_width > 0.f) {
                     double e_flow                   = nozzle_change_extrusion_flow(m_plan[idx].height);
                     double length                   = m_filaments_change_length[toolchange.old_tool] / e_flow;
-                    int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
-                    if (has_tpu_filament())
-                        nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
-                    else
-                        nozzle_change_depth = nozzle_change_line_count * m_nozzle_change_perimeter_width;
+                    int    nozzle_change_line_count = (int)std::ceil(length / nozzle_chg_width);
+                    nozzle_change_depth             = nozzle_change_line_count * nc_gap;
                     depth += nozzle_change_depth;
                 }
                 toolchange.nozzle_change_depth = nozzle_change_depth;
@@ -3734,15 +3905,12 @@ void WipeTower::plan_tower_new()
         }
     }
 
-    generate_wipe_tower_blocks();
+    generate_wipe_tower_blocks(true);
 
     float max_depth = 0.f;
     for (const auto &block : m_wipe_tower_blocks) {
         max_depth += block.depth;
     }
-    //std::cout << " after square " << m_wipe_tower_width << "  depth  " << max_depth << std::endl;
-
-    float min_wipe_tower_depth = get_limit_depth_by_height(m_wipe_tower_height);
 
     // only for get m_extra_spacing
     {
@@ -3751,19 +3919,6 @@ void WipeTower::plan_tower_new()
             if (m_use_rib_wall) {
                 m_wipe_tower_width = max_depth;
             }
-        }
-
-        if (m_enable_timelapse_print && max_depth < EPSILON) {
-            max_depth = min_wipe_tower_depth;
-            if (m_use_rib_wall) { m_wipe_tower_width = max_depth; }
-        }
-
-        if (max_depth + EPSILON < min_wipe_tower_depth) {
-            //if enable rib_wall, there is no need to set extra_spacing
-            if (m_use_rib_wall)
-                m_rib_length = std::max(m_rib_length, min_wipe_tower_depth * (float) std::sqrt(2));
-            else
-                m_extra_spacing = std::max(min_wipe_tower_depth / max_depth, m_extra_spacing);
         }
 
         for (int idx = 0; idx < m_plan.size(); idx++) {
@@ -3796,7 +3951,10 @@ void WipeTower::plan_tower_new()
         }
     }
 
+    generate_wipe_tower_blocks(true);
     update_all_layer_depth(max_depth);
+    if (m_use_gap_wall)
+        get_all_wall_skip_points();
     float diagonal = sqrt(m_wipe_tower_depth * m_wipe_tower_depth + m_wipe_tower_width * m_wipe_tower_width);
     m_rib_length    = std::max({m_rib_length, diagonal});
     m_rib_length += m_extra_rib_length;
@@ -3807,6 +3965,9 @@ void WipeTower::plan_tower_new()
 
 int WipeTower::get_wall_filament_for_all_layer()
 {
+    if (m_wipe_tower_filament > 0)
+        return m_wipe_tower_filament - 1;
+
     std::map<int, int> category_counts;
     std::map<int, int> filament_counts;
     int current_tool = m_current_tool;
@@ -3861,11 +4022,11 @@ int WipeTower::get_wall_filament_for_all_layer()
     return filament_id;
 }
 
-void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult>> &result)
+void WipeTower::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result)
 {
     if (m_plan.empty())
         return;
-    //m_extra_spacing = 1.f;
+    m_extra_spacing = 1.f;
     m_wipe_tower_height = m_plan.back().z;//real wipe_tower_height
     plan_tower_new();
 
@@ -3898,13 +4059,11 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         if (m_wipe_tower_blocks.size() == 1) {
             if (m_layer_info->depth < m_wipe_tower_depth - m_perimeter_width) {
                 // align y shift to perimeter width
-                float dy  = m_extra_spacing * m_perimeter_width;
+                float dy  = m_layer_info->extra_spacing * get_block_gap_width(m_current_tool, false);
                 m_y_shift = (m_wipe_tower_depth - m_layer_info->depth) / 2.f;
                 m_y_shift = align_round(m_y_shift, dy);
             }
         }
-
-        get_wall_skip_points(layer);
 
         ToolChangeResult finish_layer_tcr;
         ToolChangeResult timelapse_wall;
@@ -3938,7 +4097,7 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         if (wall_idx == -1) {
             bool need_insert_solid_infill = false;
             for (const WipeTowerBlock &block : m_wipe_tower_blocks) {
-                if (block.solid_infill[m_cur_layer_id] && (block.filament_adhesiveness_category != m_filament_categories[m_current_tool])) {
+                if (block.layers_type.size() > size_t(m_cur_layer_id) && block.layers_type[m_cur_layer_id] != WipeTowerLayerType::Normal && (block.filament_adhesiveness_category != m_filament_categories[m_current_tool])) {
                     need_insert_solid_infill = true;
                     break;
                 }
@@ -3994,7 +4153,7 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
             }
 
             for (WipeTowerBlock& block : m_wipe_tower_blocks) {
-                block.finish_depth[m_cur_layer_id] = block.start_depth + block.depth;
+                block.finish_depth[m_cur_layer_id] = block.start_depth + block.layer_depths[m_cur_layer_id];
                 if (block.cur_depth + EPSILON >= block.start_depth + block.layer_depths[m_cur_layer_id]-m_perimeter_width) {
                     continue;
                 }
@@ -4018,15 +4177,16 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
                 }
 
                 ToolChangeResult finish_block_tcr;
-                if (interface_solid || (block.solid_infill[m_cur_layer_id] && block.filament_adhesiveness_category != m_filament_categories[finish_layer_filament])) {
-                    interface_solid  = interface_solid && !((block.solid_infill[m_cur_layer_id] && block.filament_adhesiveness_category != m_filament_categories[finish_layer_filament]));//noly reduce speed when
+                bool block_is_solid = block.layers_type.size() > size_t(m_cur_layer_id) && block.layers_type[m_cur_layer_id] != WipeTowerLayerType::Normal;
+                if (interface_solid || (block_is_solid && block.filament_adhesiveness_category != m_filament_categories[finish_layer_filament])) {
+                    interface_solid  = interface_solid && !(block_is_solid && block.filament_adhesiveness_category != m_filament_categories[finish_layer_filament]);//noly reduce speed when
                     if (!interface_solid) {
                         int tmp_id = std::find_if(m_wipe_tower_blocks.begin(), m_wipe_tower_blocks.end(), [&](const WipeTowerBlock &b) { return &b == &block; }) -
                                     m_wipe_tower_blocks.begin();
                         next_solid_blocks_id.insert(tmp_id);
                     }
                     finish_block_tcr = finish_block_solid(block, finish_layer_filament, layer.extruder_fill, interface_solid);
-                    block.finish_depth[m_cur_layer_id] = block.start_depth + block.depth;
+                    block.finish_depth[m_cur_layer_id] = block.start_depth + block.layer_depths[m_cur_layer_id];
                 }
                 else {
                     finish_block_tcr = finish_block(block, finish_layer_filament, layer.extruder_fill);
@@ -4081,111 +4241,6 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
     assert(m_outer_wall.size() == m_plan.size());
 }
 
-
-// Processes vector m_plan and calls respective functions to generate G-code for the wipe tower
-// Resulting ToolChangeResults are appended into vector "result"
-void WipeTower::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result)
-{
-	if (m_plan.empty())
-        return;
-
-    m_extra_spacing = 1.f;
-
-	plan_tower();
-    // BBS
-#if 0
-    for (int i=0;i<5;++i) {
-        save_on_last_wipe();
-        plan_tower();
-    }
-#endif
-
-    m_layer_info = m_plan.begin();
-
-    // we don't know which extruder to start with - we'll set it according to the first toolchange
-    for (const auto& layer : m_plan) {
-        if (!layer.tool_changes.empty()) {
-            m_current_tool = layer.tool_changes.front().old_tool;
-            break;
-        }
-    }
-
-    for (auto& used : m_used_filament_length) // reset used filament stats
-        used = 0.f;
-
-    m_old_temperature = -1; // reset last temperature written in the gcode
-
-    std::vector<WipeTower::ToolChangeResult> layer_result;
-    int index = 0;
-	for (auto layer : m_plan)
-	{
-        m_cur_layer_id = index++;
-        set_layer(layer.z, layer.height, 0, false/*layer.z == m_plan.front().z*/, layer.z == m_plan.back().z);
-        // BBS
-        //m_internal_rotation += 180.f;
-
-        if (m_layer_info->depth < m_perimeter_width)
-            continue;
-
-        if (m_layer_info->depth < m_wipe_tower_depth - m_perimeter_width) {
-            // align y shift to perimeter width
-            float dy = m_extra_spacing * m_perimeter_width;
-            m_y_shift = (m_wipe_tower_depth - m_layer_info->depth) / 2.f;
-            m_y_shift = align_round(m_y_shift, dy);
-        }
-
-        // BBS: consider both soluable and support properties
-        int idx = first_toolchange_to_nonsoluble_nonsupport (layer.tool_changes);
-        ToolChangeResult finish_layer_tcr;
-        ToolChangeResult timelapse_wall;
-
-        if (idx == -1) {
-            // if there is no toolchange switching to non-soluble, finish layer
-            // will be called at the very beginning. That's the last possibility
-            // where a nonsoluble tool can be.
-            if (m_enable_timelapse_print) {
-                timelapse_wall = only_generate_out_wall();
-            }
-            finish_layer_tcr = finish_layer(m_enable_timelapse_print ? false : true, layer.extruder_fill);
-        }
-
-        for (int i=0; i<int(layer.tool_changes.size()); ++i) {
-            if (i == 0 && m_enable_timelapse_print) {
-                timelapse_wall = only_generate_out_wall();
-            }
-
-            if (i == idx) {
-                layer_result.emplace_back(tool_change(layer.tool_changes[i].new_tool, m_enable_timelapse_print ? false : true));
-                // finish_layer will be called after this toolchange
-                finish_layer_tcr = finish_layer(false, layer.extruder_fill);
-            }
-            else {
-                if (idx == -1 && i == 0) {
-                    layer_result.emplace_back(tool_change(layer.tool_changes[i].new_tool, false, true));
-                } else {
-                    layer_result.emplace_back(tool_change(layer.tool_changes[i].new_tool));
-                }
-            }
-        }
-
-        if (layer_result.empty()) {
-            // there is nothing to merge finish_layer with
-            layer_result.emplace_back(std::move(finish_layer_tcr));
-        }
-        else {
-            if (idx == -1)
-                layer_result[0] = merge_tcr(finish_layer_tcr, layer_result[0]);
-            else if (is_valid_gcode(finish_layer_tcr.gcode))
-                layer_result[idx] = merge_tcr(layer_result[idx], finish_layer_tcr);
-        }
-
-        if (m_enable_timelapse_print) {
-            layer_result.insert(layer_result.begin(), std::move(timelapse_wall));
-        }
-
-		result.emplace_back(std::move(layer_result));
-	}
-}
 
 WipeTower::ToolChangeResult WipeTower::only_generate_out_wall(bool is_new_mode)
 {
@@ -4264,10 +4319,14 @@ Polygon WipeTower::generate_rib_polygon(const box_coordinates &wt_box)
     Polygon poly_1 = generate_rectange(line_1, diagonal_width);
     Polygon poly_2 = generate_rectange(line_2, diagonal_width);
     Polygon poly;
-    poly.points.push_back(Point::new_scale(wt_box.ld));
-    poly.points.push_back(Point::new_scale(wt_box.rd));
-    poly.points.push_back(Point::new_scale(wt_box.ru));
-    poly.points.push_back(Point::new_scale(wt_box.lu));
+    box_coordinates outer_box = wt_box;
+    if (!m_tower_framework && m_wipe_tower_blocks.size() == 1 && m_layer_info->depth < m_wipe_tower_depth - m_perimeter_width) {
+        outer_box = align_perimeter(box_coordinates(Vec2f(0.f, -m_y_shift), m_wipe_tower_width, m_wipe_tower_depth));
+    }
+    poly.points.push_back(Point::new_scale(outer_box.ld));
+    poly.points.push_back(Point::new_scale(outer_box.rd));
+    poly.points.push_back(Point::new_scale(outer_box.ru));
+    poly.points.push_back(Point::new_scale(outer_box.lu));
 
     Polygons           p_1_2    = union_({poly_1, poly_2, poly});
     //Polygon            res_poly = p_1_2.front();
@@ -4313,7 +4372,10 @@ Polygon WipeTower::generate_support_wall_new(WipeTowerWriter &writer, const box_
     }
     if (!extrude_perimeter) return wall_polygon;
 
-    if (skip_points) { result_wall = contrust_gap_for_skip_points(wall_polygon,m_wall_skip_points,m_wipe_tower_width,2.5*m_perimeter_width,insert_skip_polygon); }
+    if (skip_points) {
+        result_wall = contrust_gap_for_skip_points(wall_polygon, m_wall_skip_points[m_cur_layer_id], m_wipe_tower_width, 2.5 * m_perimeter_width,
+                                                   insert_skip_polygon);
+    }
     else {
         result_wall.push_back(to_polyline(wall_polygon));
         insert_skip_polygon = wall_polygon;
@@ -4333,7 +4395,7 @@ Polygon WipeTower::generate_support_wall(WipeTowerWriter &writer, const box_coor
     float retract_speed  = m_filpar[m_current_tool].retract_speed *60 ;
     bool is_left  = false;
     bool is_right = false;
-    for (auto pt : m_wall_skip_points) {
+    for (auto pt : m_wall_skip_points[m_cur_layer_id]) {
         if (abs(pt.x()) < EPSILON) {
             is_left = true;
         } else if (abs(pt.x() - m_wipe_tower_width) < EPSILON) {
@@ -4384,7 +4446,8 @@ Polygon WipeTower::generate_support_wall(WipeTowerWriter &writer, const box_coor
         index = (index + 1) % 4;
         if (index == 2) {
             if (is_right) {
-                std::vector<Segment> break_segments = remove_points_from_segment(Segment(wt_box.rd, wt_box.ru), m_wall_skip_points, 2.5 * m_perimeter_width);
+                std::vector<Segment> break_segments =
+                    remove_points_from_segment(Segment(wt_box.rd, wt_box.ru), m_wall_skip_points[m_cur_layer_id], 2.5 * m_perimeter_width);
                 for (auto iter = break_segments.begin(); iter != break_segments.end(); ++iter) {
                     float dx  = iter->start.x() - writer.pos().x();
                     float dy  = iter->start.y() - writer.pos().y();
@@ -4404,7 +4467,8 @@ Polygon WipeTower::generate_support_wall(WipeTowerWriter &writer, const box_coor
             }
         } else if (index == 0) {
             if (is_left) {
-                std::vector<Segment> break_segments = remove_points_from_segment(Segment(wt_box.ld, wt_box.lu), m_wall_skip_points, 2.5 * m_perimeter_width);
+                std::vector<Segment> break_segments =
+                    remove_points_from_segment(Segment(wt_box.ld, wt_box.lu), m_wall_skip_points[m_cur_layer_id], 2.5 * m_perimeter_width);
                 for (auto iter = break_segments.rbegin(); iter != break_segments.rend(); ++iter) {
                     float dx  = iter->end.x() - writer.pos().x();
                     float dy  = iter->end.y() - writer.pos().y();

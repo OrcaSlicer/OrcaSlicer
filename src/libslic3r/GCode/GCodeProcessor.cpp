@@ -1258,8 +1258,14 @@ void GCodeProcessor::run_post_process()
                     backtrace, cmd,
                     // line inserter
                     [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
-                        const int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
+                        int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
                                                                          m_filament_nozzle_temp_first_layer[tool_number]);
+                        if (m_enable_tower_interface_features && tool_number < m_filament_tower_interface_print_temp.size()) {
+                            int boost_temp = m_filament_tower_interface_print_temp[tool_number];
+                            if (boost_temp > 0) {
+                                temperature = boost_temp;
+                            }
+                        }
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
                         /**
@@ -1962,6 +1968,9 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_extruder_temps.resize(filament_count);
     m_filament_nozzle_temp.resize(filament_count);
     m_filament_nozzle_temp_first_layer.resize(filament_count);
+    m_nozzle_temperature_range_high.resize(filament_count);
+    m_enable_tower_interface_features = config.enable_tower_interface_features.getBool();
+    m_filament_tower_interface_print_temp.resize(filament_count);
     m_result.nozzle_hrc = static_cast<int>(config.nozzle_hrc.getInt());
     std::vector<NozzleType>(config.nozzle_type.size()).swap(m_result.nozzle_type);
     for (size_t idx = 0; idx < m_result.nozzle_type.size(); ++idx) {
@@ -1977,9 +1986,20 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
         m_extruder_colors[i]            = static_cast<unsigned char>(i);
         m_filament_nozzle_temp_first_layer[i] = static_cast<int>(config.nozzle_temperature_initial_layer.get_at(i));
         m_filament_nozzle_temp[i]      = static_cast<int>(config.nozzle_temperature.get_at(i));
+        m_nozzle_temperature_range_high[i] = static_cast<int>(config.nozzle_temperature_range_high.get_at(i));
         if (m_filament_nozzle_temp[i] == 0) {
             // This means the value should be ignored and first layer temp should be used.
             m_filament_nozzle_temp[i] = m_filament_nozzle_temp_first_layer[i];
+        }
+        m_filament_tower_interface_print_temp[i] = 0;
+        if (i < config.filament_tower_interface_print_temp.size()) {
+            m_filament_tower_interface_print_temp[i] = static_cast<int>(config.filament_tower_interface_print_temp.get_at(i));
+        }
+        if (m_filament_tower_interface_print_temp[i] == -1) {
+            m_filament_tower_interface_print_temp[i] = m_nozzle_temperature_range_high[i];
+        }
+        if (m_filament_tower_interface_print_temp[i] <= 0) {
+            m_filament_tower_interface_print_temp[i] = m_filament_nozzle_temp[i];
         }
         m_result.filament_diameters[i]  = static_cast<float>(config.filament_diameter.get_at(i));
         m_result.required_nozzle_HRC[i] = static_cast<int>(config.required_nozzle_HRC.get_at(i));
@@ -2379,6 +2399,42 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     if (has_scarf_joint_seam != nullptr)
         m_detect_layer_based_on_tag = m_detect_layer_based_on_tag || has_scarf_joint_seam->value;
 
+    const ConfigOptionBool* enable_tower_interface_features = config.option<ConfigOptionBool>("enable_tower_interface_features");
+    if (enable_tower_interface_features != nullptr)
+        m_enable_tower_interface_features = enable_tower_interface_features->getBool();
+
+    const ConfigOptionInts* nozzle_temperature = config.option<ConfigOptionInts>("nozzle_temperature");
+    const ConfigOptionInts* nozzle_temperature_initial_layer = config.option<ConfigOptionInts>("nozzle_temperature_initial_layer");
+    const ConfigOptionInts* nozzle_temperature_range_high = config.option<ConfigOptionInts>("nozzle_temperature_range_high");
+    const ConfigOptionInts* filament_tower_interface_print_temp = config.option<ConfigOptionInts>("filament_tower_interface_print_temp");
+
+    if (nozzle_temperature != nullptr) {
+        m_filament_nozzle_temp.resize(m_result.filaments_count);
+        for (size_t i = 0; i < m_result.filaments_count; ++i)
+            m_filament_nozzle_temp[i] = nozzle_temperature->get_at(i);
+    }
+    if (nozzle_temperature_initial_layer != nullptr) {
+        m_filament_nozzle_temp_first_layer.resize(m_result.filaments_count);
+        for (size_t i = 0; i < m_result.filaments_count; ++i)
+            m_filament_nozzle_temp_first_layer[i] = nozzle_temperature_initial_layer->get_at(i);
+    }
+    if (nozzle_temperature_range_high != nullptr) {
+        m_nozzle_temperature_range_high.resize(m_result.filaments_count);
+        for (size_t i = 0; i < m_result.filaments_count; ++i)
+            m_nozzle_temperature_range_high[i] = nozzle_temperature_range_high->get_at(i);
+    }
+    if (filament_tower_interface_print_temp != nullptr) {
+        m_filament_tower_interface_print_temp.resize(m_result.filaments_count);
+        for (size_t i = 0; i < m_result.filaments_count; ++i) {
+            int temp = filament_tower_interface_print_temp->get_at(i);
+            if (temp == -1 && i < m_nozzle_temperature_range_high.size())
+                temp = m_nozzle_temperature_range_high[i];
+            if (temp <= 0 && i < m_filament_nozzle_temp.size())
+                temp = m_filament_nozzle_temp[i];
+            m_filament_tower_interface_print_temp[i] = temp;
+        }
+    }
+
     const ConfigOptionEnumGeneric *bed_type = config.option<ConfigOptionEnumGeneric>("curr_bed_type");
     if (bed_type != nullptr)
         m_result.bed_type = (BedType)bed_type->value;
@@ -2468,6 +2524,9 @@ void GCodeProcessor::reset()
     m_seams_count = 0;
     m_preheat_time = 0.f;
     m_preheat_steps = 1;
+    m_enable_tower_interface_features = false;
+    m_filament_tower_interface_print_temp.clear();
+    m_nozzle_temperature_range_high.clear();
 }
 
 static inline const char* skip_whitespaces(const char *begin, const char *end) {

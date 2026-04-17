@@ -575,7 +575,7 @@ public:
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
     bool            open_browser_with_warning_dialog(const wxString& url, int flags = 0);
 #ifdef __APPLE__
-    void            OSXStoreOpenFiles(const wxArrayString &files);
+    void            OSXStoreOpenFiles(const wxArrayString &files) override;
     // wxWidgets override to get an event on open files.
     void            MacOpenFiles(const wxArrayString &fileNames) override;
     void            MacOpenURL(const wxString& url) override;

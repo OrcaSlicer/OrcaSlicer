@@ -108,6 +108,19 @@ void GLCanvas3D::load_render_colors()
 namespace Slic3r {
 namespace GUI {
 
+namespace {
+
+void sync_wipe_tower_rotation_config(double rotation_deg)
+{
+    ConfigOptionFloat rotation(rotation_deg);
+    DynamicPrintConfig& project_cfg = wxGetApp().preset_bundle->project_config;
+    DynamicPrintConfig& print_cfg   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    *project_cfg.option<ConfigOptionFloat>("wipe_tower_rotation_angle", true) = rotation;
+    *print_cfg.option<ConfigOptionFloat>("wipe_tower_rotation_angle", true)    = rotation;
+}
+
+} // namespace
+
 #ifdef __WXGTK3__
 // wxGTK3 seems to simulate OSX behavior in regard to HiDPI scaling support.
 RetinaHelper::RetinaHelper(wxWindow* window) : m_window(window), m_self(nullptr) {}
@@ -2854,7 +2867,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 float x = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->get_at(plate_id);
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
-                float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
+                float a = dynamic_cast<const ConfigOptionFloat*>(m_config->option("wipe_tower_rotation_angle"))->value;
                 // BBS
                 float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
@@ -5321,8 +5334,7 @@ GLCanvas3D::WipeTowerInfo GLCanvas3D::get_wipe_tower_info(int plate_idx) const
             DynamicPrintConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
             wti.m_pos = Vec2d(proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x")->get_at(plate_idx),
                               proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y")->get_at(plate_idx));
-            // BBS: don't support rotation
-            //wti.m_rotation = (M_PI/180.) * proj_cfg->opt_float("wipe_tower_rotation_angle");
+            wti.m_rotation = Geometry::deg2rad(proj_cfg.opt_float("wipe_tower_rotation_angle"));
 
             auto& preset = wxGetApp().preset_bundle->prints.get_edited_preset();
             float wt_brim_width = preset.config.opt_float("prime_tower_brim_width");
@@ -10078,6 +10090,7 @@ void GLCanvas3D::WipeTowerInfo::apply_wipe_tower(Vec2d pos, double rot) const
     ConfigOptionFloats* wipe_tower_y_opt = proj_cfg.option<ConfigOptionFloats>("wipe_tower_y", true);
     wipe_tower_x_opt->set_at(&wipe_tower_x, m_plate_idx, 0);
     wipe_tower_y_opt->set_at(&wipe_tower_y, m_plate_idx, 0);
+    sync_wipe_tower_rotation_config(Geometry::rad2deg(rot));
 
     //q->update();
 }
