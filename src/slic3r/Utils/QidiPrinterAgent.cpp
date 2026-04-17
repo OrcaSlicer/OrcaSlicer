@@ -25,6 +25,22 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
+// Find a visible, compatible base preset whose name contains both the vendor and filament name.
+// Case-sensitive — user must enter vendor names matching Orca's profiles exactly.
+std::string find_preset_by_vendor_and_name(const PresetCollection& filaments,
+                                           const std::string&      vendor_name,
+                                           const std::string&      filament_name)
+{
+    for (const auto& p : filaments.get_presets()) {
+        if (p.is_visible && p.is_compatible
+            && filaments.get_preset_base(p) == &p
+            && p.name.find(vendor_name) != std::string::npos
+            && p.name.find(filament_name) != std::string::npos)
+            return p.filament_id;
+    }
+    return "";
+}
+
 } // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
@@ -172,21 +188,44 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         }
 
         if (tray.has_filament) {
-            // Look up filament type name from dictionary
+            // Look up filament name from dictionary (e.g. "PLA+") — used for vendor+name matching
             std::string filament_name = "PLA";
             auto filament_it = dict.filaments.find(filament_type);
             if (filament_it != dict.filaments.end()) {
                 filament_name = filament_it->second;
             }
-            tray.tray_type = normalize_filament_type(filament_name);
 
-            // Try Qidi-specific setting ID first; fall back to visible preset by type
+            // Use base type from "type" field (e.g. "PLA") for tray_type / fallback matching
+            auto type_it = dict.filament_types.find(filament_type);
+            if (type_it != dict.filament_types.end()) {
+                tray.tray_type = normalize_filament_type(type_it->second);
+            } else {
+                tray.tray_type = normalize_filament_type(filament_name);
+            }
+
+            // Resolve vendor name from vendor_list
+            std::string vendor_name;
+            auto vendor_it = dict.vendors.find(vendor_type);
+            if (vendor_it != dict.vendors.end()) {
+                vendor_name = vendor_it->second;
+            }
+
+            // Try Qidi-specific setting ID first
             std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);
             auto* bundle = GUI::wxGetApp().preset_bundle;
             if (!bundle) {
                 tray.tray_info_idx = setting_id;
             } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
                 tray.tray_info_idx = setting_id;
+            } else if (!vendor_name.empty()) {
+                // Try vendor+name match (e.g. "eSUN" + "PLA+" → "eSUN PLA+ @base")
+                std::string vendor_match = find_preset_by_vendor_and_name(
+                    bundle->filaments, vendor_name, filament_name);
+                if (!vendor_match.empty()) {
+                    tray.tray_info_idx = vendor_match;
+                } else {
+                    tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                }
             } else {
                 tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
             }
@@ -246,8 +285,11 @@ bool QidiPrinterAgent::fetch_filament_dict(const std::string& base_url,
 
     dict.colors.clear();
     dict.filaments.clear();
+    dict.filament_types.clear();
+    dict.vendors.clear();
     parse_ini_section(response_body, "colordict", dict.colors);
-    parse_filament_sections(response_body, dict.filaments);
+    parse_filament_sections(response_body, dict.filaments, dict.filament_types);
+    parse_ini_section(response_body, "vendor_list", dict.vendors);
 
     return !dict.colors.empty();
 }
@@ -284,7 +326,7 @@ void QidiPrinterAgent::parse_ini_section(const std::string& content, const std::
     }
 }
 
-void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::map<int, std::string>& result)
+void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::map<int, std::string>& filaments, std::map<int, std::string>& filament_types)
 {
     std::istringstream stream(content);
     std::string        line;
@@ -315,7 +357,9 @@ void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::
                 boost::trim(key);
                 boost::trim(value);
                 if (key == "filament") {
-                    result[current_fila_index] = value;
+                    filaments[current_fila_index] = value;
+                } else if (key == "type") {
+                    filament_types[current_fila_index] = value;
                 }
             }
         }

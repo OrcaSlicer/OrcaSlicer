@@ -25,7 +25,9 @@ private:
     struct QidiFilamentDict
     {
         std::map<int, std::string> colors;
-        std::map<int, std::string> filaments;
+        std::map<int, std::string> filaments;       // [fila] "filament" field (e.g. "PLA+")
+        std::map<int, std::string> filament_types;   // [fila] "type" field (e.g. "PLA")
+        std::map<int, std::string> vendors;          // [vendor_list] section
     };
 
     // Qidi-specific methods
@@ -43,7 +45,7 @@ private:
 
     // Static helpers
     static void parse_ini_section(const std::string& content, const std::string& section_name, std::map<int, std::string>& result);
-    static void parse_filament_sections(const std::string& content, std::map<int, std::string>& result);
+    static void parse_filament_sections(const std::string& content, std::map<int, std::string>& filaments, std::map<int, std::string>& filament_types);
     static std::string map_filament_type_to_setting_id(const std::string& filament_type);
 };
 
