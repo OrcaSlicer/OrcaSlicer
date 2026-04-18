@@ -1,25 +1,25 @@
 {
-    "type": "machine",
-    "setting_id": "GM003",
-    "name": "Artillery Genius 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "fdm_machine_common",
-    "printer_model": "Artillery Genius",
-    "default_print_profile": "0.20mm Standard @Artillery Genius",
-    "nozzle_diameter": [
-        "0.4"
-    ],
-    "bed_exclude_area": [
-      "0x0"
-    ],
-    "printable_area": [
-      "0x0",
-      "220x0",
-      "220x220",
-      "0x220"
-    ],
-    "printable_height": "250",
+	"type": "machine",
+	"setting_id": "GM003",
+	"name": "Artillery Genius 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_machine_common",
+	"printer_model": "Artillery Genius",
+	"default_print_profile": "0.20mm Standard @Artillery Genius",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"printable_area": [
+		"0x0",
+		"220x0",
+		"220x220",
+		"0x220"
+	],
+	"printable_height": "250",
 	"nozzle_type": "brass",
 	"auxiliary_fan": "0",
 	"machine_max_acceleration_extruding": [
@@ -78,6 +78,10 @@
 		"0.2",
 		"0.4"
 	],
+	"machine_max_junction_deviation": [
+		"0.032",
+		"0"
+	],
 	"max_layer_height": [
 		"0.32"
 	],
@@ -109,8 +113,8 @@
 	"default_filament_profile": [
 		"Artillery Generic PLA"
 	],
-    "machine_start_gcode": "M83; extruder relative mode\nG28; home all axes\nM109 S[nozzle_temperature_initial_layer]; hotend temperature\nM140 S[bed_temperature_initial_layer_single]; heatbed temperature\nM190 S[bed_temperature_initial_layer_single]; wait for the bed to heat up\nM109 S[nozzle_temperature_initial_layer]; wait for the extruder to heat up\nG92 E0; reset extruder\nG1 X20 Y5 Z0.3 F5000.0; move to start-line position\nG1 Z0.3 F1000; print height\nG1 X200 Y5 F1500.0 E15; draw 1st line\nG1 X200 Y5.3 Z0.3 F5000.0; move to side a little\nG1 X5.3  Y5.3 Z0.3 F1500.0 E30; draw 2nd line\nG1 Z3 F3000; move z up little to prevent scratching of surface",
-    "machine_end_gcode": "G91; Relative positionning\nG1 E-2 Z0.2 F2400; Retract and raise Z\nG1 X5 Y5 F3000; Wipe out\nG1 Z10; Raise Z more\nG90; Absolute positionning\nG1 X0 Y100; Present print\nM106 S0; Turn-off fan\nM104 S0; Turn-off hotend\nM140 S0; Turn-off bed\nM84 X Y E; Disable all steppers but Z",
-    "layer_change_gcode": "",
-    "scan_first_layer": "0"
+	"machine_start_gcode": "M83; extruder relative mode\nG28; home all axes\nM109 S[nozzle_temperature_initial_layer]; hotend temperature\nM140 S[bed_temperature_initial_layer_single]; heatbed temperature\nM190 S[bed_temperature_initial_layer_single]; wait for the bed to heat up\nM109 S[nozzle_temperature_initial_layer]; wait for the extruder to heat up\nG92 E0; reset extruder\nG1 X20 Y5 Z0.3 F5000.0; move to start-line position\nG1 Z0.3 F1000; print height\nG1 X200 Y5 F1500.0 E15; draw 1st line\nG1 X200 Y5.3 Z0.3 F5000.0; move to side a little\nG1 X5.3  Y5.3 Z0.3 F1500.0 E30; draw 2nd line\nG1 Z3 F3000; move z up little to prevent scratching of surface",
+	"machine_end_gcode": "G91; Relative positionning\nG1 E-2 Z0.2 F2400; Retract and raise Z\nG1 X5 Y5 F3000; Wipe out\nG1 Z10; Raise Z more\nG90; Absolute positionning\nG1 X0 Y100; Present print\nM106 S0; Turn-off fan\nM104 S0; Turn-off hotend\nM140 S0; Turn-off bed\nM84 X Y E; Disable all steppers but Z",
+	"layer_change_gcode": "",
+	"scan_first_layer": "0"
 }

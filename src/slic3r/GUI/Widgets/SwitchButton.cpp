@@ -138,6 +138,10 @@ void SwitchButton::Rescale()
             memdc.SelectObject(bmp);
 #endif
             memdc.SetFont(dc.GetFont());
+#ifdef __WXMSW__
+            const double scale = GetDPIScaleFactor();
+			fontScale = scale;
+#endif
             if (fontScale) {
                 memdc.SetFont(dc.GetFont().Scaled(fontScale));
                 textSize[0] = memdc.GetTextExtent(labels[0]);
@@ -176,6 +180,8 @@ void SwitchButton::Rescale()
 			memdc.SelectObject(wxNullBitmap);
 #ifdef __WXOSX__
             bmp = wxBitmap(bmp.ConvertToImage(), -1, scale);
+#elif defined(__WXMSW__)
+            bmp.SetScaleFactor(scale); // ORCA
 #endif
 			(i == 0 ? m_off : m_on).bmp() = bmp;
 		}
