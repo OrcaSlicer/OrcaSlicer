@@ -25,12 +25,17 @@ void OptionTemplate::init(uint8_t resolution)
     const float step = 2.0f * PI / float(m_resolution);
 
     //
-    // top cone
+    // top and bottom cones (paired wedges)
     //
     std::vector<float> top_vertices;
     top_vertices.reserve(6 * m_vertices_count);
+    std::vector<float> bottom_vertices;
+    bottom_vertices.reserve(6 * m_vertices_count);
+
     const Vec3 top_apex = { 0.0f, 0.0f, 0.5f };
     const Vec3 top_apex_normal = { 0.0f, 0.0f, 1.0f };
+    const Vec3 bottom_apex = { 0.0f, 0.0f, -0.5f };
+    const Vec3 bottom_apex_normal = { 0.0f, 0.0f, -1.0f };
     for (uint8_t i = 0; i < m_resolution; ++i) {
         const float curr_angle = float(i) * step;
         const float next_angle = float(i + 1) * step;
@@ -42,22 +47,6 @@ void OptionTemplate::init(uint8_t resolution)
         add_vertex(top_apex, top_apex_normal, top_vertices);
         add_vertex(curr_pos, curr_norm, top_vertices);
         add_vertex(next_pos, next_norm, top_vertices);
-    }
-
-    //
-    // bottom cone
-    //
-    std::vector<float> bottom_vertices;
-    bottom_vertices.reserve(6 * m_vertices_count);
-    const Vec3 bottom_apex = { 0.0f, 0.0f, -0.5f };
-    const Vec3 bottom_apex_normal = { 0.0f, 0.0f, -1.0f };
-    for (uint8_t i = 0; i < m_resolution; ++i) {
-        const float curr_angle = float(i) * step;
-        const float next_angle = float(i + 1) * step;
-        const Vec3 curr_pos = { 0.5f * std::cos(curr_angle), 0.5f * std::sin(curr_angle), 0.0f };
-        const Vec3 next_pos = { 0.5f * std::cos(next_angle), 0.5f * std::sin(next_angle), 0.0f };
-        const Vec3 curr_norm = normalize(curr_pos);
-        const Vec3 next_norm = normalize(next_pos);
 
         add_vertex(bottom_apex, bottom_apex_normal, bottom_vertices);
         add_vertex(next_pos, next_norm, bottom_vertices);
