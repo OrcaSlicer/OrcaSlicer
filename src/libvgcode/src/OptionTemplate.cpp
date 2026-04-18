@@ -13,8 +13,8 @@
 namespace libvgcode {
 
 // Geometry:
-// two opposing cones forming a diamond, centered at (0.0, 0.0, 0.0)
-// height and width are equal to 1.0
+// diamond with 'resolution' sides, centered at (0.0, 0.0, 0.0)
+// height and width of the diamond are equal to 1.0
 void OptionTemplate::init(uint8_t resolution)
 {
     if (m_top_vao_id != 0)
