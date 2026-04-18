@@ -600,7 +600,9 @@ void Selection::set_printable(bool printable)
 }
 
 bool Selection::get_auto_drop() const {
-    if (!m_valid)
+    // The wipe tower is not a ModelObject and has no per-instance auto_drop;
+    // return the default to avoid indexing m_model->objects with its synthetic id.
+    if (!m_valid || is_wipe_tower())
         return true;
 
     std::set<std::pair<int, int>> instances_idxs;
