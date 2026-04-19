@@ -1088,10 +1088,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // SoftFever: set new PA for new filament
         if (gcodegen.config().enable_pressure_advance.get_at(new_filament_id)) {
-            gcode += gcodegen.writer().set_pressure_advance(gcodegen.get_pressure_advance_for_extruder(new_filament_id));
+            const auto pressure_advance = gcodegen.get_pressure_advance_for_extruder(new_filament_id);
+            gcode += gcodegen.writer().set_pressure_advance(pressure_advance);
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            gcodegen.m_pa_processor->resetPreviousPA(gcodegen.get_pressure_advance_for_extruder(new_filament_id));
+            gcodegen.m_pa_processor->resetPreviousPA(pressure_advance);
         }
 
         // A phony move to the end position at the wipe tower.
@@ -1369,10 +1370,11 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // SoftFever: set new PA for new filament
         if (new_extruder_id != -1 && gcodegen.config().enable_pressure_advance.get_at(new_extruder_id)) {
-            gcode += gcodegen.writer().set_pressure_advance(gcodegen.get_pressure_advance_for_extruder(new_extruder_id));
+            const auto pressure_advance = gcodegen.get_pressure_advance_for_extruder(new_extruder_id);
+            gcode += gcodegen.writer().set_pressure_advance(pressure_advance);
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            gcodegen.m_pa_processor->resetPreviousPA(gcodegen.get_pressure_advance_for_extruder(new_extruder_id));
+            gcodegen.m_pa_processor->resetPreviousPA(pressure_advance);
         }
 
         // A phony move to the end position at the wipe tower.
@@ -3120,10 +3122,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
-            file.write(m_writer.set_pressure_advance(this->get_pressure_advance_for_extruder(initial_non_support_extruder_id)));
+            const auto pressure_advance = this->get_pressure_advance_for_extruder(initial_non_support_extruder_id);
+            file.write(m_writer.set_pressure_advance(pressure_advance));
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            m_pa_processor->resetPreviousPA(this->get_pressure_advance_for_extruder(initial_non_support_extruder_id));
+            m_pa_processor->resetPreviousPA(pressure_advance);
         }
     }
 
@@ -7789,10 +7792,11 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         }
 
         if (m_config.enable_pressure_advance.get_at(new_filament_id)) {
-           gcode += m_writer.set_pressure_advance(get_pressure_advance_for_extruder(new_filament_id));
+           const auto pressure_advance = get_pressure_advance_for_extruder(new_filament_id);
+           gcode += m_writer.set_pressure_advance(pressure_advance);
            // Orca: Adaptive PA
            // Reset Adaptive PA processor last PA value
-           m_pa_processor->resetPreviousPA(get_pressure_advance_for_extruder(new_filament_id));
+           m_pa_processor->resetPreviousPA(pressure_advance);
         }
 
         gcode += m_writer.toolchange(new_filament_id);
@@ -8097,10 +8101,11 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_ooze_prevention.post_toolchange(*this);
 
     if (m_config.enable_pressure_advance.get_at(new_filament_id)) {
-        gcode += m_writer.set_pressure_advance(get_pressure_advance_for_extruder(new_filament_id));
+        const auto pressure_advance = get_pressure_advance_for_extruder(new_filament_id);
+        gcode += m_writer.set_pressure_advance(pressure_advance);
         // Orca: Adaptive PA
         // Reset Adaptive PA processor last PA value
-        m_pa_processor->resetPreviousPA(get_pressure_advance_for_extruder(new_filament_id));
+        m_pa_processor->resetPreviousPA(pressure_advance);
     }
     //Orca: tool changer or IDEX's firmware may change Z position, so we set it to unknown/undefined
     m_last_pos_defined = false;
