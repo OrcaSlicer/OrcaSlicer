@@ -86,7 +86,7 @@
 		"5"
 	],
 	"machine_pause_gcode": "PAUSE",
-	"machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM104 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y130 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y130 F6000\nG1 E0.8 F300\nG1 X0 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG1 X130 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG92 E0\nG1 Z1 F600",
+	"machine_start_gcode": ";SET PRINT AREA MIN AND MAX COORDINATES TO ENABLE ADAPTIVE PROBING\n; MINX = {first_layer_print_min[0]}\n; MINY = {first_layer_print_min[1]}\n; MAXX = {first_layer_print_max[0]}\n; MAXY = {first_layer_print_max[1]}\nM140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM104 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y130 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y130 F6000\nG1 E0.8 F300\nG1 X0 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG1 X130 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG92 E0\nG1 Z1 F600",
 	"machine_unload_filament_time": "0",
 	"manual_filament_change": "0",
 	"nozzle_type": "hardened_steel",
