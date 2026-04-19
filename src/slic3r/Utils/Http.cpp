@@ -194,8 +194,8 @@ Http::priv::priv(const std::string &url)
 #ifdef __WINDOWS__
 	::curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_2);
 #endif
-   ::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
 	// https://everything.curl.dev/http/post/expect100.html
 	// remove the Expect: header, it will add a second delay to each request,
