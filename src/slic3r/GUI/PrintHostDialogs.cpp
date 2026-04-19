@@ -29,6 +29,10 @@
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
 #include "../Utils/CrealityPrint.hpp"
+#include "BitmapComboBox.hpp"
+#include "wxExtensions.hpp"
+
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 
@@ -1012,6 +1016,101 @@ void CrealityPrintHostSendDialog::init()
         group_sizer->AddSpacer(VERT_SPACING);
     }
 
+    // --- Color mapping UI ---
+    // Get gcode filament info from slicer
+    auto  preset_bundle    = wxGetApp().preset_bundle;
+    auto  full_config      = preset_bundle->full_config();
+    auto* filament_colors  = full_config.option<ConfigOptionStrings>("filament_colour");
+    auto* filament_types   = full_config.option<ConfigOptionStrings>("filament_type");
+    int   gcode_filament_count = filament_colors ? (int)filament_colors->values.size() : 0;
+
+    // Query printer for loaded materials
+    {
+        wxBusyCursor wait;
+        std::string boxes_json = creality_host->query_boxes_info();
+        if (!boxes_json.empty()) {
+            try {
+                auto resp = nlohmann::json::parse(boxes_json);
+                if (resp.contains("boxsInfo") && resp["boxsInfo"].contains("materialBoxs")) {
+                    for (auto& box : resp["boxsInfo"]["materialBoxs"]) {
+                        int box_id = box["id"].get<int>();
+                        // Skip boxes with state != 1 (inactive/empty spool holder)
+                        if (box.value("state", 0) != 1)
+                            continue;
+                        for (auto& mat : box["materials"]) {
+                            int slot_id = mat["id"].get<int>();
+                            std::string tool_id = "T" + std::to_string(box_id) + std::string(1, 'A' + slot_id);
+                            // Creality uses "#0RRGGBB" (7 hex digits), normalize to "#RRGGBB"
+                            std::string color = mat.value("color", "#FFFFFF");
+                            if (color.size() == 8 && color[0] == '#')
+                                color = "#" + color.substr(2);
+                            m_printer_slots.push_back({
+                                tool_id,
+                                mat.value("type", ""),
+                                color,
+                                box_id,
+                                slot_id
+                            });
+                        }
+                    }
+                }
+            } catch (const nlohmann::json::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "CrealityPrint dialog: Failed to parse boxsInfo: " << e.what();
+            }
+        }
+    }
+
+    if (gcode_filament_count > 0 && !m_printer_slots.empty()) {
+        auto* label = new wxStaticText(this, wxID_ANY, _L("Filament Mapping:"));
+        label->SetFont(::Label::Body_13);
+        label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        group_sizer->Add(label);
+        group_sizer->AddSpacer(4);
+
+        for (int i = 0; i < gcode_filament_count; i++) {
+            auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+            // Left side: gcode filament color swatch + type
+            std::string gc_color = (filament_colors && i < (int)filament_colors->values.size())
+                                   ? filament_colors->values[i] : "#FFFFFF";
+            std::string gc_type  = (filament_types && i < (int)filament_types->values.size())
+                                   ? filament_types->values[i] : "?";
+
+            // Color indicator panel
+            auto* color_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
+            color_panel->SetBackgroundColour(wxColour(gc_color));
+            color_panel->SetMinSize(wxSize(FromDIP(16), FromDIP(16)));
+            row_sizer->Add(color_panel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+
+            auto* type_label = new wxStaticText(this, wxID_ANY,
+                wxString::Format("%d (%s)", i + 1, gc_type.c_str()));
+            type_label->SetFont(::Label::Body_13);
+            type_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+            type_label->SetMinSize(wxSize(FromDIP(80), -1));
+            row_sizer->Add(type_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+
+            // Arrow
+            auto* arrow_label = new wxStaticText(this, wxID_ANY, wxString::FromUTF8("\xe2\x86\x92"));
+            arrow_label->SetFont(::Label::Body_13);
+            row_sizer->Add(arrow_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(8));
+
+            // Right side: dropdown with color icons per slot
+            int icon_sz = FromDIP(16);
+            auto* combo = new BitmapComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
+            for (auto& slot : m_printer_slots) {
+                wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
+                wxString label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
+                combo->Append(label_str, bmp ? *bmp : wxNullBitmap);
+            }
+            combo->SetSelection((i < (int)m_printer_slots.size()) ? i : 0);
+            row_sizer->Add(combo, 0, wxALIGN_CENTER_VERTICAL);
+
+            group_sizer->Add(row_sizer);
+            group_sizer->AddSpacer(4);
+            m_slot_combos.push_back(combo);
+        }
+    }
+
     this->Layout();
     this->Fit();
 }
@@ -1020,6 +1119,21 @@ std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() c
 {
     std::map<std::string, std::string> info;
     info["enableSelfTest"] = m_enableSelfTest ? "1" : "0";
+
+    // Color mapping: colorMatch_0, colorMatch_1, ... tab-delimited
+    for (int i = 0; i < (int)m_slot_combos.size(); i++) {
+        int sel = m_slot_combos[i]->GetSelection();
+        if (sel >= 0 && sel < (int)m_printer_slots.size()) {
+            auto& slot = m_printer_slots[sel];
+            // id = gcode tool index (T1A for first filament, T1B for second, ...),
+            // not the destination CFS slot — firmware matches by gcode tool.
+            std::string gcode_tool = "T1" + std::string(1, 'A' + i);
+            info["colorMatch_" + std::to_string(i)] =
+                gcode_tool + "\t" + slot.type + "\t" + slot.color + "\t" +
+                std::to_string(slot.box_id) + "\t" + std::to_string(slot.material_id);
+        }
+    }
+
     return info;
 }
 
