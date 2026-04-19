@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Creality",
 	"bed_model": "creality_ender5max_buildplate_model.stl",
-	"bed_texture": "creality_ender5max_buildplate_texture.png",
+	"bed_texture": "creality_ender5max_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_materials": "Creality Hyper PLA-CF @Ender-5Max-all;Creality Hyper PLA @Ender-5Max-all;Creality Hyper ABS @Ender-5Max-all;Creality Generic TPU @Ender-5Max-all;Creality Generic ASA @Ender-5Max-all;Creality Silk PLA @Ender-5Max-all;Creality Generic PLA @Ender-5Max-all;Creality Generic PETG @Ender-5Max-all;Creality Generic ABS @Ender-5Max-all;Creality Generic PA @Ender-5Max-all"
 }
