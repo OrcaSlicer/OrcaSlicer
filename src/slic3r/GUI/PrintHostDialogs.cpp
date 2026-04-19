@@ -1102,7 +1102,16 @@ void CrealityPrintHostSendDialog::init()
                 wxString label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
                 combo->Append(label_str, bmp ? *bmp : wxNullBitmap);
             }
-            combo->SetSelection((i < (int)m_printer_slots.size()) ? i : 0);
+            // Find best default: exact color+type match, else positional
+            int default_sel = (i < (int)m_printer_slots.size()) ? i : 0;
+            for (int s = 0; s < (int)m_printer_slots.size(); s++) {
+                if (m_printer_slots[s].type == gc_type &&
+                    wxColour(m_printer_slots[s].color) == wxColour(gc_color)) {
+                    default_sel = s;
+                    break;
+                }
+            }
+            combo->SetSelection(default_sel);
             row_sizer->Add(combo, 0, wxALIGN_CENTER_VERTICAL);
 
             group_sizer->Add(row_sizer);
