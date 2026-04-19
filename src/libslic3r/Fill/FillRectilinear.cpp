@@ -3175,7 +3175,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
         //  Align bounding box to the grid
         bb.merge(align_to_grid(bb.center(), Point(period,h)));
-        const int    layer_mod = int(infill_layer_id % 3);
+        const size_t layer_mod = infill_layer_id % 3;
         const double angle     = layer_mod * 2.0 * M_PI / 3.0;
 
         const Point rotation_center = bb.center();
