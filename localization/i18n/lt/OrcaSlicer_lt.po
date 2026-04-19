@@ -11223,6 +11223,9 @@ msgstr "Nutolinti"
 msgid "Switch between Prepare/Preview"
 msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
 
+msgid "Toggle printable for object/part"
+msgstr "Perjungti objekto / dalies spausdinimą"
+
 msgid "Plater"
 msgstr "Plokštė"
 
