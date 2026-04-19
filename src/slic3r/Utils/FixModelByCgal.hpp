@@ -4,8 +4,6 @@
 #include <string>
 #include "../GUI/Widgets/ProgressDialog.hpp"
 
-class ProgressDialog;
-
 namespace Slic3r {
 
 class Model;

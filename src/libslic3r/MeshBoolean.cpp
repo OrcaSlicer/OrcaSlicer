@@ -513,7 +513,8 @@ bool repair(TriangleMesh& mesh, RepairedMeshErrors* repaired_errors, std::string
 
         // 6) Boolean union (keeps only outer shell)
         _EpicMesh tmp;
-        if (PMP::corefine_and_compute_union(cgal_mesh, cgal_mesh, tmp)) {
+        _EpicMesh cgal_mesh_copy = cgal_mesh;
+        if (PMP::corefine_and_compute_union(cgal_mesh, cgal_mesh_copy, tmp)) {
             cgal_mesh = std::move(tmp);
         }
         // If it fails, continue anyway with previous mesh
