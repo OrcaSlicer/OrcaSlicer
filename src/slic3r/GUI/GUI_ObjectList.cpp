@@ -5377,6 +5377,11 @@ ModelVolume* ObjectList::get_selected_model_volume()
     return (*m_objects)[obj_idx]->volumes[vol_idx];
 }
 
+// ORCA: kept as dead code (not called by any active path). Preserved in #if 0
+// form for traceability with upstream Bambu Studio -- removing outright would
+// produce merge conflicts on every BBL sync. The active "Change Type" UI goes
+// through the submenu in GUI_Factories.cpp -> ObjectList::set_volume_type().
+#if 0
 void ObjectList::change_part_type()
 {
   wxDataViewItemArray selections;
@@ -5573,6 +5578,7 @@ void ObjectList::change_part_type()
 
   return;
 }
+#endif
 
 ModelVolumeType ObjectList::get_selected_volume_type()
 {
@@ -5644,6 +5650,22 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
         }
         if (volumes.empty())
             return;
+    }
+
+    // SVG/text volumes carry emboss metadata (text_configuration, emboss_shape) that only makes
+    // sense for Part / Negative Part / Modifier. ModelVolume::set_type() does not clear this
+    // metadata, so converting such volumes to Support Blocker / Support Enforcer leaves stale
+    // emboss state attached to a support volume -- historically this caused crashes (issue #5070,
+    // originally fixed in ObjectList::change_part_type() by hiding Support entries in the old
+    // choice dialog). The submenu path bypassed that guard; enforce it here at action time.
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+        const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
+            [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
+        if (has_text_or_svg) {
+            Slic3r::GUI::show_error(nullptr,
+                _L("Cannot change type: text/SVG volumes can only become Part, Negative Part, or Modifier."));
+            return;
+        }
     }
 
     const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
