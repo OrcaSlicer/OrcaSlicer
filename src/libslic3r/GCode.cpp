@@ -3839,8 +3839,15 @@ std::string GCode::placeholder_parser_process(const std::string &name, const std
 
 PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
     try {
+        DynamicConfig effective_config_override;
+        if (config_override != nullptr)
+            effective_config_override = *config_override;
+
+        // Keep legacy placeholder behavior: [pressure_advance] resolves to a scalar value.
+        effective_config_override.set_key_value("pressure_advance", new ConfigOptionFloats{ get_pressure_advance_for_extruder(current_filament_id) });
+
         ppi.update_from_gcodewriter(m_writer);
-        std::string output = ppi.parser.process(templ, current_filament_id, config_override, &ppi.output_config, &ppi.context);
+        std::string output = ppi.parser.process(templ, current_filament_id, &effective_config_override, &ppi.output_config, &ppi.context);
         ppi.validate_output_vector_variables();
 
         if (const std::vector<double> &pos = ppi.opt_position->values; ppi.position != pos) {
