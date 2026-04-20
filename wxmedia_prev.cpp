@@ -3,7 +3,6 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include <boost/filesystem/operations.hpp>
-#include <boost/log/trivial.hpp>
 #ifdef __WIN32__
 #include <winuser.h>
 #include <versionhelpers.h>
@@ -12,7 +11,6 @@
 #endif
 
 #ifdef __LINUX__
-#include "LinuxDisplayBackend.hpp"
 #include "Printer/gstbambusrc.h"
 #include <gst/gst.h> // main gstreamer header
 class WXDLLIMPEXP_MEDIA
@@ -21,21 +19,6 @@ class WXDLLIMPEXP_MEDIA
 public:
     GstElement *m_playbin; // GStreamer media element
 };
-
-namespace {
-
-GstElement *make_first_available_sink(const char *const *factories, size_t count)
-{
-    for (size_t i = 0; i < count; ++i) {
-        GstElement *sink = gst_element_factory_make(factories[i], nullptr);
-        if (sink != nullptr)
-            return sink;
-    }
-
-    return nullptr;
-}
-
-} // namespace
 #endif
 
 wxDEFINE_EVENT(EVT_MEDIA_CTRL_STAT, wxCommandEvent);
@@ -60,26 +43,6 @@ wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
 #ifdef __LINUX__
     /* Register only after we have created the wxMediaCtrl, since only then are we guaranteed to have fired up Gstreamer's plugin registry. */
     auto playbin = reinterpret_cast<wxGStreamerMediaBackend *>(m_imp)->m_playbin;
-
-#if defined(__WXGTK__)
-    if (Slic3r::GUI::is_running_on_wayland()) {
-        const char *const preferred_wayland_sinks[] = {
-            "gtkwaylandsink",
-            "waylandsink",
-            "glimagesink"
-        };
-        GstElement *video_sink = make_first_available_sink(preferred_wayland_sinks, sizeof(preferred_wayland_sinks) / sizeof(preferred_wayland_sinks[0]));
-        if (video_sink != nullptr) {
-            g_object_set(G_OBJECT(playbin), "video-sink", video_sink, nullptr);
-            gst_object_unref(video_sink);
-            BOOST_LOG_TRIVIAL(info) << "wxMediaCtrl2: configured Wayland-compatible video sink for liveview";
-        } else {
-            m_wayland_video_sink_ready = false;
-            BOOST_LOG_TRIVIAL(warning) << "wxMediaCtrl2: no Wayland-compatible GStreamer sink found; liveview playback disabled to avoid crash";
-        }
-    }
-#endif
-
     g_object_set (G_OBJECT (playbin),
                   "audio-sink", NULL,
                    NULL);
@@ -94,28 +57,6 @@ wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
 
 void wxMediaCtrl2::Load(wxURI url)
 {
-#if defined(__LINUX__) && defined(__WXGTK__)
-    if (Slic3r::GUI::is_running_on_wayland() && !m_wayland_video_sink_ready) {
-        static bool notified = false;
-        if (!notified) {
-            CallAfter([] {
-                wxMessageBox(
-                    _L("Liveview is unavailable on native Wayland because no compatible GStreamer Wayland video sink was found. Install a Wayland sink plugin or run OrcaSlicer under X11."),
-                    _L("Error"),
-                    wxOK);
-            });
-            notified = true;
-        }
-
-        m_error = 104;
-        wxMediaEvent event(wxEVT_MEDIA_STATECHANGED);
-        event.SetId(GetId());
-        event.SetEventObject(this);
-        wxPostEvent(this, event);
-        return;
-    }
-#endif
-
 #ifdef __WIN32__
     InvalidateBestSize();
     if (m_imp == nullptr) {

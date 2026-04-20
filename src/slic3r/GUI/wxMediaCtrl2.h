@@ -87,6 +87,7 @@ private:
     wxString m_idle_image;
     int      m_error = 0;
     bool     m_loaded = false;
+    bool     m_wayland_video_sink_ready = true;
     wxSize   m_video_size{16, 9};
 };
 

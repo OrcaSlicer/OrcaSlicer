@@ -32,7 +32,8 @@ static std::map<int, std::string> error_messages = {
     {100, L("The player is not loaded, please click \"play\" button to retry.")},
     {101, L("The player is not loaded, please click \"play\" button to retry.")},
     {102, L("The player is not loaded, please click \"play\" button to retry.")},
-    {103, L("The player is not loaded, please click \"play\" button to retry.")}
+    {103, L("The player is not loaded, please click \"play\" button to retry.")},
+    {104, L("Liveview is unavailable on native Wayland because no compatible GStreamer Wayland video sink was found.")}
 };
 
 namespace Slic3r {
