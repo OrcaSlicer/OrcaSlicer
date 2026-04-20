@@ -1217,8 +1217,8 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("External Bridging angle override.\n"
         "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
         "Otherwise the provided angle will be used according to:\n"
-        " - The absolute coordinates \n"
-        " - The absolute coordinate + Model rotation: If Align infill direction to model is enabled\n"
+        " - The absolute coordinates\n"
+        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
         " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
@@ -1234,8 +1234,8 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Internal Bridging angle override.\n"
         "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
         "Otherwise the provided angle will be used according to:\n"
-        " - The absolute coordinates \n"
-        " - The absolute coordinate + Model rotation: If Align infill direction to model is enabled\n"
+        " - The absolute coordinates\n"
+        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
         " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
@@ -1249,7 +1249,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Relative bridge angle");
     def->category = L("Strength");
     def->tooltip = L("When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.\n"
-        "Recommended to add a small (<10°) to improve bridge covering in closed shapes.");
+        "Recommended to add a small angle (<10°) to improve bridge covering in closed shapes.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

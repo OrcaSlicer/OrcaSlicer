@@ -83,6 +83,12 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         (this->layer()->id() >= size_t(region_config.bottom_shell_layers.value) &&
          this->layer()->print_z >= region_config.bottom_shell_thickness - EPSILON);
 
+    double model_rotation_rad = 0.0;
+    if (region_config.align_infill_direction_to_model) {
+        auto m = this->layer()->object()->trafo().matrix();
+        model_rotation_rad = std::atan2((double)m(1, 0), (double)m(0, 0));
+    }
+
     PerimeterGenerator g(
         // input:
         &slices,
@@ -94,6 +100,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         &this->layer()->object()->config(),
         &print_config,
         spiral_mode,
+        model_rotation_rad,
         
         // output:
         &this->perimeters,
@@ -522,8 +529,15 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         const double custom_angle_deg = region_config.bridge_angle.value;
         const bool   relative_angle   = region_config.relative_bridge_angle.value;
         const double custom_angle_rad = Geometry::deg2rad(custom_angle_deg);
+
+        double align_offset_rad = 0.0;
+        if (region_config.align_infill_direction_to_model) {
+            auto m = this->layer()->object()->trafo().matrix();
+            align_offset_rad = std::atan2((double)m(1, 0), (double)m(0, 0));
+        }
+
         bridges.surfaces = (custom_angle_deg > 0.0 && !relative_angle) ?
-            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad) :
+            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad + align_offset_rad) :
             expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius);
         if (custom_angle_deg > 0.0 && relative_angle) {
             for (Surface &bridge_surface : bridges.surfaces) {
@@ -797,8 +811,15 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 const double custom_angle_deg = region_config.bridge_angle.value;
                 const bool   relative_angle   = region_config.relative_bridge_angle.value;
                 const double custom_angle_rad = Geometry::deg2rad(custom_angle_deg);
+
+                double align_offset_rad = 0.0;
+                if (region_config.align_infill_direction_to_model) {
+                    auto m = this->layer()->object()->trafo().matrix();
+                    align_offset_rad = std::atan2((double)m(1, 0), (double)m(0, 0));
+                }
+
                 if (custom_angle_deg > 0.0 && !relative_angle) {
-                    bridges[idx_last].bridge_angle = custom_angle_rad;
+                    bridges[idx_last].bridge_angle = custom_angle_rad + align_offset_rad;
                 } else {
                     auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices));
                     bridges[idx_last].bridge_angle = PI + std::atan2(bridging_dir.y(), bridging_dir.x());

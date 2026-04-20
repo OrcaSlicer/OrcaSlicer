@@ -3108,8 +3108,13 @@ void PrintObject::bridge_over_infill()
                         const double custom_angle_rad   = Geometry::deg2rad(region_config.internal_bridge_angle.value);
                         if (region_config.relative_bridge_angle.value)
                             bridging_angle += custom_angle_rad;
-                        else
+                        else {
                             bridging_angle = custom_angle_rad;
+                            if (region_config.align_infill_direction_to_model) {
+                                auto m = po->trafo().matrix();
+                                bridging_angle += std::atan2((double)m(1, 0), (double)m(0, 0));
+                            }
+                        }
                     }
 
                     boundary_plines.insert(boundary_plines.end(), anchors.begin(), anchors.end());
