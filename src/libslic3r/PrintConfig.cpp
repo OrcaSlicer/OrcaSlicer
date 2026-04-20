@@ -92,7 +92,7 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
 }
 
 
-// Orca: input shaping values typs by flavor
+// Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
 {
     switch (flavor) {
