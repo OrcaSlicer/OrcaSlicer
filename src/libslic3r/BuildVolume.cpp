@@ -527,6 +527,9 @@ bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const Boun
             build_volume.max.z() = std::numeric_limits<double>::max();
         if (ignore_bottom)
             build_volume.min.z() = -std::numeric_limits<double>::max();
+        // BBox-only callers may provide no moves. Validate bbox corners regardless of paths_bbox.defined.
+        if (paths.moves.empty())
+            return build_volume.contains(paths_bbox.min) && build_volume.contains(paths_bbox.max);
         if (paths_bbox.defined && build_volume.contains(paths_bbox))
             return true;
 
