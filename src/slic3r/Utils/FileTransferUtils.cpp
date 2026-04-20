@@ -39,9 +39,17 @@ FileTransferModule::FileTransferModule(ModuleHandle networking_module, int requi
 
 FileTransferTunnel::FileTransferTunnel(FileTransferModule &m, const std::string &url) : m_(&m)
 {
+    // Guard against missing symbols in older Bambu networking plugins.
+    // These symbols were added in a newer plugin ABI; if the installed
+    // plugin predates them, ft_tunnel_create/ft_tunnel_set_status_cb
+    // will be null and calling them crashes.
+    if (!m_->ft_tunnel_create || !m_->ft_tunnel_set_status_cb) {
+        throw std::runtime_error("Bambu networking plugin is too old: missing ft_tunnel_* symbols. "
+                                 "Please update the networking plugin.");
+    }
     FT_TunnelHandle *h{};
     if (m_->ft_tunnel_create(url.c_str(), &h) != 0 || !h) {
-
+        throw std::runtime_error("ft_tunnel_create failed");
     }
     h_ = h;
 
