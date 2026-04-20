@@ -179,7 +179,13 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
     g.has_fuzzy_skin = false;
     g.has_fuzzy_hole = false;
 
-    std::unordered_map<FuzzySkinConfig, SurfacesPtr> regions;
+    struct ConfigSurfaces {
+        FuzzySkinConfig config;
+        SurfacesPtr     surfaces;
+    };
+
+    std::vector<ConfigSurfaces> regions;
+    regions.reserve(g.compatible_regions->size());
     for (auto region : *g.compatible_regions) {
         const auto&           region_config = region->region().config();
         const FuzzySkinConfig cfg{region_config.fuzzy_skin,
@@ -191,26 +197,36 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
                                   region_config.fuzzy_skin_octaves,
                                   region_config.fuzzy_skin_persistence,
                                   region_config.fuzzy_skin_mode};
-        auto&                 surfaces = regions[cfg];
+
+        auto it = std::find_if(regions.begin(), regions.end(), [&cfg](const ConfigSurfaces& item) {
+            return item.config == cfg;
+        });
+        if (it == regions.end()) {
+            regions.push_back({cfg, {}});
+            it = regions.end() - 1;
+        }
+
+        auto& surfaces = it->surfaces;
         for (const auto& surface : region->slices.surfaces) {
             surfaces.push_back(&surface);
         }
 
-        if (cfg.type != FuzzySkinType::Disabled_fuzzy) { //None = painted only.
+        if (should_fuzzify(cfg, g.layer_id, 0, true)) {
             g.has_fuzzy_skin = true;
-            if (cfg.type != FuzzySkinType::External) {
-                g.has_fuzzy_hole = true;
-            }
+        }
+        if (should_fuzzify(cfg, g.layer_id, 0, false)) {
+            g.has_fuzzy_hole = true;
         }
     }
 
     if (regions.size() == 1) { // optimization
-        g.regions_by_fuzzify[regions.begin()->first] = {};
+        g.regions_by_fuzzify.push_back({regions.front().config, {}});
         return;
     }
 
-    for (auto& it : regions) {
-        g.regions_by_fuzzify[it.first] = offset_ex(it.second, ClipperSafetyOffset);
+    g.regions_by_fuzzify.reserve(regions.size());
+    for (const auto& region : regions) {
+        g.regions_by_fuzzify.push_back({region.config, offset_ex(region.surfaces, ClipperSafetyOffset)});
     }
 }
 
@@ -251,10 +267,10 @@ static bool same_fuzzy_effect(const FuzzySkinConfig& a, const FuzzySkinConfig& b
         && a.mode              == b.mode;
 }
 
-static std::vector<MergedFuzzyRegion> collect_merged_fuzzy_regions(const std::unordered_map<FuzzySkinConfig, ExPolygons>& regions,
-                                                                   const int                                             layer_id,
-                                                                   const size_t                                          loop_idx,
-                                                                   const bool                                            is_contour)
+static std::vector<MergedFuzzyRegion> collect_merged_fuzzy_regions(const std::vector<std::pair<FuzzySkinConfig, ExPolygons>>& regions,
+                                                                   const int                                              layer_id,
+                                                                   const size_t                                           loop_idx,
+                                                                   const bool                                             is_contour)
 {
     // Merge regions that produce identical fuzzy effects (differ only in type).
     // When the style (e.g. External) and a painted region (All) both fuzzify this loop
@@ -473,7 +489,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 
             // Make each region's ExPolygons exclusive so overlapping regions don't double-fuzz
             // the same perimeter section. Later regions in the list take priority over earlier ones
-            // in overlapping areas (matching modifier precedence order).
+            // in overlapping areas.
             for (size_t i = 0; i < merged_regions.size(); ++i)
                 for (size_t j = i + 1; j < merged_regions.size(); ++j)
                     if (!merged_regions[i].expolygons.empty() && !merged_regions[j].expolygons.empty())
