@@ -4527,7 +4527,7 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("input_shaping_damp_x", coFloat);
     def->label   = L("X");
-    def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
+    def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->min     = 0;
     def->max     = 1;
     def->mode    = comAdvanced;
@@ -4535,7 +4535,7 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("input_shaping_damp_y", coFloat);
     def->label   = L("Y");
-    def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
+    def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.");
     def->min     = 0;
     def->max     = 1;
     def->mode    = comAdvanced;
