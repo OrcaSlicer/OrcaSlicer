@@ -638,6 +638,7 @@ private:
     int get_highest_bed_temperature(const bool is_first_layer,const Print &print) const;
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
+    unsigned int rounded_filament_acceleration(double acceleration) const;
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
     bool _needSAFC(const ExtrusionPath &path);
     void print_machine_envelope(GCodeOutputStream& file, Print& print);

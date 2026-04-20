@@ -212,8 +212,26 @@ std::string GCodeWriter::set_chamber_temperature(int temperature, bool wait)
 }
 
 // copied from PrusaSlicer
+unsigned int GCodeWriter::limit_to_filament_max_acceleration(unsigned int acceleration) const
+{
+    const Extruder *current_filament = this->filament();
+    if (current_filament == nullptr)
+        return acceleration;
+
+    const size_t filament_id = current_filament->id();
+    if (filament_id >= this->config.enable_filament_acceleration_limit.values.size() ||
+        filament_id >= this->config.filament_max_acceleration.values.size() ||
+        !this->config.enable_filament_acceleration_limit.get_at(filament_id))
+        return acceleration;
+
+    const auto filament_max_acceleration = static_cast<unsigned int>(std::round(this->config.filament_max_acceleration.get_at(filament_id)));
+    return filament_max_acceleration > 0 ? std::min(acceleration, filament_max_acceleration) : acceleration;
+}
+
 std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned int acceleration)
 {
+    acceleration = this->limit_to_filament_max_acceleration(acceleration);
+
     // Clamp the acceleration to the allowed maximum.
     if (type == Acceleration::Print && m_max_acceleration > 0 && acceleration > m_max_acceleration)
         acceleration = m_max_acceleration;
@@ -294,6 +312,8 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
     // Only Klipper supports setting acceleration and jerk at the same time. Throw an error if we try to do this on other flavours.
     if(FLAVOR_IS_NOT(gcfKlipper))
         throw std::runtime_error("set_accel_and_jerk() is only supported by Klipper");
+
+    acceleration = this->limit_to_filament_max_acceleration(acceleration);
 
     // Clamp the acceleration to the allowed maximum.
     if (m_max_acceleration > 0 && acceleration > m_max_acceleration)

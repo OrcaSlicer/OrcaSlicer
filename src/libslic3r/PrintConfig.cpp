@@ -2381,6 +2381,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2. });
 
+    def = this->add("enable_filament_acceleration_limit", coBools);
+    def->label = L("Enable max acceleration");
+    def->tooltip = L("Limit print and travel acceleration settings from the process profile so they never exceed this filament's maximum acceleration.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBools { false });
+
+    def = this->add("filament_max_acceleration", coFloats);
+    def->label = L("Max acceleration");
+    def->tooltip = L("Maximum acceleration allowed for this filament. Process acceleration values above this limit will be reduced during slicing.");
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 1000. });
+
     def = this->add("machine_load_filament_time", coFloat);
     def->label = L("Filament load time");
     def->tooltip = L("Time to load new filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
@@ -7814,6 +7828,8 @@ std::set<std::string> print_options_with_variant = {
 std::set<std::string> filament_options_with_variant = {
     "filament_flow_ratio",
     "filament_max_volumetric_speed",
+    "enable_filament_acceleration_limit",
+    "filament_max_acceleration",
     //"filament_extruder_id",
     "filament_extruder_variant",
     "filament_retraction_length",
@@ -9642,6 +9658,12 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     for (double fd : cfg.filament_diameter.values)
         if (fd < 1) {
             error_message.emplace("filament_diameter", L("invalid value ") + cfg.filament_diameter.serialize());
+            break;
+        }
+
+    for (size_t i = 0; i < cfg.enable_filament_acceleration_limit.values.size() && i < cfg.filament_max_acceleration.values.size(); ++i)
+        if (cfg.enable_filament_acceleration_limit.get_at(i) && cfg.filament_max_acceleration.get_at(i) < 1) {
+            error_message.emplace("filament_max_acceleration", L("invalid value ") + cfg.filament_max_acceleration.serialize());
             break;
         }
 

@@ -33,6 +33,14 @@ SCENARIO("Generic config validation performs as expected.", "[Config]") {
                 REQUIRE_FALSE(config.validate().empty());
             }
         }
+
+        WHEN("filament acceleration limiting is enabled with a non-positive max acceleration") {
+            config.set_key_value("enable_filament_acceleration_limit", new ConfigOptionBools { true });
+            config.set_key_value("filament_max_acceleration", new ConfigOptionFloats { 0.0 });
+            THEN("Validate returns error") {
+                REQUIRE_FALSE(config.validate().empty());
+            }
+        }
     }
 }
 

@@ -3965,9 +3965,11 @@ void TabFilament::build()
         };
 
         //BBS
-        optgroup = page->new_optgroup(L("Volumetric speed limitation"), L"param_volumetric_speed");
+        optgroup = page->new_optgroup(L("Volumetric speed and acceleration limitation"), L"param_volumetric_speed");
         optgroup->append_single_option_line("filament_adaptive_volumetric_speed", "material_volumetric_speed_limitation#adaptive-volumetric-speed", 0);
         optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
+        optgroup->append_single_option_line("enable_filament_acceleration_limit", "material_volumetric_speed_limitation#limit-max-print-and-travel-acceleration", 0);
+        optgroup->append_single_option_line("filament_max_acceleration", "material_volumetric_speed_limitation#max-acceleration", 0);
 
         //line = { "", "" };
         //line.full_width = 1;
@@ -4201,6 +4203,8 @@ void TabFilament::toggle_options()
     {
         bool pa = m_config->opt_bool("enable_pressure_advance", 0);
         toggle_option("pressure_advance", pa);
+        bool filament_acceleration_limit = m_config->opt_bool("enable_filament_acceleration_limit", 0);
+        toggle_option("filament_max_acceleration", filament_acceleration_limit, 256 + 0u);
 
         //Orca: Enable the plates that should be visible when multi bed support is enabled or a BBL printer is selected; otherwise, enable only the plate visible for the selected bed type.
         DynamicConfig& proj_cfg               = m_preset_bundle->project_config;
