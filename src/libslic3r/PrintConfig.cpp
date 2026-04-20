@@ -1273,7 +1273,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_flow", coFloat);
     def->label = L("Bridge flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("This value governs the thickness of the external (visible) bridge layer."
+    def->tooltip = L("This value governs the thickness of the external (visible) bridge layer.\n"
                      "Values above 1.0: Increase the amount of material while maintaining line spacing. This can improve line contact and strength.\n"
                      "Values below 1.0: Reduce the amount of material while adjusting line spacing to maintain contact. This can improve sagging.\n\n"
                      "The actual bridge flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio.");
@@ -10266,8 +10266,12 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
     // extrusion widths
     {
         double max_nozzle_diameter = 0.;
+        double min_nozzle_diameter = std::numeric_limits<double>::max();
         for (double dmr : cfg.nozzle_diameter.values)
+        {
             max_nozzle_diameter = std::max(max_nozzle_diameter, dmr);
+            min_nozzle_diameter = std::min(min_nozzle_diameter, dmr);
+        }
         const char *widths[] = {
             "outer_wall_line_width",
             "inner_wall_line_width",
@@ -10282,7 +10286,7 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         for (size_t i = 0; i < sizeof(widths) / sizeof(widths[i]); ++ i) {
             std::string key(widths[i]);
             double abs_width = cfg.get_abs_value(key, max_nozzle_diameter);
-            double allowed_max = (key == "bridge_line_width") ? max_nozzle_diameter : MAX_LINE_WIDTH_MULTIPLIER * max_nozzle_diameter;
+            double allowed_max = (key == "bridge_line_width") ? min_nozzle_diameter : MAX_LINE_WIDTH_MULTIPLIER * max_nozzle_diameter;
             if (abs_width > allowed_max) {
                 if (key == "bridge_line_width")
                     error_message.emplace(key, L("Bridge line width must not exceed nozzle diameter: ") + std::to_string(abs_width));

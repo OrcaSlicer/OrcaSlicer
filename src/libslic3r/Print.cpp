@@ -22,7 +22,6 @@
 #include <float.h>
 
 #include <algorithm>
-#include <cstring>
 #include <limits>
 #include <unordered_set>
 #include <boost/filesystem/path.hpp>
@@ -1543,17 +1542,15 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 #endif
 
         auto validate_extrusion_width = [min_nozzle_diameter, max_nozzle_diameter](const ConfigBase &config, const char *opt_key, double layer_height, std::string &err_msg) -> bool {
-            const bool is_bridge_width = std::strcmp(opt_key, "bridge_line_width") == 0;
             double extrusion_width_min = config.get_abs_value(opt_key, min_nozzle_diameter);
             double extrusion_width_max = config.get_abs_value(opt_key, max_nozzle_diameter);
-            double allowed_max = is_bridge_width ? max_nozzle_diameter : max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER;
             if (extrusion_width_min == 0) {
                 // Default "auto-generated" extrusion width is always valid.
-            } else if (!is_bridge_width && extrusion_width_min <= layer_height) {
+            } else if (extrusion_width_min <= layer_height) {
                     err_msg = L("Too small line width");
                     return false;
-                } else if (extrusion_width_max > allowed_max) {
-                err_msg = is_bridge_width ? L("Bridge line width must not exceed nozzle diameter") : L("Too large line width");
+                } else if (extrusion_width_max > max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER) {
+                err_msg = L("Too large line width");
 				return false;
 			}
 			return true;
@@ -1670,10 +1667,29 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 if (!validate_extrusion_width(object->config(), "support_line_width", layer_height, err_msg))
                     return {err_msg, object, "support_line_width"};
             }
-            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width","skin_infill_line_width" ,"skeleton_infill_line_width", "bridge_line_width"})
+            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width","skin_infill_line_width" ,"skeleton_infill_line_width"})
 				for (const PrintRegion &region : object->all_regions())
                     if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
 		            	return  {err_msg, object, opt_key};
+
+            const bool allow_thin_bridge_width = object->config().thick_bridges && object->config().thick_internal_bridges;
+            for (const PrintRegion &region : object->all_regions()) {
+                const auto &bridge_width_opt = region.config().bridge_line_width;
+                for (FlowRole bridge_role : { frPerimeter, frInfill, frSolidInfill, frTopSolidInfill }) {
+                    const double nozzle_diameter = m_config.nozzle_diameter.get_at(region.extruder(bridge_role) - 1);
+                    const double bridge_width    = bridge_width_opt.get_abs_value(nozzle_diameter);
+                    if (bridge_width <= 0.)
+                        continue;
+                    if (bridge_width > nozzle_diameter) {
+                        err_msg = L("Bridge line width must not exceed nozzle diameter");
+                        return { err_msg, object, "bridge_line_width" };
+                    }
+                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                        err_msg = L("Too small line width");
+                        return { err_msg, object, "bridge_line_width" };
+                    }
+                }
+            }
         }
     }
 
