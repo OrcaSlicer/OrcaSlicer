@@ -3928,9 +3928,10 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print)
 
         // Orca: Override input shaping values
         if (print.config().input_shaping_emit.value && flavor != gcfMarlinLegacy) {
+            const bool input_shaping_disable = print.config().input_shaping_type.value == InputShaperType::Disable;
             file.write_format(writer().set_input_shaping('X', print.config().input_shaping_damp_x.value,
                 print.config().input_shaping_freq_x.value, print.config().opt_serialize("input_shaping_type")).c_str());
-            if (flavor != gcfRepRapFirmware){
+            if (flavor != gcfRepRapFirmware && !input_shaping_disable) {
                 file.write_format(writer().set_input_shaping('Y', print.config().input_shaping_damp_y.value,
                     print.config().input_shaping_freq_y.value, "").c_str());
             }
