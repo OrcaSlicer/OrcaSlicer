@@ -6540,22 +6540,28 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     
     //Orca: process custom gcode for extrusion role change
     if (path.role() != m_last_extrusion_role) {
+        const auto current_filament_id = m_writer.filament()->id();
+        const std::string& machine_role_change_gcode  = m_config.change_extrusion_role_gcode.value;
+        const std::string& filament_role_change_gcode = m_config.filament_change_extrusion_role_gcode.get_at(current_filament_id);
+        const std::string& process_role_change_gcode  = m_config.process_change_extrusion_role_gcode.value;
+
+        if (!machine_role_change_gcode.empty() || !filament_role_change_gcode.empty() || !process_role_change_gcode.empty()) {
             DynamicConfig config;
             config.set_key_value("extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(path.role())));
             config.set_key_value("last_extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(m_last_extrusion_role)));
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index + 1));
             config.set_key_value("layer_z", new ConfigOptionFloat(m_layer == nullptr ? m_last_height : m_layer->print_z));
 
-            const auto current_filament_id = m_writer.filament()->id();
             const auto append_role_gcode = [this, current_filament_id, &config, &gcode](const std::string& key, const std::string& templ) {
                 if (templ.empty())
                     return;
                 gcode += this->placeholder_parser_process(key, templ, current_filament_id, &config) + "\n";
             };
 
-            append_role_gcode("change_extrusion_role_gcode", m_config.change_extrusion_role_gcode.value);
-            append_role_gcode("filament_change_extrusion_role_gcode", m_config.filament_change_extrusion_role_gcode.get_at(current_filament_id));
-            append_role_gcode("process_change_extrusion_role_gcode", m_config.process_change_extrusion_role_gcode.value);
+            append_role_gcode("change_extrusion_role_gcode", machine_role_change_gcode);
+            append_role_gcode("filament_change_extrusion_role_gcode", filament_role_change_gcode);
+            append_role_gcode("process_change_extrusion_role_gcode", process_role_change_gcode);
+        }
     }
 
     // extrude arc or line
