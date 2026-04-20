@@ -140,4 +140,15 @@ void DevNozzleSystemParser::ParseV2_0(const json& nozzle_json, DevNozzleSystem* 
         system->m_nozzles[nozzle_obj.m_nozzle_id] = nozzle_obj;
     }
 }
+
+void DevNozzleSystem::SetNozzleFromPreset(int id, float diameter)
+{
+    DevNozzle nozzle;
+    nozzle.m_nozzle_id = id;
+    nozzle.m_diameter = diameter;
+    nozzle.m_nozzle_type = NozzleType::ntStainlessSteel;
+    nozzle.m_nozzle_flow = NozzleFlowType::S_FLOW;
+    m_nozzles[id] = nozzle;
+}
+
 }

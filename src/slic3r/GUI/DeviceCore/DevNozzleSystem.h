@@ -36,6 +36,9 @@ namespace Slic3r
        const std::map<int, DevNozzle>& GetNozzles() const { return m_nozzles;}
        bool                            IsRefreshing() const { return m_state == 1; }
 
+       // Set nozzle data directly for printers that don't report nozzle info (e.g. Moonraker)
+       void SetNozzleFromPreset(int id, float diameter);
+
    private:
        void Reset();
 
