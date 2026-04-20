@@ -191,16 +191,18 @@ Http::priv::priv(const std::string &url)
 	::curl_easy_setopt(curl, CURLOPT_URL, url.c_str());   // curl makes a copy internally
 	::curl_easy_setopt(curl, CURLOPT_USERAGENT, SLIC3R_APP_NAME "/" SoftFever_VERSION);
 	::curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, &error_buffer.front());
+	::curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
 #ifdef __WINDOWS__
 	::curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_2);
 #endif
-	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+	::curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+	//::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	//::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
 	// https://everything.curl.dev/http/post/expect100.html
 	// remove the Expect: header, it will add a second delay to each request,
 	// if the file is uploaded in packets, it will cause the upload time to be longer
-	headerlist = curl_slist_append(headerlist, "Expect:");
+	//headerlist = curl_slist_append(headerlist, "Expect:");
 }
 
 Http::priv::~priv()
