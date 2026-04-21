@@ -19,7 +19,7 @@ T safe_at(const std::vector<T>& vec, int index, const T& fallback)
     return (index >= 0 && index < static_cast<int>(vec.size())) ? vec[index] : fallback;
 }
 
-std::string find_closest_color_preset_by_vendor_and_name(const PresetCollection& filaments,
+std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
                                                          const std::string&      vendor_name,
                                                          const std::string&      filament_type,
                                                          const std::string&      color_rgba)
@@ -49,9 +49,10 @@ std::string find_closest_color_preset_by_vendor_and_name(const PresetCollection&
             }
 
             // Calculate Euclidean color distance in RGB space
-            unsigned int distance = std::sqrt(std::pow(((target_color_value & 0x0000ff) - (p_color_value & 0x0000ff)), 2) +
-                                              std::pow(((target_color_value & 0x00ff00) - (p_color_value & 0x00ff00)), 2) +
-                                              std::pow(((target_color_value & 0xff0000) - (p_color_value & 0xff0000)), 2));
+            int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
+            int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
+            int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
+            unsigned int distance = dr * dr + dg * dg + db * db;
 
             if (distance < best_color_distance) {
                 best_color_distance = distance;
@@ -192,7 +193,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
             // If not found, default to traditional search by type only or generic type mapping.
             if (bundle) {
                 std::string vendor      = safe_at(filament_vendor, i, empty_str);
-                std::string filament_id = find_closest_color_preset_by_vendor_and_name(bundle->filaments, vendor, tray.tray_type,
+                std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendor, tray.tray_type,
                                                                                        tray.tray_color);
 
                 if (!filament_id.empty()) {
