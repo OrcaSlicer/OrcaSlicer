@@ -1157,12 +1157,17 @@ void TreeSupport::create_tree_support_layers()
 
         // Layers between the raft contacts and bottom of the object.
         double dist_to_go = m_slicing_params.object_print_z_min - raft_print_z;
-        auto nsteps = int(ceil(dist_to_go / m_slicing_params.max_suport_layer_height));
-        double height = dist_to_go / nsteps;
-        for (int i = 0; i < nsteps; ++i) {
-            raft_print_z += height;
-            raft_slice_z = raft_print_z - height / 2;
-            m_object->add_tree_support_layer(layer_id++, height, raft_print_z, raft_slice_z);
+        // ORCA: Guard tiny residual raft-to-object gaps so the EPSILON-biased ceil()
+        // below cannot turn them into zero steps after floating-point accumulation.
+        if (dist_to_go > EPSILON) {
+            // ORCA: Bias by EPSILON so near-equal gaps do not get an extra split from FP noise.
+            auto nsteps = int(ceil((dist_to_go - EPSILON) / m_slicing_params.max_suport_layer_height));
+            double height = dist_to_go / nsteps;
+            for (int i = 0; i < nsteps; ++i) {
+                raft_print_z += height;
+                raft_slice_z = raft_print_z - height / 2;
+                m_object->add_tree_support_layer(layer_id++, height, raft_print_z, raft_slice_z);
+            }
         }
         m_raft_layers = layer_id;
     }
