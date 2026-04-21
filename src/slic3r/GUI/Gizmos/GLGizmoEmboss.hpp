@@ -19,7 +19,7 @@
 #include "libslic3r/TextConfiguration.hpp"
 
 #include <imgui/imgui.h>
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 class wxFont;
 namespace Slic3r{

@@ -310,6 +310,17 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     m_edge_right  = new ResizeEdgePanel(this, ResizeEdgePanel::Right);
 #endif
 
+#ifdef __WXMSW__
+    if (HWND hWnd = GetHandle(); hWnd != nullptr) {
+        LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        if ((style & WS_CAPTION) != 0) {
+            SetWindowLongPtr(hWnd, GWL_STYLE, style & ~WS_CAPTION);
+            SetWindowPos(hWnd, nullptr, 0, 0, 0, 0,
+                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+    }
+#endif
+
     if (!wxGetApp().app_config->has("user_mode")) {
         wxGetApp().app_config->set("user_mode", "simple");
         wxGetApp().app_config->set_bool("developer_mode", false);
@@ -524,6 +535,28 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     update_layout();
     sizer->SetSizeHints(this);
 
+    #ifdef __WXMSW__
+    // SetMaximize causes the window to overlap the taskbar, due to the fact this window has wxMAXIMIZE_BOX off
+    // https://forums.wxwidgets.org/viewtopic.php?t=50634
+    // Fix it here
+    this->Bind(wxEVT_MAXIMIZE, [this](auto &e) {
+        wxDisplay display(this);
+        auto      size = display.GetClientArea().GetSize();
+        auto      pos  = display.GetClientArea().GetPosition();
+        HWND      hWnd = GetHandle();
+        RECT      borderThickness;
+        SetRectEmpty(&borderThickness);
+        AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE, 0);
+        const auto max_size = size + wxSize{-borderThickness.left + borderThickness.right, -borderThickness.top + borderThickness.bottom};
+        const auto current_size = GetSize();
+        SetSize({std::min(max_size.x, current_size.x), std::min(max_size.y, current_size.y)});
+        Move(pos + wxPoint{borderThickness.left, borderThickness.top});
+        e.Skip();
+    });
+
+#endif // __WXMSW__
+ 
+
     // BBS
     Fit();
 
@@ -586,6 +619,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     #endif
 
         MarkdownTip::ExitTip();
+        // Prevent queued selection/UI refresh work from running as normal during reset.
+        wxGetApp().set_closing(true);
 
         m_plater->reset();
         this->shutdown();
@@ -758,7 +793,7 @@ void MainFrame::bind_diff_dialog()
 }
 
 
-#ifdef __WIN32__
+#ifdef __WXMSW__
 
 // Orca: Fix maximized window overlaps taskbar when taskbar auto hide is enabled (#8085)
 // Adopted from https://gist.github.com/MortenChristiansen/6463580

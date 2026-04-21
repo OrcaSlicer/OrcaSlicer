@@ -1,10 +1,14 @@
 {
-    "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSA04",
-    "instantiation": "true",
-    "filament_settings_id": ["QIDI TPU-GF @Qidi Q1 Pro 0.4 nozzle"],
-    "inherits": "QIDI TPU-GF",
-    "name": "QIDI TPU-GF @Qidi Q1 Pro 0.4 nozzle",
-    "compatible_printers": ["Qidi Q1 Pro 0.4 nozzle"]
+	"type": "filament",
+	"filament_id": "GFB99",
+	"setting_id": "GFSA04",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"QIDI TPU-GF @Qidi Q1 Pro 0.4 nozzle"
+	],
+	"inherits": "QIDI TPU-GF",
+	"name": "QIDI TPU-GF @Qidi Q1 Pro 0.4 nozzle",
+	"compatible_printers": [
+		"Qidi Q1 Pro 0.4 nozzle"
+	]
 }
