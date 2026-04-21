@@ -203,7 +203,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
                 }
             } else {
-                map_filament_type_to_generic_id(tray.tray_type);
+                tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
             // Extract NFC temperature data if available
