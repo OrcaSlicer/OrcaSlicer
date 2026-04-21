@@ -41,7 +41,7 @@ private:
     bool        m_ssl_revoke_best_effort;
 
     std::string make_url(const std::string& path) const;
-    void start_print(const std::string& path) const;
+    bool start_print(wxString& msg, const std::string& path) const;
     std::string safe_filename(const std::string& filename) const;
 };
 } // namespace Slic3r

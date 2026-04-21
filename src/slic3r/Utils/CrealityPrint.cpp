@@ -137,7 +137,11 @@ bool CrealityPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, 
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
 
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
-                start_print(safe_filename(upload_filename.string()));
+                wxString errormsg;
+                if (!start_print(errormsg, safe_filename(upload_filename.string()))) {
+                    error_fn(std::move(errormsg));
+                    res = false;
+                }
             }
         })
         .on_error([&](std::string body, std::string error, unsigned status) {
@@ -182,7 +186,7 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
     return safe_filename;
 }
 
-void CrealityPrint::start_print(const std::string &filename) const
+bool CrealityPrint::start_print(wxString &msg, const std::string &filename) const
 {
     try {
         std::string host = Http::get_host_from_url(m_host);
@@ -225,10 +229,12 @@ void CrealityPrint::start_print(const std::string &filename) const
         ws.read(buffer);
 
         ws.close(websocket::close_code::normal);
+        return true;
     } catch(std::exception const& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Error starting print: " << e.what();
+        msg = wxString::FromUTF8(e.what());
+        return false;
     }
-    
 }
 
 }
