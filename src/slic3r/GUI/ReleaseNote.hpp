@@ -107,6 +107,7 @@ public:
     Button*           m_button_download;
     Button*           m_button_cancel;
     std::string       url_line;
+    std::string       html_source;
 };
 
 class SecondaryCheckDialog : public DPIFrame
@@ -326,7 +327,7 @@ public:
     wxStaticBitmap* m_img_step1{ nullptr };
     wxStaticBitmap* m_img_step2{ nullptr };
     wxStaticBitmap* m_img_step3{ nullptr };
-    wxHyperlinkCtrl* m_trouble_shoot{ nullptr };
+    HyperLink* m_trouble_shoot{ nullptr }; // ORCA
     wxTimer* closeTimer{ nullptr };
     int     closeCount{3};
     bool   m_show_access_code{ false };

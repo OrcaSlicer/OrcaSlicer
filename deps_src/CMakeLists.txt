@@ -10,7 +10,6 @@ add_subdirectory(earcut)
 add_subdirectory(fast_float)
 add_subdirectory(nanosvg)
 add_subdirectory(nlohmann)
-add_subdirectory(spline)      # Header-only spline library
 add_subdirectory(stb_dxt)     # Header-only STB DXT compression library
 
 # Static libraries
@@ -27,6 +26,7 @@ add_subdirectory(imguizmo)
 add_subdirectory(libigl)
 add_subdirectory(libnest2d)
 add_subdirectory(mcut)
+add_subdirectory(md4c)
 add_subdirectory(miniz)
 add_subdirectory(minilzo)
 add_subdirectory(qhull)

@@ -1070,7 +1070,7 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
     if ((src_row_cnt == 1) && (src_col_cnt == 1))
     {
         if ((dst_col_cnt != 1) || (dst_left_col != src_left_col)) {
-            wxLogWarning(_L("one cell can only be copied to one or multiple cells in the same column"));
+            wxLogWarning(_L("One cell can only be copied to one or more cells in the same column."));
         }
         else {
 			split(buf, string_array);
@@ -1520,12 +1520,7 @@ void ObjectGridTable::update_value_to_object(Model* model, ObjectGridRow* grid_r
             object->printable = grid_row->printable.value;
             object->instances[0]->printable = object->printable;
 
-            std::vector<ObjectVolumeID> object_volume_ids;
-            ObjectVolumeID object_volume_id;
-            object_volume_id.object = object;
-            object_volume_id.volume = nullptr;
-            object_volume_ids.push_back(object_volume_id);
-            wxGetApp().obj_list()->printable_state_changed(object_volume_ids);
+            wxGetApp().obj_list()->printable_state_changed({object});
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", change object %1%'s printable to %2%")%object->module_name %object->printable;
         }
     }

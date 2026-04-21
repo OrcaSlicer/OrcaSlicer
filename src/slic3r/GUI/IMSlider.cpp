@@ -1468,10 +1468,13 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
         return;
     }
 
-    float wheel = 0.0f;
-    wheel = evt.GetWheelRotation() > 0 ? 1.0f : -1.0f;
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+
+    float wheel = evt.GetWheelRotation();
+    // mac trackpads trigger this event with value 0 when right-clicking with two fingers
     if (wheel == 0.0f)
         return;
+    wheel = wheel > 0 ? 1.0f : -1.0f;
 
 #ifdef __WXOSX__
     if (wxGetKeyState(WXK_SHIFT)) {
@@ -1492,6 +1495,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
             const int new_pos = GetHigherValue() + wheel;
             SetHigherValue(new_pos);
             set_as_dirty();
+            imgui.set_requires_extra_frame();
         }
     }
     else {
@@ -1509,6 +1513,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
                 m_selection == ssLower ? SetLowerValue(new_pos) : SetHigherValue(new_pos);
             }
             set_as_dirty();
+            imgui.set_requires_extra_frame();
         }
     }
 }

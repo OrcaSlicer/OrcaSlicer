@@ -1,0 +1,31 @@
+{
+	"type": "machine",
+	"setting_id": "GM001",
+	"name": "re3D Gigabot 4 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_re3D_common",
+	"printer_model": "re3D Gigabot 4",
+	"nozzle_diameter": [
+		"0.8",
+		"0.8"
+	],
+	"printable_area": [
+		"0x0",
+		"590x0",
+		"590x600",
+		"0x600"
+	],
+	"printable_height": "590",
+	"max_layer_height": [
+		"0.64"
+	],
+	"min_layer_height": [
+		"0.3"
+	],
+	"retraction_length": [
+		"1.0"
+	],
+	"printer_variant": "0.8",
+	"default_print_profile": "0.2mm Standard @re3D fdm 0.8"
+}

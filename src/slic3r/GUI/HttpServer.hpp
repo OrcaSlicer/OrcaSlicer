@@ -13,6 +13,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <utility>
 
 #define LOCALHOST_PORT      13618
 #define LOCALHOST_URL       "http://localhost:"
@@ -98,6 +99,16 @@ public:
         void write_response(std::stringstream& ssOut) override;
     };
 
+    class ResponseHtml : public Response
+    {
+        const std::string html;
+
+    public:
+        explicit ResponseHtml(std::string html) : html(std::move(html)) {}
+        ~ResponseHtml() override = default;
+        void write_response(std::stringstream& ssOut) override;
+    };
+
     HttpServer(boost::asio::ip::port_type port = LOCALHOST_PORT);
 
     boost::thread m_http_server_thread;
@@ -106,6 +117,8 @@ public:
     bool is_started() { return start_http_server; }
     void start();
     void stop();
+    void set_port(boost::asio::ip::port_type new_port) { port = new_port; }
+    boost::asio::ip::port_type get_port() const { return port; }
     void set_request_handler(const std::function<std::shared_ptr<Response>(const std::string&)>& m_request_handler);
 
     static std::shared_ptr<Response> bbl_auth_handle_request(const std::string& url);
