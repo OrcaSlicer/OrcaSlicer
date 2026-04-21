@@ -148,6 +148,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "top_surface_acceleration",
         "bridge_acceleration",
         "travel_acceleration",
+        "travel_short_distance_acceleration",
         "sparse_infill_acceleration",
         "internal_solid_infill_acceleration",
         // BBS
@@ -1738,6 +1739,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         "internal_solid_infill_acceleration",
                         "top_surface_acceleration",
                         "travel_acceleration",
+                        "travel_short_distance_acceleration",
                     };
                else
                     accel_to_check = {
@@ -1764,6 +1766,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                     if (max_travel > 0) {
                         accel_to_check = {
                             "travel_acceleration",
+                            "travel_short_distance_acceleration",
                         };
                         warning_key = check_motion_ability_object_setting(accel_to_check, max_travel);
                         if (!warning_key.empty()) {

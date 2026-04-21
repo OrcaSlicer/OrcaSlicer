@@ -1012,6 +1012,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,              initial_layer_acceleration))
     ((ConfigOptionFloatOrPercent,     bridge_acceleration))
     ((ConfigOptionFloat,              travel_acceleration))
+    ((ConfigOptionFloat,              travel_short_distance_acceleration))
     ((ConfigOptionFloatOrPercent,     sparse_infill_acceleration))
     ((ConfigOptionFloatOrPercent,     internal_solid_infill_acceleration))
 

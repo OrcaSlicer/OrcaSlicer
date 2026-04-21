@@ -2974,6 +2974,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10000));
 
+    def = this->add("travel_short_distance_acceleration", coFloat);
+    def->label = L("Short travel");
+    def->category = L("Speed");
+    def->tooltip = L("Acceleration used for short travel moves near external perimeters. "
+                     "Short travels are moves shorter than the 'Retraction minimum travel' distance.\n\n"
+                     "Lower values (for example 250-500 mm/s²) can help reduce ringing artifacts around corners.");
+    def->sidetext = L(u8"mm/s²");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(250));
+
     def = this->add("top_surface_acceleration", coFloat);
     def->label = L("Top surface");
     def->category = L("Speed");
