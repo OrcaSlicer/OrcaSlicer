@@ -4001,6 +4001,8 @@ void TabFilament::build()
         optgroup->append_line(line);
         optgroup->append_single_option_line("reduce_fan_stop_start_freq", "material_cooling#keep-fan-always-on");
         optgroup->append_single_option_line("slow_down_for_layer_cooling", "material_cooling#slow-printing-down-for-better-layer-cooling");
+        optgroup->append_single_option_line("cooling_slowdown_logic", "material_cooling#cooling-slowdown-logic");
+        optgroup->append_single_option_line("cooling_perimeter_transition_distance", "material_cooling#perimeter-transition-distance");
         optgroup->append_single_option_line("dont_slow_down_outer_wall", "material_cooling#dont-slow-down-outer-walls");
         optgroup->append_single_option_line("slow_down_min_speed", "material_cooling#min-print-speed");
 
@@ -4196,6 +4198,15 @@ void TabFilament::toggle_options()
       // Orca: toggle dont slow down for external perimeters if
       bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
       toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling);
+      toggle_option("cooling_slowdown_logic", has_slow_down_for_layer_cooling);
+
+      bool consistent_surface = false;
+      if (has_slow_down_for_layer_cooling) {
+          auto *opt = m_config->option<ConfigOptionEnumsGeneric>("cooling_slowdown_logic");
+          if (opt && !opt->values.empty())
+              consistent_surface = opt->values[0] == (int)cslConsistentSurface;
+      }
+      toggle_option("cooling_perimeter_transition_distance", consistent_surface);
     }
     if (m_active_page->title() == L("Filament"))
     {
