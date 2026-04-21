@@ -222,6 +222,27 @@ static void ws_connect(net::io_context& ioc, websocket::stream<beast::tcp_stream
     setsockopt(beast::get_lowest_layer(ws).socket().native_handle(),
                SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&recv_timeout), sizeof(recv_timeout));
 }
+
+static std::string ws_send_and_read(websocket::stream<beast::tcp_stream>& ws, const json& cmd, const std::string& expected_key, int max_reads = 20)
+{
+    ws.write(net::buffer(to_string(cmd)));
+
+    for (int i = 0; i < max_reads; i++) {
+        beast::flat_buffer buf;
+        beast::error_code ec;
+        ws.read(buf, ec);
+        if (ec == net::error::would_block)
+            break;
+        if (ec)
+            throw beast::system_error{ec};
+        std::string msg = beast::buffers_to_string(buf.data());
+        if (msg.find(expected_key) != std::string::npos)
+            return msg;
+    }
+    BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: No '" << expected_key << "' response after " << max_reads << " messages";
+    return {};
+}
+
 void CrealityPrint::query_model() const
 {
     if (!m_model.empty())
