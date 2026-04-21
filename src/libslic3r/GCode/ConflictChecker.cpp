@@ -245,11 +245,17 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
     for (PrintObject *obj : objs) {
         auto layers = getAllLayersExtrusionPathsFromObject(obj);
         // Orca: check for collisions between all instances
-        for (const PrintInstance& inst : obj->instances()) {
-            ExtrusionLayers perimeters = layers.perimeters;
-            ExtrusionLayers support = layers.support;
-            conflictQueue.emplace_back_bucket(std::move(perimeters), &inst, inst.shift);
-            conflictQueue.emplace_back_bucket(std::move(support), &inst, inst.shift);
+        const auto& instances = obj->instances();
+        for (size_t inst_idx = 0; inst_idx < instances.size(); ++inst_idx) {
+            const PrintInstance& inst = instances[inst_idx];
+            const bool is_last_instance = inst_idx + 1 == instances.size();
+            if (is_last_instance) {
+                conflictQueue.emplace_back_bucket(std::move(layers.perimeters), &inst, inst.shift);
+                conflictQueue.emplace_back_bucket(std::move(layers.support), &inst, inst.shift);
+            } else {
+                conflictQueue.emplace_back_bucket(ExtrusionLayers(layers.perimeters), &inst, inst.shift);
+                conflictQueue.emplace_back_bucket(ExtrusionLayers(layers.support), &inst, inst.shift);
+            }
         }
     }
 

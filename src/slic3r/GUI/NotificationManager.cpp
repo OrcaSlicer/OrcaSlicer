@@ -2377,19 +2377,23 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
 			if (!ovs.empty()) {
 				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
 				wxGetApp().obj_list()->select_items(ovs);
+				wxGetApp().obj_list()->update_selections_on_canvas();
 			}
 			return false;
 		};
 	}
     auto link     = callback ? _u8L("Jump to") : "";
-    if (!objs.empty()) {
-        link += " [";
-        for (auto obj : objs) {
-            if (obj) link += obj->name + ", ";
+    std::vector<std::string> names;
+    for (auto optr : objs) {
+        if (optr) {
+            names.push_back(optr->name);
         }
-        if (!objs.empty()) {
-            link.pop_back();
-            link.pop_back();
+    }
+    if (!names.empty()) {
+        link += " [";
+        for (size_t i = 0; i < names.size(); ++i) {
+            if (i > 0) link += ", ";
+            link += names[i];
         }
         link += "] ";
     }
@@ -2469,14 +2473,17 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
         };
     }
     auto link     = callback ? _u8L("Jump to") : "";
-    if (!insts.empty()) {
-        link += " [";
-        for (auto inst : insts) {
-            if (inst) link += inst->get_object()->name + ", ";
+    std::vector<std::string> names;
+    for (auto iptr : insts) {
+        if (iptr && iptr->get_object()) {
+            names.push_back(iptr->get_object()->name);
         }
-        if (!insts.empty()) {
-            link.pop_back();
-            link.pop_back();
+    }
+    if (!names.empty()) {
+        link += " [";
+        for (size_t i = 0; i < names.size(); ++i) {
+            if (i > 0) link += ", ";
+            link += names[i];
         }
         link += "] ";
     }
