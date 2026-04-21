@@ -320,9 +320,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         libvgcode::PathVertex vertex = viewer->get_current_vertex();
         size_t vertex_id = viewer->get_current_vertex_id();
-        if (view_type != libvgcode::EViewType::FeatureType && vertex.type == libvgcode::EMoveType::Seam) { // exclude FeatureType for proper type readings
-            vertex_id = static_cast<size_t>(viewer->get_view_visible_range()[1]) - 1;
-            vertex = viewer->get_vertex_at(vertex_id);
+        // Seam moves may contain non-deterministic vertex data, so use the
+        // last visible non-seam vertex instead (except in FeatureType view)
+        if (view_type != libvgcode::EViewType::FeatureType && vertex.type == libvgcode::EMoveType::Seam) {
+            const libvgcode::Interval& visible_range = viewer->get_view_visible_range();
+            if (visible_range[1] > 0) {
+                vertex_id = static_cast<size_t>(visible_range[1]) - 1;
+                vertex = viewer->get_vertex_at(vertex_id);
+            }
         }
         const bool is_extrusion = vertex.is_extrusion();
 
@@ -432,7 +437,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         const float axes_width     = ImGui::CalcTextSize("X 999.999").x;                           // Width of the longest possible axis label
         const float axes_content_w = 3.0f * axes_width + 2.0f * axes_spacing_x;                    // Three axes
         const float speed_width    = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;  // Width of the longest possible speed label
-        const float detail_width   = ImGui::CalcTextSize(detail_buf).x;                   // Width of the detail text
+        const float detail_width   = ImGui::CalcTextSize(detail_buf).x;                            // Width of the detail text
         const float info_content_w = speed_width + detail_width;                                   // Speed + detail
         const float info_group_w   = std::max(axes_content_w, info_content_w);                     // The width of the group containing position and detail info, whichever is wider
         const float fold_button_w  = 24.0f * m_scale;                                              // Width of the fold/unfold button
@@ -459,8 +464,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         const float show_button_h  = text_h + 2.0f * 3.0f * m_scale; // ImGuiStyleVar_FramePadding.y is set to 3.f * m_scale
         const float main_row_h     = 2.0f * text_h + item_spacing_y; // Two lines of text (position and detail) + spacing between them
         const float properties_h   = static_cast<float>(properties_rows.size()) * (text_h + 2.0f * cell_pad_y) +  2.0f * cell_pad_y + 1.0f + item_spacing_y // table rows
-                                    + item_spacing_y + show_button_h                // Spacing() + Show/Hide button row
-                                    + item_spacing_y + 1.0f + style.FramePadding.y; // Spacing() + Separator() + Dummy()
+                                    + item_spacing_y + show_button_h                    // Spacing() + Show/Hide button row
+                                    + item_spacing_y + 1.0f + style.FramePadding.y;     // Spacing() + Separator() + Dummy()
         const float folded_window_h   = std::ceil(window_pad_h + main_row_h);           // Height of the window when properties are hidden, with padding, rounded up for better look
         const float unfolded_window_h = std::ceil(folded_window_h + properties_h);      // Height of the window when properties are shown, with padding, rounded up for better look
         const float window_h = properties_shown ? unfolded_window_h : folded_window_h;  // Final window height depending on whether properties are shown or not
