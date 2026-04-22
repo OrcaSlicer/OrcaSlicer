@@ -28,6 +28,7 @@
 #include "NotificationManager.hpp"
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
+#include "../Utils/CrealityPrint.hpp"
 
 namespace fs = boost::filesystem;
 
@@ -950,6 +951,27 @@ void ElegooPrintHostSendDialog::refresh()
     }
     this->Layout();
     this->Fit();
+}
+
+CrealityPrintHostSendDialog::CrealityPrintHostSendDialog(const fs::path&            path,
+                                                         PrintHostPostUploadActions post_actions,
+                                                         const wxArrayString&       groups,
+                                                         const wxArrayString&       storage_paths,
+                                                         const wxArrayString&       storage_names,
+                                                         bool                       switch_to_device_tab,
+                                                         PrintHost*                 printhost)
+    : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
+    , m_printhost(printhost)
+{}
+
+void CrealityPrintHostSendDialog::init()
+{
+    PrintHostSendDialog::init();
+}
+
+std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() const
+{
+    return {};
 }
 
 }}
