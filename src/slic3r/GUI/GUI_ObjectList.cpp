@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/log/trivial.hpp>
 #include <wx/progdlg.h>
 #include <wx/listbook.h>
 #include <wx/numformatter.h>
@@ -5652,18 +5653,22 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
             return;
     }
 
-    // SVG/text volumes carry emboss metadata (text_configuration, emboss_shape) that only makes
-    // sense for Part / Negative Part / Modifier. ModelVolume::set_type() does not clear this
-    // metadata, so converting such volumes to Support Blocker / Support Enforcer leaves stale
-    // emboss state attached to a support volume -- historically this caused crashes (issue #5070,
-    // originally fixed in ObjectList::change_part_type() by hiding Support entries in the old
-    // choice dialog). The submenu path bypassed that guard; enforce it here at action time.
+    // Defense-in-depth safety net against issue #5070: SVG/text volumes carry emboss metadata
+    // (text_configuration, emboss_shape) that only makes sense for Part / Negative Part / Modifier.
+    // ModelVolume::set_type() does not clear that metadata, so converting such volumes to
+    // Support Blocker / Support Enforcer leaves stale emboss state attached to a support volume
+    // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
+    // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
+    // in MenuFactory::append_menu_item_change_type, see #13120).
+    // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
+    // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
     if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
         const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
             [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
         if (has_text_or_svg) {
-            Slic3r::GUI::show_error(nullptr,
-                _L("Cannot change type: text/SVG volumes can only become Part, Negative Part, or Modifier."));
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER on SVG/text volume; "
+                << "UI guard should have prevented this -- possible regression in the Change Type menu";
             return;
         }
     }
