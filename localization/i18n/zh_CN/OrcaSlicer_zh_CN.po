@@ -1764,7 +1764,7 @@ msgid "Choose one file (GCODE/3MF):"
 msgstr "选择一个文件（GCODE/3MF）："
 
 msgid "Ext"
-msgstr "分机"
+msgstr "Ext"
 
 msgid "Some presets are modified."
 msgstr "预设已被修改。"
@@ -5726,13 +5726,13 @@ msgid "Pass 1"
 msgstr "粗调"
 
 msgid "Flow ratio test - Pass 1"
-msgstr "流量比例测试 - 通过 1"
+msgstr "流量比例测试 - 粗调"
 
 msgid "Pass 2"
-msgstr "细调"
+msgstr "微调"
 
 msgid "Flow ratio test - Pass 2"
-msgstr "流量比例测试 - 通过 2"
+msgstr "流量比例测试 - 微调"
 
 msgid "YOLO (Recommended)"
 msgstr "YOLO（推荐）"
@@ -5871,7 +5871,7 @@ msgid "The project is no longer available."
 msgstr "此项目不可用。"
 
 msgid "Filament Settings"
-msgstr "打印丝设置"
+msgstr "材料设置"
 
 msgid ""
 "Do you want to synchronize your personal data from Bambu Cloud?\n"
@@ -5880,7 +5880,7 @@ msgid ""
 "2. The Filament presets\n"
 "3. The Printer presets"
 msgstr ""
-"想从Bambu 云同步你的个人数据吗?\n"
+"想从 Bambu 云同步你的个人数据吗?\n"
 "包含如下信息:\n"
 "1. 工艺预设\n"
 "2. 打印丝预设\n"
@@ -5923,7 +5923,7 @@ msgid "Initializing..."
 msgstr "正在初始化……"
 
 msgid "Connection Failed. Please check the network and try again"
-msgstr "链接失败。请检查网络后重试"
+msgstr "连接失败。请检查网络后重试"
 
 msgid ""
 "Please check the network and try again. You can restart or update the "
@@ -6349,7 +6349,7 @@ msgid "Debug Info"
 msgstr "调试信息"
 
 msgid "Filament loading..."
-msgstr "耗材丝进料..."
+msgstr "耗材丝进料中..."
 
 msgid "No Storage"
 msgstr "无存储"
@@ -7304,8 +7304,8 @@ msgid ""
 "The object from file %s is too small, and maybe in meters or inches.\n"
 " Do you want to scale to millimeters?"
 msgstr ""
-"文件 %s 中对象的尺寸似乎是以米或者英寸为单位定义的。\n"
-"逆戟鲸切片器的内部单位为毫米。是否要转换成毫米？"
+"文件 %s 中对象的尺寸过小，似乎是以米（m）或者英寸（inch）为单位定义的。\n"
+"OrcaSlicer的内部单位为毫米（mm）。是否要转换成毫米（mm）？"
 
 msgid "Object too small"
 msgstr "对象尺寸过小"
@@ -7547,7 +7547,7 @@ msgid ""
 msgstr "未提供校准加速度。使用默认加速度值"
 
 msgid "mm/s²"
-msgstr "毫米/秒²"
+msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "未提供校准速度。使用默认最佳速度"
@@ -7609,10 +7609,10 @@ msgid "The current project has unsaved changes, save it before continue?"
 msgstr "当前项目包含未保存的修改，是否先保存？"
 
 msgid "Number of copies:"
-msgstr "克隆数量："
+msgstr "复制数量："
 
 msgid "Copies of the selected object"
-msgstr "所选对象的克隆数量"
+msgstr "所选对象的复制数量"
 
 msgid "Save G-code file as:"
 msgstr "G-code文件另存为："
@@ -7752,19 +7752,19 @@ msgstr "对象名字：%1%\n"
 
 #, boost-format
 msgid "Size: %1% x %2% x %3% in\n"
-msgstr "大小：%1% x %2% x %3% 英寸\n"
+msgstr "大小：%1% x %2% x %3% in\n"
 
 #, boost-format
 msgid "Size: %1% x %2% x %3% mm\n"
-msgstr "大小： %1% x %2% x %3% 毫米\n"
+msgstr "大小： %1% x %2% x %3% mm\n"
 
 #, boost-format
 msgid "Volume: %1% in³\n"
-msgstr "体积： %1% 英寸³\n"
+msgstr "体积： %1% in³\n"
 
 #, boost-format
 msgid "Volume: %1% mm³\n"
-msgstr "体积： %1% 毫米³\n"
+msgstr "体积： %1% mm³\n"
 
 #, boost-format
 msgid "Triangles: %1%\n"
@@ -7813,7 +7813,7 @@ msgid "rear"
 msgstr "后部"
 
 msgid "Switching the language requires application restart.\n"
-msgstr "切换语言要求重启应用程序。\n"
+msgstr "切换语言需要重启应用程序。\n"
 
 msgid "Do you want to continue?"
 msgstr "是否继续？"
@@ -7852,7 +7852,7 @@ msgid "The period of backup in seconds."
 msgstr "备份的周期"
 
 msgid "Bed Temperature Difference Warning"
-msgstr "床温差警告"
+msgstr "热床温度不同警告"
 
 msgid ""
 "Using filaments with significantly different temperatures may cause:\n"
@@ -7895,10 +7895,10 @@ msgid "General"
 msgstr "常规"
 
 msgid "Metric"
-msgstr "公制"
+msgstr "公制（Metric）"
 
 msgid "Imperial"
-msgstr "英制"
+msgstr "英制（Imperial）"
 
 msgid "Units"
 msgstr "单位"
@@ -8027,7 +8027,7 @@ msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "根据选定的耗材丝数量优化耗材区域最大高度"
 
 msgid "Features"
-msgstr "特征"
+msgstr "特性"
 
 msgid "Multi device management"
 msgstr "多设备管理"
@@ -10226,7 +10226,7 @@ msgid ""
 msgstr "仅同步耗材丝类型和颜色，不包括插槽信息。"
 
 msgid "Ext spool"
-msgstr "外线轴"
+msgstr "外置耗材盘"
 
 msgid ""
 "Please check whether the nozzle type of the device is the same as the preset "
@@ -10300,16 +10300,16 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr "为保持恒定流量，拖动时按住%1%"
 
 msgid "ms"
-msgstr "多发性硬化症"
+msgstr "ms"
 
 msgid "Total ramming"
-msgstr "总顶压"
+msgstr "总冲刷量"
 
 msgid "Volume"
 msgstr "体积"
 
 msgid "Ramming line"
-msgstr "顶压线"
+msgstr "预冲刷线"
 
 msgid ""
 "Orca would re-calculate your flushing volumes everytime the filaments color "
@@ -11968,7 +11968,7 @@ msgstr ""
 "以及对象的流量比（如果已设置）来计算的。"
 
 msgid "Support flow ratio"
-msgstr "支持流量比"
+msgstr "支撑流量比"
 
 msgid ""
 "This factor affects the amount of material for support.\n"
@@ -11980,7 +11980,7 @@ msgstr ""
 "象的流量比（如果已设置）来计算的。"
 
 msgid "Support interface flow ratio"
-msgstr "支持接口流量比例"
+msgstr "支撑面流量比例"
 
 msgid ""
 "This factor affects the amount of material for the support interface.\n"
@@ -13049,10 +13049,10 @@ msgid ""
 msgstr "打印此材料的所需的最小喷嘴硬度。零值表示不检查喷嘴硬度。"
 
 msgid "Filament map to extruder"
-msgstr "耗材图至挤出机"
+msgstr "耗材映射到挤出机"
 
 msgid "Filament map to extruder."
-msgstr "耗材图到挤出机。"
+msgstr "耗材映射到挤出机。"
 
 msgid "Auto For Flush"
 msgstr "自动冲洗"
@@ -15768,7 +15768,7 @@ msgstr ""
 "不使用该值。"
 
 msgid "∆℃"
-msgstr "℃"
+msgstr "∆℃"
 
 msgid "Preheat time"
 msgstr "预热时间"
@@ -15860,7 +15860,7 @@ msgid "Enable filament ramming"
 msgstr "启用耗材尖端成型"
 
 msgid "No sparse layers (beta)"
-msgstr "无稀疏层 （实验）"
+msgstr "无稀疏层 （实验功能）"
 
 msgid ""
 "If enabled, the wipe tower will not be printed on layers with no tool "
@@ -19170,7 +19170,7 @@ msgid ""
 "Note: If the only preset under this filament is deleted, the filament will "
 "be deleted after exiting the dialog."
 msgstr ""
-"注意：如果在该耗材下仅有的预设被删除，那么在退出对话框后，该耗材将被删除。"
+"注意：如果在该耗材下仅有的预设被删除，在关闭对话框后，该耗材将被删除。"
 
 msgid "Presets inherited by other presets cannot be deleted"
 msgstr "附属于其他预设的预设不能被删除。"
@@ -19341,7 +19341,7 @@ msgid "Success!"
 msgstr "成功！"
 
 msgid "Are you sure to log out?"
-msgstr "您确定要注销吗？"
+msgstr "您确定要登出吗？"
 
 msgid "View print host webui in Device tab"
 msgstr "在 设备 标签页中查看打印机主机的网页界面"
@@ -19760,7 +19760,7 @@ msgid ""
 "set the outer wall speed to be 40 to 60 mm/s when slicing."
 msgstr ""
 "为了使打印件获得更高的光泽度，请在使用前将耗材干燥，并在切片时将外壁速度设置"
-"为 40 至 60 毫米/秒。"
+"为 40 至 60 mm/s。"
 
 msgid ""
 "This filament is only used to print models with a low density usually, and "
@@ -19793,7 +19793,7 @@ msgid ""
 "the AMS. Printing it is of many requirements, and to get better printing "
 "quality, please refer to this wiki: TPU printing guide."
 msgstr ""
-"该耗材具有足够高的硬度（约 67 D）并且与 AMS 兼容。打印此类耗材需要满足较多条"
+"该耗材具有足够高的硬度（约 67D）并且与 AMS 兼容。打印此类耗材需要满足较多条"
 "件，为了获得更好的打印质量，请参考这个英文wiki：TPU printing guide（“TPU打印"
 "指南”）"
 
@@ -19884,7 +19884,7 @@ msgid "The number of printers in use simultaneously cannot be equal to 0."
 msgstr "同时使用的打印机数量不能等于0。"
 
 msgid "Use External Spool"
-msgstr "使用外置线卷"
+msgstr "使用外置耗材盘"
 
 msgid "Select Printers"
 msgstr "选择打印机"
@@ -20642,7 +20642,7 @@ msgid ""
 "Did you know that you can save wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
-"冲刷到支持/对象/填充中\n"
+"冲刷到支撑/对象/填充中\n"
 "你知道吗？你可以在换料时将它们冲入支撑/对象/填充，以节省浪费的料丝。"
 
 #: resources/data/hints.ini: [hint:Improve strength]
