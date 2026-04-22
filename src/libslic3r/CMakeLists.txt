@@ -603,6 +603,7 @@ target_link_libraries(libslic3r
         TBB::tbbmalloc
         ZLIB::ZLIB
         OpenSSL::Crypto
+        simdjson::simdjson
     )
 
 if(NOT WIN32)
