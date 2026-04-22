@@ -1740,6 +1740,19 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Activate for better air filtration. G-code command: M106 P3 S(0-255)");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBools{false});
+    
+
+    def = this->add("activate_air_filtration_during_print", coBools);
+    def->full_label = L("During print");
+    def->tooltip=L("Enable this to override the fan speed set in custom G-code during print.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBools{true});
+
+    def = this->add("activate_air_filtration_on_completion", coBools);
+    def->full_label = L("On completion");
+    def->tooltip=L("Enable this to override the fan speed set in custom G-code after print completion.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBools{true});
 
     def = this->add("during_print_exhaust_fan_speed", coInts);
     def->label   = L("Fan speed");
@@ -7862,7 +7875,12 @@ std::set<std::string> filament_options_with_variant = {
     "filament_ironing_flow",
     "filament_ironing_spacing",
     "filament_ironing_inset",
-    "filament_ironing_speed"
+    "filament_ironing_speed",
+    "activate_air_filtration",
+    "activate_air_filtration_during_print",
+    "activate_air_filtration_on_completion",
+    "during_print_exhaust_fan_speed",
+    "complete_print_exhaust_fan_speed"
 };
 
 // Parameters that are the same as the number of extruders

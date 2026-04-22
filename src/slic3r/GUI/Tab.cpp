@@ -4018,16 +4018,18 @@ void TabFilament::build()
 
         optgroup = page->new_optgroup(L("Exhaust fan"),L"param_cooling_exhaust");
 
-        optgroup->append_single_option_line("activate_air_filtration", "material_cooling#activate-air-filtration");
+        optgroup->append_single_option_line("activate_air_filtration", "material_cooling#activate-air-filtration", 0);
 
         line = {L("During print"), ""};
-        line.append_option(optgroup->get_option("during_print_exhaust_fan_speed"));
+        line.append_option(optgroup->get_option("activate_air_filtration_during_print", 0));
+        line.append_option(optgroup->get_option("during_print_exhaust_fan_speed", 0));
         line.label_path = "material_cooling#during-print";
         optgroup->append_line(line);
 
 
         line = {L("Complete print"), ""};
-        line.append_option(optgroup->get_option("complete_print_exhaust_fan_speed"));
+        line.append_option(optgroup->get_option("activate_air_filtration_on_completion", 0));
+        line.append_option(optgroup->get_option("complete_print_exhaust_fan_speed", 0));
         line.label_path = "material_cooling#complete-print";
         optgroup->append_line(line);
         //BBS
@@ -4194,6 +4196,12 @@ void TabFilament::toggle_options()
             toggle_option(el, has_enable_overhang_bridge_fan);
 
       toggle_option("additional_cooling_fan_speed", cfg.opt_bool("auxiliary_fan"));
+
+      bool activate_air_filtration = m_config->opt_bool("activate_air_filtration", 0);
+      toggle_option("activate_air_filtration_during_print", activate_air_filtration, 0);
+      toggle_option("activate_air_filtration_on_completion", activate_air_filtration, 0);
+      toggle_option("during_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_during_print", 0), 0);
+      toggle_option("complete_print_exhaust_fan_speed", activate_air_filtration && m_config->opt_bool("activate_air_filtration_on_completion", 0), 0);
 
       // Orca: toggle dont slow down for external perimeters if
       bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
