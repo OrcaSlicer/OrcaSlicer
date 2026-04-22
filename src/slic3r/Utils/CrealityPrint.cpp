@@ -1,6 +1,7 @@
 #include "CrealityPrint.hpp"
 
 #include <algorithm>
+#include <map>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -260,6 +261,20 @@ bool CrealityPrint::supports_multi_color_print() const
     return m_model == "F008"    // K2 Plus
         || m_model == "F012"    // K2 Pro
         || m_model == "F021";   // K2
+}
+
+std::string CrealityPrint::model_name() const
+{
+    static const std::map<std::string, std::string> names = {
+        {"F008", "K2 Plus"},
+        {"F012", "K2 Pro"},
+        {"F021", "K2"},
+    };
+    query_model();
+    if (m_model.empty())
+        return "unreachable";
+    auto it = names.find(m_model);
+    return it != names.end() ? it->second : "unknown (" + m_model + ")";
 }
 
 std::string CrealityPrint::query_boxes_info() const

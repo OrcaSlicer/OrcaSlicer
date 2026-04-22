@@ -967,6 +967,26 @@ CrealityPrintHostSendDialog::CrealityPrintHostSendDialog(const fs::path&        
 void CrealityPrintHostSendDialog::init()
 {
     PrintHostSendDialog::init();
+
+    auto* creality_host = static_cast<CrealityPrint*>(m_printhost);
+    bool multi_color;
+    std::string printer_name;
+    {
+        wxBusyCursor wait;
+        multi_color = creality_host->supports_multi_color_print();
+        if (multi_color)
+            printer_name = creality_host->model_name();
+    }
+    if (!multi_color)
+        return;
+
+    auto* group_box = new wxStaticBox(this, wxID_ANY,
+        wxString::Format(_L("Printer: %s"), printer_name));
+    auto* group_sizer = new wxStaticBoxSizer(group_box, wxVERTICAL);
+    content_sizer->Add(group_sizer, 0, wxEXPAND);
+
+    this->Layout();
+    this->Fit();
 }
 
 std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() const
