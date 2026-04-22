@@ -195,6 +195,9 @@ public:
     virtual std::map<std::string, std::string> extendedInfo() const;
 
 private:
+    static constexpr const char* CONFIG_KEY_ENABLESELFTEST = "crealityprint_enable_self_test";
+
+    bool        m_enableSelfTest;
     PrintHost*  m_printhost;
 };
 

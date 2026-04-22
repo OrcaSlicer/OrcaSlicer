@@ -961,6 +961,7 @@ CrealityPrintHostSendDialog::CrealityPrintHostSendDialog(const fs::path&        
                                                          bool                       switch_to_device_tab,
                                                          PrintHost*                 printhost)
     : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
+    , m_enableSelfTest(false)
     , m_printhost(printhost)
 {}
 
@@ -985,13 +986,41 @@ void CrealityPrintHostSendDialog::init()
     auto* group_sizer = new wxStaticBoxSizer(group_box, wxVERTICAL);
     content_sizer->Add(group_sizer, 0, wxEXPAND);
 
+    const AppConfig* app_config = wxGetApp().app_config;
+    std::string saved = app_config->get("recent", CONFIG_KEY_ENABLESELFTEST);
+    if (!saved.empty()) {
+        try { m_enableSelfTest = std::stoi(saved) != 0; } catch (...) {}
+    }
+
+    // Calibration checkbox
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this);
+        checkbox->SetValue(m_enableSelfTest);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            m_enableSelfTest = e.IsChecked();
+            AppConfig* ac = wxGetApp().app_config;
+            ac->set("recent", CONFIG_KEY_ENABLESELFTEST, m_enableSelfTest ? "1" : "0");
+            e.Skip();
+        });
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Calibrate before printing"), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        group_sizer->Add(checkbox_sizer);
+        group_sizer->AddSpacer(VERT_SPACING);
+    }
+
     this->Layout();
     this->Fit();
 }
 
 std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() const
 {
-    return {};
+    std::map<std::string, std::string> info;
+    info["enableSelfTest"] = m_enableSelfTest ? "1" : "0";
+    return info;
 }
 
 }}
