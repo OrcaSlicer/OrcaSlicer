@@ -3033,7 +3033,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("initial_layer_travel_acceleration", coFloatOrPercent);
     def->label = L("First layer travel");
-    def->tooltip = L("Travel acceleration of first layer.");
+    def->tooltip = L("Travel acceleration of first layer.\nThe percentage value is relative to Travel Acceleration.");
     def->sidetext = L("mm/s² or %");
     def->min = 0;
     def->mode = comAdvanced;
@@ -3132,7 +3132,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("initial_layer_travel_jerk", coFloatOrPercent);
     def->label = L("First layer travel");
-    def->tooltip = L("Travel jerk of first layer.");
+    def->tooltip = L("Travel jerk of first layer.\nThe percentage value is relative to Travel Jerk.");
     def->sidetext = L("mm/s or %");
     def->min = 0;
     def->mode = comAdvanced;
