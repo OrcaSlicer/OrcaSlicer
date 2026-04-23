@@ -169,52 +169,6 @@ static wxString to_wstring_name(std::string name)
     return wxEmptyString;
 }
 
-static bool is_same_nozzle_diameters(const DynamicPrintConfig &full_config, const MachineObject *obj, wxString& error_msg)
-{
-    if (obj == nullptr)
-        return true;
-
-    try {
-        std::string nozzle_type;
-
-        const ConfigOptionEnumsGenericNullable * config_nozzle_type = full_config.option<ConfigOptionEnumsGenericNullable>("nozzle_type");
-        std::vector<std::string> config_nozzle_types_str(config_nozzle_type->size());
-        for (size_t idx = 0; idx < config_nozzle_type->size(); ++idx)
-            config_nozzle_types_str[idx] = NozzleTypeEumnToStr[NozzleType(config_nozzle_type->values[idx])];
-
-        auto opt_nozzle_diameters = full_config.option<ConfigOptionFloats>("nozzle_diameter");
-
-        std::vector<float> config_nozzle_diameters(opt_nozzle_diameters->size());
-        for (size_t idx = 0; idx < opt_nozzle_diameters->size(); ++idx)
-            config_nozzle_diameters[idx] = opt_nozzle_diameters->values[idx];
-
-        std::vector<float> machine_nozzle_diameters(obj->GetExtderSystem()->GetTotalExtderCount());
-        for (size_t idx = 0; idx < obj->GetExtderSystem()->GetTotalExtderCount(); ++idx)
-            machine_nozzle_diameters[idx] = obj->GetExtderSystem()->GetNozzleDiameter(idx);
-
-        if (config_nozzle_diameters.size() != machine_nozzle_diameters.size()) {
-            wxString nozzle_in_preset  = wxString::Format(_L("nozzle size in preset: %d"), config_nozzle_diameters.size());
-            wxString nozzle_in_printer = wxString::Format(_L("nozzle size memorized: %d"), machine_nozzle_diameters.size());
-            error_msg = _L("The size of nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?") + "\n    " + nozzle_in_preset +
-                "\n    " + nozzle_in_printer + "\n";
-            return false;
-        }
-
-        for (size_t idx = 0; idx < config_nozzle_diameters.size(); ++idx) {
-            if (config_nozzle_diameters[idx] != machine_nozzle_diameters[idx]) {
-                wxString nozzle_in_preset = wxString::Format(_L("nozzle[%d] in preset: %.1f"), idx, config_nozzle_diameters[idx]);
-                wxString nozzle_in_printer = wxString::Format(_L("nozzle[%d] memorized: %.1f"), idx, machine_nozzle_diameters[idx]);
-                error_msg = _L("Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?") + "\n    " + nozzle_in_preset +
-                    "\n    " + nozzle_in_printer + "\n";
-                return false;
-            }
-        }
-
-    } catch (...) {}
-
-    return true;
-}
-
 static bool is_same_nozzle_type(const DynamicPrintConfig &full_config, const MachineObject *obj, wxString& error_msg)
 {
     if (obj == nullptr)
@@ -266,9 +220,6 @@ static bool check_nozzle_diameter_and_type(const DynamicPrintConfig &full_config
     // P1P/S
     if (obj->GetExtderSystem()->GetNozzleType(0) == NozzleType::ntUndefine)
         return true;
-
-    // if (!is_same_nozzle_diameters(full_config, obj, error_msg))
-    //     return false;
 
     if (!is_same_nozzle_type(full_config, obj, error_msg))
         return false;
