@@ -1445,52 +1445,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 bool CalibUtils::check_printable_status_before_cali(const MachineObject* obj, const CalibInfo& cali_info, wxString& error_message)
 {
-    if (!obj) {
-        error_message = _L("Need select printer");
-        return false;
-    }
-
-    const ConfigOptionFloats *nozzle_diameter_config = cali_info.printer_prest->config.option<ConfigOptionFloats>("nozzle_diameter");
-    float nozzle_diameter = nozzle_diameter_config->values[0];
-
-    bool  is_multi_extruder = obj->is_multi_extruders();
-    wxString name = _L("left");
-    if (cali_info.extruder_id == 0) {
-        name = _L("right");
-    }
-
-    float  diameter = obj->GetExtderSystem()->GetNozzleDiameter(cali_info.extruder_id);
-    NozzleFlowType nozzle_volume_type = obj->GetExtderSystem()->GetNozzleFlowType(cali_info.extruder_id);
-
-    if (!is_approx(nozzle_diameter, diameter)) {
-        if (is_multi_extruder)
-            error_message = wxString::Format(_L("The currently selected nozzle diameter of %s extruder does not match the actual nozzle diameter.\n"
-                               "Please click the Sync button above and restart the calibration."), name);
-        else
-            error_message = _L("The nozzle diameter does not match the actual printer nozzle diameter.\n"
-                               "Please click the Sync button above and restart the calibration.");
-        return false;
-    }
-
-
-    if (nozzle_volume_type == NozzleFlowType::NONE_FLOWTYPE) {
-        if (is_multi_extruder)
-            error_message = wxString::Format(_L("Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."), name);
-        else
-            error_message = nozzle_not_set_text;
-        return false;
-    }
-
-    if (NozzleVolumeType(nozzle_volume_type - 1) != cali_info.nozzle_volume_type) {
-        if (is_multi_extruder)
-            error_message = wxString::Format(_L("The currently selected nozzle type of %s extruder does not match the actual printer nozzle type.\n"
-                                            "Please click the Sync button above and restart the calibration."), name);
-        else
-            error_message = nozzle_volume_type_not_match_text;
-        return false;
-    }
-
-    return true;
+    return check_printable_status_before_cali(obj, std::vector<CalibInfo>{cali_info}, error_message);
 }
 
 bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &full_config, const Calib_Params &params, wxString &error_message)
