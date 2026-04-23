@@ -145,6 +145,15 @@ public:
     float          GetNozzleDiameter(int extder_id) const { return GetExtderById(extder_id) ? GetExtderById(extder_id)->GetNozzleDiameter() : 0.0; }
     int            GetNozzleTempCurrent(int extder_id) const { return GetExtderById(extder_id) ? GetExtderById(extder_id)->GetCurrentTemp() : 0; }
     int            GetNozzleTempTarget(int extder_id) const { return GetExtderById(extder_id) ? GetExtderById(extder_id)->GetTargetTemp() : 0; }
+    bool           NozzleDiameterMatchesOrUnknown(int extder_id, float target_diameter) const
+    {
+        float diameter = GetNozzleDiameter(extder_id);
+        if (diameter == 0.0f) {
+            return true;
+        } else {
+            return abs(diameter - target_diameter) < 1e-3;
+        }
+    }
 
     // get slot info which is connected to the extruder
     std::string GetCurrentAmsId() const;
