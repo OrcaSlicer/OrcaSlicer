@@ -3,7 +3,7 @@
     "name": "BETA PLA-CF @BBL P1P",
     "inherits": "BETA PLA-CF @base",
     "from": "system",
-    "setting_id": "CBPLAB17_10",
+    "setting_id": "BPLB17_10",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

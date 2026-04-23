@@ -3,7 +3,7 @@
     "name": "BETA PLA Wood @BBL H2D",
     "inherits": "BETA PLA Wood @base",
     "from": "system",
-    "setting_id": "CBPLAB19_06",
+    "setting_id": "BPLB19_06",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

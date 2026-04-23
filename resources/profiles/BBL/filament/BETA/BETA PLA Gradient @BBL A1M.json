@@ -3,7 +3,7 @@
     "name": "BETA PLA Gradient @BBL A1M",
     "inherits": "BETA PLA Gradient @base",
     "from": "system",
-    "setting_id": "CBPLAB07_02",
+    "setting_id": "BPLB07_02",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

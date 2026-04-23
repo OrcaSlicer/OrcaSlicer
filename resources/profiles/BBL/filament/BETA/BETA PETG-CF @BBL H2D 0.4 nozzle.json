@@ -3,7 +3,7 @@
     "name": "BETA PETG-CF @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG-CF @base",
     "from": "system",
-    "setting_id": "CBPETGB12_08",
+    "setting_id": "BPGB12_08",
     "instantiation": "true",
     "counter_coef_2": [
         "0.00565"

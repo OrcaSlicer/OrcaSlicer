@@ -3,7 +3,7 @@
     "name": "BETA PLA Glow @BBL P1P",
     "inherits": "BETA PLA Glow @base",
     "from": "system",
-    "setting_id": "CBPLAB06_02",
+    "setting_id": "BPLB06_02",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

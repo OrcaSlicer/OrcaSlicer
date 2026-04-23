@@ -3,7 +3,7 @@
     "name": "BETA PLA Transparent @BBL H2D",
     "inherits": "BETA PLA Transparent @base",
     "from": "system",
-    "setting_id": "CBPLAB14_12",
+    "setting_id": "BPLB14_12",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

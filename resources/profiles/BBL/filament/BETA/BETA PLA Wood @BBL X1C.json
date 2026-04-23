@@ -3,7 +3,7 @@
     "name": "BETA PLA Wood @BBL X1C",
     "inherits": "BETA PLA Wood @base",
     "from": "system",
-    "setting_id": "CBPLAB19_00",
+    "setting_id": "BPLB19_00",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.98",

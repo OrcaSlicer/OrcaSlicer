@@ -3,7 +3,7 @@
     "name": "BETA HIPS @BBL H2D",
     "inherits": "BETA HIPS @base",
     "from": "system",
-    "setting_id": "CBHIPSB00_06",
+    "setting_id": "BHIB00_06",
     "instantiation": "true",
     "filament_deretraction_speed": [
         "nil",

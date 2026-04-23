@@ -3,7 +3,7 @@
     "name": "BETA PLA Marble @BBL H2D",
     "inherits": "BETA PLA Marble @base",
     "from": "system",
-    "setting_id": "CBPLAB08_04",
+    "setting_id": "BPLB08_04",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

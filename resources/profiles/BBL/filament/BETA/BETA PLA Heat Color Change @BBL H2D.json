@@ -3,7 +3,7 @@
     "name": "BETA PLA Heat Color Change @BBL H2D",
     "inherits": "BETA PLA Heat Color Change @base",
     "from": "system",
-    "setting_id": "CBPLAB03_04",
+    "setting_id": "BPLB03_04",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

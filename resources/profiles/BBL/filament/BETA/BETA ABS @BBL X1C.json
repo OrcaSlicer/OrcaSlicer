@@ -3,7 +3,7 @@
     "name": "BETA ABS @BBL X1C",
     "inherits": "BETA ABS @base",
     "from": "system",
-    "setting_id": "CBABSB00",
+    "setting_id": "BABB00",
     "instantiation": "true",
     "fan_max_speed": [
         "60"

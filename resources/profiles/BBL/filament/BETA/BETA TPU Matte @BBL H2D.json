@@ -3,7 +3,7 @@
     "name": "BETA TPU Matte @BBL H2D",
     "inherits": "BETA TPU Matte @base",
     "from": "system",
-    "setting_id": "CBTPUB01_02",
+    "setting_id": "BTUB01_02",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "100"

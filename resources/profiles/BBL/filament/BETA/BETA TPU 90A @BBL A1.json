@@ -3,7 +3,7 @@
     "name": "BETA TPU 90A @BBL A1",
     "inherits": "BETA TPU 90A @base",
     "from": "system",
-    "setting_id": "CBTPUB00_04",
+    "setting_id": "BTUB00_04",
     "instantiation": "true",
     "filament_density": [
         "1.22"

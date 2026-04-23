@@ -3,7 +3,7 @@
     "name": "BETA TPU Matte @BBL P1P",
     "inherits": "BETA TPU Matte @base",
     "from": "system",
-    "setting_id": "CBTPUB01_01",
+    "setting_id": "BTUB01_01",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "2.8",

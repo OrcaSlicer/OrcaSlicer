@@ -3,7 +3,7 @@
     "name": "BETA PAHT-CF @BBL H2D",
     "inherits": "BETA PAHT-CF @base",
     "from": "system",
-    "setting_id": "CBPAHTB00_01",
+    "setting_id": "BPAB00_01",
     "instantiation": "true",
     "chamber_temperatures": [
         "60"

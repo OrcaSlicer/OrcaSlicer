@@ -3,7 +3,7 @@
     "name": "BETA ASA @BBL A1 0.4 nozzle",
     "inherits": "BETA ASA @base",
     "from": "system",
-    "setting_id": "CBASAB00_09",
+    "setting_id": "BASB00_09",
     "instantiation": "true",
     "chamber_temperatures": [
         "60"

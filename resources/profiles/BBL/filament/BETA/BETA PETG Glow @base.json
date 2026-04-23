@@ -3,7 +3,7 @@
     "name": "BETA PETG Glow @base",
     "inherits": "fdm_filament_pet",
     "from": "system",
-    "filament_id": "CBPETGB04",
+    "filament_id": "BPGB04",
     "instantiation": "false",
     "description": "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG.",
     "cool_plate_temp": [

@@ -3,7 +3,7 @@
     "name": "BETA PLA Glow @BBL H2D",
     "inherits": "BETA PLA Glow @base",
     "from": "system",
-    "setting_id": "CBPLAB06_06",
+    "setting_id": "BPLB06_06",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

@@ -3,7 +3,7 @@
     "name": "BETA PLA Silk @BBL A1",
     "inherits": "BETA PLA Silk @base",
     "from": "system",
-    "setting_id": "CBPLAB13_05",
+    "setting_id": "BPLB13_05",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

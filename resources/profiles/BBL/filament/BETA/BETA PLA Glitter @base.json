@@ -3,7 +3,7 @@
     "name": "BETA PLA Glitter @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "CBPLAB05",
+    "filament_id": "BPLB05",
     "instantiation": "false",
     "filament_cost": [
         "29.99"

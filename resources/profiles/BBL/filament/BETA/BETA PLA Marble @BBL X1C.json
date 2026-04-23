@@ -3,7 +3,7 @@
     "name": "BETA PLA Marble @BBL X1C",
     "inherits": "BETA PLA Marble @base",
     "from": "system",
-    "setting_id": "CBPLAB08_00",
+    "setting_id": "BPLB08_00",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

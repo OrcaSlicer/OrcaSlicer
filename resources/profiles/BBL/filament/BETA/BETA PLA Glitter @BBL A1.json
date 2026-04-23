@@ -3,7 +3,7 @@
     "name": "BETA PLA Glitter @BBL A1",
     "inherits": "BETA PLA Glitter @base",
     "from": "system",
-    "setting_id": "CBPLAB05_03",
+    "setting_id": "BPLB05_03",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

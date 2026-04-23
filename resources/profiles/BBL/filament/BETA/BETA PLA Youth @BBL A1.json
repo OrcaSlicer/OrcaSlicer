@@ -3,7 +3,7 @@
     "name": "BETA PLA Youth @BBL A1",
     "inherits": "BETA PLA Youth @base",
     "from": "system",
-    "setting_id": "CBPLAB16_04",
+    "setting_id": "BPLB16_04",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

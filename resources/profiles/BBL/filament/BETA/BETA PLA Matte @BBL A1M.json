@@ -3,7 +3,7 @@
     "name": "BETA PLA Matte @BBL A1M",
     "inherits": "BETA PLA Matte @base",
     "from": "system",
-    "setting_id": "CBPLAB09_02",
+    "setting_id": "BPLB09_02",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

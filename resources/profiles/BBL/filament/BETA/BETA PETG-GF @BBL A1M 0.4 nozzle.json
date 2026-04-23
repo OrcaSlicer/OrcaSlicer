@@ -3,7 +3,7 @@
     "name": "BETA PETG-GF @BBL A1M 0.4 nozzle",
     "inherits": "BETA PETG-GF @base",
     "from": "system",
-    "setting_id": "CBPETGB13_04",
+    "setting_id": "BPGB13_04",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "9"

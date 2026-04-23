@@ -3,7 +3,7 @@
     "name": "BETA PLA Youth @BBL H2D",
     "inherits": "BETA PLA Youth @base",
     "from": "system",
-    "setting_id": "CBPLAB16_05",
+    "setting_id": "BPLB16_05",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "75"

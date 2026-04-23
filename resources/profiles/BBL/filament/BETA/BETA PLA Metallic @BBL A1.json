@@ -3,7 +3,7 @@
     "name": "BETA PLA Metallic @BBL A1",
     "inherits": "BETA PLA Metallic @base",
     "from": "system",
-    "setting_id": "CBPLAB11_04",
+    "setting_id": "BPLB11_04",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

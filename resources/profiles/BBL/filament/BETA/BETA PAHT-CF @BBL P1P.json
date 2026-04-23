@@ -3,7 +3,7 @@
     "name": "BETA PAHT-CF @BBL P1P",
     "inherits": "BETA PAHT-CF @base",
     "from": "system",
-    "setting_id": "CBPAHTB00_10",
+    "setting_id": "BPAB00_10",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.96",

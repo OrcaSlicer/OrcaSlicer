@@ -3,7 +3,7 @@
     "name": "BETA PEBA 90A @BBL X1C",
     "inherits": "BETA PEBA 90A @base",
     "from": "system",
-    "setting_id": "CBPEBAB90_00",
+    "setting_id": "BPBB00_00",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "2.8",

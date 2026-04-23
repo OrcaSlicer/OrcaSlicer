@@ -3,7 +3,7 @@
     "name": "BETA PLA Silk+ @BBL H2D",
     "inherits": "BETA PLA Silk+ @base",
     "from": "system",
-    "setting_id": "CBPLAB01_09",
+    "setting_id": "BPLB01_09",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "75"

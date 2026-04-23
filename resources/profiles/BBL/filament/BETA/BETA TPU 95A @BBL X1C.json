@@ -3,7 +3,7 @@
     "name": "BETA TPU 95A @BBL X1C",
     "inherits": "BETA TPU 95A @base",
     "from": "system",
-    "setting_id": "CBTPUB02",
+    "setting_id": "BTUB02",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "3.6",

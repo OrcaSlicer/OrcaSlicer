@@ -3,7 +3,7 @@
     "name": "BETA PLA High Speed @BBL A1M",
     "inherits": "BETA PLA High Speed @base",
     "from": "system",
-    "setting_id": "CBPLAB20_06",
+    "setting_id": "BPLB20_06",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

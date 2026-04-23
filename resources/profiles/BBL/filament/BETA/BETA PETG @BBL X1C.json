@@ -3,7 +3,7 @@
     "name": "BETA PETG @BBL X1C",
     "inherits": "BETA PETG @base",
     "from": "system",
-    "setting_id": "CBPETGB00_01",
+    "setting_id": "BPGB00_01",
     "instantiation": "true",
     "fan_min_speed": [
         "20"

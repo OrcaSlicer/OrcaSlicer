@@ -3,7 +3,7 @@
     "name": "BETA PLA High Temp @BBL X1C",
     "inherits": "BETA PLA High Temp @base",
     "from": "system",
-    "setting_id": "CBPLAB18_00",
+    "setting_id": "BPLB18_00",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.98",

@@ -3,7 +3,7 @@
     "name": "BETA PLA Glitter @BBL X1C",
     "inherits": "BETA PLA Glitter @base",
     "from": "system",
-    "setting_id": "CBPLAB05_00",
+    "setting_id": "BPLB05_00",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.98",

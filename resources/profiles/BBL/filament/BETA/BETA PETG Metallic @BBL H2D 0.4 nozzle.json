@@ -3,7 +3,7 @@
     "name": "BETA PETG Metallic @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG Metallic @base",
     "from": "system",
-    "setting_id": "CBPETGB09_09",
+    "setting_id": "BPGB09_09",
     "instantiation": "true",
     "fan_max_speed": [
         "30"

@@ -3,7 +3,7 @@
     "name": "BETA PETG UV Color Change @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG UV Color Change @base",
     "from": "system",
-    "setting_id": "CBPETGB11_09",
+    "setting_id": "BPGB11_09",
     "instantiation": "true",
     "fan_max_speed": [
         "30"

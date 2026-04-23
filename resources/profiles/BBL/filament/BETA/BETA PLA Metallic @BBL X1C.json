@@ -3,7 +3,7 @@
     "name": "BETA PLA Metallic @BBL X1C",
     "inherits": "BETA PLA Metallic @base",
     "from": "system",
-    "setting_id": "CBPLAB11",
+    "setting_id": "BPLB11",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "21",

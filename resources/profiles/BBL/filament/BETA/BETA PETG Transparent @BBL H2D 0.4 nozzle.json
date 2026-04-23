@@ -3,7 +3,7 @@
     "name": "BETA PETG Transparent @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG Transparent @base",
     "from": "system",
-    "setting_id": "CBPETGB10_06",
+    "setting_id": "BPGB10_06",
     "instantiation": "true",
     "filament_deretraction_speed": [
         "nil",

@@ -3,7 +3,7 @@
     "name": "BETA PETG @BBL A1M 0.4 nozzle",
     "inherits": "BETA PETG @base",
     "from": "system",
-    "setting_id": "CBPETGB00_03",
+    "setting_id": "BPGB00_03",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

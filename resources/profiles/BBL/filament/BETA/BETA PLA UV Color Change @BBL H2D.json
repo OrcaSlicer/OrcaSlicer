@@ -3,7 +3,7 @@
     "name": "BETA PLA UV Color Change @BBL H2D",
     "inherits": "BETA PLA UV Color Change @base",
     "from": "system",
-    "setting_id": "CBPLAB15_06",
+    "setting_id": "BPLB15_06",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

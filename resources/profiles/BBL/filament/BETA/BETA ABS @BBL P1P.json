@@ -3,7 +3,7 @@
     "name": "BETA ABS @BBL P1P",
     "inherits": "BETA ABS @base",
     "from": "system",
-    "setting_id": "CBABSB00_03",
+    "setting_id": "BABB00_03",
     "instantiation": "true",
     "fan_max_speed": [
         "20"

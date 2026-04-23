@@ -3,7 +3,7 @@
     "name": "BETA PETG Glow @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG Glow @base",
     "from": "system",
-    "setting_id": "CBPETGB04_09",
+    "setting_id": "BPGB04_09",
     "instantiation": "true",
     "fan_max_speed": [
         "30"

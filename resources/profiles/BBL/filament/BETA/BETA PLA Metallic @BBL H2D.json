@@ -3,7 +3,7 @@
     "name": "BETA PLA Metallic @BBL H2D",
     "inherits": "BETA PLA Metallic @base",
     "from": "system",
-    "setting_id": "CBPLAB11_07",
+    "setting_id": "BPLB11_07",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

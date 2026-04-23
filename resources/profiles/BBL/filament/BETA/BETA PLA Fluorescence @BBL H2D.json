@@ -3,7 +3,7 @@
     "name": "BETA PLA Fluorescence @BBL H2D",
     "inherits": "BETA PLA Fluorescence @base",
     "from": "system",
-    "setting_id": "CBPLAB04_04",
+    "setting_id": "BPLB04_04",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

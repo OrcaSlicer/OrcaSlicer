@@ -3,7 +3,7 @@
     "name": "BETA PLA Gradient @BBL H2D",
     "inherits": "BETA PLA Gradient @base",
     "from": "system",
-    "setting_id": "CBPLAB07_04",
+    "setting_id": "BPLB07_04",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

@@ -3,7 +3,7 @@
     "name": "BETA PLA Chameleon @BBL X1C",
     "inherits": "BETA PLA Chameleon @base",
     "from": "system",
-    "setting_id": "CBPLAB02_00",
+    "setting_id": "BPLB02_00",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

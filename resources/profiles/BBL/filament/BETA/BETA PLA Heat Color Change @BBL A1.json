@@ -3,7 +3,7 @@
     "name": "BETA PLA Heat Color Change @BBL A1",
     "inherits": "BETA PLA Heat Color Change @base",
     "from": "system",
-    "setting_id": "CBPLAB03_03",
+    "setting_id": "BPLB03_03",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

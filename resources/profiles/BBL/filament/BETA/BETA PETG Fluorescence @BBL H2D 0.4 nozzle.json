@@ -3,7 +3,7 @@
     "name": "BETA PETG Fluorescence @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG Fluorescence @base",
     "from": "system",
-    "setting_id": "CBPETGB02_09",
+    "setting_id": "BPGB02_09",
     "instantiation": "true",
     "fan_max_speed": [
         "30"

@@ -3,7 +3,7 @@
     "name": "BETA PLA PRO @BBL H2D",
     "inherits": "BETA PLA PRO @base",
     "from": "system",
-    "setting_id": "CBPLAB12_12",
+    "setting_id": "BPLB12_12",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "75"

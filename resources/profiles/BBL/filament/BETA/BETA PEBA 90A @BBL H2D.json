@@ -3,7 +3,7 @@
     "name": "BETA PEBA 90A @BBL H2D",
     "inherits": "BETA PEBA 90A @base",
     "from": "system",
-    "setting_id": "CBPEBAB90_02",
+    "setting_id": "BPBB00_02",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "100"

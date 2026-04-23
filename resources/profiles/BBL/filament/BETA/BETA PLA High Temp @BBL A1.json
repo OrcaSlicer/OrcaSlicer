@@ -3,7 +3,7 @@
     "name": "BETA PLA High Temp @BBL A1",
     "inherits": "BETA PLA High Temp @base",
     "from": "system",
-    "setting_id": "CBPLAB18_05",
+    "setting_id": "BPLB18_05",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

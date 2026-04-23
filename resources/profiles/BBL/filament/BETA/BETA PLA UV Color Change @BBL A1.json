@@ -3,7 +3,7 @@
     "name": "BETA PLA UV Color Change @BBL A1",
     "inherits": "BETA PLA UV Color Change @base",
     "from": "system",
-    "setting_id": "CBPLAB15_11",
+    "setting_id": "BPLB15_11",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

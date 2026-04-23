@@ -3,7 +3,7 @@
     "name": "BETA PETG Gradient @BBL H2D 0.4 nozzle",
     "inherits": "BETA PETG Gradient @base",
     "from": "system",
-    "setting_id": "CBPETGB05_09",
+    "setting_id": "BPGB05_09",
     "instantiation": "true",
     "fan_max_speed": [
         "30"

@@ -3,7 +3,7 @@
     "name": "BETA PLA Chameleon @BBL A1",
     "inherits": "BETA PLA Chameleon @base",
     "from": "system",
-    "setting_id": "CBPLAB02_03",
+    "setting_id": "BPLB02_03",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

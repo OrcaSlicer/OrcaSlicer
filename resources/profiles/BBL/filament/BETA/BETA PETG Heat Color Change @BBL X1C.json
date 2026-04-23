@@ -3,7 +3,7 @@
     "name": "BETA PETG Heat Color Change @BBL X1C",
     "inherits": "BETA PETG Heat Color Change @base",
     "from": "system",
-    "setting_id": "CBPETGB01_01",
+    "setting_id": "BPGB01_01",
     "instantiation": "true",
     "fan_min_speed": [
         "20"

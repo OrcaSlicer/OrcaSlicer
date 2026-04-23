@@ -3,7 +3,7 @@
     "name": "BETA PEBA 90A @BBL A1",
     "inherits": "BETA PEBA 90A @base",
     "from": "system",
-    "setting_id": "CBPEBAB90_04",
+    "setting_id": "BPBB00_04",
     "instantiation": "true",
     "filament_density": [
         "1.22"

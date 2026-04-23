@@ -3,7 +3,7 @@
     "name": "BETA PETG HF @BBL X1C",
     "inherits": "BETA PETG HF @base",
     "from": "system",
-    "setting_id": "CBPETGB06_00",
+    "setting_id": "BPGB06_00",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "20"

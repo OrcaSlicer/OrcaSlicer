@@ -3,7 +3,7 @@
     "name": "BETA PLA Glitter @BBL H2D",
     "inherits": "BETA PLA Glitter @base",
     "from": "system",
-    "setting_id": "CBPLAB05_04",
+    "setting_id": "BPLB05_04",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

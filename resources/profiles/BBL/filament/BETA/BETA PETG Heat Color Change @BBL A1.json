@@ -3,7 +3,7 @@
     "name": "BETA PETG Heat Color Change @BBL A1",
     "inherits": "BETA PETG Heat Color Change @base",
     "from": "system",
-    "setting_id": "CBPETGB01_06",
+    "setting_id": "BPGB01_06",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

@@ -3,7 +3,7 @@
     "name": "BETA ABS @BBL H2D",
     "inherits": "BETA ABS @base",
     "from": "system",
-    "setting_id": "CBABSB00_11",
+    "setting_id": "BABB00_11",
     "instantiation": "true",
     "chamber_temperatures": [
         "65"

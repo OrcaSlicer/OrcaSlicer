@@ -3,7 +3,7 @@
     "name": "BETA PLA Wood @BBL P1P",
     "inherits": "BETA PLA Wood @base",
     "from": "system",
-    "setting_id": "CBPLAB19_03",
+    "setting_id": "BPLB19_03",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

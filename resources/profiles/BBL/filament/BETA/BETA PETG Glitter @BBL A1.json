@@ -3,7 +3,7 @@
     "name": "BETA PETG Glitter @BBL A1",
     "inherits": "BETA PETG Glitter @base",
     "from": "system",
-    "setting_id": "CBPETGB03_06",
+    "setting_id": "BPGB03_06",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

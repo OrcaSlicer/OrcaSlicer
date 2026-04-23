@@ -3,7 +3,7 @@
     "name": "BETA HIPS @BBL X1C",
     "inherits": "BETA HIPS @base",
     "from": "system",
-    "setting_id": "CBHIPSB00_00",
+    "setting_id": "BHIB00_00",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "8",

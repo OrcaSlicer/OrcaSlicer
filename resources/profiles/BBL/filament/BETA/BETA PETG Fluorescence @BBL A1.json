@@ -3,7 +3,7 @@
     "name": "BETA PETG Fluorescence @BBL A1",
     "inherits": "BETA PETG Fluorescence @base",
     "from": "system",
-    "setting_id": "CBPETGB02_06",
+    "setting_id": "BPGB02_06",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

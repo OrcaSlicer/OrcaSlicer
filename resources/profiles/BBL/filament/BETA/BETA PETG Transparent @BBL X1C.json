@@ -3,7 +3,7 @@
     "name": "BETA PETG Transparent @BBL X1C",
     "inherits": "BETA PETG Transparent @base",
     "from": "system",
-    "setting_id": "CBPETGB10_00",
+    "setting_id": "BPGB10_00",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

@@ -3,7 +3,7 @@
     "name": "BETA PLA Marble @base",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "CBPLAB08",
+    "filament_id": "BPLB08",
     "instantiation": "false",
     "filament_cost": [
         "29.99"

@@ -3,7 +3,7 @@
     "name": "BETA PLA PRO @BBL X1C",
     "inherits": "BETA PLA PRO @base",
     "from": "system",
-    "setting_id": "CBPLAB12",
+    "setting_id": "BPLB12",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

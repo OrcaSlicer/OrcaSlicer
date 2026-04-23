@@ -3,7 +3,7 @@
     "name": "BETA PETG-CF @BBL X1C 0.4 nozzle",
     "inherits": "BETA PETG-CF @base",
     "from": "system",
-    "setting_id": "CBPETGB12_02",
+    "setting_id": "BPGB12_02",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "30"

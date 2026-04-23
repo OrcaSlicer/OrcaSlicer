@@ -3,7 +3,7 @@
     "name": "BETA PETG UV Color Change @BBL A1",
     "inherits": "BETA PETG UV Color Change @base",
     "from": "system",
-    "setting_id": "CBPETGB11_06",
+    "setting_id": "BPGB11_06",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

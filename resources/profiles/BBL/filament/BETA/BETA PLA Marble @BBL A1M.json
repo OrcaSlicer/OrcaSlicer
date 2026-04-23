@@ -3,7 +3,7 @@
     "name": "BETA PLA Marble @BBL A1M",
     "inherits": "BETA PLA Marble @base",
     "from": "system",
-    "setting_id": "CBPLAB08_02",
+    "setting_id": "BPLB08_02",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

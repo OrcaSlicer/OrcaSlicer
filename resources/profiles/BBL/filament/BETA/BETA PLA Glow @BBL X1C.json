@@ -3,7 +3,7 @@
     "name": "BETA PLA Glow @BBL X1C",
     "inherits": "BETA PLA Glow @base",
     "from": "system",
-    "setting_id": "CBPLAB06_00",
+    "setting_id": "BPLB06_00",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

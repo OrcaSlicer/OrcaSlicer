@@ -3,7 +3,7 @@
     "name": "BETA PLA Fluorescence @BBL X1C",
     "inherits": "BETA PLA Fluorescence @base",
     "from": "system",
-    "setting_id": "CBPLAB04_00",
+    "setting_id": "BPLB04_00",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

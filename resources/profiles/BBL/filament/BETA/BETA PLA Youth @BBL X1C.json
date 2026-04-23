@@ -3,7 +3,7 @@
     "name": "BETA PLA Youth @BBL X1C",
     "inherits": "BETA PLA Youth @base",
     "from": "system",
-    "setting_id": "CBPLAB16",
+    "setting_id": "BPLB16",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

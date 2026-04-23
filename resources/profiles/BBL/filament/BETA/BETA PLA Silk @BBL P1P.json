@@ -3,7 +3,7 @@
     "name": "BETA PLA Silk @BBL P1P",
     "inherits": "BETA PLA Silk @base",
     "from": "system",
-    "setting_id": "CBPLAB13_12",
+    "setting_id": "BPLB13_12",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.98",

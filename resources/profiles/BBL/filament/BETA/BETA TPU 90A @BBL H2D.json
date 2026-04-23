@@ -3,7 +3,7 @@
     "name": "BETA TPU 90A @BBL H2D",
     "inherits": "BETA TPU 90A @base",
     "from": "system",
-    "setting_id": "CBTPUB00_02",
+    "setting_id": "BTUB00_02",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "100"

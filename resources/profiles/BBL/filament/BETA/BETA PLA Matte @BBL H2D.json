@@ -3,7 +3,7 @@
     "name": "BETA PLA Matte @BBL H2D",
     "inherits": "BETA PLA Matte @base",
     "from": "system",
-    "setting_id": "CBPLAB09_05",
+    "setting_id": "BPLB09_05",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "75"

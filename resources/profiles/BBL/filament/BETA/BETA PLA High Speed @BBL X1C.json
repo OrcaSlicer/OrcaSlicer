@@ -3,7 +3,7 @@
     "name": "BETA PLA High Speed @BBL X1C",
     "inherits": "BETA PLA High Speed @base",
     "from": "system",
-    "setting_id": "CBPLAB20_00",
+    "setting_id": "BPLB20_00",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.98",

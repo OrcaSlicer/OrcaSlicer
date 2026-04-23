@@ -3,7 +3,7 @@
     "name": "BETA PETG Marble @BBL A1",
     "inherits": "BETA PETG Marble @base",
     "from": "system",
-    "setting_id": "CBPETGB07_06",
+    "setting_id": "BPGB07_06",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

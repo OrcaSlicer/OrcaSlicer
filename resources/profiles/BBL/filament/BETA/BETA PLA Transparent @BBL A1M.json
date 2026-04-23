@@ -3,7 +3,7 @@
     "name": "BETA PLA Transparent @BBL A1M",
     "inherits": "BETA PLA Transparent @base",
     "from": "system",
-    "setting_id": "CBPLAB14_09",
+    "setting_id": "BPLB14_09",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

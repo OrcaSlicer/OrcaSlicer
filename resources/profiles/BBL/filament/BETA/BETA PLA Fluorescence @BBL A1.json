@@ -3,7 +3,7 @@
     "name": "BETA PLA Fluorescence @BBL A1",
     "inherits": "BETA PLA Fluorescence @base",
     "from": "system",
-    "setting_id": "CBPLAB04_03",
+    "setting_id": "BPLB04_03",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "80"

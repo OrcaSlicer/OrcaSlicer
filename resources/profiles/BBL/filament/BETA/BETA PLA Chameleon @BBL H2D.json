@@ -3,7 +3,7 @@
     "name": "BETA PLA Chameleon @BBL H2D",
     "inherits": "BETA PLA Chameleon @base",
     "from": "system",
-    "setting_id": "CBPLAB02_04",
+    "setting_id": "BPLB02_04",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

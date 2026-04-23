@@ -3,7 +3,7 @@
     "name": "BETA PETG Glow @BBL X1C",
     "inherits": "BETA PETG Glow @base",
     "from": "system",
-    "setting_id": "CBPETGB04_01",
+    "setting_id": "BPGB04_01",
     "instantiation": "true",
     "fan_min_speed": [
         "20"

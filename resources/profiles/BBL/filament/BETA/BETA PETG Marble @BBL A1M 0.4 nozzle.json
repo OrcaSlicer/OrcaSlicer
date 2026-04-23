@@ -3,7 +3,7 @@
     "name": "BETA PETG Marble @BBL A1M 0.4 nozzle",
     "inherits": "BETA PETG Marble @base",
     "from": "system",
-    "setting_id": "CBPETGB07_03",
+    "setting_id": "BPGB07_03",
     "instantiation": "true",
     "fan_max_speed": [
         "50"

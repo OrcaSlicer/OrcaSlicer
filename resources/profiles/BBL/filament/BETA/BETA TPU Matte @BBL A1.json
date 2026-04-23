@@ -3,7 +3,7 @@
     "name": "BETA TPU Matte @BBL A1",
     "inherits": "BETA TPU Matte @base",
     "from": "system",
-    "setting_id": "CBTPUB01_04",
+    "setting_id": "BTUB01_04",
     "instantiation": "true",
     "filament_density": [
         "1.22"

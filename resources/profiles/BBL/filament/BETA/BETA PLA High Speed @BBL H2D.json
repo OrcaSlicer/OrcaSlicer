@@ -3,7 +3,7 @@
     "name": "BETA PLA High Speed @BBL H2D",
     "inherits": "BETA PLA High Speed @base",
     "from": "system",
-    "setting_id": "CBPLAB20_08",
+    "setting_id": "BPLB20_08",
     "instantiation": "true",
     "eng_plate_temp": [
         "55"

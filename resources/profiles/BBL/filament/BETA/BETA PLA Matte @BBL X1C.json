@@ -3,7 +3,7 @@
     "name": "BETA PLA Matte @BBL X1C",
     "inherits": "BETA PLA Matte @base",
     "from": "system",
-    "setting_id": "CBPLAB09",
+    "setting_id": "BPLB09",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
         "1",

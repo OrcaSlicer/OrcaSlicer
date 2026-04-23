@@ -3,7 +3,7 @@
     "name": "BETA PETG UV Color Change @BBL A1M 0.4 nozzle",
     "inherits": "BETA PETG UV Color Change @base",
     "from": "system",
-    "setting_id": "CBPETGB11_03",
+    "setting_id": "BPGB11_03",
     "instantiation": "true",
     "fan_max_speed": [
         "50"
