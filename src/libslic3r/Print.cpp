@@ -2472,6 +2472,40 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
         auto objectExtruderMap = getObjectExtruderMap(*this);
+        // Resolve mixed filament virtual slots to physical components so brim
+        // extruder matching works correctly (mixed slot IDs are not present
+        // in printExtruders after ToolOrdering::resolve_mixed_filaments).
+        {
+            const LayerTools *first_lt = nullptr;
+            if (!is_sequential_print() && !tool_ordering.layer_tools().empty())
+                first_lt = &tool_ordering.layer_tools().front();
+
+            std::map<ObjectID, const PrintObject*> obj_by_id;
+            if (m_sequential_print_data) {
+                for (const PrintObject *obj : m_objects)
+                    obj_by_id[obj->id()] = obj;
+            }
+
+            for (auto &[obj_id, ext_1based] : objectExtruderMap) {
+                if (ext_1based == 0)
+                    continue;
+                const LayerTools *lt = first_lt;
+                if (!lt && m_sequential_print_data) {
+                    auto oid_it = obj_by_id.find(obj_id);
+                    if (oid_it != obj_by_id.end()) {
+                        auto it = m_sequential_print_data->object_tool_ordering_map.find(oid_it->second);
+                        if (it != m_sequential_print_data->object_tool_ordering_map.end()
+                            && !it->second.layer_tools().empty())
+                            lt = &it->second.layer_tools().front();
+                    }
+                }
+                if (lt) {
+                    auto it = lt->mixed_filament_resolution.find(ext_1based - 1);
+                    if (it != lt->mixed_filament_resolution.end())
+                        ext_1based = it->second + 1;
+                }
+            }
+        }
         std::vector<std::pair<ObjectID, unsigned int>> objPrintVec;
         for (const PrintInstance* instance : print_object_instances_ordering) {
             const ObjectID& print_object_ID = instance->print_object->id();

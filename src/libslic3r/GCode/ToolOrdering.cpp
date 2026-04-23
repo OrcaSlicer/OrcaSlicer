@@ -10,7 +10,8 @@
 #include "Preset.hpp"
 #include "PresetBundle.hpp"
 #include "MultiNozzleUtils.hpp"
-#include "filament_mixer.h"
+#include "FilamentMixer.hpp"
+#include "LocalesUtils.hpp"
 #include "Utils.hpp"
 
 #include <set>
@@ -1503,6 +1504,7 @@ void ToolOrdering::resolve_mixed_filaments(const PrintConfig &config)
             continue;
         is_gradient[i] = true;
         if (i < gradient_range_strs.size() && !gradient_range_strs[i].empty()) {
+            CNumericLocalesSetter c_locale_setter;
             float v0 = 0, v1 = 0;
             if (std::sscanf(gradient_range_strs[i].c_str(), "%f,%f", &v0, &v1) == 2 &&
                 v0 > 0 && v0 < 1.0 && v1 > 0 && v1 < 1.0) {
@@ -1604,6 +1606,8 @@ void ToolOrdering::resolve_mixed_filaments(const PrintConfig &config)
                 size_t n = s.components.size();
 
                 std::vector<double> sub_heights;
+                bool gradient_last_no_split = false;
+                unsigned int gradient_last_dominant_0b = 0;
                 if (is_gradient[ext] && n == 2) {
                     auto gr_it = gradient_runs.find(ext);
                     if (gr_it != gradient_runs.end() && gr_it->second.current_run >= 0 &&
@@ -1616,6 +1620,22 @@ void ToolOrdering::resolve_mixed_filaments(const PrintConfig &config)
                         double r2  = 1.0 - r1;
                         sub_heights.push_back(r1 * lh);
                         sub_heights.push_back(r2 * lh);
+                        // The sublayer split path sorts components by physical ID ascending;
+                        // the higher-ID component ends up on top (visible surface). If the
+                        // gradient's dominant component has the lower physical ID, splitting
+                        // would put the non-dominant color on the visible top surface. In
+                        // that case, skip the split and print this final run-layer as pure
+                        // dominant color to preserve the gradient appearance.
+                        if (idx == N - 1) {
+                            // When r1 == r2 (exactly 50/50), component[0] is treated as dominant.
+                            size_t dominant = (r1 >= r2) ? 0 : 1;
+                            unsigned int dom_0b = s.components[dominant] - 1;
+                            unsigned int oth_0b = s.components[1 - dominant] - 1;
+                            if (dom_0b < oth_0b) {
+                                gradient_last_no_split = true;
+                                gradient_last_dominant_0b = dom_0b;
+                            }
+                        }
                     } else {
                         for (double r : s.ratios)
                             sub_heights.push_back(r * lh);
@@ -1625,13 +1645,18 @@ void ToolOrdering::resolve_mixed_filaments(const PrintConfig &config)
                         sub_heights.push_back(r * lh);
                 }
 
+                if (gradient_last_no_split) {
+                    lt.mixed_filament_resolution[ext] = gradient_last_dominant_0b;
+                    new_extruders.push_back(gradient_last_dominant_0b);
+                    continue;
+                }
+
                 LayerTools::MixedSubLayerGroup grp;
                 grp.mixed_slot_0based = ext;
                 grp.is_gradient = is_gradient[ext];
                 for (size_t k = 0; k < s.components.size(); ++k) {
                     unsigned int comp_0based = s.components[k] - 1;
                     grp.components_0based.push_back(comp_0based);
-                    new_extruders.push_back(comp_0based);
                 }
                 grp.sub_heights = sub_heights;
 
@@ -1687,6 +1712,8 @@ void ToolOrdering::resolve_mixed_filaments(const PrintConfig &config)
                     }
                 }
 
+                for (unsigned int comp : grp.components_0based)
+                    new_extruders.push_back(comp);
                 lt.mixed_sub_layer_groups.push_back(std::move(grp));
             } else {
                 // Deficit Round-Robin: pick one component per layer.
@@ -1695,8 +1722,20 @@ void ToolOrdering::resolve_mixed_filaments(const PrintConfig &config)
                 double lh = lt.print_z - prev_print_z;
                 if (lh <= 0) lh = 0.2;
                 long long lh_i = std::llround(lh * 1e6);
-                for (size_t k = 0; k < s.ratios.size(); ++k)
-                    s.accum[k] += std::llround(s.ratios[k] * lh_i);
+                // For 2-component gradient on the first layer, use the gradient's
+                // starting ratio instead of the configured mixing ratio so the
+                // selected filament matches the gradient's "from" end.
+                // Only affects the first layer; when sublayer splitting is enabled
+                // (required for gradient), layers 1+ take the sublayer path and
+                // do not touch the DRR accumulator.
+                if (layer_idx == 0 && is_gradient[ext] && s.components.size() == 2) {
+                    double r0 = gradient_info[ext].start;
+                    s.accum[0] += std::llround(r0 * lh_i);
+                    s.accum[1] += std::llround((1.0 - r0) * lh_i);
+                } else {
+                    for (size_t k = 0; k < s.ratios.size(); ++k)
+                        s.accum[k] += std::llround(s.ratios[k] * lh_i);
+                }
                 size_t sel = 0;
                 for (size_t k = 1; k < s.accum.size(); ++k)
                     if (s.accum[k] > s.accum[sel])
