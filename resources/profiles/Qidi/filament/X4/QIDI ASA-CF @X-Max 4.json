@@ -1,34 +1,82 @@
 {
-    "type": "filament",
-    "filament_id": "QD_3_1_20",
-    "setting_id": "GFSA04",
-    "name": "QIDI ASA-CF@X-Max 4-Series",
-    "from": "system",
-    "instantiation": "false",
-    "inherits": "fdm_filament_x4_common",
-    "box_temperature_range_high": ["45"],
-    "chamber_temperature": ["55"],
-    "close_fan_the_first_x_layers": ["3"],
-    "during_print_exhaust_fan_speed": ["0"],
-    "fan_cooling_layer_time": ["35"],
-    "fan_max_speed": ["25"],
-    "fan_min_speed": ["10"],
-    "filament_adhesiveness_category": ["200"],
-    "filament_density": ["1.07"],
-    "filament_flow_ratio": ["0.9"],
-    "filament_max_volumetric_speed": ["18"],
-    "filament_type": ["ASA-CF"],
-    "impact_strength_z":["4.9"],
-    "nozzle_temperature_initial_layer": ["275"],
-    "nozzle_temperature_range_high": ["280"],
-    "nozzle_temperature_range_low": ["260"],
-    "nozzle_temperature": ["275"],
-    "overhang_fan_speed": ["80"],
-    "overhang_fan_threshold": ["25%"],
-    "pressure_advance": ["0.03"],
-    "slow_down_layer_time": ["12"],
-    "temperature_vitrification": ["100"],
-    "hot_plate_temp_initial_layer" : ["90"],
-    "hot_plate_temp" : ["90"],
-    "compatible_printers": []
+	"type": "filament",
+	"filament_id": "QD_3_1_20",
+	"setting_id": "GFSA04",
+	"name": "QIDI ASA-CF@X-Max 4-Series",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "fdm_filament_x4_common",
+	"box_temperature_range_high": [
+		"45"
+	],
+	"chamber_temperature": [
+		"55"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"fan_cooling_layer_time": [
+		"35"
+	],
+	"fan_max_speed": [
+		"25"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"filament_adhesiveness_category": [
+		"200"
+	],
+	"filament_density": [
+		"1.07"
+	],
+	"filament_flow_ratio": [
+		"0.9"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"filament_type": [
+		"ASA-CF"
+	],
+	"impact_strength_z": [
+		"4.9"
+	],
+	"nozzle_temperature_initial_layer": [
+		"275"
+	],
+	"nozzle_temperature_range_high": [
+		"280"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"nozzle_temperature": [
+		"275"
+	],
+	"overhang_fan_speed": [
+		"80"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"pressure_advance": [
+		"0.03"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"temperature_vitrification": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"compatible_printers": []
 }
