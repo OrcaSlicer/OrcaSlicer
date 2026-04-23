@@ -772,7 +772,7 @@ wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
     return this->FindToolByPosition(client_pos.x, client_pos.y);
 }
 
-#ifdef __WIN32__
+#ifdef __WXMSW__
 WXLRESULT CenteredTitle::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 {
     switch (nMsg) {
