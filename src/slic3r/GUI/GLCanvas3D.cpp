@@ -3998,7 +3998,7 @@ void GLCanvas3D::schedule_extra_frame(int milliseconds)
     // Schedule idle event right now
     if (milliseconds == 0)
     {
-        // We want to wakeup idle evnt but most likely this is call inside render cycle so we need to wait
+        // We want to wakeup idle event but most likely this is call inside render cycle so we need to wait
         if (m_in_render)
             milliseconds = 33;
         else {
@@ -4011,7 +4011,7 @@ void GLCanvas3D::schedule_extra_frame(int milliseconds)
     // Timer is not running
     if (!m_render_timer.IsRunning()) {
         m_render_timer.StartOnce(milliseconds);
-    // Timer is running - restart only if new period is shorter than remaning period
+    // Timer is running - restart only if new period is shorter than remaining period
     } else {
         if (milliseconds + 20 < remaining_time) {
             m_render_timer.Stop();
