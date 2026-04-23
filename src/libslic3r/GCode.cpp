@@ -2476,7 +2476,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     } else
 	    m_enable_extrusion_role_markers = false;
 
-    if (!print.config().small_area_infill_flow_compensation_model.empty())
+    if (m_config.small_area_infill_flow_compensation.value && !m_config.small_area_infill_flow_compensation_model.empty())
         m_small_area_infill_flow_compensator = make_unique<SmallAreaInfillFlowCompensator>(print.config());
     
     // Process file_start_gcode - written at the very top of the file, before any header
@@ -3099,15 +3099,16 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->_print_first_layer_extruder_temperatures(file, print, machine_start_gcode, initial_extruder_id, true);
     }
     // Orca: when activate_air_filtration is set on any extruder, find and set the highest during_print_exhaust_fan_speed
-    bool activate_air_filtration        = false;
+    bool activate_air_filtration_during_print = false;
     int  during_print_exhaust_fan_speed = 0;
     for (const auto &extruder : m_writer.extruders()) {
-        activate_air_filtration |= m_config.activate_air_filtration.get_at(extruder.id());
-        if (m_config.activate_air_filtration.get_at(extruder.id()))
+        if (m_config.activate_air_filtration.get_at(extruder.id()) && m_config.activate_air_filtration_during_print.get_at(extruder.id())) {
+            activate_air_filtration_during_print = true;
             during_print_exhaust_fan_speed = std::max(during_print_exhaust_fan_speed,
                                                       m_config.during_print_exhaust_fan_speed.get_at(extruder.id()));
+        }
     }
-    if (activate_air_filtration)
+    if (activate_air_filtration_during_print)
         file.write(m_writer.set_exhaust_fan(during_print_exhaust_fan_speed, true));
 
     print.throw_if_canceled();
@@ -3407,13 +3408,16 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (activate_chamber_temp_control && max_chamber_temp > 0)
         file.write(m_writer.set_chamber_temperature(0, false));  //close chamber_temperature
 
-    if (activate_air_filtration) {
-        int complete_print_exhaust_fan_speed = 0;
-        for (const auto& extruder : m_writer.extruders())
-            if (m_config.activate_air_filtration.get_at(extruder.id()))
-                complete_print_exhaust_fan_speed = std::max(complete_print_exhaust_fan_speed, m_config.complete_print_exhaust_fan_speed.get_at(extruder.id()));
-        file.write(m_writer.set_exhaust_fan(complete_print_exhaust_fan_speed, true));
+    bool activate_air_filtration_on_completion = false;
+    int complete_print_exhaust_fan_speed = 0;
+    for (const auto& extruder : m_writer.extruders()) {
+        if (m_config.activate_air_filtration.get_at(extruder.id()) && m_config.activate_air_filtration_on_completion.get_at(extruder.id())) {
+            activate_air_filtration_on_completion = true;
+            complete_print_exhaust_fan_speed = std::max(complete_print_exhaust_fan_speed, m_config.complete_print_exhaust_fan_speed.get_at(extruder.id()));
+        }
     }
+    if (activate_air_filtration_on_completion)
+        file.write(m_writer.set_exhaust_fan(complete_print_exhaust_fan_speed, true));
     // adds tags for time estimators
     file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Last_Line_M73_Placeholder).c_str());
     file.write_format("; EXECUTABLE_BLOCK_END\n\n");
@@ -6361,14 +6365,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     if (speed == 0)
         speed = filament_max_volumetric_speed / _mm3_per_mm;
-    if (this->on_first_layer()) {
+    
+    const auto _layer = layer_id();
+    if (this->on_first_layer() || object_layer_over_raft()) {
         //BBS: for solid infill of first layer, speed can be higher as long as
         //wall lines have be attached
-        if (path.role() != erBottomSurface)
-            speed = m_config.get_abs_value("initial_layer_speed");
-    }
-    else if(m_config.slow_down_layers > 1){
-        const auto _layer = layer_id();
+        if (path.role() != erBottomSurface) {
+            speed = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
+                                                m_config.get_abs_value("initial_layer_infill_speed");
+        }
+    } else if (m_config.slow_down_layers > 1 && !m_config.raft_layers > 0) {
+        
         if (_layer > 0 && _layer < m_config.slow_down_layers) {
             const auto first_layer_speed =
                 is_perimeter(path.role())
@@ -6378,7 +6385,18 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 speed = std::min(
                     speed,
                     Slic3r::lerp(first_layer_speed, speed,
-                                 (double)_layer / m_config.slow_down_layers));
+                                (double) (_layer) / m_config.slow_down_layers));
+            }
+        }
+    } else if (m_config.slow_down_layers > 1 && m_config.raft_layers > 0 ) {
+        
+        if (_layer > m_config.raft_layers && (_layer - m_config.raft_layers) < m_config.slow_down_layers) {
+            const auto first_layer_speed 
+                = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
+                                                                       m_config.get_abs_value("initial_layer_infill_speed");
+            if (first_layer_speed < speed) {
+                speed = std::min(speed, Slic3r::lerp(first_layer_speed, speed,
+                                                     (double) (_layer - m_config.raft_layers) / m_config.slow_down_layers));
             }
         }
     }
@@ -6441,7 +6459,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
 
-    if (m_config.enable_overhang_speed && !this->on_first_layer() &&
+    if (m_config.enable_overhang_speed && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? m_config.get_abs_value("outer_wall_speed") : m_config.get_abs_value("inner_wall_speed");
