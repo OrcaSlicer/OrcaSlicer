@@ -1374,7 +1374,6 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
     }
 
     bool  is_multi_extruder = obj->is_multi_extruders();
-    Preset *printer_preset = get_printer_preset(obj);
 
     for (const auto &cali_info : cali_infos.calib_datas) {
         wxString name = "";
@@ -1436,7 +1435,6 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
         return true;
 
     bool is_multi_extruder = obj->is_multi_extruders();
-    Preset *printer_preset = get_printer_preset(obj);
 
     for (const auto &cali_info : cali_infos) {
         wxString name = "";
