@@ -32,7 +32,7 @@
 static constexpr float GAP_WIDTH = 10.0f;
 static constexpr float SPACE_RIGHT_PANEL = 10.0f;
 static constexpr float FADING_OUT_DURATION = 2.0f;
-// Time in Miliseconds after next render when fading out is requested
+// Time in Milliseconds after next render when fading out is requested
 static constexpr int   FADING_OUT_TIMEOUT = 100;
 
 namespace Slic3r {
