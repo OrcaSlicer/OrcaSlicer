@@ -312,7 +312,7 @@ void MonitorPanel::on_printer_clicked(wxMouseEvent &event)
         //pos.x = pos.x < 0? 0:pos.x;
         m_select_machine.Move(pos);
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
         m_select_machine.SetSize(wxSize(m_side_tools->GetSize().x, -1));
         m_select_machine.SetMaxSize(wxSize(m_side_tools->GetSize().x, -1));
         m_select_machine.SetMinSize(wxSize(m_side_tools->GetSize().x, -1));

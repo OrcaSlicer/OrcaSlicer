@@ -245,7 +245,7 @@ void MarkdownTip::OnTitleChanged(wxWebViewEvent& event)
         _pendingScript.clear();
         return;
     }
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
     wxString str = "0";
 #else
     wxString str = event.GetString();
