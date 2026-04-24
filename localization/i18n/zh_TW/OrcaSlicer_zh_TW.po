@@ -11149,11 +11149,6 @@ msgstr "離堵塞偵測區域太近，會發生碰撞。\n"
 
 msgid ""
 "Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr "將高溫和低溫線材混合列印可能導致噴嘴堵塞或列印設備損壞。"
-
-msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
 "or printer damage. If you still want to print, you can enable the option in "
 "Preferences."
 msgstr ""
@@ -11165,10 +11160,6 @@ msgid ""
 "printer damage."
 msgstr "將不同溫度的線材混合列印可能導致噴嘴堵塞或列印設備損壞。"
 
-msgid ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr "將高溫和中溫線材混合列印可能導致噴嘴堵塞或列印設備損壞。"
 
 msgid ""
 "Printing multiple filaments with significantly different temperature requirements is not supported. "

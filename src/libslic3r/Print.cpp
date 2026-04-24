@@ -1161,7 +1161,7 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
 
     if(compatibility == FilamentCompatibilityType::HighLowMixed){
         if(enable_mix_printing){
-            ret.string =L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
+            ret.string = L("Printing multiple filaments with significantly different temperature requirements is not supported. Doing so may cause nozzle blockage or extruder damage during printing.");
             ret.is_warning = true;
         }
         else{
@@ -1170,7 +1170,7 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
     }
     else if (compatibility == FilamentCompatibilityType::HighMidMixed) {
         ret.is_warning = true;
-        ret.string =L("Printing high-temp and mid-temp filaments together may cause nozzle clogging or printer damage.");
+        ret.string = L("Printing multiple filaments with significantly different temperature requirements is not supported. Doing so may cause nozzle blockage or extruder damage during printing.");
     }
     else if (compatibility == FilamentCompatibilityType::LowMidMixed) {
         ret.is_warning = true;

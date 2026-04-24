@@ -10660,11 +10660,6 @@ msgstr ""
 
 msgid ""
 "Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-
-msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
 "or printer damage. If you still want to print, you can enable the option in "
 "Preferences."
 msgstr ""
@@ -10672,11 +10667,6 @@ msgstr ""
 msgid ""
 "Printing different-temp filaments together may cause nozzle clogging or "
 "printer damage."
-msgstr ""
-
-msgid ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
 msgstr ""
 
 msgid ""
