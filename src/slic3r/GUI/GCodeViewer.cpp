@@ -77,6 +77,10 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Speed");
     else if (view_type == libvgcode::EViewType::ActualSpeed)
         return _u8L("Actual Speed");
+    else if (view_type == libvgcode::EViewType::Acceleration)
+        return _u8L("Acceleration");
+    else if (view_type == libvgcode::EViewType::Jerk)
+        return _u8L("Jerk");
     else if (view_type == libvgcode::EViewType::FanSpeed)
         return _u8L("Fan Speed");
     else if (view_type == libvgcode::EViewType::Temperature)
@@ -383,6 +387,16 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
+                append_table_row(_u8L("Acceleration"), [&vertex, &buff]() {
+                    sprintf(buff, ("%.0f " + _u8L("mm/s²")).c_str(), vertex.acceleration);
+                    const std::string text = std::string(buff);
+                    ImGuiWrapper::text(text);
+                });
+                append_table_row(_u8L("Jerk"), [&vertex, &buff]() {
+                    sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.jerk);
+                    const std::string text = std::string(buff);
+                    ImGuiWrapper::text(text);
+                });
                   append_table_row(_u8L("Flow rate"), [&vertex, &buff, NA_TXT]() { // ORCA use "Flow rate" instead "Volumetric flow Rate" to make window more compact
                     std::string text;
                     if (vertex.is_extrusion()) {
@@ -615,6 +629,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 }
                 case libvgcode::EViewType::ActualSpeed: {
                     sprintf(buf, "%s %s%.1f", buf, _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
+                    break;
+                }
+                case libvgcode::EViewType::Acceleration: {
+                    sprintf(buf, "%s %s%.0f", buf, _u8L("Acceleration: ").c_str(), vertex.acceleration);
+                    break;
+                }
+                case libvgcode::EViewType::Jerk: {
+                    sprintf(buf, "%s %s%.1f", buf, _u8L("Jerk: ").c_str(), vertex.jerk);
                     break;
                 }
 // ORCA: Add Pressure Advance visualization support
@@ -1031,6 +1053,8 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::ColorPrint);
     view_type_items.push_back(libvgcode::EViewType::Speed);
     view_type_items.push_back(libvgcode::EViewType::ActualSpeed);
+    view_type_items.push_back(libvgcode::EViewType::Acceleration);
+    view_type_items.push_back(libvgcode::EViewType::Jerk);
     view_type_items.push_back(libvgcode::EViewType::Height);
     view_type_items.push_back(libvgcode::EViewType::Width);
     view_type_items.push_back(libvgcode::EViewType::VolumetricFlowRate);
@@ -2287,6 +2311,8 @@ void GCodeViewer::render_toolpaths()
             add_range_property_row("height range", m_viewer.get_color_range(libvgcode::EViewType::Height).get_range());
             add_range_property_row("width range", m_viewer.get_color_range(libvgcode::EViewType::Width).get_range());
             add_range_property_row("speed range", m_viewer.get_color_range(libvgcode::EViewType::Speed).get_range());
+            add_range_property_row("acceleration range", m_viewer.get_color_range(libvgcode::EViewType::Acceleration).get_range());
+            add_range_property_row("jerk range", m_viewer.get_color_range(libvgcode::EViewType::Jerk).get_range());
             add_range_property_row("fan speed range", m_viewer.get_color_range(libvgcode::EViewType::FanSpeed).get_range());
             add_range_property_row("temperature range", m_viewer.get_color_range(libvgcode::EViewType::Temperature).get_range());
 // ORCA: Add Pressure Advance visualization support
@@ -3536,6 +3562,16 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         imgui.title(_u8L("Actual Speed (mm/s)"));
         break;
     }
+    case libvgcode::EViewType::Acceleration:
+    {
+        imgui.title(_u8L("Acceleration (mm/s²)"));
+        break;
+    }
+    case libvgcode::EViewType::Jerk:
+    {
+        imgui.title(_u8L("Jerk (mm/s)"));
+        break;
+    }
     case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan Speed (%)")); break; }
     case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (°C)")); break; }
 // ORCA: Add Pressure Advance visualization support
@@ -3709,6 +3745,38 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
+            update_moves_slider();
+            });
+        ImGui::PopStyleVar(1);
+        break;
+    }
+    case libvgcode::EViewType::Acceleration: {
+        append_range(m_viewer.get_color_range(libvgcode::EViewType::Acceleration), 0);
+        ImGui::Spacing();
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
+            update_moves_slider();
+            });
+        ImGui::PopStyleVar(1);
+        break;
+    }
+    case libvgcode::EViewType::Jerk: {
+        append_range(m_viewer.get_color_range(libvgcode::EViewType::Jerk), 1);
+        ImGui::Spacing();
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
             });
         ImGui::PopStyleVar(1);
@@ -4078,6 +4146,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         {
         case libvgcode::EViewType::Speed:
         case libvgcode::EViewType::ActualSpeed:
+        case libvgcode::EViewType::Acceleration:
+        case libvgcode::EViewType::Jerk:
         case libvgcode::EViewType::Tool:
         case libvgcode::EViewType::ColorPrint: {
             break;
