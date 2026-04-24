@@ -32,7 +32,7 @@
 static constexpr float GAP_WIDTH = 10.0f;
 static constexpr float SPACE_RIGHT_PANEL = 10.0f;
 static constexpr float FADING_OUT_DURATION = 2.0f;
-// Time in Miliseconds after next render when fading out is requested
+// Time in Milliseconds after next render when fading out is requested
 static constexpr int   FADING_OUT_TIMEOUT = 100;
 
 namespace Slic3r {
@@ -69,15 +69,13 @@ namespace {
 		// Code taken from desktop_open_datadir_folder()
 
 		// Execute command to open a file explorer, platform dependent.
-		// FIXME: The const_casts aren't needed in wxWidgets 3.1, remove them when we upgrade.
-
 #ifdef _WIN32
 		const wxString widepath = from_u8(path);
 		const wchar_t* argv[] = { L"explorer", widepath.GetData(), nullptr };
-		::wxExecute(const_cast<wchar_t**>(argv), wxEXEC_ASYNC, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #elif __APPLE__
 		const char* argv[] = { "open", path.data(), nullptr };
-		::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr);
+		::wxExecute(argv, wxEXEC_ASYNC, nullptr);
 #else
 		const char* argv[] = { "xdg-open", path.data(), nullptr };
 
@@ -105,11 +103,11 @@ namespace {
 				exec_env.cwd = std::move(owd);
 			}
 
-			::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, &exec_env);
+			::wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env);
 		}
 		else {
 			// Looks like we're NOT running from AppImage, we'll make no changes to the environment.
-			::wxExecute(const_cast<char**>(argv), wxEXEC_ASYNC, nullptr, nullptr);
+			::wxExecute(argv, wxEXEC_ASYNC, nullptr, nullptr);
 		}
 #endif
 	}

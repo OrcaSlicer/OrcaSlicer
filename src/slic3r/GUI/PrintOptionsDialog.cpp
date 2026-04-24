@@ -1345,7 +1345,7 @@ bool PrinterPartsDialog::Show(bool show)
             auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
             auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
             nozzle_type_checkbox->SetValue(GetString(type));
-            nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
 
             // nozzle flow type
             nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
@@ -1369,7 +1369,7 @@ bool PrinterPartsDialog::Show(bool show)
             auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
             auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
             multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_left_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
             multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
             //right
@@ -1377,7 +1377,7 @@ bool PrinterPartsDialog::Show(bool show)
             diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
             flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
             multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_right_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
             multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
             if (obj->is_support_refresh_nozzle) {
@@ -1421,7 +1421,7 @@ wxString PrinterPartsDialog::GetString(NozzleType nozzle_type) const {
         default: break;
     }
 
-    return wxEmptyString;
+    return _L("Unknown");
 }
 
 wxString PrinterPartsDialog::GetString(NozzleFlowType nozzle_flow_type) const {
@@ -1483,7 +1483,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
         auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
         nozzle_type_checkbox->SetValue(GetString(type));
-        nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
 
         // nozzle flow type
         nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
@@ -1499,7 +1499,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
         auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
         multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_left_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
         multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
         //right
@@ -1507,7 +1507,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
         flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
         multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_right_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
         multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
     }
 

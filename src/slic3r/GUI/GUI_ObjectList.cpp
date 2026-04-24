@@ -29,9 +29,11 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/log/trivial.hpp>
 #include <wx/progdlg.h>
 #include <wx/listbook.h>
 #include <wx/numformatter.h>
+#include <wx/utils.h>
 #include <wx/headerctrl.h>
 
 #include "slic3r/Utils/FixModelByWin10.hpp"
@@ -913,15 +915,15 @@ void ObjectList::object_config_options_changed(const ObjectVolumeID& ov_id)
     }
 }
 
-void ObjectList::printable_state_changed(const std::vector<ObjectVolumeID>& ov_ids)
+void ObjectList::printable_state_changed(const std::vector<ModelObject*> model_objects)
 {
     std::vector<size_t> obj_idxs;
-    for (const ObjectVolumeID ov_id : ov_ids) {
-        if (ov_id.object == nullptr)
+    for (const ModelObject* mo : model_objects) {
+        if (mo == nullptr)
             continue;
 
-        ModelInstance* mi = ov_id.object->instances[0];
-        wxDataViewItem obj_item = m_objects_model->GetObjectItem(ov_id.object);
+        ModelInstance* mi       = mo->instances[0];
+        wxDataViewItem obj_item = m_objects_model->GetObjectItem(mo);
         m_objects_model->SetObjectPrintableState(mi->printable ? piPrintable : piUnprintable, obj_item);
 
         int obj_idx = m_objects_model->GetObjectIdByItem(obj_item);
@@ -936,6 +938,19 @@ void ObjectList::printable_state_changed(const std::vector<ObjectVolumeID>& ov_i
 
     // update scene
     wxGetApp().plater()->update();
+}
+
+void ObjectList::printable_state_changed(const std::vector<ObjectVolumeID>& ov_ids)
+{
+    std::vector<ModelObject*> model_objects;
+    model_objects.reserve(ov_ids.size());
+
+    for (const ObjectVolumeID& ov_id : ov_ids) {
+        if (ov_id.object != nullptr)
+            model_objects.emplace_back(ov_id.object);
+    }
+
+    printable_state_changed(model_objects);
 }
 
 void ObjectList::assembly_plate_object_name()
@@ -1152,6 +1167,7 @@ void ObjectList::update_name_in_list(int obj_idx, int vol_idx) const
 
 void ObjectList::selection_changed()
 {
+    if (wxGetApp().is_closing()) return;
     if (m_prevent_list_events) return;
 
     fix_multiselection_conflicts();
@@ -1746,6 +1762,8 @@ void ObjectList::key_event(wxKeyEvent& event)
         decrease_instances();
     else if (event.GetUnicodeKey() == 'p')
         toggle_printable_state();
+    else if (event.GetUnicodeKey() == 'd')
+        toggle_auto_drop();
     else if (filaments_count() > 1) {
         std::vector<wxChar> numbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         wxChar key_char = event.GetUnicodeKey();
@@ -3042,6 +3060,17 @@ void ObjectList::merge(bool to_multipart_object)
                     volume->config.set_key_value("extruder", option->clone());
             }
 
+            // merge printable and auto_drop values
+            // non-default have priority -> if one object has printable == false, 
+            // then merged object will also have printable == false
+            if (object->instances[0]->printable == false) {
+                new_object->printable = false;
+                new_object->instances[0]->printable = false;
+            }
+            if (object->instances[0]->auto_drop == false) {
+                new_object->instances[0]->auto_drop = false;
+            }
+
             // merge layers
             for (const auto& range : object->layer_config_ranges)
                 new_object->layer_config_ranges.emplace(range);
@@ -3075,6 +3104,9 @@ void ObjectList::merge(bool to_multipart_object)
 
         // Add new object(merged) to the object_list
         add_object_to_list(m_objects->size() - 1);
+        if (new_object->printable == false) {
+            wxGetApp().obj_list()->printable_state_changed({new_object});
+        }
         select_item(m_objects_model->GetItemById(m_objects->size() - 1));
         update_selections_on_canvas();
     }
@@ -3455,6 +3487,9 @@ void ObjectList::changed_object(const int obj_idx/* = -1*/) const
 
 void ObjectList::part_selection_changed()
 {
+    if (wxGetApp().is_closing())
+        return;
+
     if (m_extruder_editor) m_extruder_editor->Hide();
     int obj_idx = -1;
     int volume_id = -1;
@@ -4655,6 +4690,9 @@ int ObjectList::get_selected_layers_range_idx() const
 
 void ObjectList::update_selections()
 {
+    if (wxGetApp().is_closing())
+        return;
+
     const Selection& selection = scene_selection();
     wxDataViewItemArray sels;
 
@@ -5340,6 +5378,11 @@ ModelVolume* ObjectList::get_selected_model_volume()
     return (*m_objects)[obj_idx]->volumes[vol_idx];
 }
 
+// ORCA: kept as dead code (not called by any active path). Preserved in #if 0
+// form for traceability with upstream Bambu Studio -- removing outright would
+// produce merge conflicts on every BBL sync. The active "Change Type" UI goes
+// through the submenu in GUI_Factories.cpp -> ObjectList::set_volume_type().
+#if 0
 void ObjectList::change_part_type()
 {
   wxDataViewItemArray selections;
@@ -5535,6 +5578,157 @@ void ObjectList::change_part_type()
   }
 
   return;
+}
+#endif
+
+ModelVolumeType ObjectList::get_selected_volume_type()
+{
+    ModelVolume* volume = get_selected_model_volume();
+    if (volume)
+        return volume->type();
+    return ModelVolumeType::INVALID;
+}
+
+void ObjectList::set_volume_type(ModelVolumeType new_type)
+{
+    struct VolumeSelection {
+        int          object_idx;
+        ModelVolume* volume;
+    };
+
+    std::vector<VolumeSelection> volumes;
+    auto add_volume = [&volumes](int obj_idx, ModelVolume* volume) {
+        if (volume == nullptr)
+            return;
+        auto it = std::find_if(volumes.begin(), volumes.end(), [volume](const VolumeSelection& other) { return other.volume == volume; });
+        if (it == volumes.end())
+            volumes.push_back({ obj_idx, volume });
+    };
+
+    wxDataViewItemArray sels;
+    GetSelections(sels);
+    for (auto item : sels) {
+        wxDataViewItem volume_item = item;
+        ItemType       type        = m_objects_model->GetItemType(item);
+        if (!(type & itVolume)) {
+            if ((type & itSettings) && (m_objects_model->GetItemType(m_objects_model->GetParent(item)) & itVolume))
+                volume_item = m_objects_model->GetParent(item);
+            else
+                continue;
+        }
+
+        const int obj_idx = m_objects_model->GetObjectIdByItem(volume_item);
+        const int vol_idx = m_objects_model->GetVolumeIdByItem(volume_item);
+        if (obj_idx < 0 || vol_idx < 0 || obj_idx >= m_objects->size())
+            continue;
+
+        const int real_idx = m_objects_model->get_real_volume_index_in_3d(obj_idx, vol_idx);
+        if (real_idx < 0 || real_idx >= (*m_objects)[obj_idx]->volumes.size())
+            continue;
+
+        add_volume(obj_idx, (*m_objects)[obj_idx]->volumes[real_idx]);
+    }
+
+    auto collect_from_canvas = [&add_volume](GLCanvas3D* canvas) {
+        if (canvas == nullptr)
+            return;
+        const Selection& selection = canvas->get_selection();
+        for (auto idx : selection.get_volume_idxs()) {
+            const GLVolume* gl_volume = selection.get_volume(idx);
+            if (gl_volume == nullptr || gl_volume->object_idx() < 0)
+                continue;
+            ModelVolume* volume = get_model_volume(*gl_volume, selection.get_model()->objects);
+            add_volume(gl_volume->object_idx(), volume);
+        }
+    };
+
+    if (volumes.empty()) {
+        collect_from_canvas(wxGetApp().plater()->canvas3D());
+        if (volumes.empty()) {
+            auto canvas_type = wxGetApp().plater()->get_current_canvas3D()->get_canvas_type();
+            if (canvas_type == GLCanvas3D::ECanvasType::CanvasView3D && is_connectors_item_selected())
+                collect_from_canvas(wxGetApp().plater()->get_view3D_canvas3D());
+        }
+        if (volumes.empty())
+            return;
+    }
+
+    // Defense-in-depth safety net against issue #5070: SVG/text volumes carry emboss metadata
+    // (text_configuration, emboss_shape) that only makes sense for Part / Negative Part / Modifier.
+    // ModelVolume::set_type() does not clear that metadata, so converting such volumes to
+    // Support Blocker / Support Enforcer leaves stale emboss state attached to a support volume
+    // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
+    // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
+    // in MenuFactory::append_menu_item_change_type, see #13120).
+    // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
+    // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+        const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
+            [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
+        if (has_text_or_svg) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER on SVG/text volume; "
+                << "UI guard should have prevented this -- possible regression in the Change Type menu";
+            return;
+        }
+    }
+
+    const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
+        [new_type](const VolumeSelection& sel) { return sel.volume->type() != new_type; });
+
+    if (!any_diff)
+        return;
+
+    if (new_type != ModelVolumeType::MODEL_PART) {
+        std::map<int, int> total_part_cnt;
+        std::map<int, int> selected_part_cnt;
+
+        for (const auto& sel : volumes) {
+            if (total_part_cnt.find(sel.object_idx) == total_part_cnt.end()) {
+                int count = 0;
+                for (auto vol : (*m_objects)[sel.object_idx]->volumes)
+                    if (vol->type() == ModelVolumeType::MODEL_PART)
+                        ++count;
+                total_part_cnt.emplace(sel.object_idx, count);
+            }
+            if (sel.volume->type() == ModelVolumeType::MODEL_PART)
+                ++selected_part_cnt[sel.object_idx];
+        }
+
+        for (const auto& sel : selected_part_cnt) {
+            auto it = total_part_cnt.find(sel.first);
+            if (it != total_part_cnt.end() && it->second > 0 && sel.second == it->second) {
+                Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+                return;
+            }
+        }
+    }
+
+    take_snapshot("Change part type");
+
+    std::set<const ModelVolume*> changed_volumes;
+    std::set<int>                touched_objects;
+    for (const auto& sel : volumes) {
+        sel.volume->set_type(new_type);
+        changed_volumes.insert(sel.volume);
+        touched_objects.insert(sel.object_idx);
+    }
+
+    wxDataViewItemArray new_selection;
+    for (int obj_idx : touched_objects) {
+        wxDataViewItemArray sel_items = reorder_volumes_and_get_selection(obj_idx, [&changed_volumes](const ModelVolume* volume) {
+            return changed_volumes.find(volume) != changed_volumes.end();
+        });
+        for (const auto& item : sel_items)
+            new_selection.push_back(item);
+    }
+
+    if (!new_selection.IsEmpty()) {
+        m_prevent_list_events = true;
+        UnselectAll();
+        SetSelections(new_selection);
+        m_prevent_list_events = false;
+    }
 }
 
 void ObjectList::last_volume_is_deleted(const int obj_idx)
@@ -6456,6 +6650,52 @@ void ObjectList::toggle_printable_state()
 
     // update printable state on canvas
     wxGetApp().plater()->get_view3D_canvas3D()->update_instance_printable_state_for_objects(obj_idxs);
+
+    // update scene
+    wxGetApp().plater()->update();
+    wxGetApp().plater()->reload_paint_after_background_process_apply();
+}
+
+void ObjectList::toggle_auto_drop()
+{
+    wxDataViewItemArray sels;
+    GetSelections(sels);
+    if (sels.IsEmpty())
+        return;
+
+    for (auto item : sels) {
+        ItemType type = m_objects_model->GetItemType(item);
+        if (!(type & (itObject | itInstance)))
+            return;
+    }
+
+    const bool current_auto_drop = wxGetApp().plater()->get_selection().get_auto_drop();
+
+    take_snapshot("");
+
+    std::vector<size_t> obj_idxs;
+    for (auto item : sels) {
+        int obj_idx      = m_objects_model->GetObjectIdByItem(item);
+        ModelObject* obj = object(obj_idx);
+
+        obj_idxs.emplace_back(static_cast<size_t>(obj_idx));
+
+        ItemType type = m_objects_model->GetItemType(item);
+        // set auto_drop value for selected instance/instances in object
+        if (type == itInstance) {
+            int inst_idx = m_objects_model->GetInstanceIdByItem(item);
+            obj->instances[inst_idx]->auto_drop = !current_auto_drop;
+        } else {
+            for (auto inst : obj->instances)
+                inst->auto_drop = !current_auto_drop;
+                
+        if (current_auto_drop == false) 
+            obj->ensure_on_bed();
+        }
+    }
+
+    sort(obj_idxs.begin(), obj_idxs.end());
+    obj_idxs.erase(unique(obj_idxs.begin(), obj_idxs.end()), obj_idxs.end());
 
     // update scene
     wxGetApp().plater()->update();
