@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"filament_id": "GFG99",
+	"setting_id": "GFSG99",
+	"name": "re3D Greengate rPETG",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"nozzle_temperature_initial_layer": [
+		"255"
+	],
+	"nozzle_temperature": [
+		"255"
+	],
+	"nozzle_temperature_range_low": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"hot_plate_temp": [
+		"80"
+	],
+	"filament_flow_ratio": [
+		"1.02"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"20"
+	],
+	"slow_down_min_speed": [
+		"25"
+	],
+	"filament_start_gcode": [
+		"M190 S75\nM104 S220 T0\nM104 S210 T1\nM104 S200 T2\nM109 S220 T0\nM109 S210 T1\nM109 S200 T2"
+	],
+	"compatible_printers": [
+		"re3D Gigabot X2 1.75 nozzle",
+		"re3D Gigabot X2 XLT 1.75 nozzle",
+		"re3D Terabot X2 1.75 nozzle"
+	]
+}

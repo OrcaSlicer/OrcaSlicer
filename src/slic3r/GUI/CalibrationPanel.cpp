@@ -269,7 +269,7 @@ void SelectMObjectPopup::Popup(wxWindow* WXUNUSED(focus))
         }
     }
 
-    wxPostEvent(this, wxTimerEvent());
+    wxPostEvent(this, wxTimerEvent(*m_refresh_timer));
     PopupWindow::Popup();
 }
 
@@ -475,7 +475,7 @@ void CalibrationPanel::init_tabpanel() {
 
     m_tabpanel = new Tabbook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, sizer_side_tools, wxNB_LEFT | wxTAB_TRAVERSAL | wxNB_NOPAGETHEME);
     m_side_tools->set_table_panel(m_tabpanel);
-    m_tabpanel->SetBackgroundColour(*wxWHITE);
+    m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF")); // ORCA match sidebar background color
 
     m_cali_panels[0] = new PressureAdvanceWizard(m_tabpanel);
     m_cali_panels[1] = new FlowRateWizard(m_tabpanel);
@@ -491,11 +491,12 @@ void CalibrationPanel::init_tabpanel() {
             selected);
     }
 
-    for (int i = 0; i < (int)CALI_MODE_COUNT; i++)
-        m_tabpanel->SetPageImage(i, "");
+    // ORCA use standard paddings and keep arrow icon for consistent look between sidebars
+    //for (int i = 0; i < (int)CALI_MODE_COUNT; i++)
+    //    m_tabpanel->SetPageImage(i, "");
 
-    auto padding_size = m_tabpanel->GetBtnsListCtrl()->GetPaddingSize(0);
-    m_tabpanel->GetBtnsListCtrl()->SetPaddingSize({ FromDIP(15), padding_size.y });
+    //auto padding_size = m_tabpanel->GetBtnsListCtrl()->GetPaddingSize(0);
+    //m_tabpanel->GetBtnsListCtrl()->SetPaddingSize({ FromDIP(15), padding_size.y });
 
     m_initialized = true;
 }
@@ -505,7 +506,7 @@ void CalibrationPanel::init_timer()
     m_refresh_timer = new wxTimer();
     m_refresh_timer->SetOwner(this);
     m_refresh_timer->Start(REFRESH_INTERVAL);
-    wxPostEvent(this, wxTimerEvent());
+    wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
 }
 
 void CalibrationPanel::on_timer(wxTimerEvent& event) {
@@ -634,7 +635,7 @@ bool CalibrationPanel::Show(bool show) {
         m_refresh_timer->Stop();
         m_refresh_timer->SetOwner(this);
         m_refresh_timer->Start(REFRESH_INTERVAL);
-        wxPostEvent(this, wxTimerEvent());
+        wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
 
         DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
         if (dev) {

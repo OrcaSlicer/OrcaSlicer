@@ -40,7 +40,7 @@ public:
 
 public:
     NetworkAgent* get_agent() const { return m_agent; }
-    void set_agent(NetworkAgent* agent) { m_agent = agent; }
+    void set_agent(NetworkAgent* agent);
 
     void start_refresher();
     void stop_refresher();

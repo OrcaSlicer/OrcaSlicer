@@ -1,0 +1,82 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_pet",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "fdm_filament_common",
+	"filament_density": [
+		"1.27"
+	],
+	"filament_cost": [
+		"0"
+	],
+	"temperature_vitrification": [
+		"70"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_min_speed": [
+		"80"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_flow_ratio": [
+		"0.91"
+	],
+	"filament_max_volumetric_speed": [
+		"9.5"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_type": [
+		"PETG"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"pressure_advance": [
+		"0.205"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"support_material_interface_fan_speed": [
+		"100"
+	]
+}

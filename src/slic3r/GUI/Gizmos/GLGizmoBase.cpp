@@ -1,7 +1,7 @@
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -231,7 +231,11 @@ void GLGizmoBase::render_cross_mark(const Vec3f &target, bool is_single)
 {
     const float half_length = 4.0f;
 
-    glsafe(::glLineWidth(2.0f));
+    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glsafe(::glLineWidth(2.0f));
+#endif // !SLIC3R_OPENGL_ES
 
     auto render_line = [](const Vec3f& p1, const Vec3f& p2, const ColorRGBA& color) {
         GLModel::Geometry init_data;
