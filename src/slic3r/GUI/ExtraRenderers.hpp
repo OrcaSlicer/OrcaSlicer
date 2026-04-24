@@ -132,13 +132,9 @@ private:
 class BitmapChoiceRenderer : public wxDataViewCustomRenderer
 {
 public:
-    BitmapChoiceRenderer(wxDataViewCellMode mode =
-//#ifdef __WXOSX__
-//        wxDATAVIEW_CELL_INERT
-//#else
-        wxDATAVIEW_CELL_EDITABLE
-//#endif
-        , int align = wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL
+    BitmapChoiceRenderer(
+        wxDataViewCellMode mode = wxDATAVIEW_CELL_EDITABLE,
+        int align = wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL
     ) : wxDataViewCustomRenderer(wxT("DataViewBitmapText"), mode, align) {}
 
     bool SetValue(const wxVariant& value) override;

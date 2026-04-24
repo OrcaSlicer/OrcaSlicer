@@ -1562,9 +1562,9 @@ void PerimeterGenerator::process_classic()
         } // for each loop of an island
 
         // fill gaps
-        if (! gaps.empty()) {
-            // collapse
-            double min = 0.2 * perimeter_width * (1 - INSET_OVERLAP_TOLERANCE);
+        if (! gaps.empty()) { // collapse
+            // ORCA: Use the smaller width as the lower bound to avoid overestimating safe overlap
+            double min = 0.2 * std::min(perimeter_width, ext_perimeter_width) * (1 - INSET_OVERLAP_TOLERANCE);
             double max = 2. * perimeter_spacing;
             ExPolygons gaps_ex = diff_ex(
                 //FIXME offset2 would be enough and cheaper.
@@ -1869,6 +1869,20 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     unbridgeable = offset_ex(unbridgeable, ext_perimeter_width + offset_to_do, ClipperLib::jtSquare);
                                     bridges_temp = diff_ex(bridges_temp, unbridgeable);
                                     unsupported_filtered = offset_ex(bridges_temp, offset_to_do);
+                                    unsupported_filtered = intersection_ex(unsupported_filtered, reference);
+
+                                    // Normalize anchor size for partial bridges:
+                                    // derive the bridge core first, then add a fixed overlap into support.
+                                    const coordf_t anchor_overlap = bridged_infill_margin;
+                                    ExPolygons bridge_core = diff_ex(unsupported_filtered, support, ApplySafetyOffset::Yes);
+                                    if (bridge_core.empty()) {
+                                        bridge_core = unsupported_filtered;
+                                    }
+                                    ExPolygons anchor_overlap_area = intersection_ex(
+                                        offset_ex(bridge_core, anchor_overlap),
+                                        support,
+                                        ApplySafetyOffset::Yes);
+                                    unsupported_filtered = union_ex(bridge_core, anchor_overlap_area);
                                     unsupported_filtered = intersection_ex(unsupported_filtered, reference);
                                 // } else {
                                 //     ExPolygons unbridgeable = intersection_ex(unsupported, diff_ex(unsupported_filtered, offset_ex(bridgeable_simplified, ext_perimeter_width / 2)));
