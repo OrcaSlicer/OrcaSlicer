@@ -1,6 +1,7 @@
 #include "DropDown.hpp"
 #include "Label.hpp"
 
+#include <cstdio>
 #include <wx/display.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
@@ -419,7 +420,9 @@ int DropDown::hoverIndex()
 {
     if (hover_item < 0)
         return -1;
-    if (count == items.size())
+    // BUG FIX: Can't take the shortcut if subDropDown exists (which means there are groups)
+    // because we need to detect group headers which return negative indices
+    if (count == items.size() && subDropDown == nullptr)
         return hover_item;
     int index = -1;
     std::set<wxString> groups;
@@ -447,7 +450,9 @@ int DropDown::selectedItem()
 {
     if (selection < 0)
         return -1;
-    if (count == items.size())
+    // BUG FIX: Can't take the shortcut if subDropDown exists (which means there are groups)
+    // because the visual position differs from the actual item index when groups are shown
+    if (count == items.size() && subDropDown == nullptr)
         return selection;
     auto & sel = items[selection];
     if (group.IsEmpty() ? !sel.group.IsEmpty() : sel.group != group)
@@ -520,7 +525,7 @@ void DropDown::messureSize()
     }
     if (!align_icon) iconSize.x = 0;
     wxSize szContent = textSize;
-    if (szContent.x < FromDIP(120))
+    if (szContent.x < FromDIP(120) && !use_content_width)
         szContent.x = FromDIP(120);
     szContent.x += 10;
     if (check_bitmap.bmp().IsOk()) {
@@ -533,7 +538,7 @@ void DropDown::messureSize()
     if (count > 15) szContent.x += 6;
     if (GetParent() && group.IsEmpty()) {
         auto x = GetParent()->GetSize().x;
-        if (!use_content_width || x > szContent.x)
+        if (x > 0 && (!use_content_width || x > szContent.x))
             szContent.x = x;
     }
     rowSize = szContent;
@@ -544,7 +549,7 @@ void DropDown::messureSize()
             szContent = rowSize;
         }
     }
-    szContent.y *= std::min((size_t) 15, count);
+    szContent.y *= std::min((size_t) 15, std::max(count, (size_t) 1));
     szContent.y += items.size() > 15 ? rowSize.y / 2 : 0;
     wxWindow::SetSize(szContent);
 #ifdef __WXGTK__

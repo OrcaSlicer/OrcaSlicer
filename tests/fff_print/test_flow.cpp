@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include <numeric>
 #include <sstream>
@@ -15,7 +15,7 @@
 using namespace Slic3r::Test;
 using namespace Slic3r;
 
-SCENARIO("Extrusion width specifics", "[Flow]") {
+SCENARIO("Extrusion width specifics", "[Flow][.]") {
     GIVEN("A config with a skirt, brim, some fill density, 3 perimeters, and 1 bottom solid layer and a 20mm cube mesh") {
         // this is a sharedptr
         DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
@@ -39,7 +39,7 @@ SCENARIO("Extrusion width specifics", "[Flow]") {
             const double layer_height = config.opt_float("layer_height");
             parser.parse_buffer(gcode, [&E_per_mm_bottom, layer_height] (Slic3r::GCodeReader& self, const Slic3r::GCodeReader::GCodeLine& line)
             { 
-                if (self.z() == Approx(layer_height).margin(0.01)) { // only consider first layer
+                if (self.z() == Catch::Approx(layer_height).margin(0.01)) { // only consider first layer
                     if (line.extruding(self) && line.dist_XY(self) > 0) {
                         E_per_mm_bottom.emplace_back(line.dist_E(self) / line.dist_XY(self));
                     }
@@ -49,7 +49,7 @@ SCENARIO("Extrusion width specifics", "[Flow]") {
                 bool pass = false;
                 double avg_E = std::accumulate(E_per_mm_bottom.cbegin(), E_per_mm_bottom.cend(), 0.0) / static_cast<double>(E_per_mm_bottom.size());
 
-                pass = (std::count_if(E_per_mm_bottom.cbegin(), E_per_mm_bottom.cend(), [avg_E] (const double& v) { return v == Approx(avg_E); }) == 0);
+                pass = (std::count_if(E_per_mm_bottom.cbegin(), E_per_mm_bottom.cend(), [avg_E] (const double& v) { return v == Catch::Approx(avg_E); }) == 0);
                 REQUIRE(pass == true);
                 REQUIRE(E_per_mm_bottom.size() > 0); // make sure it actually passed because of extrusion
             }
@@ -101,18 +101,18 @@ SCENARIO("Flow: Flow math for non-bridges", "[Flow]") {
         // Spacing for non-bridges is has some overlap
         THEN("External perimeter flow has spacing fixed to 1.125 * nozzle_diameter") {
             auto flow = Flow::new_from_config_width(frExternalPerimeter, ConfigOptionFloatOrPercent(0, false), nozzle_diameter, layer_height);
-            REQUIRE(flow.spacing() == Approx(1.125 * nozzle_diameter - layer_height * (1.0 - PI / 4.0)));
+            REQUIRE(flow.spacing() == Catch::Approx(1.125 * nozzle_diameter - layer_height * (1.0 - PI / 4.0)));
         }
 
         THEN("Internal perimeter flow has spacing fixed to 1.125 * nozzle_diameter") {
             auto flow = Flow::new_from_config_width(frPerimeter, ConfigOptionFloatOrPercent(0, false), nozzle_diameter, layer_height);
-            REQUIRE(flow.spacing() == Approx(1.125 *nozzle_diameter - layer_height * (1.0 - PI / 4.0)));
+            REQUIRE(flow.spacing() == Catch::Approx(1.125 *nozzle_diameter - layer_height * (1.0 - PI / 4.0)));
         }
         THEN("Spacing for supplied width is 0.8927f") {
             auto flow = Flow::new_from_config_width(frExternalPerimeter, width, nozzle_diameter, layer_height);
-            REQUIRE(flow.spacing() == Approx(width.value - layer_height * (1.0 - PI / 4.0)));
+            REQUIRE(flow.spacing() == Catch::Approx(width.value - layer_height * (1.0 - PI / 4.0)));
             flow = Flow::new_from_config_width(frPerimeter, width, nozzle_diameter, layer_height);
-            REQUIRE(flow.spacing() == Approx(width.value - layer_height * (1.0 - PI / 4.0)));
+            REQUIRE(flow.spacing() == Catch::Approx(width.value - layer_height * (1.0 - PI / 4.0)));
         }
     }
     /// Check the min/max
@@ -123,14 +123,14 @@ SCENARIO("Flow: Flow math for non-bridges", "[Flow]") {
             layer_height = 0.15f;
             THEN("Max width is set.") {
                 auto flow = Flow::new_from_config_width(frPerimeter, ConfigOptionFloatOrPercent(0, false), nozzle_diameter, layer_height);
-                REQUIRE(flow.width() == Approx(1.125 * nozzle_diameter));
+                REQUIRE(flow.width() == Catch::Approx(1.125 * nozzle_diameter));
             }
         }
         WHEN("Layer height is set to 0.25") {
             layer_height = 0.25f;
             THEN("Min width is set.") {
                 auto flow = Flow::new_from_config_width(frPerimeter, ConfigOptionFloatOrPercent(0, false), nozzle_diameter, layer_height);
-                REQUIRE(flow.width() == Approx(1.125 * nozzle_diameter));
+                REQUIRE(flow.width() == Catch::Approx(1.125 * nozzle_diameter));
             }
         }
     }
@@ -161,10 +161,10 @@ SCENARIO("Flow: Flow math for bridges", "[Flow]") {
         WHEN("Flow role is frExternalPerimeter") {
             auto flow = Flow::bridging_flow(nozzle_diameter * sqrt(bridge_flow), nozzle_diameter);
             THEN("Bridge width is same as nozzle diameter") {
-                REQUIRE(flow.width() == Approx(nozzle_diameter));
+                REQUIRE(flow.width() == Catch::Approx(nozzle_diameter));
             }
             THEN("Bridge spacing is same as nozzle diameter + BRIDGE_EXTRA_SPACING") {
-                REQUIRE(flow.spacing() == Approx(nozzle_diameter + BRIDGE_EXTRA_SPACING));
+                REQUIRE(flow.spacing() == Catch::Approx(nozzle_diameter + BRIDGE_EXTRA_SPACING));
             }
         }
     }

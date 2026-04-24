@@ -1,5 +1,6 @@
 #include "GCodeWriter.hpp"
 #include "CustomGCode.hpp"
+#include "PrintConfig.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -29,7 +30,21 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
                            print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
-    m_max_acceleration = std::lrint(use_mach_limits ? print_config.machine_max_acceleration_extruding.values.front() : 0);
+    if (use_mach_limits) {
+        // For Klipper, SET_VELOCITY_LIMIT ACCEL= applies to all moves, so the effective cap
+        // is the minimum of the extruding limit and the per-axis X/Y limits.
+        // This ensures user-configured Motion Ability limits are honoured (#12244).
+        unsigned int extruding_limit = std::lrint(print_config.machine_max_acceleration_extruding.values.front());
+        if (print_config.gcode_flavor.value == gcfKlipper) {
+            unsigned int x_limit = std::lrint(print_config.machine_max_acceleration_x.values.front());
+            unsigned int y_limit = std::lrint(print_config.machine_max_acceleration_y.values.front());
+            if (x_limit > 0) extruding_limit = std::min(extruding_limit, x_limit);
+            if (y_limit > 0) extruding_limit = std::min(extruding_limit, y_limit);
+        }
+        m_max_acceleration = extruding_limit;
+    } else {
+        m_max_acceleration = 0;
+    }
     m_max_travel_acceleration = static_cast<unsigned int>(
         std::round((use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) ?
                        print_config.machine_max_acceleration_travel.values.front() :
@@ -41,12 +56,16 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     };
     m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
     m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
+    m_resolution = print_config.resolution.value;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
 {
     std::sort(extruder_ids.begin(), extruder_ids.end());
     m_filament_extruders.clear();
+    //ORCA: Reset current extruder ID and clear pointers to prevent dangling pointers when extruders are recreated.
+    m_curr_extruder_id = -1;
+    std::fill(m_curr_filament_extruder.begin(), m_curr_filament_extruder.end(), nullptr);
     m_filament_extruders.reserve(extruder_ids.size());
     for (unsigned int extruder_id : extruder_ids)
         m_filament_extruders.emplace_back(Extruder(extruder_id, &this->config, config.single_extruder_multi_material.value));
@@ -54,7 +73,8 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
     /*  we enable support for multiple extruder if any extruder greater than 0 is used
         (even if prints only uses that one) since we need to output Tx commands
         first extruder has index 0 */
-    this->multiple_extruders = (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
+    //ORCA: Fix undefined behavior by checking if the vector is empty before taking max_element.
+    this->multiple_extruders = !extruder_ids.empty() && (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
 }
 
 std::string GCodeWriter::preamble()
@@ -442,6 +462,28 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
+std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
+{
+    std::ostringstream gcode;
+
+    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
+        return std::string();
+
+    const bool enable = mode == PowerLossRecoveryMode::Enable;
+
+    if (m_is_bbl_printers) {
+        gcode << "M1003 S" << (enable ? "1" : "0");
+    }
+    else if (FLAVOR_IS(gcfMarlinFirmware)) {
+        gcode << "M413 S" << (enable ? "1" : "0");
+    } else {
+        return std::string();
+    }
+    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
+    gcode << "\n";
+    return gcode.str();
+}
+
 std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, bool allow_100) const
 {
     if (FLAVOR_IS_NOT(gcfMakerWare) && FLAVOR_IS_NOT(gcfSailfish))
@@ -541,7 +583,7 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
     // BBS
@@ -569,7 +611,7 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
 
@@ -759,22 +801,69 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 
 std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment)
 {
-    m_pos(2) = z;
-
+    std::string output;
     double speed = this->config.travel_speed_z.value;
+
     if (speed == 0.) {
         speed = m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed")
                                  : this->config.travel_speed.value;
     }
 
-    std::string output = "G17\n";
-    GCodeG2G3Formatter w(true);
-    w.emit_z(z);
-    w.emit_ij(ij_offset);
-    w.emit_string(" P1 ");
-    w.emit_f(speed * 60.0);
-    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-    return output + w.string();
+    if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
+        std::ostringstream oss;
+        const double z_start = m_pos(2); // starting Z height
+
+        // --------------------------------------------------------------------
+        // Determine number of segments based on Resolution
+        // --------------------------------------------------------------------
+        const double ref_resolution = 0.01; // reference resolution in mm
+        const double ref_segments  = 16.0;  // reference number of segments at reference resolution
+        
+        // number of linear segments to use for approximating the arc, clamp between 4 and 24
+        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 24);
+        // --------------------------------------------------------------------
+
+        const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
+        const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
+        const double cx = px + ij_offset(0);            // center x
+        const double cy = py + ij_offset(1);            // center y
+        const double radius = ij_offset.norm();         // radius
+        const double a0 = std::atan2(py - cy, px - cx); // start angle
+        const double delta = 2.0 * M_PI;                // CCW full circle
+
+        if (full_gcode_comment)
+            oss << ";" << comment << "\n";
+
+        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
+
+        // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
+        for (int i = 1; i < segments; ++i) {
+            double t = double(i) / segments;            // parametric position along arc
+            double a = a0 + delta * t;                  // CCW arc param
+            double x = cx + radius * std::cos(a);       // point on circle
+            double y = cy + radius * std::sin(a);       // point on circle
+            double zz = z_start + (z - z_start) * t;    // interpolated Z height
+
+            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+        }
+
+        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
+        output = oss.str();
+    } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
+        output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
+
+        GCodeG2G3Formatter w(true);
+        w.emit_z(z);
+        w.emit_ij(ij_offset);
+        w.emit_string(" P1 ");
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+        output += w.string();
+    }
+
+    m_pos(2) = z;
+    return output;
 }
 
 bool GCodeWriter::will_move_z(double z) const

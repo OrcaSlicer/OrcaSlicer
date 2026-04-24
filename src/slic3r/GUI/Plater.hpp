@@ -118,16 +118,18 @@ const wxString DEFAULT_PROJECT_NAME = "Untitled";
 class SidebarProps
 {
 public:
-    static int TitlebarMargin();
-    static int ContentMargin();
-    static int IconSpacing();
-    static int ElementSpacing();
+    static int TitlebarMargin(){ return 8 ;} // Use as side margins on titlebar. Has less margin on sides to create separation with its content
+    static int ContentMargin() { return 12;} // Use as side margins contents of title
+    static int ContentMarginV(){ return 9 ;} // Use as vertical margins contents of title
+    static int IconSpacing()   { return 10;} // Use on main elements in same group of controls
+    static int WideSpacing()   { return 18;} // Use between main elements / control groups for separation or preventing accidental clicks important
+    static int ElementSpacing(){ return 5 ;} // Use if elements has relation between them like edit button for combo box etc.
 };
 
 class Sidebar : public wxPanel
 {
     ConfigOptionMode    m_mode;
-    Button *         btn_sync{nullptr};
+    //Button *         btn_sync{nullptr};
     ScalableButton *  ams_btn{nullptr};
     bool                                    m_last_slice_state = false;
     SyncNozzleAndAmsDialog*                 m_sna_dialog{nullptr};
@@ -170,6 +172,7 @@ public:
     void set_bed_type_accord_combox(BedType bed_type);
     bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
     void change_top_border_for_mode_sizer(bool increase_border);
+    void update_filaments_area_height();
     void msw_rescale();
     void sys_color_changed();
     void search();
@@ -324,7 +327,7 @@ public:
     void load_gcode();
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
-    void refresh_print();
+    void reload_print();
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -350,6 +353,7 @@ public:
         m_exported_file = exported_file;
     }
 
+    bool is_empty_project();
     bool is_multi_extruder_ams_empty();
     // BBS
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
@@ -482,7 +486,7 @@ public:
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
+    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -639,7 +643,8 @@ public:
     void drop_selection();
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);
-    void split_object();
+    void split_object(bool auto_drop = true);
+    void split_object(int obj_idx, bool auto_drop = true);
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
@@ -657,8 +662,9 @@ public:
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
-    bool can_fix_through_netfabb() const;
+    bool can_fix_through_cgal() const;
     bool can_simplify() const;
+    bool can_smooth_mesh() const;
     bool can_split_to_objects() const;
     bool can_split_to_volumes() const;
     bool can_arrange() const;

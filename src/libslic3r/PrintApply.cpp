@@ -315,7 +315,7 @@ static bool is_printable_filament_changed(const DynamicPrintConfig& new_full_con
         }
 
         Polygons split_polys;
-        for (const Polygon poly : extruder_polys) {
+        for (const Polygon& poly : extruder_polys) {
             Polygons res = diff(printable_poly, poly);
             if (!res.empty()) { split_polys.emplace_back(res[0]); }
         }
@@ -839,7 +839,7 @@ bool verify_update_print_object_regions(
         for (const PrintObjectRegions::FuzzySkinPaintedRegion &region : layer_range.fuzzy_skin_painted_regions) {
             const PrintRegion &parent_print_region = *region.parent_print_object_region(layer_range);
             PrintRegionConfig  cfg                 = parent_print_region.config();
-            cfg.fuzzy_skin.value                   = FuzzySkinType::All;
+            if (cfg.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy) cfg.fuzzy_skin.value = FuzzySkinType::All;
             if (cfg != region.region->config()) {
                 // Region configuration changed.
                 if (print_region_ref_cnt(*region.region) == 0) {
@@ -1081,7 +1081,7 @@ static PrintObjectRegions* generate_print_object_regions(
             for (int parent_volume_region_id = 0; parent_volume_region_id < int(layer_range.volume_regions.size()); ++parent_volume_region_id) {
                 if (const PrintObjectRegions::VolumeRegion &parent_volume_region = layer_range.volume_regions[parent_volume_region_id]; parent_volume_region.model_volume->is_model_part() || parent_volume_region.model_volume->is_modifier()) {
                     PrintRegionConfig cfg = parent_volume_region.region->config();
-                    cfg.fuzzy_skin.value  = FuzzySkinType::All;
+                    if (cfg.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy) cfg.fuzzy_skin.value = FuzzySkinType::All;
                     layer_range.fuzzy_skin_painted_regions.push_back({FuzzySkinParentType::VolumeRegion, parent_volume_region_id, get_create_region(std::move(cfg))});
                 }
             }
@@ -1090,7 +1090,7 @@ static PrintObjectRegions* generate_print_object_regions(
                 const PrintObjectRegions::PaintedRegion &parent_painted_region = layer_range.painted_regions[parent_painted_regions_id];
 
                 PrintRegionConfig cfg = parent_painted_region.region->config();
-                cfg.fuzzy_skin.value  = FuzzySkinType::All;
+                if (cfg.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy) cfg.fuzzy_skin.value = FuzzySkinType::All;
                 layer_range.fuzzy_skin_painted_regions.push_back({FuzzySkinParentType::PaintedRegion, parent_painted_regions_id, get_create_region(std::move(cfg))});
             }
 
@@ -1163,7 +1163,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     m_ori_full_print_config = new_full_config;
     new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
-    std::vector<int> filament_maps =  new_full_config.option<ConfigOptionInts>("filament_map")->values;
+    auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
+    std::vector<int> filament_maps = opt_filament_map ? opt_filament_map->values : std::vector<int>();
 
     // Find modified keys of the various configs. Resolve overrides extruder retract values by filament profiles.
     DynamicPrintConfig   filament_overrides;

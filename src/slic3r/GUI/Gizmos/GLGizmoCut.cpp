@@ -1,7 +1,7 @@
 #include "GLGizmoCut.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <algorithm>
 
@@ -12,11 +12,12 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include "imgui/imgui_internal.h"
 #include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
-#include "FixModelByWin10.hpp"
+#include "FixModelByCgal.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -224,6 +225,8 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
         {"Width"        , _u8L("Width")},
         {"Flap Angle"   , _u8L("Flap Angle")},
         {"Groove Angle" , _u8L("Groove Angle")},
+        {"Cut position" , _u8L("Cut position")}, // ORCA
+        {"Build Volume" , _u8L("Build Volume")}, // ORCA
     };
 
 //    update_connector_shape();
@@ -660,10 +663,11 @@ bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::s
     const ImGuiStyle &style = ImGui::GetStyle();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, style.ItemSpacing.y});
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);       // ORCA match button style
 
     ImGui::PushStyleColor(ImGuiCol_Button, {0.25f, 0.25f, 0.25f, 0.0f});
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.4f, 0.4f, 0.4f, 1.0f});
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0.4f, 0.4f, 0.4f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0}); // ORCA match button style
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  {0, 0, 0, 0}); // ORCA match button style
 
     const bool revert = m_imgui->button(wxString(ImGui::RevertBtn) + "##" + wxString::FromUTF8(label_id));
 
@@ -672,7 +676,7 @@ bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::s
     if (ImGui::IsItemHovered())
         m_imgui->tooltip(tooltip.c_str(), ImGui::GetFontSize() * 20.0f);
 
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2); // ORCA
 
     return revert;
 }
@@ -1183,16 +1187,21 @@ bool GLGizmoCut3D::on_init()
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     const wxString alt   = GUI::shortkey_alt_prefix();
-    const wxString shift = _L("Shift+");
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_shortcuts_cut.push_back(std::make_pair(shift + _L("Drag"), _L("Draw cut line")));
+    m_shortcuts_cut = {
+        {_L("Drag"),                        _L("Move cut line")},
+        {shift + _L("Drag"),                _L("Draw cut line")}
+    };
 
-    m_shortcuts_connector.push_back(std::make_pair(_L("Left click"),         _L("Add connector")));
-    m_shortcuts_connector.push_back(std::make_pair(_L("Right click"),        _L("Remove connector")));
-    m_shortcuts_connector.push_back(std::make_pair(_L("Drag"),               _L("Move connector")));
-    m_shortcuts_connector.push_back(std::make_pair(shift + _L("Left click"), _L("Add connector to selection")));
-    m_shortcuts_connector.push_back(std::make_pair(alt   + _L("Left click"), _L("Remove connector from selection")));
-    m_shortcuts_connector.push_back(std::make_pair(ctrl  + "A",              _L("Select all connectors")));
+    m_shortcuts_connector = {
+        {_L("Left mouse button"),           _L("Add connector")},
+        {_L("Right mouse button"),          _L("Remove connector")},
+        {_L("Drag"),                        _L("Move connector")},
+        {shift + _L("Left mouse button"),   _L("Add connector to selection")},
+        {alt + _L("Left mouse button"),     _L("Remove connector from selection")},
+        {ctrl + "A",                        _L("Select all connectors")},
+    };
 
     return true;
 }
@@ -2254,7 +2263,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
     render_flip_plane_button(m_connectors_editing && connectors.empty());
 
     m_imgui->text(m_labels_map["Type"]);
-    ImGuiWrapper::push_radio_style();
+    ImGuiWrapper::push_radio_style(m_parent.get_scale()); // ORCA
     bool type_changed = render_connect_type_radio_button(CutConnectorType::Plug);
     type_changed     |= render_connect_type_radio_button(CutConnectorType::Dowel);
     type_changed     |= render_connect_type_radio_button(CutConnectorType::Snap);
@@ -2310,8 +2319,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(x, get_cur_y);
+    render_tooltip_button(x, y);
 
     float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
@@ -2334,18 +2342,14 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
 
 void GLGizmoCut3D::render_build_size()
 {
-    double              koef     = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
-    wxString            unit_str = " " + (m_imperial_units ? _L("in") : _L("mm"));
-            
-    Vec3d    tbb_sz = m_transformed_bounding_box.size();
-    wxString size   =   "X: " + double_to_string(tbb_sz.x() * koef, 2) + unit_str +
-                     ",  Y: " + double_to_string(tbb_sz.y() * koef, 2) + unit_str +
-                     ",  Z: " + double_to_string(tbb_sz.z() * koef, 2) + unit_str;
+    double   koef     = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
+    wxString unit_str = m_imperial_units ? _L("in") : _L("mm");
+    Vec3d    tbb_sz   = m_transformed_bounding_box.size() * koef; // ORCA 
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Build Volume"));
-    ImGui::SameLine();
-    m_imgui->text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, size);
+    ImGui::SameLine(m_label_width);
+    ImGui::Text("%.2f x %.2f x %.2f %s", tbb_sz.x(), tbb_sz.y(), tbb_sz.z(), unit_str.ToUTF8().data()); // ORCA use regular text color and simplify format
 }
 
 void GLGizmoCut3D::reset_cut_plane()
@@ -2650,8 +2654,8 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
         render_build_size();
 
         ImGui::AlignTextToFramePadding();
-        m_imgui->text(_L("Cut position") + ": ");
-        ImGui::SameLine();
+        m_imgui->text(_L("Cut position"));
+        ImGui::SameLine(m_label_width);
         render_move_center_input(Z);
         ImGui::SameLine();
 
@@ -2758,7 +2762,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
     float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(x, get_cur_y);
+    render_tooltip_button(x, get_cur_y);
 
     float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
@@ -2918,39 +2922,11 @@ void GLGizmoCut3D::on_render_input_window(float x, float y, float bottom_limit)
         render_debug_input_window(x);
 }
 
-void GLGizmoCut3D::show_tooltip_information(float x, float y)
+void GLGizmoCut3D::render_tooltip_button(float x, float y)
 {
-    auto &shortcuts = m_connectors_editing ? m_shortcuts_connector : m_shortcuts_cut;
+    auto& shortcuts = m_connectors_editing ? m_shortcuts_connector : m_shortcuts_cut;
 
-    float                      caption_max = 0.f;
-    for (const auto &short_cut : shortcuts) {
-        caption_max = std::max(caption_max, m_imgui->calc_text_size(short_cut.first).x);
-    }
-
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 35.f;
-
-    float  scale       = m_parent.get_scale();
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &short_cut : shortcuts)
-            draw_text_with_caption(short_cut.first + ": ", short_cut.second);
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcuts, x, y);
 }
 
 bool GLGizmoCut3D::is_outside_of_cut_contour(size_t idx, const CutConnectors& connectors, const Vec3d cur_pos)
@@ -3364,8 +3340,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                                                                  cut.perform_with_plane();
 
         // fix_non_manifold_edges
-#ifdef HAS_WIN10SDK
-        if (is_windows10()) {
+        {
             bool is_showed_dialog = false;
             bool user_fix_model   = false;
             for (size_t i = 0; i < new_objects.size(); i++) {
@@ -3373,7 +3348,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                     if (its_num_open_edges(new_objects[i]->volumes[j]->mesh().its) > 0) {
                         if (!is_showed_dialog) {
                             is_showed_dialog = true;
-                            MessageDialog dlg(nullptr, _L("non-manifold edges be caused by cut tool, do you want to fix it now?"), "", wxYES | wxCANCEL);
+                            MessageDialog dlg(nullptr, _L("Non-manifold edges be caused by cut tool, do you want to fix it now?"), "", wxYES | wxCANCEL);
                             int           ret = dlg.ShowModal();
                             if (ret == wxID_YES) {
                                 user_fix_model = true;
@@ -3392,7 +3367,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
                             std::string res;
-                            if (!fix_model_by_win10_sdk_gui(*model_object, vol_idx, progress_dlg, msg, res)) return false;
+                            if (!fix_model_with_cgal_gui(*model_object, vol_idx, progress_dlg, msg, res)) return false;
                             return true;
                         };
                         ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater), wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
@@ -3405,7 +3380,6 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                 }
             }
         }
- #endif
         check_objects_after_cut(new_objects);
 
         // save cut_id to post update synchronization
