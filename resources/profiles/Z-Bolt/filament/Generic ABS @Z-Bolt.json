@@ -1,0 +1,63 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Z-Bolt",
+	"inherits": "fdm_filament_abs",
+	"renamed_from": "Z-Bolt ABS",
+	"from": "system",
+	"setting_id": "GFSL200",
+	"filament_id": "GFL200",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Z-Bolt S300 0.4 nozzle",
+		"Z-Bolt S300 Dual 0.4 nozzle",
+		"Z-Bolt S400 0.4 nozzle",
+		"Z-Bolt S400 Dual 0.4 nozzle",
+		"Z-Bolt S600 0.4 nozzle",
+		"Z-Bolt S600 Dual 0.4 nozzle",
+		"Z-Bolt S800 Dual 0.4 nozzle",
+		"Z-Bolt S1000 0.4 nozzle",
+		"Z-Bolt S1000 Dual 0.4 nozzle",
+		"Z-Bolt S300 0.6 nozzle",
+		"Z-Bolt S300 Dual 0.6 nozzle",
+		"Z-Bolt S400 0.6 nozzle",
+		"Z-Bolt S400 Dual 0.6 nozzle",
+		"Z-Bolt S600 0.6 nozzle",
+		"Z-Bolt S600 Dual 0.6 nozzle",
+		"Z-Bolt S800 Dual 0.6 nozzle",
+		"Z-Bolt S1000 0.6 nozzle",
+		"Z-Bolt S1000 Dual 0.6 nozzle",
+		"Z-Bolt S300 0.8 nozzle",
+		"Z-Bolt S300 Dual 0.8 nozzle",
+		"Z-Bolt S400 0.8 nozzle",
+		"Z-Bolt S400 Dual 0.8 nozzle",
+		"Z-Bolt S600 0.8 nozzle",
+		"Z-Bolt S600 Dual 0.8 nozzle",
+		"Z-Bolt S800 Dual 0.8 nozzle",
+		"Z-Bolt S1000 0.8 nozzle",
+		"Z-Bolt S1000 Dual 0.8 nozzle"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"25"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"textured_plate_temp": [
+		"110"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	]
+}

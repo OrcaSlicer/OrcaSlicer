@@ -1575,8 +1575,10 @@ void generate_support_toolpaths(
         {
             SupportLayer &support_layer = *support_layers[support_layer_id];
             LayerCache   &layer_cache   = layer_caches[support_layer_id];
-            const float   support_interface_angle = (support_params.support_style == smsGrid || config.support_interface_pattern == smipRectilinear) ?
-                support_params.interface_angle : support_params.raft_interface_angle(support_layer.interface_id());
+            const float   support_interface_angle = (config.support_interface_pattern == smipRectilinearInterlaced) ?
+                support_params.raft_interface_angle(support_layer.interface_id()) :
+                ((support_params.support_style == smsGrid || config.support_interface_pattern == smipRectilinear) ?
+                support_params.interface_angle : support_params.raft_interface_angle(support_layer.interface_id()));
 
             // Find polygons with the same print_z.
             SupportGeneratorLayerExtruded &bottom_contact_layer = layer_cache.bottom_contact_layer;
@@ -1743,8 +1745,10 @@ void generate_support_toolpaths(
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
                     sheath  = true;
                     no_sort = true;
-                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic) {
-                    // if the tree supports are too tall, use double wall to make it stronger
+                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic &&
+                           (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault)) {
+                    // Orca: A special case for the hollow Organic supports
+                    // Orca: If the tree supports are too tall, use a double wall to make it stronger
                     SupportParameters support_params2 = support_params;
                     if (support_layer.print_z > 100.0)
                         support_params2.tree_branch_diameter_double_wall_area_scaled = 0.1;

@@ -902,20 +902,7 @@ void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected
 	wxArrayInt sel_printers;
 	int sel_printers_count = list_printer->GetSelections(sel_printers);
 
-    // Does our wxWidgets version support operator== for wxArrayInt ?
-#if wxCHECK_VERSION(3, 1, 1)
     if (sel_printers != sel_printers_prev) {
-#else
-    auto are_equal = [](const wxArrayInt& arr_first, const wxArrayInt& arr_second) {
-        if (arr_first.GetCount() != arr_second.GetCount())
-            return false;
-        for (size_t i = 0; i < arr_first.GetCount(); i++)
-            if (arr_first[i] != arr_second[i])
-                return false;
-        return true;
-    };
-    if (!are_equal(sel_printers, sel_printers_prev)) {
-#endif
 
         // Refresh type list
 		list_type->Clear();

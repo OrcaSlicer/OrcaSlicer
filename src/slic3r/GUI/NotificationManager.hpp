@@ -126,8 +126,8 @@ enum class NotificationType
 	SimplifySuggestion,
 	// Change of text will change font to similar one on.
 	UnknownFont,
-	// information about netfabb is finished repairing model (blocking proccess)
-	NetfabbFinished,
+	// information about cgal is finished repairing model (blocking process)
+	CgalFinished,
 	// Short meesage to fill space between start and finish of export
 	ExportOngoing,
     // Progressbar of download from prusaslicer://url
@@ -980,7 +980,7 @@ private:
 
         NotificationData{NotificationType::BBLUserPresetExceedLimit, NotificationLevel::WarningNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
 			_u8L("The number of user presets cached in the cloud has exceeded the upper limit, newly created user presets can only be used locally."), 
-			_u8L("Wiki"),
+			_u8L("Wiki Guide"),
                          [](wxEvtHandler* evnthndlr) {
 				wxLaunchDefaultBrowser("https://wiki.bambulab.com/en/software/bambu-studio/3rd-party-printer-profile#cloud-user-presets-limit");
 				return false;
