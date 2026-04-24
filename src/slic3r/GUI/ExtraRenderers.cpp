@@ -235,7 +235,7 @@ bool BitmapTextRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value
 
     // The icon can't be edited so get its old value and reuse it.
     wxVariant valueOld;
-    GetView()->GetModel()->GetValue(valueOld, m_item, /*colName*/0); 
+    GetView()->GetModel()->GetValue(valueOld, m_item, Slic3r::GUI::ColumnNumber::colName); 
     
     DataViewBitmapText bmpText;
     bmpText << valueOld;
@@ -265,13 +265,10 @@ bool BitmapChoiceRenderer::GetValue(wxVariant& value) const
 
 bool BitmapChoiceRenderer::Render(wxRect rect, wxDC* dc, int state)
 {
-//    int xoffset = 0;
-
     const wxBitmap& icon = m_value.GetBitmap();
     if (icon.IsOk())
     {
         dc->DrawBitmap(icon, rect.x, rect.y + (rect.height - icon.GetHeight()) / 2);
-//        xoffset = icon.GetWidth() + 4;
 
         if (rect.height == 0)
           rect.height = icon.GetHeight();
@@ -299,7 +296,6 @@ wxSize BitmapChoiceRenderer::GetSize() const
     return sz;
 }
 
-
 wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelRect, const wxVariant& value)
 {
     if (can_create_editor_ctrl && !can_create_editor_ctrl())
@@ -316,7 +312,7 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         labelRect.GetTopLeft(), wxSize(labelRect.GetWidth(), -1),
         0, nullptr, wxCB_READONLY | CB_NO_DROP_ICON | CB_NO_TEXT);
     c_editor->GetDropDown().SetUseContentWidth(true);
-
+       
     if (has_default_extruder && has_default_extruder())
         c_editor->Append(_L("default"), *get_default_extruder_color_icon());
 
@@ -328,18 +324,19 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
     else
         c_editor->SetSelection(atoi(data.GetText().c_str()) - 1);
 
-#ifdef __linux__
+    // Open the dropdown immediately when the editor is focused.
+    c_editor->Bind(wxEVT_SET_FOCUS, [c_editor](wxFocusEvent& evt) {
+        c_editor->ForceDropdownOpen();
+        evt.Skip(); 
+    });
+
+    // Close editor after selection is made
     c_editor->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& evt) {
-        // to avoid event propagation to other sidebar items
-        evt.StopPropagation();
+        evt.StopPropagation(); 
         // FinishEditing grabs new selection and triggers config update. We better call
         // it explicitly, automatic update on KILL_FOCUS didn't work on Linux.
         this->FinishEditing();
     });
-#else
-    // to avoid event propagation to other sidebar items
-    c_editor->Bind(wxEVT_COMBOBOX, [](wxCommandEvent& evt) { evt.StopPropagation(); });
-#endif
 
     return c_editor;
 }
