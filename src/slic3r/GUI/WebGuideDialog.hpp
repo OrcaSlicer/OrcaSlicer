@@ -30,6 +30,8 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 
+#include <unordered_map>
+
 #include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
@@ -135,6 +137,14 @@ private:
 
     wxString m_bbl_user_agent;
     std::string m_editing_filament_id;
+
+    struct CachedFilamentInfo
+    {
+        int         status{-1};
+        std::string vendor;
+        std::string type;
+    };
+    std::unordered_map<std::string, CachedFilamentInfo> filament_info_cache;
 };
 
 }} // namespace Slic3r::GUI
