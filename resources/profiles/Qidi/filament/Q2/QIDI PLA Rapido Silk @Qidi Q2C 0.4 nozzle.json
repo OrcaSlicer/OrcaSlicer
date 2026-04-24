@@ -1,10 +1,14 @@
 {
-    "type": "filament",
-    "setting_id": "GFSL99",
-    "name": "QIDI PLA Rapido Silk @Qidi Q2C 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI PLA Rapido Silk@Q2C-Series",
-    "pressure_advance": ["0.034"],
-	"compatible_printers": ["Qidi Q2C 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSL99",
+	"name": "QIDI PLA Rapido Silk @Qidi Q2C 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PLA Rapido Silk@Q2C-Series",
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
 }

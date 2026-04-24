@@ -20,34 +20,37 @@ void OptionTemplate::init(uint8_t resolution)
     if (m_top_vao_id != 0)
         return;
 
-    m_resolution = std::max<uint8_t>(resolution, 3);
-    m_vertices_count = 2 + resolution;
+    m_resolution = std::clamp<uint8_t>(resolution, 3, 85);
+    m_vertices_count = static_cast<uint8_t>(3 * m_resolution);
     const float step = 2.0f * PI / float(m_resolution);
 
     //
-    // top fan
+    // top and bottom cones (paired wedges)
     //
     std::vector<float> top_vertices;
     top_vertices.reserve(6 * m_vertices_count);
-    add_vertex({ 0.0f, 0.0f, 0.5f }, { 0.0f, 0.0f, 1.0f }, top_vertices);
-    for (uint8_t i = 0; i <= m_resolution; ++i) {
-        const float ii = float(i) * step;
-        const Vec3 pos = { 0.5f * std::cos(ii), 0.5f * std::sin(ii), 0.0f };
-        const Vec3 norm = normalize(pos);
-        add_vertex(pos, norm, top_vertices);
-    }
-
-    //
-    // bottom fan
-    //
     std::vector<float> bottom_vertices;
     bottom_vertices.reserve(6 * m_vertices_count);
-    add_vertex({ 0.0f, 0.0f, -0.5f }, { 0.0f, 0.0f, -1.0f }, bottom_vertices);
-    for (uint8_t i = 0; i <= m_resolution; ++i) {
-        const float ii = -float(i) * step;
-        const Vec3 pos = { 0.5f * std::cos(ii), 0.5f * std::sin(ii), 0.0f };
-        const Vec3 norm = normalize(pos);
-        add_vertex(pos, norm, bottom_vertices);
+
+    const Vec3 top_apex = { 0.0f, 0.0f, 0.5f };
+    const Vec3 top_apex_normal = { 0.0f, 0.0f, 1.0f };
+    const Vec3 bottom_apex = { 0.0f, 0.0f, -0.5f };
+    const Vec3 bottom_apex_normal = { 0.0f, 0.0f, -1.0f };
+    for (uint8_t i = 0; i < m_resolution; ++i) {
+        const float curr_angle = float(i) * step;
+        const float next_angle = float(i + 1) * step;
+        const Vec3 curr_pos = { 0.5f * std::cos(curr_angle), 0.5f * std::sin(curr_angle), 0.0f };
+        const Vec3 next_pos = { 0.5f * std::cos(next_angle), 0.5f * std::sin(next_angle), 0.0f };
+        const Vec3 curr_norm = normalize(curr_pos);
+        const Vec3 next_norm = normalize(next_pos);
+
+        add_vertex(top_apex, top_apex_normal, top_vertices);
+        add_vertex(curr_pos, curr_norm, top_vertices);
+        add_vertex(next_pos, next_norm, top_vertices);
+
+        add_vertex(bottom_apex, bottom_apex_normal, bottom_vertices);
+        add_vertex(next_pos, next_norm, bottom_vertices);
+        add_vertex(curr_pos, curr_norm, bottom_vertices);
     }
 
     m_size_in_bytes_gpu += top_vertices.size() * sizeof(float);
@@ -117,9 +120,9 @@ void OptionTemplate::render(size_t count)
     glsafe(glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &curr_vertex_array));
 
     glsafe(glBindVertexArray(m_top_vao_id));
-    glsafe(glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, static_cast<GLsizei>(m_vertices_count), static_cast<GLsizei>(count)));
+    glsafe(glDrawArraysInstanced(GL_TRIANGLES, 0, static_cast<GLsizei>(m_vertices_count), static_cast<GLsizei>(count)));
     glsafe(glBindVertexArray(m_bottom_vao_id));
-    glsafe(glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, static_cast<GLsizei>(m_vertices_count), static_cast<GLsizei>(count)));
+    glsafe(glDrawArraysInstanced(GL_TRIANGLES, 0, static_cast<GLsizei>(m_vertices_count), static_cast<GLsizei>(count)));
     glsafe(glBindVertexArray(curr_vertex_array));
 }
 

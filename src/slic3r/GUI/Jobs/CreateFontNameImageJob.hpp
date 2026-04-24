@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <string>
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <wx/string.h>
 #include <wx/fontenc.h>
 #include "Job.hpp"

@@ -1,0 +1,275 @@
+name: PR Label Bot
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  request-label:
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.author_association != 'COLLABORATOR' && github.event.pull_request.author_association != 'OWNER' && github.event.pull_request.author_association != 'MEMBER'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask PR author for label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            const allowedLabels = [
+              'bug-fix',
+              'enhancement',
+              'Localization',
+              'profile',
+              'QoL',
+              'UI/UX',
+              'dependencies'
+            ];
+            const pr = context.payload.pull_request;
+            const labelsList = `${allowedLabels
+              .slice(0, -1)
+              .map((label) => `\`${label}\``)
+              .join(', ')} and \`${allowedLabels[allowedLabels.length - 1]}\`.`;
+            const examplesText = [
+              '```',
+              '/bot add-label bug-fix',
+              '```',
+              '```',
+              '/bot add-label bug-fix, UI/UX',
+              '```',
+              '```',
+              '/bot remove-label bug-fix, UI/UX',
+              '```'
+            ].join('\n');
+
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body:
+                  `Hi @${pr.user.login}, you can manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`\n\n` +
+                  `Allowed labels are:\n${labelsList}\n\n` +
+                  `Examples:\n${examplesText}`
+              });
+            } catch (error) {
+              if (isPermissionDenied(error)) {
+                core.warning(
+                  'Skipping PR comment because token cannot write. Enable Actions write permissions, ' +
+                  'or run with a token that has issues:write and pull_requests:write.'
+                );
+                return;
+              }
+
+              throw error;
+            }
+
+  apply-label:
+    if: github.event_name == 'issue_comment'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply label command from PR author
+        uses: actions/github-script@v7
+        with:
+          script: |
+            function isPermissionDenied(error) {
+              return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
+            }
+
+            const allowedLabels = [
+              'bug-fix',
+              'enhancement',
+              'Localization',
+              'profile',
+              'QoL',
+              'UI/UX',
+              'dependencies'
+            ];
+
+            const issue = context.payload.issue;
+            if (!issue.pull_request) {
+              core.info('Ignoring comment that is not on a pull request.');
+              return;
+            }
+
+            const body = (context.payload.comment.body || '').trim();
+            const commandLine = body
+              .split('\n')
+              .map((line) => line.trim())
+              .find((line) => /^\/bot\s+(add-label|remove-label)(?:\s*:\s*|\s+)/i.test(line));
+
+            if (!commandLine) {
+              core.info('No /bot add-label or /bot remove-label command found.');
+              return;
+            }
+
+            const commandMatch = commandLine.match(/^\/bot\s+(add-label|remove-label)(?:\s*:\s*|\s+)(.+)\s*$/i);
+            if (!commandMatch) {
+              core.info('Label command format is invalid.');
+              return;
+            }
+
+            const action = commandMatch[1].toLowerCase() === 'add-label' ? 'add' : 'remove';
+            let labelsExpr = (commandMatch[2] || '').trim();
+            if (!labelsExpr) {
+              core.info('Label command is missing label name.');
+              return;
+            }
+
+            if (labelsExpr.startsWith('[') && labelsExpr.endsWith(']')) {
+              labelsExpr = labelsExpr.slice(1, -1).trim();
+            }
+
+            const requestedRawLabels = labelsExpr
+              .split(',')
+              .map((part) => part.trim())
+              .filter(Boolean);
+
+            if (!requestedRawLabels.length) {
+              core.info('No labels were provided in the command.');
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: issue.number
+            });
+
+            const commenter = context.payload.comment.user.login;
+            if (commenter !== pr.user.login) {
+              core.info('Ignoring command because commenter is not the PR author.');
+              return;
+            }
+
+            const labelsByLower = new Map(
+              allowedLabels.map((label) => [label.toLowerCase(), label])
+            );
+
+            const resolvedLabels = [];
+            const invalidLabels = [];
+
+            for (const rawLabel of requestedRawLabels) {
+              const resolved = labelsByLower.get(rawLabel.toLowerCase());
+              if (resolved) {
+                resolvedLabels.push(resolved);
+              } else {
+                invalidLabels.push(rawLabel);
+              }
+            }
+            const uniqueRequestedLabels = [...new Set(resolvedLabels)];
+
+            if (action === 'add' && uniqueRequestedLabels.length) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: uniqueRequestedLabels
+                });
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning(
+                    'Cannot add labels because token cannot write. Enable Actions write permissions, ' +
+                    'or run with a token that has issues:write and pull_requests:write.'
+                  );
+                  return;
+                }
+
+                throw error;
+              }
+
+              core.info(`Added labels: ${uniqueRequestedLabels.join(', ')}`);
+            }
+
+            if (action === 'remove' && uniqueRequestedLabels.length) {
+              let removedCount = 0;
+              try {
+                for (const label of uniqueRequestedLabels) {
+                  try {
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      name: label
+                    });
+                    removedCount += 1;
+                  } catch (error) {
+                    if (isPermissionDenied(error)) {
+                      core.warning(
+                        'Cannot remove labels because token cannot write. Enable Actions write permissions, ' +
+                        'or run with a token that has issues:write and pull_requests:write.'
+                      );
+                      return;
+                    }
+
+                    if (error.status === 404) {
+                      core.info(`Label is not currently applied: ${label}`);
+                      continue;
+                    }
+
+                    throw error;
+                  }
+                }
+
+                core.info(`Removed labels count: ${removedCount}`);
+              } catch (error) {
+                throw error;
+              }
+            }
+
+            if (!uniqueRequestedLabels.length) {
+              core.info('No valid labels were provided in the command.');
+            }
+
+            if (invalidLabels.length) {
+              const allowedText = allowedLabels.map((label) => `\`${label}\``).join(', ');
+              const invalidText = invalidLabels.map((label) => `\`${label}\``).join(', ');
+              const validText = uniqueRequestedLabels.length
+                ? `\n\nProcessed valid label(s): ${uniqueRequestedLabels.map((label) => `\`${label}\``).join(', ')}`
+                : '';
+
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body:
+                    `@${commenter} invalid label(s): ${invalidText}.${validText}\n\n` +
+                    `Allowed labels: ${allowedText}\n\n` +
+                    `Use:\n` +
+                    `- \`/bot add-label label\`\n` +
+                    `- \`/bot remove-label label\`\n` +
+                    `- \`/bot add-label label1, label2\``
+                });
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning('Cannot post invalid-label feedback because token cannot write comments.');
+                  return;
+                }
+
+                throw error;
+              }
+            }
+
+            const processedLabelsText = uniqueRequestedLabels.length ? uniqueRequestedLabels.join(', ') : '(none)';
+            core.info(`Processed label command: ${action} ${processedLabelsText}`);

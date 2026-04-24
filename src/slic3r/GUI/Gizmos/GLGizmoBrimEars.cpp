@@ -1,5 +1,5 @@
 #include "GLGizmoBrimEars.hpp"
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
@@ -7,6 +7,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "GLGizmoUtils.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -44,10 +45,8 @@ bool GLGizmoBrimEars::on_init()
 
     m_shortcut_key = WXK_CONTROL_E;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
+    const wxString ctrl = GUI::shortkey_ctrl_prefix();
+    const wxString alt  = GUI::shortkey_alt_prefix();
 
     m_desc["head_diameter"]    = _L("Head diameter");
     m_desc["max_angle"]        = _L("Max angle");
@@ -57,14 +56,12 @@ bool GLGizmoBrimEars::on_init()
     m_desc["auto_generate"]    = _L("Auto-generate points");
     m_desc["section_view"]     = _L("Section view");
 
-    m_desc["left_click_caption"]       = _L("Left click");
-    m_desc["left_click"]               = _L("Add a brim ear");
-    m_desc["right_click_caption"]      = _L("Right click");
-    m_desc["right_click"]              = _L("Delete a brim ear");
-    m_desc["ctrl_mouse_wheel_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["ctrl_mouse_wheel"]         = _L("Adjust head diameter");
-    m_desc["alt_mouse_wheel_caption"]  = alt + _L("Mouse wheel");
-    m_desc["alt_mouse_wheel"]          = _L("Adjust section view");
+    m_shortcuts = {
+        {_L("Left mouse button"),   _L("Add a brim ear")},
+        {_L("Right mouse button"),  _L("Delete a brim ear")},
+        {ctrl + _L("Mouse wheel"),  _L("Adjust head diameter")},
+        {alt + _L("Mouse wheel"),   _L("Adjust section view")},
+    };
 
     return true;
 }
@@ -737,7 +734,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::PopStyleVar(1);
 
     float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(x, get_cur_y);
+
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
 
     if (glb_cfg.opt_enum<BrimType>("brim_type") != btPainted) {
         ImGui::SameLine();
@@ -788,41 +786,6 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     GizmoImguiEnd();
     ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
-}
-
-void GLGizmoBrimEars::show_tooltip_information(float x, float y)
-{
-    std::array<std::string, 4> info_array  = std::array<std::string, 4>{"left_click", "right_click", "ctrl_mouse_wheel", "alt_mouse_wheel"};
-    float                      caption_max = 0.f;
-    for (const auto &t : info_array) { caption_max = std::max(caption_max, m_imgui->calc_text_size(m_desc[t + "_caption"]).x); }
-
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : info_array) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
 }
 
 bool GLGizmoBrimEars::on_is_activable() const

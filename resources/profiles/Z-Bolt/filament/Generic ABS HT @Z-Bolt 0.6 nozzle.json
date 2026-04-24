@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic ABS HT @Z-Bolt 0.6 nozzle",
+	"inherits": "Generic ABS HT @Z-Bolt",
+	"renamed_from": "Z-Bolt ABS HT @0.6 nozzle",
+	"from": "system",
+	"setting_id": "GFSL506",
+	"filament_id": "GFL506",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"compatible_printers": [
+		"Z-Bolt S300 0.6 nozzle",
+		"Z-Bolt S300 Dual 0.6 nozzle",
+		"Z-Bolt S400 0.6 nozzle",
+		"Z-Bolt S400 Dual 0.6 nozzle",
+		"Z-Bolt S600 0.6 nozzle",
+		"Z-Bolt S600 Dual 0.6 nozzle",
+		"Z-Bolt S800 Dual 0.6 nozzle",
+		"Z-Bolt S1000 0.6 nozzle",
+		"Z-Bolt S1000 Dual 0.6 nozzle"
+	]
+}
