@@ -14,7 +14,9 @@ body:
   - type: checkboxes
     attributes:
       label: Is this issue reproducible in the latest nightly build?
-      description: Please verify this issue still happens in the latest nightly build first. It may already be fixed there: [Nightly builds](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds).
+      description: >
+        Please verify this issue still happens in the latest nightly build first. It may already be fixed there:
+        [Nightly builds](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds).
       options:
         - label: I have checked the latest nightly build and the issue is still reproducible
           required: true
