@@ -170,6 +170,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmosManager.hpp
     GUI/Gizmos/GLGizmoSVG.cpp
     GUI/Gizmos/GLGizmoSVG.hpp
+    GUI/Gizmos/GLGizmoUtils.cpp
+    GUI/Gizmos/GLGizmoUtils.hpp
     #GUI/Gizmos/GLGizmoText.cpp
     #GUI/Gizmos/GLGizmoText.hpp
     GUI/GLCanvas3D.cpp
@@ -301,6 +303,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/KBShortcutsDialog.hpp
     GUI/LibVGCode/LibVGCodeWrapper.hpp
     GUI/LibVGCode/LibVGCodeWrapper.cpp
+    GUI/LinuxDisplayBackend.cpp
+    GUI/LinuxDisplayBackend.hpp
     GUI/MainFrame.cpp
     GUI/MainFrame.hpp
     GUI/MarkdownTip.cpp
@@ -576,8 +580,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/ESP3D.hpp
     Utils/FileHelp.cpp
     Utils/FileHelp.hpp
-    Utils/FixModelByWin10.cpp
-    Utils/FixModelByWin10.hpp
+    Utils/FixModelByCgal.cpp
+    Utils/FixModelByCgal.hpp
     Utils/FlashAir.cpp
     Utils/FlashAir.hpp
     Utils/Flashforge.cpp
@@ -598,6 +602,26 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/NetworkAgent.cpp
     Utils/NetworkAgent.hpp
+    Utils/NetworkAgentFactory.hpp
+    Utils/NetworkAgentFactory.cpp
+    Utils/ICloudServiceAgent.hpp
+    Utils/IPrinterAgent.hpp
+    Utils/OrcaCloudServiceAgent.cpp
+    Utils/OrcaCloudServiceAgent.hpp
+    Utils/OrcaPrinterAgent.cpp
+    Utils/OrcaPrinterAgent.hpp
+    Utils/QidiPrinterAgent.cpp
+    Utils/QidiPrinterAgent.hpp
+    Utils/SnapmakerPrinterAgent.cpp
+    Utils/SnapmakerPrinterAgent.hpp
+    Utils/MoonrakerPrinterAgent.cpp
+    Utils/MoonrakerPrinterAgent.hpp
+    Utils/BBLCloudServiceAgent.cpp
+    Utils/BBLCloudServiceAgent.hpp
+    Utils/BBLPrinterAgent.cpp
+    Utils/BBLPrinterAgent.hpp
+    Utils/BBLNetworkPlugin.cpp
+    Utils/BBLNetworkPlugin.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp
@@ -716,7 +740,7 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode GLEW::GLEW OpenGL::GL hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
 
 
 if (MSVC)
@@ -767,17 +791,24 @@ if (UNIX AND NOT APPLE)
     find_package(PkgConfig REQUIRED)
     find_package(GTK${SLIC3R_GTK} REQUIRED)
     pkg_check_modules(LIBSECRET REQUIRED libsecret-1)
+    pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
     if (FLATPAK)
         # I don't know why this is needed, but for whatever reason slic3r isn't
         # linking to X11 and webkit2gtk. force it.
         find_package(X11 REQUIRED)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
-        target_link_libraries (libslic3r_gui ${X11_LIBRARIES} ${webkit2gtk_LIBRARIES})
+        target_link_libraries(libslic3r_gui ${X11_LIBRARIES} ${webkit2gtk_LIBRARIES})
     endif()
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS} ${webkit2gtk_INCLUDE_DIRS})
     target_link_libraries(libslic3r_gui ${GTK${SLIC3R_GTK}_LIBRARIES} fontconfig ${LIBSECRET_LIBRARIES})
 
+    # Propagate GDK backend detection results as compile definitions so that
+    # LinuxDisplayBackend.cpp can include the right GDK headers.
+    if (wxHAVE_GDK_X11)
+        target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_X11)
+    endif ()
+    if (wxHAVE_GDK_WAYLAND)
+        target_compile_definitions(libslic3r_gui PRIVATE wxHAVE_GDK_WAYLAND)
+    endif ()
 
     # We add GStreamer for bambu:/// support.
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)

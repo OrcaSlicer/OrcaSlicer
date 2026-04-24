@@ -1,7 +1,7 @@
 #include "CalibUtils.hpp"
 #include "../GUI/I18N.hpp"
 #include "../GUI/GUI_App.hpp"
-#include "../GUI/DeviceCore/DevStorage.h" 
+#include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceManager.hpp"
 #include "../GUI/Jobs/ProgressIndicator.hpp"
 #include "../GUI/PartPlate.hpp"
@@ -458,8 +458,14 @@ static void read_model_from_file(const std::string& input_file, Model& model)
         &is_bbl_3mf, &file_version, nullptr, nullptr, nullptr, plate_to_slice);
 
     model.add_default_instances();
-    for (auto object : model.objects)
-        object->ensure_on_bed();
+
+    const std::string extension      = fs::path(input_file).extension().string();
+    const bool        is_project_file = extension == ".3mf" || extension == ".3MF" || extension == ".amf" || extension == ".AMF";
+    for (auto object : model.objects) {
+        if (!is_project_file)
+            object->center_around_origin(false);
+        object->ensure_on_bed(is_project_file);
+    }
 }
 
 std::array<Vec3d, 4> get_cut_plane_points(const BoundingBoxf3 &bbox, const double &cut_height)
@@ -1037,7 +1043,7 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
     Model model;
     std::string input_file;
     if (params.mode == CalibMode::Calib_PA_Line)
-        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.stl";
+        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.drc";
     else if (params.mode == CalibMode::Calib_PA_Pattern)
         input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pa_pattern.3mf";
 
@@ -1139,7 +1145,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
         return;
 
     Model       model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step";
+    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1217,7 +1223,7 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
         return;
 
     Model model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/vfa/VFA.stl";
+    std::string input_file = Slic3r::resources_dir() + "/calib/vfa/vfa.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1276,7 +1282,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
         return;
 
     Model model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.stl";
+    std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1383,7 +1389,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
-            error_message = wxString::Format(_L("The nozzle diameter of %sextruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
 
@@ -1443,7 +1449,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
-            error_message = wxString::Format(_L("The nozzle diameter of %sextruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
 
@@ -1791,10 +1797,10 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
 
 #if !BBL_RELEASE_TO_PUBLIC
     print_job->m_local_use_ssl_for_ftp = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-    print_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+    print_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
     print_job->m_local_use_ssl_for_ftp = obj_->local_use_ssl_for_ftp;
-    print_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+    print_job->m_local_use_ssl = obj_->local_use_ssl;
 #endif
 
     print_job->connection_type  = obj_->connection_type();
@@ -1896,10 +1902,10 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
 
 #if !BBL_RELEASE_TO_PUBLIC
     print_job->m_local_use_ssl_for_ftp  = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-    print_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+    print_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
     print_job->m_local_use_ssl_for_ftp  = obj_->local_use_ssl_for_ftp;
-    print_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+    print_job->m_local_use_ssl = obj_->local_use_ssl;
 #endif
 
     print_job->connection_type  = obj_->connection_type();

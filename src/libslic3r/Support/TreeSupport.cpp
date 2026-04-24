@@ -1157,12 +1157,17 @@ void TreeSupport::create_tree_support_layers()
 
         // Layers between the raft contacts and bottom of the object.
         double dist_to_go = m_slicing_params.object_print_z_min - raft_print_z;
-        auto nsteps = int(ceil(dist_to_go / m_slicing_params.max_suport_layer_height));
-        double height = dist_to_go / nsteps;
-        for (int i = 0; i < nsteps; ++i) {
-            raft_print_z += height;
-            raft_slice_z = raft_print_z - height / 2;
-            m_object->add_tree_support_layer(layer_id++, height, raft_print_z, raft_slice_z);
+        // ORCA: Guard tiny residual raft-to-object gaps so the EPSILON-biased ceil()
+        // below cannot turn them into zero steps after floating-point accumulation.
+        if (dist_to_go > EPSILON) {
+            // ORCA: Bias by EPSILON so near-equal gaps do not get an extra split from FP noise.
+            auto nsteps = int(ceil((dist_to_go - EPSILON) / m_slicing_params.max_suport_layer_height));
+            double height = dist_to_go / nsteps;
+            for (int i = 0; i < nsteps; ++i) {
+                raft_print_z += height;
+                raft_slice_z = raft_print_z - height / 2;
+                m_object->add_tree_support_layer(layer_id++, height, raft_print_z, raft_slice_z);
+            }
         }
         m_raft_layers = layer_id;
     }
@@ -2076,9 +2081,10 @@ void TreeSupport::draw_circles()
                         if (!area.empty()) has_circle_node = true;
                         if (node.need_extra_wall) need_extra_wall = true;
 
-                        // merge overhang to get a smoother interface surface
-                        // Do not merge when buildplate_only is on, because some underneath nodes may have been deleted.
-                        if (top_interface_layers > 0 && node.support_roof_layers_below > 0 && !on_buildplate_only && !node.is_sharp_tail) {
+                        // Merge the overhang into the roof area so tree tips can still produce
+                        // a continuous support interface. Suppressing this for build-plate-only
+                        // support drops the roof polygons entirely in valid tree branches.
+                        if (top_interface_layers > 0 && node.support_roof_layers_below > 0 && !node.is_sharp_tail) {
                             ExPolygons overhang_expanded;
                             if (node.overhang.contour.size() > 100 || node.overhang.holes.size()>1)
                                 overhang_expanded.emplace_back(node.overhang);
@@ -2120,6 +2126,17 @@ void TreeSupport::draw_circles()
                 // roof_1st_layer and roof_areas may intersect, so need to subtract roof_areas from roof_1st_layer
                 roof_1st_layer = diff_ex(roof_1st_layer, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roof_areas,get_extents(roof_1st_layer)));
                 roof_1st_layer = intersection_ex(roof_1st_layer, m_machine_border);
+
+                // Build-plate-only pruning can collapse the roof stack down to a single
+                // printable layer. In that case we still need to emit an interface layer
+                // instead of downgrading the last roof-adjacent layer to base support.
+                if (on_buildplate_only && top_interface_layers > 0 && roof_areas.empty() && !roof_1st_layer.empty()) {
+                    append(roof_areas, roof_1st_layer);
+                    roof_1st_layer.clear();
+                    max_layers_above_roof = std::max(max_layers_above_roof, max_layers_above_roof1);
+                    max_layers_above_roof1 = 0;
+                    interface_id = obj_layer_nr % top_interface_layers;
+                }
 
                 ExPolygons roofs; append(roofs, roof_1st_layer); append(roofs, roof_areas);append(roofs, roof_gap_areas);
                 base_areas = diff_ex(base_areas, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs, get_extents(base_areas)));

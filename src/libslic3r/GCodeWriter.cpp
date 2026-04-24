@@ -30,7 +30,21 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
                            print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
-    m_max_acceleration = std::lrint(use_mach_limits ? print_config.machine_max_acceleration_extruding.values.front() : 0);
+    if (use_mach_limits) {
+        // For Klipper, SET_VELOCITY_LIMIT ACCEL= applies to all moves, so the effective cap
+        // is the minimum of the extruding limit and the per-axis X/Y limits.
+        // This ensures user-configured Motion Ability limits are honoured (#12244).
+        unsigned int extruding_limit = std::lrint(print_config.machine_max_acceleration_extruding.values.front());
+        if (print_config.gcode_flavor.value == gcfKlipper) {
+            unsigned int x_limit = std::lrint(print_config.machine_max_acceleration_x.values.front());
+            unsigned int y_limit = std::lrint(print_config.machine_max_acceleration_y.values.front());
+            if (x_limit > 0) extruding_limit = std::min(extruding_limit, x_limit);
+            if (y_limit > 0) extruding_limit = std::min(extruding_limit, y_limit);
+        }
+        m_max_acceleration = extruding_limit;
+    } else {
+        m_max_acceleration = 0;
+    }
     m_max_travel_acceleration = static_cast<unsigned int>(
         std::round((use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) ?
                        print_config.machine_max_acceleration_travel.values.front() :
@@ -49,6 +63,9 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
 {
     std::sort(extruder_ids.begin(), extruder_ids.end());
     m_filament_extruders.clear();
+    //ORCA: Reset current extruder ID and clear pointers to prevent dangling pointers when extruders are recreated.
+    m_curr_extruder_id = -1;
+    std::fill(m_curr_filament_extruder.begin(), m_curr_filament_extruder.end(), nullptr);
     m_filament_extruders.reserve(extruder_ids.size());
     for (unsigned int extruder_id : extruder_ids)
         m_filament_extruders.emplace_back(Extruder(extruder_id, &this->config, config.single_extruder_multi_material.value));
@@ -56,7 +73,8 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
     /*  we enable support for multiple extruder if any extruder greater than 0 is used
         (even if prints only uses that one) since we need to output Tx commands
         first extruder has index 0 */
-    this->multiple_extruders = (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
+    //ORCA: Fix undefined behavior by checking if the vector is empty before taking max_element.
+    this->multiple_extruders = !extruder_ids.empty() && (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
 }
 
 std::string GCodeWriter::preamble()

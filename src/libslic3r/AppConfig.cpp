@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Format/DRC.hpp"
 #include "AppConfig.hpp"
 //BBS
 #include "Preset.hpp"
@@ -124,6 +125,8 @@ void AppConfig::set_defaults()
 #ifdef _WIN32
         if (get("associate_3mf").empty())
             set_bool("associate_3mf", false);
+        if (get("associate_drc").empty())
+            set_bool("associate_drc", false);
         if (get("associate_stl").empty())
             set_bool("associate_stl", false);
         if (get("associate_step").empty())
@@ -193,6 +196,9 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    if (get("filaments_area_preferred_count").empty())
+        set("filaments_area_preferred_count", "10");
+
     if (get("use_perspective_camera").empty())
         set_bool("use_perspective_camera", true);
 
@@ -217,6 +223,8 @@ void AppConfig::set_defaults()
         set_bool("enable_merge_color_by_sync_ams", false);
     if (get("ams_sync_match_full_use_color_dist").empty())
         set_bool("ams_sync_match_full_use_color_dist", false);
+    if (get("sync_ams_filament_mode").empty())
+        set("sync_ams_filament_mode", "0"); // 0: filament+color, 1: color only
 
     if (get("camera_orbit_mult").empty())
         set("camera_orbit_mult", "1.0");
@@ -234,17 +242,29 @@ void AppConfig::set_defaults()
     if (get("enable_multi_machine").empty())
         set_bool("enable_multi_machine", false);
 
+    if (get("drc_bits").empty())
+        set("drc_bits", DRC_BITS_DEFAULT_STR);
+
     if (get("show_gcode_window").empty())
         set_bool("show_gcode_window", true);
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
 
+    if (get("show_plate_gridlines").empty())
+        set_bool("show_plate_gridlines", true);
+
     if (get("show_outline").empty())
         set_bool("show_outline", false);
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
+
+    if (get("show_labels").empty())
+        set_bool("show_labels", false);
+
+    if (get("show_overhang").empty())
+        set_bool("show_overhang", false);
 
 #ifdef _WIN32
 
@@ -300,6 +320,13 @@ void AppConfig::set_defaults()
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
     }
+#ifdef __linux__
+    if (get(SETTING_USE_ENCRYPTED_TOKEN_FILE).empty())
+        set_bool(SETTING_USE_ENCRYPTED_TOKEN_FILE, true);
+#else
+    if (get(SETTING_USE_ENCRYPTED_TOKEN_FILE).empty())
+        set_bool(SETTING_USE_ENCRYPTED_TOKEN_FILE, false);
+#endif
 
     if(get("check_stable_update_only").empty()) {
         set_bool("check_stable_update_only", false);
@@ -491,6 +518,15 @@ void AppConfig::set_defaults()
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
     }
+
+    if(get("installed_networking").empty()) {
+        set_bool("installed_networking", false);
+    }
+
+#ifdef __linux__
+    if (get("window_buttons_on_left").empty())
+        set_bool("window_buttons_on_left", false);
+#endif
 
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
@@ -910,13 +946,13 @@ void AppConfig::save()
     }
     boost::nowide::ofstream c;
     c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
+    c << j.dump(1, '\t') << std::endl;
 
 #ifdef WIN32
     // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
     // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
     // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(j.dump(4));
+    c << appconfig_md5_hash_line(j.dump(1, '\t'));
 #endif
 
     c.close();

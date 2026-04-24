@@ -318,6 +318,24 @@ ConfigOption* ConfigOptionDef::create_default_option() const
     return this->create_empty_option();
 }
 
+bool ConfigOptionDef::is_value_valid(const double value, const int max_precision /*= 4*/) const
+{
+    // Special handling for the nil values
+    // The nil value is a valid one only for nullable options
+    if (std::isnan(value))
+        return this->nullable;
+
+    // Special handling of 0
+    if (this->min == 0.f && value < 0)
+        return false;
+
+    const double ep = std::pow(0.1, max_precision);
+    if (is_approx(value, (double) this->min, ep) || is_approx(value, (double) this->max, ep))
+        return true;
+
+    return this->min <= value && value <= this->max;
+}
+
 // Assignment of the serialization IDs is not thread safe. The Defs shall be initialized from the main thread!
 ConfigOptionDef* ConfigDef::add(const t_config_option_key &opt_key, ConfigOptionType type)
 {
@@ -1480,7 +1498,7 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
 
     boost::nowide::ofstream c;
     c.open(file, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
+    c << j.dump(1, '\t') << std::endl;
     c.close();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;

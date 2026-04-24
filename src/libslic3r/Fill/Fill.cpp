@@ -167,7 +167,7 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                                     idx          = std::min(idx, (int) object->layers().size() - 1);
                                     limit_fill_z = object->get_layer(idx)->print_z + sdx * object->config().layer_height;
                                 }
-                                repeats = std::max(--repeats, 0);
+                                repeats = std::max(repeats - 1, 0);
                             } else
                                 _noop = true; // set the dumb cycle
                             if (_absolute) {  // is absolute
@@ -599,16 +599,34 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
 {
     assert(fill.surface.surface_type == stInternalSolid);
 
-	switch (fill.params.pattern) {
-    case ipRectilinear:
-    case ipMonotonic:
-    case ipMonotonicLine:
-    case ipAlignedRectilinear:
-        // Only support straight line based infill
-        break;
+    const bool line_based_pattern =
+        fill.params.pattern == ipRectilinear || fill.params.pattern == ipMonotonic ||
+        fill.params.pattern == ipMonotonicLine || fill.params.pattern == ipAlignedRectilinear;
 
-    default:
-        // For all other types, don't split
+    // ORCA: For non-line patterns, split by a geometric "core" so only thin areas get rerouted.
+    if (!line_based_pattern) {
+        const coord_t scaled_spacing = scaled<coord_t>(fill.params.spacing);
+
+        for (const ExPolygon &expolygon : fill.expolygons) {
+            Polygons filled_area = to_polygons(expolygon);
+
+            // "Core" area: open (erode+dilate) to drop thin features, then clamp back to the original polygon.
+            Polygons inner_area  = intersection(filled_area, opening(filled_area, scaled_spacing, scaled_spacing));
+
+            if (inner_area.empty()) {
+                narrow_infill.emplace_back(expolygon);
+                continue;
+            }
+
+            ExPolygons inner_ex = union_ex(inner_area);
+            ExPolygons expolys{expolygon};
+            ExPolygons narrow_ex = diff_ex(expolys, inner_ex);
+            ExPolygons normal_ex = intersection_ex(expolys, inner_ex);
+
+            append(normal_infill, normal_ex); // normal infill area
+            append(narrow_infill, narrow_ex); // narrow infill area
+        }
+
         return;
     }
 
@@ -790,8 +808,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
         return;
     }
 
-    // Expand the normal infills a little bit to avoid gaps between normal and narrow infills
-    normal_infill = intersection_ex(offset_ex(normal_fill_areas_ex, scaled_spacing * 0.1), fill.expolygons);
+    // Expand the normal infills to avoid gaps between normal and narrow infills.
+    // The inner_area was shrunk by scaled_spacing * 0.5, so we need to expand
+    // by at least that amount to ensure proper coverage and avoid gaps.
+    normal_infill = intersection_ex(offset_ex(normal_fill_areas_ex, scaled_spacing * 0.5), fill.expolygons);
     narrow_infill = narrow_fill_areas;
 
 #ifdef DEBUG_SURFACE_SPLIT
@@ -864,6 +884,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         if (surface.is_top()) {
                             params.pattern = region_config.top_surface_pattern.value;
                             params.density = float(region_config.top_surface_density);
+                            if (params.density <= 0.0f) continue;
                         } else { // Surface is bottom
                             params.pattern = region_config.bottom_surface_pattern.value;
                             params.density = float(region_config.bottom_surface_density);

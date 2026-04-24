@@ -53,7 +53,9 @@
 #define BBL_JSON_KEY_BASE_ID        "base_id"
 #define BBL_JSON_KEY_USER_ID        "user_id"
 #define BBL_JSON_KEY_FILAMENT_ID    "filament_id"
-#define BBL_JSON_KEY_UPDATE_TIME    "updated_time"
+#define UNKNOWN_FILAMENT_ID         "__unknown__"
+#define ORCA_JSON_KEY_UPDATE_TIME    "updated_time"
+#define ORCA_JSON_KEY_CREATED_TIME    "created_time"
 #define BBL_JSON_KEY_INHERITS       "inherits"
 #define BBL_JSON_KEY_INSTANTIATION  "instantiation"
 #define BBL_JSON_KEY_NOZZLE_DIAMETER            "nozzle_diameter"
@@ -636,6 +638,11 @@ public:
         return const_cast<PresetCollection*>(this)->find_preset2(name, auto_match);
     }
     size_t first_visible_idx() const;
+    // Return the index of the first visible, compatible, system base preset
+    // matching the given filament_type.  Falls back to base type, then any visible.
+    size_t first_visible_idx_by_type(const std::string& filament_type) const;
+    // Return the filament_id of the best-matching visible preset for the given filament type.
+    std::string filament_id_by_type(const std::string& filament_type) const;
     // Return index of the first compatible preset. Certainly at least the '- default -' preset shall be compatible.
     // If one of the prefered_alternates is compatible, select it.
     template<typename PreferedCondition> size_t first_compatible_idx(PreferedCondition prefered_condition) const
@@ -646,7 +653,7 @@ public:
         int    match_quality = -1;
         for (; i < n; ++i)
             // Since we use the filament selection from Wizard, it's needed to control the preset visibility too
-            if (m_presets[i].is_compatible) {
+            if (m_presets[i].is_compatible && m_presets[i].is_visible) {
                 int this_match_quality = prefered_condition(m_presets[i]);
                 if (this_match_quality > match_quality) {
                     if (match_quality == std::numeric_limits<int>::max())

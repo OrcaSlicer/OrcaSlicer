@@ -1,0 +1,48 @@
+{
+	"type": "filament",
+	"filament_id": "GFG99",
+	"setting_id": "GFSG99",
+	"name": "re3D rPP",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_type": "PP",
+	"nozzle_temperature_initial_layer": [
+		"185"
+	],
+	"nozzle_temperature": [
+		"185"
+	],
+	"nozzle_temperature_range_low": [
+		"180"
+	],
+	"nozzle_temperature_range_high": [
+		"200"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"filament_flow_ratio": [
+		"1.18"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"60"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"filament_start_gcode": [
+		"M190 S110\nM104 S185 T0\nM104 S185 T1\nM104 S185 T2\nM109 S185 T0\nM109 S185 T1\nM109 S185 T2"
+	],
+	"compatible_printers": [
+		"re3D Gigabot X2 1.75 nozzle",
+		"re3D Gigabot X2 XLT 1.75 nozzle",
+		"re3D Terabot X2 1.75 nozzle"
+	]
+}

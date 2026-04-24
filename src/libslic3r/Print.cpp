@@ -219,6 +219,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "ironing_fan_speed",
         "single_extruder_multi_material_priming",
         "activate_air_filtration",
+        "activate_air_filtration_during_print",
+        "activate_air_filtration_on_completion",
         "during_print_exhaust_fan_speed",
         "complete_print_exhaust_fan_speed",
         "activate_chamber_temp_control",
@@ -315,8 +317,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_enable_framework"
             || opt_key == "prime_tower_width"
             || opt_key == "prime_tower_brim_width"
+            || opt_key == "wipe_tower_type"
             || opt_key == "prime_tower_skip_points"
             || opt_key == "prime_tower_flat_ironing"
+            || opt_key == "enable_tower_interface_features"
             || opt_key == "first_layer_print_sequence"
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
@@ -324,6 +328,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
             || opt_key == "filament_adhesiveness_category"
+            || opt_key == "filament_tower_interface_pre_extrusion_dist"
+            || opt_key == "filament_tower_interface_pre_extrusion_length"
+            || opt_key == "filament_tower_ironing_area"
+            || opt_key == "filament_tower_interface_purge_volume"
+            || opt_key == "filament_tower_interface_print_temp"
             || opt_key == "wipe_tower_bridging"
             || opt_key == "wipe_tower_extra_flow"
             || opt_key == "wipe_tower_no_sparse_layers"
@@ -336,6 +345,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "travel_speed_z"
             || opt_key == "initial_layer_speed"
             || opt_key == "initial_layer_travel_speed"
+            || opt_key == "initial_layer_travel_acceleration"
+            || opt_key == "initial_layer_travel_jerk"
             || opt_key == "slow_down_layers"
             || opt_key == "idle_temperature"
             || opt_key == "wipe_tower_cone_angle"
@@ -518,6 +529,12 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
                     extruders.push_back((unsigned int)(item.extruder - 1));
             }
         }
+    }
+
+    // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
+    if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
 
     sort_remove_duplicates(extruders);
@@ -1222,10 +1239,20 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     if (m_config.enable_prime_tower) {
+        for (const PrintObject* object : m_objects) {
+            if (object->config().precise_z_height.value && warning != nullptr) {
+                StringObjectException warningtemp;
+                warningtemp.string     = L("Enabling both precise Z height and the prime tower may cause slicing errors.");
+                warningtemp.opt_key    = "precise_z_height";
+                warningtemp.is_warning = true;
+                *warning               = warningtemp;
+                break;
+            }
+        }
     } else {
         if (m_config.enable_wrapping_detection && warning!=nullptr) {
             StringObjectException warningtemp;
-            warningtemp.string     = L("Prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
+            warningtemp.string     = L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
             warningtemp.opt_key    = "enable_prime_tower";
             warningtemp.is_warning = true;
             *warning               = warningtemp;
@@ -1478,18 +1505,46 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
                 // Prusa: Fixing crashes with invalid tip diameter or branch diameter
                 // https://github.com/prusa3d/PrusaSlicer/commit/96b3ae85013ac363cd1c3e98ec6b7938aeacf46d
-                if (is_tree(object->config().support_type.value) && (object->config().support_style == smsTreeOrganic ||
-                    // Orca: use organic as default
-                    object->config().support_style == smsDefault)) {
-                    float extrusion_width = std::min(
-                        support_material_flow(object).width(),
-                        support_material_interface_flow(object).width());
-                    if (object->config().tree_support_tip_diameter < extrusion_width - EPSILON)
-                        return { L("Organic support tree tip diameter must not be smaller than support material extrusion width."), object, "tree_support_tip_diameter" };
-                    if (object->config().tree_support_branch_diameter_organic < 2. * extrusion_width - EPSILON)
-                        return { L("Organic support branch diameter must not be smaller than 2x support material extrusion width."), object, "tree_support_branch_diameter_organic" };
-                    if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
-                        return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
+                if (is_tree(object->config().support_type.value)) {
+                    if (object->config().support_style == smsTreeOrganic ||
+                        // Orca: use organic as default
+                        object->config().support_style == smsDefault) {
+
+                        if (warning) {
+                            // Orca: check the support wall count and the base pattern
+                            if (object->config().tree_support_wall_count > 1 &&
+                                object->config().support_base_pattern != SupportMaterialPattern::smpNone &&
+                                object->config().support_base_pattern != SupportMaterialPattern::smpDefault) {
+                                warning->string = L("For Organic supports, two walls are supported only with the Hollow/Default base pattern.");
+                                warning->opt_key = "support_base_pattern";
+                            }
+
+                            // Orca: check if the Lightning base pattern selected
+                            if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning) {
+                                warning->string = L(
+                                    "The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
+                                warning->opt_key = "support_base_pattern";
+                            }
+                        }
+
+                        float extrusion_width = std::min(
+                            support_material_flow(object).width(),
+                            support_material_interface_flow(object).width());
+                        if (object->config().tree_support_tip_diameter < extrusion_width - EPSILON)
+                            return { L("Organic support tree tip diameter must not be smaller than support material extrusion width."), object, "tree_support_tip_diameter" };
+                        if (object->config().tree_support_branch_diameter_organic < 2. * extrusion_width - EPSILON)
+                            return { L("Organic support branch diameter must not be smaller than 2x support material extrusion width."), object, "tree_support_branch_diameter_organic" };
+                        if (object->config().tree_support_branch_diameter_organic < object->config().tree_support_tip_diameter)
+                            return { L("Organic support branch diameter must not be smaller than support tree tip diameter."), object, "tree_support_branch_diameter_organic" };
+                    }
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning && warning) {
+                    // Orca: check if the Lightning base pattern selected
+                    warning->string  = L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
+                    warning->opt_key = "support_base_pattern";
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpNone && warning) {
+                    // Orca: check if the Hollow base pattern selected
+                    warning->string  = L("The Hollow base pattern is not supported by this support type; Rectilinear will be used instead.");
+                    warning->opt_key = "support_base_pattern";
                 }
             }
 
@@ -2720,14 +2775,6 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
-    // FilamentTempType Temperature-based logic
-    int min_temp, max_temp;
-    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
-        if (max_temp <= 250) return FilamentTempType::LowTemp;
-        else if (max_temp < 280) return FilamentTempType::HighLowCompatible;
-        else return FilamentTempType::HighTemp;
-    }
-
     const static std::string HighTempFilamentStr = "high_temp_filament";
     const static std::string LowTempFilamentStr = "low_temp_filament";
     const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";
@@ -2762,6 +2809,19 @@ FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
         return HighTemp;
     if (filament_temp_type_map[LowTempFilamentStr].find(filament_type) != filament_temp_type_map[LowTempFilamentStr].end())
         return LowTemp;
+
+    // Orca: prefer explicit definition from JSON, if the filament type is not defined in json, fallback to temperature-based logic to determine the filament temp type.
+    // FilamentTempType Temperature-based logic
+    int min_temp, max_temp;
+    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
+        if (max_temp <= 250)
+            return FilamentTempType::LowTemp;
+        else if (max_temp < 280)
+            return FilamentTempType::HighLowCompatible;
+        else
+            return FilamentTempType::HighTemp;
+    }
+
     return Undefine;
 }
 
@@ -3082,10 +3142,10 @@ void Print::_make_wipe_tower()
     // BBS
     const unsigned int number_of_extruders = (unsigned int)(m_config.filament_colour.values.size());
 
-    const auto bUseWipeTower2 = is_BBL_printer() || is_QIDI_printer() ? false : true;
+    const bool is_wipe_tower_type2 = this->wipe_tower_type() == WipeTowerType::Type2;
     // Let the ToolOrdering class know there will be initial priming extrusions at the start of the print.
-    m_wipe_tower_data.tool_ordering = ToolOrdering(*this, (unsigned int) -1, bUseWipeTower2 ? true : false);
-    m_wipe_tower_data.tool_ordering.sort_and_build_data(*this, (unsigned int)-1, bUseWipeTower2 ? true : false);
+    m_wipe_tower_data.tool_ordering = ToolOrdering(*this, (unsigned int) -1, is_wipe_tower_type2);
+    m_wipe_tower_data.tool_ordering.sort_and_build_data(*this, (unsigned int)-1, is_wipe_tower_type2);
 
     if (!m_wipe_tower_data.tool_ordering.has_wipe_tower())
         // Don't generate any wipe tower.
@@ -3128,7 +3188,7 @@ void Print::_make_wipe_tower()
     }
     this->throw_if_canceled();
 
-    if (!bUseWipeTower2) {
+    if (!is_wipe_tower_type2) {
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
         WipeTower wipe_tower(m_config, m_plate_index, m_origin, m_wipe_tower_data.tool_ordering.first_extruder(),
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
@@ -3266,7 +3326,7 @@ void Print::_make_wipe_tower()
             wipe_volumes.push_back(std::vector<float>(flush_matrix.begin()+i*number_of_extruders, flush_matrix.begin()+(i+1)*number_of_extruders));
 
         // Orca: itertate over wipe_volumes and change the non-zero values to the prime_volume
-        if ((!m_config.purge_in_prime_tower || !m_config.single_extruder_multi_material) && !is_BBL_printer() && !is_QIDI_printer()) {
+        if ((!m_config.purge_in_prime_tower || !m_config.single_extruder_multi_material) && is_wipe_tower_type2) {
             for (unsigned int i = 0; i < number_of_extruders; ++i) {
                 for (unsigned int j = 0; j < number_of_extruders; ++j) {
                     if (wipe_volumes[i][j] > 0) {
@@ -3360,6 +3420,11 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
+        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
+                                         wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
+                                         config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
@@ -4537,7 +4602,7 @@ int Print::export_cached_data(const std::string& directory, bool with_space)
             /*boost::nowide::ofstream c;
             c.open(file_name, std::ios::out | std::ios::trunc);
             if (with_space)
-                c << std::setw(4) << root_json << std::endl;
+                c << root_json.dump(1, '\t') << std::endl;
             else
                 c << root_json.dump(0) << std::endl;
             c.close();*/
@@ -4559,7 +4624,7 @@ int Print::export_cached_data(const std::string& directory, bool with_space)
                     boost::nowide::ofstream c;
                     c.open(filename_vector[object_index], std::ios::out | std::ios::trunc);
                     if (with_space)
-                        c << std::setw(4) << json_vector[object_index] << std::endl;
+                        c << json_vector[object_index].dump(1, '\t') << std::endl;
                     else
                         c << json_vector[object_index].dump(0) << std::endl;
                     c.close();

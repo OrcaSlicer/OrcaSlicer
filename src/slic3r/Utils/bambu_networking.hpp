@@ -10,7 +10,7 @@
 extern std::string g_log_folder;
 extern std::string g_log_start_time;
 
-namespace BBL {
+namespace Slic3r {
 
 #define BAMBU_NETWORK_SUCCESS                           0
 #define BAMBU_NETWORK_ERR_INVALID_HANDLE                -1

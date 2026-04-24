@@ -172,6 +172,7 @@ public:
     void set_bed_type_accord_combox(BedType bed_type);
     bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
     void change_top_border_for_mode_sizer(bool increase_border);
+    void update_filaments_area_height();
     void msw_rescale();
     void sys_color_changed();
     void search();
@@ -485,7 +486,7 @@ public:
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
+    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -642,7 +643,8 @@ public:
     void drop_selection();
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);
-    void split_object();
+    void split_object(bool auto_drop = true);
+    void split_object(int obj_idx, bool auto_drop = true);
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
@@ -660,8 +662,9 @@ public:
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
-    bool can_fix_through_netfabb() const;
+    bool can_fix_through_cgal() const;
     bool can_simplify() const;
+    bool can_smooth_mesh() const;
     bool can_split_to_objects() const;
     bool can_split_to_volumes() const;
     bool can_arrange() const;

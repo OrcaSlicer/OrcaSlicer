@@ -627,7 +627,7 @@ void PresetUpdater::priv::sync_resources(std::string http_url, std::map<std::str
 
                 boost::nowide::ofstream c;
                 c.open(changelog_file, std::ios::out | std::ios::trunc);
-                c << std::setw(4) << j << std::endl;
+                c << j.dump(1, '\t') << std::endl;
                 c.close();
             }
             catch(std::exception &err) {
@@ -849,7 +849,7 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
         BOOST_LOG_TRIVIAL(info) << "non need to sync plugins for there is no plugins currently.";
         return;
     }
-    std::string curr_version = NetworkAgent::use_legacy_network ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : BBL::get_latest_network_version();
+    std::string curr_version = NetworkAgent::use_legacy_network ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : get_latest_network_version();
     std::string using_version = curr_version.substr(0, 9) + "00";
 
     std::string cached_version;
