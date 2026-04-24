@@ -91,6 +91,16 @@ struct PathVertex
     // Pressure advance value
     //
     float pressure_advance{ 0.0f };
+    //
+    // ORCA: Add Acceleration visualization support
+    // Acceleration value
+    //
+    float acceleration{ 0.0f };
+    //
+    // ORCA: Add Jerk visualization support
+    // Jerk value
+    //
+    float jerk{ 0.0f };
 
     //
     // Return true if the segment is an extrusion move
