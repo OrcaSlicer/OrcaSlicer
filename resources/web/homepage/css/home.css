@@ -402,6 +402,171 @@ body
 	color: #A8A8A8;
 }
 
+/* ========== Project Folders ========== */
+
+#FolderArea
+{
+	margin-top: 14px;
+}
+
+#FolderTitleBlock
+{
+	display: flex;
+	align-items: center;
+	padding: 6px 0px;
+	gap: 12px;
+}
+
+#FolderTitle
+{
+
+}
+
+#NewFolderBtn
+{
+	cursor: pointer;
+}
+
+#FolderList
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.FolderCard
+{
+	width: 160px;
+	border: 1px solid #D7D7D7;
+	border-radius: 10px;
+	padding: 14px 12px 10px 12px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	cursor: pointer;
+	transition: border-color 0.15s, background-color 0.15s;
+	position: relative;
+}
+
+.FolderCard:hover
+{
+	border-color: #009688;
+	background-color: #E5F0EE;
+}
+
+.FolderCardIcon
+{
+	font-size: 42px;
+	line-height: 1;
+	margin-bottom: 6px;
+}
+
+.FolderCardName
+{
+	font-weight: 600;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	width: 136px;
+	text-align: center;
+}
+
+.FolderCardCount
+{
+	margin-top: 2px;
+	font-size: 12px;
+}
+
+.FolderEmptyHint
+{
+	padding: 12px 0px;
+	color: #A8A8A8;
+	font-size: 13px;
+}
+
+/* --- Folder content (drill-down) view --- */
+
+#FolderContentHeader
+{
+	display: flex;
+	align-items: center;
+	padding: 6px 0px;
+	gap: 14px;
+}
+
+#FolderBackBtn
+{
+	cursor: pointer;
+}
+
+#FolderContentTitle
+{
+
+}
+
+.FolderContentFileList
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+/* --- Folder context menus --- */
+
+#folder_picker_menu,
+#folder_context_menu,
+#folder_file_context_menu
+{
+	position: absolute;
+	margin: 0px;
+	padding: 10px;
+	min-width: 140px;
+	border: 1px solid #D7D7D7;
+	border-radius: 5px;
+	color: #323A3D;
+	background-color: #fff;
+	display: none;
+	z-index: 2;
+}
+
+.FolderPickerItem,
+.FolderPickerNewItem
+{
+	padding: 4px 12px;
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+}
+
+.FolderPickerItem:hover,
+.FolderPickerNewItem:hover
+{
+	background-color: #009688;
+	border-radius: 4px;
+	color: #fff;
+}
+
+/* Add-to-folder icon in recent file context menu */
+.CT_FolderAdd
+{
+	background: url("../img/open_folder.svg");
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+#CT_AddToFolder_Bar:hover .CT_FolderAdd
+{
+	background: url("../img/open_folder2.svg");
+	background-repeat: no-repeat;
+	background-size: contain;
+}
+
+/* ========== End Project Folders ========== */
+
 #recnet_context_menu
 {
 	position: absolute;

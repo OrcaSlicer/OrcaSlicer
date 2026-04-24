@@ -10,6 +10,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include "nlohmann/json.hpp"
+
 #include <wx/sizer.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
@@ -18,6 +20,7 @@
 #include <slic3r/GUI/Widgets/WebView.hpp>
 
 namespace pt = boost::property_tree;
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -437,6 +440,24 @@ void WebViewPanel::SendRecentList(int images)
     std::wostringstream oss;
     pt::write_json(oss, req, false);
     RunScript(wxString::Format("window.postMessage(%s)", oss.str()));
+}
+
+void WebViewPanel::SendProjectFolders()
+{
+    auto folders = wxGetApp().app_config->get_project_folders();
+    json resp;
+    resp["command"]     = "get_project_folders";
+    resp["sequence_id"] = "";
+    json arr            = json::array();
+    for (const auto& folder : folders) {
+        json fj;
+        fj["name"]  = folder.name;
+        fj["paths"] = folder.paths;
+        arr.push_back(fj);
+    }
+    resp["response"] = arr;
+    RunScript(wxString::Format("window.postMessage(%s)",
+        resp.dump(-1, ' ', false, json::error_handler_t::ignore)));
 }
 
 void WebViewPanel::SendDesignStaffpick(bool on)

@@ -70,6 +70,41 @@ body
 	background-color: #36363C; /*ORCA use darker color for dark theme for thumbnails*/
 }
 
+/* ---- Project Folders dark mode ---- */
+.FolderCard
+{
+	border-color: #3E3E45;
+	background-color: #2e2e33;
+}
+
+.FolderCard:hover
+{
+	border-color: #00675b;
+	background-color: #223C3C;
+}
+
+#folder_picker_menu,
+#folder_context_menu,
+#folder_file_context_menu
+{
+	color: #efeff0;
+	background-color: #242428;
+	border: 0px;
+	box-shadow: 0px 0px 3px #DCDCDC;
+}
+
+.FolderPickerItem:hover,
+.FolderPickerNewItem:hover
+{
+	background-color: #00675b;
+}
+
+.FolderEmptyHint
+{
+	color: #5a5a5e;
+}
+/* ---- End Project Folders dark mode ---- */
+
 #recnet_context_menu
 {
 	color: #efeff0;
