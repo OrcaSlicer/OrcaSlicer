@@ -1505,6 +1505,7 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
 
     bed_temp = 0;
     std::vector<std::string> filament_types;
+    std::vector<int> filament_used_temps;
     for (auto &item : prests) {
         const auto& item_preset = item.second;
         if (!item_preset)
@@ -1533,12 +1534,24 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         std::string display_filament_type;
         filament_types.push_back(item_preset->config.get_filament_type(display_filament_type, 0));
 
+        const ConfigOptionInts *opt_nozzle_temp_ints = item_preset->config.option<ConfigOptionInts>("nozzle_temperature");
+        const ConfigOptionInts *opt_first_layer_nozzle_temp_ints = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_initial_layer");
+        int used_temp = 0;
+        if (opt_nozzle_temp_ints)
+            used_temp = opt_nozzle_temp_ints->get_at(0);
+        if (opt_first_layer_nozzle_temp_ints) {
+            const int first_layer_temp = opt_first_layer_nozzle_temp_ints->get_at(0);
+            if (first_layer_temp > 0)
+                used_temp = std::max(used_temp, first_layer_temp);
+        }
+        filament_used_temps.push_back(used_temp);
+
         // check is it in the filament blacklist
         if (!is_filament_in_blacklist(item.first, item_preset, error_tips))
             return false;
     }
 
-    if (Print::check_multi_filaments_compatibility(filament_types) == FilamentCompatibilityType::HighLowMixed) {
+    if (Print::check_multi_filaments_compatibility(filament_types, filament_used_temps) == FilamentCompatibilityType::HighLowMixed) {
         error_tips = _u8L("Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing");
         return false;
     }
