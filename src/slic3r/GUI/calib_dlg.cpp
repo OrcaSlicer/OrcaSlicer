@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -1432,6 +1433,99 @@ void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
 }
 
 void Cornering_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
+    this->Refresh();
+    Fit();
+}
+
+// FlowRateCalibrationDialog
+//
+FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Flow Ratio Calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+{
+    SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
+    SetSizer(v_sizer);
+
+    // Type selection
+    auto labeled_box_type = new LabeledStaticBox(this, _L("Calibration Test Type"));
+    auto type_box = new wxStaticBoxSizer(labeled_box_type, wxVERTICAL);
+
+    m_rbType = new RadioGroup(this, { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") }, wxVERTICAL, 1);
+    m_rbType->SetSelection(2); // Default to YOLO Recommended
+    type_box->Add(m_rbType, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    // Pattern selection
+    auto labeled_box_pattern = new LabeledStaticBox(this, _L("Top Surface Pattern"));
+    auto pattern_box = new wxStaticBoxSizer(labeled_box_pattern, wxVERTICAL);
+
+    // ORCA: Use ComboBox with icons instead of RadioGroup
+    m_rbPattern = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
+    
+    boost::filesystem::path image_path(Slic3r::resources_dir());
+    image_path /= "images";
+
+    auto add_pattern_item = [&](const std::string& name, const wxString& label) {
+        auto icon_name = "param_" + name;
+        if (boost::filesystem::exists(image_path / (icon_name + ".svg"))) {
+            // Using 24px icon size to match other settings (Field.cpp uses 24)
+            ScalableBitmap bm(this, icon_name, 24);
+            m_rbPattern->Append(label, bm.bmp());
+        } else {
+            m_rbPattern->Append(label);
+        }
+    };
+
+    add_pattern_item("archimedeanchords", _L("Archimedean Chords"));
+    add_pattern_item("monotonic", _L("Monotonic"));
+    m_rbPattern->SetSelection(0); // Default to Archimedean Chords
+    // ORCA: explicit set value to ensure display on Windows
+    m_rbPattern->SetValue(m_rbPattern->GetString(0));
+
+    pattern_box->Add(m_rbPattern, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(pattern_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto dlg_btns = new DialogButtons(this, {"OK"});
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/calibration/flow-ratio-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
+
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &FlowRateCalibrationDialog::on_start, this);
+
+    wxGetApp().UpdateDlgDarkUI(this);
+
+    Layout();
+    Fit();
+}
+
+FlowRateCalibrationDialog::~FlowRateCalibrationDialog() {
+    // Disconnect Events
+}
+
+void FlowRateCalibrationDialog::on_start(wxCommandEvent& event) {
+    int type = m_rbType->GetSelection();
+    int patternIdx = m_rbPattern->GetSelection();
+    
+    InfillPattern pattern = ipArchimedeanChords;
+    if (patternIdx == 1) pattern = ipMonotonic;
+    
+    bool is_linear = (type >= 2);
+    int pass = (type % 2) + 1;
+
+    m_plater->calib_flowrate(is_linear, pass, pattern);
+    EndModal(wxID_OK);
+}
+
+void FlowRateCalibrationDialog::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
 }

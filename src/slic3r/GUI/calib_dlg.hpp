@@ -180,5 +180,21 @@ protected:
     TextInput* m_tiJDEnd;
     Plater* m_plater;
 };
+
+class FlowRateCalibrationDialog : public DPIDialog
+{
+public:
+    FlowRateCalibrationDialog(wxWindow* parent, wxWindowID id, Plater* plater);
+    ~FlowRateCalibrationDialog();
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
+protected:
+    virtual void on_start(wxCommandEvent& event);
+
+    RadioGroup* m_rbType;
+    // ORCA: use standard OrcaSlicer ComboBox instead of BitmapComboBox
+    ComboBox* m_rbPattern;
+    Plater* m_plater;
+};
 }} // namespace Slic3r::GUI
 #endif
