@@ -1114,7 +1114,7 @@ public:
 
     void request_extra_frame() { m_extra_frame_requested = true; }
 
-    void schedule_extra_frame(int miliseconds);
+    void schedule_extra_frame(int milliseconds);
 
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
