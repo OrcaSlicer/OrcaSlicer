@@ -3277,7 +3277,7 @@ void ObjectTablePanel::msw_rescale() {
 // ObjectTableDialog
 // ----------------------------------------------------------------------------
 ObjectTableDialog::ObjectTableDialog(wxWindow* parent, Plater* platerObj, Model *modelObj, wxSize maxSize)
-    : GUI::DPIDialog(parent, wxID_ANY, _L("Object/Part Setting"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
+    : GUI::DPIDialog(parent, wxID_ANY, _L("Object/Part Settings"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER)
     ,
     m_model(modelObj), m_plater(platerObj)
 {
@@ -3410,7 +3410,9 @@ void ObjectTableDialog::OnClose(wxCloseEvent &evt)
 
 void ObjectTableDialog::OnText(wxKeyEvent &evt)
 {
-	if (evt.GetKeyCode() != WXK_ESCAPE) {
+	if (evt.GetKeyCode() == WXK_ESCAPE) {
+		Close();
+	} else {
 		evt.Skip();
 	}
 }
