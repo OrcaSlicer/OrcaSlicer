@@ -1300,7 +1300,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "scarf_angle_threshold"
             || opt_key == "scarf_overhang_threshold"
             || opt_key == "scarf_joint_speed"
-            || opt_key == "scarf_joint_flow_ratio"
             || opt_key == "seam_slope_start_height"
             || opt_key == "seam_slope_entire_loop"
             || opt_key == "seam_slope_min_length"
@@ -1324,7 +1323,24 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "bed_mesh_min"
             || opt_key == "bed_mesh_max"
             || opt_key == "adaptive_bed_mesh_margin"
-            || opt_key == "bed_mesh_probe_distance") {
+            || opt_key == "bed_mesh_probe_distance"
+            || opt_key == "print_flow_ratio"
+            || opt_key == "first_layer_flow_ratio"
+            || opt_key == "top_solid_infill_flow_ratio"
+            || opt_key == "bottom_solid_infill_flow_ratio"
+            || opt_key == "outer_wall_flow_ratio"
+            || opt_key == "inner_wall_flow_ratio"
+            || opt_key == "overhang_flow_ratio"
+            || opt_key == "sparse_infill_flow_ratio"
+            || opt_key == "internal_solid_infill_flow_ratio"
+            || opt_key == "gap_fill_flow_ratio"
+            || opt_key == "support_flow_ratio"
+            || opt_key == "support_interface_flow_ratio"
+            || opt_key == "brim_flow_ratio"
+            || opt_key == "filament_flow_ratio"
+            || opt_key == "scarf_joint_flow_ratio"
+            || opt_key == "spiral_starting_flow_ratio"
+            || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else if (
                opt_key == "flush_into_infill"

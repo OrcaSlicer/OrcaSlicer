@@ -172,7 +172,10 @@ const std::string BBL_LICENSE_TAG                   = "License";
 const std::string BBL_REGION_TAG                    = "Region";
 const std::string BBL_MODIFICATION_TAG              = "ModificationDate";
 const std::string BBL_CREATION_DATE_TAG             = "CreationDate";
+// Orca: BBL current version
 const std::string BBL_APPLICATION_TAG               = "Application";
+// OrcaSlicer version tag
+const std::string ORCASLICER_TAG                    = "OrcaSlicer";
 const std::string BBL_MAKERLAB_TAG                  = "MakerLab";
 const std::string BBL_MAKERLAB_VERSION_TAG          = "MakerLabVersion";
 
@@ -313,6 +316,7 @@ static constexpr const char* TRANSFORM_ATTR = "transform";
 // BBS
 static constexpr const char* OFFSET_ATTR = "offset";
 static constexpr const char* PRINTABLE_ATTR = "printable";
+static constexpr const char* AUTO_DROP_ATTR = "auto_drop";
 static constexpr const char* INSTANCESCOUNT_ATTR = "instances_count";
 static constexpr const char* CUSTOM_SUPPORTS_ATTR = "paint_supports";
 static constexpr const char* CUSTOM_FUZZY_SKIN_ATTR  = "paint_fuzzy_skin";
@@ -1030,6 +1034,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string m_origin_file;
         // Semantic version of Orca Slicer, that generated this 3MF.
         boost::optional<Semver> m_bambuslicer_generator_version;
+        // Semantic version from the OrcaSlicer metadata tag (if present).
+        boost::optional<Semver> m_orca_slicer_version;
         unsigned int m_fdm_supports_painting_version = 0;
         unsigned int m_seam_painting_version         = 0;
         unsigned int m_mm_painting_version           = 0;
@@ -1101,7 +1107,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         //BBS: add plate data related logic
         // add backup & restore logic
         bool load_model_from_file(const std::string& filename, Model& model, PlateDataPtrs& plate_data_list, std::vector<Preset*>& project_presets, DynamicPrintConfig& config,
-            ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, Semver& file_version, Import3mfProgressFn proFn = nullptr, BBLProject *project = nullptr, int plate_id = 0);
+            ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, bool* is_orca_3mf, Semver& file_version, Import3mfProgressFn proFn = nullptr, BBLProject *project = nullptr, int plate_id = 0);
         bool get_thumbnail(const std::string &filename, std::string &data);
         bool load_gcode_3mf_from_stream(std::istream & data, Model& model, PlateDataPtrs& plate_data_list, DynamicPrintConfig& config, Semver& file_version);
         unsigned int version() const { return m_version; }
@@ -1204,7 +1210,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _handle_start_text_configuration(const char** attributes, unsigned int num_attributes);
         bool _handle_start_shape_configuration(const char **attributes, unsigned int num_attributes);
 
-        bool _create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, unsigned int recur_counter);
+        bool _create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, const bool auto_drop, unsigned int recur_counter);
 
         void _apply_transform(ModelInstance& instance, const Transform3d& transform);
 
@@ -1309,7 +1315,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     //BBS: add plate data related logic
         // add backup & restore logic
     bool _BBS_3MF_Importer::load_model_from_file(const std::string& filename, Model& model, PlateDataPtrs& plate_data_list, std::vector<Preset*>& project_presets, DynamicPrintConfig& config,
-        ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, Semver& file_version, Import3mfProgressFn proFn, BBLProject *project, int plate_id)
+        ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, bool* is_orca_3mf, Semver& file_version, Import3mfProgressFn proFn, BBLProject *project, int plate_id)
     {
         m_version = 0;
         m_fdm_supports_painting_version = 0;
@@ -1365,8 +1371,18 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (is_bbl_3mf) {
             *is_bbl_3mf = m_is_bbl_3mf;
         }
-        if (m_bambuslicer_generator_version)
-            file_version = *m_bambuslicer_generator_version;
+        // If the OrcaSlicer tag is present, use it as file_version (ignoring the Bambu Application version).
+        // Otherwise fall back to the version parsed from the Application tag.
+        if (m_orca_slicer_version) {
+            file_version = *m_orca_slicer_version;
+            if (is_orca_3mf)
+                *is_orca_3mf = true;
+        } else {
+            if (m_bambuslicer_generator_version)
+                file_version = *m_bambuslicer_generator_version;
+            if (is_orca_3mf)
+                *is_orca_3mf = false;
+        }
         // save for restore
         if (result && m_load_aux && !m_load_restore) {
             save_string_file(model.get_backup_path() + "/origin.txt", filename);
@@ -3766,8 +3782,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string path = bbs_get_attribute_value_string(attributes, num_attributes, PPATH_ATTR);
         Transform3d transform = bbs_get_transform_from_3mf_specs_string(bbs_get_attribute_value_string(attributes, num_attributes, TRANSFORM_ATTR));
         int printable = bbs_get_attribute_value_bool(attributes, num_attributes, PRINTABLE_ATTR);
+        int auto_drop = bbs_get_attribute_value_bool(attributes, num_attributes, AUTO_DROP_ATTR);
 
-        return !m_load_model || _create_object_instance(path, object_id, transform, printable, 1);
+        return !m_load_model || _create_object_instance(path, object_id, transform, printable, auto_drop, 1);
     }
 
     bool _BBS_3MF_Importer::_handle_end_item()
@@ -3815,6 +3832,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else if (boost::starts_with(m_curr_characters, "OrcaSlicer-")) {
                 m_is_bbl_3mf = true;
                 m_bambuslicer_generator_version = Semver::parse(m_curr_characters.substr(11));
+            }
+        } else if (m_curr_metadata_name == ORCASLICER_TAG) {
+            // OrcaSlicer version tag (written from OrcaSlicer 2.3.2 onwards)
+            m_orca_slicer_version = Semver::parse(m_curr_characters);
+            if (m_orca_slicer_version) {
+                m_is_bbl_3mf = true;
             }
         //TODO: currently use version 0, no need to load&&save this string
         /*} else if (m_curr_metadata_name == BBS_FDM_SUPPORTS_PAINTING_VERSION) {
@@ -3989,7 +4012,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return true;
     }
 
-    bool _BBS_3MF_Importer::_create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, unsigned int recur_counter)
+    bool _BBS_3MF_Importer::_create_object_instance(std::string const & path, int object_id, const Transform3d& transform, const bool printable, const bool auto_drop, unsigned int recur_counter)
     {
         static const unsigned int MAX_RECURSIONS = 10;
 
@@ -4026,6 +4049,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return false;
             }
             instance->printable = printable;
+            instance->auto_drop = auto_drop;    
 
             m_instances.emplace_back(instance, transform);
 
@@ -4058,6 +4082,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return false;
             }
             instance->printable = printable;
+            instance->auto_drop = auto_drop;    
 
             m_instances.emplace_back(instance, transform);
         }
@@ -5614,12 +5639,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             unsigned int id;
             Transform3d transform;
             bool printable;
+            bool auto_drop;
 
-            BuildItem(std::string const & path, unsigned int id, const Transform3d& transform, const bool printable)
+            BuildItem(std::string const & path, unsigned int id, const Transform3d& transform, const bool printable, const bool auto_drop)
                 : path(path)
                 , id(id)
                 , transform(transform)
                 , printable(printable)
+                , auto_drop(auto_drop)
             {
             }
         };
@@ -6652,8 +6679,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 // Orca: PRIVACY: do not store creation & modification date in 3mf
                 metadata_item_map[BBL_CREATION_DATE_TAG] = "";
                 metadata_item_map[BBL_MODIFICATION_TAG]  = "";
-                //SoftFever: write BambuStudio tag to keep it compatible 
-                metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SoftFever_VERSION).str();
+                // Orca: Write the BambuStudio compatibility version string using SLIC3R_VERSION
+                metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SLIC3R_VERSION).str();
             }
             metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
@@ -6678,6 +6705,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 BOOST_LOG_TRIVIAL(info) << "bbs_3mf: save key= " << item.first << ", value = " << item.second;
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
+                if (item.first == BBL_APPLICATION_TAG) {
+                    stream << " <" << METADATA_TAG << " name=\"" << ORCASLICER_TAG << "\">"
+                           << xml_escape(SoftFever_VERSION) << "</" << METADATA_TAG << ">\n";
+                }
             }
 
             stream << " <" << RESOURCES_TAG << ">\n";
@@ -6784,7 +6815,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     Transform3d t = instance->get_matrix();
                     // instance_id is just a 1 indexed index in build_items.
                     //assert(m_skip_static || curr_id == build_items.size() + 1);
-                    build_items.emplace_back("", object_it->second.object_id, t, instance->printable);
+
+                    build_items.emplace_back("", object_it->second.object_id, t, instance->printable, instance->auto_drop);
                     count++;
                 }
 
@@ -7220,7 +7252,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "\" " << PPATH_ATTR << "=\"" << xml_escape(item.path);
             stream << "\" " << TRANSFORM_ATTR << "=\"";
             add_transformation(stream, item.transform);
-            stream << "\" " << PRINTABLE_ATTR << "=\"" << item.printable << "\"/>\n";
+            stream << "\" " << PRINTABLE_ATTR << "=\"" << item.printable;
+            stream << "\" " << AUTO_DROP_ATTR << "=\"" << item.auto_drop << "\"/>\n";
         }
 
         stream << " </" << BUILD_TAG << ">\n";
@@ -7535,7 +7568,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     {
         const std::string& temp_path = model.get_backup_path();
         std::string temp_file = temp_path + std::string("/") + "_temp_1.config";
-        config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SoftFever_VERSION));
+        config.save_to_json(temp_file, std::string("project_settings"), std::string("project"), std::string(SLIC3R_VERSION));
         return _add_file_to_archive(archive, BBS_PROJECT_CONFIG_FILE, temp_file);
     }
 
@@ -7930,7 +7963,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         // save slice header for debug
         stream << "  <" << SLICE_HEADER_TAG << ">\n";
         stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Type"    << "\" " << VALUE_ATTR << "=\"" << "slicer" << "\"/>\n";
-        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Version" << "\" " << VALUE_ATTR << "=\"" << convert_to_full_version(SoftFever_VERSION) << "\"/>\n";
+        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "X-BBL-Client-Version" << "\" " << VALUE_ATTR << "=\"" << convert_to_full_version(SLIC3R_VERSION) << "\"/>\n";
+        stream << "    <" << SLICE_HEADER_ITEM_TAG << " " << KEY_ATTR << "=\"" << "OrcaSlicer-Version" << "\" " << VALUE_ATTR << "=\"" << SoftFever_VERSION << "\"/>\n";
         stream << "  </" << SLICE_HEADER_TAG << ">\n";
 
         for (unsigned int i = 0; i < (unsigned int)plate_data_list.size(); ++i)
@@ -8626,7 +8660,7 @@ private:
 
 //BBS: add plate data list related logic
 bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, PlateDataPtrs* plate_data_list, std::vector<Preset*>* project_presets,
-                    bool* is_bbl_3mf, Semver* file_version, Import3mfProgressFn proFn, LoadStrategy strategy, BBLProject *project, int plate_id)
+                    bool* is_bbl_3mf, bool* is_orca_3mf, Semver* file_version, Import3mfProgressFn proFn, LoadStrategy strategy, BBLProject *project, int plate_id)
 {
     if (path == nullptr || config == nullptr || model == nullptr)
         return false;
@@ -8634,7 +8668,7 @@ bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstituti
     // All import should use "C" locales for number formatting.
     CNumericLocalesSetter locales_setter;
     _BBS_3MF_Importer importer;
-    bool res = importer.load_model_from_file(path, *model, *plate_data_list, *project_presets, *config, *config_substitutions, strategy, is_bbl_3mf, *file_version, proFn, project, plate_id);
+    bool res = importer.load_model_from_file(path, *model, *plate_data_list, *project_presets, *config, *config_substitutions, strategy, is_bbl_3mf, is_orca_3mf, *file_version, proFn, project, plate_id);
     importer.log_errors();
     //BBS: remove legacy project logic currently
     //handle_legacy_project_loaded(importer.version(), *config);

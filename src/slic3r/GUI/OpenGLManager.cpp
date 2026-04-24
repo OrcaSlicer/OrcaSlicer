@@ -7,7 +7,7 @@
 
 #include "libslic3r/Platform.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -22,16 +22,11 @@
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
 
-// Verify GLEW and wxWidgets use the same OpenGL backend (EGL vs GLX).
-// A mismatch causes rendering failures: GLEW's function loading must match
-// the context type created by wxWidgets.
-#if defined(__linux__)
-    #if defined(GLEW_EGL) && (!defined(wxUSE_GLCANVAS_EGL) || !wxUSE_GLCANVAS_EGL)
-        #error "OpenGL backend mismatch: GLEW has EGL support enabled but wxWidgets does not. Ensure GLEW_USE_EGL and wxUSE_GLCANVAS_EGL are both ON or both OFF."
-    #endif
-    #if !defined(GLEW_EGL) && defined(wxUSE_GLCANVAS_EGL) && wxUSE_GLCANVAS_EGL
-        #error "OpenGL backend mismatch: wxWidgets has EGL support enabled but GLEW does not. Ensure GLEW_USE_EGL and wxUSE_GLCANVAS_EGL are both ON or both OFF."
-    #endif
+#ifdef __WXGTK__
+#include "LinuxDisplayBackend.hpp"
+#ifdef wxHAS_EGL
+#include <EGL/egl.h>
+#endif
 #endif
 
 namespace Slic3r {
@@ -121,12 +116,12 @@ void OpenGLManager::GLInfo::detect() const
     if (Slic3r::total_physical_memory() / (1024 * 1024 * 1024) < 6)
         *max_tex_size /= 2;
 
-    if (GLEW_EXT_texture_filter_anisotropic) {
+    if (GLAD_GL_EXT_texture_filter_anisotropic) {
         float* max_anisotropy = const_cast<float*>(&m_max_anisotropy);
         glsafe(::glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy));
     }
 
-    if (!GLEW_ARB_compatibility)
+    if (!GLAD_GL_ARB_compatibility)
         *const_cast<bool*>(&m_core_profile) = true;
 
     *const_cast<bool*>(&m_detected) = true;
@@ -245,24 +240,36 @@ OpenGLManager::~OpenGLManager()
 bool OpenGLManager::init_gl(bool popup_error)
 {
     if (!m_gl_initialized) {
-        glewExperimental = true;
-        GLenum result = glewInit();
-        if (result != GLEW_OK) {
-            BOOST_LOG_TRIVIAL(error) << "Unable to init glew library, Error: " << glewGetErrorString(result);
+        int version = 0;
+#if defined(__WXGTK__) && defined(wxHAS_EGL)
+        if (is_running_on_wayland()) {
+            // On EGL/Wayland, gladLoaderLoadGL() dlopen's libGL.so then
+            // immediately dlclose's it. Since nothing else holds libGL.so
+            // open (unlike GLX where the context keeps it loaded), the
+            // library gets unmapped and all function pointers become invalid.
+            // Use eglGetProcAddress directly to avoid this.
+            version = gladLoadGL((GLADloadfunc)eglGetProcAddress);
+        } else
+#endif
+        {
+            version = gladLoaderLoadGL();
+        }
+        if (version == 0) {
+            BOOST_LOG_TRIVIAL(error) << "Unable to init GLAD OpenGL loader";
             return false;
         }
-	//BOOST_LOG_TRIVIAL(info) << "glewInit Success."<< std::endl;
+        BOOST_LOG_TRIVIAL(info) << "GLAD loaded OpenGL " << GLAD_VERSION_MAJOR(version) << "." << GLAD_VERSION_MINOR(version);
         m_gl_initialized = true;
-        if (GLEW_EXT_texture_compression_s3tc)
+        if (GLAD_GL_EXT_texture_compression_s3tc)
             s_compressed_textures_supported = true;
         else
             s_compressed_textures_supported = false;
 
-        if (GLEW_ARB_framebuffer_object) {
+        if (GLAD_GL_ARB_framebuffer_object) {
             s_framebuffers_type = EFramebufferType::Arb;
             BOOST_LOG_TRIVIAL(info) << "Found Framebuffer Type ARB."<< std::endl;
         }
-        else if (GLEW_EXT_framebuffer_object) {
+        else if (GLAD_GL_EXT_framebuffer_object) {
             BOOST_LOG_TRIVIAL(info) << "Found Framebuffer Type Ext."<< std::endl;
             s_framebuffers_type = EFramebufferType::Ext;
         }
@@ -438,6 +445,20 @@ void OpenGLManager::detect_multisample(int* attribList)
 {
     int wxVersion = wxMAJOR_VERSION * 10000 + wxMINOR_VERSION * 100 + wxRELEASE_NUMBER;
     bool enable_multisample = wxVersion >= 30003;
+
+#if defined(__WXGTK__)
+    // On Wayland, wxGLCanvas::IsDisplaySupported() requires the EGL backend.
+    // If wxWidgets was built without EGL, the GLX backend will crash trying
+    // to access a non-existent X11 display. Disable multisample in that case.
+    if (is_running_on_wayland()) {
+#if !defined(wxHAS_EGL) || !wxHAS_EGL
+        BOOST_LOG_TRIVIAL(warning) << "Wayland without EGL: disabling multisample detection";
+        s_multisample = EMultisampleState::Disabled;
+        return;
+#endif
+    }
+#endif
+
     s_multisample =
         enable_multisample &&
         // Disable multi-sampling on ChromeOS, as the OpenGL virtualization swaps Red/Blue channels with multi-sampling enabled,

@@ -4,6 +4,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MeasureUtils.hpp"
@@ -12,7 +13,7 @@
 
 #include <numeric>
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <tbb/parallel_for.h>
 
@@ -444,15 +445,14 @@ bool GLGizmoMeasure::on_init()
 {
     m_shortcut_key = WXK_CONTROL_U;
 
-    const wxString shift = _L("Shift+");
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["feature_selection"]         = _L("Select feature");
-    m_desc["point_selection_caption"]   = shift + _L("Left mouse button");
-    m_desc["point_selection"]           = _L("Select point");
-    m_desc["reset_caption"]             = _L("Delete");
-    m_desc["reset"]                     = _L("Restart selection");
-    m_desc["unselect_caption"]          = _L("Esc");
-    m_desc["unselect"]                  = _L("Cancel a feature until exit");
+    m_shortcuts = {
+        {_L("Left mouse button"),           _L("Select")},
+        {shift + _L("Left mouse button"),   _L("Select point")},
+        {_L("Delete"),                      _L("Restart selection")},
+        {_L("Esc"),                         _L("Cancel a feature until exit")},
+    };
 
     return true;
 }
@@ -2177,16 +2177,8 @@ void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit
     show_distance_xyz_ui();
     ImGui::Separator();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float caption_max    = 0.f;
-    float total_text_max = 0.f;
-    for (const auto &t : std::array<std::string, 3>{"point_selection", "reset", "unselect"}) {
-        caption_max    = std::max(caption_max, m_imgui->calc_text_size(m_desc[t + "_caption"]).x);
-        total_text_max = std::max(total_text_max, m_imgui->calc_text_size(m_desc[t]).x);
-    }
-    show_tooltip_information(caption_max, x, get_cur_y);
-    ImGui::PopStyleVar(1);
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
+
     if (last_feature != m_curr_feature || last_mode != m_mode || last_selected_features != m_selected_features) {
         // the dialog may have changed its size, ask for an extra frame to render it properly
         last_feature = m_curr_feature;
@@ -2237,38 +2229,6 @@ void GLGizmoMeasure::update_measurement_result()
     }
     else if (!m_selected_features.second.feature.has_value() && m_selected_features.first.feature->get_type() == Measure::SurfaceFeatureType::Circle)
         m_measurement_result = Measure::get_measurement(*m_selected_features.first.feature, Measure::SurfaceFeature(std::get<0>(m_selected_features.first.feature->get_circle())));
-}
-
-void GLGizmoMeasure::show_tooltip_information(float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 }); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 3>{"point_selection", "reset", "unselect"})
-            draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
 }
 
 void GLGizmoMeasure::reset_all_pick()
