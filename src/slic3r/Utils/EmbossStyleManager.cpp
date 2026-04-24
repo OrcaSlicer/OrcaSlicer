@@ -1,6 +1,6 @@
 #include "EmbossStyleManager.hpp"
 #include <optional>
-#include <GL/glew.h> // Imgui texture
+#include <glad/gl.h> // Imgui texture
 #include <imgui/imgui_internal.h> // ImTextCharFromUtf8
 #include <libslic3r/AppConfig.hpp>
 #include <libslic3r/Utils.hpp> // ScopeGuard
@@ -401,7 +401,7 @@ void StyleManager::init_style_images(const Vec2i32 &max_size,
     auto mf = wxGetApp().mainframe;
     // dot per inch for monitor
     int dpi = get_dpi_for_window(mf);
-    // pixel per milimeter
+    // pixel per millimeter
     double ppm = dpi / GizmoObjectManipulation::in_to_mm;
 
     auto &worker = wxGetApp().plater()->get_ui_job_worker();

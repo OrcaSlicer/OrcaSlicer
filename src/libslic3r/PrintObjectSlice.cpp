@@ -1212,7 +1212,7 @@ void PrintObject::slice_volumes()
         apply_fuzzy_skin_segmentation(*this, [print]() { print->throw_if_canceled(); });
     }
 
-    InterlockingGenerator::generate_interlocking_structure(this);
+    InterlockingGenerator::generate_interlocking_structure(this, [print]() { print->throw_if_canceled(); });
     m_print->throw_if_canceled();
 
     BOOST_LOG_TRIVIAL(debug) << "Slicing volumes - make_slices in parallel - begin";

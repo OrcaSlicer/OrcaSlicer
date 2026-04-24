@@ -3,13 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <style>
-        html, body {
-          margin: 0px;
-          padding: 0px;
-          height: 100%;
-          background: #f5f5f5;
-          font-family: sans-serif;
-        }
+      * {
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      html, body {
+        margin: 0px;
+        padding: 0px;
+        height: 100%;
+        background: #f5f5f5;
+        font-family: sans-serif;
+        overscroll-behavior: none;
+      }
+      
+      body {
+          position: fixed;
+          inset: 0;
+      }
 
       .container {
         background: #fff;
@@ -408,6 +419,15 @@
         window.wipingDialog.postMessage(data);
       });
 
+      // Escape should close the dialog even when focus is inside web content.
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          quit();
+        }
+      }, true);
+
       function buildText(data) {
         document.getElementById('volume_desp_panel').innerText = data.volume_desp_panel
         document.getElementById('volume_range_panel').innerText = data.volume_range_panel
@@ -432,10 +452,11 @@
         return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
       }
 
-
       function updateVolumeRange(min_volume,max_volume){
+        // Orca: "Typical" guidance only unlinked from upper bound in the slicer.
+        const TYPICAL_MAX_FLUSH_VOLUME = 900;
         const panel = document.getElementById('volume_range_panel');
-        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${max_volume}]`);
+        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${TYPICAL_MAX_FLUSH_VOLUME}]`);
       }
 
       function updateMultiplierRange(min_multiplier,max_multiplier){

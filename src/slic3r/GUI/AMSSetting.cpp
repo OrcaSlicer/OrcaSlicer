@@ -618,7 +618,7 @@ void AMSSettingTypePanel::CreateGui()
     h_sizer->AddStretchSpacer();
     h_sizer->Add(m_type_combobox, 0, wxEXPAND);
     h_sizer->Add(m_switching_icon, 0, wxALIGN_CENTER);
-    h_sizer->Add(m_switching_tips, 0, wxEXPAND | wxLEFT | wxALIGN_CENTER, FromDIP(8));
+    h_sizer->Add(m_switching_tips, 0, wxEXPAND | wxLEFT, FromDIP(8));
     SetSizer(h_sizer);
     Layout();
     Fit();
@@ -721,7 +721,7 @@ void AMSSettingTypePanel::OnAmsTypeChanged(wxCommandEvent& event)
             return;
         }
 
-        MessageDialog dlg(this, _L("AMS type switching needs firmware update, taking about 30s. Switch now ?"), SLIC3R_APP_NAME + _L("Info"), wxOK | wxCANCEL | wxICON_INFORMATION);
+        MessageDialog dlg(this, _L("AMS type switching needs firmware update, taking about 30s. Switch now?"), SLIC3R_APP_NAME + _L("Info"), wxOK | wxCANCEL | wxICON_INFORMATION);
         dlg.SetButtonLabel(wxID_OK, _L("Confirm"));
         int rtn = dlg.ShowModal();
         if (rtn != wxID_OK) {
@@ -754,7 +754,7 @@ void AMSSettingArrangeAMSOrder::CreateGui()
     m_btn_rearrange->Bind(wxEVT_BUTTON, &AMSSettingArrangeAMSOrder::OnBtnRearrangeClicked, this);
     h_sizer->Add(title, 0);
     h_sizer->AddStretchSpacer();
-    h_sizer->Add(m_btn_rearrange, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    h_sizer->Add(m_btn_rearrange, 0, wxEXPAND);
     SetSizer(h_sizer);
     Layout();
     Fit();
