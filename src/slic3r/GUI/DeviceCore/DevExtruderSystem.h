@@ -6,6 +6,7 @@
 #include <wx/string.h>
 
 #include "DevDefs.h"
+#include <cmath>
 
 namespace Slic3r
 {
@@ -151,7 +152,7 @@ public:
         if (diameter == 0.0f) {
             return true;
         } else {
-            return abs(diameter - target_diameter) < 1e-3;
+            return std::fabs(diameter - target_diameter) < 1e-3;
         }
     }
 
