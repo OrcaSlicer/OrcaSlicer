@@ -76,6 +76,9 @@ public:
     void     SetItemBitmap(unsigned int n, wxBitmap const &bitmap);
     bool     is_drop_down(){return drop_down;}
     void     DeleteOneItem(unsigned int pos) { DoDeleteOneItem(pos); }
+
+    void ForceDropdownOpen();
+
 protected:
     virtual int  DoInsertItems(const wxArrayStringsAdapter &items,
                                unsigned int                 pos,

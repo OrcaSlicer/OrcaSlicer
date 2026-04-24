@@ -236,7 +236,37 @@ void BBLTopbar::Init(wxFrame* parent)
 
     wxInitAllImageHandlers();
 
-    this->AddSpacer(5);
+    bool window_btns_on_left = false;
+
+#ifdef __linux__
+    window_btns_on_left = wxGetApp().app_config->get("window_buttons_on_left")  == "true";
+
+    if(window_btns_on_left){
+        wxBitmap close_bitmap = create_scaled_bitmap("topbar_close", nullptr, TOPBAR_ICON_SIZE);
+        wxAuiToolBarItem* close_btn = this->AddTool(wxID_CLOSE_FRAME, "", close_bitmap);
+
+        this->AddSpacer(FromDIP(4));
+
+        maximize_bitmap = create_scaled_bitmap("topbar_max", nullptr, TOPBAR_ICON_SIZE);
+        window_bitmap = create_scaled_bitmap("topbar_win", nullptr, TOPBAR_ICON_SIZE);
+        if (m_frame->IsMaximized()) {
+            maximize_btn = this->AddTool(wxID_MAXIMIZE_FRAME, "", window_bitmap);
+        }
+        else {
+            maximize_btn = this->AddTool(wxID_MAXIMIZE_FRAME, "", maximize_bitmap);
+        }
+
+        this->AddSpacer(FromDIP(4));
+
+        wxBitmap iconize_bitmap = create_scaled_bitmap("topbar_min", nullptr, TOPBAR_ICON_SIZE);
+        wxAuiToolBarItem* iconize_btn = this->AddTool(wxID_ICONIZE_FRAME, "", iconize_bitmap);
+
+        this->AddSpacer(15);
+    }
+#endif
+
+    if(!window_btns_on_left)
+        this->AddSpacer(5);
 
     /*wxBitmap logo_bitmap = create_scaled_bitmap("topbar_logo", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* logo_item = this->AddTool(ID_LOGO, "", logo_bitmap);
@@ -312,6 +342,7 @@ void BBLTopbar::Init(wxFrame* parent)
     //this->AddSeparator();
     //this->AddSpacer(FromDIP(4));
 
+    if(!window_btns_on_left){
     wxBitmap iconize_bitmap = create_scaled_bitmap("topbar_min", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* iconize_btn = this->AddTool(wxID_ICONIZE_FRAME, "", iconize_bitmap);
 
@@ -330,6 +361,7 @@ void BBLTopbar::Init(wxFrame* parent)
 
     wxBitmap close_bitmap = create_scaled_bitmap("topbar_close", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* close_btn = this->AddTool(wxID_CLOSE_FRAME, "", close_bitmap);
+    }
 
     Realize();
     // m_toolbar_h = this->GetSize().GetHeight();

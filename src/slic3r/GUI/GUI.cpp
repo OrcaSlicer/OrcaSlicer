@@ -78,6 +78,11 @@ void break_to_debugger()
     #endif /* _WIN32 */
 }
 
+const std::string& shortkey_shift_prefix()
+{
+    return _u8L("Shift+");
+}
+
 const std::string& shortkey_ctrl_prefix()
 {
 	static const std::string str =
