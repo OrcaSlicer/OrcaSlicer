@@ -36,17 +36,11 @@
 #include <libslic3r/Utils.hpp>
 #include "CreatePresetsDialog.hpp"
 
-#include <mutex>
-
-#include <chrono>
-
 using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
 
 json m_ProfileJson;
-std::mutex profile_json_mutex;
-std::mutex orca_fila_mutex;
 
 static wxString update_custom_filaments()
 {
@@ -1183,6 +1177,7 @@ int GuideFrame::LoadProfileData()
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", error: " << e.what() << std::endl;
     }
 
+    filament_info_cache.clear();
     return 0;
 }
 
