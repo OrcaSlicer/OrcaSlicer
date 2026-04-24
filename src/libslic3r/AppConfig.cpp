@@ -523,6 +523,11 @@ void AppConfig::set_defaults()
         set_bool("installed_networking", false);
     }
 
+#ifdef __linux__
+    if (get("window_buttons_on_left").empty())
+        set_bool("window_buttons_on_left", false);
+#endif
+
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");

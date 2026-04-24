@@ -3082,6 +3082,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
     // Use extended object bounding box for consistent pattern across layers
     BoundingBox bb = this->extended_object_bounding_box();
+    const size_t infill_layer_id = (surface->thickness_layers > 0) ? this->layer_id / surface->thickness_layers : this->layer_id;
 
     switch (Pattern_type) {
     case 0: // Grid / Trapezoidal
@@ -3144,8 +3145,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
             flip_vertical = !flip_vertical;
         }
 
-        // transpose points for odd layers
-        if (layer_id % 2 == 1) {
+        // transpose points for odd infill layers (taking infill combination into account)
+        if (infill_layer_id % 2 == 1) {
             for (Polyline& pl : polylines) {
                 for (Point& p : pl.points) {
                     std::swap(p.x(), p.y());
@@ -3174,7 +3175,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
         //  Align bounding box to the grid
         bb.merge(align_to_grid(bb.center(), Point(period,h)));
-        const int    layer_mod = layer_id % 3;
+        const size_t layer_mod = infill_layer_id % 3;
         const double angle     = layer_mod * 2.0 * M_PI / 3.0;
 
         const Point rotation_center = bb.center();

@@ -76,5 +76,6 @@
 	"standby_temperature_delta": "-40",
 	"preheat_time": "30",
 	"preheat_steps": "1",
+	"sparse_infill_pattern": "gyroid",
 	"compatible_printers": []
 }

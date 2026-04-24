@@ -60,5 +60,9 @@
 	"thumbnails": [
 		"160x120"
 	],
-	"auxiliary_fan": "0"
+	"auxiliary_fan": "0",
+	"machine_max_junction_deviation": [
+		"0.02",
+		"0"
+	]
 }

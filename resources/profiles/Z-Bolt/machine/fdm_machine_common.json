@@ -113,7 +113,8 @@
 	],
 	"z_lift_type": "NormalLift",
 	"default_print_profile": "",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n_BEFORE_LAYER_CHANGE",
+	"layer_change_gcode": "_AFTER_LAYER_CHANGE Z={layer_z}",
 	"machine_start_gcode": "",
 	"machine_end_gcode": ""
 }

@@ -22,11 +22,14 @@
 		"0.08"
 	],
 	"retraction_length": [
-		"0.8"
+		"0.6"
 	],
 	"retraction_minimum_travel": [
 		"1"
 	],
 	"change_filament_gcode": "G91\nG1 Z{z_hop[0]} F1000\nG90",
-	"machine_start_gcode": "START_PRINT TOOL_NR=[initial_tool] T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[first_layer_temperature[initial_tool]] T_CHAMBER=[chamber_temperature] {if is_extruder_used[0]}T0_TEMP={first_layer_temperature[0]}{endif} {if is_extruder_used[1]}T1_TEMP={first_layer_temperature[1]}{endif}"
+	"machine_tool_change_time": "1",
+	"machine_start_gcode": "START_PRINT TOOL_NR=[initial_tool] T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[first_layer_temperature[initial_tool]] T_CHAMBER=[chamber_temperature] {if is_extruder_used[0]}T0_TEMP={first_layer_temperature[0]}{endif} {if is_extruder_used[1]}T1_TEMP={first_layer_temperature[1]}{endif}",
+	"thumbnails": "144x144/PNG,900x900/PNG",
+	"thumbnails_format": "PNG"
 }

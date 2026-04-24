@@ -23,23 +23,23 @@
 		"0x802"
 	],
 	"default_filament_profile": [
-		"Z-Bolt Generic PLA"
+		"Generic PLA @Z-Bolt"
 	],
 	"default_print_profile": "0.20mm Standard @Z-Bolt S800",
 	"extruder_colour": [
 		"#018001"
 	],
 	"machine_max_acceleration_e": [
-		"5000",
-		"5000"
+		"1500",
+		"1500"
 	],
 	"machine_max_acceleration_extruding": [
-		"20000",
-		"20000"
+		"2500",
+		"2500"
 	],
 	"machine_max_acceleration_retracting": [
-		"5000",
-		"5000"
+		"1500",
+		"1500"
 	],
 	"machine_max_acceleration_travel": [
 		"9000",
@@ -54,8 +54,8 @@
 		"20000"
 	],
 	"machine_max_acceleration_z": [
-		"500",
-		"200"
+		"12",
+		"12"
 	],
 	"machine_max_speed_e": [
 		"30",
@@ -113,7 +113,7 @@
 		"0%"
 	],
 	"retraction_length": [
-		"1.4"
+		"0.6"
 	],
 	"retract_length_toolchange": [
 		"2"
@@ -128,9 +128,12 @@
 		"35"
 	],
 	"nozzle_type": "hardened_steel",
+	"machine_tool_change_time": "1",
 	"support_chamber_temp_control": "1",
 	"change_filament_gcode": "G91\nG1 Z{z_hop[0]} F1000\nG90",
 	"machine_start_gcode": "START_PRINT TOOL_NR=[initial_tool] T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[first_layer_temperature[initial_tool]] T_CHAMBER=[chamber_temperature] {if is_extruder_used[0]}T0_TEMP={first_layer_temperature[0]}{endif} {if is_extruder_used[1]}T1_TEMP={first_layer_temperature[1]}{endif}",
 	"machine_end_gcode": "END_PRINT T_BED=[bed_temperature] T_CHAMBER=[chamber_temperature] COOLDOWN_TIME=120",
-	"machine_pause_gcode": "PAUSE"
+	"machine_pause_gcode": "PAUSE",
+	"thumbnails": "144x144/PNG,900x900/PNG",
+	"thumbnails_format": "PNG"
 }
