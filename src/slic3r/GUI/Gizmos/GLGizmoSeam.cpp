@@ -10,6 +10,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include <glad/gl.h>
 
@@ -29,27 +30,28 @@ bool GLGizmoSeam::on_init()
 {
     m_shortcut_key = WXK_CONTROL_P;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
-    const wxString shift = _L("Shift+");
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
     m_desc["clipping_of_view"] = _L("Section view");
     m_desc["reset_direction"]  = _L("Reset direction");
-    m_desc["cursor_size_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["cursor_size"]      = _L("Brush size");
-    m_desc["cursor_type"]      = _L("Brush shape");
-    m_desc["enforce_caption"]  = _L("Left mouse button");
+    m_desc["cursor_size"]      = _L("Pen size");
+    m_desc["tool_type"]        = _L("Tool type");
     m_desc["enforce"]          = _L("Enforce seam");
-    m_desc["block_caption"]    = _L("Right mouse button");
     m_desc["block"]            = _L("Block seam");
-    m_desc["remove_caption"]   = shift + _L("Left mouse button");
     m_desc["remove"]           = _L("Erase");
     m_desc["remove_all"]       = _L("Erase all painting");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");
+
+    m_shortcuts = {
+        {_L("Left mouse button"),           m_desc["enforce"]},
+        {_L("Right mouse button"),          m_desc["block"]},
+        {shift + _L("Left mouse button"),   m_desc["remove"]},
+        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]},
+        {alt + _L("Mouse wheel"),           m_desc["clipping_of_view"]}
+    };
 
     return true;
 }
@@ -101,36 +103,6 @@ bool GLGizmoSeam::on_key_down_select_tool_type(int keyCode) {
     return true;
 }
 
-void GLGizmoSeam::show_tooltip_information(float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 35.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 5>{"enforce", "block", "remove", "cursor_size", "clipping_of_view"}) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
 
 void GLGizmoSeam::tool_changed(wchar_t old_tool, wchar_t new_tool)
 {
@@ -189,7 +161,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
     ImGui::AlignTextToFramePadding();
-    m_imgui->text(m_desc.at("cursor_type"));
+    m_imgui->text(m_desc.at("tool_type"));
     std::array<wchar_t, 2> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
     std::array<wchar_t, 2> icons;
     if (m_is_dark_mode)
@@ -283,8 +255,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(caption_max, x, get_cur_y);
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
 
     float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));

@@ -13,6 +13,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
 
 #include <glad/gl.h>
@@ -88,55 +89,61 @@ bool GLGizmoMmuSegmentation::on_init()
     // BBS
     m_shortcut_key = WXK_CONTROL_N;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
-    const wxString shift = _L("Shift+");
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
-    m_desc["clipping_of_view"]     = _L("Section view");
-    m_desc["reset_direction"]     = _L("Reset direction");
-    m_desc["cursor_size_caption"]  = ctrl + _L("Mouse wheel");
-    m_desc["cursor_size"]          = _L("Pen size");
-    m_desc["cursor_type"]          = _L("Pen shape");
+    m_desc["clipping_of_view"] = _L("Section view");
+    m_desc["reset_direction"]  = _L("Reset direction");
+    m_desc["cursor_size"]      = _L("Pen size");
+    m_desc["cursor_type"]      = _L("Pen shape");
+    m_desc["paint"]            = _L("Paint");
+    m_desc["erase"]            = _L("Erase");
+    m_desc["shortcut_key"]     = _L("Choose filament");
+    m_desc["edge_detection"]   = _L("Edge detection");
+    m_desc["gap_area"]         = _L("Gap area");
+    m_desc["perform"]          = _L("Perform");
+    m_desc["remove_all"]       = _L("Erase all painting");
+    m_desc["circle"]           = _L("Circle");
+    m_desc["sphere"]           = _L("Sphere");
+    m_desc["pointer"]          = _L("Triangles");
+    m_desc["filaments"]        = _L("Filaments");
+    m_desc["tool_type"]        = _L("Tool type");
+    m_desc["tool_brush"]       = _L("Brush");
+    m_desc["tool_smart_fill"]  = _L("Smart fill");
+    m_desc["tool_bucket_fill"] = _L("Bucket fill");
+    m_desc["smart_fill_angle"] = _L("Smart fill angle");
+    m_desc["height_range"]     = _L("Height range");
+    m_desc["toggle_wireframe"] = _L("Toggle Wireframe");
+    m_desc["perform_remap"]    = _L("Remap filaments");
+    m_desc["remap"]            = _L("Remap");
+    m_desc["cancel_remap"]     = _L("Cancel");
 
-    m_desc["paint_caption"]        = _L("Left mouse button");
-    m_desc["paint"]                = _L("Paint");
-    m_desc["erase_caption"]        = shift + _L("Left mouse button");
-    m_desc["erase"]                = _L("Erase");
-    m_desc["shortcut_key_caption"] = _L("Key 1~9");
-    m_desc["shortcut_key"]         = _L("Choose filament");
-    m_desc["edge_detection"]       = _L("Edge detection");
-    m_desc["gap_area_caption"]     = ctrl + _L("Mouse wheel");
-    m_desc["gap_area"]             = _L("Gap area");
-    m_desc["perform"]              = _L("Perform");
+    std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
+    std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
+    std::pair<wxString, wxString> clipping_shortcut         = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
+    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L("Enter"),       m_desc["toggle_wireframe"]};
 
-    m_desc["remove_all"]           = _L("Erase all painting");
-    m_desc["circle"]               = _L("Circle");
-    m_desc["sphere"]               = _L("Sphere");
-    m_desc["pointer"]              = _L("Triangles");
+    m_shortcuts_brush = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        clipping_shortcut,
+        toggle_wireframe_shortcut
+    };
 
-    m_desc["filaments"]            = _L("Filaments");
-    m_desc["tool_type"]            = _L("Tool type");
-    m_desc["tool_brush"]           = _L("Brush");
-    m_desc["tool_smart_fill"]      = _L("Smart fill");
-    m_desc["tool_bucket_fill"]     = _L("Bucket fill");
+    m_shortcuts_bucket_fill = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        clipping_shortcut,
+        toggle_wireframe_shortcut
+    };
 
-    m_desc["smart_fill_angle_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["smart_fill_angle"]     = _L("Smart fill angle");
-
-    m_desc["height_range_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["height_range"]         = _L("Height range");
-
-    //add toggle wire frame hint
-    m_desc["toggle_wireframe_caption"]        = alt + shift + _L("Enter");
-    m_desc["toggle_wireframe"]                = _L("Toggle Wireframe");
-
-    // Filament remapping descriptions
-    m_desc["perform_remap"]                   = _L("Remap filaments");
-    m_desc["remap"]                           = _L("Remap");
-    m_desc["cancel_remap"]                    = _L("Cancel");
+    m_shortcuts_gap_fill = {
+        {ctrl + _L("Mouse wheel"), m_desc["gap_area"]},
+        toggle_wireframe_shortcut
+    };
 
     init_extruders_data();
 
@@ -279,52 +286,22 @@ static void render_extruders_combo(const std::string& label,
     selection_idx = selection_out;
 }
 
-void GLGizmoMmuSegmentation::show_tooltip_information(float caption_max, float x, float y)
+void GLGizmoMmuSegmentation::render_tooltip_button(float x, float y)
 {
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 15.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        std::vector<std::string> tip_items;
+    auto get_shortcuts = [this]() -> std::vector<std::pair<wxString, wxString>> {
         switch (m_tool_type) {
-            case ToolType::BRUSH: 
-                tip_items = {"paint", "erase", "cursor_size", "clipping_of_view", "toggle_wireframe"};
-                break;
-            case ToolType::BUCKET_FILL: 
-                tip_items = {"paint", "erase", "smart_fill_angle", "clipping_of_view", "toggle_wireframe"};
-                break;
-            case ToolType::SMART_FILL:
-                // TODO:
-                break;
-            case ToolType::GAP_FILL:
-                tip_items = {"gap_area", "toggle_wireframe"};
-                break;
-            default:
-                break;
+        case ToolType::BRUSH: return m_shortcuts_brush;
+
+        case ToolType::BUCKET_FILL:
+        case ToolType::SMART_FILL: return m_shortcuts_bucket_fill;
+
+        case ToolType::GAP_FILL: return m_shortcuts_gap_fill;
+
+        default: return {};
         }
-        for (const auto &t : tip_items) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
+    };
+
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, get_shortcuts(), x, y);
 }
 
 void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bottom_limit)
@@ -678,8 +655,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(caption_max, x, get_cur_y);
+    render_tooltip_button(x, y);
 
     float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));

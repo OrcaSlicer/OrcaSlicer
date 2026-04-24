@@ -15,6 +15,7 @@
 #include "slic3r/GUI/Jobs/NotificationProgressIndicator.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include "libslic3r/Geometry.hpp" // to range pi pi
 #include "libslic3r/Timer.hpp" 
@@ -725,6 +726,10 @@ bool GLGizmoEmboss::on_init()
     // NOTE: It has special handling in GLGizmosManager::handle_shortcut
     m_shortcut_key = WXK_CONTROL_T;
 
+    m_shortcuts = {
+        {_L("Drag"),        _L("Position on surface")}
+    };
+
     // initialize text styles
     m_style_manager.init(wxGetApp().app_config);
 
@@ -918,7 +923,7 @@ void GLGizmoEmboss::on_render_input_window(float x, float y, float bottom_limit)
     
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-    draw_window();
+    draw_window(x, y);
 
     GizmoImguiEnd();
 
@@ -1341,7 +1346,7 @@ void GLGizmoEmboss::close()
         mng.open_gizmo(GLGizmosManager::Emboss);
 }
 
-void GLGizmoEmboss::draw_window()
+void GLGizmoEmboss::draw_window(float x, float y)
 {
 #ifdef ALLOW_DEBUG_MODE
     if (ImGui::Button("re-process")) process();
@@ -1393,6 +1398,10 @@ void GLGizmoEmboss::draw_window()
         ImGui::Separator();
         draw_model_type();
     }
+
+    ImGui::Separator();
+
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
        
 #ifdef SHOW_WX_FONT_DESCRIPTOR
     if (is_selected_style)

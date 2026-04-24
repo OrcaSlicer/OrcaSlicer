@@ -15,6 +15,7 @@
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include <boost/algorithm/string.hpp>
 
@@ -55,24 +56,22 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
     m_new_unit_string = m_imperial_units ? L("in") : L("mm");
 
-    const wxString shift                   = _L("Shift+");
+    const wxString shift                   = GUI::shortkey_shift_prefix();
     const wxString alt                     = GUI::shortkey_alt_prefix();
     const wxString ctrl                    = GUI::shortkey_ctrl_prefix();
 
-    m_desc_move["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_move["part_selection"]         = _L("Part selection");
-    m_desc_move["snap_step_caption"] = shift + _L("Left mouse button");
-    m_desc_move["snap_step"]        = _L("Fixed step drag");
+    m_shortcuts_move = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")}
+    };
 
-    m_desc_rotate["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_rotate["part_selection"]         = _L("Part selection");
+    m_shortcuts_rotate = {
+        {alt + _L("Left mouse button"),     _L("Part selection")}};
 
-    m_desc_scale["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_scale["part_selection"]         = _L("Part selection");
-    m_desc_scale["snap_step_caption"]      = shift + _L("Left mouse button");
-    m_desc_scale["snap_step"]              = _L("Fixed step drag");
-    m_desc_scale["single_sided_caption"] = ctrl + _L("Left mouse button");
-    m_desc_scale["single_sided"]         = _L("Single sided scaling");
+    m_shortcuts_scale = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")}};
 }
 
 void GizmoObjectManipulation::UpdateAndShow(const bool show)
@@ -719,102 +718,6 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper, flo
      return result;
 }
 
-void GizmoObjectManipulation::show_move_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper,& caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 2>{"part_selection", "snap_step"})
-            draw_text_with_caption(m_desc_move.at(t + "_caption") + ": ", m_desc_move.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
-void GizmoObjectManipulation::show_rotate_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper, &caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 1>{"part_selection"})
-            draw_text_with_caption(m_desc_rotate.at(t + "_caption") + ": ", m_desc_rotate.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
-void GizmoObjectManipulation::show_scale_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper, &caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 3>{"part_selection", "snap_step", "single_sided"})
-            draw_text_with_caption(m_desc_scale.at(t + "_caption") + ": ", m_desc_scale.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
 void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &value) {
     m_init_rotation_scale_tran = value.get_matrix_no_offset();
     m_init_rotation      = value.get_rotation();
@@ -957,14 +860,9 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         }
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
-    float get_cur_y      = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max    = 0.f;
-    float total_text_max = 0.f;
-    for (const auto &t : std::array<std::string, 2>{"part_selection", "snap_step"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_move[t + "_caption"]).x);
-        total_text_max = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_move[t]).x);
-    }
-    show_move_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+    
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_move, x, y);
+
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
@@ -1154,14 +1052,8 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (!focued_on_text  && !absolute_focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
 
-    float get_cur_y       = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max = 0.f;
-    float total_text_max  = 0.f;
-    for (const auto &t : std::array<std::string, 1>{"part_selection"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_move[t + "_caption"]).x);
-        total_text_max  = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_move[t]).x);
-    }
-    show_rotate_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_rotate, x, y);
+
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
@@ -1394,14 +1286,9 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
     if (!focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
-    float get_cur_y       = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max = 0.f;
-    float total_text_max  = 0.f;
-    for (const auto &t : std::array<std::string, 3>{"part_selection", "snap_step", "single_sided"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_scale[t + "_caption"]).x);
-        total_text_max  = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_scale[t]).x);
-    }
-    show_scale_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_scale, x, y);
+
     m_last_active_item = current_active_id;
 
     last_scale_input_window_width = ImGui::GetWindowWidth();
