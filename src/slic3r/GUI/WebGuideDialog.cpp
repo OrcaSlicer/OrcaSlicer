@@ -1090,8 +1090,6 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
 
 int GuideFrame::LoadProfileData()
 {
-    const auto t0 = std::chrono::steady_clock::now();
-
     try {
         m_ProfileJson             = json::parse("{}");
         m_ProfileJson["model"]    = json::array();
@@ -1126,39 +1124,41 @@ int GuideFrame::LoadProfileData()
         }
         loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
 
-        auto collect_vendor_files = [&](const boost::filesystem::path &root_dir) {
-            std::vector<std::pair<std::string, std::string>> vendor_files;
-            for (const auto &entry : boost::filesystem::directory_iterator(root_dir)) {
-                if (m_destroy)
-                    break;
-                if (boost::filesystem::is_directory(entry))
-                    continue;
-                if (!boost::iequals(entry.path().extension().string(), ".json"))
+        //load custom bundle from user data path
+        boost::filesystem::directory_iterator endIter;
+        for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
+            if (!boost::filesystem::is_directory(*iter)) {
+                wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                strVendor          = strVendor.AfterLast('\\');
+                strVendor          = strVendor.AfterLast('/');
+
+                wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                if(strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
                     continue;
 
-                const std::string vendor_name = entry.path().stem().string();
-                if (loaded_vendors.find(vendor_name) != loaded_vendors.end())
-                    continue;
-
-                vendor_files.emplace_back(vendor_name, entry.path().string());
-                loaded_vendors.insert(vendor_name);
+                LoadProfileFamily(w2s(strVendor), iter->path().string());
+                loaded_vendors.insert(w2s(strVendor));
             }
-            return vendor_files;
-        };
+            if (m_destroy)
+                return 0;
+        }
 
-        auto load_vendor_files = [&](const std::vector<std::pair<std::string, std::string>> &vendor_files) {
-            for (const auto &vendor_file : vendor_files) {
-                if (m_destroy)
-                    return;
-                LoadProfileFamily(vendor_file.first, vendor_file.second);
+        boost::filesystem::directory_iterator others_endIter;
+        for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
+            if (!boost::filesystem::is_directory(*iter)) {
+                wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
+                strVendor          = strVendor.AfterLast('\\');
+                strVendor          = strVendor.AfterLast('/');
+                wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
+                if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                    continue;
+
+                LoadProfileFamily(w2s(strVendor), iter->path().string());
+                loaded_vendors.insert(w2s(strVendor));
             }
-        };
-
-        auto vendor_files = collect_vendor_files(vendor_dir);
-        auto vendor_files2 = collect_vendor_files(rsrc_vendor_dir);
-        vendor_files.insert(vendor_files.end(), vendor_files2.begin(), vendor_files2.end());
-
-        load_vendor_files(vendor_files);
+            if (m_destroy)
+                return 0;
+        }
 
         wxGetApp().CallAfter([this] {
             if (!m_destroy) {
@@ -1182,11 +1182,6 @@ int GuideFrame::LoadProfileData()
         //  wxMessageBox(e.what(), "", MB_OK);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", error: " << e.what() << std::endl;
     }
-
-
-    const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::steady_clock::now() - t0).count();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " LoadProfileData took " << elapsed_ms << " ms";
 
     return 0;
 }
