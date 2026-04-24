@@ -1065,6 +1065,14 @@ void PlaterPresetComboBox::show_edit_menu()
     append_menu_item(menu, wxID_ANY, _L("Edit preset"), "",
         [this](wxCommandEvent&) { this->switch_to_tab(); }, "cog", menu, []() { return true; }, wxGetApp().plater());
 
+    const Preset* sel_preset = m_collection ? &m_collection->get_selected_preset() : nullptr;
+    if (sel_preset && !sel_preset->file.empty() && !sel_preset->is_system) {
+        const std::string file = sel_preset->file;
+        append_menu_item(menu, wxID_ANY, _L("Open config file"), "",
+            [file](wxCommandEvent&) { wxLaunchDefaultApplication(from_u8(file)); }, "", menu,
+            []() { return true; }, wxGetApp().plater());
+    }
+
 #ifdef __linux__
     // To edit extruder color from the sidebar
     if (m_type == Preset::TYPE_FILAMENT) {

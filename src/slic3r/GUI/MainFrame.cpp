@@ -905,8 +905,10 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
             return HTCAPTION;
         }
 
-        // Allow resizing from top of the title bar
-        wxPoint mouse_pos = ::wxGetMousePosition();
+        // Use lParam coords (exact cursor position when the message was posted) to avoid
+        // the timing discrepancy that ::wxGetMousePosition()/GetCursorPos() can introduce
+        // when the cursor crosses the topbar boundary between post and dispatch time.
+        wxPoint mouse_pos((short)LOWORD(lParam), (short)HIWORD(lParam));
         if (m_topbar->GetScreenRect().GetBottom() >= mouse_pos.y) {
             RECT borderThickness;
             SetRectEmpty(&borderThickness);

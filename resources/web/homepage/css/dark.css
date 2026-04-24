@@ -103,6 +103,41 @@ body
 {
 	color: #5a5a5e;
 }
+
+/* Folder card icon: swap to lighter teal icon in dark mode */
+.FolderCardIcon img
+{
+	content: url("../img/folder_card_dark.svg");
+}
+
+/* Input modal dark mode */
+#InputModalOverlay
+{
+	background-color: rgba(0, 0, 0, 0.55);
+}
+
+#InputModalBox
+{
+	background: #2e2e33;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+#InputModalTitle
+{
+	color: #efeff0;
+}
+
+#InputModalField
+{
+	background: #1e1e22;
+	border-color: #444;
+	color: #efeff0;
+}
+
+#InputModalField:focus
+{
+	border-color: #00675b;
+}
 /* ---- End Project Folders dark mode ---- */
 
 #recnet_context_menu

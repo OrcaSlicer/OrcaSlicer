@@ -53,18 +53,22 @@ function Set_RecentFile_MouseRightBtn_Event()
 
 	$(document).click( function(e){
 		var elem = e.target || e.srcElement;
-		while (elem) {
-			if (elem.id && (
-				elem.id == 'recnet_context_menu' ||
-				elem.id == 'folder_picker_menu' ||
-				elem.id == 'folder_context_menu' ||
-				elem.id == 'folder_file_context_menu'
-			)) {
-				return;
-			}
-			elem = elem.parentNode;
-		}		
-		
+		var inRecent = false, inPicker = false, inOther = false;
+		var cur = elem;
+		while (cur) {
+			if (cur.id == 'recnet_context_menu')      { inRecent = true; break; }
+			if (cur.id == 'folder_picker_menu')        { inPicker = true; break; }
+			if (cur.id == 'folder_context_menu' ||
+			    cur.id == 'folder_file_context_menu')  { inOther  = true; break; }
+			cur = cur.parentNode;
+		}
+
+		if (inPicker || inOther) return; // keep everything open
+		if (inRecent) {
+			// User clicked a different item in the recent menu — close picker only
+			$('#folder_picker_menu').hide();
+			return;
+		}
 		HideAllContextMenus();
 	} );
 }
@@ -229,8 +233,7 @@ function ShowRecentFileList( pList )
 
 function ShowRecnetFileContextMenu()
 {
-	// Populate the "Add to Folder" button visibility
-	$('#CT_AddToFolder_Bar').toggle(m_ProjectFolders.length > 0 || true);
+	$('#CT_AddToFolder_Bar').show();
 	ShowContextMenuAt('#recnet_context_menu');
 }
 
@@ -429,7 +432,7 @@ function ShowFolderList(folders)
 			let count = f['paths'] ? f['paths'].length : 0;
 			let safeName = $('<div>').text(f['name']).html();
 			html += '<div class="FolderCard" fname="' + safeName + '">' +
-				'<div class="FolderCardIcon">&#128193;</div>' +
+				'<div class="FolderCardIcon"><img src="img/folder_card.svg" draggable="false" /></div>' +
 				'<div class="FolderCardName TextS1">' + safeName + '</div>' +
 				'<div class="FolderCardCount FileDate">' + count + ' project' + (count !== 1 ? 's' : '') + '</div>' +
 				'</div>';
@@ -522,12 +525,70 @@ function OnBackToFolders()
 	$('#FolderListView').show();
 }
 
+// ---- Custom input modal (replaces native prompt()) ----
+
+var _modalResolve = null;
+var _modalIsConfirm = false;
+
+function ShowInputModal(title, defaultValue)
+{
+	return new Promise(function(resolve) {
+		_modalResolve = resolve;
+		_modalIsConfirm = false;
+		$('#InputModalTitle').text(title);
+		$('#InputModalField').val(defaultValue || '').show();
+		$('#InputModalOverlay').css('display', 'flex');
+		// Defer focus so the element is visible first
+		setTimeout(function() {
+			$('#InputModalField').focus();
+			$('#InputModalField')[0].select();
+		}, 50);
+	});
+}
+
+function ShowConfirmModal(message)
+{
+	return new Promise(function(resolve) {
+		_modalResolve = resolve;
+		_modalIsConfirm = true;
+		$('#InputModalTitle').text(message);
+		$('#InputModalField').hide();
+		$('#InputModalOverlay').css('display', 'flex');
+	});
+}
+
+function OnInputModalOK()
+{
+	var val = _modalIsConfirm ? true : $('#InputModalField').val().trim();
+	$('#InputModalField').show();
+	$('#InputModalOverlay').hide();
+	if (_modalResolve) { _modalResolve(val); _modalResolve = null; }
+}
+
+function OnInputModalCancel()
+{
+	$('#InputModalField').show();
+	$('#InputModalOverlay').hide();
+	if (_modalResolve) { _modalResolve(_modalIsConfirm ? false : null); _modalResolve = null; }
+}
+
+function OnInputModalKeyDown(e)
+{
+	if (e.key === 'Enter')  { OnInputModalOK();     e.preventDefault(); }
+	if (e.key === 'Escape') { OnInputModalCancel(); e.preventDefault(); }
+}
+
+function OnInputModalOverlayClick(e)
+{
+	if (e.target.id === 'InputModalOverlay') OnInputModalCancel();
+}
+
 // ---- New Folder ----
 
-function OnNewFolder()
+async function OnNewFolder()
 {
-	let name = prompt('Enter folder name:');
-	if (name === null || name.trim() === '') return;
+	let name = await ShowInputModal('Enter folder name:');
+	if (name === null || name === '') return;
 	name = name.trim();
 
 	var tSend = {};
@@ -539,11 +600,11 @@ function OnNewFolder()
 
 // ---- New folder and immediately add current right-clicked file ----
 
-function OnNewFolderAndAdd()
+async function OnNewFolderAndAdd()
 {
 	HideAllContextMenus();
-	let name = prompt('Enter new folder name:');
-	if (name === null || name.trim() === '') return;
+	let name = await ShowInputModal('Enter new folder name:');
+	if (name === null || name === '') return;
 	name = name.trim();
 
 	// Create folder first
@@ -565,10 +626,9 @@ function OnNewFolderAndAdd()
 
 // ---- Show "Add to Folder" picker from recent-file context menu ----
 
-function OnShowAddToFolderMenu()
+function OnShowAddToFolderMenu(e)
 {
-	HideAllContextMenus();
-
+	if (e) e.stopPropagation();
 	// Build picker list
 	let html = '';
 	for (let i = 0; i < m_ProjectFolders.length; i++) {
@@ -585,7 +645,32 @@ function OnShowAddToFolderMenu()
 		OnAddToFolder(folderName);
 	});
 
-	ShowContextMenuAt('#folder_picker_menu');
+	// Show picker anchored to the right edge of the recent context menu,
+	// keeping the recent menu open so the user can see what they acted on.
+	var $recent = $('#recnet_context_menu');
+	var $picker = $('#folder_picker_menu');
+
+	// Temporarily show offscreen to measure
+	$picker.offset({top: 10000, left: -10000});
+	$picker.show();
+
+	var rOff = $recent.offset();
+	var rW   = $recent.outerWidth();
+	var rH   = $recent.outerHeight();
+	var pW   = $picker.outerWidth();
+	var pH   = $picker.outerHeight();
+	var docW = $(document).width();
+	var docH = $(document).height();
+
+	// Prefer right of recent menu; fall back to left if not enough room
+	var px = rOff.left + rW + 4;
+	if (px + pW + 8 > docW) px = rOff.left - pW - 4;
+
+	// Align top with recent menu; clamp to viewport
+	var py = rOff.top;
+	if (py + pH + 8 > docH) py = docH - pH - 8;
+
+	$picker.offset({top: py, left: px});
 }
 
 // ---- Add recent file to a folder ----
@@ -626,12 +711,12 @@ function OnRemoveFromFolder()
 
 // ---- Rename folder ----
 
-function OnRenameFolder()
+async function OnRenameFolder()
 {
 	HideAllContextMenus();
 	let oldName = m_RightClickFolderName;
-	let newName = prompt('Rename folder:', oldName);
-	if (newName === null || newName.trim() === '' || newName.trim() === oldName) return;
+	let newName = await ShowInputModal('Rename folder:', oldName);
+	if (newName === null || newName === '' || newName === oldName) return;
 	newName = newName.trim();
 
 	var tSend = {};
@@ -643,11 +728,12 @@ function OnRenameFolder()
 
 // ---- Delete folder ----
 
-function OnDeleteFolder()
+async function OnDeleteFolder()
 {
 	HideAllContextMenus();
 	let name = m_RightClickFolderName;
-	if (!confirm('Delete folder "' + name + '"? The projects inside will not be deleted.')) return;
+	let confirmed = await ShowConfirmModal('Delete folder "' + name + '"? The projects inside will not be deleted.');
+	if (!confirmed) return;
 
 	var tSend = {};
 	tSend['sequence_id'] = Math.round(new Date() / 1000);
@@ -714,7 +800,7 @@ function SendMsg_GetStaffPick()
 	
 	SendWXMessage( JSON.stringify(tSend) );
 	
-	setTimeout("SendMsg_GetStaffPick()",3600*1000*1);
+	setTimeout(SendMsg_GetStaffPick, 3600 * 1000);
 }
 
 function ShowStaffPick( ModelList )

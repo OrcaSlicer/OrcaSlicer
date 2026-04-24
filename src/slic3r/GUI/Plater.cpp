@@ -3222,6 +3222,27 @@ void Sidebar::edit_filament()
         p->editing_filament = p->m_menu_filament_id; // sync with TabPresetComboxBox's m_filament_idx
 }
 
+bool Sidebar::can_open_filament_config_file()
+{
+    if (p->m_menu_filament_id < 0 || p->m_menu_filament_id >= (int)p->combos_filament.size())
+        return false;
+    auto* combo = p->combos_filament[p->m_menu_filament_id];
+    if (!combo) return false;
+    const std::string preset_name = Preset::remove_suffix_modified(combo->GetString(combo->GetSelection()).ToUTF8().data());
+    const Preset* preset = wxGetApp().preset_bundle->filaments.find_preset(preset_name);
+    return preset && !preset->file.empty() && !preset->is_system;
+}
+
+void Sidebar::open_filament_config_file()
+{
+    if (!can_open_filament_config_file()) return;
+    auto* combo = p->combos_filament[p->m_menu_filament_id];
+    const std::string preset_name = Preset::remove_suffix_modified(combo->GetString(combo->GetSelection()).ToUTF8().data());
+    const Preset* preset = wxGetApp().preset_bundle->filaments.find_preset(preset_name);
+    if (preset && !preset->file.empty())
+        wxLaunchDefaultApplication(from_u8(preset->file));
+}
+
 void Sidebar::add_custom_filament(wxColour new_col) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() >= MAXIMUM_EXTRUDER_NUMBER) return;

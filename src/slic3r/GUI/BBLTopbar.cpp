@@ -710,9 +710,9 @@ void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
     if (item == NULL || item->GetWindow() == m_title_ctrl)
     {
 #ifdef __WXMSW__
-        CaptureMouse();
-        ReleaseMouse();
-        ::PostMessage((HWND) m_frame->GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(mouse_pos.x, mouse_pos.y));
+        // Release any existing Win32 capture before handing off to the native drag loop.
+        ::ReleaseCapture();
+        ::SendMessage((HWND) m_frame->GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(mouse_pos.x, mouse_pos.y));
         return;
 #elif defined(__WXGTK__)
         // Use WM-integrated drag for smoother window movement on Linux.
@@ -755,6 +755,14 @@ void BBLTopbar::OnMouseMotion(wxMouseEvent& event)
         event.Skip();
         return;
     }
+
+#ifdef __WXMSW__
+    // On Windows, window movement is handled natively via WM_NCLBUTTONDOWN/HTCAPTION.
+    // If HasCapture() is true here (e.g. from wxAuiToolBar internal tracking), we must
+    // NOT fall through to the manual Move() path, which causes slow/delayed dragging.
+    event.Skip();
+    return;
+#endif
 
     if (event.Dragging() && event.LeftIsDown())
     {
@@ -821,7 +829,11 @@ WXLRESULT BBLTopbar::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
 {
     switch (nMsg) {
     case WM_NCHITTEST: {
-        wxAuiToolBarItem* item = this->FindToolByCurrentPosition();
+        // Use lParam coords (exact position when message was posted) instead of
+        // FindToolByCurrentPosition() which may use a stale m_last_mouse_position.
+        wxPoint screen_pos((short)LOWORD(lParam), (short)HIWORD(lParam));
+        wxPoint client_pos = this->ScreenToClient(screen_pos);
+        wxAuiToolBarItem* item = this->FindToolByPosition(client_pos.x, client_pos.y);
         if (item != NULL && item->GetWindow() != m_title_ctrl) {
             break;
         }

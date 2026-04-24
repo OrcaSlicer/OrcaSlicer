@@ -458,9 +458,19 @@ body
 
 .FolderCardIcon
 {
-	font-size: 42px;
-	line-height: 1;
+	width: 40px;
+	height: 40px;
 	margin-bottom: 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.FolderCardIcon img
+{
+	width: 40px;
+	height: 40px;
+	display: block;
 }
 
 .FolderCardName
@@ -556,6 +566,64 @@ body
 	background: url("../img/open_folder.svg");
 	background-repeat: no-repeat;
 	background-size: contain;
+}
+
+/* --- Custom input modal --- */
+
+#InputModalOverlay
+{
+	position: fixed;
+	inset: 0;
+	background-color: rgba(0, 0, 0, 0.35);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+#InputModalBox
+{
+	background: #fff;
+	border-radius: 10px;
+	padding: 24px 28px 20px 28px;
+	min-width: 300px;
+	max-width: 420px;
+	width: 100%;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+#InputModalTitle
+{
+	font-size: 15px;
+	font-weight: 600;
+	color: #323A3D;
+}
+
+#InputModalField
+{
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid #D7D7D7;
+	border-radius: 6px;
+	padding: 8px 10px;
+	font-size: 14px;
+	outline: none;
+	transition: border-color 0.15s;
+}
+
+#InputModalField:focus
+{
+	border-color: #009688;
+}
+
+#InputModalButtons
+{
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
 }
 
 #CT_AddToFolder_Bar:hover .CT_FolderAdd
