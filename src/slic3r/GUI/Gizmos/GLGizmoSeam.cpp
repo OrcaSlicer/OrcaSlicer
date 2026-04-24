@@ -184,7 +184,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     const float slider_icon_width  = m_imgui->get_slider_icon_size().x;
 
     const float sliders_width = m_imgui->scaled(7.0f);
-    const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_left_width + sliders_width - space_size;
+    const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
@@ -250,12 +250,13 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc.at("cursor_size"));
     ImGui::SameLine(sliders_left_width);
-
     ImGui::PushItemWidth(sliders_width);
     m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width);
+    ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+    m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
 
     ImGui::Separator();
     if (m_c->object_clipper()->get_position() == 0.f) {
@@ -272,17 +273,12 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 
     auto clp_dist = float(m_c->object_clipper()->get_position());
     ImGui::SameLine(sliders_left_width);
-
     ImGui::PushItemWidth(sliders_width);
     bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-
-    ImGui::SameLine(drag_left_width);
+    ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
     if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
-
-    ImGui::Separator();
-    m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
 
     ImGui::Separator();
 

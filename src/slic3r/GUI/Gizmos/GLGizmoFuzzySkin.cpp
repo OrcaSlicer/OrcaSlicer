@@ -271,13 +271,14 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["smart_fill_angle"]);
-        std::string format_str = std::string("%.f") +
-                                 I18N::translate_utf8("°", "Degree sign to use in the respective slider in fuzzy skin gizmo, "
-                                                           "placed after the number with no whitespace in between.");
+        std::string format_str = std::string("%.f") + I18N::translate_utf8("°",
+                                                                            "Face angle threshold,"
+                                                                            "placed after the number with no whitespace in between.");
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
-        if (m_imgui->bbl_slider_float_style("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax, format_str.data(), 1.0f, true))
-            for (auto &triangle_selector : m_triangle_selectors) {
+        if (m_imgui->bbl_slider_float_style("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax,
+                                            format_str.data(), 1.0f, true))
+            for (auto& triangle_selector : m_triangle_selectors) {
                 triangle_selector->seed_fill_unselect_all_triangles();
                 triangle_selector->request_update_render_data();
             }
