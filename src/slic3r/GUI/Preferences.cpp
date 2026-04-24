@@ -1360,6 +1360,11 @@ void PreferencesDialog::create_items()
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
 
+#ifdef __linux__
+    auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
+    g_sizer->Add(item_window_button_pos);
+#endif
+
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);
 
