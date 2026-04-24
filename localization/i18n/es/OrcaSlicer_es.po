@@ -11945,11 +11945,9 @@ msgstr ""
 "de boquilla o daños en la impresora."
 
 msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Printing multiple filaments with significantly different temperature requirements is not supported. "
+"Doing so may cause nozzle blockage or extruder damage during printing."
 msgstr ""
-"Imprimir filamentos de temperatura media y baja juntos puede causar atascos "
-"de boquilla o daños en la impresora."
 
 msgid "No extrusions under current settings."
 msgstr "No hay extrusiones con los ajustes actuales."

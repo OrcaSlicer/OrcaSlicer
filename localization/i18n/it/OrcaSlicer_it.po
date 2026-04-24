@@ -11934,11 +11934,9 @@ msgstr ""
 "intasamento dell'ugello o danni alla stampante."
 
 msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Printing multiple filaments with significantly different temperature requirements is not supported. "
+"Doing so may cause nozzle blockage or extruder damage during printing."
 msgstr ""
-"La stampa di filamenti a media e bassa temperatura insieme potrebbe causare "
-"intasamento dell'ugello o danni alla stampante."
 
 msgid "No extrusions under current settings."
 msgstr "Nessuna estrusione con le impostazioni attuali."

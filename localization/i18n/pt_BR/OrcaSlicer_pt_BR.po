@@ -11860,11 +11860,9 @@ msgstr ""
 "entupimento do bico ou danos à impressora."
 
 msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Printing multiple filaments with significantly different temperature requirements is not supported. "
+"Doing so may cause nozzle blockage or extruder damage during printing."
 msgstr ""
-"A impressão simultânea de filamentos de temperatura média e baixa pode "
-"causar entupimento do bico ou danos à impressora."
 
 msgid "No extrusions under current settings."
 msgstr "Nenhuma extrusão com as configurações atuais."

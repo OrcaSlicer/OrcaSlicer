@@ -12038,11 +12038,9 @@ msgstr ""
 "le bouchage de la buse ou endommager l'imprimante."
 
 msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Printing multiple filaments with significantly different temperature requirements is not supported. "
+"Doing so may cause nozzle blockage or extruder damage during printing."
 msgstr ""
-"Imprimer ensemble des filaments moyenne et basse température peut provoquer "
-"le bouchage de la buse ou endommager l'imprimante."
 
 msgid "No extrusions under current settings."
 msgstr "Aucune extrusion dans les paramètres actuels."

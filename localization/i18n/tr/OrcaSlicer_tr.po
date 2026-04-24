@@ -10725,9 +10725,9 @@ msgid ""
 msgstr "Yüksek sıcaklıktaki ve orta sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir."
 
 msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr "Orta sıcaklıktaki ve düşük sıcaklıktaki filamentlerin birlikte yazdırılması püskürtme uçlarının tıkanmasına veya yazıcının zarar görmesine neden olabilir."
+"Printing multiple filaments with significantly different temperature requirements is not supported. "
+"Doing so may cause nozzle blockage or extruder damage during printing."
+msgstr ""
 
 msgid "No extrusions under current settings."
 msgstr "Mevcut ayarlarda ekstrüzyon yok."

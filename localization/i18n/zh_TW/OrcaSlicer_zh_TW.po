@@ -11171,9 +11171,9 @@ msgid ""
 msgstr "將高溫和中溫線材混合列印可能導致噴嘴堵塞或列印設備損壞。"
 
 msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr "將中溫和低溫線材混合列印可能導致噴嘴堵塞或列印設備損壞。"
+"Printing multiple filaments with significantly different temperature requirements is not supported. "
+"Doing so may cause nozzle blockage or extruder damage during printing."
+msgstr ""
 
 msgid "No extrusions under current settings."
 msgstr "根據目前設定，不會進行任何列印。"
