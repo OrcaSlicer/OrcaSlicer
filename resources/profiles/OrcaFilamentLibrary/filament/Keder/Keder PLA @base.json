@@ -1,0 +1,38 @@
+{
+	"type": "filament",
+	"name": "Keder PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "KDFL01",
+	"instantiation": "false",
+	"filament_cost": [
+		"12.50"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_vendor": [
+		"Keder"
+	],
+	"nozzle_temperature": [
+		"210"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"65"
+	],
+	"slow_down_layer_time": [
+		"6"
+	]
+}
