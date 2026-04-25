@@ -9643,7 +9643,46 @@ void DynamicPrintConfig::update_diff_values_to_child_config(DynamicPrintConfig& 
                 int stride = 1;
                 if (key_set2.find(opt) != key_set2.end())
                     stride = 2;
-                opt_vec_src->set_only_diff(opt_vec_dest, variant_index, stride);
+
+                const size_t restore_n     = variant_index.size();
+                const size_t expected_size = restore_n * size_t(stride);
+
+                if (stride == 2) {
+                    // Options in key_set2 are machine limits stored as (normal,silent) pairs per printer variant.
+                    if (opt_src->type() != coFloats || opt_target->type() != coFloats)
+                        throw ConfigurationError((boost::format("%1%: key '%2%' is expected to be ConfigOptionFloats for stride=2.") % __FUNCTION__ % opt).str());
+
+                    auto *src_f = static_cast<ConfigOptionFloats*>(opt_src);
+                    ConfigOptionFloats rhs_tmp(*static_cast<const ConfigOptionFloats*>(opt_target));
+
+                    const size_t src_size  = src_f->values.size();
+                    const size_t dest_size = rhs_tmp.values.size();
+                    if (src_size != expected_size || dest_size != expected_size)
+                        log_normalize_legacy_vector_size(__FUNCTION__, opt, stride, src_size, dest_size, expected_size, restore_n, cur_variant_count,
+                                                         target_variant_count, cur_extruder_ids.size(), target_extruder_ids.size(), opt_src, opt_target);
+
+                    normalize_stride2_floats(*src_f, expected_size);
+                    normalize_stride2_floats(rhs_tmp, expected_size);
+                    src_f->set_only_diff(&rhs_tmp, variant_index, stride);
+                } else {
+                    const size_t src_size  = opt_vec_src->size();
+                    const size_t dest_size = static_cast<const ConfigOptionVectorBase*>(opt_target)->size();
+                    if (src_size != expected_size || dest_size != expected_size)
+                        log_normalize_legacy_vector_size(__FUNCTION__, opt, stride, src_size, dest_size, expected_size, restore_n, cur_variant_count,
+                                                         target_variant_count, cur_extruder_ids.size(), target_extruder_ids.size(), opt_src, opt_target);
+
+                    if (opt_vec_src->size() != expected_size)
+                        opt_vec_src->resize(expected_size, opt_target);
+
+                    ConfigOptionUniquePtr rhs_owner(opt_target->clone());
+                    ConfigOptionVectorBase *rhs_vec = dynamic_cast<ConfigOptionVectorBase*>(rhs_owner.get());
+                    if (rhs_vec == nullptr)
+                        throw ConfigurationError((boost::format("%1%: key '%2%' is expected to be a vector option.") % __FUNCTION__ % opt).str());
+                    if (rhs_vec->size() != expected_size)
+                        rhs_vec->resize(expected_size, opt_target);
+
+                    opt_vec_src->set_only_diff(rhs_vec, variant_index, stride);
+                }
             }
         }
     }
