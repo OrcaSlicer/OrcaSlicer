@@ -173,8 +173,8 @@ msgstr "도구 유형"
 msgid "Smart fill angle"
 msgstr "스마트 채우기 각도"
 
-msgid "On overhangs only"
-msgstr "오버행에만 칠하기"
+msgid "On highlighted overhangs only"
+msgstr "강조된 오버행에만 칠하기"
 
 msgid "Auto support threshold angle: "
 msgstr "자동 서포트 임계값 각도: "

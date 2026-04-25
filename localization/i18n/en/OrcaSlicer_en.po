@@ -158,7 +158,7 @@ msgstr ""
 msgid "Smart fill angle"
 msgstr ""
 
-msgid "On overhangs only"
+msgid "On highlighted overhangs only"
 msgstr ""
 
 msgid "Auto support threshold angle: "

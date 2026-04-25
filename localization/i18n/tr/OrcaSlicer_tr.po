@@ -157,8 +157,8 @@ msgstr "Araç türü"
 msgid "Smart fill angle"
 msgstr "Akıllı doldurma açısı"
 
-msgid "On overhangs only"
-msgstr "Yalnızca çıkıntılarda"
+msgid "On highlighted overhangs only"
+msgstr "Yalnızca vurgulanan çıkıntılarda"
 
 msgid "Auto support threshold angle: "
 msgstr "Otomatik destek eşik açısı: "

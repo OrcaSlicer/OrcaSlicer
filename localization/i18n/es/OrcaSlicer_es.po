@@ -172,8 +172,8 @@ msgstr "Tipo de herramienta"
 msgid "Smart fill angle"
 msgstr "Ángulo de relleno en puente"
 
-msgid "On overhangs only"
-msgstr "Solo en voladizos"
+msgid "On highlighted overhangs only"
+msgstr "Solo en voladizos resaltados"
 
 msgid "Auto support threshold angle: "
 msgstr "Ángulo del umbral de soporte automático: "

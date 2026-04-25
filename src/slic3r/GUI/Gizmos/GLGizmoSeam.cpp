@@ -36,7 +36,7 @@ bool GLGizmoSeam::on_init()
 
     m_desc["clipping_of_view"] = _L("Section view");
     m_desc["reset_direction"]  = _L("Reset direction");
-    m_desc["cursor_size"]      = _L("Pen size");
+    m_desc["cursor_size"]      = _L("Brush size");
     m_desc["tool_type"]        = _L("Tool type");
     m_desc["enforce"]          = _L("Enforce seam");
     m_desc["block"]            = _L("Block seam");

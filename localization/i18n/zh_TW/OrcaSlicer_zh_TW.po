@@ -166,8 +166,8 @@ msgstr "筆刷類型"
 msgid "Smart fill angle"
 msgstr "智慧填充角度"
 
-msgid "On overhangs only"
-msgstr "僅對懸空區生效"
+msgid "On highlighted overhangs only"
+msgstr "僅對高亮懸空區生效"
 
 msgid "Auto support threshold angle: "
 msgstr "自動支撐角度臨界值："

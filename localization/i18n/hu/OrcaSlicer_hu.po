@@ -169,8 +169,8 @@ msgstr "Eszköz típusa"
 msgid "Smart fill angle"
 msgstr "Okos kitöltési szög"
 
-msgid "On overhangs only"
-msgstr "Csak túlnyúlásokon"
+msgid "On highlighted overhangs only"
+msgstr "Csak a kiemelt túlnyúlásokon"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatikus támasz szögének határértéke: "

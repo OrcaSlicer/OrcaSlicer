@@ -172,8 +172,8 @@ msgstr "Werkzeugtyp"
 msgid "Smart fill angle"
 msgstr "Intelligenter Füllwinkel"
 
-msgid "On overhangs only"
-msgstr "Nur an Überhängen"
+msgid "On highlighted overhangs only"
+msgstr "Nur an hervorgehobenen Überhängen"
 
 msgid "Auto support threshold angle: "
 msgstr "Winkel für automatische Supports: "

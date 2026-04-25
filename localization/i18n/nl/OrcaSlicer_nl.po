@@ -166,8 +166,8 @@ msgstr "Hulpmiddel type"
 msgid "Smart fill angle"
 msgstr "Slim vullen hoek"
 
-msgid "On overhangs only"
-msgstr "Alleen op overhangen"
+msgid "On highlighted overhangs only"
+msgstr "Alleen op gemarkeerde overhangen"
 
 msgid "Auto support threshold angle: "
 msgstr "Maximale hoek automatische ondersteuning: "

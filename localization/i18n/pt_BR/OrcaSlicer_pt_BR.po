@@ -178,8 +178,8 @@ msgstr "Tipo de ferramenta"
 msgid "Smart fill angle"
 msgstr "Ângulo de preenchimento inteligente"
 
-msgid "On overhangs only"
-msgstr "Apenas em saliências"
+msgid "On highlighted overhangs only"
+msgstr "Apenas em saliências destacadas"
 
 msgid "Auto support threshold angle: "
 msgstr "Ângulo limiar de suporte automático: "

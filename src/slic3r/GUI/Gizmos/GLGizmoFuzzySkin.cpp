@@ -45,7 +45,7 @@ bool GLGizmoFuzzySkin::on_init()
     m_desc["tool_brush"]        = _L("Brush");
     m_desc["tool_smart_fill"]   = _L("Smart fill");
     m_desc["clipping_of_view"]  = _L("Section view");
-    m_desc["cursor_size"]       = _L("Pen size");
+    m_desc["cursor_size"]       = _L("Brush size");
     m_desc["add_fuzzy_skin"]    = _L("Add fuzzy skin");
     m_desc["remove_fuzzy_skin"] = _L("Remove fuzzy skin");
     m_desc["smart_fill_angle"]  = _L("Smart fill angle");
