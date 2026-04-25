@@ -1072,6 +1072,10 @@ bool PrintObject::invalidate_state_by_config_options(
             steps.emplace_back(posPerimeters);
         } else if (
                opt_key == "layer_height"
+            || opt_key == "curve_smoothing_angle_concave"
+            || opt_key == "curve_smoothing_angle_convex"
+            || opt_key == "curve_smoothing_cutoff_dist"
+            || opt_key == "curve_smoothing_precision"
             || opt_key == "mmu_segmented_region_max_width"
             || opt_key == "mmu_segmented_region_interlocking_depth"
             || opt_key == "raft_layers"

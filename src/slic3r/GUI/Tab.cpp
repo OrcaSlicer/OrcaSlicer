@@ -2629,6 +2629,12 @@ void TabPrint::build()
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
         optgroup->append_single_option_line("brim_ears_detection_length", "others_settings_brim#ear-detection-radius");
 
+        optgroup = page->new_optgroup(L("Curve smoothing"), L"param_precision");
+        optgroup->append_single_option_line("curve_smoothing_precision", "others_settings_curve_smoothing#precision");
+        optgroup->append_single_option_line("curve_smoothing_angle_convex", "others_settings_curve_smoothing#min-convex-angle");
+        optgroup->append_single_option_line("curve_smoothing_angle_concave", "others_settings_curve_smoothing#min-concave-angle");
+        optgroup->append_single_option_line("curve_smoothing_cutoff_dist", "others_settings_curve_smoothing#cutoff");
+
         optgroup = page->new_optgroup(L("Special mode"), L"param_special");
         optgroup->append_single_option_line("slicing_mode", "others_settings_special_mode#slicing-mode");
         optgroup->append_single_option_line("print_sequence", "others_settings_special_mode#print-sequence");

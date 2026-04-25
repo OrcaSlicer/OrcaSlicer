@@ -5593,6 +5593,61 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.049));
 
+    def = this->add("curve_smoothing_angle_convex", coFloat);
+    def->label = L("Min convex angle");
+    def->full_label = L("Curve smoothing minimum angle (convex)");
+    def->category = L("Other");
+    def->tooltip = L("Minimum (convex) angle at a vertex to enable smoothing "
+                     "(trying to create a curve around the vertex). "
+                     "180: nothing will be smoothed, 0: all angles will be smoothed.");
+    def->sidetext = L("°");
+    def->aliases = {"curve_smoothing_angle"};
+    def->cli = "curve-smoothing-angle-convex=f";
+    def->min = 0;
+    def->max = 180;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(120));
+
+    def = this->add("curve_smoothing_angle_concave", coFloat);
+    def->label = L("Min concave angle");
+    def->full_label = L("Curve smoothing minimum angle (concave)");
+    def->category = L("Other");
+    def->tooltip = L("Minimum (concave) angle at a vertex to enable smoothing "
+                     "(trying to create a curve around the vertex). "
+                     "180: nothing will be smoothed, 0: all angles will be smoothed.");
+    def->sidetext = L("°");
+    def->cli = "curve-smoothing-angle-concave=f";
+    def->min = 0;
+    def->max = 180;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(120));
+
+    def = this->add("curve_smoothing_precision", coFloat);
+    def->label = L("Precision");
+    def->full_label = L("Curve smoothing precision");
+    def->category = L("Other");
+    def->tooltip = L("These parameters allow the slicer to smooth angles in each layer. "
+                     "Precision controls the minimum detail of the generated curve. Set to 0 to disable."
+                     "\nNote: this works on polygon edges in 2D only, so the source mesh should be clean."
+                     "\nMost useful for functional models or very wide angles.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->cli = "curve-smoothing-precision=f";
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("curve_smoothing_cutoff_dist", coFloat);
+    def->label = L("cutoff");
+    def->full_label = L("Curve smoothing cutoff dist");
+    def->category = L("Other");
+    def->tooltip = L("Maximum distance between two points to allow adding new ones. "
+                     "Helps avoid distorting long straight areas.\nSet to 0 to disable.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->cli = "curve-smoothing-cutoff-dist=f";
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2));
+
     def = this->add("slicing_mode", coEnum);
     def->label = L("Slicing Mode");
     def->category = L("Other");

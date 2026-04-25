@@ -514,6 +514,7 @@ private:
     void slice_volumes();
     //BBS
     ExPolygons _shrink_contour_holes(double contour_delta, double hole_delta, const ExPolygons& polys) const;
+    ExPolygons _smooth_curves(const ExPolygons &input, const PrintRegionConfig &conf) const;
     // BBS
     void detect_overhangs_for_lift();
     void clear_overhangs_for_lift();
