@@ -1004,11 +1004,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
         if (param == "developer_mode") {
             m_developer_mode_def = app_config->get("developer_mode");
-            if (m_developer_mode_def == "true") {
-                Slic3r::GUI::wxGetApp().save_mode(comDevelop);
-            } else {
-                Slic3r::GUI::wxGetApp().save_mode(comAdvanced);
-            }
+            Slic3r::GUI::wxGetApp().update_mode();
         }
 
         // webview  dump_vedio

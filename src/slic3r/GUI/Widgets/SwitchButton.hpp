@@ -3,10 +3,9 @@
 
 #include "../wxExtensions.hpp"
 #include "StateColor.hpp"
+#include "StaticBox.hpp"
 
 #include <wx/tglbtn.h>
-#include "Label.hpp"
-#include "Button.hpp"
 
 wxDECLARE_EVENT(wxCUSTOMEVT_SWITCH_POS, wxCommandEvent);
 
@@ -46,6 +45,37 @@ private:
 	StateColor   thumb_color;
 };
 
+class ModeSwitchButton : public StaticBox
+{
+public:
+    ModeSwitchButton(wxWindow* parent = nullptr, wxWindowID id = wxID_ANY);
+
+    int  GetSelection() const { return m_selection; }
+    void SetSelection(int selection);
+    void SelectAndNotify(int selection);
+
+    void Rescale();
+    void msw_rescale() { Rescale(); }
+
+    bool Enable(bool enable = true) override;
+
+protected:
+    void doRender(wxDC& dc) override;
+
+private:
+    void mouseDown(wxMouseEvent& event);
+    void mouseReleased(wxMouseEvent& event);
+    void mouseCaptureLost(wxMouseCaptureLostEvent& event);
+    int  hit_test_selection(const wxPoint& point) const;
+    wxRect thumb_rect_for(int selection) const;
+    void update_tooltip();
+
+private:
+    int      m_selection { 0 };
+    bool     m_pressed   { false };
+    wxString m_tooltips[3];
+};
+
 class SwitchBoard : public wxWindow
 {
 public:
@@ -62,8 +92,8 @@ public:
     void* client_data = nullptr;/*MachineObject* in StatusPanel*/
 
 public:
-    void Enable();
-    void Disable();
+    bool Enable(bool enable = true) override;
+    bool Disable() { return Enable(false); }
     bool IsEnabled(){return is_enable;};
 
     void  SetClientData(void* data) { client_data = data; };
