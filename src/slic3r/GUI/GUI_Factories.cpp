@@ -777,17 +777,37 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
 
         // Update checkmark dynamically when menu is shown - check all selected volumes
         m_parent->Bind(wxEVT_UPDATE_UI, [type = info.type](wxUpdateUIEvent& evt) {
+            auto model = obj_list()->GetModel();
+            auto objs  = obj_list()->objects();
             bool has_type = false;
             wxDataViewItemArray sels;
             obj_list()->GetSelections(sels);
             for (auto item : sels) {
-                ModelVolumeType vol_type = obj_list()->GetModel()->GetVolumeType(item);
+                ModelVolumeType vol_type = model->GetVolumeType(item);
                 if (vol_type == type) {
                     has_type = true;
                     break;
                 }
             }
             evt.Check(has_type);
+
+            // ORCA Fix crash caused by SVG/TEXT volumes cant be Support Enforcer/Blocker type
+            for (auto item : sels) {
+                if (model->GetItemType(item) == itVolume){
+                    auto vol_idx = model->GetVolumeIdByItem(item);
+                    auto obj_idx = model->GetObjectIdByItem(item);
+                    if (vol_idx < 0 || obj_idx < 0)
+                        continue;
+
+                    auto vol = (*objs)[obj_idx]->volumes[vol_idx];
+
+                    // disable Support Enforcer/Blocker if selection contains svg or text
+                    if (vol != nullptr && (vol->is_svg() || vol->is_text()) && (type == ModelVolumeType::SUPPORT_BLOCKER || type == ModelVolumeType::SUPPORT_ENFORCER)){
+                        evt.Enable(false);
+                        break;
+                    }
+                }
+            }
         }, item->GetId());
     }
 
