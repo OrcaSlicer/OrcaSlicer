@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Z-Bolt",
 	"bed_model": "Z-Bolt_S800_buildplate_model.stl",
-	"bed_texture": "Z-Bolt_buildplate_texture.png",
+	"bed_texture": "Z-Bolt_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_materials": "Generic PLA @Z-Bolt;Generic ABS @Z-Bolt;Generic PETG @Z-Bolt;Generic PA @Z-Bolt;Generic ABS HT @Z-Bolt",
 	"thumbnails": "144x144/PNG,900x900/PNG",

@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Lulzbot",
 	"bed_model": "taz_pro_dual_build_plate.stl",
-	"bed_texture": "Taz_Pro_Dual_printbed.png",
+	"bed_texture": "Taz_Pro_Dual_printbed.svg",
 	"hotend_model": "",
 	"default_materials": "Lulzbot 2.85mm ABS;Lulzbot 2.85mm PETG;Lulzbot 2.85mm PLA"
 }

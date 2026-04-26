@@ -1,6 +1,6 @@
 {
 	"bed_model": "eryone_er20_buildplate_model.stl",
-	"bed_texture": "Eryone ER20_texture.png",
+	"bed_texture": "Eryone ER20_texture.svg",
 	"default_bed_type": "Textured PEI Plate",
 	"family": "Eryone",
 	"hotend_model": "",
