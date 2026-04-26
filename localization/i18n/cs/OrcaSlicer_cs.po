@@ -170,8 +170,8 @@ msgstr "Typ nástroje"
 msgid "Smart fill angle"
 msgstr "Úhel chytrého vyplnění"
 
-msgid "On overhangs only"
-msgstr "Pouze na převisy"
+msgid "On highlighted overhangs only"
+msgstr "Pouze na zvýrazněné převisy"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatický prahový úhel podpěr: "

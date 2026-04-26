@@ -172,8 +172,8 @@ msgstr "Įrankio tipas"
 msgid "Smart fill angle"
 msgstr "Išmanaus užpildymo kampas"
 
-msgid "On overhangs only"
-msgstr "Tik kabantiems"
+msgid "On highlighted overhangs only"
+msgstr "Tik paryškintiems kabantiems"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatinių atramų generavimo kampas: "

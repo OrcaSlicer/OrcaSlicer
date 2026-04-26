@@ -1946,6 +1946,7 @@ namespace DoExport {
         //if (ret.size() < MAX_TAGS_COUNT) check(_(L("Color Change G-code")), config.color_change_gcode.value);
         //Orca
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Change extrusion role G-code")), config.change_extrusion_role_gcode.value);
+        if (ret.size() < MAX_TAGS_COUNT) check(_(L("Process change extrusion role G-code")), config.process_change_extrusion_role_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Pause G-code")), config.machine_pause_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) check(_(L("Template Custom G-code")), config.template_custom_gcode.value);
         if (ret.size() < MAX_TAGS_COUNT) {
@@ -1958,6 +1959,13 @@ namespace DoExport {
         if (ret.size() < MAX_TAGS_COUNT) {
             for (const std::string& value : config.filament_end_gcode.values) {
                 check(_(L("Filament end G-code")), value);
+                if (ret.size() == MAX_TAGS_COUNT)
+                    break;
+            }
+        }
+        if (ret.size() < MAX_TAGS_COUNT) {
+            for (const std::string& value : config.filament_change_extrusion_role_gcode.values) {
+                check(_(L("Filament change extrusion role G-code")), value);
                 if (ret.size() == MAX_TAGS_COUNT)
                     break;
             }
@@ -4482,8 +4490,7 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
-            auto offset = static_cast<unsigned int>(print_z / 10.001) * 5;
-            gcode += writer().set_temperature(print.calib_params().start - offset);
+            gcode += writer().set_temperature(this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start), static_cast<float>(print.calib_params().end), 5.0f));
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
@@ -5423,6 +5430,7 @@ void GCode::apply_print_config(const PrintConfig &print_config)
              &m_config.time_lapse_gcode,
              &m_config.change_filament_gcode,
              &m_config.change_extrusion_role_gcode,
+             &m_config.process_change_extrusion_role_gcode,
              &m_config.printing_by_object_gcode,
              &m_config.machine_pause_gcode,
              &m_config.template_custom_gcode,
@@ -5432,7 +5440,8 @@ void GCode::apply_print_config(const PrintConfig &print_config)
     }
     for (auto opt : std::initializer_list<ConfigOptionStrings*>{
              &m_config.filament_start_gcode,
-             &m_config.filament_end_gcode
+             &m_config.filament_end_gcode,
+             &m_config.filament_change_extrusion_role_gcode
          }) {
         if (opt->empty())
             for (int i = 0; i < opt->size(); ++i)
@@ -6285,6 +6294,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         _mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
     } else if (path.role() == erInternalBridgeInfill) {
         _mm3_per_mm *= m_config.internal_bridge_flow;
+    } else if (path.role() == erBrim) {
+        _mm3_per_mm *= m_config.brim_flow_ratio;
     } else if (sloped) {
         _mm3_per_mm *= m_config.scarf_joint_flow_ratio;
     }
@@ -6549,15 +6560,29 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // Orca: End of dynamic PA trigger flag segment
     
     //Orca: process custom gcode for extrusion role change
-    if (path.role() != m_last_extrusion_role && !m_config.change_extrusion_role_gcode.value.empty()) {
+    if (path.role() != m_last_extrusion_role) {
+        const auto current_filament_id = m_writer.filament()->id();
+        const std::string& machine_role_change_gcode  = m_config.change_extrusion_role_gcode.value;
+        const std::string& filament_role_change_gcode = m_config.filament_change_extrusion_role_gcode.get_at(current_filament_id);
+        const std::string& process_role_change_gcode  = m_config.process_change_extrusion_role_gcode.value;
+
+        if (!machine_role_change_gcode.empty() || !filament_role_change_gcode.empty() || !process_role_change_gcode.empty()) {
             DynamicConfig config;
             config.set_key_value("extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(path.role())));
             config.set_key_value("last_extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(m_last_extrusion_role)));
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index + 1));
             config.set_key_value("layer_z", new ConfigOptionFloat(m_layer == nullptr ? m_last_height : m_layer->print_z));
-            gcode += this->placeholder_parser_process("change_extrusion_role_gcode",
-                                                      m_config.change_extrusion_role_gcode.value, m_writer.filament()->id(), &config)
-                     + "\n";
+
+            const auto append_role_gcode = [this, current_filament_id, &config, &gcode](const std::string& key, const std::string& templ) {
+                if (templ.empty())
+                    return;
+                gcode += this->placeholder_parser_process(key, templ, current_filament_id, &config) + "\n";
+            };
+
+            append_role_gcode("change_extrusion_role_gcode", machine_role_change_gcode);
+            append_role_gcode("filament_change_extrusion_role_gcode", filament_role_change_gcode);
+            append_role_gcode("process_change_extrusion_role_gcode", process_role_change_gcode);
+        }
     }
 
     // extrude arc or line
@@ -7040,14 +7065,29 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
     }
 }
 
-// Calculate the interpolated value for the current layer between start_value and end_value
-float GCode::interpolate_value_across_layers(float start_value, float end_value) const {
-    if (m_layer_index == 1) {
+// Calculate the interpolated value for the current layer between start_value and end_value.
+// Step will create equal layers steps from first to last value.
+// Step = 0 means gradual interpolation finishing at last value.
+float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
+{
+    if (m_layer_index <= 1) {
         return start_value;
-    } else {
-        float ratio = (m_layer_index - 2.0f) / (m_layer_count - 3.0f);
-        ratio = std::max(0.0f, std::min(1.0f, ratio)); // clamp
-        return start_value + ratio * (end_value - start_value);
+    }
+    else {
+        bool use_steps = step > 0.f;
+        if (use_steps) {
+            if (start_value > end_value) {
+                start_value += step;
+            } else {
+                end_value += step;
+            }
+        }
+        float ratio = m_layer_index / (m_layer_count - 1.f);
+        float value = start_value + ratio * (end_value - start_value);
+        if (use_steps) {
+            value = trunc(value / step) * step;
+        }
+        return value;
     }
 }
 

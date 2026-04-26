@@ -54,6 +54,12 @@ WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfi
         input_params.wall_distribution_count = print_object_config.wall_distribution_count.value;
 
         input_params.is_top_or_bottom_layer = false; // Set to default value
+
+        if (const auto& wall_maximum_resolution_opt = print_object_config.wall_maximum_resolution)
+            input_params.wall_maximum_resolution = scaled<coord_t>(wall_maximum_resolution_opt.value);
+
+        if (const auto& wall_maximum_deviation_opt = print_object_config.wall_maximum_deviation)
+            input_params.wall_maximum_deviation = scaled<coord_t>(wall_maximum_deviation_opt.value);
     }
 
     return input_params;
@@ -125,7 +131,11 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
         accumulated_area_removed += removed_area_next;
 
         const int64_t length2 = (current - previous).cast<int64_t>().squaredNorm();
-        if (length2 < scaled<int64_t>(25.)) {
+
+        // Orca:
+        // Checking if the segment's length is smaller than 5 microns (0.005mm).
+        // The value of `length2` is scaled and squared, so we need to compare it with the squared value of 5 microns
+        if (length2 < Slic3r::sqr(scaled<coord_t>(0.005))) {
             // We're allowed to always delete segments of less than 5 micron.
             continue;
         }
@@ -143,6 +153,7 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const int64_t height_2 = double(area_removed_so_far) * double(area_removed_so_far) / double(base_length_2);
+        // Orca: The value of `height_2` is squared, so we need to compare it with the squared value
         if ((height_2 <= Slic3r::sqr(scaled<coord_t>(0.005)) //Almost exactly colinear (barring rounding errors).
              && Line::distance_to_infinite(current, previous, next) <= scaled<double>(0.005))) // make sure that height_2 is not small because of cancellation of positive and negative areas
             continue;
@@ -473,8 +484,8 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
     if (this->inset_count < 1)
         return toolpaths;
 
-    const coord_t smallest_segment = Slic3r::Arachne::meshfix_maximum_resolution();
-    const coord_t allowed_distance = Slic3r::Arachne::meshfix_maximum_deviation();
+    const coord_t smallest_segment = m_params.wall_maximum_resolution;
+    const coord_t allowed_distance = m_params.wall_maximum_deviation;
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const double  transitioning_angle = Geometry::deg2rad(m_params.wall_transition_angle);
     const coord_t discretization_step_size = scaled<coord_t>(0.8);
@@ -547,7 +558,7 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
 
     separateOutInnerContour();
 
-    simplifyToolPaths(toolpaths);
+    simplifyToolPaths(toolpaths, m_params);
 
     removeEmptyToolPaths(toolpaths);
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
@@ -688,16 +699,21 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines> &toolpaths)
     }
 }
 
-void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines> &toolpaths)
+void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const WallToolPathsParams& params)
 {
-    for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    const int64_t maximum_resolution = params.wall_maximum_resolution;
+    const int64_t maximum_deviation  = params.wall_maximum_deviation;
+
+    const int64_t smallest_line_segment_squared  = maximum_resolution * maximum_resolution;
+    const int64_t allowed_error_distance_squared = maximum_deviation * maximum_deviation;
+
+    const int64_t maximum_extrusion_area_deviation = Slic3r::Arachne::meshfix_maximum_extrusion_area_deviation(); // unit: μm²
+
+    for (VariableWidthLines& lines : toolpaths)
     {
-        const int64_t maximum_resolution = Slic3r::Arachne::meshfix_maximum_resolution();
-        const int64_t maximum_deviation = Slic3r::Arachne::meshfix_maximum_deviation();
-        const int64_t maximum_extrusion_area_deviation = Slic3r::Arachne::meshfix_maximum_extrusion_area_deviation(); // unit: μm²
-        for (auto& line : toolpaths[toolpaths_idx])
+        for (ExtrusionLine& line : lines)
         {
-            line.simplify(maximum_resolution * maximum_resolution, maximum_deviation * maximum_deviation, maximum_extrusion_area_deviation);
+            line.simplify(smallest_line_segment_squared, allowed_error_distance_squared, maximum_extrusion_area_deviation);
         }
     }
 }

@@ -289,7 +289,6 @@ class GLCanvas3D
         bool is_enabled() const { return m_enabled; }
         void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
-        void show_tooltip_information(const GLCanvas3D& canvas, std::map<wxString, wxString> captions_texts, float x, float y);
         void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
         void render_overlay(const GLCanvas3D& canvas);
         void render_volumes(const GLCanvas3D& canvas, const GLVolumeCollection& volumes);
@@ -521,7 +520,8 @@ private:
     wxGLContext* m_context;
     SceneRaycaster m_scene_raycaster;
     Bed3D &m_bed;
-    std::map<std::string, wxString> m_assembly_view_desc;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_assembly_view;
 #if ENABLE_RETINA_GL
     std::unique_ptr<RetinaHelper> m_retina_helper;
 #endif
@@ -1262,7 +1262,7 @@ private:
     // BBS
     //void _render_view_toolbar() const;
     void _render_paint_toolbar() const;
-    float _show_assembly_tooltip_information(float caption_max, float x, float y) const;
+    float _render_assembly_tooltip_button(ImGuiWrapper* imgui_wrapper) const;
     void _render_assemble_control();
     void _render_assemble_info() const;
 #if ENABLE_SHOW_CAMERA_TARGET
