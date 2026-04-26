@@ -397,6 +397,10 @@
 			"sub_path": "filament/Generic ABS @System.json"
 		},
 		{
+			"name": "addnorth ABS rABS",
+			"sub_path": "filament/addnorth/addnorth ABS rABS @System.json"
+		},
+		{
 			"name": "NIT ABS @base",
 			"sub_path": "filament/NIT/NIT ABS @base.json"
 		},
@@ -571,6 +575,10 @@
 		{
 			"name": "Generic PC @System",
 			"sub_path": "filament/Generic PC @System.json"
+		},
+		{
+			"name": "addnorth PC BLend HT LCF",
+			"sub_path": "filament/addnorth/addnorth PC BLend HT LCF @System.json"
 		},
 		{
 			"name": "COEX PCTG PRIME @base",
@@ -873,6 +881,42 @@
 			"sub_path": "filament/Generic PLA-CF @System.json"
 		},
 		{
+			"name": "addnorth PLA E-PLA",
+			"sub_path": "filament/addnorth/addnorth PLA E-PLA @System.json"
+		},
+		{
+			"name": "addnorth PLA Economy",
+			"sub_path": "filament/addnorth/addnorth PLA Economy @System.json"
+		},
+		{
+			"name": "addnorth PLA HT-PLA PRO Matte",
+			"sub_path": "filament/addnorth/addnorth PLA HT-PLA PRO Matte @System.json"
+		},
+		{
+			"name": "addnorth PLA rPLA RE-ADD",
+			"sub_path": "filament/addnorth/addnorth PLA rPLA RE-ADD @System.json"
+		},
+		{
+			"name": "addnorth PLA Textura",
+			"sub_path": "filament/addnorth/addnorth PLA Textura @System.json"
+		},
+		{
+			"name": "addnorth PLA Wood",
+			"sub_path": "filament/addnorth/addnorth PLA Wood @System.json"
+		},
+		{
+			"name": "addnorth PLA X-PLA",
+			"sub_path": "filament/addnorth/addnorth PLA X-PLA @System.json"
+		},
+		{
+			"name": "addnorth PLA X-PLA High Speed",
+			"sub_path": "filament/addnorth/addnorth PLA X-PLA High Speed @System.json"
+		},
+		{
+			"name": "addnorth PLA-CF Carbon Fiber",
+			"sub_path": "filament/addnorth/addnorth PLA-CF Carbon Fiber @System.json"
+		},
+		{
 			"name": "NIT PLA @base",
 			"sub_path": "filament/NIT/NIT PLA @base.json"
 		},
@@ -1171,6 +1215,18 @@
 		{
 			"name": "Generic TPU @System",
 			"sub_path": "filament/Generic TPU @System.json"
+		},
+		{
+			"name": "addnorth TPU EasyFlex",
+			"sub_path": "filament/addnorth/addnorth TPU EasyFlex @System.json"
+		},
+		{
+			"name": "addnorth TPU Pro Matte 85A",
+			"sub_path": "filament/addnorth/addnorth TPU Pro Matte 85A @System.json"
+		},
+		{
+			"name": "addnorth TPU Pro Matte 95A",
+			"sub_path": "filament/addnorth/addnorth TPU Pro Matte 95A @System.json"
 		},
 		{
 			"name": "Overture TPU @base",
