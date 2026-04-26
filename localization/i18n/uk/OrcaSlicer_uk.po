@@ -168,8 +168,8 @@ msgstr "Тип інструменту"
 msgid "Smart fill angle"
 msgstr "Кут розумного заповнення"
 
-msgid "On overhangs only"
-msgstr "Тільки на нависаннях"
+msgid "On highlighted overhangs only"
+msgstr "Тільки на підсвічених нависанняхх"
 
 msgid "Auto support threshold angle: "
 msgstr "Поріг кута автоматичної підтримки: "
