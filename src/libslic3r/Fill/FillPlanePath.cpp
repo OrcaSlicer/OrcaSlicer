@@ -66,6 +66,71 @@ void InfillPolylineClipper::add_point(const Vec2d &fpt)
     }
 }
 
+// ORCA: Helper function to chain Archimedean chord polylines with proper spiral direction.
+// Handles flow calibration mode and user-specified spiral direction (FromCenter/ToCenter).
+// For non-Archimedean fills or default direction, simply chains the polylines.
+static Polylines chain_archimedean_polylines(
+    Polylines                  polylines,
+    bool                       is_archimedean_fill,
+    bool                       is_flow_calib,
+    const FillParams&          params)
+{
+    if (polylines.empty()) {
+        return Polylines();
+    }
+
+    // Get Archimedean direction setting based on extrusion role
+    ArchimedeanChordsDirection spiral_direction = ArchimedeanChordsDirection::Default;
+    if (is_archimedean_fill && params.config) {
+        if (params.extrusion_role == erTopSolidInfill) {
+            spiral_direction = params.config->top_surface_archimedean_direction.value;
+        } else if (params.extrusion_role == erBottomSurface) {
+            spiral_direction = params.config->bottom_surface_archimedean_direction.value;
+        }
+    }
+
+    // Check if special spiral direction handling is needed
+    bool apply_spiral_direction = is_flow_calib ||
+        (is_archimedean_fill && spiral_direction != ArchimedeanChordsDirection::Default);
+
+    if (!apply_spiral_direction) {
+        return chain_polylines(std::move(polylines));
+    }
+
+    // Find the center spiral (longest polyline)
+    auto it = std::max_element(polylines.begin(), polylines.end(),
+                               [](const Polyline& a, const Polyline& b) { return a.length() < b.length(); });
+    Polyline center_spiral = std::move(*it);
+
+    // Spiral is generated centered at (0,0), so squaredNorm gives distance from center
+    bool is_inside_out = center_spiral.first_point().squaredNorm() < center_spiral.last_point().squaredNorm();
+
+    // Flow calibration needs inside-out (from center), same as FromCenter direction
+    if (is_flow_calib || spiral_direction == ArchimedeanChordsDirection::FromCenter) {
+        if (!is_inside_out) {
+            center_spiral.reverse();
+        }
+    } else if (spiral_direction == ArchimedeanChordsDirection::ToCenter) {
+        if (is_inside_out) {
+            center_spiral.reverse();
+        }
+    }
+
+    // Chain the other polylines
+    polylines.erase(it);
+    Polylines chained = chain_polylines(std::move(polylines));
+
+    // Flow calibration and ToCenter: add spiral at end
+    // FromCenter: add spiral at beginning
+    if (spiral_direction == ArchimedeanChordsDirection::FromCenter) {
+        chained.insert(chained.begin(), std::move(center_spiral));
+    } else {
+        chained.push_back(std::move(center_spiral));
+    }
+
+    return chained;
+}
+
 void FillPlanePath::_fill_surface_single(
     const FillParams                &params, 
     unsigned int                     thickness_layers,
@@ -130,32 +195,13 @@ void FillPlanePath::_fill_surface_single(
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {
-                // ORCA: special flag for flow rate calibration
-                auto is_flow_calib = params.extrusion_role == erTopSolidInfill &&
+                // ORCA: Check for Archimedean fill and flow calibration mode
+                bool is_archimedean_fill = dynamic_cast<FillArchimedeanChords*>(this) != nullptr;
+                bool is_flow_calib = is_archimedean_fill &&
+                                     params.extrusion_role == erTopSolidInfill &&
                                      this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
-                                     this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool() &&
-                                     dynamic_cast<FillArchimedeanChords*>(this);
-                if (is_flow_calib) {
-                    // We want the spiral part to be printed inside-out
-                    // Find the center spiral line first, by looking for the longest one
-                    auto     it            = std::max_element(polylines.begin(), polylines.end(),
-                                                              [](const Polyline& a, const Polyline& b) { return a.length() < b.length(); });
-                    Polyline center_spiral = std::move(*it);
-
-                    // Ensure the spiral is printed from inside to out
-                    if (center_spiral.first_point().squaredNorm() > center_spiral.last_point().squaredNorm()) {
-                        center_spiral.reverse();
-                    }
-
-                    // Chain the other polylines
-                    polylines.erase(it);
-                    chained = chain_polylines(std::move(polylines));
-
-                    // Then add the center spiral back
-                    chained.push_back(std::move(center_spiral));
-                } else {
-                    chained = chain_polylines(std::move(polylines));
-                }
+                                     this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
+                chained = chain_archimedean_polylines(std::move(polylines), is_archimedean_fill, is_flow_calib, params);
             } else
                 connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
             // paths must be repositioned and rotated back

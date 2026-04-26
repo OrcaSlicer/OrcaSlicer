@@ -168,6 +168,24 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         if (is_flow_calib) {
             eec->no_sort = true;
         }
+        
+        // ORCA: When Archimedean Chords direction is explicitly set, prevent path reversal
+        // to preserve the intended spiral direction. Settings are in PrintRegionConfig (params.config).
+        bool has_archimedean_direction = false;
+        auto* archimedean_fill = dynamic_cast<FillArchimedeanChords*>(this);
+        if (archimedean_fill != nullptr && params.config != nullptr) {
+            ArchimedeanChordsDirection direction = ArchimedeanChordsDirection::Default;
+            if (params.extrusion_role == erTopSolidInfill) {
+                direction = params.config->top_surface_archimedean_direction.value;
+            } else if (params.extrusion_role == erBottomSurface) {
+                direction = params.config->bottom_surface_archimedean_direction.value;
+            }
+            
+            has_archimedean_direction = (direction != ArchimedeanChordsDirection::Default);
+            if (has_archimedean_direction) {
+                eec->no_sort = true;
+            }
+        }
         size_t idx   = eec->entities.size();
         if (params.use_arachne) {
             Flow new_flow = params.flow.with_spacing(float(this->spacing));
@@ -180,7 +198,7 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 params.extrusion_role,
                 flow_mm3_per_mm, float(flow_width), params.flow.height());
         }
-        if (!params.can_reverse || is_flow_calib) {
+        if (!params.can_reverse || is_flow_calib || has_archimedean_direction) {
             for (size_t i = idx; i < eec->entities.size(); i++)
                 eec->entities[i]->set_reverse();
         }
