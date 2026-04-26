@@ -1005,11 +1005,13 @@ void GUI_App::post_init()
         CallAfter([this] {
             bool cw_showed = this->config_wizard_startup();
 
-            std::string http_url = get_http_url(app_config->get_country_code());
-            std::string language = GUI::into_u8(current_language_code());
-            std::string network_ver = Slic3r::NetworkAgent::get_version();
-            bool        sys_preset  = app_config->get("sync_system_preset") == "true";
-            this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
+            if (!app_config->get_stealth_mode()) {
+                std::string http_url = get_http_url(app_config->get_country_code());
+                std::string language = GUI::into_u8(current_language_code());
+                std::string network_ver = Slic3r::NetworkAgent::get_version();
+                bool        sys_preset  = app_config->get("sync_system_preset") == "true";
+                this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
+            }
 
             this->check_new_version_sf();
             if (is_user_login() && !app_config->get_stealth_mode()) {
@@ -1814,7 +1816,7 @@ bool GUI_App::hot_reload_network_plugin()
                             << ", m_agent = " << (m_agent ? "valid" : "null")
                             << ", version = " << loaded_version;
 
-    if (success && m_agent && m_device_manager) {
+    if (success && m_agent && m_device_manager && !app_config->get_stealth_mode()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": connecting to cloud server";
         m_agent->connect_server();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": re-subscribing to cloud printers";
@@ -4925,6 +4927,10 @@ void GUI_App::on_update_machine_list(wxCommandEvent &evt)
 void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 {
     if (!m_agent) { return; }
+    if (app_config->get_stealth_mode()) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": stealth mode enabled, skipping cloud connection";
+        return;
+    }
 
     int online_login = evt.GetInt();
     m_agent->connect_server();
@@ -5683,6 +5689,11 @@ void GUI_App::on_check_privacy_update(wxCommandEvent& evt)
 
 void GUI_App::check_privacy_version(int online_login)
 {
+    if (app_config->get_stealth_mode()) {
+        request_user_handle(online_login);
+        return;
+    }
+
     update_http_extra_header();
     std::string query_params = "?policy/privacy=00.00.00.00";
     std::string url = get_http_url(app_config->get_country_code()) + query_params;
