@@ -898,6 +898,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                bridge_no_support))
     ((ConfigOptionFloat,               elefant_foot_compensation))
     ((ConfigOptionInt,                 elefant_foot_compensation_layers))
+    ((ConfigOptionPercent,             elefant_foot_layers_density))
     ((ConfigOptionFloat,               max_bridge_length))
     ((ConfigOptionFloatOrPercent,      line_width))
     // Force the generation of solid shells between adjacent materials/volumes.
@@ -996,6 +997,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,            min_bead_width))
 
     // Orca
+    ((ConfigOptionFloat,              wall_maximum_resolution))
+    ((ConfigOptionFloat,              wall_maximum_deviation))
     ((ConfigOptionFloat,              make_overhang_printable_angle))
     ((ConfigOptionFloat,              make_overhang_printable_hole_size))
     ((ConfigOptionFloat,              tree_support_branch_distance_organic))

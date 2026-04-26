@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "BETA HIPS @base",
+    "inherits": "fdm_filament_hips",
+    "from": "system",
+    "filament_id": "BHIB00",
+    "instantiation": "false",
+    "filament_is_support": [
+        "1"
+    ],
+    "filament_vendor": [
+        "BETA"
+    ]
+}
