@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "BETA PETG-GF @BBL A1M 0.4 nozzle",
+    "inherits": "BETA PETG-GF @base",
+    "from": "system",
+    "setting_id": "BPGB13_04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle"
+    ]
+}
