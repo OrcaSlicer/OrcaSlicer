@@ -3900,11 +3900,15 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     if (m_canvas_type == CanvasAssembleView && (evt.AltDown() || evt.CmdDown())) {
         float rotation = (float)evt.GetWheelRotation() / (float)evt.GetWheelDelta();
         if (evt.AltDown()) {
-            auto clp_dist = m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position();
+            auto* assemble_data = m_gizmos.m_assemble_view_data.get();
+            auto* clipper = (assemble_data != nullptr) ? assemble_data->model_objects_clipper() : nullptr;
+            if (clipper == nullptr)
+                return;
+            auto clp_dist = clipper->get_position();
             clp_dist = rotation < 0.f
                 ? std::max(0., clp_dist - 0.01)
                 : std::min(1., clp_dist + 0.01);
-            m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(clp_dist, true);
+            clipper->set_position(clp_dist, true);
         }
         else if (evt.CmdDown()) {
             m_explosion_ratio = rotation < 0.f
@@ -7655,7 +7659,12 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 }
                 },
                 partly_inside_enable);
-            if (m_canvas_type == CanvasAssembleView && m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position() > 0) {
+            const bool has_section_clipper =
+                m_canvas_type == CanvasAssembleView &&
+                m_gizmos.m_assemble_view_data &&
+                m_gizmos.m_assemble_view_data->model_objects_clipper() &&
+                m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position() > 0;
+            if (has_section_clipper) {
                 const GLGizmosManager& gm = get_gizmos_manager();
                 shader->stop_using();
                 gm.render_painter_assemble_view();
@@ -8919,8 +8928,14 @@ void GLCanvas3D::_render_assemble_control()
         GLVolume::explosion_ratio = m_explosion_ratio = 1.0;
         return;
     }
+
+    auto* assemble_data = m_gizmos.m_assemble_view_data.get();
+    auto* clipper = (assemble_data != nullptr) ? assemble_data->model_objects_clipper() : nullptr;
+    if (clipper == nullptr)
+        return;
+
     if (m_gizmos.get_current_type() == GLGizmosManager::EType::MmSegmentation) {
-        m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(0.0, true);
+        clipper->set_position(0.0, true);
         return;
     }
 
@@ -8949,7 +8964,7 @@ void GLCanvas3D::_render_assemble_control()
     }
     float same_line_width = tooltip_button_width;
     {
-        float clp_dist = m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position();
+        float clp_dist = clipper->get_position();
         if (clp_dist == 0.f) {
             ImGui::AlignTextToFramePadding();
             imgui->text(_L("Section View"));
@@ -8957,7 +8972,8 @@ void GLCanvas3D::_render_assemble_control()
         else {
             if (imgui->button(_L("Reset direction"))) {
                 wxGetApp().CallAfter([this]() {
-                    m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(-1., false);
+                    if (m_gizmos.m_assemble_view_data && m_gizmos.m_assemble_view_data->model_objects_clipper())
+                        m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(-1., false);
                     });
             }
         }
@@ -8972,7 +8988,7 @@ void GLCanvas3D::_render_assemble_control()
         bool view_input_changed = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
 
         if (view_slider_changed || view_input_changed)
-            m_gizmos.m_assemble_view_data->model_objects_clipper()->set_position(clp_dist, true);
+            clipper->set_position(clp_dist, true);
 
         same_line_width += (value_size + item_spacing * 2);
     }
