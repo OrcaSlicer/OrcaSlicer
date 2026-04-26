@@ -299,34 +299,86 @@ gst_bambusrc_create (GstPushSrc * psrc, GstBuffer ** outbuf)
 #endif
   *outbuf = gst_buffer_new_wrapped_full(0, sbuf, sample.size, 0, sample.size, sbuf, g_free);
 
-  /* The NAL data already contains a timestamp (I think?), but we seem to
-   * need to feed this in too -- otherwise the GStreamer pipeline gets upset
-   * and starts triggering QoS events.
+  /* Synthesize monotonic timestamps at the announced frame rate, anchored
+   * to the first frame's arrival time. The X1C's RTSPS server emits
+   * unreliable decode timestamps (wildly non-monotonic jumps, or sometimes
+   * none at all); forwarding them directly froze the pipeline after a few
+   * seconds. Pacing on a synthesized clock — the same trick mpv uses when
+   * it reports "No video PTS! Making something up." — gives smooth
+   * playback regardless of network jitter, and only drops late frames if
+   * the printer can't keep up. A snap-back resets the anchor if real
+   * arrival drifts more than two frame periods from the synthesized
+   * timeline (e.g. announced framerate was wrong).
    */
-  if (src->video_type == AVC1) {
-    if (!src->sttime) {
-      src->sttime = sample.decode_time * 100ULL;
-    }
-    GST_BUFFER_DTS(*outbuf) = sample.decode_time * 100ULL - src->sttime;
-    GST_BUFFER_PTS(*outbuf) = GST_CLOCK_TIME_NONE;
-    GST_BUFFER_DURATION(*outbuf) = GST_CLOCK_TIME_NONE;
+  GstClock *clock = GST_ELEMENT_CLOCK(psrc);
+  GstClockTime base_time = gst_element_get_base_time((GstElement *)psrc);
+  GstClockTime running_now = GST_CLOCK_TIME_NONE;
+  if (clock) {
+    GstClockTime now = gst_clock_get_time(clock);
+    if (now != GST_CLOCK_TIME_NONE && now >= base_time)
+      running_now = now - base_time;
   }
-  else {
-    if (!src->sttime) {
-      //only available from 1.18
-      //src->sttime = gst_element_get_current_clock_time((GstElement *)psrc);
-      src->sttime = gst_clock_get_time(((GstElement *)psrc)->clock);
-      //if (GST_CLOCK_TIME_NONE == src->sttime)
-      //  src->sttime
-      GST_DEBUG_OBJECT(src,
-        "sttime init to %lu.",
-        src->sttime);
-    }
-    //GST_BUFFER_DTS(*outbuf) = gst_element_get_current_clock_time((GstElement *)psrc) - src->sttime;
-    GST_BUFFER_DTS(*outbuf) = gst_clock_get_time(((GstElement *)psrc)->clock) - src->sttime;
-    GST_BUFFER_PTS(*outbuf) = GST_CLOCK_TIME_NONE;
-    GST_BUFFER_DURATION(*outbuf) = GST_CLOCK_TIME_NONE;
+
+  /* Adapt the period to actual inter-arrival time via EWMA. The announced
+   * frame_rate is unreliable on Bambu printers (X1C announces 30 but
+   * delivers ~28), so trusting it causes the synthesized timeline to drift
+   * relative to real time, which makes the sink consider frames late and
+   * skip pacing entirely. Measuring the real rate keeps PTS in step with
+   * arrival on average, so the sink can pace inside bursts while still
+   * tracking the printer's actual frame cadence.
+   */
+  if (src->avg_period == 0) {
+    int fps = src->frame_rate > 0 ? src->frame_rate : 30;
+    src->avg_period = GST_SECOND / fps;
   }
+  if (running_now != GST_CLOCK_TIME_NONE && src->last_arrival != 0) {
+    GstClockTimeDiff delta = GST_CLOCK_DIFF(src->last_arrival, running_now);
+    /* clamp to plausible video frame periods (5..200 ms) so a one-off
+     * burst-of-zero or long stall doesn't poison the average */
+    if (delta > 5 * GST_MSECOND && delta < 200 * GST_MSECOND) {
+      src->avg_period = (src->avg_period * 15 + (GstClockTime)delta) / 16;
+    }
+  }
+  src->last_arrival = (running_now != GST_CLOCK_TIME_NONE) ? running_now : src->last_arrival;
+  GstClockTime period = src->avg_period;
+
+  /* Lead time: schedule frames a few periods in the future of their
+   * arrival, so the sink has a small jitter buffer. Without this, frames
+   * arriving slightly later than expected land behind the running clock
+   * and the sink renders them immediately, producing visible stutter.
+   * 100ms is invisible for a live print-monitor view.
+   */
+  const GstClockTime LEAD = 100 * GST_MSECOND;
+
+  if (!src->sttime) {
+    src->sttime = (running_now != GST_CLOCK_TIME_NONE) ? running_now + LEAD : LEAD;
+    src->frame_count = 0;
+  }
+
+  GstClockTime pts = src->sttime + src->frame_count * period;
+
+  /* Safety net: with the lead applied, expected drift is roughly -LEAD
+   * (pts sits LEAD ns ahead of running_now). Re-anchor only if the
+   * synthesized timeline diverges from that expectation by several frame
+   * periods, which indicates a real disturbance (printer paused, stream
+   * resumed, large fps change) rather than ordinary jitter.
+   */
+  if (running_now != GST_CLOCK_TIME_NONE) {
+    GstClockTimeDiff drift = GST_CLOCK_DIFF(pts, running_now);
+    GstClockTimeDiff expected = -(GstClockTimeDiff)LEAD;
+    GstClockTimeDiff slack = (GstClockTimeDiff)(4 * period);
+    if (drift > expected + slack || drift < expected - slack) {
+      GST_DEBUG_OBJECT(src, "ts drift %" G_GINT64_FORMAT " ns; re-anchoring", drift);
+      src->sttime = running_now + LEAD;
+      src->frame_count = 0;
+      pts = src->sttime;
+    }
+  }
+
+  GST_BUFFER_PTS(*outbuf) = pts;
+  GST_BUFFER_DTS(*outbuf) = pts;
+  GST_BUFFER_DURATION(*outbuf) = period;
+  src->frame_count++;
   GST_DEBUG_OBJECT(src,
     "sttime:%lu, DTS:%lu, PTS: %lu~",
     src->sttime, GST_BUFFER_DTS(*outbuf), GST_BUFFER_PTS(*outbuf));
@@ -396,12 +448,16 @@ gst_bambusrc_start (GstBaseSrc * bsrc)
     GST_INFO_OBJECT (src, "stream %d type=%d, sub_type=%d", i, info.type, info.sub_type);
     if (info.type == VIDE) {
       src->video_type = info.sub_type;
+      src->frame_rate = info.format.video.frame_rate;
       GST_INFO_OBJECT (src, " width %d height=%d, frame_rate=%d",
           info.format.video.width, info.format.video.height, info.format.video.frame_rate);
     }
   }
 
   src->sttime = 0;
+  src->frame_count = 0;
+  src->last_arrival = 0;
+  src->avg_period = 0;
   return TRUE;
 }
 
