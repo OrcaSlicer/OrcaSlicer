@@ -7773,22 +7773,72 @@ void Plater::priv::process_validation_warning(StringObjectException const &warni
         std::string text = warning.string;
         auto po = dynamic_cast<PrintObjectBase const *>(warning.object);
         auto mo = po ? po->model_object() : dynamic_cast<ModelObject const *>(warning.object);
-        auto action_fn = (mo || !warning.opt_key.empty()) ? [id = mo ? mo->id() : 0, opt = warning.opt_key](wxEvtHandler *) {
+        //ORCA: Update process_validation_warning to handle ModelInstance selection and include fallback
+        auto mi = dynamic_cast<ModelInstance const *>(warning.object);
+
+        auto action_fn = (mo || mi || !warning.opt_key.empty()) ? [id = mo ? mo->id() : (mi ? mi->id() : 0),
+             parent_id = mi ? mi->get_object()->id() : 0,
+             is_inst = (mi != nullptr),
+             opt = warning.opt_key](wxEvtHandler *) {
 		    auto & objects = wxGetApp().model().objects;
-		    auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
-            if (iter != objects.end()) {
-                wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
-			    wxGetApp().obj_list()->select_items({{*iter, nullptr}});
+
+            if (is_inst) {
+                 bool selected = false;
+                 auto iter = std::find_if(objects.begin(), objects.end(), [parent_id](auto o) { return o->id() == parent_id; });
+                 if (iter != objects.end()) {
+                      ModelObject* obj = *iter;
+                      int inst_idx = -1;
+                      for(size_t i=0; i<obj->instances.size(); ++i) {
+                          if (obj->instances[i]->id() == id) {
+                              inst_idx = i;
+                              break;
+                          }
+                      }
+
+                      wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+
+                      if (inst_idx != -1) {
+                         auto* model = wxGetApp().obj_list()->GetModel();
+                         wxDataViewItem item;
+                         wxDataViewItem objItem = model->GetObjectItem(obj);
+                         if (objItem.IsOk()) {
+                             int vm_obj_idx = model->GetIdByItem(objItem);
+                             if (vm_obj_idx != -1) {
+                                 item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
+                             }
+                         }
+                         if (item.IsOk()) {
+                             wxDataViewItemArray sel_items;
+                             sel_items.Add(item);
+                             wxGetApp().obj_list()->select_items(sel_items);
+                             wxGetApp().obj_list()->update_selections_on_canvas();
+                             selected = true;
+                         }
+                      }
+
+                      if (!selected) {
+                           wxGetApp().obj_list()->select_items({ {obj, nullptr} });
+                           wxGetApp().obj_list()->update_selections_on_canvas();
+                      }
+                 }
+            } else {
+		        auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
+                if (iter != objects.end()) {
+                    wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+			        wxGetApp().obj_list()->select_items({{*iter, nullptr}});
+                    wxGetApp().obj_list()->update_selections_on_canvas();
+                }
             }
             if (!opt.empty()) {
-                if (iter != objects.end())
+                if ((!is_inst && id.id) || (is_inst && parent_id.id))
 				    wxGetApp().params_panel()->switch_to_object();
                 wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
 		    }
 		    return false;
 	    } : std::function<bool(wxEvtHandler *)>();
-        auto hypertext = (mo || !warning.opt_key.empty()) ? _u8L("Jump to") : "";
+        auto hypertext = (mo || mi || !warning.opt_key.empty()) ? _u8L("Jump to") : "";
         if (mo) hypertext += std::string(" [") + mo->name + "]";
+        if (mi) hypertext += std::string(" [") + mi->get_object()->name + "]";
         if (!warning.opt_key.empty()) hypertext += std::string(" (") + warning.opt_key + ")";
 
         // BBS disable support enforcer
