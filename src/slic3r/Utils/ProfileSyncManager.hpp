@@ -96,6 +96,9 @@ public:
     // Access to the sync backend (e.g. for Git commit_and_push after conflict resolution)
     SyncBackend* get_backend() const { return m_backend.get(); }
 
+    // Prepare sync: refresh remote state and ensure directories exist
+    bool prepare_sync(std::string& error_out);
+
     // Sync operations (can be called directly or from background thread)
     bool sync_presets(PresetBundle& bundle, std::string& error_out);
     bool sync_appconfig(AppConfig& appconfig, std::string& error_out);
