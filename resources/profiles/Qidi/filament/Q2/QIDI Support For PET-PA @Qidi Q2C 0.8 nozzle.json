@@ -1,9 +1,11 @@
 {
-    "type": "filament",
-    "setting_id": "GFSN96",
-    "name": "QIDI Support For PET/PA @Qidi Q2C 0.8 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI Support For PET/PA@Q2C-Series",
-	"compatible_printers": ["Qidi Q2C 0.8 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSN96",
+	"name": "QIDI Support For PET/PA @Qidi Q2C 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI Support For PET/PA@Q2C-Series",
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
 }

@@ -3,6 +3,8 @@
 #include "StaticBox.hpp"
 
 #include "../wxExtensions.hpp"
+#include "../GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/WxFontUtils.hpp"
 #ifdef __APPLE__
@@ -138,6 +140,10 @@ void SwitchButton::Rescale()
             memdc.SelectObject(bmp);
 #endif
             memdc.SetFont(dc.GetFont());
+#ifdef __WXMSW__
+            const double scale = GetDPIScaleFactor();
+			fontScale = scale;
+#endif
             if (fontScale) {
                 memdc.SetFont(dc.GetFont().Scaled(fontScale));
                 textSize[0] = memdc.GetTextExtent(labels[0]);
@@ -152,10 +158,10 @@ void SwitchButton::Rescale()
 #endif
 				dc2.SetBrush(wxBrush(track_color.colorForStates(state)));
 				dc2.SetPen(wxPen(track_color.colorForStates(state)));
-                dc2.DrawRoundedRectangle(wxRect({0, 0}, trackSize), trackSize.y / 2);
+                dc2.DrawRoundedRectangle(wxRect({0, 0}, trackSize), trackSize.y / 2.0);
 				dc2.SetBrush(wxBrush(thumb_color.colorForStates(StateColor::Checked | StateColor::Enabled)));
 				dc2.SetPen(wxPen(thumb_color.colorForStates(StateColor::Checked | StateColor::Enabled)));
-				dc2.DrawRoundedRectangle(wxRect({ i == 0 ? BS : (trackSize.x - thumbSize.x - BS), BS}, thumbSize), thumbSize.y / 2);
+                dc2.DrawRoundedRectangle(wxRect({ i == 0 ? BS : (trackSize.x - thumbSize.x - BS), BS}, thumbSize), thumbSize.y / 2.0);
 			}
             memdc.SetTextForeground(text_color.colorForStates(state ^ StateColor::Checked));
             auto text_y = BS + (thumbSize.y - textSize[0].y) / 2;
@@ -176,6 +182,8 @@ void SwitchButton::Rescale()
 			memdc.SelectObject(wxNullBitmap);
 #ifdef __WXOSX__
             bmp = wxBitmap(bmp.ConvertToImage(), -1, scale);
+#elif defined(__WXMSW__)
+            bmp.SetScaleFactor(scale); // ORCA
 #endif
 			(i == 0 ? m_off : m_on).bmp() = bmp;
 		}
@@ -194,6 +202,184 @@ void SwitchButton::Rescale()
 void SwitchButton::update()
 {
 	SetBitmap((GetValue() ? m_on : m_off).bmp());
+}
+
+ModeSwitchButton::ModeSwitchButton(wxWindow* parent, wxWindowID id)
+{
+    background_color = StateColor(
+        std::make_pair(wxColour(0xF1, 0xF1, 0xF1), (int) StateColor::Disabled),
+        std::make_pair(wxColour(0xE3, 0xE3, 0xE3), (int) StateColor::Pressed),
+        std::make_pair(wxColour(0xD9, 0xD9, 0xD9), (int) StateColor::Normal));
+    border_color = StateColor(
+        std::make_pair(wxColour(0xEA, 0xEA, 0xEA), (int) StateColor::Disabled),
+        std::make_pair(wxColour(0xBC, 0xBC, 0xBC), (int) StateColor::Hovered),
+        std::make_pair(wxColour(0xC8, 0xC8, 0xC8), (int) StateColor::Focused),
+        std::make_pair(wxColour(0xCE, 0xCE, 0xCE), (int) StateColor::Normal));
+
+    StaticBox::Create(parent, id, wxDefaultPosition, wxDefaultSize, 0);
+    SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
+    SetCursor(wxCursor(wxCURSOR_HAND));
+
+    m_tooltips[0] = _L("Simple settings");
+    m_tooltips[1] = _L("Advanced settings");
+    m_tooltips[2] = _L("Expert settings");
+
+    Bind(wxEVT_LEFT_DOWN, &ModeSwitchButton::mouseDown, this);
+    Bind(wxEVT_LEFT_UP, &ModeSwitchButton::mouseReleased, this);
+    Bind(wxEVT_LEFT_DCLICK, &ModeSwitchButton::mouseDown, this);
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, &ModeSwitchButton::mouseCaptureLost, this);
+
+    Rescale();
+}
+
+void ModeSwitchButton::SetSelection(int selection)
+{
+    m_selection = std::clamp(selection, 0, 2);
+    update_tooltip();
+    Refresh();
+}
+
+void ModeSwitchButton::SelectAndNotify(int selection)
+{
+    if (!IsEnabled())
+        return;
+
+    SetSelection(selection);
+    Slic3r::GUI::wxGetApp().save_mode(m_selection);
+}
+
+void ModeSwitchButton::Rescale()
+{
+    const wxSize button_size = FromDIP(wxSize(48, 20));
+    SetMinSize(button_size);
+    SetMaxSize(button_size);
+    SetSize(button_size);
+    SetCornerRadius(button_size.y / 2.0);
+    Refresh();
+}
+
+bool ModeSwitchButton::Enable(bool enable /* = true */)
+{
+    const bool changed = StaticBox::Enable(enable);
+    if (changed)
+        Refresh();
+    return changed;
+}
+
+void ModeSwitchButton::doRender(wxDC& dc)
+{
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.SetBrush(wxBrush(GetBackgroundColour()));
+    dc.DrawRectangle(GetClientRect());
+
+    const wxRect bounds = GetClientRect().Deflate(1);
+    if (bounds.width <= 0 || bounds.height <= 0)
+        return;
+
+    const int states = state_handler.states();
+    const bool hovered = (states & StateHandler::Hovered) != 0;
+    const bool focused = (states & StateHandler::Focused) != 0;
+    const bool disabled = !IsEnabled();
+
+    const wxColour track_fill = disabled ? wxColour(0xD0, 0xD0, 0xD4) :
+                               m_pressed ? wxColour(0x5A, 0x5D, 0x64) : wxColour(0x66, 0x69, 0x70);
+    const wxColour track_border = disabled ? wxColour(0xDD, 0xDD, 0xE0) :
+                                 focused ? wxColour("#009688") :
+                                 hovered ? wxColour(0x7A, 0x7D, 0x84) : wxColour(0x75, 0x78, 0x7F);
+    const wxColour active_fill = disabled ? wxColour(0x9E, 0xBE, 0xB9) :
+                                m_pressed ? wxColour(0x00877B) : wxColour("#009688");
+    const wxColour active_dot = disabled ? wxColour(0xEC, 0xF4, 0xF2) : wxColour(0xB7, 0xEB, 0xE3);
+    const wxColour inactive_dot = disabled ? wxColour(0xF2, 0xF2, 0xF4) : wxColour(0xB5, 0xB7, 0xBD);
+    const wxColour thumb_fill = disabled ? wxColour(0xFA, 0xFA, 0xFA) : *wxWHITE;
+    const wxColour thumb_border = disabled ? wxColour(0xE7, 0xE7, 0xEA) : wxColour(0xDD, 0xDF, 0xE3);
+
+    dc.SetPen(wxPen(track_border, 1));
+    dc.SetBrush(wxBrush(track_fill));
+    dc.DrawRoundedRectangle(bounds, bounds.height / 2.0);
+
+    const wxRect thumb = thumb_rect_for(m_selection);
+    const int fill_right = std::min(bounds.GetRight(), thumb.GetX() + thumb.GetWidth() / 2 + FromDIP(2));
+    wxRect active(bounds.x, bounds.y, fill_right - bounds.x + 1, bounds.height);
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.SetBrush(wxBrush(active_fill));
+    dc.DrawRoundedRectangle(active, bounds.height / 2.0);
+
+    const int dot_radius = std::max(FromDIP(1), thumb.height / 7);
+    for (int idx = 0; idx < 3; ++idx) {
+        if (idx == m_selection)
+            continue;
+
+        const wxRect slot = thumb_rect_for(idx);
+        const wxPoint center(slot.GetX() + slot.GetWidth() / 2, slot.GetY() + slot.GetHeight() / 2);
+        dc.SetBrush(wxBrush(idx < m_selection ? active_dot : inactive_dot));
+        dc.DrawCircle(center, dot_radius);
+    }
+
+    dc.SetPen(wxPen(thumb_border, 1));
+    dc.SetBrush(wxBrush(thumb_fill));
+    dc.DrawRoundedRectangle(thumb, thumb.height / 2.0);
+}
+
+void ModeSwitchButton::mouseDown(wxMouseEvent& event)
+{
+    if (!IsEnabled()) {
+        event.Skip();
+        return;
+    }
+
+    m_pressed = true;
+    if (!HasCapture())
+        CaptureMouse();
+
+    Refresh();
+
+    event.Skip();
+}
+
+void ModeSwitchButton::mouseReleased(wxMouseEvent& event)
+{
+    if (m_pressed) {
+        m_pressed = false;
+        if (HasCapture())
+            ReleaseMouse();
+
+        if (GetClientRect().Contains(event.GetPosition()))
+            SelectAndNotify(hit_test_selection(event.GetPosition()));
+
+        Refresh();
+    }
+
+    event.Skip();
+}
+
+void ModeSwitchButton::mouseCaptureLost(wxMouseCaptureLostEvent& event)
+{
+    m_pressed = false;
+    Refresh();
+    event.Skip();
+}
+
+int ModeSwitchButton::hit_test_selection(const wxPoint& point) const
+{
+    const int width = std::max(1, GetClientSize().x);
+    const int x = std::clamp(point.x, 0, width - 1);
+    return std::clamp((x * 3) / width, 0, 2);
+}
+
+wxRect ModeSwitchButton::thumb_rect_for(int selection) const
+{
+    const wxRect bounds = GetClientRect().Deflate(3);
+    const int thumb_diameter = std::max(FromDIP(10), bounds.height - FromDIP(2));
+    const int y = bounds.y + (bounds.height - thumb_diameter) / 2;
+
+    const int travel = std::max(0, bounds.width - thumb_diameter);
+    const int x = bounds.x + (travel * std::clamp(selection, 0, 2)) / 2;
+    return wxRect(x, y, thumb_diameter, thumb_diameter);
+}
+
+void ModeSwitchButton::update_tooltip()
+{
+    SetToolTip(m_tooltips[m_selection]);
 }
 
 SwitchBoard::SwitchBoard(wxWindow *parent, wxString leftL, wxString right, wxSize size)
@@ -349,24 +535,14 @@ void SwitchBoard::on_left_down(wxMouseEvent &evt)
     wxPostEvent(this, event);
 }
 
-void SwitchBoard::Enable()
+bool SwitchBoard::Enable(bool enable /* = true */)
 {
-    if (is_enable == true)
+    if (is_enable == enable)
     {
-        return;
+        return false;
     }
 
-    is_enable = true;
+    is_enable = enable;
     Refresh();
-}
-
-void SwitchBoard::Disable()
-{
-    if (is_enable == false)
-    {
-        return;
-    }
-
-    is_enable = false;
-    Refresh();
+    return true;
 }
