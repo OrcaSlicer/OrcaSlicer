@@ -166,11 +166,18 @@ function(orcaslicer_add_cmake_project projectname)
         endif ()
     endif ()
 
-    set(_gen "")
-    set(_build_j "-j${NPROC}")
     if (MSVC)
-        set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
-        set(_build_j "/m")
+      set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
+    else()
+      set(_gen "")
+    endif()
+
+    if ($ENV{CMAKE_BUILD_PARALLEL_LEVEL})
+      set(_build_j "")  # assume environment will control --build parallel setting
+    elseif(MSVC)
+      set(_build_j "/m")
+    else()
+      set(_build_j "-j${NPROC}")
     endif ()
 
 if (NOT IS_CROSS_COMPILE OR NOT APPLE)
@@ -185,10 +192,14 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_MODULE_PATH:STRING=${PROJECT_SOURCE_DIR}/../cmake/modules
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
+            -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
             -DCMAKE_DEBUG_POSTFIX:STRING=d
             -DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
+            -DCMAKE_EXE_LINKER_FLAGS:STRING=${CMAKE_EXE_LINKER_FLAGS}
+            -DCMAKE_SHARED_LINKER_FLAGS:STRING=${CMAKE_SHARED_LINKER_FLAGS}
+            -DCMAKE_MODULE_LINKER_FLAGS:STRING=${CMAKE_MODULE_LINKER_FLAGS}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"
@@ -229,6 +240,7 @@ else()
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
+            -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
             -DBUILD_SHARED_LIBS:BOOL=OFF
             ${_cmake_osx_arch}
             "${_configs_line}"

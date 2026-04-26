@@ -734,10 +734,17 @@ void PresetBundle::reset_project_embedded_presets()
             Preset& current_printer = this->printers.get_selected_preset();
             const std::vector<std::string> &prefered_filament_profiles = current_printer.config.option<ConfigOptionStrings>("default_filament_profile")->values;
             const std::string prefered_filament_profile = prefered_filament_profiles.empty() ? std::string() : prefered_filament_profiles.front();
-            if (!prefered_filament_profile.empty())
-                filament_presets[i] = prefered_filament_profile;
-            else
-            filament_presets[i] = this->filaments.first_visible().name;
+            if (!prefered_filament_profile.empty()) {
+                // Check if preferred filament exists and is visible
+                const Preset* preferred_preset = this->filaments.find_preset(prefered_filament_profile, false);
+                if (preferred_preset && preferred_preset->is_visible) {
+                    filament_presets[i] = prefered_filament_profile;
+                } else {
+                    // Fall back to first visible filament
+                    filament_presets[i] = this->filaments.first_visible().name;
+                }
+            } else
+                filament_presets[i] = this->filaments.first_visible().name;
         }
     }
 }
@@ -1970,8 +1977,14 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
             initial_print_profile_name = prefered_print_profile;
 
         const std::vector<std::string>& prefered_filament_profiles = preferred_printer->config.option<ConfigOptionStrings>("default_filament_profile")->values;
-        if ((!initial_filament_profile_name.compare("Default Filament")) && (prefered_filament_profiles.size() > 0))
-            initial_filament_profile_name = prefered_filament_profiles[0];
+        if ((!initial_filament_profile_name.compare("Default Filament")) && (prefered_filament_profiles.size() > 0)) {
+            // Check if preferred filament is visible
+            const Preset* preferred_preset = this->filaments.find_preset(prefered_filament_profiles[0], false);
+            if (preferred_preset && preferred_preset->is_visible) {
+                initial_filament_profile_name = prefered_filament_profiles[0];
+            }
+            // If not visible, keep the default "Default Filament" which will be resolved later
+        }
     }
 
     // Selects the profile, leaves it to -1 if the initial profile name is empty or if it was not found.
@@ -2184,16 +2197,32 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
         filament_presets.resize(n);
     }
     ConfigOptionStrings* filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
+    ConfigOptionStrings *filament_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+    ConfigOptionStrings* filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
+    ConfigOptionInts* filament_map = project_config.option<ConfigOptionInts>("filament_map");
+
+
     filament_color->resize(n);
+    // Sync filament multi colour
+    filament_multi_color->values.resize(n);
+    for (size_t i = 0; i < n; i++) {
+        filament_multi_color->values[i] = filament_color->values[i];
+    }
+    filament_color_type->resize(n);
+    filament_map->values.resize(n, 1);
     ams_multi_color_filment.resize(n);
+
     // BBS set new filament color to new_color
     if (old_filament_count < n) {
         if (!new_colors.empty()) {
             for (int i = old_filament_count; i < n; i++) {
                 filament_color->values[i] = new_colors[i - old_filament_count];
+                filament_multi_color->values[i] = new_colors[i - old_filament_count];
+                filament_color_type->values[i]  = "1";  // default color type
             }
         }
     }
+
     update_multi_material_filament_presets();
 }
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
@@ -4452,7 +4481,7 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
         int operator()(const Preset &preset) const
         {
             // Don't match any properties of the "-- default --" profile or the external profiles when switching printer profile.
-            if (preset.is_default || preset.is_external)
+            if (preset.is_default || preset.is_external || !preset.is_visible)
                 return 0;
             if (! m_prefered_alias.empty() && m_prefered_alias == preset.alias)
                 // Matching an alias, always take this preset with priority.

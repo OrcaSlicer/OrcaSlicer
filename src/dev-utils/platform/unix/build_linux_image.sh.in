@@ -3,9 +3,24 @@
 # Despite the script name, this doesn't necessarily create an "image";
 # it sets up a compatibility script wrapper for the binary and arranges some resources.
 
+set -e
+
 export ROOT=$(echo $ROOT | grep . || pwd)
-export NCORES=`nproc --all`
+export NCORES=$(nproc --all)
 CONFIG=Release
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
+POLICY_FILE="${REPO_ROOT}/scripts/appimage_lib_policy.sh"
+CHECK_SCRIPT="${REPO_ROOT}/scripts/check_appimage_libs.sh"
+
+if [ ! -f "${POLICY_FILE}" ]; then
+    echo "Error: missing AppImage helper ${POLICY_FILE}"
+    exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${POLICY_FILE}"
 
 while getopts ":ihR:" opt; do
   case ${opt} in
@@ -23,35 +38,324 @@ while getopts ":ihR:" opt; do
   esac
 done
 
-echo -n "[9/9] Generating Linux app..."
-#{
-    # create directory and copy into it
-    if [ -d "package" ]; then
-	rm -rf package
-    fi
-    mkdir -p package/bin
+copy_directory_if_present() {
+    local src_dir="$1"
+    local dst_dir="$2"
 
-    # Copy Resources
-    cp -Rf ../resources package/resources
-    
-    # Find and hard link the @SLIC3R_APP_CMD@ binary from Multi-Config build
+    if [ -n "$src_dir" ] && [ -d "$src_dir" ]; then
+        mkdir -p "$dst_dir"
+        cp -a "$src_dir"/. "$dst_dir"/
+    fi
+}
+
+find_pkg_config_dir() {
+    local variable="$1"
+    shift
+
+    local module
+    for module in "$@"; do
+        if pkg-config --exists "$module" 2>/dev/null; then
+            pkg-config --variable="$variable" "$module" 2>/dev/null || true
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+find_first_existing_file() {
+    local path
+    for path in "$@"; do
+        if [ -f "$path" ]; then
+            printf '%s\n' "$path"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+copy_shared_object_to_dir() {
+    local src="$1"
+    local dst_dir="$2"
+    local src_real dst_name soname
+
+    src_real="$(readlink -f "$src")"
+    dst_name="$(basename "$src_real")"
+    mkdir -p "$dst_dir"
+    cp -fL "$src_real" "$dst_dir/$dst_name"
+
+    if [ -L "$src" ]; then
+        ln -snf "$dst_name" "$dst_dir/$(basename "$src")"
+    fi
+
+    soname="$(objdump -p "$src_real" 2>/dev/null | awk '$1 == "SONAME" { print $2; exit }')"
+    if [ -n "$soname" ] && [ "$soname" != "$dst_name" ]; then
+        ln -snf "$dst_name" "$dst_dir/$soname"
+    fi
+}
+
+bundle_dependency_closure() {
+    local dst_dir="$1"
+    shift
+
+    local -a queue=("$@")
+    local target dep dep_real copied_path
+    declare -A seen=()
+
+    while [ ${#queue[@]} -gt 0 ]; do
+        target="${queue[0]}"
+        queue=("${queue[@]:1}")
+
+        if [ ! -e "$target" ] || ! appimage_is_elf_file "$target"; then
+            continue
+        fi
+
+        while IFS= read -r dep; do
+            if [[ "$dep" == MISSING:* ]]; then
+                echo "Error: missing runtime dependency ${dep#MISSING:} while bundling $target"
+                exit 1
+            fi
+
+            dep_real="$(readlink -f "$dep" 2>/dev/null || printf '%s' "$dep")"
+            if appimage_is_host_library "$dep_real"; then
+                continue
+            fi
+
+            if [ -n "${seen[$dep_real]}" ]; then
+                continue
+            fi
+
+            seen[$dep_real]=1
+            copy_shared_object_to_dir "$dep" "$dst_dir"
+            copied_path="$dst_dir/$(basename "$dep_real")"
+            if [ -e "$copied_path" ]; then
+                queue+=("$copied_path")
+            fi
+        done < <(appimage_list_direct_dependencies "$target")
+    done
+}
+
+echo -n "[9/9] Generating Linux app..."
+# {
+    if [ -d "package" ]; then
+        rm -rf package
+    fi
+
+    APPDIR="package"
+    BIN_DIR="$APPDIR/bin"
+    LIB_DIR="$APPDIR/lib"
+    PRIVATE_LIB_DIR="$LIB_DIR/orca-runtime"
+    SHARE_DIR="$APPDIR/share"
+    LIBEXEC_DIR="$APPDIR/libexec"
+    BUNDLE_DESKTOP_STACK="${ORCA_BUNDLE_DESKTOP_STACK:-0}"
+    GST_PLUGIN_DIR="$LIB_DIR/gstreamer-1.0"
+    GIO_MODULE_DIR="$LIB_DIR/gio/modules"
+    GDK_PIXBUF_DIR="$LIB_DIR/gdk-pixbuf-2.0/2.10.0/loaders"
+
+    mkdir -p "$BIN_DIR" "$LIB_DIR" "$PRIVATE_LIB_DIR" "$SHARE_DIR" "$LIBEXEC_DIR"
+    if [ "$BUNDLE_DESKTOP_STACK" = "1" ]; then
+        mkdir -p "$GST_PLUGIN_DIR" "$GIO_MODULE_DIR" "$GDK_PIXBUF_DIR"
+    fi
+
+    cp -Rf ../resources "$APPDIR/resources"
+
     ORIGINAL_BINARY_LOCATION=""
     if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then
-	ORIGINAL_BINARY_LOCATION="$(realpath "src/${CONFIG}/@SLIC3R_APP_CMD@")"
+        ORIGINAL_BINARY_LOCATION="$(realpath "src/${CONFIG}/@SLIC3R_APP_CMD@")"
     elif [ -f "src/@SLIC3R_APP_CMD@" ]; then
-        # Fallback for single-config builds
         ORIGINAL_BINARY_LOCATION="$(realpath "src/@SLIC3R_APP_CMD@")"
     else
         echo "Error: @SLIC3R_APP_CMD@ binary not found in any configuration directory"
         exit 1
     fi
-    cp -fl "${ORIGINAL_BINARY_LOCATION}" package/bin/@SLIC3R_APP_CMD@
+    cp -fl "${ORIGINAL_BINARY_LOCATION}" "$BIN_DIR/@SLIC3R_APP_CMD@"
 
-    # create bin
+    if [ "$BUNDLE_DESKTOP_STACK" = "1" ]; then
+        GSTREAMER_PLUGIN_SOURCE_DIR="$(find_pkg_config_dir pluginsdir gstreamer-1.0 || true)"
+        if [ -z "$GSTREAMER_PLUGIN_SOURCE_DIR" ]; then
+            GSTREAMER_PLUGIN_SOURCE_DIR="$(find /usr/lib /usr/lib64 -maxdepth 4 -type d -name gstreamer-1.0 2>/dev/null | head -n1)"
+        fi
+        copy_directory_if_present "$GSTREAMER_PLUGIN_SOURCE_DIR" "$GST_PLUGIN_DIR"
+
+        GIO_MODULE_SOURCE_DIR="$(find_pkg_config_dir giomoduledir gio-2.0 || true)"
+        if [ -z "$GIO_MODULE_SOURCE_DIR" ]; then
+            GIO_MODULE_SOURCE_DIR="$(find /usr/lib /usr/lib64 -maxdepth 5 -type d -path '*/gio/modules' 2>/dev/null | head -n1)"
+        fi
+        copy_directory_if_present "$GIO_MODULE_SOURCE_DIR" "$GIO_MODULE_DIR"
+
+        GDK_PIXBUF_SOURCE_DIR="$(find_pkg_config_dir gdk_pixbuf_moduledir gdk-pixbuf-2.0 || true)"
+        if [ -z "$GDK_PIXBUF_SOURCE_DIR" ]; then
+            GDK_PIXBUF_SOURCE_DIR="$(find /usr/lib /usr/lib64 -maxdepth 6 -type d -path '*/gdk-pixbuf-2.0/*/loaders' 2>/dev/null | head -n1)"
+        fi
+        copy_directory_if_present "$GDK_PIXBUF_SOURCE_DIR" "$GDK_PIXBUF_DIR"
+
+        GLIB_SCHEMAS_SOURCE_DIR="$(find_pkg_config_dir schemasdir gio-2.0 || true)"
+        if [ -z "$GLIB_SCHEMAS_SOURCE_DIR" ]; then
+            GLIB_SCHEMAS_SOURCE_DIR="/usr/share/glib-2.0/schemas"
+        fi
+        copy_directory_if_present "$GLIB_SCHEMAS_SOURCE_DIR" "$SHARE_DIR/glib-2.0/schemas"
+        if [ -d "$SHARE_DIR/glib-2.0/schemas" ] && command -v glib-compile-schemas >/dev/null 2>&1; then
+            glib-compile-schemas "$SHARE_DIR/glib-2.0/schemas"
+        fi
+
+        # Distros disagree on where helper executables live: pkg-config may point to libexec,
+        # Debian/Ubuntu often ship the scanner under a multiarch libdir, and RPM distros may use lib64.
+        GST_PLUGIN_SCANNER_SOURCE="$(find_first_existing_file \
+            "$(find_pkg_config_dir pluginscannerdir gstreamer-1.0 || true)/gst-plugin-scanner" \
+            /usr/libexec/gstreamer-1.0/gst-plugin-scanner \
+            /usr/lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner \
+            /usr/lib/*/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner \
+            /usr/lib64/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner)" || true
+        if [ -n "$GST_PLUGIN_SCANNER_SOURCE" ]; then
+            mkdir -p "$LIBEXEC_DIR/gstreamer-1.0"
+            cp -fL "$GST_PLUGIN_SCANNER_SOURCE" "$LIBEXEC_DIR/gstreamer-1.0/gst-plugin-scanner"
+        fi
+
+        # Prefer the canonical pkg-config-reported helper path, but keep PATH-based fallbacks
+        # for distros exposing gdk-pixbuf-query-loaders or gdk-pixbuf-query-loaders-64 directly.
+        GDK_PIXBUF_QUERY_LOADERS_SOURCE="$(find_first_existing_file \
+            "$(pkg-config --variable=gdk_pixbuf_query_loaders gdk-pixbuf-2.0 2>/dev/null || true)" \
+            "$(command -v gdk-pixbuf-query-loaders 2>/dev/null || true)" \
+            "$(command -v gdk-pixbuf-query-loaders-64 2>/dev/null || true)")" || true
+        if [ -n "$GDK_PIXBUF_QUERY_LOADERS_SOURCE" ]; then
+            cp -fL "$GDK_PIXBUF_QUERY_LOADERS_SOURCE" "$LIBEXEC_DIR/gdk-pixbuf-query-loaders"
+        fi
+    fi
+
+    # WebKitGTK helper binaries are resolved from distro-specific absolute paths
+    # baked into libwebkit2gtk. Bundling Ubuntu's WebKitGTK inside an AppImage
+    # built with -g makes those helper paths unusable on Fedora and vice versa,
+    # so rely on the host WebKitGTK runtime instead of copying the helper stack.
+
+    mapfile -d '' BUNDLE_TARGETS < <(find "$BIN_DIR" "$LIB_DIR" "$LIBEXEC_DIR" -type f -print0 2>/dev/null)
+    bundle_dependency_closure "$PRIVATE_LIB_DIR" "${BUNDLE_TARGETS[@]}"
+
+cat << EOF >"$LIBEXEC_DIR/@SLIC3R_APP_CMD@-env"
+#!/bin/sh
+set -e
+SELF_DIR=\$(CDPATH= cd -- "\$(dirname -- "\$0")" && pwd)
+APPDIR="\${APPDIR:-\$(CDPATH= cd -- "\$SELF_DIR/.." && pwd)}"
+USE_BUNDLED_WEBKITGTK_STACK=0
+if [ -e "\$APPDIR/lib/libwebkit2gtk-4.1.so.0" ] || [ -e "\$APPDIR/lib/libwebkit2gtk-4.0.so.0" ]; then
+    USE_BUNDLED_WEBKITGTK_STACK=1
+fi
+
+export APPDIR
+PRIVATE_LIB_DIR="\$APPDIR/lib/orca-runtime"
+if [ -d "\$PRIVATE_LIB_DIR" ]; then
+    export LD_LIBRARY_PATH="\$PRIVATE_LIB_DIR:\$APPDIR/bin\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+else
+    export LD_LIBRARY_PATH="\$APPDIR/bin\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+fi
+
+has_host_runtime_library() {
+    local lib_name path
+
+    if command -v ldconfig >/dev/null 2>&1; then
+        if ldconfig -p 2>/dev/null | grep -Fq " \$lib_name"; then
+            return 0
+        fi
+    fi
+
+    for path in \
+        /lib /lib64 /usr/lib /usr/lib64 \
+        /usr/lib/* /usr/lib64/* /lib/* /lib64/*; do
+        if [ -e "\$path/\$lib_name" ]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+target_missing_runtime_library() {
+    local target_bin="\$1"
+    local lib_name="\$2"
+
+    if [ -z "\$target_bin" ] || [ ! -e "\$target_bin" ]; then
+        return 1
+    fi
+
+    if command -v ldd >/dev/null 2>&1; then
+        if ldd "\$target_bin" 2>/dev/null | grep -Fq "\$lib_name => not found"; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+TARGET_BIN="\$1"
+
+if target_missing_runtime_library "\$TARGET_BIN" "libOpenGL.so.0" || ! has_host_runtime_library "libOpenGL.so.0"; then
+    echo "Error: missing host OpenGL runtime library libOpenGL.so.0." >&2
+    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0 and libglu1-mesa" >&2
+    echo "On Arch/CachyOS, install: libglvnd" >&2
+    exit 1
+fi
+
+if [ "\$USE_BUNDLED_WEBKITGTK_STACK" = "1" ]; then
+    export LD_LIBRARY_PATH="\$APPDIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+    export GST_PLUGIN_SYSTEM_PATH=""
+    export GST_PLUGIN_PATH="\$APPDIR/lib/gstreamer-1.0\${GST_PLUGIN_PATH:+:\$GST_PLUGIN_PATH}"
+    export GIO_EXTRA_MODULES="\$APPDIR/lib/gio/modules\${GIO_EXTRA_MODULES:+:\$GIO_EXTRA_MODULES}"
+    export XDG_DATA_DIRS="\$APPDIR/share\${XDG_DATA_DIRS:+:\$XDG_DATA_DIRS}"
+
+    if [ -d "\$APPDIR/share/glib-2.0/schemas" ]; then
+        export GSETTINGS_SCHEMA_DIR="\$APPDIR/share/glib-2.0/schemas"
+    fi
+
+    if [ -x "\$APPDIR/libexec/gstreamer-1.0/gst-plugin-scanner" ]; then
+        export GST_PLUGIN_SCANNER="\$APPDIR/libexec/gstreamer-1.0/gst-plugin-scanner"
+    fi
+
+    if [ -d "\$APPDIR/lib/gdk-pixbuf-2.0/2.10.0/loaders" ]; then
+        export GDK_PIXBUF_MODULEDIR="\$APPDIR/lib/gdk-pixbuf-2.0/2.10.0/loaders"
+        if [ -x "\$APPDIR/libexec/gdk-pixbuf-query-loaders" ]; then
+            PIXBUF_CACHE_DIR="\${XDG_CACHE_HOME:-\$HOME/.cache}/@SLIC3R_APP_KEY@"
+            PIXBUF_CACHE_FILE="\$PIXBUF_CACHE_DIR/gdk-pixbuf-loaders.cache"
+            mkdir -p "\$PIXBUF_CACHE_DIR"
+            if [ ! -s "\$PIXBUF_CACHE_FILE" ] || find "\$APPDIR/lib/gdk-pixbuf-2.0/2.10.0/loaders" -type f -newer "\$PIXBUF_CACHE_FILE" | grep -q .; then
+                "\$APPDIR/libexec/gdk-pixbuf-query-loaders" "\$APPDIR/lib/gdk-pixbuf-2.0/2.10.0/loaders"/*.so > "\$PIXBUF_CACHE_FILE" 2>/dev/null || true
+            fi
+            if [ -s "\$PIXBUF_CACHE_FILE" ]; then
+                export GDK_PIXBUF_MODULE_FILE="\$PIXBUF_CACHE_FILE"
+            fi
+        fi
+    fi
+
+    if [ -d "\$APPDIR/lib/webkit2gtk-4.1" ]; then
+        export WEBKIT_EXEC_PATH="\$APPDIR/lib/webkit2gtk-4.1"
+    elif [ -d "\$APPDIR/lib/webkit2gtk-4.0" ]; then
+        export WEBKIT_EXEC_PATH="\$APPDIR/lib/webkit2gtk-4.0"
+    fi
+
+    if [ -d "\$APPDIR/lib/webkit2gtk-4.1/injected-bundle" ]; then
+        export WEBKIT_INJECTED_BUNDLE_PATH="\$APPDIR/lib/webkit2gtk-4.1/injected-bundle"
+    elif [ -d "\$APPDIR/lib/webkit2gtk-4.0/injected-bundle" ]; then
+        export WEBKIT_INJECTED_BUNDLE_PATH="\$APPDIR/lib/webkit2gtk-4.0/injected-bundle"
+    fi
+else
+    if target_missing_runtime_library "\$TARGET_BIN" "libwebkit2gtk-4.1.so.0" || \
+       target_missing_runtime_library "\$TARGET_BIN" "libjavascriptcoregtk-4.1.so.0" || \
+       ! has_host_runtime_library "libwebkit2gtk-4.1.so.0" || \
+       ! has_host_runtime_library "libjavascriptcoregtk-4.1.so.0"; then
+        echo "Error: missing host WebKitGTK 4.1 runtime libraries." >&2
+        echo "Install the distro package providing libwebkit2gtk-4.1.so.0 and libjavascriptcoregtk-4.1.so.0." >&2
+        echo "On Arch/CachyOS, install: webkit2gtk-4.1" >&2
+        exit 1
+    fi
+fi
+
+exec "\$@"
+EOF
+    chmod ug+x "$LIBEXEC_DIR/@SLIC3R_APP_CMD@-env"
+
 cat << EOF >@SLIC3R_APP_CMD@
 #!/bin/bash
-DIR=\$(readlink -f "\$0" | xargs dirname)
-export LD_LIBRARY_PATH="\$DIR/bin:\$LD_LIBRARY_PATH"
+DIR=\$(dirname "\$(readlink -f "\$0")")
+export APPDIR="\${APPDIR:-\$DIR}"
 
 # FIXME: OrcaSlicer segfault workarounds
 # 1) OrcaSlicer will segfault on systems where locale info is not as expected (i.e. Holo-ISO arch-based distro)
@@ -76,38 +380,33 @@ if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ];
         fi
     fi
 fi
-exec "\$DIR/bin/@SLIC3R_APP_CMD@" "\$@"
+exec "\$DIR/libexec/@SLIC3R_APP_CMD@-env" "\$DIR/bin/@SLIC3R_APP_CMD@" "\$@"
 EOF
 
     chmod ug+x @SLIC3R_APP_CMD@
-    cp -fl @SLIC3R_APP_CMD@ package/@SLIC3R_APP_CMD@
-    # Nothing uses this tar? Remove if nobody has complained and it's been a while since this comment added.
-    # Original commit was https://github.com/OrcaSlicer/OrcaSlicer/commit/f5a4862da52fc68f77b5201ddf330a9800d83228
-    # and it doesn't appear to have been used there either.
-    #pushd package > /dev/null
-    #tar -cvf ../@SLIC3R_APP_KEY@.tar .  &>/dev/null
-    #popd > /dev/null
-#} &> $ROOT/Build.log # Capture all command output
+    cp -fl @SLIC3R_APP_CMD@ "$APPDIR/@SLIC3R_APP_CMD@"
+
+    if [ -x "${CHECK_SCRIPT}" ] && [ -z "${ORCA_SKIP_APPIMAGE_AUDIT}" ]; then
+        "${CHECK_SCRIPT}" "$APPDIR" "$BIN_DIR/@SLIC3R_APP_CMD@"
+    fi
+# } &> $ROOT/Build.log # Capture all command output
 echo "done"
 
 if [[ -n "$BUILD_IMAGE" ]]
 then
 echo -n "Creating Appimage for distribution..."
-#{
-    # AppImage script modifies files in place, so make a copy and clean up after.
+# {
     rm -rf package_appimage
     cp -Rf package package_appimage
     pushd package_appimage > /dev/null
     chmod +x ../build_appimage.sh
     if ../build_appimage.sh; then
-	# Clean up on success.
-	popd > /dev/null
-	mv package_appimage/"@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage" "@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage"
-	rm -fR package_appimage
+        popd > /dev/null
+        mv package_appimage/"@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage" "@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage"
+        rm -fR package_appimage
     else
-	# Leave files on failure so you can debug.
-	popd > /dev/null
+        popd > /dev/null
     fi
-#} &> $ROOT/Build.log # Capture all command output
+# } &> $ROOT/Build.log # Capture all command output
 echo "done"
 fi

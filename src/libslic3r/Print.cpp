@@ -220,6 +220,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "ironing_fan_speed",
         "single_extruder_multi_material_priming",
         "activate_air_filtration",
+        "activate_air_filtration_during_print",
+        "activate_air_filtration_on_completion",
         "during_print_exhaust_fan_speed",
         "complete_print_exhaust_fan_speed",
         "activate_chamber_temp_control",
@@ -316,6 +318,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_enable_framework"
             || opt_key == "prime_tower_width"
             || opt_key == "prime_tower_brim_width"
+            || opt_key == "wipe_tower_type"
             || opt_key == "prime_tower_skip_points"
             || opt_key == "prime_tower_flat_ironing"
             || opt_key == "enable_tower_interface_features"
@@ -343,6 +346,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "travel_speed_z"
             || opt_key == "initial_layer_speed"
             || opt_key == "initial_layer_travel_speed"
+            || opt_key == "initial_layer_travel_acceleration"
+            || opt_key == "initial_layer_travel_jerk"
             || opt_key == "slow_down_layers"
             || opt_key == "idle_temperature"
             || opt_key == "wipe_tower_cone_angle"
@@ -610,7 +615,6 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     std::for_each(exclude_polys.begin(), exclude_polys.end(),
                   [&print_origin](Polygon& p) { p.translate(scale_(print_origin.x()), scale_(print_origin.y())); });
 
-    std::map<ObjectID, Polygon> map_model_object_to_convex_hull;
     struct print_instance_info
     {
         const PrintInstance *print_instance;
@@ -645,27 +649,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         for (const PrintObject *print_object : print.objects()) {
             assert(! print_object->model_object()->instances.empty());
             assert(! print_object->instances().empty());
-            ObjectID model_object_id = print_object->model_object()->id();
-            auto it_convex_hull = map_model_object_to_convex_hull.find(model_object_id);
-            // Get convex hull of all printable volumes assigned to this print object.
-            ModelInstance *model_instance0 = print_object->model_object()->instances.front();
-            if (it_convex_hull == map_model_object_to_convex_hull.end()) {
-                // Calculate the convex hull of a printable object.
-                // Grow convex hull with the clearance margin.
-                // FIXME: Arrangement has different parameters for offsetting (jtMiter, limit 2)
-                // which causes that the warning will be showed after arrangement with the
-                // appropriate object distance. Even if I set this to jtMiter the warning still shows up.
-                it_convex_hull = map_model_object_to_convex_hull.emplace_hint(it_convex_hull, model_object_id,
-                            print_object->model_object()->convex_hull_2d(Geometry::assemble_transform(
-                            { 0.0, 0.0, model_instance0->get_offset().z() }, model_instance0->get_rotation(), model_instance0->get_scaling_factor(), model_instance0->get_mirror())));
-            }
-            // Make a copy, so it may be rotated for instances.
-            Polygon convex_hull0 = it_convex_hull->second;
-            const double z_diff = Geometry::rotation_diff_z(model_instance0->get_rotation(), print_object->instances().front().model_instance->get_rotation());
-            if (std::abs(z_diff) > EPSILON)
-                convex_hull0.rotate(z_diff);
+            
+            // Orca: check convex hull intersection for each instance individually to handle rotation/offset differences correctly
             // Now we check that no instance of convex_hull intersects any of the previously checked object instances.
             for (const PrintInstance &instance : print_object->instances()) {
+                Polygon convex_hull0 = print_object->model_object()->convex_hull_2d(Geometry::assemble_transform(
+                            { 0.0, 0.0, instance.model_instance->get_offset().z() }, instance.model_instance->get_rotation(), instance.model_instance->get_scaling_factor(), instance.model_instance->get_mirror()));
+
                 Polygon convex_hull_no_offset = convex_hull0, convex_hull;
                 auto tmp = offset(convex_hull_no_offset, obj_distance, jtRound, scale_(0.1));
                 if (!tmp.empty()) { // tmp may be empty due to clipper's bug, see STUDIO-2452
@@ -679,7 +669,9 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 if (!intersection(exclude_polys, convex_hull_no_offset).empty()) {
                     if (single_object_exception.string.empty()) {
                         single_object_exception.string = (boost::format(L("%1% is too close to exclusion area, there may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
-                        single_object_exception.object = instance.model_instance->get_object();
+                        // single_object_exception.object = instance.model_instance->get_object();
+                        //ORCA: Pass ModelInstance instead of ModelObject
+                        single_object_exception.object = instance.model_instance;
                     }
                     else {
                         single_object_exception.string += "\n"+(boost::format(L("%1% is too close to exclusion area, there may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
@@ -696,12 +688,16 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                         bool has_exception = false;
                         if (single_object_exception.string.empty()) {
                             single_object_exception.string = (boost::format(L("%1% is too close to others, and collisions may be caused.")) %instance.model_instance->get_object()->name).str();
-                            single_object_exception.object = instance.model_instance->get_object();
+                            // single_object_exception.object = instance.model_instance->get_object();
+                            //ORCA: Pass ModelInstance instead of ModelObject for better selection
+                            single_object_exception.object = instance.model_instance;
                             has_exception                  = true;
                         }
                         else {
                             single_object_exception.string += "\n"+(boost::format(L("%1% is too close to others, and collisions may be caused.")) %instance.model_instance->get_object()->name).str();
-                            single_object_exception.object = nullptr;
+                            // single_object_exception.object = nullptr; 
+                            // ORCA: Keep the first object so jump works
+                            // has_exception                  = true;
                             has_exception                  = true;
                         }
 
@@ -948,33 +944,52 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         wrapping_poly.points.emplace_back(scale_(pt.x() + print_origin.x()), scale_(pt.y() + print_origin.y()));
     }
 
-    std::map<const ModelVolume*, Polygon> map_model_volume_to_convex_hull;
     Polygons convex_hulls_other;
+    // Orca: check convex hull intersection for each instance individually
     for (auto& inst : print_instances_ordered) {
+        Polygons current_instance_hulls;
         for (const ModelVolume *v : inst->print_object->model_object()->volumes) {
             if (!v->is_model_part()) continue;
-            auto it_convex_hull = map_model_volume_to_convex_hull.find(v);
-            if (it_convex_hull == map_model_volume_to_convex_hull.end()) {
-                auto volume_hull = v->get_convex_hull_2d(Geometry::assemble_transform(Vec3d::Zero(), inst->model_instance->get_rotation(),
-                                                                                      inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()));
-                volume_hull.translate(inst->shift - inst->print_object->center_offset());
+            
+            auto volume_hull = v->get_convex_hull_2d(Geometry::assemble_transform(Vec3d::Zero(), inst->model_instance->get_rotation(),
+                                                                                  inst->model_instance->get_scaling_factor(), inst->model_instance->get_mirror()));
+            volume_hull.translate(inst->shift - inst->print_object->center_offset());
 
-                it_convex_hull = map_model_volume_to_convex_hull.emplace_hint(it_convex_hull, v, volume_hull);
-            }
-            Polygon &convex_hull = it_convex_hull->second;
-            Polygons convex_hulls_temp;
-            convex_hulls_temp.push_back(convex_hull);
-            if (!intersection(exclude_polys, convex_hull).empty()) {
+            if (!intersection(exclude_polys, volume_hull).empty()) {
+                // return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
+                //        inst->model_instance->get_object()};
+                //ORCA: Pass ModelInstance instead of ModelObject
                 return {inst->model_instance->get_object()->name + L(" is too close to exclusion area, there may be collisions when printing.") + "\n",
-                        inst->model_instance->get_object()};
+                        inst->model_instance};
             }
 
-            if (print_config.enable_wrapping_detection.value && !intersection(wrapping_poly, convex_hull).empty()) {
+            if (print_config.enable_wrapping_detection.value && !intersection(wrapping_poly, volume_hull).empty()) {
+                // return {inst->model_instance->get_object()->name + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n",
+                //        inst->model_instance->get_object()};
+                //ORCA: Pass ModelInstance instead of ModelObject
                 return {inst->model_instance->get_object()->name + L(" is too close to clumping detection area, there may be collisions when printing.") + "\n",
-                        inst->model_instance->get_object()};
+                        inst->model_instance};
             }
-            convex_hulls_other.emplace_back(convex_hull);
+            current_instance_hulls.emplace_back(volume_hull);
         }
+
+        if (!intersection(convex_hulls_other, current_instance_hulls).empty()) {
+            if (warning) {
+                if (warning->string.empty()) {
+                    warning->string = (boost::format(L("%1% is too close to others, and collisions may be caused.")) % inst->model_instance->get_object()->name).str();
+                    // warning->object = inst->model_instance->get_object();
+                    //ORCA: Pass ModelInstance instead of ModelObject for better selection
+                    warning->object = inst->model_instance;
+                } else {
+                    warning->string += "\n" + (boost::format(L("%1% is too close to others, and collisions may be caused.")) % inst->model_instance->get_object()->name).str();
+                    // ORCA: Keep the first object so jump works
+                    if (!warning->object) warning->object = inst->model_instance;
+                }
+                warning->is_warning = true;
+                warning->type = STRING_EXCEPT_OBJECT_COLLISION_IN_LAYER_PRINT;
+            }
+        }
+        append(convex_hulls_other, current_instance_hulls);
     }
 
     //BBS: add the wipe tower check logic
@@ -1235,10 +1250,20 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     if (m_config.enable_prime_tower) {
+        for (const PrintObject* object : m_objects) {
+            if (object->config().precise_z_height.value && warning != nullptr) {
+                StringObjectException warningtemp;
+                warningtemp.string     = L("Enabling both precise Z height and the prime tower may cause slicing errors.");
+                warningtemp.opt_key    = "precise_z_height";
+                warningtemp.is_warning = true;
+                *warning               = warningtemp;
+                break;
+            }
+        }
     } else {
         if (m_config.enable_wrapping_detection && warning!=nullptr) {
             StringObjectException warningtemp;
-            warningtemp.string     = L("Prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
+            warningtemp.string     = L("A prime tower is required for clumping detection; otherwise, there may be flaws on the model.");
             warningtemp.opt_key    = "enable_prime_tower";
             warningtemp.is_warning = true;
             *warning               = warningtemp;
@@ -1526,6 +1551,10 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 } else if (object->config().support_base_pattern == SupportMaterialPattern::smpLightning && warning) {
                     // Orca: check if the Lightning base pattern selected
                     warning->string  = L("The Lightning base pattern is not supported by this support type; Rectilinear will be used instead.");
+                    warning->opt_key = "support_base_pattern";
+                } else if (object->config().support_base_pattern == SupportMaterialPattern::smpNone && warning) {
+                    // Orca: check if the Hollow base pattern selected
+                    warning->string  = L("The Hollow base pattern is not supported by this support type; Rectilinear will be used instead.");
                     warning->opt_key = "support_base_pattern";
                 }
             }
@@ -2757,14 +2786,6 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
-    // FilamentTempType Temperature-based logic
-    int min_temp, max_temp;
-    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
-        if (max_temp <= 250) return FilamentTempType::LowTemp;
-        else if (max_temp < 280) return FilamentTempType::HighLowCompatible;
-        else return FilamentTempType::HighTemp;
-    }
-
     const static std::string HighTempFilamentStr = "high_temp_filament";
     const static std::string LowTempFilamentStr = "low_temp_filament";
     const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";
@@ -2799,6 +2820,19 @@ FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
         return HighTemp;
     if (filament_temp_type_map[LowTempFilamentStr].find(filament_type) != filament_temp_type_map[LowTempFilamentStr].end())
         return LowTemp;
+
+    // Orca: prefer explicit definition from JSON, if the filament type is not defined in json, fallback to temperature-based logic to determine the filament temp type.
+    // FilamentTempType Temperature-based logic
+    int min_temp, max_temp;
+    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
+        if (max_temp <= 250)
+            return FilamentTempType::LowTemp;
+        else if (max_temp < 280)
+            return FilamentTempType::HighLowCompatible;
+        else
+            return FilamentTempType::HighTemp;
+    }
+
     return Undefine;
 }
 
@@ -3119,10 +3153,10 @@ void Print::_make_wipe_tower()
     // BBS
     const unsigned int number_of_extruders = (unsigned int)(m_config.filament_colour.values.size());
 
-    const auto bUseWipeTower2 = is_BBL_printer() || is_QIDI_printer() ? false : true;
+    const bool is_wipe_tower_type2 = this->wipe_tower_type() == WipeTowerType::Type2;
     // Let the ToolOrdering class know there will be initial priming extrusions at the start of the print.
-    m_wipe_tower_data.tool_ordering = ToolOrdering(*this, (unsigned int) -1, bUseWipeTower2 ? true : false);
-    m_wipe_tower_data.tool_ordering.sort_and_build_data(*this, (unsigned int)-1, bUseWipeTower2 ? true : false);
+    m_wipe_tower_data.tool_ordering = ToolOrdering(*this, (unsigned int) -1, is_wipe_tower_type2);
+    m_wipe_tower_data.tool_ordering.sort_and_build_data(*this, (unsigned int)-1, is_wipe_tower_type2);
 
     if (!m_wipe_tower_data.tool_ordering.has_wipe_tower())
         // Don't generate any wipe tower.
@@ -3165,7 +3199,7 @@ void Print::_make_wipe_tower()
     }
     this->throw_if_canceled();
 
-    if (!bUseWipeTower2) {
+    if (!is_wipe_tower_type2) {
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
         WipeTower wipe_tower(m_config, m_plate_index, m_origin, m_wipe_tower_data.tool_ordering.first_extruder(),
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
@@ -3303,7 +3337,7 @@ void Print::_make_wipe_tower()
             wipe_volumes.push_back(std::vector<float>(flush_matrix.begin()+i*number_of_extruders, flush_matrix.begin()+(i+1)*number_of_extruders));
 
         // Orca: itertate over wipe_volumes and change the non-zero values to the prime_volume
-        if ((!m_config.purge_in_prime_tower || !m_config.single_extruder_multi_material) && !is_BBL_printer() && !is_QIDI_printer()) {
+        if ((!m_config.purge_in_prime_tower || !m_config.single_extruder_multi_material) && is_wipe_tower_type2) {
             for (unsigned int i = 0; i < number_of_extruders; ++i) {
                 for (unsigned int j = 0; j < number_of_extruders; ++j) {
                     if (wipe_volumes[i][j] > 0) {
@@ -3397,6 +3431,11 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
+        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
+                                         wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
+                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
+                                         config().wipe_tower_fillet_wall.value);
         const Vec3d origin                      = Vec3d::Zero();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
@@ -4574,7 +4613,7 @@ int Print::export_cached_data(const std::string& directory, bool with_space)
             /*boost::nowide::ofstream c;
             c.open(file_name, std::ios::out | std::ios::trunc);
             if (with_space)
-                c << std::setw(4) << root_json << std::endl;
+                c << root_json.dump(1, '\t') << std::endl;
             else
                 c << root_json.dump(0) << std::endl;
             c.close();*/
@@ -4596,7 +4635,7 @@ int Print::export_cached_data(const std::string& directory, bool with_space)
                     boost::nowide::ofstream c;
                     c.open(filename_vector[object_index], std::ios::out | std::ios::trunc);
                     if (with_space)
-                        c << std::setw(4) << json_vector[object_index] << std::endl;
+                        c << json_vector[object_index].dump(1, '\t') << std::endl;
                     else
                         c << json_vector[object_index].dump(0) << std::endl;
                     c.close();
@@ -4870,6 +4909,25 @@ ExtrusionLayers FakeWipeTower::getTrueExtrusionLayersFromWipeTower() const
 {
     ExtrusionLayers wtels;
     wtels.type = ExtrusionLayersType::WIPE_TOWER;
+
+    //ORCA: Fallback for WipeTower2 if outer_wall is empty
+    if (outer_wall.empty()) {
+        auto fake_paths = getFakeExtrusionPathsFromWipeTower2();
+        float current_z = 0.f;
+        for (auto& layer_paths : fake_paths) {
+            if (layer_paths.empty()) continue;
+            ExtrusionLayer el;
+            float lh = layer_paths.front().height;
+            el.height = lh;
+            el.bottom_z = current_z;
+            el.layer = nullptr;
+            el.paths = std::move(layer_paths);
+            wtels.push_back(std::move(el));
+            current_z += lh;
+        }
+        return wtels;
+    }
+
     std::vector<float> layer_heights;
     layer_heights.reserve(outer_wall.size());
     auto pre = outer_wall.begin();

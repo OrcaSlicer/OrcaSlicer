@@ -147,7 +147,7 @@ class GizmoObjectManipulation;
 static wxString dots("...", wxConvUTF8);
 
 // Does our wxWidgets version support markup?
-#if wxUSE_MARKUP && wxCHECK_VERSION(3, 1, 1)
+#if wxUSE_MARKUP
     #define SUPPORTS_MARKUP
 #endif
 
@@ -273,6 +273,7 @@ private:
     const wxLanguageInfo		 *m_language_info_system = nullptr;
     // Best translation language, provided by Windows or OSX, owned by wxWidgets.
     const wxLanguageInfo		 *m_language_info_best   = nullptr;
+    wxString                    m_active_language_code;
 
     OpenGLManager m_opengl_mgr;
     std::unique_ptr<RemovableDriveManager> m_removable_drive_manager;
@@ -533,7 +534,9 @@ public:
     Tab*            get_plate_tab();
     Tab*            get_model_tab(bool part = false);
     Tab*            get_layer_tab();
+    ConfigOptionMode get_saved_mode();
     ConfigOptionMode get_mode();
+    std::string     get_saved_mode_str();
     std::string     get_mode_str();
     void            save_mode(const /*ConfigOptionMode*/int mode) ;
     void            update_mode();
@@ -563,7 +566,7 @@ public:
     void            preset_deleted_from_cloud(std::string setting_id);
 
     wxString        filter_string(wxString str);
-    wxString        current_language_code() const { return m_wxLocale->GetCanonicalName(); }
+	wxString        current_language_code() const { return m_active_language_code.empty() && m_wxLocale ? m_wxLocale->GetCanonicalName() : m_active_language_code; }
 	// Translate the language code to a code, for which Prusa Research maintains translations. Defaults to "en_US".
     wxString 		current_language_code_safe() const;
     bool            is_localized() const { return m_wxLocale->GetLocale() != "English"; }

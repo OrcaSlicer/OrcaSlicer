@@ -24,9 +24,16 @@ CheckBox::CheckBox(wxWindow *parent, int id)
     Bind(wxEVT_ENTER_WINDOW, &CheckBox::updateBitmap, this);
     Bind(wxEVT_LEAVE_WINDOW, &CheckBox::updateBitmap, this);
 #endif
+	update();
+#ifdef __WXGTK__
+	wxSize bestSize = GetBestSize();
+	bestSize.IncTo(m_on.GetBmpSize());
+	SetSize(bestSize);
+	SetMinSize(bestSize);
+#else
 	SetSize(m_on.GetBmpSize());
 	SetMinSize(m_on.GetBmpSize());
-	update();
+#endif
 }
 
 void CheckBox::SetValue(bool value)
@@ -54,8 +61,16 @@ void CheckBox::Rescale()
     m_on_focused.msw_rescale();
     m_half_focused.msw_rescale();
     m_off_focused.msw_rescale();
+    update();
+#ifdef __WXGTK__
+    wxSize bestSize = GetBestSize();
+    bestSize.IncTo(m_on.GetBmpSize());
+    SetSize(bestSize);
+    SetMinSize(bestSize);
+#else
     SetSize(m_on.GetBmpSize());
-	update();
+    SetMinSize(m_on.GetBmpSize());
+#endif
 }
 
 void CheckBox::update()
