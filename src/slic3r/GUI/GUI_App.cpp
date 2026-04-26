@@ -6572,31 +6572,59 @@ Tab* GUI_App::get_layer_tab()
     return model_tabs_list[2];
 }
 
-ConfigOptionMode GUI_App::get_mode()
+namespace
+{
+ConfigOptionMode saved_mode_from_string(const std::string& mode)
+{
+    return mode == "expert" ? comExpert :
+           mode == "advanced" ? comAdvanced :
+           mode == "develop" ? comAdvanced :
+           comSimple;
+}
+
+std::string saved_mode_to_string(ConfigOptionMode mode)
+{
+    return mode == comExpert ? "expert" :
+           mode == comAdvanced ? "advanced" :
+           "simple";
+}
+
+std::string effective_mode_to_string(ConfigOptionMode mode)
+{
+    return mode == comDevelop ? "develop" : saved_mode_to_string(mode);
+}
+}
+
+ConfigOptionMode GUI_App::get_saved_mode()
 {
     if (!app_config->has("user_mode"))
         return comSimple;
-    //BBS
-    const auto mode = app_config->get("user_mode");
-    return mode == "advanced" ? comAdvanced :
-           mode == "simple" ? comSimple :
-           mode == "develop" ? comDevelop : comSimple;
+
+    return saved_mode_from_string(app_config->get("user_mode"));
+}
+
+ConfigOptionMode GUI_App::get_mode()
+{
+    return app_config->get_bool("developer_mode") ? comDevelop : get_saved_mode();
+}
+
+std::string GUI_App::get_saved_mode_str()
+{
+    return saved_mode_to_string(get_saved_mode());
 }
 
 std::string GUI_App::get_mode_str()
 {
-    if (!app_config->has("user_mode"))
-        return "simple";
-    return app_config->get("user_mode");
+    return effective_mode_to_string(get_mode());
 }
 
 void GUI_App::save_mode(const /*ConfigOptionMode*/int mode)
 {
-    //BBS
-    const std::string mode_str = mode == comAdvanced ? "advanced" :
-                                 mode == comSimple ? "simple" :
-                                 mode == comDevelop ? "develop" : "simple";
-    app_config->set("user_mode", mode_str);
+    const auto saved_mode = mode == comExpert ? comExpert :
+                            mode == comAdvanced ? comAdvanced :
+                            mode == comSimple ? comSimple :
+                            get_saved_mode();
+    app_config->set("user_mode", saved_mode_to_string(saved_mode));
     update_mode();
 }
 

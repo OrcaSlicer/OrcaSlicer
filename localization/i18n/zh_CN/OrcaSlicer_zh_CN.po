@@ -161,8 +161,8 @@ msgstr "工具类型"
 msgid "Smart fill angle"
 msgstr "智能填充角度"
 
-msgid "On overhangs only"
-msgstr "仅对悬垂区生效"
+msgid "On highlighted overhangs only"
+msgstr "仅对高亮悬垂区生效"
 
 msgid "Auto support threshold angle: "
 msgstr "自动支撑角度阈值："

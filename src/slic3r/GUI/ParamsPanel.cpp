@@ -22,6 +22,16 @@
 namespace Slic3r {
 namespace GUI {
 
+namespace
+{
+int mode_to_selection(ConfigOptionMode mode)
+{
+    return mode == comExpert ? 2 :
+           mode == comAdvanced ? 1 :
+           0;
+}
+}
+
 
 TipsDialog::TipsDialog(wxWindow *parent, const wxString &title, const wxString &description, std::string app_key, long style,std::map<wxStandardID,wxString> option_map)
     : DPIDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX),
@@ -261,15 +271,17 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
-            if(wxGetApp().get_mode() == comDevelop) return; // prevent change on dev mode
-            m_mode_view->SetValue(!m_mode_view->GetValue());
-            wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
-            evt.SetEventObject(m_mode_view);
-            m_mode_view->wxEvtHandler::ProcessEvent(evt);
+            if (wxGetApp().get_mode() == comDevelop || m_mode_view == nullptr)
+                return; // prevent change on dev mode
+
+            const int selection = m_mode_view->GetSelection();
+            m_mode_view->SelectAndNotify((selection + 1) % 3);
         });
-        m_mode_icon->SetToolTip(_L("Show/Hide advanced parameters"));
-        m_mode_view = new SwitchButton(m_top_panel, wxID_ABOUT);
-        m_mode_view->SetToolTip(_L("Show/Hide advanced parameters"));
+        m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
+        m_mode_view = new ModeSwitchButton(m_top_panel);
+        m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
+        if (wxGetApp().get_mode() == comDevelop)
+            m_mode_view->Enable(false);
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -382,9 +394,6 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
     if (m_mode_region)
         m_mode_region->Bind(wxEVT_TOGGLEBUTTON, &ParamsPanel::OnToggled, this);
-    if (m_mode_view)
-        m_mode_view->Bind(wxEVT_TOGGLEBUTTON, &ParamsPanel::OnToggled, this);
-    Bind(wxEVT_TOGGLEBUTTON, &ParamsPanel::OnToggled, this); // For Tab's mode switch
     //Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().plater()->search(false); }, wxID_FIND);
     //m_export_to_file->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().mainframe->export_config(); });
     //m_import_from_file->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().mainframe->load_config_file(); });
@@ -560,28 +569,6 @@ void ParamsPanel::OnToggled(wxCommandEvent& event)
         return;
     }
 
-    if (wxID_ABOUT != event.GetId()) {
-        return;
-    }
-
-    // this is from tab's mode switch
-    bool value = dynamic_cast<SwitchButton*>(event.GetEventObject())->GetValue();
-    int mode_id;
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": Advanced mode toogle to %1%") % value;
-
-    if (value)
-    {
-        //m_mode_region->SetBitmap(m_toggle_on_icon);
-        mode_id = comAdvanced;
-    }
-    else
-    {
-        //m_mode_region->SetBitmap(m_toggle_off_icon);
-        mode_id = comSimple;
-    }
-
-    Slic3r::GUI::wxGetApp().save_mode(mode_id);
     event.Skip();
 }
 
@@ -657,27 +644,22 @@ bool ParamsPanel::is_active_and_shown_tab(wxPanel* tab)
 void ParamsPanel::update_mode()
 {
     int app_mode = Slic3r::GUI::wxGetApp().get_mode();
-    SwitchButton * mode_view = m_current_tab ? dynamic_cast<Tab*>(m_current_tab)->m_mode_view : nullptr;
-    if (mode_view == nullptr) mode_view = m_mode_view;
-    if (mode_view == nullptr) return;
+    auto sync_mode_view = [&](ModeSwitchButton* mode_view) {
+        if (mode_view == nullptr)
+            return;
 
-    //BBS: disable the mode tab and return directly when enable develop mode
-    if (app_mode == comDevelop)
-    {
-        mode_view->Disable();
-        return;
-    }
-    if (!mode_view->IsEnabled())
-        mode_view->Enable();
+        mode_view->SetSelection(mode_to_selection(Slic3r::GUI::wxGetApp().get_saved_mode()));
+        if (app_mode == comDevelop) {
+            mode_view->Enable(false);
+            return;
+        }
 
-    if (app_mode == comAdvanced)
-    {
-        mode_view->SetValue(true);
-    }
-    else
-    {
-        mode_view->SetValue(false);
-    }
+        if (!mode_view->IsEnabled())
+            mode_view->Enable();
+    };
+
+    sync_mode_view(m_mode_view);
+    sync_mode_view(m_current_tab ? dynamic_cast<Tab*>(m_current_tab)->m_mode_view : nullptr);
 }
 
 void ParamsPanel::msw_rescale()
@@ -694,7 +676,9 @@ void ParamsPanel::msw_rescale()
         ((SwitchButton* )m_mode_region)->Rescale();
     if (m_mode_icon) m_mode_icon->msw_rescale();
     if (m_mode_view)
-        ((SwitchButton* )m_mode_view)->Rescale();
+    {
+        m_mode_view->Rescale();
+    }
     for (auto tab : {m_tab_print, m_tab_print_plate, m_tab_print_object, m_tab_print_part, m_tab_print_layer, m_tab_filament, m_tab_printer}) {
         if (tab) dynamic_cast<Tab*>(tab)->msw_rescale();
     }
@@ -790,7 +774,6 @@ void ParamsPanel::delete_subwindows()
 
     if (m_mode_view)
     {
-        delete m_mode_view;
         m_mode_view = nullptr;
     }
 
