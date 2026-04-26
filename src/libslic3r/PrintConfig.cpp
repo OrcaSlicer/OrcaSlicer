@@ -6803,7 +6803,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("This value determines the smallest wall line segment length in mm. "
         "The smaller you set this value, the more accurate and precise the walls will be.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
-    def->mode = comAdvanced;
+    def->mode = comExpert;
     def->min = 0.005;
     def->max = 0.5f;
     def->set_default_value(new ConfigOptionFloat(0.5f));
@@ -6815,7 +6815,7 @@ void PrintConfigDef::init_fff_params()
         "the print will be less accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits 'Maximum wall resolution', "
         "so if the two conflict, 'Maximum wall deviation' takes precedence.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
-    def->mode = comAdvanced;
+    def->mode = comExpert;
     def->min = 0.005f;
     def->max = 0.05f;
     def->set_default_value(new ConfigOptionFloat(0.025f));
