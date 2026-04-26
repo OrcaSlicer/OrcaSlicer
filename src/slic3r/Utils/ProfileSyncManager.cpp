@@ -337,6 +337,24 @@ std::string ProfileSyncManager::remote_prefix() const
     return "";
 }
 
+bool ProfileSyncManager::prepare_sync(std::string& error_out)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
+    
+    // Refresh remote state (git fetch, WebDAV no-op)
+    if (m_backend && !m_backend->refresh(error_out)) {
+        BOOST_LOG_TRIVIAL(error) << "ProfileSyncManager: refresh failed: " << error_out;
+        return false;
+    }
+    
+    // Create remote directories if needed
+    if (!m_config.read_only && !ensure_remote_dirs(error_out)) {
+        return false;
+    }
+    
+    return true;
+}
+
 bool ProfileSyncManager::ensure_remote_dirs(std::string& error_out)
 {
     std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);

@@ -6480,6 +6480,19 @@ void GUI_App::trigger_profile_sync_now()
             }
         }
 
+        // Prepare sync: refresh and ensure remote directories exist
+        if (!mgr->prepare_sync(error)) {
+            BOOST_LOG_TRIVIAL(error) << "Profile sync prepare failed: " << error;
+            CallAfter([this, error]() {
+                if (!is_closing() && plater() && plater()->get_notification_manager())
+                    plater()->get_notification_manager()->push_notification(
+                        NotificationType::CustomNotification,
+                        NotificationManager::NotificationLevel::ErrorNotificationLevel,
+                        "Profile sync prepare failed: " + error);
+            });
+            return;
+        }
+
         // Sync presets
         bool sync_ok = true;
         {
