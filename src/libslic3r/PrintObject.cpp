@@ -1092,6 +1092,7 @@ bool PrintObject::invalidate_state_by_config_options(
 		} else if (
                opt_key == "elefant_foot_compensation"
             || opt_key == "elefant_foot_compensation_layers"
+            || opt_key == "elefant_foot_layers_density"
             || opt_key == "support_top_z_distance"
             || opt_key == "support_bottom_z_distance"
             || opt_key == "xy_hole_compensation"
@@ -1289,6 +1290,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "wall_transition_filter_deviation"
             || opt_key == "wall_transition_angle"
             || opt_key == "wall_distribution_count"
+            || opt_key == "wall_maximum_resolution"
+            || opt_key == "wall_maximum_deviation"
             || opt_key == "min_feature_size"
             || opt_key == "min_length_factor"
             || opt_key == "min_bead_width") {

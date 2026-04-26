@@ -4490,8 +4490,7 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
-            auto offset = static_cast<unsigned int>(print_z / 10.001) * 5;
-            gcode += writer().set_temperature(print.calib_params().start - offset);
+            gcode += writer().set_temperature(this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start), static_cast<float>(print.calib_params().end), 5.0f));
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
@@ -7066,14 +7065,29 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
     }
 }
 
-// Calculate the interpolated value for the current layer between start_value and end_value
-float GCode::interpolate_value_across_layers(float start_value, float end_value) const {
-    if (m_layer_index == 1) {
+// Calculate the interpolated value for the current layer between start_value and end_value.
+// Step will create equal layers steps from first to last value.
+// Step = 0 means gradual interpolation finishing at last value.
+float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
+{
+    if (m_layer_index <= 1) {
         return start_value;
-    } else {
-        float ratio = (m_layer_index - 2.0f) / (m_layer_count - 3.0f);
-        ratio = std::max(0.0f, std::min(1.0f, ratio)); // clamp
-        return start_value + ratio * (end_value - start_value);
+    }
+    else {
+        bool use_steps = step > 0.f;
+        if (use_steps) {
+            if (start_value > end_value) {
+                start_value += step;
+            } else {
+                end_value += step;
+            }
+        }
+        float ratio = m_layer_index / (m_layer_count - 1.f);
+        float value = start_value + ratio * (end_value - start_value);
+        if (use_steps) {
+            value = trunc(value / step) * step;
+        }
+        return value;
     }
 }
 
