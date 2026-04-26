@@ -237,8 +237,10 @@ public:
     bool            enable_cooling_markers() const { return m_enable_cooling_markers; }
     std::string     extrusion_role_to_string_for_parser(const ExtrusionRole &);
 
-    // Calculate the interpolated value for the current layer between start_value and end_value
-    float interpolate_value_across_layers(float start_value, float end_value) const;
+    // Calculate the interpolated value for the current layer between start_value and end_value.
+    // Step will create equal layers steps from first to last value.
+    // Step = 0 means gradual interpolation finishing at last value.
+    float interpolate_value_across_layers(float start_value, float end_value, float step = 0.0f) const;
 
     // For Perl bindings, to be used exclusively by unit tests.
     unsigned int    layer_count() const { return m_layer_count; }
