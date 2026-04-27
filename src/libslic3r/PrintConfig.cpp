@@ -287,6 +287,13 @@ static t_config_enum_values s_keys_map_SlicingMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SlicingMode)
 
+static t_config_enum_values s_keys_map_SlicingTolerance {
+    { "middle",         int(SlicingTolerance::Middle) },
+    { "exclusive",      int(SlicingTolerance::Exclusive) },
+    { "inclusive",      int(SlicingTolerance::Inclusive) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SlicingTolerance)
+
 static t_config_enum_values s_keys_map_SupportMaterialPattern {
     { "rectilinear",        smpRectilinear },
     { "rectilinear-grid",   smpRectilinearGrid },
@@ -5618,6 +5625,21 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Close holes"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SlicingMode>(SlicingMode::Regular));
+
+    def = this->add("slicing_tolerance", coEnum);
+    def->label = L("Slicing Tolerance");
+    def->category = L("other");
+    def->tooltip = L("Use \"Exclusive\" for increased tolerance on sloped edges. Use \"Inclusive\" to ensure the wall at each layer fully fills the model volume.");
+    def->enum_keys_map = &ConfigOptionEnum<SlicingTolerance>::get_enum_values();
+    def->enum_values.push_back("middle");
+    def->enum_values.push_back("exclusive");
+    def->enum_values.push_back("inclusive");
+    def->enum_labels.push_back(L("Middle (Default)"));
+    def->enum_labels.push_back(L("Exclusive"));
+    def->enum_labels.push_back(L("Inclusive"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SlicingTolerance>(SlicingTolerance::Middle));
+    
 
     def = this->add("z_offset", coFloat);
     def->label = L("Z offset");

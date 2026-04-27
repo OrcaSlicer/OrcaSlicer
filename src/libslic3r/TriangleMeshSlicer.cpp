@@ -2013,7 +2013,40 @@ std::vector<ExPolygons> slice_mesh_ex(
             slicing_params.mode = MeshSlicingParams::SlicingMode::Positive;
         if (params.mode_below == MeshSlicingParams::SlicingMode::PositiveLargestContour)
             slicing_params.mode_below = MeshSlicingParams::SlicingMode::Positive;
-        layers_p = slice_mesh(mesh, zs, slicing_params, throw_on_cancel);
+
+        if (params.tolerance != MeshSlicingParamsEx::SlicingTol::Default && zs.size() > 1) {
+            size_t layer_n = zs.size();
+            std::vector<float> upper_z(layer_n), lower_z(layer_n);
+            
+            //Set up initial layer boundaries
+            upper_z[0] = 2*zs[0];
+            lower_z[0] = 0.01; // Don't set this too low or we get incorrect slicing behaviour 
+            float prev_half_layer = zs[0];
+
+            //calculate upper and lower boundaries for each layer
+            for(size_t i = 1; i < layer_n - 1; ++i) {
+                float curr_half_layer = zs[i] - (zs[i-1] + prev_half_layer);
+                upper_z[i] = zs[i] + curr_half_layer;
+                lower_z[i] = zs[i] - curr_half_layer;
+                prev_half_layer = curr_half_layer;
+            }
+
+            // Calculate top layer boundaries
+            upper_z[layer_n - 1] = zs[layer_n - 1]; // ensure we don't extend out the top of the model
+            lower_z[layer_n - 1] = upper_z[layer_n - 2];
+
+            // Calculate the geometry at the top and bottom of each layer and then combine them
+            std::vector<Polygons> upper_layers = slice_mesh(mesh, upper_z, slicing_params, throw_on_cancel);
+            std::vector<Polygons> lower_layers = slice_mesh(mesh, lower_z, slicing_params, throw_on_cancel);
+            for(size_t i = 0; i < layer_n; ++i) {
+                if(params.tolerance == MeshSlicingParamsEx::SlicingTol::Intersection)
+                    layers_p.emplace_back(intersection(upper_layers[i], lower_layers[i]));
+                else if(params.tolerance == MeshSlicingParamsEx::SlicingTol::Union)
+                    layers_p.emplace_back(union_(upper_layers[i], lower_layers[i]));
+            }
+        } else {
+            layers_p = slice_mesh(mesh, zs, slicing_params, throw_on_cancel);
+        }
     }
     
 //    BOOST_LOG_TRIVIAL(debug) << "slice_mesh make_expolygons in parallel - start";

@@ -37,6 +37,18 @@ struct MeshSlicingParams
 
 struct MeshSlicingParamsEx : public MeshSlicingParams
 {
+    enum class SlicingTol : uint32_t {
+        // Regular slicing using geometry from the middle of the layer
+        Default,
+        // Slices the top and bottom of each layer, using an intersection to combine the polygons
+        // This keeps all extrusions within model boundaries to help tolerances on sloped parts
+        Intersection,
+        // Slices the top and bottom of each layer, using a union to combine the polygons
+        // This aims to ensure extrusions fill the model volume (e.g. when planning to sand down parts)
+        Union,
+    };
+
+    SlicingTol    tolerance {SlicingTol::Default};
     // Morphological closing operation when creating output expolygons, unscaled.
     float         closing_radius { 0 };
     // Positive offset applied when creating output expolygons, unscaled.

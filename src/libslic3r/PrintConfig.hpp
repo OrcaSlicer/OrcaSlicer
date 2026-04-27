@@ -156,6 +156,16 @@ enum class SlicingMode
     CloseHoles,
 };
 
+enum class SlicingTolerance
+{
+    // Regular slicing, should match volume of model
+    Middle,
+    // For sloped walls, only extrudes within the model boundaries, reducing overall volume
+    Exclusive,
+    // For sloped walls, ensures full extrusion within the model boundaries, increasing overall volume
+    Inclusive,
+};
+
 enum SupportMaterialPattern {
     smpDefault,
     smpRectilinear, smpRectilinearGrid, smpHoneycomb,
@@ -499,6 +509,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(IroningType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SlicingTolerance)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialPattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialStyle)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
@@ -915,6 +926,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                staggered_inner_seams))
     ((ConfigOptionFloat,               slice_closing_radius))
     ((ConfigOptionEnum<SlicingMode>,   slicing_mode))
+    ((ConfigOptionEnum<SlicingTolerance>, slicing_tolerance))
     ((ConfigOptionBool,                enable_support))
     // Automatic supports (generated based on support_threshold_angle).
     ((ConfigOptionEnum<SupportType>,   support_type))

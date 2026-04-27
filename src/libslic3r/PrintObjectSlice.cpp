@@ -148,6 +148,12 @@ static std::vector<VolumeSlices> slice_volumes_inner(
     case SlicingMode::CloseHoles: params_base.mode = MeshSlicingParams::SlicingMode::Positive; break;
     }
 
+    switch (print_object_config.slicing_tolerance) {
+        case SlicingTolerance::Middle:    params_base.tolerance = MeshSlicingParamsEx::SlicingTol::Default; break;
+        case SlicingTolerance::Inclusive: params_base.tolerance = MeshSlicingParamsEx::SlicingTol::Union; break;
+        case SlicingTolerance::Exclusive: params_base.tolerance = MeshSlicingParamsEx::SlicingTol::Intersection; break;
+    }
+
     params_base.mode_below     = params_base.mode;
 
     // BBS
