@@ -3342,6 +3342,10 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     if (obj->ams_support_virtual_tray) {
         int extruder = 0x10000; // Main (first) extruder at right
         for (auto & vt_tray : obj->vt_slot) {
+            if (!vt_tray.is_exists && vt_tray.setting_id.empty() && vt_tray.m_fila_type.empty() && vt_tray.color.empty()) {
+                extruder = 0;
+                continue;
+            }
             filament_ams_list.emplace(extruder + stoi(vt_tray.id), build_tray_config(vt_tray, "Ext",vt_tray.id, "0"));//254 or 255
             extruder = 0;
         }
@@ -3498,7 +3502,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         p->plater->pop_warning_and_go_to_device_page("", Plater::PrinterWarningType::EMPTY_FILAMENT, _L("Sync printer information"));
         return;
     }
-    if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
+    auto* agent = wxGetApp().getDeviceManager()->get_agent();
+    const bool direct_pull_sync = agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull;
+    if (!direct_pull_sync && !wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
         return;
     }
     std::string ams_filament_ids = wxGetApp().app_config->get("ams_filament_ids", p->ams_list_device);
@@ -3506,31 +3512,39 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     if (!ams_filament_ids.empty()) {
         boost::algorithm::split(list2, ams_filament_ids, boost::algorithm::is_any_of(","));
     }
-    wxGetApp().plater()->update_all_plate_thumbnails(true);//preview thumbnail for sync_dlg
-    SyncAmsInfoDialog::SyncInfo temp_info;
-    temp_info.use_dialog_pos = false;
-    temp_info.cancel_text_to_later = is_from_big_sync_btn;
-    if (m_sync_dlg == nullptr) {
-        m_sync_dlg = new SyncAmsInfoDialog(this, temp_info);
+    SyncAmsInfoDialog::SyncResult sync_result;
+    int dlg_res{(int) wxID_YES};
+    if (direct_pull_sync) {
+        sync_result.direct_sync = true;
+        sync_result.is_same_printer = true;
     } else {
-        m_sync_dlg->set_info(temp_info);
-    }
-    int dlg_res{(int) wxID_CANCEL};
-    if (m_sync_dlg->is_need_show()) {
-        m_sync_dlg->deal_only_exist_ext_spool(obj);
-        if (m_sync_dlg->is_dirty_filament()) {
-            wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0], false, "", false, true);
-            wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-            dynamic_filament_list.update();
+        wxGetApp().plater()->update_all_plate_thumbnails(true);//preview thumbnail for sync_dlg
+        SyncAmsInfoDialog::SyncInfo temp_info;
+        temp_info.use_dialog_pos = false;
+        temp_info.cancel_text_to_later = is_from_big_sync_btn;
+        if (m_sync_dlg == nullptr) {
+            m_sync_dlg = new SyncAmsInfoDialog(this, temp_info);
+        } else {
+            m_sync_dlg->set_info(temp_info);
         }
-        m_sync_dlg->set_check_dirty_fialment(false);
-        dlg_res = m_sync_dlg->ShowModal();
-    } else {
-        dlg_res =(int) wxID_YES;
+        dlg_res = (int) wxID_CANCEL;
+        if (m_sync_dlg->is_need_show()) {
+            m_sync_dlg->deal_only_exist_ext_spool(obj);
+            if (m_sync_dlg->is_dirty_filament()) {
+                wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0], false, "", false, true);
+                wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+                dynamic_filament_list.update();
+            }
+            m_sync_dlg->set_check_dirty_fialment(false);
+            dlg_res = m_sync_dlg->ShowModal();
+        } else {
+            dlg_res =(int) wxID_YES;
+        }
     }
     if (dlg_res == wxID_CANCEL)
         return;
-    auto sync_result = m_sync_dlg->get_result();
+    if (!direct_pull_sync)
+        sync_result = m_sync_dlg->get_result();
     if (!sync_result.is_same_printer) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error: sync_result.is_same_printer value is false";
         return;

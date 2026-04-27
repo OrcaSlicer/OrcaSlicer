@@ -776,6 +776,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
     const auto& value = json["result"]["value"];
     trays.clear();
     max_lane_index = 0;
+    bool has_populated_lane = false;
 
     for (const auto& [lane_key, lane_obj] : value.items()) {
         if (!lane_obj.is_object()) {
@@ -804,6 +805,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
+        has_populated_lane = has_populated_lane || tray.has_filament;
         auto* bundle = GUI::wxGetApp().preset_bundle;
         tray.tray_info_idx = bundle
             ? bundle->filaments.filament_id_by_type(tray.tray_type)
@@ -815,6 +817,10 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
 
     if (trays.empty()) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: No lanes found";
+        return false;
+    }
+
+    if (!has_populated_lane) {
         return false;
     }
 
