@@ -3323,7 +3323,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("slot_id", new ConfigOptionStrings{slot_id});
         tray_config.set_key_value("filament_type", new ConfigOptionStrings{tray.m_fila_type});
         tray_config.set_key_value("tray_name", new ConfigOptionStrings{ name });
-        tray_config.set_key_value("filament_colour", new ConfigOptionStrings{into_u8(wxColour("#" + tray.color).GetAsString(wxC2S_HTML_SYNTAX))});
+        const std::string filament_color = into_u8(wxColour("#" + tray.color).GetAsString(wxC2S_HTML_SYNTAX));
+        tray_config.set_key_value("filament_colour", new ConfigOptionStrings{filament_color});
         tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
         tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{std::to_string(tray.ctype)});
         tray_config.set_key_value("filament_exist", new ConfigOptionBools{tray.is_exists});
@@ -3335,6 +3336,9 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("filament_is_support", new ConfigOptionBools{ info.has_value() ? info->is_support : false});
         for (int i = 0; i < tray.cols.size(); ++i) {
             tray_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.push_back(into_u8(wxColour("#" + tray.cols[i]).GetAsString(wxC2S_HTML_SYNTAX)));
+        }
+        if (tray_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.empty() && !filament_color.empty()) {
+            tray_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.push_back(filament_color);
         }
         return tray_config;
     };
