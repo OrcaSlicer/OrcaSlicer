@@ -132,11 +132,12 @@ private:
 
     std::string   m_last_status;
     long long     m_last_sync_time{0};
-    mutable std::mutex m_mutex;
+    mutable std::mutex m_mutex;  // Protects m_config, m_last_status, m_last_sync_time
 
     // Protects m_backend and m_file_states from concurrent access
     // across sync thread, manual sync, and GUI queries.
     // Recursive because sync_presets() → sync_single_file() → m_backend.
+    // Lock ordering: if both mutexes needed, acquire m_mutex first, then m_sync_mutex.
     mutable std::recursive_mutex m_sync_mutex;
 
     // State persistence
