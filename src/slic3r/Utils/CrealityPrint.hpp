@@ -1,6 +1,7 @@
 #ifndef slic3r_CrealityPrint_hpp_
 #define slic3r_CrealityPrint_hpp_
 
+#include <map>
 #include <string>
 #include <wx/string.h>
 #include <boost/optional.hpp>
@@ -44,7 +45,7 @@ private:
     mutable std::string m_model;
 
     std::string make_url(const std::string& path) const;
-    bool start_print(wxString& msg, const std::string& path) const;
+    bool start_print(wxString& msg, const std::string& filename, const std::map<std::string, std::string>& extended_info) const;
     std::string safe_filename(const std::string& filename) const;
     void query_model() const;
 };
