@@ -173,7 +173,8 @@ bool WebDAVSync::parse_propfind_response(const std::string& xml,
     if (!parser)
         return false;
 
-    PropfindParserContext ctx{out};
+    std::vector<RemoteFileInfo> temp_results;
+    PropfindParserContext ctx{temp_results};
     XML_SetUserData(parser, &ctx);
     XML_SetElementHandler(parser, PropfindParserContext::start_element,
                                    PropfindParserContext::end_element);
@@ -183,6 +184,9 @@ bool WebDAVSync::parse_propfind_response(const std::string& xml,
     if (!ok) {
         BOOST_LOG_TRIVIAL(error) << "WebDAV PROPFIND XML parse error: "
                                  << XML_ErrorString(XML_GetErrorCode(parser));
+        out.clear();
+    } else {
+        out = std::move(temp_results);
     }
     XML_ParserFree(parser);
     return ok;

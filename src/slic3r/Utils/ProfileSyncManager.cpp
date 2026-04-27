@@ -332,9 +332,29 @@ long long ProfileSyncManager::last_sync_time() const
 
 std::string ProfileSyncManager::remote_prefix() const
 {
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
     if (m_backend)
         return m_backend->remote_prefix();
     return "";
+}
+
+bool ProfileSyncManager::commit_git_changes(const std::string& message, std::string& error_out)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_sync_mutex);
+    if (!m_backend) {
+        error_out = "No backend available";
+        return false;
+    }
+    if (m_config.backend_type != SyncBackendType::Git) {
+        error_out = "Backend is not Git";
+        return false;
+    }
+    auto* git_backend = dynamic_cast<GitSync*>(m_backend.get());
+    if (!git_backend) {
+        error_out = "Failed to cast to GitSync";
+        return false;
+    }
+    return git_backend->commit_and_push(message, error_out);
 }
 
 bool ProfileSyncManager::prepare_sync(std::string& error_out)

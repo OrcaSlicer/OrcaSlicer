@@ -93,8 +93,8 @@ public:
         return m_backend ? m_backend->info_message() : std::string();
     }
 
-    // Access to the sync backend (e.g. for Git commit_and_push after conflict resolution)
-    SyncBackend* get_backend() const { return m_backend.get(); }
+    // Commit and push changes for Git backend (thread-safe)
+    bool commit_git_changes(const std::string& message, std::string& error_out);
 
     // Prepare sync: refresh remote state and ensure directories exist
     bool prepare_sync(std::string& error_out);
