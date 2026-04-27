@@ -297,12 +297,22 @@ bool GitSync::test_connection(std::string& error_out)
         // so we try to init a bare temp repo just for the test
         git_repository* tmp_repo = nullptr;
         fs::path tmp_path = fs::temp_directory_path() / "orcaslicer_git_test";
+        
+        // RAII cleanup guard for temp directory
+        struct TempDirCleanup {
+            fs::path path;
+            ~TempDirCleanup() { 
+                boost::system::error_code ec;
+                fs::remove_all(path, ec); 
+            }
+        };
+        TempDirCleanup cleanup{tmp_path};
+        
         fs::create_directories(tmp_path);
 
         rc = git_repository_init(&tmp_repo, tmp_path.string().c_str(), 1 /* bare */);
         if (rc < 0) {
             error_out = last_git_error("Failed to create temp repo for connection test");
-            fs::remove_all(tmp_path);
             return false;
         }
 
@@ -310,7 +320,6 @@ bool GitSync::test_connection(std::string& error_out)
         if (rc < 0) {
             error_out = last_git_error("Failed to create remote");
             git_repository_free(tmp_repo);
-            fs::remove_all(tmp_path);
             return false;
         }
 
@@ -329,7 +338,6 @@ bool GitSync::test_connection(std::string& error_out)
             git_remote_disconnect(remote);
         git_remote_free(remote);
         git_repository_free(tmp_repo);
-        fs::remove_all(tmp_path);
         return ok;
     }
 

@@ -6393,12 +6393,9 @@ void GUI_App::show_deferred_sync_conflicts()
 
     // For Git backend, commit and push after all resolutions
     if (any_changes && mgr->get_config().backend_type == SyncBackendType::Git) {
-        auto* git_backend = dynamic_cast<GitSync*>(mgr->get_backend());
-        if (git_backend) {
-            std::string commit_error;
-            if (!git_backend->commit_and_push("OrcaSlicer conflict resolution", commit_error))
-                BOOST_LOG_TRIVIAL(error) << "Git commit/push after conflict resolution failed: " << commit_error;
-        }
+        std::string commit_error;
+        if (!mgr->commit_git_changes("OrcaSlicer conflict resolution", commit_error))
+            BOOST_LOG_TRIVIAL(error) << "Git commit/push after conflict resolution failed: " << commit_error;
     }
 
     if (any_changes) {
