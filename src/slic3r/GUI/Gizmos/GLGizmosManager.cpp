@@ -424,17 +424,12 @@ void GLGizmosManager::set_hover_id(int id)
 
 void GLGizmosManager::update_assemble_view_data()
 {
-    if (!m_assemble_view_data)
-        return;
-
-    Plater* plater = wxGetApp().plater();
-    GLCanvas3D* assemble_canvas = (plater != nullptr) ? plater->get_assmeble_canvas3D() : nullptr;
-    wxGLCanvas* assemble_wxcanvas = (assemble_canvas != nullptr) ? assemble_canvas->get_wxglcanvas() : nullptr;
-
-    if (assemble_wxcanvas == nullptr || !assemble_wxcanvas->IsShownOnScreen())
-        m_assemble_view_data->update(AssembleViewDataID(0));
-    else
-        m_assemble_view_data->update(AssembleViewDataID((int)AssembleViewDataID::ModelObjectsInfo | (int)AssembleViewDataID::ModelObjectsClipper));
+    if (m_assemble_view_data) {
+        if (!wxGetApp().plater()->get_assmeble_canvas3D()->get_wxglcanvas()->IsShown())
+            m_assemble_view_data->update(AssembleViewDataID(0));
+        else
+            m_assemble_view_data->update(AssembleViewDataID((int)AssembleViewDataID::ModelObjectsInfo | (int)AssembleViewDataID::ModelObjectsClipper));
+    }
 }
 
 void GLGizmosManager::update_data()

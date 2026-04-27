@@ -93,9 +93,7 @@ bool View3D::init(wxWindow* parent, Bed3D& bed, Model* model, DynamicPrintConfig
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
 
     SetSizer(main_sizer);
-    const wxSize current_size = GetSize();
-    if (current_size.GetWidth() > 0 && current_size.GetHeight() > 0)
-        SetMinSize(current_size);
+    SetMinSize(GetSize());
     GetSizer()->SetSizeHints(this);
 
     return true;
@@ -288,9 +286,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
 
     SetSizer(main_sizer);
-    const wxSize current_size = GetSize();
-    if (current_size.GetWidth() > 0 && current_size.GetHeight() > 0)
-        SetMinSize(current_size);
+    SetMinSize(GetSize());
     GetSizer()->SetSizeHints(this);
 
     bind_event_handlers();
@@ -806,9 +802,7 @@ bool AssembleView::init(wxWindow* parent, Bed3D& bed, Model* model, DynamicPrint
     main_sizer->Add(m_canvas_widget, 1, wxALL | wxEXPAND, 0);
 
     SetSizer(main_sizer);
-    const wxSize current_size = GetSize();
-    if (current_size.GetWidth() > 0 && current_size.GetHeight() > 0)
-        SetMinSize(current_size);
+    SetMinSize(GetSize());
     GetSizer()->SetSizeHints(this);
 
     return true;
