@@ -7659,11 +7659,12 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                 }
                 },
                 partly_inside_enable);
+            const auto* model_objects_clipper =
+                m_gizmos.m_assemble_view_data ? m_gizmos.m_assemble_view_data->model_objects_clipper() : nullptr;
             const bool has_section_clipper =
-                m_canvas_type == CanvasAssembleView &&
-                m_gizmos.m_assemble_view_data &&
-                m_gizmos.m_assemble_view_data->model_objects_clipper() &&
-                m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position() > 0;
+                canvas_type == CanvasAssembleView &&
+                model_objects_clipper &&
+                model_objects_clipper->get_position() > 0;
             if (has_section_clipper) {
                 const GLGizmosManager& gm = get_gizmos_manager();
                 shader->stop_using();
@@ -8931,11 +8932,10 @@ void GLCanvas3D::_render_assemble_control()
 
     auto* assemble_data = m_gizmos.m_assemble_view_data.get();
     auto* clipper = (assemble_data != nullptr) ? assemble_data->model_objects_clipper() : nullptr;
-    if (clipper == nullptr)
-        return;
 
     if (m_gizmos.get_current_type() == GLGizmosManager::EType::MmSegmentation) {
-        clipper->set_position(0.0, true);
+        if (clipper != nullptr)
+            clipper->set_position(0.0, true);
         return;
     }
 
@@ -8964,7 +8964,7 @@ void GLCanvas3D::_render_assemble_control()
     }
     float same_line_width = tooltip_button_width;
     {
-        float clp_dist = clipper->get_position();
+        float clp_dist = (clipper != nullptr) ? clipper->get_position() : 0.f;
         if (clp_dist == 0.f) {
             ImGui::AlignTextToFramePadding();
             imgui->text(_L("Section View"));
@@ -8979,6 +8979,12 @@ void GLCanvas3D::_render_assemble_control()
         }
         same_line_width += (text_size_x + item_spacing);
         ImGui::SameLine(same_line_width);
+
+        if (clipper == nullptr) {
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        }
+
         ImGui::PushItemWidth(slider_width);
         bool view_slider_changed = imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
 
@@ -8987,8 +8993,13 @@ void GLCanvas3D::_render_assemble_control()
         ImGui::PushItemWidth(value_size);
         bool view_input_changed = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (view_slider_changed || view_input_changed)
+        if ((view_slider_changed || view_input_changed) && clipper != nullptr)
             clipper->set_position(clp_dist, true);
+
+        if (clipper == nullptr) {
+            ImGui::PopStyleVar();
+            ImGui::PopItemFlag();
+        }
 
         same_line_width += (value_size + item_spacing * 2);
     }
