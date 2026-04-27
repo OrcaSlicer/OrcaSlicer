@@ -196,6 +196,32 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
     return safe_filename;
 }
 
+static void ws_connect(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws,
+                       const std::string& host_url, const std::string& port)
+{
+    std::string host = Http::get_host_from_url(host_url);
+
+    tcp::resolver resolver{ioc};
+    beast::get_lowest_layer(ws).expires_after(std::chrono::seconds(5));
+    auto const results = resolver.resolve(host, port);
+    beast::get_lowest_layer(ws).connect(results);
+    host += ':' + std::to_string(beast::get_lowest_layer(ws).socket().remote_endpoint().port());
+
+    ws.set_option(websocket::stream_base::decorator(
+        [](websocket::request_type& req) {
+            req.set(http::field::user_agent,
+                std::string(BOOST_BEAST_VERSION_STRING) + " websocket-client-coro");
+        }));
+    ws.handshake(host, "/");
+
+#ifdef _WIN32
+    DWORD recv_timeout = 3000;
+#else
+    struct timeval recv_timeout = {3, 0};
+#endif
+    setsockopt(beast::get_lowest_layer(ws).socket().native_handle(),
+               SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&recv_timeout), sizeof(recv_timeout));
+}
 void CrealityPrint::query_model() const
 {
     if (!m_model.empty())
@@ -217,46 +243,25 @@ bool CrealityPrint::supports_multi_color_print() const
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename) const
 {
     try {
-        std::string host = Http::get_host_from_url(m_host);
-        auto const port = "9999";
+        net::io_context ioc;
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        ws_connect(ioc, ws, m_host, "9999");
 
         json j2 = {
             { "method", "set" },
             {
                 "params", {
                     { "opGcodeFile", "printprt:/usr/data/printer_data/gcodes/" + filename }
-                }    
+                }
             }
         };
 
-        net::io_context ioc;
-
-        tcp::resolver resolver{ioc};
-        websocket::stream<tcp::socket> ws{ioc};
-
-        auto const results = resolver.resolve(host, port);
-
-        auto ep = net::connect(ws.next_layer(), results);
-
-        host += ':' + std::to_string(ep.port());
-
-        ws.set_option(websocket::stream_base::decorator(
-            [](websocket::request_type& req)
-            {
-                req.set(http::field::user_agent,
-                    std::string(BOOST_BEAST_VERSION_STRING) +
-                        " websocket-client-coro");
-            }));
-
-        ws.handshake(host, "/");
-        
         ws.write(net::buffer(to_string(j2)));
 
         beast::flat_buffer buffer;
 
         ws.read(buffer);
 
-        ws.close(websocket::close_code::normal);
         return true;
     } catch(std::exception const& e) {
         BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Error starting print: " << e.what();
