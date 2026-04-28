@@ -292,14 +292,24 @@ void FillGyroid::_fill_surface_single(
     // generate pattern
     Polylines polylines;
     if (params.gyroid_optimized) {
-        // Marching-squares path on the gyroid implicit field. Period matches
+        // Marching-squares path on the gyroid implicit field. Base period matches
         // the standard parametric path's wavelength: 2*pi * spacing / density_adj.
         // Omega anisotropically tightens the x dimension under load.
+        //
+        // Mass calibration: scaling fx by omega while leaving fy/fz at baseline
+        // raises the surface-area-to-volume ratio by approximately omega^(1/3)
+        // (the geometric mean of the three frequencies). To keep extruded mass
+        // consistent with the standard gyroid at the same `sparse_infill_density`
+        // setting, the base period is compensated by cbrt(omega):
+        //   fx = omega^(2/3) * baseline_orig
+        //   fy = fz = omega^(-1/3) * baseline_orig
+        //   geometric mean of (fx, fy, fz) = baseline_orig  -> mass preserved.
         const double lh = (params.layer_height > 0.) ? double(params.layer_height) : double(this->spacing);
         const double omega = compute_omega_factor(density_adjusted, this->spacing * params.multiline, lh);
 
         const float density_factor = std::max(0.001f, float(params.density * DensityAdjust / params.multiline));
-        const float period         = float(2.0 * M_PI) * float(this->spacing) / density_factor;
+        const float period_base    = float(2.0 * M_PI) * float(this->spacing) / density_factor;
+        const float period         = period_base * std::cbrt(float(omega));
 
         BoundingBox bb_field = bb;
         bb_field.offset(scale_((params.multiline + 1) * this->spacing));
