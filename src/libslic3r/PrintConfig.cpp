@@ -4436,6 +4436,33 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 0 });
 
+    def = this->add("close_additional_fan_first_x_layers", coInts);
+    def->label = L("For the first");
+    def->tooltip = L("Set special auxiliary cooling fan for the first certain layers.");
+    def->sidetext = L("layers");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInts { 1 });
+
+    def = this->add("additional_fan_full_speed_layer", coInts);
+    def->label = L("Full fan speed at layer");
+    def->tooltip = L("Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\". "
+                     "\"Full fan speed at layer\" will be ignored if lower than \"For the first\", in which case the fan will run at maximum allowed speed at layer \"For the first\" + 1.");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInts { 0 });
+
+    def = this->add("first_x_layer_fan_speed", coFloats);
+    def->label = L("Fan speed");
+    def->tooltip = L("Special auxiliary cooling fan speed, effective only for the first x layers.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloats { 0 });
+
     def = this->add("min_layer_height", coFloats);
     def->label = L("Min");
     def->tooltip = L("The lowest printable layer height for the extruder. "

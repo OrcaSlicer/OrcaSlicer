@@ -832,6 +832,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
             config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
             config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
+            config.set_key_value("current_hotend", new ConfigOptionInt(old_extruder_id));
+            config.set_key_value("next_hotend", new ConfigOptionInt((int) gcodegen.get_extruder_id(new_filament_id)));
             config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
             config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
             config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
@@ -2787,7 +2789,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
+    this->placeholder_parser().set("initial_no_support_hotend", (int) get_extruder_id(initial_non_support_extruder_id));
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
+    this->placeholder_parser().set("current_hotend", extruder_id);
     //Orca: set the key for compatibilty
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
@@ -2802,7 +2806,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("long_retractions_when_ec",new ConfigOptionBoolsNullable(m_config.long_retractions_when_ec));
 
     this->placeholder_parser().set("max_additional_fan", max_additional_fan);
-    this->placeholder_parser().set("first_x_layer_fan_speed", 0); // TODO: Orca hack to support BBL profiles
+    this->placeholder_parser().set("first_x_layer_fan_speed", new ConfigOptionFloats(m_config.first_x_layer_fan_speed));
+    this->placeholder_parser().set("close_additional_fan_first_x_layers", new ConfigOptionInts(m_config.close_additional_fan_first_x_layers));
+    this->placeholder_parser().set("additional_fan_full_speed_layer", new ConfigOptionInts(m_config.additional_fan_full_speed_layer));
 
     auto flush_v_speed = m_config.filament_flush_volumetric_speed.values;
     auto flush_temps = m_config.filament_flush_temp.values;
@@ -7581,6 +7587,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     float filament_area = float((M_PI / 4.f) * pow(m_config.filament_diameter.get_at(new_filament_id), 2));
     //BBS: add handling for filament change in start gcode
     int old_filament_id = -1;
+    int old_extruder_id = -1;
     if (m_writer.filament() != nullptr || m_start_gcode_filament != -1) {
         std::vector<float> flush_matrix(cast<float>(get_flush_volumes_matrix(m_config.flush_volumes_matrix.values, new_extruder_id, m_config.nozzle_diameter.values.size())));
         const unsigned int number_of_extruders = (unsigned int) (m_config.filament_colour.values.size()); // if is multi_extruder only use the fist extruder matrix
@@ -7590,7 +7597,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             assert(m_start_gcode_filament < number_of_extruders);
 
         old_filament_id = m_writer.filament() != nullptr ? m_writer.filament()->id() : m_start_gcode_filament;
-        int old_extruder_id = m_writer.filament() != nullptr ? m_writer.filament()->extruder_id() : get_extruder_id(m_start_gcode_filament);
+        old_extruder_id = m_writer.filament() != nullptr ? m_writer.filament()->extruder_id() : get_extruder_id(m_start_gcode_filament);
 
         old_retract_length = m_config.retraction_length.get_at(old_filament_id);
         old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_filament_id);
@@ -7636,6 +7643,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
     dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
+    dyn_config.set_key_value("current_hotend", new ConfigOptionInt(old_filament_id >= 0 ? old_extruder_id : -1));
+    dyn_config.set_key_value("next_hotend", new ConfigOptionInt(new_extruder_id));
     dyn_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
     dyn_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
     dyn_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -7771,6 +7780,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
 
     this->placeholder_parser().set("current_extruder", new_filament_id);
+    this->placeholder_parser().set("current_hotend", new_extruder_id);
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));

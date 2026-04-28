@@ -1,0 +1,42 @@
+{
+    "type": "filament",
+    "name": "Generic PLA High Speed @BBL X2D 0.2 nozzle",
+    "inherits": "Generic PLA High Speed @BBL X1C",
+    "from": "system",
+    "setting_id": "GFSL95_18",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10"
+    ],
+    "filament_flush_volumetric_speed": [
+        "3",
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "2",
+        "2"
+    ],
+    "filament_tower_interface_print_temp": [
+        "220"
+    ],
+    "first_x_layer_fan_speed": [
+        "40"
+    ],
+    "retraction_distances_when_ec": [
+        "3",
+        "3"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

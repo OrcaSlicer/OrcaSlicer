@@ -1,0 +1,92 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @BBL X2D",
+    "inherits": "fdm_process_dual_0.20_nozzle_0.4",
+    "from": "system",
+    "setting_id": "GP151",
+    "instantiation": "true",
+    "description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
+    "bridge_speed": [
+        "50",
+        "50",
+        "50",
+        "200"
+    ],
+    "default_acceleration": [
+        "10000",
+        "10000",
+        "1000",
+        "1000"
+    ],
+    "enable_overhang_speed": [
+        "1",
+        "1",
+        "1",
+        "0"
+    ],
+    "enable_tower_interface_features": "1",
+    "initial_layer_speed": [
+        "50",
+        "50",
+        "50",
+        "50"
+    ],
+    "inner_wall_speed": [
+        "300",
+        "600",
+        "200",
+        "200"
+    ],
+    "internal_solid_infill_speed": [
+        "250",
+        "600",
+        "200",
+        "200"
+    ],
+    "outer_wall_acceleration": [
+        "5000",
+        "5000",
+        "1000",
+        "1000"
+    ],
+    "outer_wall_speed": [
+        "200",
+        "500",
+        "50",
+        "50"
+    ],
+    "overhang_3_4_speed": [
+        "30",
+        "20",
+        "30",
+        "20"
+    ],
+    "prime_tower_brim_width": "-1",
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow",
+        "Bowden Standard",
+        "Bowden High Flow"
+    ],
+    "sparse_infill_speed": [
+        "270",
+        "600",
+        "200",
+        "200"
+    ],
+    "top_surface_acceleration": [
+        "2000",
+        "2000",
+        "1000",
+        "1000"
+    ],
+    "travel_speed": [
+        "1000",
+        "1000",
+        "1000",
+        "1000"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.4 nozzle"
+    ]
+}

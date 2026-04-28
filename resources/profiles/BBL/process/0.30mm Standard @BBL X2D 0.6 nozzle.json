@@ -1,0 +1,68 @@
+{
+    "type": "process",
+    "name": "0.30mm Standard @BBL X2D 0.6 nozzle",
+    "inherits": "fdm_process_dual_0.30_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP154",
+    "instantiation": "true",
+    "description": "It has a big layer height, and results in apparent layer lines and ordinary printing quality and printing time.",
+    "default_acceleration": [
+        "10000",
+        "10000",
+        "4000",
+        "4000"
+    ],
+    "enable_tower_interface_features": "1",
+    "initial_layer_speed": [
+        "35",
+        "35",
+        "20",
+        "20"
+    ],
+    "inner_wall_speed": [
+        "300",
+        "600",
+        "150",
+        "150"
+    ],
+    "internal_solid_infill_speed": [
+        "250",
+        "600",
+        "150",
+        "150"
+    ],
+    "outer_wall_acceleration": [
+        "5000",
+        "5000",
+        "4000",
+        "4000"
+    ],
+    "outer_wall_speed": [
+        "200",
+        "500",
+        "50",
+        "50"
+    ],
+    "prime_tower_brim_width": "-1",
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow",
+        "Bowden Standard",
+        "Bowden High Flow"
+    ],
+    "sparse_infill_speed": [
+        "270",
+        "600",
+        "100",
+        "100"
+    ],
+    "travel_speed": [
+        "1000",
+        "1000",
+        "1000",
+        "1000"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.6 nozzle"
+    ]
+}

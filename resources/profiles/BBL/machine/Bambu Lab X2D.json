@@ -1,0 +1,18 @@
+{
+    "type": "machine_model",
+    "name": "Bambu Lab X2D",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "url": "http://www.bambulab.com/Parameters/printer_model/Bambu Lab X1 Carbon.json",
+    "bed_model": "bbl-3dp-X1.stl",
+    "bed_texture": "bbl-3dp-logo.svg",
+    "image_bed_type": "n",
+    "bottom_texture_end_name": "n",
+    "bottom_texture_rect": "74,-10,148,12",
+    "default_bed_type": "Textured PEI Plate",
+    "family": "BBL-3DP",
+    "middle_texture_rect": "13,240,236.12,10",
+    "machine_tech": "FFF",
+    "model_id": "N6",
+    "not_support_bed_type": "Cool Plate",
+    "default_materials": "Bambu PLA Matte @BBL X2D;Bambu PLA Basic @BBL X2D;Bambu TPU 95A @BBL X2D;Generic TPU @BBL X2D;Bambu PETG Basic @BBL X2D;Bambu PETG HF @BBL X2D;Bambu ABS @BBL X2D;Bambu PC @BBL X2D"
+}
