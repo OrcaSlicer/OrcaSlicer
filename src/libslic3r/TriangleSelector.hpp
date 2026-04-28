@@ -17,24 +17,12 @@ enum class EnforcerBlockerType : int8_t {
     BLOCKER   = 2,
     // For the fuzzy skin, we use just two values (NONE and FUZZY_SKIN).
     FUZZY_SKIN = ENFORCER,
-    // Maximum is 15. The value is serialized in TriangleSelector into 6 bits using a 2 bit prefix code.
+    // For multi-material painting, values 1..16 are serialized in TriangleSelector
+    // into 6 bits using a 2-bit prefix code. Values above 16 cannot be represented
+    // in that bit stream and are written as NONE in the paint_color attribute,
+    // overridden per-leaf via the paint_color_ext attribute.
     Extruder1 = ENFORCER,
-    Extruder2 = BLOCKER,
-    Extruder3,
-    Extruder4,
-    Extruder5,
-    Extruder6,
-    Extruder7,
-    Extruder8,
-    Extruder9,
-    Extruder10,
-    Extruder11,
-    Extruder12,
-    Extruder13,
-    Extruder14,
-    Extruder15,
-    Extruder16,
-    ExtruderMax = Extruder16
+    ExtruderMax = 127
 };
 
 // Type alias for the state mapping array to improve code readability
@@ -243,16 +231,21 @@ public:
         int triangle_idx        = -1;
         // Index of the first bit of the bitstream assigned to this triangle.
         int bitstream_start_idx = -1;
+        // Index of the first entry in TriangleSplittingData::ext_overrides for this triangle.
+        // The range ends at the next entry's ext_overrides_start_idx (or at ext_overrides.size()
+        // for the last entry); a zero-length range means this triangle has no ext-override data.
+        int ext_overrides_start_idx = 0;
 
         TriangleBitStreamMapping() = default;
         explicit TriangleBitStreamMapping(int triangleIdx, int bitstreamStartIdx) : triangle_idx(triangleIdx), bitstream_start_idx(bitstreamStartIdx) {}
+        TriangleBitStreamMapping(int triangleIdx, int bitstreamStartIdx, int extOverridesStartIdx) : triangle_idx(triangleIdx), bitstream_start_idx(bitstreamStartIdx), ext_overrides_start_idx(extOverridesStartIdx) {}
 
-        friend bool operator==(const TriangleBitStreamMapping &lhs, const TriangleBitStreamMapping &rhs) { return lhs.triangle_idx == rhs.triangle_idx && lhs.bitstream_start_idx == rhs.bitstream_start_idx; }
+        friend bool operator==(const TriangleBitStreamMapping &lhs, const TriangleBitStreamMapping &rhs) { return lhs.triangle_idx == rhs.triangle_idx && lhs.bitstream_start_idx == rhs.bitstream_start_idx && lhs.ext_overrides_start_idx == rhs.ext_overrides_start_idx; }
         friend bool operator!=(const TriangleBitStreamMapping &lhs, const TriangleBitStreamMapping &rhs) { return !(lhs == rhs); }
 
     private:
         friend class cereal::access;
-        template<class Archive> void serialize(Archive &ar) { ar(triangle_idx, bitstream_start_idx); }
+        template<class Archive> void serialize(Archive &ar) { ar(triangle_idx, bitstream_start_idx, ext_overrides_start_idx); }
     };
 
     struct TriangleSplittingData {
@@ -260,7 +253,14 @@ public:
         std::vector<TriangleBitStreamMapping> triangles_to_split;
         // Bit stream containing splitting information.
         std::vector<bool>                     bitstream;
-        // Array indicating which triangle state types are used (encoded inside bitstream).
+        // Flat list of override values for NONE leaves whose real state could not be
+        // encoded in the bit stream (i.e. extruder index above 16). Per-triangle ranges
+        // are demarcated by TriangleBitStreamMapping::ext_overrides_start_idx; the
+        // sequence within a range corresponds to the triangle's NONE leaves in
+        // tree-traversal order. A NONE entry means "leaf is genuinely unpainted";
+        // a non-NONE entry overrides the leaf to that extruder value.
+        std::vector<EnforcerBlockerType>      ext_overrides;
+        // Array indicating which triangle state types are used.
         std::vector<bool>                     used_states { std::vector<bool>(static_cast<size_t>(EnforcerBlockerType::ExtruderMax) + 1, false) };
 
         TriangleSplittingData() = default;
@@ -268,6 +268,7 @@ public:
         friend bool operator==(const TriangleSplittingData &lhs, const TriangleSplittingData &rhs) {
             return lhs.triangles_to_split == rhs.triangles_to_split
                 && lhs.bitstream          == rhs.bitstream
+                && lhs.ext_overrides      == rhs.ext_overrides
                 && lhs.used_states        == rhs.used_states;
         }
 
@@ -282,9 +283,18 @@ public:
         // Update used states based on the bitstream. It just iterated over the bitstream from the bitstream_start_idx till the end.
         void update_used_states(size_t bitstream_start_idx);
 
+        // Returns the [start, end) ext-override range for the k-th entry in triangles_to_split.
+        std::pair<int, int> ext_overrides_range(size_t k) const {
+            const int start = triangles_to_split[k].ext_overrides_start_idx;
+            const int end   = (k + 1 < triangles_to_split.size())
+                ? triangles_to_split[k + 1].ext_overrides_start_idx
+                : int(ext_overrides.size());
+            return {start, end};
+        }
+
     private:
         friend class cereal::access;
-        template<class Archive> void serialize(Archive &ar) { ar(triangles_to_split, bitstream, used_states); }
+        template<class Archive> void serialize(Archive &ar) { ar(triangles_to_split, bitstream, ext_overrides, used_states); }
     };
 
     std::pair<std::vector<Vec3i32>, std::vector<Vec3i32>> precompute_all_neighbors() const;

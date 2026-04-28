@@ -1443,29 +1443,36 @@ indexed_triangle_set TriangleSelector::get_facets(EnforcerBlockerType state) con
     return out;
 }
 
-// BBS
+// Bucket leaves by their state in a single pass over m_triangles. Per-type vertex
+// deduplication maps are lazily allocated only for types that actually appear.
 void TriangleSelector::get_facets(std::vector<indexed_triangle_set>& facets_per_type) const
 {
+    const size_t num_types = static_cast<size_t>(EnforcerBlockerType::ExtruderMax) + 1;
     facets_per_type.clear();
+    facets_per_type.resize(num_types);
 
-    for (int type = (int)EnforcerBlockerType::NONE; type <= (int)EnforcerBlockerType::ExtruderMax; type++) {
-        facets_per_type.emplace_back();
-        indexed_triangle_set& its = facets_per_type.back();
-        std::vector<int> vertex_map(m_vertices.size(), -1);
+    std::vector<std::vector<int>> vertex_maps(num_types);
 
-        for (const Triangle& tr : m_triangles) {
-            if (tr.valid() && !tr.is_split() && tr.get_state() == (EnforcerBlockerType)type) {
-                stl_triangle_vertex_indices indices;
-                for (int i = 0; i < 3; ++i) {
-                    int j = tr.verts_idxs[i];
-                    if (vertex_map[j] == -1) {
-                        vertex_map[j] = int(its.vertices.size());
-                        its.vertices.emplace_back(m_vertices[j].v);
-                    }
-                    indices[i] = vertex_map[j];
-                }
-                its.indices.emplace_back(indices);
+    for (const Triangle& tr : m_triangles) {
+        if (! tr.valid() || tr.is_split())
+            continue;
+        const int type = static_cast<int>(tr.get_state());
+        if (type < 0 || size_t(type) >= num_types)
+            continue;
+
+        auto& vertex_map = vertex_maps[type];
+        if (vertex_map.empty())
+            vertex_map.assign(m_vertices.size(), -1);
+
+        indexed_triangle_set& its = facets_per_type[type];
+        auto& indices = its.indices.emplace_back();
+        for (int i = 0; i < 3; ++i) {
+            const int j = tr.verts_idxs[i];
+            if (vertex_map[j] == -1) {
+                vertex_map[j] = int(its.vertices.size());
+                its.vertices.emplace_back(m_vertices[j].v);
             }
+            indices[i] = vertex_map[j];
         }
     }
 }
@@ -1654,9 +1661,21 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
     // Using an explicit function object to support recursive call of Serializer::serialize().
     // This is cheaper than the previous implementation using a recursive call of type erased std::function.
     // (std::function calls using a pointer, while this implementation calls directly).
+    //
+    // The bit stream encodes states 0..16 directly. States above 16 cannot fit in the 6-bit
+    // form, so they are written as NONE (0) in the bit stream and the real state is recorded
+    // in a per-triangle ext-override list. The list contains one entry per NONE-encoded leaf
+    // (in tree-traversal order). A NONE entry means "leaf is genuinely unpainted"; a non-NONE
+    // entry overrides the leaf to the recorded extruder value during deserialization.
     struct Serializer {
         const TriangleSelector* triangle_selector;
         TriangleSplittingData data;
+        // Accumulator for the current triangle's ext-override list. Committed to
+        // data.ext_overrides at the end of each top-level triangle, but only if
+        // current_has_high_index is set (otherwise the triangle has no high-index
+        // colors and the ext attribute is unnecessary).
+        std::vector<EnforcerBlockerType> current_ext;
+        bool current_has_high_index = false;
 
         void serialize(int facet_idx) {
             const Triangle& tr = triangle_selector->m_triangles[facet_idx];
@@ -1681,25 +1700,38 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
                 for (int child_idx = split_sides; child_idx >= 0; -- child_idx)
                     this->serialize(tr.children[child_idx]);
             } else {
-                // In case this is leaf, we better save information about its state.
-                int n = int(tr.get_state());
-                if (n <= static_cast<size_t>(EnforcerBlockerType::ExtruderMax))
-                    data.used_states[n] = true;
+                // Leaf state. Track the real (post-substitution) state in used_states; the
+                // bit stream gets at most 16, with anything higher pushed into ext_overrides.
+                int real_state = int(tr.get_state());
+                if (real_state >= 0 && real_state <= int(EnforcerBlockerType::ExtruderMax))
+                    data.used_states[real_state] = true;
 
-                if (n >= 3) {
-                    assert(n <= 16);
-                    if (n <= 16) {
-                        // Store "11" plus 4 bits of (n-3).
-                        data.bitstream.insert(data.bitstream.end(), { true, true });
-                        n -= 3;
-                        for (size_t bit_idx = 0; bit_idx < 4; ++bit_idx)
-                            data.bitstream.push_back(n & (uint64_t(0b0001) << bit_idx));
-                    }
+                int encoded_state;
+                if (real_state > 16) {
+                    // High-index extruder: encode as NONE in the bit stream, record real value in ext.
+                    encoded_state = 0;
+                    current_ext.push_back(static_cast<EnforcerBlockerType>(real_state));
+                    current_has_high_index = true;
                 } else {
-                    // Simple case, compatible with PrusaSlicer 2.3.1 and older for storing paint on supports and seams.
-                    // Store 2 bits of n.
-                    data.bitstream.push_back(n & 0b01);
-                    data.bitstream.push_back(n & 0b10);
+                    encoded_state = real_state;
+                    if (real_state == 0) {
+                        // Genuinely-NONE leaf — placeholder so the ext list stays aligned with
+                        // the tree's NONE-leaves in traversal order.
+                        current_ext.push_back(EnforcerBlockerType::NONE);
+                    }
+                }
+
+                if (encoded_state >= 3) {
+                    // Store "11" plus 4 bits of (encoded_state - 3). Compatible with
+                    // PrusaSlicer 2.3.1 and older for the values it could itself produce.
+                    data.bitstream.insert(data.bitstream.end(), { true, true });
+                    int v = encoded_state - 3;
+                    for (size_t bit_idx = 0; bit_idx < 4; ++bit_idx)
+                        data.bitstream.push_back(v & (uint64_t(0b0001) << bit_idx));
+                } else {
+                    // Store 2 bits of encoded_state.
+                    data.bitstream.push_back(encoded_state & 0b01);
+                    data.bitstream.push_back(encoded_state & 0b10);
                 }
             }
         }
@@ -1708,15 +1740,27 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
     out.data.triangles_to_split.reserve(m_orig_size_indices);
     for (int i=0; i<m_orig_size_indices; ++i)
         if (const Triangle& tr = m_triangles[i]; tr.is_split() || tr.get_state() != EnforcerBlockerType::NONE) {
-            // Store index of the first bit assigned to ith triangle.
-            out.data.triangles_to_split.emplace_back(i, int(out.data.bitstream.size()));
-            // out the triangle bits.
+            // Store index of the first bit assigned to ith triangle, and the start of its
+            // (currently empty) ext-override range.
+            out.data.triangles_to_split.emplace_back(i, int(out.data.bitstream.size()), int(out.data.ext_overrides.size()));
+            // Reset per-triangle ext accumulator.
+            out.current_ext.clear();
+            out.current_has_high_index = false;
+            // Serialize the triangle bits (and possibly populate current_ext).
             out.serialize(i);
+            // Commit the ext-override range only if this triangle actually has a high-index leaf;
+            // otherwise the placeholder zeros for genuinely-NONE leaves are wasteful and we
+            // leave the range zero-length.
+            if (out.current_has_high_index) {
+                out.data.ext_overrides.insert(out.data.ext_overrides.end(),
+                                              out.current_ext.begin(), out.current_ext.end());
+            }
         }
 
     // May be stored onto Undo / Redo stack, thus conserve memory.
     out.data.triangles_to_split.shrink_to_fit();
     out.data.bitstream.shrink_to_fit();
+    out.data.ext_overrides.shrink_to_fit();
     return out.data;
 }
 
@@ -1728,8 +1772,8 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
 {
     if (needs_reset)
         reset(); // dump any current state
-    for (auto [triangle_id, ibit] : data.triangles_to_split) {
-        if (triangle_id >= int(m_triangles.size())) {
+    for (const auto &mapping : data.triangles_to_split) {
+        if (mapping.triangle_idx >= int(m_triangles.size())) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "array bound:error:triangle_id >= int(m_triangles.size())";
             return;
         }
@@ -1752,10 +1796,16 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
     // kept outside of the loop to avoid re-allocating inside the loop.
     std::vector<ProcessingInfo> parents;
 
-    for (auto [triangle_id, ibit] : data.triangles_to_split) {
+    for (size_t k = 0; k < data.triangles_to_split.size(); ++k) {
+        const auto &mapping     = data.triangles_to_split[k];
+        const int   triangle_id = mapping.triangle_idx;
+        int         ibit        = mapping.bitstream_start_idx;
+        const auto [ext_start, ext_end] = data.ext_overrides_range(k);
+        int         ext_cursor  = ext_start;
+
         assert(triangle_id < int(m_triangles.size()));
         assert(ibit < int(data.bitstream.size()));
-        auto next_nibble = [&data, &ibit = ibit]() {
+        auto next_nibble = [&data, &ibit]() {
             int n = 0;
             for (int i = 0; i < 4; ++ i)
                 n |= data.bitstream[ibit ++] << i;
@@ -1772,17 +1822,23 @@ void TriangleSelector::deserialize(const TriangleSplittingData &data,
             // Only valid if not is_split. Value of the second nibble was subtracted by 3, so it is added back.
             auto state = is_split ? EnforcerBlockerType::NONE : EnforcerBlockerType((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2);
 
-            // BBS
+            // For leaves encoded as NONE in the bit stream, consume the next ext-override
+            // entry (if any) and use it as the real state. A NONE entry there means the leaf
+            // is genuinely unpainted; a non-NONE entry overrides it to a high-index extruder.
+            if (!is_split && state == EnforcerBlockerType::NONE && ext_cursor < ext_end)
+                state = data.ext_overrides[ext_cursor++];
+
+            // Apply user-driven filament-list edits (delete/replace), then clamp anything
+            // that still exceeds the runtime maximum. The fallback to NONE on overflow is
+            // not an invariant violation: a file may legitimately reference a state above
+            // max_ebt after the user reduces the configured filament count.
+            using EBT_t = std::underlying_type_t<EnforcerBlockerType>;
             if (state == to_delete_filament)
                 state = replace_filament;
-            else if (to_delete_filament != EnforcerBlockerType::NONE && state != EnforcerBlockerType::NONE) {
-                state = state > to_delete_filament ? EnforcerBlockerType((int)state - 1) : state;
-            }
-
-            if (state > max_ebt) {
-                assert(false);
+            else if (to_delete_filament != EnforcerBlockerType::NONE && state != EnforcerBlockerType::NONE && state > to_delete_filament)
+                state = static_cast<EnforcerBlockerType>(static_cast<EBT_t>(state) - 1);
+            if (state > max_ebt)
                 state = EnforcerBlockerType::NONE;
-            }
 
             // Only valid if is_split.
             int special_side = code >> 2;

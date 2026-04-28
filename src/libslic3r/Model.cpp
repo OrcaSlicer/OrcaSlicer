@@ -3503,7 +3503,7 @@ void FacetsAnnotation::set_triangle_from_string(int triangle_id, const std::stri
 {
     assert(! str.empty());
     assert(m_data.triangles_to_split.empty() || m_data.triangles_to_split.back().triangle_idx < triangle_id);
-    m_data.triangles_to_split.emplace_back(triangle_id, int(m_data.bitstream.size()));
+    m_data.triangles_to_split.emplace_back(triangle_id, int(m_data.bitstream.size()), int(m_data.ext_overrides.size()));
 
     const size_t bitstream_start_idx = m_data.bitstream.size();
     for (auto it = str.crbegin(); it != str.crend(); ++it) {
@@ -3522,6 +3522,72 @@ void FacetsAnnotation::set_triangle_from_string(int triangle_id, const std::stri
     }
 
     m_data.update_used_states(bitstream_start_idx);
+}
+
+// Serialize the per-NONE-leaf ext-override list of one triangle as a comma-separated
+// list of decimal integers (in tree-traversal order). Returns an empty string when
+// the triangle has no ext-overrides, in which case the caller should omit the XML
+// attribute entirely.
+std::string FacetsAnnotation::get_triangle_ext_as_string(int triangle_idx) const
+{
+    auto triangle_it = std::lower_bound(m_data.triangles_to_split.begin(), m_data.triangles_to_split.end(), triangle_idx,
+        [](const TriangleSelector::TriangleBitStreamMapping &l, const int r) { return l.triangle_idx < r; });
+    if (triangle_it == m_data.triangles_to_split.end() || triangle_it->triangle_idx != triangle_idx)
+        return {};
+
+    const size_t k     = std::distance(m_data.triangles_to_split.begin(), triangle_it);
+    const auto [start, end] = m_data.ext_overrides_range(k);
+    if (start == end)
+        return {};
+
+    std::string out;
+    out.reserve(size_t(end - start) * 3);
+    for (int i = start; i < end; ++i) {
+        if (i != start) out += ',';
+        out += std::to_string(static_cast<int>(m_data.ext_overrides[i]));
+    }
+    return out;
+}
+
+// Companion to set_triangle_from_string. Parses a comma-separated list of decimal
+// integers and attaches them as ext-overrides to the most-recently-added triangle.
+void FacetsAnnotation::set_triangle_ext_from_string(int triangle_id, const std::string& str)
+{
+    assert(! str.empty());
+    // The base paint_color must have been loaded first (set_triangle_from_string),
+    // so the matching triangle entry is the last one.
+    assert(! m_data.triangles_to_split.empty());
+    assert(m_data.triangles_to_split.back().triangle_idx == triangle_id);
+    (void)triangle_id;
+
+    // Each comma-separated token is a non-negative decimal extruder index (or 0 for
+    // genuinely-NONE leaves). Tokens above ExtruderMax are clamped to NONE on the
+    // assumption that the file references states the current build cannot represent.
+    const auto                            ext_max = static_cast<int>(EnforcerBlockerType::ExtruderMax);
+    using EBT_t                                   = std::underlying_type_t<EnforcerBlockerType>;
+    size_t                                pos     = 0;
+    while (pos < str.size()) {
+        size_t comma = str.find(',', pos);
+        if (comma == std::string::npos) comma = str.size();
+
+        int value = 0;
+        for (size_t i = pos; i < comma; ++i) {
+            const char ch = str[i];
+            if (ch >= '0' && ch <= '9')
+                value = value * 10 + (ch - '0');
+            else if (ch != ' ' && ch != '\t')
+                assert(false);
+        }
+        if (value < 0 || value > ext_max)
+            value = 0;
+
+        const auto state = static_cast<EnforcerBlockerType>(static_cast<EBT_t>(value));
+        m_data.ext_overrides.push_back(state);
+        if (state != EnforcerBlockerType::NONE)
+            m_data.used_states[size_t(value)] = true;
+
+        pos = comma + 1;
+    }
 }
 
 bool FacetsAnnotation::equals(const FacetsAnnotation &other) const

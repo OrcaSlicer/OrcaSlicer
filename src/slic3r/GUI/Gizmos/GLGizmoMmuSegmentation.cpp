@@ -27,12 +27,12 @@ static inline void show_notification_extruders_limit_exceeded()
         ->get_notification_manager()
         ->push_notification(NotificationType::MmSegmentationExceededExtrudersLimit, NotificationManager::NotificationLevel::PrintInfoNotificationLevel,
                             GUI::format(_L("Filament count exceeds the maximum number that painting tool supports. Only the "
-                                           "first %1% filaments will be available in painting tool."), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT));
+                                           "first %1% filaments will be available in painting tool."), int(EnforcerBlockerType::ExtruderMax)));
 }
 
 void GLGizmoMmuSegmentation::on_opening()
 {
-    if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
+    if (wxGetApp().filaments_cnt() > int(EnforcerBlockerType::ExtruderMax))
         show_notification_extruders_limit_exceeded();
 }
 
@@ -180,7 +180,7 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
     ModelObject* model_object = m_c->selection_info()->model_object();
     int prev_extruders_count = int(m_extruders_colors.size());
     if (prev_extruders_count != wxGetApp().filaments_cnt()) {
-        if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
+        if (wxGetApp().filaments_cnt() > int(EnforcerBlockerType::ExtruderMax))
             show_notification_extruders_limit_exceeded();
 
         this->init_extruders_data();
@@ -247,7 +247,7 @@ static void render_extruders_combo(const std::string& label,
     ImGui::BeginGroup();
     ImVec2 combo_pos = ImGui::GetCursorScreenPos();
     if (ImGui::BeginCombo(label.c_str(), "")) {
-        for (size_t extruder_idx = 0; extruder_idx < std::min(extruders.size(), GLGizmoMmuSegmentation::EXTRUDERS_LIMIT); ++extruder_idx) {
+        for (size_t extruder_idx = 0; extruder_idx < std::min(extruders.size(), static_cast<size_t>(EnforcerBlockerType::ExtruderMax)); ++extruder_idx) {
             ImGui::PushID(int(extruder_idx));
             ImVec2 start_position = ImGui::GetCursorScreenPos();
 
@@ -412,7 +412,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         color_button_high = ImGui::GetCursorPos().y - color_button - 2.0;
         if (color_picked) { m_selected_extruder_idx = extruder_idx; }
 
-        if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
+        if (extruder_idx < 9 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
 
         // draw filament id
         float gray = 0.299 * extruder_color.r() + 0.587 * extruder_color.g() + 0.114 * extruder_color.b();
