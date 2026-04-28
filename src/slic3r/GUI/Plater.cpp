@@ -6898,6 +6898,13 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
     }
 
+    if (load_model && !q->m_exported_file && view3D != nullptr) {
+        // Force a 3D scene refresh after view/plate selection to avoid losing the first load
+        // on platforms where the GL canvas mapping lags behind model loading.
+        view3D->reload_scene(true);
+        view3D->set_as_dirty();
+    }
+
     if (load_model) {
         if (!silence) wxGetApp().app_config->update_skein_dir(input_files[input_files.size() - 1].parent_path().make_preferred().string());
         // XXX: Plater.pm had @loaded_files, but didn't seem to fill them with the filenames...
@@ -9106,6 +9113,21 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
 
     if (current_panel == panel)
     {
+        if (current_panel == view3D) {
+            if (view3D->is_reload_delayed()) {
+                // Delayed loading of the 3D scene when caller requests the already active tab.
+                if (printer_technology == ptSLA)
+                    update_restart_background_process(true, false);
+                else
+                    view3D->reload_scene(true);
+            }
+
+            view3D->set_as_dirty();
+            view3D->get_canvas3d()->reset_old_size();
+            if (notification_manager != nullptr)
+                notification_manager->set_in_preview(false);
+        }
+
         //BBS: add slice logic when switch to preview page
         //BBS: add only gcode mode
         if (!q->only_gcode_mode() && (current_panel == preview) && (wxGetApp().is_editor())) {

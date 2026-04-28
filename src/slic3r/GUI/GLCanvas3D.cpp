@@ -2406,8 +2406,11 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
     if (m_canvas == nullptr || m_config == nullptr || m_model == nullptr)
         return;
 
-    if (!m_initialized)
+    if (!m_initialized) {
+        m_reload_delayed = true;
+        set_as_dirty();
         return;
+    }
 
     if (!_set_current()) {
         m_reload_delayed = true;
