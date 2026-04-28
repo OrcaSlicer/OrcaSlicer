@@ -20,6 +20,7 @@
 #include <cassert>
 #include <limits>
 #include <algorithm>
+#include <cmath>
 #include <unordered_map>
 
 #include <libslic3r.h>
@@ -35,6 +36,113 @@ namespace Slic3r {
 
 const static bool g_wipe_into_objects = false;
 constexpr double similar_color_threshold_de2000 = 20.0;
+
+// ---------------------------------------------------------------------------
+// Anonymous-namespace helpers for mixed-filament resolution
+// ---------------------------------------------------------------------------
+namespace {
+
+// Resolve a 1-based filament ID through the mixed-filament manager, taking the
+// optional per-object layer-height cadence (a/b) into account.
+// Returns the resolved 1-based physical ID, or the input unchanged when the ID
+// is not a mixed slot.
+unsigned int resolve_mixed_with_layer_heights(const MixedFilamentManager *mixed_mgr,
+                                              size_t                      num_physical,
+                                              unsigned int                filament_id_1based,
+                                              int                         layer_index,
+                                              float                       layer_print_z,
+                                              float                       layer_height,
+                                              float                       layer_height_a,
+                                              float                       layer_height_b,
+                                              float                       base_layer_height)
+{
+    if (!(mixed_mgr && mixed_mgr->is_mixed(filament_id_1based, num_physical)))
+        return filament_id_1based;
+
+    const MixedFilament *mixed_row = mixed_mgr->mixed_filament_from_id(filament_id_1based, num_physical);
+    const bool is_custom_mixed = mixed_row != nullptr && mixed_row->custom;
+
+    if (!is_custom_mixed && (layer_height_a > 0.f || layer_height_b > 0.f)) {
+        const float safe_base = std::max<float>(0.01f, base_layer_height);
+        const int ratio_a = std::max(1, int(std::lround((layer_height_a > 0.f ? layer_height_a : safe_base) / safe_base)));
+        const int ratio_b = std::max(1, int(std::lround((layer_height_b > 0.f ? layer_height_b : safe_base) / safe_base)));
+        const int cycle   = ratio_a + ratio_b;
+
+        if (cycle > 0 && mixed_row != nullptr) {
+            const int pos = ((layer_index % cycle) + cycle) % cycle;
+            return pos < ratio_a ? mixed_row->component_a : mixed_row->component_b;
+        }
+    }
+
+    return mixed_mgr->resolve(filament_id_1based, num_physical, layer_index, layer_print_z, layer_height);
+}
+
+bool has_grouped_manual_pattern(const MixedFilamentManager *mixed_mgr,
+                                size_t                      num_physical,
+                                unsigned int                filament_id_1based)
+{
+    if (!(mixed_mgr && mixed_mgr->is_mixed(filament_id_1based, num_physical)))
+        return false;
+    const MixedFilament *mixed_row = mixed_mgr->mixed_filament_from_id(filament_id_1based, num_physical);
+    if (mixed_row == nullptr)
+        return false;
+    const std::string normalized = MixedFilamentManager::normalize_manual_pattern(mixed_row->manual_pattern);
+    return normalized.find(',') != std::string::npos;
+}
+
+bool internal_solid_infill_uses_sparse_filament(const PrintRegion &region, ExtrusionRole role)
+{
+    return role == erSolidInfill && std::abs(region.config().sparse_infill_density.value - 100.) < EPSILON;
+}
+
+bool use_base_infill_filament_impl(const LayerTools &layer_tools, const PrintRegion &region)
+{
+    const PrintRegionConfig &config = region.config();
+    if (!config.enable_infill_filament_override.value)
+        return true;
+    if (layer_tools.object_layer_count <= 0)
+        return false;
+
+    const int first_layers = std::max(0, config.infill_filament_use_base_first_layers.value);
+    const int last_layers  = std::max(0, config.infill_filament_use_base_last_layers.value);
+    return layer_tools.layer_index < first_layers || layer_tools.layer_index >= layer_tools.object_layer_count - last_layers;
+}
+
+unsigned int sparse_infill_filament_id_1based_impl(const LayerTools &layer_tools, const PrintRegion &region)
+{
+    return use_base_infill_filament_impl(layer_tools, region) ? region.config().wall_filament.value : region.config().sparse_infill_filament.value;
+}
+
+unsigned int grouped_manual_pattern_mixed_filament_id_for_layer(const LayerTools&  layer_tools,
+                                                                unsigned int       configured_filament_id_1based)
+{
+    if (layer_tools.mixed_mgr == nullptr || layer_tools.num_physical == 0)
+        return 0;
+    if (has_grouped_manual_pattern(layer_tools.mixed_mgr, layer_tools.num_physical, configured_filament_id_1based))
+        return configured_filament_id_1based;
+    return 0;
+}
+
+unsigned int grouped_manual_pattern_infill_filament_1based(const LayerTools&  layer_tools,
+                                                           const PrintRegion& region,
+                                                           unsigned int       configured_filament_id_1based)
+{
+    const unsigned int grouped_id =
+        grouped_manual_pattern_mixed_filament_id_for_layer(layer_tools, configured_filament_id_1based);
+    if (grouped_id == 0)
+        return 0;
+
+    const int innermost_perimeter_index = std::max(0, region.config().wall_loops.value - 1);
+    return layer_tools.mixed_mgr->resolve_perimeter(grouped_id,
+                                                    layer_tools.num_physical,
+                                                    layer_tools.layer_index,
+                                                    innermost_perimeter_index,
+                                                    float(layer_tools.print_z),
+                                                    float(layer_tools.layer_height));
+}
+
+} // anonymous namespace
+// ---------------------------------------------------------------------------
 
 static std::set<int>get_filament_by_type(const std::vector<unsigned int>& used_filaments, const PrintConfig* print_config, const std::string& type)
 {
@@ -79,23 +187,50 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
     return true;
 }
 
+// Resolve a 1-based filament ID through the mixed-filament manager for this layer.
+unsigned int LayerTools::resolve_mixed_1based(unsigned int filament_id_1based) const
+{
+    if (!mixed_mgr || filament_id_1based == 0)
+        return filament_id_1based;
+    return resolve_mixed_with_layer_heights(mixed_mgr,
+                                            num_physical,
+                                            filament_id_1based,
+                                            this->layer_index,
+                                            static_cast<float>(this->print_z),
+                                            static_cast<float>(this->layer_height),
+                                            mixed_layer_height_a,
+                                            mixed_layer_height_b,
+                                            mixed_base_layer_height);
+}
+
 // Return a zero based extruder from the region, or extruder_override if overriden.
 unsigned int LayerTools::wall_filament(const PrintRegion &region) const
 {
 	assert(region.config().wall_filament.value > 0);
-	return ((this->extruder_override == 0) ? region.config().wall_filament.value : this->extruder_override) - 1;
+	unsigned int id_1based = (this->extruder_override == 0)
+        ? region.config().wall_filament.value
+        : this->extruder_override;
+	return resolve_mixed_1based(id_1based) - 1;
 }
 
 unsigned int LayerTools::sparse_infill_filament(const PrintRegion &region) const
 {
 	assert(region.config().sparse_infill_filament.value > 0);
-	return ((this->extruder_override == 0) ? region.config().sparse_infill_filament.value : this->extruder_override) - 1;
+	unsigned int id_1based = (this->extruder_override == 0)
+        ? sparse_infill_filament_id_1based_impl(*this, region)
+        : this->extruder_override;
+    const unsigned int grouped = grouped_manual_pattern_infill_filament_1based(*this, region, id_1based);
+	return ((grouped != 0) ? grouped : resolve_mixed_1based(id_1based)) - 1;
 }
 
 unsigned int LayerTools::solid_infill_filament(const PrintRegion &region) const
 {
 	assert(region.config().solid_infill_filament.value > 0);
-	return ((this->extruder_override == 0) ? region.config().solid_infill_filament.value : this->extruder_override) - 1;
+	unsigned int id_1based = (this->extruder_override == 0)
+        ? region.config().solid_infill_filament.value
+        : this->extruder_override;
+    const unsigned int grouped = grouped_manual_pattern_infill_filament_1based(*this, region, id_1based);
+	return ((grouped != 0) ? grouped : resolve_mixed_1based(id_1based)) - 1;
 }
 
 // Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
@@ -104,20 +239,29 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
 	assert(region.config().wall_filament.value > 0);
 	assert(region.config().sparse_infill_filament.value > 0);
 	assert(region.config().solid_infill_filament.value > 0);
-	// 1 based extruder ID.
-    unsigned int extruder = 1;
-    if (this->extruder_override == 0) {
-        if (extrusions.has_infill()) {
-            if (extrusions.has_solid_infill())
-                extruder = region.config().solid_infill_filament;
-            else
-                extruder = region.config().sparse_infill_filament;
-        } else
-            extruder = region.config().wall_filament.value;
-    } else
-        extruder = this->extruder_override;
+    if (extrusions.has_infill()) {
+        const ExtrusionRole role = extrusions.entities.empty() ? erNone : extrusions.entities.front()->role();
+        if (internal_solid_infill_uses_sparse_filament(region, role))
+            return sparse_infill_filament(region);
+        return is_solid_infill(role) ? solid_infill_filament(region) : sparse_infill_filament(region);
+    }
+    return wall_filament(region);
+}
 
-    return (extruder == 0) ? 0 : extruder - 1;
+unsigned int LayerTools::sparse_infill_filament_id_1based(const PrintRegion &region) const
+{
+    return sparse_infill_filament_id_1based_impl(*this, region);
+}
+
+unsigned int LayerTools::infill_filament_id_1based(const PrintRegion &region) const
+{
+    // Default role: erInternalInfill routes through sparse path.
+    return sparse_infill_filament_id_1based_impl(*this, region);
+}
+
+bool LayerTools::use_base_infill_filament(const PrintRegion &region) const
+{
+    return use_base_infill_filament_impl(*this, region);
 }
 
 static double calc_max_layer_height(const PrintConfig &config, double max_object_layer_height)
@@ -384,6 +528,10 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
     m_print_full_config = &object.print()->full_print_config();
     m_print_object_ptr = &object;
     m_print = const_cast<Print*>(object.print());
+    // Mixed filament support.
+    m_mixed_mgr    = &object.print()->mixed_filament_manager();
+    m_num_physical = object.print()->config().filament_colour.values.size();
+    update_mixed_layer_height_settings();
     if (object.layers().empty())
         return;
 
@@ -429,6 +577,10 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     m_print_full_config = &print.full_print_config();
     m_print = const_cast<Print *>(&print);  // for update the context of print
     m_print_config_ptr = &print.config();
+    // Mixed filament support.
+    m_mixed_mgr    = &print.mixed_filament_manager();
+    m_num_physical = print.config().filament_colour.values.size();
+    update_mixed_layer_height_settings();
 
     // Initialize the print layers for all objects and all layers.
     coordf_t max_layer_height = 0.;
@@ -479,6 +631,33 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     this->collect_extruder_statistics(prime_multi_material);
 
     this->mark_skirt_layers(print.config(), max_layer_height);
+}
+
+void ToolOrdering::update_mixed_layer_height_settings()
+{
+    const PrintConfig *cfg = m_print_config_ptr;
+    if (cfg == nullptr && m_print_object_ptr != nullptr)
+        cfg = &m_print_object_ptr->print()->config();
+
+    m_mixed_layer_height_a = 0.f;
+    m_mixed_layer_height_b = 0.f;
+    if (m_print_full_config != nullptr &&
+        m_print_full_config->has("mixed_color_layer_height_a") &&
+        m_print_full_config->has("mixed_color_layer_height_b")) {
+        m_mixed_layer_height_a = float(m_print_full_config->opt_float("mixed_color_layer_height_a"));
+        m_mixed_layer_height_b = float(m_print_full_config->opt_float("mixed_color_layer_height_b"));
+    } else if (cfg != nullptr) {
+        m_mixed_layer_height_a = cfg->mixed_color_layer_height_a.value;
+        m_mixed_layer_height_b = cfg->mixed_color_layer_height_b.value;
+    }
+
+    float base_height = 0.2f;
+    if (m_print_object_ptr != nullptr)
+        base_height = float(m_print_object_ptr->config().layer_height.value);
+    else if (m_print_full_config != nullptr && m_print_full_config->has("layer_height"))
+        base_height = float(m_print_full_config->opt_float("layer_height"));
+
+    m_mixed_base_layer_height = std::max<float>(0.01f, base_height);
 }
 
 static void apply_first_layer_order(const DynamicPrintConfig* config, std::vector<unsigned int>& tool_order) {
@@ -646,6 +825,15 @@ void ToolOrdering::initialize_layers(std::vector<coordf_t> &zs)
 // Collect extruders reuqired to print layers.
 void ToolOrdering::collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches)
 {
+    // Propagate mixed-filament context to all LayerTools entries.
+    for (LayerTools &lt : m_layer_tools) {
+        lt.mixed_mgr               = m_mixed_mgr;
+        lt.num_physical            = m_num_physical;
+        lt.mixed_layer_height_a    = m_mixed_layer_height_a;
+        lt.mixed_layer_height_b    = m_mixed_layer_height_b;
+        lt.mixed_base_layer_height = m_mixed_base_layer_height;
+    }
+
     // Extruder overrides are ordered by print_z.
     std::vector<std::pair<double, unsigned int>>::const_iterator it_per_layer_extruder_override;
 	it_per_layer_extruder_override = per_layer_extruder_switches.begin();
@@ -659,6 +847,10 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     // Collect the object extruders.
     for (auto layer : object.layers()) {
         LayerTools &layer_tools = this->tools_for_layer(layer->print_z);
+        // Store the sequential layer index and height for mixed-filament resolution.
+        layer_tools.layer_index        = layerCount;
+        layer_tools.object_layer_count = static_cast<int>(object.layers().size());
+        layer_tools.layer_height       = layer->height;
 
         // Override extruder with the next
     	for (; it_per_layer_extruder_override != per_layer_extruder_switches.end() && it_per_layer_extruder_override->first < layer->print_z + EPSILON; ++ it_per_layer_extruder_override)
@@ -682,9 +874,19 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 }
 
                 if (something_nonoverriddable){
-               		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().wall_filament.value : extruder_override);
-                    if (layerCount == 0) {
-                        firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().wall_filament.value : extruder_override);
+                    if (extruder_override == 0) {
+                        layer_tools.extruders.emplace_back(layer_tools.wall_filament(region) + 1);
+                        if (layerCount == 0) {
+                            firstLayerExtruders.emplace_back(layer_tools.wall_filament(region) + 1);
+                        }
+                    } else {
+                        const unsigned int resolved = resolve_mixed(extruder_override,
+                                                                    layerCount,
+                                                                    float(layer->print_z),
+                                                                    float(layer->height));
+                        layer_tools.extruders.emplace_back(resolved);
+                        if (layerCount == 0)
+                            firstLayerExtruders.emplace_back(resolved);
                     }
                 }
 
@@ -710,13 +912,17 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
 
             if (something_nonoverriddable || !m_print_config_ptr) {
-            	if (extruder_override == 0) {
-	                if (has_solid_infill)
-	                    layer_tools.extruders.emplace_back(region.config().solid_infill_filament);
-	                if (has_infill)
-	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament);
-            	} else if (has_solid_infill || has_infill)
-            		layer_tools.extruders.emplace_back(extruder_override);
+                if (extruder_override == 0) {
+                    if (has_solid_infill)
+                        layer_tools.extruders.emplace_back(layer_tools.solid_infill_filament(region) + 1);
+                    if (has_infill)
+                        layer_tools.extruders.emplace_back(layer_tools.sparse_infill_filament(region) + 1);
+                } else if (has_solid_infill || has_infill) {
+                    layer_tools.extruders.emplace_back(resolve_mixed(extruder_override,
+                                                                     layerCount,
+                                                                     float(layer->print_z),
+                                                                     float(layer->height)));
+                }
             }
             if (has_solid_infill || has_infill)
                 layer_tools.has_object = true;
@@ -1831,6 +2037,23 @@ int WipingExtrusions::get_support_interface_extruder_overrides(const PrintObject
         return iter->second;
 
     return -1;
+}
+
+// Resolve a 1-based filament ID through the mixed-filament manager.
+unsigned int ToolOrdering::resolve_mixed(unsigned int filament_id_1based,
+                                         int          layer_index,
+                                         float        layer_print_z,
+                                         float        layer_height) const
+{
+    return resolve_mixed_with_layer_heights(m_mixed_mgr,
+                                            m_num_physical,
+                                            filament_id_1based,
+                                            layer_index,
+                                            layer_print_z,
+                                            layer_height,
+                                            m_mixed_layer_height_a,
+                                            m_mixed_layer_height_b,
+                                            m_mixed_base_layer_height);
 }
 
 

@@ -2809,50 +2809,49 @@ int ObjectTablePanel::init_bitmap()
 
 int ObjectTablePanel::init_filaments_and_colors()
 {
-    //DynamicPrintConfig&  global_config   = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    const DynamicPrintConfig* global_config = m_plater->config();
     const std::vector<std::string> filament_presets = wxGetApp().preset_bundle->filament_presets;
-    m_filaments_count = filament_presets.size();
+    const std::vector<std::string> filament_colors  = wxGetApp().plater()->get_extruder_colors_from_plater_config();
+    m_filaments_count = filament_colors.size();
     if (m_filaments_count <= 0) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not get filaments, count: %1%, set to default") %m_filaments_count;
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", can not get filaments, count: %1%, set to default") % m_filaments_count;
         set_default_filaments_and_colors();
         return -1;
     }
 
-    const ConfigOptionStrings* filament_opt = dynamic_cast<const ConfigOptionStrings*>(global_config->option("filament_colour"));
-    if (filament_opt == nullptr) {
-        set_default_filaments_and_colors();
-        return -1;
-    }
     m_filaments_colors.resize(m_filaments_count);
     m_filaments_name.resize(m_filaments_count);
-    unsigned int color_count = filament_opt->values.size();
-    if (color_count != m_filaments_count) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", invalid color count:%1%, extruder count: %2%") %color_count %m_filaments_count;
-    }
-
-    unsigned int i = 0;
+    const size_t physical_count = filament_presets.size();
     ColorRGB rgb;
-    while (i < m_filaments_count) {
-        const std::string& txt_color = global_config->opt_string("filament_colour", i);
-        if (i < color_count) {
-            if (decode_color(txt_color, rgb))
-            {
-                m_filaments_colors[i] = wxColour(rgb.r_uchar(), rgb.g_uchar(), rgb.b_uchar());
-            }
-            else
-            {
-                m_filaments_colors[i] = *wxGREEN;
-            }
-        }
-        else {
+
+    for (int i = 0; i < (int)m_filaments_count; ++i) {
+        if (size_t(i) < filament_colors.size() && decode_color(filament_colors[size_t(i)], rgb))
+            m_filaments_colors[i] = wxColour(rgb.r_uchar(), rgb.g_uchar(), rgb.b_uchar());
+        else
             m_filaments_colors[i] = *wxGREEN;
+
+        if (size_t(i) < physical_count) {
+            m_filaments_name[i] = wxString(std::to_string(i + 1) + ": " + filament_presets[size_t(i)]);
+            continue;
         }
 
-        //parse the filaments
-        m_filaments_name[i] = wxString(std::to_string(i+1) + ": " + filament_presets[i]);
+        // Mixed-slot row: walk the manager and find the (physical_count + offset)-th enabled, non-deleted entry.
+        size_t mixed_offset = 0;
+        for (const MixedFilament &mf : wxGetApp().preset_bundle->mixed_filaments.mixed_filaments()) {
+            if (!mf.enabled || mf.deleted)
+                continue;
+            if (size_t(i) != physical_count + mixed_offset) {
+                ++mixed_offset;
+                continue;
+            }
 
-        i++;
+            m_filaments_name[i] = wxString::Format("%d: Mixed Filament %d (F%u + F%u)",
+                                                   i + 1, i + 1,
+                                                   unsigned(mf.component_a), unsigned(mf.component_b));
+            break;
+        }
+
+        if (m_filaments_name[i].empty())
+            m_filaments_name[i] = wxString::Format("%d: Filament %d", i + 1, i + 1);
     }
 
     return 0;

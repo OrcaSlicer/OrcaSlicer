@@ -162,6 +162,8 @@ enum class NotificationType
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
     OrcaSharedProfilesAvailable,
+    BBLMixedFilamentBroken,
+    BBLSingleExtruderMixedFilamentRisk,
     NotificationTypeCount
 
 };

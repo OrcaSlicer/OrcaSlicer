@@ -2277,8 +2277,9 @@ void MenuFactory::append_menu_item_change_filament(wxMenu* menu)
             item_name << " (" + _L("current") + ")";
         }
 
+        wxBitmap bm = (i == 0 || size_t(i - 1) >= icons.size()) ? wxNullBitmap : *icons[i - 1];
         append_menu_item(extruder_selection_menu, wxID_ANY, item_name, "",
-            [i](wxCommandEvent&) { obj_list()->set_extruder_for_selected_items(i); }, i == 0 ? wxNullBitmap : *icons[i - 1], menu,
+            [i](wxCommandEvent&) { obj_list()->set_extruder_for_selected_items(i); }, bm, menu,
             [is_active_extruder]() { return !is_active_extruder; }, m_parent);
     }
     menu->Append(wxID_ANY, name, extruder_selection_menu, _L("Change Filament"));

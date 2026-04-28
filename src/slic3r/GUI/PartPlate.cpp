@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <regex>
+#include <sstream>
 #include <future>
 #include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
@@ -23,6 +24,7 @@
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/MixedFilament.hpp"
 
 #include "I18N.hpp"
 #include "GUI_App.hpp"
@@ -1619,12 +1621,37 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
 	plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
-	return plate_extruders;
+
+	// Expand any mixed-filament virtual slots to their physical component extruders
+	{
+		const auto& mgr      = wxGetApp().preset_bundle->mixed_filaments;
+		size_t      num_phys = wxGetApp().preset_bundle->filament_presets.size();
+		std::vector<int> expanded;
+		for (int e : plate_extruders) {
+			if (e <= 0) continue;
+			auto u = static_cast<unsigned int>(e);
+			if (mgr.is_mixed(u, num_phys)) {
+				if (auto* mf = mgr.mixed_filament_from_id(u, num_phys)) {
+					expanded.push_back(static_cast<int>(mf->component_a));
+					expanded.push_back(static_cast<int>(mf->component_b));
+				}
+			} else {
+				expanded.push_back(e);
+			}
+		}
+		std::sort(expanded.begin(), expanded.end());
+		expanded.erase(std::unique(expanded.begin(), expanded.end()), expanded.end());
+		return expanded;
+	}
 }
 
 std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config) const
 {
     std::vector<int> plate_extruders;
+    BOOST_LOG_TRIVIAL(debug) << "PartPlate::get_extruders_under_cli begin"
+                             << " plate=" << m_plate_index
+                             << " obj_to_instance_count=" << obj_to_instance_set.size()
+                             << " consider_custom_gcode=" << conside_custom_gcode;
 
     // if 3mf file
     int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
@@ -1644,7 +1671,27 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
         if ((obj_id >= 0) && (obj_id < m_model->objects.size()))
         {
             ModelObject* object = m_model->objects[obj_id];
+            if (object == nullptr) {
+                BOOST_LOG_TRIVIAL(error) << "PartPlate::get_extruders_under_cli encountered null model object"
+                                         << " plate=" << m_plate_index
+                                         << " obj_id=" << obj_id;
+                continue;
+            }
+            if (instance_id < 0 || instance_id >= object->instances.size()) {
+                BOOST_LOG_TRIVIAL(error) << "PartPlate::get_extruders_under_cli encountered invalid instance index"
+                                         << " plate=" << m_plate_index
+                                         << " obj_id=" << obj_id
+                                         << " instance_id=" << instance_id
+                                         << " instance_count=" << object->instances.size();
+                continue;
+            }
             ModelInstance* instance = object->instances[instance_id];
+            BOOST_LOG_TRIVIAL(debug) << "PartPlate::get_extruders_under_cli object"
+                                     << " plate=" << m_plate_index
+                                     << " obj_id=" << obj_id
+                                     << " instance_id=" << instance_id
+                                     << " volume_count=" << object->volumes.size()
+                                     << " printable=" << instance->printable;
 
             if (!instance->printable)
                 continue;
@@ -1741,7 +1788,45 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     std::sort(plate_extruders.begin(), plate_extruders.end());
     auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
     plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
-    return plate_extruders;
+
+    // Expand any mixed-filament virtual slots to their physical component extruders.
+    // CLI context: rebuild the manager inline from full_config (no wxGetApp).
+    {
+        MixedFilamentManager local_mgr;
+        std::vector<std::string> filament_colours;
+        if (const auto* col_opt = dynamic_cast<const ConfigOptionStrings*>(full_config.option("filament_colour")))
+            filament_colours = col_opt->values;
+        local_mgr.auto_generate(filament_colours);
+        if (const auto* defs_opt = dynamic_cast<const ConfigOptionString*>(full_config.option("mixed_filament_definitions")))
+            if (!defs_opt->value.empty())
+                local_mgr.load_custom_entries(defs_opt->value, filament_colours);
+        size_t num_phys = filament_colours.size();
+        std::vector<int> expanded;
+        for (int e : plate_extruders) {
+            if (e <= 0) continue;
+            auto u = static_cast<unsigned int>(e);
+            if (local_mgr.is_mixed(u, num_phys)) {
+                if (auto* mf = local_mgr.mixed_filament_from_id(u, num_phys)) {
+                    expanded.push_back(static_cast<int>(mf->component_a));
+                    expanded.push_back(static_cast<int>(mf->component_b));
+                }
+            } else {
+                expanded.push_back(e);
+            }
+        }
+        std::sort(expanded.begin(), expanded.end());
+        expanded.erase(std::unique(expanded.begin(), expanded.end()), expanded.end());
+        std::ostringstream extruders_list;
+        for (size_t i = 0; i < expanded.size(); ++i) {
+            if (i != 0)
+                extruders_list << ",";
+            extruders_list << expanded[i];
+        }
+        BOOST_LOG_TRIVIAL(debug) << "PartPlate::get_extruders_under_cli result"
+                                 << " plate=" << m_plate_index
+                                 << " extruders=[" << extruders_list.str() << "]";
+        return expanded;
+    }
 }
 
 bool PartPlate::check_objects_empty_and_gcode3mf(std::vector<int> &result) const
@@ -1794,7 +1879,28 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
 	plate_extruders.resize(std::distance(plate_extruders.begin(), it_end));
-	return plate_extruders;
+
+	// Expand any mixed-filament virtual slots to their physical component extruders
+	{
+		const auto& mgr      = wxGetApp().preset_bundle->mixed_filaments;
+		size_t      num_phys = wxGetApp().preset_bundle->filament_presets.size();
+		std::vector<int> expanded;
+		for (int e : plate_extruders) {
+			if (e <= 0) continue;
+			auto u = static_cast<unsigned int>(e);
+			if (mgr.is_mixed(u, num_phys)) {
+				if (auto* mf = mgr.mixed_filament_from_id(u, num_phys)) {
+					expanded.push_back(static_cast<int>(mf->component_a));
+					expanded.push_back(static_cast<int>(mf->component_b));
+				}
+			} else {
+				expanded.push_back(e);
+			}
+		}
+		std::sort(expanded.begin(), expanded.end());
+		expanded.erase(std::unique(expanded.begin(), expanded.end()), expanded.end());
+		return expanded;
+	}
 }
 
 /* -1 is invalid, return physical extruder idx*/
@@ -1821,6 +1927,8 @@ int PartPlate::get_physical_extruder_by_filament_id(const DynamicConfig& g_confi
 	}
 
 	int zero_base_logical_idx = filament_map[idx - 1] - 1;
+	if (zero_base_logical_idx < 0 || zero_base_logical_idx >= (int)the_map->values.size())
+		return -1;
 	return the_map->values[zero_base_logical_idx];
 }
 

@@ -479,20 +479,24 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         }
     }
 
-    // BBS
-    static const char* keys[] = { "support_filament", "support_interface_filament"};
-    for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        std::string key = std::string(keys[i]);
-        auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
-        if (opt != nullptr) {
-            if (opt->getInt() > filament_cnt) {
+    // BBS: Rule 1 — reject out-of-range AND mixed filament IDs in support/wall/infill slots.
+    // Mixed filaments (virtual IDs > num_phys) cannot be used in these roles; reset to 0.
+    {
+        static const char* filament_slot_keys[] = {
+            "support_filament", "support_interface_filament",
+            "wall_filament", "sparse_infill_filament", "solid_infill_filament"
+        };
+        size_t total    = wxGetApp().preset_bundle->total_filament_count();
+        size_t num_phys = wxGetApp().preset_bundle->filament_presets.size();
+        for (auto key : filament_slot_keys) {
+            auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
+            if (!opt) continue;
+            int val = opt->getInt();
+            bool out_of_range = val > (int)total;
+            bool is_mixed     = (val > (int)num_phys && val <= (int)total);
+            if (out_of_range || is_mixed) {
                 DynamicPrintConfig new_conf = *config;
-                const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
-                int new_value = 0;
-                if (conf_temp != nullptr && conf_temp->has(key)) {
-                    new_value = conf_temp->opt_int(key);
-                }
-                new_conf.set_key_value(key, new ConfigOptionInt(new_value));
+                new_conf.set_key_value(key, new ConfigOptionInt(0));
                 apply(config, &new_conf);
             }
         }
@@ -540,6 +544,40 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
             new_conf.set_key_value("fuzzy_skin_mode", new ConfigOptionEnum<FuzzySkinMode>(FuzzySkinMode::Displacement));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
+    }
+
+    // Rule 2 — Local-Z dithering is incompatible with mixed-filament region collapse.
+    // When dithering_local_z_mode is on, force mixed_filament_region_collapse off.
+    if (config->has("dithering_local_z_mode") && config->has("mixed_filament_region_collapse") &&
+        config->opt_bool("dithering_local_z_mode") &&
+        config->opt_bool("mixed_filament_region_collapse")) {
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("mixed_filament_region_collapse", new ConfigOptionBool(false));
+        apply(config, &new_conf);
+    }
+
+    // Rule 3 — One-time warning when Local-Z dithering is enabled alongside variable layer height.
+    {
+        static bool s_local_z_varlay_warned = false;
+        bool dithering_on = config->has("dithering_local_z_mode") &&
+                            config->opt_bool("dithering_local_z_mode");
+        if (dithering_on && !s_local_z_varlay_warned) {
+            bool has_var = false;
+            for (const auto* obj : wxGetApp().plater()->model().objects)
+                if (obj->layer_height_profile.get().size() > 4) { has_var = true; break; }
+            if (has_var) {
+                MessageDialog dlg(m_msg_dlg_parent,
+                    _L("Using variable layer height together with Local-Z dithering "
+                       "may result in poor color mixing quality."),
+                    "", wxICON_WARNING | wxOK);
+                is_msg_dlg_already_exist = true;
+                dlg.ShowModal();
+                is_msg_dlg_already_exist = false;
+                s_local_z_varlay_warned = true;
+            }
+        }
+        if (!dithering_on)
+            s_local_z_varlay_warned = false;
     }
 }
 
@@ -977,6 +1015,36 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
     toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
+
+    // Mixed-filament / dithering visibility rules.
+    const bool local_z_dithering_on =
+        config->has("dithering_local_z_mode") && config->option("dithering_local_z_mode") != nullptr &&
+        config->opt_bool("dithering_local_z_mode");
+    toggle_line("dithering_local_z_whole_objects",     local_z_dithering_on);
+    toggle_line("dithering_local_z_direct_multicolor", local_z_dithering_on);
+
+    // local_z_wipe_tower_purge_lines: only when prime tower + local-Z + non-BBL
+    toggle_line("local_z_wipe_tower_purge_lines",
+        config->has("enable_prime_tower") && config->opt_bool("enable_prime_tower") &&
+        local_z_dithering_on && !is_BBL_Printer);
+
+    // mixed_filament_surface_indentation only when bias is enabled
+    const bool component_bias_enabled =
+        config->has("mixed_filament_component_bias_enabled") &&
+        config->option("mixed_filament_component_bias_enabled") != nullptr &&
+        config->opt_bool("mixed_filament_component_bias_enabled");
+    toggle_line("mixed_filament_surface_indentation", component_bias_enabled);
+
+    // infill override sub-options gated by enable_infill_filament_override
+    const bool show_infill_filament_override_v =
+        !is_global_config && have_infill && !bSEMM;
+    const bool show_infill_filament_details_v =
+        show_infill_filament_override_v &&
+        config->has("enable_infill_filament_override") &&
+        config->option("enable_infill_filament_override") != nullptr &&
+        config->opt_bool("enable_infill_filament_override");
+    toggle_line("infill_filament_use_base_first_layers", show_infill_filament_details_v);
+    toggle_line("infill_filament_use_base_last_layers",  show_infill_filament_details_v);
 }
 
 void ConfigManipulation::update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config/* = false*/)

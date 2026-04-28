@@ -2298,6 +2298,7 @@ void TabPrint::build()
         auto optgroup = page->new_optgroup(L("Layer height"), L"param_layer_height");
         optgroup->append_single_option_line("layer_height","quality_settings_layer_height");
         optgroup->append_single_option_line("initial_layer_print_height","quality_settings_layer_height");
+        optgroup->append_single_option_line("mixed_filament_gradient_mode");
 
         optgroup = page->new_optgroup(L("Line width"), L"param_line_width");
         optgroup->append_single_option_line("line_width","quality_settings_line_width");
@@ -2449,6 +2450,14 @@ void TabPrint::build()
         optgroup->append_single_option_line("fill_multiline", "strength_settings_infill#fill-multiline");
         optgroup->append_single_option_line("sparse_infill_pattern", "strength_settings_infill#sparse-infill-pattern");
         optgroup->append_single_option_line("gyroid_optimized", "strength_settings_patterns#gyroid-optimized");
+
+        if (m_type >= Preset::TYPE_COUNT) {
+            // Per-object / per-model only: infill filament override
+            optgroup->append_single_option_line("enable_infill_filament_override");
+            optgroup->append_single_option_line("infill_filament_use_base_first_layers");
+            optgroup->append_single_option_line("infill_filament_use_base_last_layers");
+            optgroup->append_single_option_line("sparse_infill_filament", "multimaterial_settings_filament_for_features#infill");
+        }
         optgroup->append_single_option_line("infill_direction", "strength_settings_infill#direction");
         optgroup->append_single_option_line("sparse_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");
         optgroup->append_single_option_line("skin_infill_density", "strength_settings_patterns#locked-zag");
@@ -2640,6 +2649,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_no_sparse_layers", "multimaterial_settings_prime_tower#no-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("local_z_wipe_tower_purge_lines", "multimaterial_settings_prime_tower");
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
         optgroup->append_single_option_line("wall_filament", "multimaterial_settings_filament_for_features#walls");
@@ -2702,6 +2712,21 @@ void TabPrint::build()
 
         optgroup->append_single_option_line("timelapse_type", "others_settings_special_mode#timelapse");
         optgroup->append_single_option_line("enable_wrapping_detection");
+
+        // Mixed Filaments / Dithering settings
+        optgroup = page->new_optgroup(L("Dithering"));
+        optgroup->append_single_option_line("mixed_filament_height_lower_bound");
+        optgroup->append_single_option_line("mixed_filament_height_upper_bound");
+        optgroup->append_single_option_line("mixed_filament_advanced_dithering");
+        optgroup->append_single_option_line("mixed_filament_component_bias_enabled");
+        optgroup->append_single_option_line("mixed_filament_surface_indentation");
+        optgroup->append_single_option_line("mixed_filament_region_collapse");
+        optgroup->append_single_option_line("dithering_z_step_size");
+        optgroup->append_single_option_line("dithering_step_painted_zones_only");
+        // Local-Z subgroup (gated by dithering_local_z_mode)
+        optgroup->append_single_option_line("dithering_local_z_mode");
+        optgroup->append_single_option_line("dithering_local_z_whole_objects");
+        optgroup->append_single_option_line("dithering_local_z_direct_multicolor");
 
         optgroup = page->new_optgroup(L("Fuzzy Skin"), L"fuzzy_skin");
         optgroup->append_single_option_line("fuzzy_skin", "others_settings_fuzzy_skin");

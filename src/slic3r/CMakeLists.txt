@@ -373,6 +373,18 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentGroupPopup.cpp
     GUI/PhysicalPrinterDialog.cpp
     GUI/PhysicalPrinterDialog.hpp
+    GUI/MixedGradientSelector.hpp
+    GUI/MixedGradientSelector.cpp
+    GUI/MixedGradientWeightsDialog.hpp
+    GUI/MixedGradientWeightsDialog.cpp
+    GUI/MixedFilamentColorMapPanel.hpp
+    GUI/MixedFilamentColorMapPanel.cpp
+    GUI/MixedFilamentColorMatchDialog.hpp
+    GUI/MixedFilamentColorMatchDialog.cpp
+    GUI/MixedMixPreview.hpp
+    GUI/MixedMixPreview.cpp
+    GUI/MixedFilamentConfigPanel.hpp
+    GUI/MixedFilamentConfigPanel.cpp
     GUI/Plater.cpp
     GUI/Plater.hpp
     GUI/PlateSettingsDialog.cpp

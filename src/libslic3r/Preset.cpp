@@ -1261,6 +1261,26 @@ static std::vector<std::string> s_Preset_print_options{
     "zaa_dont_alternate_fill_direction",
     "zaa_min_z",
     "ironing_expansion",
+    // Mixed-filament + dithering + infill-override keys
+    "enable_infill_filament_override",
+    "infill_filament_use_base_first_layers",
+    "infill_filament_use_base_last_layers",
+    "mixed_color_layer_height_a",
+    "mixed_color_layer_height_b",
+    "mixed_filament_gradient_mode",
+    "mixed_filament_height_lower_bound",
+    "mixed_filament_height_upper_bound",
+    "mixed_filament_advanced_dithering",
+    "mixed_filament_component_bias_enabled",
+    "mixed_filament_surface_indentation",
+    "mixed_filament_region_collapse",
+    "mixed_filament_definitions",
+    "dithering_z_step_size",
+    "dithering_local_z_mode",
+    "dithering_local_z_whole_objects",
+    "dithering_local_z_direct_multicolor",
+    "dithering_step_painted_zones_only",
+    "local_z_wipe_tower_purge_lines"
 };
 
 static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",

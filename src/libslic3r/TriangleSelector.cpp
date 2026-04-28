@@ -2524,4 +2524,17 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     return target_selector.serialize();
 }
 
+void TriangleSelector::shift_states_above(EnforcerBlockerType threshold, int delta)
+{
+    for (Triangle &triangle : m_triangles) {
+        if (triangle.is_split() || !triangle.valid()) continue;
+        EnforcerBlockerType s = triangle.get_state();
+        if (s != EnforcerBlockerType::NONE && s >= threshold) {
+            int new_val = static_cast<int>(s) + delta;
+            if (new_val >= 0)
+                triangle.set_state(EnforcerBlockerType(new_val));
+        }
+    }
+}
+
 } // namespace Slic3r

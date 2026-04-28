@@ -179,13 +179,14 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
 
     ModelObject* model_object = m_c->selection_info()->model_object();
     int prev_extruders_count = int(m_extruders_colors.size());
-    if (prev_extruders_count != wxGetApp().filaments_cnt()) {
-        if (wxGetApp().filaments_cnt() > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
+    int cur_filaments_count  = int(wxGetApp().preset_bundle->total_filament_count());
+    if (prev_extruders_count != cur_filaments_count) {
+        if (cur_filaments_count > int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
             show_notification_extruders_limit_exceeded();
 
         this->init_extruders_data();
         // Reinitialize triangle selectors because of change of extruder count need also change the size of GLIndexedVertexArray
-        if (prev_extruders_count != wxGetApp().filaments_cnt())
+        if (prev_extruders_count != int(m_extruders_colors.size()))
             this->init_model_triangle_selectors();
     } else if (wxGetApp().plater()->get_extruders_colors() != m_extruders_colors) {
         this->init_extruders_data();
@@ -731,6 +732,8 @@ void GLGizmoMmuSegmentation::init_model_triangle_selectors()
             continue;
 
         int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
+        extruder_idx = std::min(extruder_idx, (int)m_extruders_colors.size() - 1);
+        if (extruder_idx < 0) extruder_idx = 0;
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[size_t(extruder_idx)]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
@@ -753,6 +756,7 @@ void GLGizmoMmuSegmentation::update_triangle_selectors_colors()
         TriangleSelectorPatch* selector = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
         int extruder_idx = m_volumes_extruder_idxs[i];
         int extruder_color_idx = std::max(0, extruder_idx - 1);
+        extruder_color_idx = std::min(extruder_color_idx, (int)m_extruders_colors.size() - 1);
         std::vector<ColorRGBA> ebt_colors;
         ebt_colors.push_back(m_extruders_colors[extruder_color_idx]);
         ebt_colors.insert(ebt_colors.end(), m_extruders_colors.begin(), m_extruders_colors.end());
@@ -767,7 +771,8 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
     // Extruder colors need to be reloaded before calling init_model_triangle_selectors to render painted triangles
     // using colors from loaded 3MF and not from printer profile in Slicer.
     if (int prev_extruders_count = int(m_extruders_colors.size());
-        prev_extruders_count != wxGetApp().filaments_cnt() || wxGetApp().plater()->get_extruders_colors() != m_extruders_colors)
+        prev_extruders_count != int(wxGetApp().preset_bundle->total_filament_count()) ||
+        wxGetApp().plater()->get_extruders_colors() != m_extruders_colors)
         this->init_extruders_data();
 
     this->init_model_triangle_selectors();

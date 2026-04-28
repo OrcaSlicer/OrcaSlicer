@@ -4,6 +4,7 @@
 #include "Preset.hpp"
 #include "AppConfig.hpp"
 #include "enum_bitmask.hpp"
+#include "MixedFilament.hpp"
 
 #include <memory>
 #include <shared_mutex>
@@ -289,6 +290,19 @@ public:
     //BBS: check whether this is the only edited filament
     bool is_the_only_edited_filament(unsigned int filament_index);
 
+    // Mixed filament helpers — query virtual slot info
+    bool is_mixed_filament(size_t idx) const {
+        return mixed_filaments.is_mixed(static_cast<unsigned int>(idx + 1),
+                                        filament_presets.size());
+    }
+    size_t total_filament_count() const {
+        return mixed_filaments.total_filaments(filament_presets.size());
+    }
+
+    // Sync the MixedFilamentManager to/from the project_config string key.
+    void sync_mixed_filaments_from_config();
+    void sync_mixed_filaments_to_config();
+
     void reset_default_nozzle_volume_type();
 
     std::vector<int> get_used_tpu_filaments(const std::vector<int> &used_filaments);
@@ -325,6 +339,10 @@ public:
     // BBS: ams
     std::map<int, DynamicPrintConfig> filament_ams_list;
     std::vector<std::vector<std::string>> ams_multi_color_filment;
+
+    // Mixed (virtual) filaments for layer-based colour mixing.
+    // This is the canonical instance; Print::m_mixed_filament_mgr is a slicing-time copy.
+    MixedFilamentManager mixed_filaments;
 
     std::vector<std::map<int, int>> extruder_ams_counts;
 
@@ -436,7 +454,23 @@ public:
 
     // Read out the number of extruders from an active printer preset,
     // update size and content of filament_presets.
-    void                        update_multi_material_filament_presets(size_t to_delete_filament_id = size_t(-1));
+    // old_num_filaments: physical filament count before any add/delete (size_t(-1) = auto-detect).
+    void                        update_multi_material_filament_presets(size_t to_delete_filament_id = size_t(-1),
+                                                                       size_t old_num_filaments = size_t(-1));
+    // Rebuild old->new virtual filament mapping after mixed-row enable/delete
+    // changes when the physical filament count itself did not change.
+    void                        update_mixed_filament_id_remap(const std::vector<MixedFilament> &old_mixed,
+                                                               size_t old_num_filaments,
+                                                               size_t new_num_filaments);
+    // Mapping generated during the latest filament count change.
+    // Index is old 1-based filament ID, value is new 1-based filament ID (0 = removed).
+    const std::vector<unsigned int>& last_filament_id_remap() const { return m_last_filament_id_remap; }
+    std::vector<unsigned int> consume_last_filament_id_remap()
+    {
+        std::vector<unsigned int> out = std::move(m_last_filament_id_remap);
+        m_last_filament_id_remap.clear();
+        return out;
+    }
 
     void                        on_extruders_count_changed(int extruder_count);
 
@@ -493,6 +527,12 @@ private:
     void update_filament_multi_color();
     // Update renamed_from and alias maps of system profiles.
     void 						update_system_maps();
+    // Build old->new filament ID remap for painted facet data normalization.
+    void                        build_filament_id_remap(const std::vector<MixedFilament> &old_mixed,
+                                                        size_t old_num_filaments,
+                                                        size_t new_num_filaments,
+                                                        bool deleting_filament,
+                                                        unsigned int deleted_1based);
 
     // Set the is_visible flag for filaments and sla materials,
     // apply defaults based on enabled printers when no filaments/materials are installed.
@@ -513,6 +553,7 @@ private:
     bool validation_mode = false;
     std::string vendor_to_validate = "";
     int m_errors = 0;
+    std::vector<unsigned int> m_last_filament_id_remap;
 
     // Helper function: save preset to bundle directory with common logic
     bool save_preset_to_bundle_dir(Preset& preset, PresetCollection* collection,

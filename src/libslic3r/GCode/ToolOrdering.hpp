@@ -4,6 +4,7 @@
 #define slic3r_ToolOrdering_hpp_
 
 #include "../libslic3r.h"
+#include "../MixedFilament.hpp"
 
 #include <utility>
 
@@ -145,6 +146,12 @@ public:
 	// Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
 	unsigned int extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const;
 
+    // Stub helpers for per-layer infill override (Task 14). Each returns
+    // the configured 1-based filament ID without per-layer logic until Task 14 lands.
+    unsigned int sparse_infill_filament_id_1based(const PrintRegion &region) const;
+    unsigned int infill_filament_id_1based(const PrintRegion &region) const;
+    bool         use_base_infill_filament(const PrintRegion &region) const;
+
     coordf_t 					print_z	= 0.;
     bool 						has_object = false;
     bool						has_support = false;
@@ -153,6 +160,27 @@ public:
     // If per layer extruder switches are inserted by the G-code preview slider, this value contains the new (1 based) extruder, with which the whole object layer is being printed with.
     // If not overriden, it is set to 0.
     unsigned int 				extruder_override = 0;
+    // Mixed-filament resolution context (set by ToolOrdering during collect_extruders).
+    const MixedFilamentManager *mixed_mgr    = nullptr;
+    size_t                      num_physical = 0;
+    // Sequential layer index (0-based), used by mixed-filament resolution.
+    int                         layer_index = -1;
+    // Total number of object layers for the current print object.
+    int                         object_layer_count = 0;
+    // Actual layer height for this print_z where available.
+    coordf_t                    layer_height = 0.;
+    // Optional mixed-layer cadence override from print settings.
+    float                       mixed_layer_height_a    = 0.f;
+    float                       mixed_layer_height_b    = 0.f;
+    float                       mixed_base_layer_height = 0.2f;
+
+    // Resolve a configured 1-based filament ID to a physical 1-based ID via the
+    // mixed-filament manager for this layer. Returns input unchanged if no manager
+    // is set or the ID is not a mixed slot.
+    bool is_mixed_slot_0based(unsigned int filament_id_0based) const {
+        return mixed_mgr && mixed_mgr->is_mixed(filament_id_0based + 1, num_physical);
+    }
+
     // Should a skirt be printed at this layer?
     // Layers are marked for infinite skirt aka draft shield. Not all the layers have to be printed.
     bool                        has_skirt = false;
@@ -171,6 +199,10 @@ public:
         m_wiping_extrusions.set_layer_tools_ptr(this);
         return m_wiping_extrusions;
     }
+
+    // Resolve a 1-based filament ID through the mixed-filament manager for this layer.
+    // Returns input unchanged when mixed_mgr is null or ID is not a mixed slot.
+    unsigned int resolve_mixed_1based(unsigned int filament_id_1based) const;
 
 private:
     // This object holds list of extrusion that will be used for extruder wiping
@@ -254,6 +286,14 @@ public:
 
     bool                has_non_support_filament(const PrintConfig &config);
 
+    // Resolve a 1-based filament ID through the mixed-filament manager.
+    // Returns the resolved physical extruder (1-based). If the ID is not a
+    // mixed filament or no manager is set, returns the input unchanged.
+    unsigned int resolve_mixed(unsigned int filament_id_1based,
+                               int          layer_index,
+                               float        layer_print_z = 0.f,
+                               float        layer_height  = 0.f) const;
+
 private:
     void				initialize_layers(std::vector<coordf_t> &zs);
     void 				collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches);
@@ -262,6 +302,8 @@ private:
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
     void 				collect_extruder_statistics(bool prime_multi_material);
     void                reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer);
+    // Read mixed_color_layer_height_a/b from config and cache in m_mixed_layer_height_*.
+    void                update_mixed_layer_height_settings();
 
     // BBS
     std::vector<unsigned int> generate_first_layer_tool_order(const Print& print);
@@ -278,6 +320,13 @@ private:
     const PrintConfig*         m_print_config_ptr = nullptr;
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
+    // Mixed filament support: pointer to manager (owned by Print) and
+    // number of physical extruders.
+    const MixedFilamentManager* m_mixed_mgr        = nullptr;
+    size_t                      m_num_physical      = 0;
+    float                       m_mixed_layer_height_a    = 0.f;
+    float                       m_mixed_layer_height_b    = 0.f;
+    float                       m_mixed_base_layer_height = 0.2f;
     bool                       m_sorted = false;
 
     FilamentChangeStats        m_stats_by_single_extruder;

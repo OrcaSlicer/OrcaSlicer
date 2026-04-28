@@ -10,9 +10,11 @@
 #include "libslic3r_version.h"
 
 #include <algorithm>
+#include <map>
 #include <mutex>
 #include <set>
 #include <fstream>
+#include <unordered_map>
 #include <unordered_set>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
@@ -53,7 +55,9 @@ static std::vector<std::string> s_project_options {
     "flush_multiplier",
     "nozzle_volume_type",
     "filament_map_mode",
-    "filament_map"
+    "filament_map",
+    // FullSpectrum: mixed filament definitions string (virtual slot configuration)
+    "mixed_filament_definitions"
 };
 
 //Orca: add custom as default
@@ -2682,6 +2686,7 @@ void PresetBundle::update_selections(AppConfig &config)
     // exist.
     this->update_compatible(PresetSelectCompatibleType::Always);
     this->update_multi_material_filament_presets();
+    sync_mixed_filaments_from_config();
 
     std::string first_visible_filament_name;
     for (auto & fp : filament_presets) {
@@ -2820,12 +2825,20 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
         project_config.option<ConfigOptionFloats>("flush_multiplier")->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
     }
 
+    // Restore mixed filament definitions persisted across sessions.
+    if (config.has("presets", "mixed_filament_definitions")) {
+        auto *defs = project_config.option<ConfigOptionString>("mixed_filament_definitions");
+        if (defs)
+            defs->value = config.get("presets", "mixed_filament_definitions");
+    }
+
     // Update visibility of presets based on their compatibility with the active printer.
     // Always try to select a compatible print and filament preset to the current printer preset,
     // as the application may have been closed with an active "external" preset, which does not
     // exist.
     this->update_compatible(PresetSelectCompatibleType::Always);
     this->update_multi_material_filament_presets();
+    sync_mixed_filaments_from_config();
 
     if (initial_printer != nullptr && (preferred_printer == nullptr || initial_printer == preferred_printer)) {
         // Don't run the following code, as we want to activate default filament / SLA material profiles when installing and selecting a new printer.
@@ -2945,6 +2958,11 @@ void PresetBundle::export_selections(AppConfig &config)
                                                               "|");
     config.set_printer_setting(printer_name, "flush_multiplier", flush_multiplier_str);
 
+    // Persist mixed filament definitions across sessions.
+    sync_mixed_filaments_to_config();
+    if (auto *defs = project_config.option<ConfigOptionString>("mixed_filament_definitions"))
+        config.set("presets", "mixed_filament_definitions", defs->value);
+
     // BBS
     //config.set("presets", "sla_print",    sla_prints.get_selected_preset_name());
     //config.set("presets", "sla_material", sla_materials.get_selected_preset_name());
@@ -2989,6 +3007,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
     }
 
     update_multi_material_filament_presets();
+    sync_mixed_filaments_from_config();
 }
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
@@ -3026,6 +3045,26 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     }
 
     update_multi_material_filament_presets();
+    sync_mixed_filaments_from_config();
+}
+
+void PresetBundle::sync_mixed_filaments_from_config()
+{
+    auto *col_opt  = project_config.option<ConfigOptionStrings>("filament_colour");
+    auto *defs_opt = project_config.option<ConfigOptionString>("mixed_filament_definitions");
+    if (!col_opt)
+        return;
+    mixed_filaments.auto_generate(col_opt->values);
+    if (defs_opt && !defs_opt->value.empty())
+        mixed_filaments.load_custom_entries(defs_opt->value, col_opt->values);
+}
+
+void PresetBundle::sync_mixed_filaments_to_config()
+{
+    auto *defs_opt = project_config.option<ConfigOptionString>("mixed_filament_definitions");
+    if (!defs_opt)
+        return;
+    defs_opt->value = mixed_filaments.serialize_custom_entries();
 }
 
 void PresetBundle::update_num_filaments(unsigned int to_del_flament_id)
@@ -3075,6 +3114,11 @@ void PresetBundle::update_num_filaments(unsigned int to_del_flament_id)
     erase_or_resize(filament_multi_color->values);
     erase_or_resize(filament_color_type->values);
     erase_or_resize(ams_multi_color_filment);
+
+    // Remove any virtual mixed rows that contained this physical filament,
+    // then persist the updated definitions back into project_config.
+    mixed_filaments.remove_physical_filament(to_del_flament_id + 1); // 1-based
+    sync_mixed_filaments_to_config();
 
     update_multi_material_filament_presets(to_del_flament_id);
 }
@@ -3135,6 +3179,7 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
 unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "use_map:" << use_map << " enable_append:" << enable_append;
+
     std::vector<std::string> ams_filament_presets;
     std::vector<std::string> ams_filament_colors;
     std::vector<std::string> ams_filament_color_types;
@@ -3279,6 +3324,14 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     }
     if (ams_filament_presets.empty())
         return 0;
+
+    // AMS sync must not clobber mixed (virtual) filament data — save and restore.
+    // Guard is placed here (after the early-return) so no early-return path bypasses
+    // the restore block below.
+    auto saved_mixed = mixed_filaments;
+    auto *defs_opt_ams = project_config.option<ConfigOptionString>("mixed_filament_definitions");
+    std::string saved_defs = defs_opt_ams ? defs_opt_ams->value : std::string{};
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "get filament_colour and from config";
     ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
@@ -3535,6 +3588,12 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         if (support_interface_filament_opt->value > filament_color_type->values.size())
             support_interface_filament_opt->value = 0;
     }
+    // Restore mixed (virtual) filament data that AMS sync must not overwrite.
+    mixed_filaments = saved_mixed;
+    if (defs_opt_ams)
+        defs_opt_ams->value = saved_defs;
+    sync_mixed_filaments_from_config();
+
     // Update ams_multi_color_filment
     update_filament_multi_color();
     update_multi_material_filament_presets();
@@ -4549,6 +4608,10 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
 
+    // FullSpectrum: rebuild the MixedFilamentManager from the just-loaded project config.
+    // Per-row warnings for skipped invalid entries are emitted by load_custom_entries.
+    sync_mixed_filaments_from_config();
+
     //BBS
     //const std::string &physical_printer = config.option<ConfigOptionString>("physical_printer_settings_id", true)->value;
     const std::string physical_printer;
@@ -5108,7 +5171,7 @@ void PresetBundle::on_extruders_count_changed(int extruders_count)
     extruder_ams_counts.resize(extruders_count);
 }
 
-void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filament_id)
+void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filament_id, size_t old_num_filaments_arg)
 {
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
@@ -5119,17 +5182,25 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     // Verify and select the filament presets.
     size_t num_filaments = this->filament_presets.size();
 
-    auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
+    auto *nozzle_diameter = static_cast<const ConfigOptionFloats *>(printers.get_edited_preset().config.option("nozzle_diameter"));
     size_t num_extruders  = nozzle_diameter->values.size();
     if (num_extruders > num_filaments) { // Verify validity of the current filament presets.
         for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++i)
             this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
         // Append the rest of filament presets.
-        this->filament_presets.resize(num_extruders, this->filament_presets.empty() ? this->filaments.first_visible().name :
-                                                                                      this->filament_presets.back());
+        this->filament_presets.resize(num_extruders,
+                                      this->filament_presets.empty() ? this->filaments.first_visible().name : this->filament_presets.back());
         num_filaments = this->filament_presets.size();
     }
-    if (to_delete_filament_id == -1)
+
+    const bool deleting_filament = (to_delete_filament_id != size_t(-1));
+    const size_t old_num_filaments = (old_num_filaments_arg != size_t(-1))
+        ? old_num_filaments_arg
+        : (deleting_filament ? (num_filaments + 1) : num_filaments);
+    const std::vector<MixedFilament> old_mixed = this->mixed_filaments.mixed_filaments();
+    m_last_filament_id_remap.clear();
+
+    if (!deleting_filament)
         to_delete_filament_id = num_filaments;
 
     // Now verify if flush_volumes_matrix has proper size (it is used to deduce number of extruders in wipe tower generator):
@@ -5180,6 +5251,140 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
             }
         this->project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = new_matrix;
     }
+
+    // Build old->new filament ID remap for painted facet data normalization.
+    // This is needed for both deletion and addition of physical filaments so
+    // painted mixed states keep pointing at the same virtual mixed entries.
+    if (old_num_filaments != num_filaments || deleting_filament || old_mixed != this->mixed_filaments.mixed_filaments())
+        build_filament_id_remap(old_mixed, old_num_filaments, num_filaments, deleting_filament,
+                                deleting_filament ? unsigned(to_delete_filament_id + 1) : 0u);
+}
+
+void PresetBundle::update_mixed_filament_id_remap(const std::vector<MixedFilament> &old_mixed,
+                                                  size_t old_num_filaments,
+                                                  size_t new_num_filaments)
+{
+    build_filament_id_remap(old_mixed, old_num_filaments, new_num_filaments, false, 0u);
+}
+
+void PresetBundle::build_filament_id_remap(const std::vector<MixedFilament> &old_mixed,
+                                           size_t old_num_filaments,
+                                           size_t new_num_filaments,
+                                           bool deleting_filament,
+                                           unsigned int deleted_1based)
+{
+    size_t old_enabled_mixed = 0;
+    for (const auto &mf : old_mixed)
+        if (mf.enabled)
+            ++old_enabled_mixed;
+
+    const size_t old_total_filaments = old_num_filaments + old_enabled_mixed;
+    m_last_filament_id_remap.assign(old_total_filaments + 1, 0);
+
+    for (unsigned int old_id = 1; old_id <= unsigned(old_num_filaments); ++old_id) {
+        unsigned int mapped = 0;
+        if (deleting_filament && old_id == deleted_1based) {
+            mapped = 0;
+        } else if (old_id <= unsigned(new_num_filaments)) {
+            mapped = old_id;
+            if (deleting_filament && old_id > deleted_1based)
+                --mapped;
+        }
+        m_last_filament_id_remap[old_id] = mapped;
+    }
+
+    auto canonical_pair = [](unsigned int a, unsigned int b) {
+        return std::make_pair(std::min(a, b), std::max(a, b));
+    };
+
+    std::unordered_map<uint64_t, unsigned int> new_stable_id_to_virtual_id;
+    std::map<std::pair<unsigned int, unsigned int>, std::vector<unsigned int>> new_pair_to_ids;
+    unsigned int next_virtual_id = unsigned(new_num_filaments + 1);
+    for (const auto &mf : this->mixed_filaments.mixed_filaments()) {
+        if (!mf.enabled)
+            continue;
+        if (mf.stable_id != 0)
+            new_stable_id_to_virtual_id.emplace(mf.stable_id, next_virtual_id);
+        new_pair_to_ids[canonical_pair(mf.component_a, mf.component_b)].push_back(next_virtual_id++);
+    }
+
+    std::map<std::pair<unsigned int, unsigned int>, size_t> used_per_pair;
+    size_t stable_id_hits = 0;
+    size_t fallback_pair_hits = 0;
+    size_t missing_hits = 0;
+    unsigned int old_virtual_id = unsigned(old_num_filaments + 1);
+    for (const auto &mf : old_mixed) {
+        if (!mf.enabled)
+            continue;
+
+        unsigned int a = mf.component_a;
+        unsigned int b = mf.component_b;
+        if (a == deleted_1based || b == deleted_1based) {
+            m_last_filament_id_remap[old_virtual_id] = 0;
+            ++missing_hits;
+        } else {
+            bool mapped_by_stable_id = false;
+            if (mf.stable_id != 0) {
+                auto it_stable = new_stable_id_to_virtual_id.find(mf.stable_id);
+                if (it_stable != new_stable_id_to_virtual_id.end()) {
+                    m_last_filament_id_remap[old_virtual_id] = it_stable->second;
+                    mapped_by_stable_id = true;
+                    ++stable_id_hits;
+                }
+            }
+            if (!mapped_by_stable_id) {
+                if (deleting_filament) {
+                    if (a > deleted_1based)
+                        --a;
+                    if (b > deleted_1based)
+                        --b;
+                }
+                const auto key = canonical_pair(a, b);
+                auto it = new_pair_to_ids.find(key);
+                if (it == new_pair_to_ids.end()) {
+                    m_last_filament_id_remap[old_virtual_id] = 0;
+                    ++missing_hits;
+                } else {
+                    size_t &used = used_per_pair[key];
+                    if (used >= it->second.size()) {
+                        m_last_filament_id_remap[old_virtual_id] = 0;
+                        ++missing_hits;
+                    } else {
+                        m_last_filament_id_remap[old_virtual_id] = it->second[used++];
+                        ++fallback_pair_hits;
+                    }
+                }
+            }
+        }
+        ++old_virtual_id;
+    }
+
+    auto summarize_uint_vector = [](const std::vector<unsigned int> &values, size_t max_items = 24) {
+        std::string out = "[";
+        const size_t n = std::min(values.size(), max_items);
+        for (size_t i = 0; i < n; ++i) {
+            if (i > 0)
+                out += ",";
+            out += std::to_string(values[i]);
+        }
+        if (values.size() > n)
+            out += ",...";
+        out += "]";
+        return out;
+    };
+
+    BOOST_LOG_TRIVIAL(warning) << "MF_REMAP preset_bundle"
+                            << " old_physical=" << old_num_filaments
+                            << " new_physical=" << new_num_filaments
+                            << " deleting=" << (deleting_filament ? 1 : 0)
+                            << " deleted_id=" << deleted_1based
+                            << " old_mixed_enabled=" << old_enabled_mixed
+                            << " new_mixed_enabled=" << this->mixed_filaments.enabled_count()
+                            << " stable_id_hits=" << stable_id_hits
+                            << " fallback_pair_hits=" << fallback_pair_hits
+                            << " missing_hits=" << missing_hits
+                            << " remap_size=" << m_last_filament_id_remap.size()
+                            << " remap=" << summarize_uint_vector(m_last_filament_id_remap);
 }
 
 void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_print_if_incompatible, PresetSelectCompatibleType select_other_filament_if_incompatible)
