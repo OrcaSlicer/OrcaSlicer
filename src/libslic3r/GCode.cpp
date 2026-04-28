@@ -3529,6 +3529,30 @@ void GCode::export_layer_filaments(GCodeProcessorResult* result)
                 iter->second.emplace_back(idx, idx);
         }
     }
+
+    result->filament_change_sequence.clear();
+    result->nozzle_change_sequence.clear();
+
+    int prev_sequence_filament = -1;
+    int prev_sequence_nozzle = -1;
+    for (size_t layer_idx = 0; layer_idx < m_sorted_layer_filaments.size(); ++layer_idx) {
+        for (unsigned int filament_id : m_sorted_layer_filaments[layer_idx]) {
+            int nozzle_id = 0;
+            if (filament_id < filament_map.size() && filament_map[filament_id] > 0)
+                nozzle_id = filament_map[filament_id] - 1;
+            if (prev_sequence_nozzle != nozzle_id || prev_sequence_filament != static_cast<int>(filament_id)) {
+                result->nozzle_change_sequence.emplace_back(static_cast<unsigned int>(nozzle_id));
+                result->filament_change_sequence.emplace_back(filament_id);
+                prev_sequence_nozzle = nozzle_id;
+                prev_sequence_filament = static_cast<int>(filament_id);
+            }
+        }
+    }
+
+    result->optimal_assignment.clear();
+    result->optimal_assignment.reserve(filament_map.size());
+    for (int nozzle_id : filament_map)
+        result->optimal_assignment.emplace_back(nozzle_id > 0 ? nozzle_id - 1 : 0);
 }
 
 //BBS
