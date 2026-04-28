@@ -1049,89 +1049,161 @@ PRINT_CONFIG_CLASS_DEFINE(
 PRINT_CONFIG_CLASS_DEFINE(
     PrintRegionConfig,
 
-    ((ConfigOptionInts, print_extruder_id))((ConfigOptionStrings, print_extruder_variant))((ConfigOptionInt, bottom_shell_layers))(
-        (ConfigOptionFloat, bottom_shell_thickness))((ConfigOptionFloat, bridge_angle))(
-        (ConfigOptionFloat, internal_bridge_angle)) // ORCA: Internal bridge angle override
-    ((ConfigOptionFloat, bridge_flow))((ConfigOptionFloat, internal_bridge_flow))((ConfigOptionFloat, bridge_speed))(
-        (ConfigOptionFloatOrPercent, internal_bridge_speed))((ConfigOptionEnum<EnsureVerticalShellThickness>,
-                                                              ensure_vertical_shell_thickness))((ConfigOptionPercent, top_surface_density))(
-        (ConfigOptionPercent, bottom_surface_density))((ConfigOptionEnum<InfillPattern>, top_surface_pattern))(
-        (ConfigOptionEnum<InfillPattern>, bottom_surface_pattern))((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))(
-        (ConfigOptionFloatOrPercent, outer_wall_line_width))((ConfigOptionFloat, outer_wall_speed))((ConfigOptionFloat, infill_direction))(
-        (ConfigOptionFloat, solid_infill_direction))((ConfigOptionString, solid_infill_rotate_template))(
-        (ConfigOptionBool, symmetric_infill_y_axis))((ConfigOptionFloat, infill_shift_step))(
-        (ConfigOptionString, sparse_infill_rotate_template))((ConfigOptionPercent, sparse_infill_density))(
-        (ConfigOptionEnum<InfillPattern>, sparse_infill_pattern))((ConfigOptionFloat, lateral_lattice_angle_1))(
-        (ConfigOptionFloat, lateral_lattice_angle_2))((ConfigOptionFloat, infill_overhang_angle))((ConfigOptionBool,
-                                                                                                   align_infill_direction_to_model))((
-        ConfigOptionString, extra_solid_infills))((ConfigOptionEnum<FuzzySkinType>, fuzzy_skin))((ConfigOptionFloat, fuzzy_skin_thickness))(
-        (ConfigOptionFloat, fuzzy_skin_point_distance))((ConfigOptionBool, fuzzy_skin_first_layer))((ConfigOptionEnum<NoiseType>,
-                                                                                                     fuzzy_skin_noise_type))(
-        (ConfigOptionEnum<FuzzySkinMode>, fuzzy_skin_mode))((ConfigOptionFloat, fuzzy_skin_scale))((ConfigOptionInt, fuzzy_skin_octaves))(
-        (ConfigOptionFloat, fuzzy_skin_persistence))((ConfigOptionFloat, gap_infill_speed))((ConfigOptionInt, sparse_infill_filament))(
-        (ConfigOptionFloatOrPercent, sparse_infill_line_width))((ConfigOptionPercent, infill_wall_overlap))(
-        (ConfigOptionPercent, top_bottom_infill_wall_overlap))((ConfigOptionFloat, sparse_infill_speed))(
-        (ConfigOptionPercent, skeleton_infill_density))((ConfigOptionPercent, skin_infill_density))((ConfigOptionFloat, infill_lock_depth))(
-        (ConfigOptionFloat, skin_infill_depth))((ConfigOptionFloatOrPercent, skin_infill_line_width))(
-        (ConfigOptionFloatOrPercent, skeleton_infill_line_width))((ConfigOptionBool, infill_combination))
+    ((ConfigOptionInts,  print_extruder_id))
+    ((ConfigOptionStrings,  print_extruder_variant))
+    ((ConfigOptionInt,                  bottom_shell_layers))
+    ((ConfigOptionFloat,                bottom_shell_thickness))
+    ((ConfigOptionFloat,                bridge_angle))
+    ((ConfigOptionFloat,                internal_bridge_angle)) // ORCA: Internal bridge angle override
+    ((ConfigOptionFloat,                bridge_flow))
+    ((ConfigOptionFloat,                internal_bridge_flow))
+    ((ConfigOptionFloat,                bridge_speed))
+    ((ConfigOptionFloatOrPercent,       internal_bridge_speed))
+    ((ConfigOptionEnum<EnsureVerticalShellThickness>,   ensure_vertical_shell_thickness))
+    ((ConfigOptionPercent,              top_surface_density))
+    ((ConfigOptionPercent,               bottom_surface_density))
+    ((ConfigOptionEnum<InfillPattern>,  top_surface_pattern))
+    ((ConfigOptionEnum<InfillPattern>,  bottom_surface_pattern))
+    ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
+    ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
+    ((ConfigOptionFloat,                outer_wall_speed))
+    ((ConfigOptionFloat,                infill_direction))
+    ((ConfigOptionFloat,                solid_infill_direction))
+    ((ConfigOptionString,               solid_infill_rotate_template))
+    ((ConfigOptionBool,                 symmetric_infill_y_axis))
+    ((ConfigOptionFloat,                infill_shift_step))
+    ((ConfigOptionString,               sparse_infill_rotate_template))
+    ((ConfigOptionPercent,              sparse_infill_density))
+    ((ConfigOptionEnum<InfillPattern>,  sparse_infill_pattern))
+    ((ConfigOptionFloat,                lateral_lattice_angle_1))
+    ((ConfigOptionFloat,                lateral_lattice_angle_2))
+    ((ConfigOptionFloat,                infill_overhang_angle))
+    ((ConfigOptionBool,                 align_infill_direction_to_model))
+    ((ConfigOptionString,               extra_solid_infills))
+    ((ConfigOptionEnum<FuzzySkinType>,  fuzzy_skin))
+    ((ConfigOptionFloat,                fuzzy_skin_thickness))
+    ((ConfigOptionFloat,                fuzzy_skin_point_distance))
+    ((ConfigOptionBool,                 fuzzy_skin_first_layer))
+    ((ConfigOptionEnum<NoiseType>,      fuzzy_skin_noise_type))
+    ((ConfigOptionEnum<FuzzySkinMode>,  fuzzy_skin_mode))
+    ((ConfigOptionFloat,                fuzzy_skin_scale))
+    ((ConfigOptionInt,                  fuzzy_skin_octaves))
+    ((ConfigOptionFloat,                fuzzy_skin_persistence))
+    ((ConfigOptionFloat,                gap_infill_speed))
+    ((ConfigOptionInt,                  sparse_infill_filament))
+    ((ConfigOptionFloatOrPercent,       sparse_infill_line_width))
+    ((ConfigOptionPercent,              infill_wall_overlap))
+    ((ConfigOptionPercent,              top_bottom_infill_wall_overlap))
+    ((ConfigOptionFloat,                sparse_infill_speed))
+    ((ConfigOptionPercent, skeleton_infill_density))
+    ((ConfigOptionPercent, skin_infill_density))
+    ((ConfigOptionFloat, infill_lock_depth))
+    ((ConfigOptionFloat, skin_infill_depth))
+    ((ConfigOptionFloatOrPercent, skin_infill_line_width))
+    ((ConfigOptionFloatOrPercent, skeleton_infill_line_width))
+    ((ConfigOptionBool, infill_combination))
     // Orca:
-    ((ConfigOptionFloatOrPercent, infill_combination_max_layer_height))((ConfigOptionInt, fill_multiline))
+    ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
+    ((ConfigOptionInt,                  fill_multiline))
     // Ironing options
-    ((ConfigOptionEnum<IroningType>, ironing_type))((ConfigOptionEnum<InfillPattern>, ironing_pattern))((ConfigOptionPercent, ironing_flow))(
-        (ConfigOptionFloat, ironing_spacing))((ConfigOptionFloat, ironing_inset))((ConfigOptionFloat,
-                                                                                   ironing_direction))((ConfigOptionFloat, ironing_speed))(
-        (ConfigOptionFloat, ironing_angle))((ConfigOptionBool, ironing_angle_fixed))((ConfigOptionFloat, ironing_expansion))
+    ((ConfigOptionEnum<IroningType>, ironing_type))
+    ((ConfigOptionEnum<InfillPattern>, ironing_pattern))
+    ((ConfigOptionPercent, ironing_flow))
+    ((ConfigOptionFloat, ironing_spacing))
+    ((ConfigOptionFloat, ironing_inset))
+    ((ConfigOptionFloat, ironing_direction))
+    ((ConfigOptionFloat, ironing_speed))
+    ((ConfigOptionFloat, ironing_angle))
+    ((ConfigOptionBool, ironing_angle_fixed))
     // Filament Ironing
-    ((ConfigOptionPercentsNullable, filament_ironing_flow))((ConfigOptionFloatsNullable, filament_ironing_spacing))(
-        (ConfigOptionFloatsNullable, filament_ironing_inset))((ConfigOptionFloatsNullable, filament_ironing_speed))
+    ((ConfigOptionPercentsNullable, filament_ironing_flow))
+    ((ConfigOptionFloatsNullable, filament_ironing_spacing))
+    ((ConfigOptionFloatsNullable, filament_ironing_inset))
+    ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
-    ((ConfigOptionBool, detect_overhang_wall))((ConfigOptionInt, wall_filament))((ConfigOptionFloatOrPercent, inner_wall_line_width))(
-        (ConfigOptionFloat, inner_wall_speed))
+    ((ConfigOptionBool, detect_overhang_wall))
+    ((ConfigOptionInt, wall_filament))
+    ((ConfigOptionFloatOrPercent, inner_wall_line_width))
+    ((ConfigOptionFloat, inner_wall_speed))
     // Total number of perimeters.
-    ((ConfigOptionInt, wall_loops))((ConfigOptionBool, alternate_extra_wall))((ConfigOptionFloat, minimum_sparse_infill_area))(
-        (ConfigOptionInt, solid_infill_filament))((ConfigOptionFloatOrPercent,
-                                                   internal_solid_infill_line_width))((ConfigOptionFloat, internal_solid_infill_speed))
+    ((ConfigOptionInt, wall_loops))
+    ((ConfigOptionBool, alternate_extra_wall))
+    ((ConfigOptionFloat, minimum_sparse_infill_area))
+    ((ConfigOptionInt, solid_infill_filament))
+    ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
+    ((ConfigOptionFloat, internal_solid_infill_speed))
     // Detect thin walls.
-    ((ConfigOptionBool, detect_thin_wall))((ConfigOptionFloatOrPercent, top_surface_line_width))((ConfigOptionInt, top_shell_layers))(
-        (ConfigOptionFloat, top_shell_thickness))((ConfigOptionFloat, top_surface_speed))
-    // BBS
-    ((ConfigOptionBool, enable_overhang_speed))((ConfigOptionFloatOrPercent, overhang_1_4_speed))(
-        (ConfigOptionFloatOrPercent, overhang_2_4_speed))((ConfigOptionFloatOrPercent, overhang_3_4_speed))(
-        (ConfigOptionFloatOrPercent, overhang_4_4_speed))((ConfigOptionBool, only_one_wall_top))
+    ((ConfigOptionBool, detect_thin_wall))
+    ((ConfigOptionFloatOrPercent, top_surface_line_width))
+    ((ConfigOptionInt, top_shell_layers))
+    ((ConfigOptionFloat, top_shell_thickness))
+    ((ConfigOptionFloat, top_surface_speed))
+    //BBS
+    ((ConfigOptionBool,                 enable_overhang_speed))
+    ((ConfigOptionFloatOrPercent,       overhang_1_4_speed))
+    ((ConfigOptionFloatOrPercent,       overhang_2_4_speed))
+    ((ConfigOptionFloatOrPercent,       overhang_3_4_speed))
+    ((ConfigOptionFloatOrPercent,       overhang_4_4_speed))
+    ((ConfigOptionBool,                 only_one_wall_top))
 
-    // SoftFever
-    ((ConfigOptionFloatOrPercent, min_width_top_surface))((ConfigOptionBool, only_one_wall_first_layer))(
-        (ConfigOptionFloat, print_flow_ratio))((ConfigOptionFloatOrPercent, seam_gap))((ConfigOptionBool, role_based_wipe_speed))(
-        (ConfigOptionFloatOrPercent, wipe_speed))((ConfigOptionBool, wipe_on_loops))((ConfigOptionBool, wipe_before_external_loop))(
-        (ConfigOptionEnum<WallInfillOrder>, wall_infill_order))((ConfigOptionBool, precise_outer_wall))((
-        ConfigOptionPercent, bridge_density))((ConfigOptionFloat, filter_out_gap_fill))((ConfigOptionFloatOrPercent, small_perimeter_speed))(
-        (ConfigOptionFloat, small_perimeter_threshold))((ConfigOptionFloat, top_solid_infill_flow_ratio))(
-        (ConfigOptionFloat, bottom_solid_infill_flow_ratio))((ConfigOptionFloatOrPercent, infill_anchor))((ConfigOptionFloatOrPercent,
-                                                                                                           infill_anchor_max))
+    //SoftFever
+    ((ConfigOptionFloatOrPercent,       min_width_top_surface))
+    ((ConfigOptionBool,                 only_one_wall_first_layer))
+    ((ConfigOptionFloat,                print_flow_ratio))
+    ((ConfigOptionFloatOrPercent,       seam_gap))
+    ((ConfigOptionBool,                 role_based_wipe_speed))
+    ((ConfigOptionFloatOrPercent,       wipe_speed))
+    ((ConfigOptionBool,                 wipe_on_loops))
+    ((ConfigOptionBool,                 wipe_before_external_loop))
+    ((ConfigOptionEnum<WallInfillOrder>, wall_infill_order))
+    ((ConfigOptionBool,                 precise_outer_wall))
+    ((ConfigOptionPercent,              bridge_density))
+    ((ConfigOptionFloat,                 filter_out_gap_fill))
+    ((ConfigOptionFloatOrPercent,       small_perimeter_speed))
+    ((ConfigOptionFloat,                small_perimeter_threshold))
+    ((ConfigOptionFloat,                top_solid_infill_flow_ratio))
+    ((ConfigOptionFloat,                bottom_solid_infill_flow_ratio))
+    ((ConfigOptionFloatOrPercent,       infill_anchor))
+    ((ConfigOptionFloatOrPercent,       infill_anchor_max))
 
     // Orca
-    ((ConfigOptionBool, make_overhang_printable))((ConfigOptionBool, extra_perimeters_on_overhangs))(
-        (ConfigOptionBool, slowdown_for_curled_perimeters))((ConfigOptionBool, hole_to_polyhole))(
-        (ConfigOptionFloatOrPercent, hole_to_polyhole_threshold))((ConfigOptionBool, hole_to_polyhole_twisted))(
-        (ConfigOptionBool, overhang_reverse))((ConfigOptionBool, overhang_reverse_internal_only))((ConfigOptionFloatOrPercent,
-                                                                                                   overhang_reverse_threshold))(
-        (ConfigOptionEnum<CounterboreHoleBridgingOption>, counterbore_hole_bridging))((ConfigOptionEnum<WallSequence>, wall_sequence))(
-        (ConfigOptionBool, is_infill_first))((ConfigOptionBool, small_area_infill_flow_compensation))((ConfigOptionEnum<WallDirection>,
-                                                                                                       wall_direction))
+    ((ConfigOptionBool,                 make_overhang_printable))
+    ((ConfigOptionBool,                 extra_perimeters_on_overhangs))
+    ((ConfigOptionBool,                 slowdown_for_curled_perimeters))
+    ((ConfigOptionBool,                 hole_to_polyhole))
+    ((ConfigOptionFloatOrPercent,       hole_to_polyhole_threshold))
+    ((ConfigOptionBool,                 hole_to_polyhole_twisted))
+    ((ConfigOptionBool,                 overhang_reverse))
+    ((ConfigOptionBool,                 overhang_reverse_internal_only))
+    ((ConfigOptionFloatOrPercent,       overhang_reverse_threshold))
+    ((ConfigOptionEnum<CounterboreHoleBridgingOption>, counterbore_hole_bridging))
+    ((ConfigOptionEnum<WallSequence>,  wall_sequence))
+    ((ConfigOptionBool,                is_infill_first))
+    ((ConfigOptionBool,                small_area_infill_flow_compensation))
+    ((ConfigOptionEnum<WallDirection>,  wall_direction))
 
     // Orca: other flow ratios (available for overriding, if set_other_flow_ratios is enabled)
-    ((ConfigOptionFloat, first_layer_flow_ratio))((ConfigOptionFloat, outer_wall_flow_ratio))((ConfigOptionFloat, inner_wall_flow_ratio))(
-        (ConfigOptionFloat, overhang_flow_ratio))((ConfigOptionFloat, sparse_infill_flow_ratio))(
-        (ConfigOptionFloat, internal_solid_infill_flow_ratio))((ConfigOptionFloat, gap_fill_flow_ratio))
+    ((ConfigOptionFloat,                first_layer_flow_ratio))
+    ((ConfigOptionFloat,                outer_wall_flow_ratio))
+    ((ConfigOptionFloat,                inner_wall_flow_ratio))
+    ((ConfigOptionFloat,                overhang_flow_ratio))
+    ((ConfigOptionFloat,                sparse_infill_flow_ratio))
+    ((ConfigOptionFloat,                internal_solid_infill_flow_ratio))
+    ((ConfigOptionFloat,                gap_fill_flow_ratio))
 
     // Orca: seam slopes
-    ((ConfigOptionEnum<SeamScarfType>, seam_slope_type))((ConfigOptionBool, seam_slope_conditional))(
-        (ConfigOptionInt, scarf_angle_threshold))((ConfigOptionFloatOrPercent, seam_slope_start_height))(
-        (ConfigOptionBool, seam_slope_entire_loop))((ConfigOptionFloat, seam_slope_min_length))((ConfigOptionInt, seam_slope_steps))(
-        (ConfigOptionBool, seam_slope_inner_walls))((ConfigOptionFloatOrPercent, scarf_joint_speed))(
-        (ConfigOptionFloat, scarf_joint_flow_ratio))((ConfigOptionPercent, scarf_overhang_threshold))
-
-    // Z Anti-Aliasing (aka Z Contouring)
+    ((ConfigOptionEnum<SeamScarfType>,  seam_slope_type))
+    ((ConfigOptionBool,                 seam_slope_conditional))
+    ((ConfigOptionInt,                  scarf_angle_threshold))
+    ((ConfigOptionFloatOrPercent,       seam_slope_start_height))
+    ((ConfigOptionBool,                 seam_slope_entire_loop))
+    ((ConfigOptionFloat,                seam_slope_min_length))
+    ((ConfigOptionInt,                  seam_slope_steps))
+    ((ConfigOptionBool,                 seam_slope_inner_walls))
+    ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
+    ((ConfigOptionFloat,                scarf_joint_flow_ratio))
+    ((ConfigOptionPercent,              scarf_overhang_threshold))
+    // Orca: Z Anti-Aliasing (aka Z Contouring)
     ((ConfigOptionBool, zaa_enabled))((ConfigOptionFloat, zaa_minimize_perimeter_height)))
 
 PRINT_CONFIG_CLASS_DEFINE(
