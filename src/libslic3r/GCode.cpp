@@ -91,6 +91,16 @@ static const float g_purge_volume_one_time = 135.f;
 static const int g_max_flush_count = 4;
 static const size_t g_max_label_object = 64;
 
+static bool is_bambu_x2d_printer(const FullPrintConfig &config)
+{
+    return config.printer_model.value == "Bambu Lab X2D";
+}
+
+static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int hotend_id)
+{
+    return is_bambu_x2d_printer(config) ? -1 : hotend_id;
+}
+
 Vec2d travel_point_1;
 Vec2d travel_point_2;
 Vec2d travel_point_3;
@@ -832,8 +842,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
             config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
             config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
-            config.set_key_value("current_hotend", new ConfigOptionInt(old_extruder_id));
-            config.set_key_value("next_hotend", new ConfigOptionInt((int) gcodegen.get_extruder_id(new_filament_id)));
+            config.set_key_value("current_hotend", new ConfigOptionInt(old_extruder_id >= 0 ?
+                hotend_id_for_gcode_placeholder(gcodegen.m_config, old_extruder_id) : -1));
+            config.set_key_value("next_hotend",
+                new ConfigOptionInt(hotend_id_for_gcode_placeholder(gcodegen.m_config, (int) gcodegen.get_extruder_id(new_filament_id))));
             config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
             config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
             config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
@@ -2795,9 +2807,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
-    this->placeholder_parser().set("initial_no_support_hotend", (int) get_extruder_id(initial_non_support_extruder_id));
+    this->placeholder_parser().set("initial_no_support_hotend",
+        hotend_id_for_gcode_placeholder(m_config, (int) get_extruder_id(initial_non_support_extruder_id)));
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
-    this->placeholder_parser().set("current_hotend", extruder_id);
+    this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, extruder_id));
     //Orca: set the key for compatibilty
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
@@ -7674,8 +7687,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
     dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
-    dyn_config.set_key_value("current_hotend", new ConfigOptionInt(old_filament_id >= 0 ? old_extruder_id : -1));
-    dyn_config.set_key_value("next_hotend", new ConfigOptionInt(new_extruder_id));
+    dyn_config.set_key_value("current_hotend",
+        new ConfigOptionInt(old_filament_id >= 0 ? hotend_id_for_gcode_placeholder(m_config, old_extruder_id) : -1));
+    dyn_config.set_key_value("next_hotend", new ConfigOptionInt(hotend_id_for_gcode_placeholder(m_config, new_extruder_id)));
     dyn_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
     dyn_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
     dyn_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -7816,7 +7830,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
 
     this->placeholder_parser().set("current_extruder", new_filament_id);
-    this->placeholder_parser().set("current_hotend", new_extruder_id);
+    this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, new_extruder_id));
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));
