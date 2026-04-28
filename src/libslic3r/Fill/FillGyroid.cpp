@@ -19,8 +19,11 @@
 // Marching squares extracts the iso-zero contour, which gives much smoother
 // transitions between vertical and horizontal regimes than the analytical
 // asin-based wave generator (which produces visible kinks at the inflection
-// lines). Setting fx = omega * baseline anisotropically tightens the wave
-// in x, biasing the strand toward higher buckling resistance under load.
+// lines). Setting fz = omega * baseline anisotropically tightens the wave
+// along the print's Z (layer-stacking) axis, shortening the effective
+// vertical strand length and improving column-buckling resistance under
+// Z-axis compression — which is the dominant FFF compression failure mode
+// (Z is not at delamination risk under compression, only under tension).
 // ---------------------------------------------------------------------------
 namespace marchsq {
 using namespace Slic3r;
@@ -46,9 +49,9 @@ struct GyroidField
         : size{bb.size()}, offs{bb.min}, z{z}
     {
         const float baseline = float(2.0 * PI) / std::max(period, 1e-3f);
-        fx = omega * baseline;
+        fx = baseline;
         fy = baseline;
-        fz = baseline;
+        fz = omega * baseline;
     }
 
     float get_scalar(coordf_t x, coordf_t y, coordf_t z_arg) const
@@ -201,9 +204,12 @@ static std::vector<Vec2d> make_one_period(double width, double scaleFactor, doub
 // "Optimized" gyroid wave: marching-squares variant gated on
 // params.gyroid_optimized. The wave shape is extracted from the gyroid
 // implicit scalar field (see marchsq::GyroidField above) at iso=0, with
-// the x dimension's spatial frequency multiplied by an Euler-Bernoulli
-// buckling-derived factor so the strand becomes shorter-wavelength under
-// load.
+// the Z dimension's spatial frequency multiplied by an Euler-Bernoulli
+// buckling-derived factor so the strand becomes shorter-wavelength along
+// the layer-stacking axis. Z is the typical compression-load axis for
+// FFF parts and is not at delamination risk under compression, so
+// shortening the effective vertical strand length directly improves
+// column-buckling resistance.
 //
 //   omega = sqrt(density_adj) / sqrt(1 + layer_h/spacing), clamped [0.5, 2.0]
 //
@@ -294,15 +300,16 @@ void FillGyroid::_fill_surface_single(
     if (params.gyroid_optimized) {
         // Marching-squares path on the gyroid implicit field. Base period matches
         // the standard parametric path's wavelength: 2*pi * spacing / density_adj.
-        // Omega anisotropically tightens the x dimension under load.
+        // Omega anisotropically tightens the Z dimension to shorten the effective
+        // vertical strand length under compression load.
         //
-        // Mass calibration: scaling fx by omega while leaving fy/fz at baseline
+        // Mass calibration: scaling fz by omega while leaving fx/fy at baseline
         // raises the surface-area-to-volume ratio by approximately omega^(1/3)
         // (the geometric mean of the three frequencies). To keep extruded mass
         // consistent with the standard gyroid at the same `sparse_infill_density`
         // setting, the base period is compensated by cbrt(omega):
-        //   fx = omega^(2/3) * baseline_orig
-        //   fy = fz = omega^(-1/3) * baseline_orig
+        //   fz = omega^(2/3) * baseline_orig
+        //   fx = fy = omega^(-1/3) * baseline_orig
         //   geometric mean of (fx, fy, fz) = baseline_orig  -> mass preserved.
         const double lh = (params.layer_height > 0.) ? double(params.layer_height) : double(this->spacing);
         const double omega = compute_omega_factor(density_adjusted, this->spacing * params.multiline, lh);
