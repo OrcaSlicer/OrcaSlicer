@@ -235,9 +235,9 @@ void FillOptimizedGyroid::_fill_surface_single(
     coord_t distance         = coord_t(scale_(this->spacing) / density_adjusted);
 
     // Auto-tune omega and amplitude from density, line spacing, and layer height.
-    // layer_height is set on the Fill base class by the slicer per region.
-    const double lh = (this->layer_height > 0.) ? double(this->layer_height)
-                                                : double(this->spacing);
+    // layer_height is provided by the slicer in FillParams per region.
+    const double lh = (params.layer_height > 0.) ? double(params.layer_height)
+                                                 : double(this->spacing);
     const double omega     = compute_omega_factor(density_adjusted,
                                                    this->spacing,
                                                    lh);
