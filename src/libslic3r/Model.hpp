@@ -881,9 +881,6 @@ public:
     mutable std::vector<int> mmuseg_extruders;
     mutable Timestamp        mmuseg_ts;
 
-    // List of exterior faces
-    FacetsAnnotation    exterior_facets;
-
     // Is set only when volume is Embossed Text type
     // Contain information how to re-create volume
     std::optional<TextConfiguration> text_configuration;
