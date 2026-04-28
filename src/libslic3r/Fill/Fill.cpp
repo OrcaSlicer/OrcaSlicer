@@ -920,6 +920,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
 
+                // Pass through gyroid_optimized so FillGyroid can branch into the optimized wave.
+                params.gyroid_optimized = region_config.gyroid_optimized.value;
+
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
                                                                    region_config.sparse_infill_rotate_template.value);
@@ -1404,7 +1407,6 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         case ipLateralHoneycomb:
         case ip3DHoneycomb:
         case ipGyroid:
-        case ipOptimizedGyroid:
         case ipTpmsD:
         case ipTpmsFK:
         case ipHilbertCurve:

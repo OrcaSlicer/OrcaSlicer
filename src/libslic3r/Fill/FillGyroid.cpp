@@ -102,6 +102,157 @@ static std::vector<Vec2d> make_one_period(double width, double scaleFactor, doub
     return points;
 }
 
+// ---------------------------------------------------------------------------
+// "Optimized" gyroid wave: parameterized variant gated on params.gyroid_optimized.
+// Two factors are auto-computed per region (no user inputs):
+//   omega     = sqrt(density_adj) / sqrt(1 + layer_h/spacing), clamped [0.5, 2.0]
+//               (Euler-Bernoulli buckling: shorter wavelength under denser
+//                infill raises critical buckling load of each strand.)
+//   amplitude = 0.55 / omega^2, clamped [0.20, 0.65]
+//               (Curved-beam bending: keeps peak fiber stress bounded as
+//                omega rises while preserving stiffness.)
+// When gyroid_optimized is false, behavior is byte-identical to the standard
+// gyroid path above.
+// ---------------------------------------------------------------------------
+
+static inline double compute_omega_factor(double density_adjusted, double line_spacing, double layer_height)
+{
+    double lh_ratio   = (line_spacing > 0.) ? layer_height / line_spacing : 0.5;
+    double correction = 1.0 / std::sqrt(1.0 + lh_ratio);
+    double raw        = std::sqrt(density_adjusted) * correction;
+    return std::clamp(raw, 0.5, 2.0);
+}
+
+static inline double compute_amplitude_factor(double omega)
+{
+    constexpr double k = 0.55;
+    double raw = (omega > 1e-9) ? k / (omega * omega) : 0.65;
+    return std::clamp(raw, 0.20, 0.65);
+}
+
+static inline double f_opt(double x, double z_sin, double z_cos,
+                           double omega, double amplitude,
+                           bool vertical, bool flip)
+{
+    const double ox = omega * x;
+    double result;
+    if (vertical) {
+        double phase_offset = (z_cos < 0 ? M_PI : 0) + M_PI;
+        double a   = sin(ox + phase_offset);
+        double b   = -z_cos;
+        double res = z_sin * cos(ox + phase_offset + (flip ? M_PI : 0.));
+        double r   = sqrt(sqr(a) + sqr(b));
+        result     = asin(a / r) + asin(res / r) + M_PI;
+    } else {
+        double phase_offset = z_sin < 0 ? M_PI : 0.;
+        double a   = cos(ox + phase_offset);
+        double b   = -z_sin;
+        double res = z_cos * sin(ox + phase_offset + (flip ? 0 : M_PI));
+        double r   = sqrt(sqr(a) + sqr(b));
+        result     = asin(a / r) + asin(res / r) + 0.5 * M_PI;
+    }
+    return amplitude * result;
+}
+
+static std::vector<Vec2d> make_one_period_opt(
+    double width, double z_cos, double z_sin,
+    double omega, double amplitude,
+    bool vertical, bool flip, double tolerance)
+{
+    std::vector<Vec2d> points;
+    double dx    = M_PI_2 / omega;
+    double limit = std::min(2. * M_PI, width);
+    points.reserve(coord_t(std::ceil(limit / tolerance / 3)));
+    for (double x = 0.; x < limit - EPSILON; x += dx)
+        points.emplace_back(Vec2d(x, f_opt(x, z_sin, z_cos, omega, amplitude, vertical, flip)));
+    points.emplace_back(Vec2d(limit, f_opt(limit, z_sin, z_cos, omega, amplitude, vertical, flip)));
+    for (;;) {
+        size_t size = points.size();
+        for (unsigned int i = 1; i < size; ++i) {
+            auto& lp = points[i - 1];
+            auto& rp = points[i];
+            double x = lp(0) + (rp(0) - lp(0)) / 2.;
+            double y = f_opt(x, z_sin, z_cos, omega, amplitude, vertical, flip);
+            Vec2d ip = {x, y};
+            if (std::abs(cross2(Vec2d(ip - lp), Vec2d(ip - rp))) > sqr(tolerance))
+                points.emplace_back(std::move(ip));
+        }
+        if (size == points.size()) break;
+        std::sort(points.begin(), points.end(),
+                  [](const Vec2d& a, const Vec2d& b) { return a(0) < b(0); });
+    }
+    return points;
+}
+
+static inline Polyline make_wave_opt(
+    const std::vector<Vec2d>& one_period,
+    double width, double height, double offset, double scaleFactor,
+    double z_cos, double z_sin, double omega, double amplitude,
+    bool vertical, bool flip)
+{
+    std::vector<Vec2d> points = one_period;
+    double period = points.back()(0);
+    if (width != period) {
+        points.reserve(one_period.size() * size_t(std::floor(width / period)));
+        points.pop_back();
+        size_t n = points.size();
+        do {
+            points.emplace_back(points[points.size() - n].x() + period,
+                                points[points.size() - n].y());
+        } while (points.back()(0) < width - EPSILON);
+        points.emplace_back(Vec2d(width,
+            f_opt(width, z_sin, z_cos, omega, amplitude, vertical, flip)));
+    }
+    Polyline polyline;
+    polyline.points.reserve(points.size());
+    for (auto& point : points) {
+        point(1) += offset;
+        point(1) = std::clamp(double(point.y()), 0., height);
+        if (vertical)
+            std::swap(point(0), point(1));
+        polyline.points.emplace_back((point * scaleFactor).cast<coord_t>());
+    }
+    return polyline;
+}
+
+static Polylines make_optimized_gyroid_waves(
+    double gridZ, double density_adjusted, double line_spacing,
+    double width, double height, double omega, double amplitude)
+{
+    const double scaleFactor = scale_(line_spacing) / density_adjusted;
+    const double tolerance   = std::min(line_spacing / 2.,
+                                        FillGyroid::PatternTolerance)
+                               / unscale<double>(scaleFactor);
+    const double z     = gridZ / scaleFactor;
+    const double z_sin = sin(z);
+    const double z_cos = cos(z);
+    bool   vertical    = (std::abs(z_sin) <= std::abs(z_cos));
+    double lower_bound = 0.;
+    double upper_bound = height;
+    bool   flip        = true;
+    if (vertical) {
+        flip        = false;
+        lower_bound = -M_PI;
+        upper_bound = width - M_PI_2;
+        std::swap(width, height);
+    }
+    auto one_period_odd  = make_one_period_opt(width, z_cos, z_sin,
+                                                omega, amplitude, vertical, flip, tolerance);
+    flip = !flip;
+    auto one_period_even = make_one_period_opt(width, z_cos, z_sin,
+                                                omega, amplitude, vertical, flip, tolerance);
+    Polylines result;
+    for (double y0 = lower_bound; y0 < upper_bound + EPSILON; y0 += M_PI) {
+        result.emplace_back(make_wave_opt(one_period_odd,
+            width, height, y0, scaleFactor, z_cos, z_sin, omega, amplitude, vertical, flip));
+        y0 += M_PI;
+        if (y0 < upper_bound + EPSILON)
+            result.emplace_back(make_wave_opt(one_period_even,
+                width, height, y0, scaleFactor, z_cos, z_sin, omega, amplitude, vertical, flip));
+    }
+    return result;
+}
+
 static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double line_spacing, double width, double height)
 {
     const double scaleFactor = scale_(line_spacing) / density_adjusted;
@@ -173,12 +324,26 @@ void FillGyroid::_fill_surface_single(
     bb.offset(expand); 
 
     // generate pattern
-    Polylines polylines = make_gyroid_waves(
-        scale_(this->z),
-        density_adjusted,
-        this->spacing,
-        ceil(bb.size()(0) / distance) + 1.,
-        ceil(bb.size()(1) / distance) + 1.);
+    Polylines polylines;
+    if (params.gyroid_optimized) {
+        const double lh = (params.layer_height > 0.) ? double(params.layer_height) : double(this->spacing);
+        const double omega     = compute_omega_factor(density_adjusted, this->spacing, lh);
+        const double amplitude = compute_amplitude_factor(omega);
+        polylines = make_optimized_gyroid_waves(
+            scale_(this->z),
+            density_adjusted,
+            this->spacing,
+            ceil(bb.size()(0) / distance) + 1.,
+            ceil(bb.size()(1) / distance) + 1.,
+            omega, amplitude);
+    } else {
+        polylines = make_gyroid_waves(
+            scale_(this->z),
+            density_adjusted,
+            this->spacing,
+            ceil(bb.size()(0) / distance) + 1.,
+            ceil(bb.size()(1) / distance) + 1.);
+    }
 
 	// shift the polyline to the grid origin
 	for (Polyline &pl : polylines)

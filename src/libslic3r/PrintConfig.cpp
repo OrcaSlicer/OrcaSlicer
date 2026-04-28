@@ -225,7 +225,6 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "tpmsd", ipTpmsD },
     { "tpmsfk", ipTpmsFK },
     { "gyroid", ipGyroid },
-    { "optimizedgyroid", ipOptimizedGyroid },
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
@@ -2853,6 +2852,17 @@ void PrintConfigDef::init_fff_params()
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
+    // Optimized gyroid wave (experimental). When enabled and the sparse infill pattern is gyroid,
+    // the wave is parameterized per region from density and layer geometry to bias the strand
+    // toward higher buckling resistance. Existing profiles are unaffected when this is off.
+    def             = this->add("gyroid_optimized", coBool);
+    def->label      = L("Optimize gyroid wave (experimental)");
+    def->category   = L("Strength");
+    def->tooltip    = L("Auto-tunes gyroid wavelength and amplitude per region from density and layer height. "
+                        "Intended to increase compressive strength-to-mass on the same infill density. "
+                        "Only applies when Sparse infill pattern is set to Gyroid.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
@@ -2880,7 +2890,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tpmsd");
     def->enum_values.push_back("tpmsfk");
     def->enum_values.push_back("gyroid");
-    def->enum_values.push_back("optimizedgyroid");
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
@@ -2907,7 +2916,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("TPMS-D"));
     def->enum_labels.push_back(L("TPMS-FK"));
     def->enum_labels.push_back(L("Gyroid"));
-    def->enum_labels.push_back(L("Optimized Gyroid"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
