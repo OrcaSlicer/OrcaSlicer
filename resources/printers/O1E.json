@@ -4,11 +4,16 @@
 		"print": {
 			"2D": {
 				"laser": {
-					"power": [ 10, 40 ]
+					"power": [
+						10,
+						40
+					]
 				}
 			},
 			"ipcam": {
-				"resolution_supported": [ "1080p" ],
+				"resolution_supported": [
+					"1080p"
+				],
 				"virtual_camera": "enabled",
 				"liveview": {
 					"remote": "tutk"
@@ -19,12 +24,18 @@
 					"model_download": "enabled"
 				}
 			},
-			"nozzle_temp_range": [ 0, 350 ],
+			"nozzle_temp_range": [
+				0,
+				350
+			],
 			"nozzle_replace_wiki": {
 				"zh": "https://wiki.bambulab.com/zh/h2/maintenance/replace-hotend",
 				"en": "https://wiki.bambulab.com/en/h2/maintenance/replace-hotend"
 			},
-			"bed_temp_range": [ 0, 120 ],
+			"bed_temp_range": [
+				0,
+				120
+			],
 			"support_motor_noise_cali": false,
 			"support_tunnel_mqtt": true,
 			"support_mqtt_alive": true,
@@ -56,7 +67,10 @@
 			"support_save_remote_print_file_to_storage": true,
 			"support_chamber": true,
 			"support_chamber_temp_edit": true,
-			"support_chamber_temp_edit_range": [ 0, 65 ],
+			"support_chamber_temp_edit_range": [
+				0,
+				65
+			],
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
 			"support_user_preset": false,
@@ -66,13 +80,22 @@
 		"model_id": "O1E",
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_multi_extruders",
 		"support_wrapping_detection": true,
-		"printer_modes": [ "fdm", "laser", "cut" ],
-		"compatible_machine": ["O1D"],
+		"printer_modes": [
+			"fdm",
+			"laser",
+			"cut"
+		],
+		"compatible_machine": [
+			"O1D"
+		],
 		"printer_type": "O1E",
 		"printer_thumbnail_image": "printer_thumbnail_o1e",
 		"printer_connect_help_image": "input_access_code_h2d",
 		"printer_use_ams_image": "ams_icon",
-		"printer_ext_image": ["ext_image_o_right", "ext_image_o_left"],
+		"printer_ext_image": [
+			"ext_image_o_right",
+			"ext_image_o_left"
+		],
 		"use_ams_type": "generic",
 		"printer_arch": "core_xy",
 		"printer_series": "series_o",

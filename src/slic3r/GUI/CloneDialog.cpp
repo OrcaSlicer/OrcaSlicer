@@ -46,7 +46,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_progress->SetProgressForedColour(StateColor::darkModeColorFor(wxColour("#DFDFDF")));
     m_progress->SetDoubleBuffered(true);
     m_progress->Hide();
-    bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT, FromDIP(10));
+    bottom_sizer->Add(m_progress, 2, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"Fill", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 

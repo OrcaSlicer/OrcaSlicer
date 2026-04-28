@@ -2,6 +2,7 @@
 #include "PartPlate.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/Label.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
@@ -44,6 +45,14 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     auto full_config = wxGetApp().preset_bundle->full_config();
     const auto nozzle_diameters = full_config.option<ConfigOptionFloats>("nozzle_diameter");
     if (nozzle_diameters->size() <= 1)
+        return true;
+
+    // The filament-grouping dialog is specifically designed for BBL dual-nozzle printers
+    // (e.g. H2D) where filaments must be assigned to a left or right nozzle.
+    // For toolchangers (≥3 tools) and all non-BBL printers the dialog is irrelevant and
+    // confusing; skip it entirely so slicing proceeds without interruption. (#12390)
+    PresetBundle* preset = wxGetApp().preset_bundle;
+    if (!preset || !preset->is_bbl_vendor() || nozzle_diameters->size() != 2)
         return true;
 
     bool sync_plate = true;

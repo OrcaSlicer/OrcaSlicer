@@ -241,6 +241,23 @@ void ComboBox::DoDeleteOneItem(unsigned int pos)
     drop.Invalidate(true);
 }
 
+void ComboBox::ForceDropdownOpen()
+{
+    if (!IsEnabled())
+        return;
+
+    if (!drop_down) {
+        drop.need_sync = true;
+        drop.messureSize();
+        drop.autoPosition();
+        drop_down = true;
+        drop.Popup(&drop);
+
+        wxCommandEvent e(wxEVT_COMBOBOX_DROPDOWN);
+        GetEventHandler()->ProcessEvent(e);
+    }
+}
+
 unsigned int ComboBox::GetCount() const { return items.size(); }
 
 void ComboBox::set_replace_text(wxString text, wxString image_name)

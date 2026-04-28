@@ -343,7 +343,8 @@ public:
             }
             if (double dist_to_go = slicing_params.object_print_z_min - z; dist_to_go > EPSILON) {
                 // Layers between the raft contacts and bottom of the object.
-                auto nsteps = int(ceil(dist_to_go / slicing_params.max_suport_layer_height));
+                // ORCA: Bias by EPSILON so near-equal gaps do not get an extra split from FP noise.
+                auto nsteps = int(ceil((dist_to_go - EPSILON) / slicing_params.max_suport_layer_height));
                 double step = dist_to_go / nsteps;
                 for (int i = 0; i < nsteps; ++ i) {
                     z += step;

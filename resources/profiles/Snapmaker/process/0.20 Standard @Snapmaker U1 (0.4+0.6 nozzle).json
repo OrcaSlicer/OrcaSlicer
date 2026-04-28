@@ -1,0 +1,32 @@
+{
+	"type": "process",
+	"name": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",
+	"inherits": "fdm_process_U1_0.20",
+	"from": "system",
+	"setting_id": "GP004_0406_020",
+	"instantiation": "true",
+	"description": "Standard profile for the Snapmaker U1 mixed-nozzle configuration (T0/T1 = 0.4 mm, T2/T3 = 0.6 mm). Line widths are expressed as percentages of nozzle diameter so they scale correctly per tool. Use T0/T1 for detail work and outer walls; use T2/T3 for fast infill or large structural features.",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4+0.6 nozzle)"
+	],
+	"line_width": "105%",
+	"outer_wall_line_width": "105%",
+	"inner_wall_line_width": "112%",
+	"initial_layer_line_width": "125%",
+	"sparse_infill_line_width": "105%",
+	"internal_solid_infill_line_width": "105%",
+	"support_line_width": "105%",
+	"top_surface_line_width": "105%",
+	"smooth_coefficient": "150",
+	"overhang_totally_speed": "50",
+	"ooze_prevention": "1",
+	"slowdown_for_curled_perimeters": "0",
+	"standby_temperature_delta": "-150",
+	"wipe_tower_filament": "0",
+	"preheat_time": "30",
+	"wipe_tower_cone_angle": "15",
+	"prime_tower_brim_width": "5",
+	"initial_layer_print_height": "0.25",
+	"top_shell_layers": "5",
+	"bottom_shell_layers": "3"
+}

@@ -1,25 +1,31 @@
 {
-    "type": "machine",
-    "setting_id": "GM001",
-    "name": "re3D Gigabot 4 XLT 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "fdm_re3D_common",
-    "printer_model": "re3D Gigabot 4 XLT",
-    "nozzle_diameter": [
-      "0.4",
-      "0.4"
-    ],
-    "printable_area": [
-      "0x0",
-      "590x0",
-      "590x760",
-      "0x760"
-    ],
-    "printable_height": "900",
-    "max_layer_height": ["0.32"],
-    "min_layer_height": ["0.2"],
-    "retraction_length": ["0.6"],
-    "printer_variant": "0.4",
-    "default_print_profile": "0.28mm Standard @re3D fdm 0.4"
-  }
+	"type": "machine",
+	"setting_id": "GM001",
+	"name": "re3D Gigabot 4 XLT 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_re3D_common",
+	"printer_model": "re3D Gigabot 4 XLT",
+	"nozzle_diameter": [
+		"0.4",
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"590x0",
+		"590x760",
+		"0x760"
+	],
+	"printable_height": "900",
+	"max_layer_height": [
+		"0.32"
+	],
+	"min_layer_height": [
+		"0.2"
+	],
+	"retraction_length": [
+		"0.6"
+	],
+	"printer_variant": "0.4",
+	"default_print_profile": "0.28mm Standard @re3D fdm 0.4"
+}

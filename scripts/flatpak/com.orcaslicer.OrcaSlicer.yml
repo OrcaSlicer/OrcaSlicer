@@ -17,6 +17,7 @@ build-options:
 finish-args:
   - --share=ipc
   - --socket=x11
+  - --socket=wayland
   - --share=network
   - --device=all
   - --filesystem=home
@@ -99,7 +100,7 @@ modules:
       - -DwxUSE_DETECT_SM=OFF
       - -DwxUSE_PRIVATE_FONTS=ON
       - -DwxUSE_OPENGL=ON
-      - -DwxUSE_GLCANVAS_EGL=OFF
+      - -DwxUSE_GLCANVAS_EGL=ON
       - -DwxUSE_WEBREQUEST=ON
       - -DwxUSE_WEBVIEW=ON
       - -DwxUSE_WEBVIEW_EDGE=OFF
@@ -186,10 +187,10 @@ modules:
         sha256: a378e9a39e718e289102c20d45632f873bfdc58a7a5f924246ea4b176e185f1e
         dest: external-packages/Qhull
 
-      # GLFW 3.3.7
+      # GLFW 3.4
       - type: file
-        url: https://github.com/glfw/glfw/archive/refs/tags/3.3.7.zip
-        sha256: e02d956935e5b9fb4abf90e2c2e07c9a0526d7eacae8ee5353484c69a2a76cd0
+        url: https://github.com/glfw/glfw/archive/refs/tags/3.4.zip
+        sha256: a133ddc3d3c66143eba9035621db8e0bcf34dba1ee9514a9e23e96afd39fd57a
         dest: external-packages/GLFW
 
       # OpenCSG 1.4.2
@@ -329,7 +330,6 @@ modules:
       - | # Desktop integration files
         install -Dm644 -t /app/share/icons/hicolor/scalable/apps/ resources/images/OrcaSlicer.svg
         install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
-        mv /app/share/applications/OrcaSlicer.desktop /app/share/applications/${FLATPAK_ID}.desktop
         desktop-file-edit --set-key=Exec --set-value="entrypoint %U" /app/share/applications/${FLATPAK_ID}.desktop
         install -Dm755 entrypoint /app/bin
         install -Dm755 umount /app/bin

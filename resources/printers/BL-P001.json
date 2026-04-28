@@ -3,7 +3,10 @@
 		"display_name": "Bambu Lab X1 Carbon",
 		"print": {
 			"ipcam": {
-				"resolution_supported": [ "720p", "1080p" ],
+				"resolution_supported": [
+					"720p",
+					"1080p"
+				],
 				"virtual_camera": "enabled",
 				"liveview": {
 					"remote": "tutk"
@@ -13,7 +16,10 @@
 					"model_download": "enabled"
 				}
 			},
-			"nozzle_temp_range": [ 0, 300 ],
+			"nozzle_temp_range": [
+				0,
+				300
+			],
 			"nozzle_replace_wiki": {
 				"zh": "https://wiki.bambulab.com/zh/x1/maintenance/replace-hotend",
 				"en": "https://wiki.bambulab.com/en/x1/maintenance/replace-hotend"
@@ -50,15 +56,25 @@
 			"support_ams_ext_mix_print": true
 		},
 		"model_id": "BL-P001",
-		"compatible_machine": [ "BL-P002", "C11", "C12", "C13" ],
-		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
+		"compatible_machine": [
+			"BL-P002",
+			"C11",
+			"C12",
+			"C13"
+		],
+		"auto_cali_not_support_filaments": [
+			"GFU03",
+			"GFU04"
+		],
 		"support_wrapping_detection": false,
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto",
 		"printer_type": "3DPrinter-X1-Carbon",
 		"printer_thumbnail_image": "printer_thumbnail_x1c",
 		"printer_connect_help_image": "input_access_code_x1",
 		"printer_use_ams_image": "ams_icon",
-		"printer_ext_image": ["ext_image_xp"],
+		"printer_ext_image": [
+			"ext_image_xp"
+		],
 		"use_ams_type": "generic",
 		"printer_arch": "core_xy",
 		"printer_series": "series_x1",

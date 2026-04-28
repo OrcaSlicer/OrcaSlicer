@@ -1,10 +1,14 @@
 {
-    "type": "filament",
-    "setting_id": "GFSG99",
-    "name": "Generic PETG @Qidi Q2C 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Generic PETG@Q2C-Series",
-    "pressure_advance": ["0.056"],
-	"compatible_printers": ["Qidi Q2C 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSG99",
+	"name": "Generic PETG @Qidi Q2C 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Generic PETG@Q2C-Series",
+	"pressure_advance": [
+		"0.056"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
 }

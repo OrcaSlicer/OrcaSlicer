@@ -158,7 +158,7 @@ msgstr ""
 msgid "Smart fill angle"
 msgstr ""
 
-msgid "On overhangs only"
+msgid "On highlighted overhangs only"
 msgstr ""
 
 msgid "Auto support threshold angle: "
@@ -2614,7 +2614,7 @@ msgid "Brim"
 msgstr ""
 
 msgid "Object/Part Setting"
-msgstr "Object/part setting"
+msgstr "Object/part settings"
 
 msgid "Reset parameter"
 msgstr ""
@@ -13278,6 +13278,18 @@ msgid "First layer travel speed"
 msgstr ""
 
 msgid "Travel speed of the first layer."
+msgstr ""
+
+msgid "First layer travel acceleration"
+msgstr ""
+
+msgid "Travel acceleration of first layer."
+msgstr ""
+
+msgid "First layer travel jerk"
+msgstr ""
+
+msgid "Travel jerk of first layer."
 msgstr ""
 
 #, fuzzy

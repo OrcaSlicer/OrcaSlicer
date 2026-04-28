@@ -29,13 +29,14 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/log/trivial.hpp>
 #include <wx/progdlg.h>
 #include <wx/listbook.h>
 #include <wx/numformatter.h>
 #include <wx/utils.h>
 #include <wx/headerctrl.h>
 
-#include "slic3r/Utils/FixModelByWin10.hpp"
+#include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -459,6 +460,15 @@ void ObjectList::create_objects_ctrl()
     AppendBitmapColumn(" ", colEditing, wxOSX ? wxDATAVIEW_CELL_EDITABLE : wxDATAVIEW_CELL_INERT, m_columns_width[colEditing] * em,
         wxALIGN_CENTER_HORIZONTAL, 0);
 
+
+    // Open filament editor faster
+    this->Bind(wxEVT_DATAVIEW_ITEM_ACTIVATED, [this](wxDataViewEvent& event) {
+        if (event.GetColumn() == colFilament) {
+            // Trigger the editor opening manually
+            this->EditItem(event.GetItem(), GetColumn(colFilament));
+        }
+    });
+
     //for (int cn = colName; cn < colCount; cn++) {
     //    GetColumn(cn)->SetResizeable(cn == colName);
     //}
@@ -568,7 +578,7 @@ MeshErrorsInfo ObjectList::get_mesh_errors_info(const int obj_idx, const int vol
     if (non_manifold_edges)
         *non_manifold_edges = stats.open_edges;
 
-    if (is_windows10() && !sidebar_info)
+    if (!sidebar_info)
         tooltip += "\n" + _L("Click the icon to repair model object");
 
     return { tooltip, get_warning_icon_name(stats) };
@@ -914,15 +924,15 @@ void ObjectList::object_config_options_changed(const ObjectVolumeID& ov_id)
     }
 }
 
-void ObjectList::printable_state_changed(const std::vector<ObjectVolumeID>& ov_ids)
+void ObjectList::printable_state_changed(const std::vector<ModelObject*> model_objects)
 {
     std::vector<size_t> obj_idxs;
-    for (const ObjectVolumeID ov_id : ov_ids) {
-        if (ov_id.object == nullptr)
+    for (const ModelObject* mo : model_objects) {
+        if (mo == nullptr)
             continue;
 
-        ModelInstance* mi = ov_id.object->instances[0];
-        wxDataViewItem obj_item = m_objects_model->GetObjectItem(ov_id.object);
+        ModelInstance* mi       = mo->instances[0];
+        wxDataViewItem obj_item = m_objects_model->GetObjectItem(mo);
         m_objects_model->SetObjectPrintableState(mi->printable ? piPrintable : piUnprintable, obj_item);
 
         int obj_idx = m_objects_model->GetObjectIdByItem(obj_item);
@@ -937,6 +947,19 @@ void ObjectList::printable_state_changed(const std::vector<ObjectVolumeID>& ov_i
 
     // update scene
     wxGetApp().plater()->update();
+}
+
+void ObjectList::printable_state_changed(const std::vector<ObjectVolumeID>& ov_ids)
+{
+    std::vector<ModelObject*> model_objects;
+    model_objects.reserve(ov_ids.size());
+
+    for (const ObjectVolumeID& ov_id : ov_ids) {
+        if (ov_id.object != nullptr)
+            model_objects.emplace_back(ov_id.object);
+    }
+
+    printable_state_changed(model_objects);
 }
 
 void ObjectList::assembly_plate_object_name()
@@ -1153,6 +1176,7 @@ void ObjectList::update_name_in_list(int obj_idx, int vol_idx) const
 
 void ObjectList::selection_changed()
 {
+    if (wxGetApp().is_closing()) return;
     if (m_prevent_list_events) return;
 
     fix_multiselection_conflicts();
@@ -1526,9 +1550,9 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
         }
         else if (col_num == colName)
         {
-            if (is_windows10() && m_objects_model->HasWarningIcon(item) &&
+            if (m_objects_model->HasWarningIcon(item) &&
                 mouse_pos.x > 2 * wxGetApp().em_unit() && mouse_pos.x < 4 * wxGetApp().em_unit())
-                fix_through_netfabb();
+                fix_through_cgal();
             else if (evt_context_menu)
                 show_context_menu(evt_context_menu); // show context menu for "Name" column too
         }
@@ -1747,6 +1771,8 @@ void ObjectList::key_event(wxKeyEvent& event)
         decrease_instances();
     else if (event.GetUnicodeKey() == 'p')
         toggle_printable_state();
+    else if (event.GetUnicodeKey() == 'd')
+        toggle_auto_drop();
     else if (filaments_count() > 1) {
         std::vector<wxChar> numbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         wxChar key_char = event.GetUnicodeKey();
@@ -3043,6 +3069,17 @@ void ObjectList::merge(bool to_multipart_object)
                     volume->config.set_key_value("extruder", option->clone());
             }
 
+            // merge printable and auto_drop values
+            // non-default have priority -> if one object has printable == false, 
+            // then merged object will also have printable == false
+            if (object->instances[0]->printable == false) {
+                new_object->printable = false;
+                new_object->instances[0]->printable = false;
+            }
+            if (object->instances[0]->auto_drop == false) {
+                new_object->instances[0]->auto_drop = false;
+            }
+
             // merge layers
             for (const auto& range : object->layer_config_ranges)
                 new_object->layer_config_ranges.emplace(range);
@@ -3076,6 +3113,9 @@ void ObjectList::merge(bool to_multipart_object)
 
         // Add new object(merged) to the object_list
         add_object_to_list(m_objects->size() - 1);
+        if (new_object->printable == false) {
+            wxGetApp().obj_list()->printable_state_changed({new_object});
+        }
         select_item(m_objects_model->GetItemById(m_objects->size() - 1));
         update_selections_on_canvas();
     }
@@ -3456,6 +3496,9 @@ void ObjectList::changed_object(const int obj_idx/* = -1*/) const
 
 void ObjectList::part_selection_changed()
 {
+    if (wxGetApp().is_closing())
+        return;
+
     if (m_extruder_editor) m_extruder_editor->Hide();
     int obj_idx = -1;
     int volume_id = -1;
@@ -4656,6 +4699,9 @@ int ObjectList::get_selected_layers_range_idx() const
 
 void ObjectList::update_selections()
 {
+    if (wxGetApp().is_closing())
+        return;
+
     const Selection& selection = scene_selection();
     wxDataViewItemArray sels;
 
@@ -5341,6 +5387,11 @@ ModelVolume* ObjectList::get_selected_model_volume()
     return (*m_objects)[obj_idx]->volumes[vol_idx];
 }
 
+// ORCA: kept as dead code (not called by any active path). Preserved in #if 0
+// form for traceability with upstream Bambu Studio -- removing outright would
+// produce merge conflicts on every BBL sync. The active "Change Type" UI goes
+// through the submenu in GUI_Factories.cpp -> ObjectList::set_volume_type().
+#if 0
 void ObjectList::change_part_type()
 {
   wxDataViewItemArray selections;
@@ -5537,6 +5588,7 @@ void ObjectList::change_part_type()
 
   return;
 }
+#endif
 
 ModelVolumeType ObjectList::get_selected_volume_type()
 {
@@ -5608,6 +5660,26 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
         }
         if (volumes.empty())
             return;
+    }
+
+    // Defense-in-depth safety net against issue #5070: SVG/text volumes carry emboss metadata
+    // (text_configuration, emboss_shape) that only makes sense for Part / Negative Part / Modifier.
+    // ModelVolume::set_type() does not clear that metadata, so converting such volumes to
+    // Support Blocker / Support Enforcer leaves stale emboss state attached to a support volume
+    // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
+    // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
+    // in MenuFactory::append_menu_item_change_type, see #13120).
+    // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
+    // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+        const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
+            [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
+        if (has_text_or_svg) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER on SVG/text volume; "
+                << "UI guard should have prevented this -- possible regression in the Change Type menu";
+            return;
+        }
     }
 
     const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
@@ -5912,7 +5984,7 @@ void ObjectList::rename_item()
         update_name_in_model(item);
 }
 
-void ObjectList::fix_through_netfabb()
+void ObjectList::fix_through_cgal()
 {
     // Do not fix anything when a gizmo is open. There might be issues with updates
     // and what is worse, the snapshot time would refer to the internal stack.
@@ -5932,11 +6004,11 @@ void ObjectList::fix_through_netfabb()
     // clear selections from the non-broken models if any exists
     // and than fill names of models to repairing
     if (vol_idxs.empty()) {
-#if !FIX_THROUGH_NETFABB_ALWAYS
+#if !FIX_THROUGH_CGAL_ALWAYS
         for (int i = int(obj_idxs.size())-1; i >= 0; --i)
                 if (object(obj_idxs[i])->get_repaired_errors_count() == 0)
                     obj_idxs.erase(obj_idxs.begin()+i);
-#endif // FIX_THROUGH_NETFABB_ALWAYS
+#endif // FIX_THROUGH_CGAL_ALWAYS
         for (int obj_idx : obj_idxs)
             if (object(obj_idx))
                 model_names.push_back(object(obj_idx)->name);
@@ -5944,11 +6016,11 @@ void ObjectList::fix_through_netfabb()
     else {
         ModelObject* obj = object(obj_idxs.front());
         if (obj) {
-#if !FIX_THROUGH_NETFABB_ALWAYS
+#if !FIX_THROUGH_CGAL_ALWAYS
             for (int i = int(vol_idxs.size()) - 1; i >= 0; --i)
                 if (obj->get_repaired_errors_count(vol_idxs[i]) == 0)
                     vol_idxs.erase(vol_idxs.begin() + i);
-#endif // FIX_THROUGH_NETFABB_ALWAYS
+#endif // FIX_THROUGH_CGAL_ALWAYS
             for (int vol_idx : vol_idxs)
                 model_names.push_back(obj->volumes[vol_idx]->name);
         }
@@ -5977,12 +6049,17 @@ void ObjectList::fix_through_netfabb()
         }
 
         plater->clear_before_change_mesh(obj_idx);
+        const size_t volumes_before = object(obj_idx)->volumes.size();
         std::string res;
-        if (!fix_model_by_win10_sdk_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
+        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
             return false;
         //wxGetApp().plater()->changed_mesh(obj_idx);
         object(obj_idx)->ensure_on_bed();
         plater->changed_mesh(obj_idx);
+
+        const size_t volumes_after = object(obj_idx)->volumes.size();
+        if (volumes_after != volumes_before)
+            add_volumes_to_object_in_list(obj_idx);
 
         plater->get_partplate_list().notify_instance_update(obj_idx, 0);
         plater->sidebar().obj_list()->update_plate_values_for_items();
@@ -6007,10 +6084,10 @@ void ObjectList::fix_through_netfabb()
     if (vol_idxs.empty()) {
         int vol_idx{ -1 };
         for (int obj_idx : obj_idxs) {
-#if !FIX_THROUGH_NETFABB_ALWAYS
+#if !FIX_THROUGH_CGAL_ALWAYS
             if (object(obj_idx)->get_repaired_errors_count(vol_idx) == 0)
                 continue;
-#endif // FIX_THROUGH_NETFABB_ALWAYS
+#endif // FIX_THROUGH_CGAL_ALWAYS
             if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg, succes_models, failed_models))
                 break;
             model_idx++;
@@ -6043,7 +6120,7 @@ void ObjectList::fix_through_netfabb()
     }
     if (msg.IsEmpty())
         msg = _L("Repairing was canceled");
-    plater->get_notification_manager()->push_notification(NotificationType::NetfabbFinished, NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel, into_u8(msg));
+    plater->get_notification_manager()->push_notification(NotificationType::CgalFinished, NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel, into_u8(msg));
 }
 
 void ObjectList::simplify()
@@ -6587,6 +6664,52 @@ void ObjectList::toggle_printable_state()
 
     // update printable state on canvas
     wxGetApp().plater()->get_view3D_canvas3D()->update_instance_printable_state_for_objects(obj_idxs);
+
+    // update scene
+    wxGetApp().plater()->update();
+    wxGetApp().plater()->reload_paint_after_background_process_apply();
+}
+
+void ObjectList::toggle_auto_drop()
+{
+    wxDataViewItemArray sels;
+    GetSelections(sels);
+    if (sels.IsEmpty())
+        return;
+
+    for (auto item : sels) {
+        ItemType type = m_objects_model->GetItemType(item);
+        if (!(type & (itObject | itInstance)))
+            return;
+    }
+
+    const bool current_auto_drop = wxGetApp().plater()->get_selection().get_auto_drop();
+
+    take_snapshot("");
+
+    std::vector<size_t> obj_idxs;
+    for (auto item : sels) {
+        int obj_idx      = m_objects_model->GetObjectIdByItem(item);
+        ModelObject* obj = object(obj_idx);
+
+        obj_idxs.emplace_back(static_cast<size_t>(obj_idx));
+
+        ItemType type = m_objects_model->GetItemType(item);
+        // set auto_drop value for selected instance/instances in object
+        if (type == itInstance) {
+            int inst_idx = m_objects_model->GetInstanceIdByItem(item);
+            obj->instances[inst_idx]->auto_drop = !current_auto_drop;
+        } else {
+            for (auto inst : obj->instances)
+                inst->auto_drop = !current_auto_drop;
+                
+        if (current_auto_drop == false) 
+            obj->ensure_on_bed();
+        }
+    }
+
+    sort(obj_idxs.begin(), obj_idxs.end());
+    obj_idxs.erase(unique(obj_idxs.begin(), obj_idxs.end()), obj_idxs.end());
 
     // update scene
     wxGetApp().plater()->update();

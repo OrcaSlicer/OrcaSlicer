@@ -525,7 +525,7 @@ void DropDown::messureSize()
     }
     if (!align_icon) iconSize.x = 0;
     wxSize szContent = textSize;
-    if (szContent.x < FromDIP(120))
+    if (szContent.x < FromDIP(120) && !use_content_width)
         szContent.x = FromDIP(120);
     szContent.x += 10;
     if (check_bitmap.bmp().IsOk()) {

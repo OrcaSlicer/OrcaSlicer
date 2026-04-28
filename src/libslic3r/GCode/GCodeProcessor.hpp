@@ -186,6 +186,10 @@ class Print;
             float temperature{ 0.0f }; // Celsius degrees
 // ORCA: Add Pressure Advance visualization support
             float pressure_advance{ 0.0f };
+            // ORCA: Add Acceleration visualization support
+            float acceleration{ 0.0f }; // mm/s^2
+            // ORCA: Add Jerk visualization support
+            float jerk{ 0.0f }; // mm/s
             std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
             float layer_duration{ 0.0f }; // s
             unsigned int layer_id{ 0 };
@@ -1074,6 +1078,7 @@ class Print;
         // per-nozzle machine limits (filament_map_2 / get_config_idx_for_filament).
         float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;

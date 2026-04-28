@@ -10,8 +10,9 @@
 #include "slic3r/GUI/MsgDialog.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <algorithm>
 
 namespace Slic3r::GUI {
@@ -31,31 +32,47 @@ bool GLGizmoFuzzySkin::on_init()
 {
     m_shortcut_key = WXK_CONTROL_H;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
-    const wxString shift = _L("Shift+");
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view_caption"]  = alt + _L("Mouse wheel");
-    m_desc["clipping_of_view"]          = _L("Section view");
-    m_desc["reset_direction"]           = _L("Reset direction");
-    m_desc["cursor_size_caption"]       = ctrl + _L("Mouse wheel");
-    m_desc["cursor_size"]               = _L("Brush size");
-    m_desc["cursor_type"]               = _L("Brush shape") ;
-    m_desc["add_fuzzy_skin_caption"]    = _L("Left mouse button");
-    m_desc["add_fuzzy_skin"]            = _L("Add fuzzy skin");
-    m_desc["remove_fuzzy_skin_caption"] = shift + _L("Left mouse button");
-    m_desc["remove_fuzzy_skin"]         = _L("Remove fuzzy skin");
-    m_desc["remove_all"]                = _L("Erase all painting");
-    m_desc["circle"]                    = _L("Circle");
-    m_desc["sphere"]                    = _L("Sphere");
-    m_desc["pointer"]                   = _L("Triangles");
-    m_desc["tool_type"]                 = _L("Tool type");
-    m_desc["tool_brush"]                = _L("Brush");
-    m_desc["tool_smart_fill"]           = _L("Smart fill");
-    m_desc["smart_fill_angle_caption"]  = ctrl + _L("Mouse wheel");
-    m_desc["smart_fill_angle"]          = _L("Smart fill angle");
+    m_desc["reset_direction"]   = _L("Reset direction");
+    m_desc["remove_all"]        = _L("Erase all painting");
+    m_desc["circle"]            = _L("Circle");
+    m_desc["sphere"]            = _L("Sphere");
+    m_desc["pointer"]           = _L("Triangles");
+    m_desc["tool_type"]         = _L("Tool type");
+    m_desc["tool_brush"]        = _L("Brush");
+    m_desc["tool_smart_fill"]   = _L("Smart fill");
+    m_desc["clipping_of_view"]  = _L("Section view");
+    m_desc["cursor_size"]       = _L("Brush size");
+    m_desc["add_fuzzy_skin"]    = _L("Add fuzzy skin");
+    m_desc["remove_fuzzy_skin"] = _L("Remove fuzzy skin");
+    m_desc["smart_fill_angle"]  = _L("Smart fill angle");
+
+    std::pair<wxString, wxString> add_fuzzy_skin_shortcut    = {_L("Left mouse button"),         m_desc["add_fuzzy_skin"]};
+    std::pair<wxString, wxString> remove_fuzzy_skin_shortcut = {shift + _L("Left mouse button"), m_desc["remove_fuzzy_skin"]};
+    std::pair<wxString, wxString> clipping_shortcut          = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
+
+    m_shortcuts_brush = {
+        add_fuzzy_skin_shortcut,
+        remove_fuzzy_skin_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        clipping_shortcut
+    };
+
+    m_shortcuts_triangle = {
+        add_fuzzy_skin_shortcut, 
+        remove_fuzzy_skin_shortcut, 
+        clipping_shortcut
+    };
+
+    m_shortcuts_smart_fill = {
+        add_fuzzy_skin_shortcut,
+        remove_fuzzy_skin_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        clipping_shortcut
+    };
 
     return true;
 }
@@ -80,50 +97,18 @@ void GLGizmoFuzzySkin::render_painter_gizmo()
     glsafe(::glDisable(GL_BLEND));
 }
 
-void GLGizmoFuzzySkin::show_tooltip_information(float caption_max, float x, float y)
+void GLGizmoFuzzySkin::render_tooltip_button(float x, float y)
 {
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 15.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString& caption, const wxString& text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        std::vector<std::string> tip_items;
+    auto get_shortcuts = [this]() -> std::vector<std::pair<wxString, wxString>> {
         switch (m_tool_type) {
-            case ToolType::BRUSH:
-                if (m_cursor_type == TriangleSelector::POINTER) {
-                    tip_items = {"add_fuzzy_skin", "remove_fuzzy_skin", "clipping_of_view"};
-                } else {
-                    tip_items = {"add_fuzzy_skin", "remove_fuzzy_skin", "cursor_size", "clipping_of_view"};
-                }
-                break;
-            case ToolType::SMART_FILL:
-                tip_items = {"add_fuzzy_skin", "remove_fuzzy_skin", "smart_fill_angle", "clipping_of_view"};
-                break;
-            default:
-                break;
+        case ToolType::BRUSH: return m_cursor_type == TriangleSelector::POINTER ? m_shortcuts_triangle : m_shortcuts_brush;
+
+        case ToolType::SMART_FILL: return m_shortcuts_smart_fill;
+        default: return {};
         }
-        for (const auto &t : tip_items) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
+    };
+
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, get_shortcuts(), x, y);
 }
 
 void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_limit)
@@ -271,13 +256,14 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["smart_fill_angle"]);
-        std::string format_str = std::string("%.f") +
-                                 I18N::translate_utf8("°", "Degree sign to use in the respective slider in fuzzy skin gizmo, "
-                                                           "placed after the number with no whitespace in between.");
+        std::string format_str = std::string("%.f") + I18N::translate_utf8("°",
+                                                                            "Face angle threshold,"
+                                                                            "placed after the number with no whitespace in between.");
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
-        if (m_imgui->bbl_slider_float_style("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax, format_str.data(), 1.0f, true))
-            for (auto &triangle_selector : m_triangle_selectors) {
+        if (m_imgui->bbl_slider_float_style("##smart_fill_angle", &m_smart_fill_angle, SmartFillAngleMin, SmartFillAngleMax,
+                                            format_str.data(), 1.0f, true))
+            for (auto& triangle_selector : m_triangle_selectors) {
                 triangle_selector->seed_fill_unselect_all_triangles();
                 triangle_selector->request_update_render_data();
             }
@@ -313,8 +299,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(caption_max, x, get_cur_y);
+    render_tooltip_button(x, y);
 
     float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));

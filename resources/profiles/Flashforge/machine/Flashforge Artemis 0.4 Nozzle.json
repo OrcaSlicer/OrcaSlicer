@@ -1,0 +1,28 @@
+{
+	"type": "machine",
+	"name": "Flashforge Artemis 0.4 Nozzle",
+	"inherits": "fdm_artemis_common",
+	"from": "system",
+	"setting_id": "GM001",
+	"instantiation": "true",
+	"printer_variant": "0.4",
+	"printer_model": "Flashforge Artemis",
+	"default_print_profile": "0.20mm Standard @Flashforge Artemis 0.4 Nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"max_layer_height": [
+		"0.32"
+	],
+	"min_layer_height": [
+		"0.12"
+	],
+	"retraction_length": [
+		"1.2"
+	],
+	"auxiliary_fan": "0",
+	"host_type": "flashforge",
+	"wipe": [
+		"0"
+	]
+}

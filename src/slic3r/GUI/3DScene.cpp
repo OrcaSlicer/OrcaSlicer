@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include "3DScene.hpp"
 #include "GLShader.hpp"
@@ -1471,7 +1471,7 @@ void GLVolumeCollection::update_colors_by_extruder(const DynamicPrintConfig *con
     using ColorItem = std::pair<std::string, ColorRGBA>;
     std::vector<ColorItem> colors;
 
-    if (static_cast<PrinterTechnology>(config->opt_int("printer_technology")) == ptSLA) {
+    if (config->has("printer_technology") && static_cast<PrinterTechnology>(config->opt_int("printer_technology")) == ptSLA) {
         const std::string& txt_color = config->opt_string("material_colour").empty() ?
                                        print_config_def.get("material_colour")->get_default_value<ConfigOptionString>()->value :
                                        config->opt_string("material_colour");
@@ -1480,6 +1480,9 @@ void GLVolumeCollection::update_colors_by_extruder(const DynamicPrintConfig *con
             colors.push_back({ txt_color, rgba });
     }
     else {
+		if (!config->has("filament_colour")) {
+            	return;
+        }
         const ConfigOptionStrings* filamemts_opt = dynamic_cast<const ConfigOptionStrings*>(config->option("filament_colour"));
         if (filamemts_opt == nullptr)
             return;

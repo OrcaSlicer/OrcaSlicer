@@ -1,9 +1,11 @@
 {
-    "type": "filament",
-    "setting_id": "GFSN99",
-    "name": "QIDI PAHT-CF @Qidi Q2C 0.8 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI PAHT-CF@Q2C-Series",
-	"compatible_printers": ["Qidi Q2C 0.8 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSN99",
+	"name": "QIDI PAHT-CF @Qidi Q2C 0.8 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PAHT-CF@Q2C-Series",
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
 }

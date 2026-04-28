@@ -1,10 +1,14 @@
 {
-    "type": "filament",
-    "setting_id": "GFSA04",
-    "name": "QIDI ASA-CF @Qidi X-Plus 4 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI ASA-CF",
-    "pressure_advance": ["0.03"],
-	"compatible_printers": ["Qidi X-Plus 4 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSA04",
+	"name": "QIDI ASA-CF @Qidi X-Plus 4 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI ASA-CF",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 4 0.4 nozzle"
+	]
 }

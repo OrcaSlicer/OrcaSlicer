@@ -523,6 +523,11 @@ void AppConfig::set_defaults()
         set_bool("installed_networking", false);
     }
 
+#ifdef __linux__
+    if (get("window_buttons_on_left").empty())
+        set_bool("window_buttons_on_left", false);
+#endif
+
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");
@@ -941,13 +946,13 @@ void AppConfig::save()
     }
     boost::nowide::ofstream c;
     c.open(path_pid, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
+    c << j.dump(1, '\t') << std::endl;
 
 #ifdef WIN32
     // WIN32 specific: The final "rename_file()" call is not safe in case of an application crash, there is no atomic "rename file" API
     // provided by Windows (sic!). Therefore we save a MD5 checksum to be able to verify file corruption. In addition,
     // we save the config file into a backup first before moving it to the final destination.
-    c << appconfig_md5_hash_line(j.dump(4));
+    c << appconfig_md5_hash_line(j.dump(1, '\t'));
 #endif
 
     c.close();

@@ -30,7 +30,21 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
                            print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
-    m_max_acceleration = std::lrint(use_mach_limits ? print_config.machine_max_acceleration_extruding.values.front() : 0);
+    if (use_mach_limits) {
+        // For Klipper, SET_VELOCITY_LIMIT ACCEL= applies to all moves, so the effective cap
+        // is the minimum of the extruding limit and the per-axis X/Y limits.
+        // This ensures user-configured Motion Ability limits are honoured (#12244).
+        unsigned int extruding_limit = std::lrint(print_config.machine_max_acceleration_extruding.values.front());
+        if (print_config.gcode_flavor.value == gcfKlipper) {
+            unsigned int x_limit = std::lrint(print_config.machine_max_acceleration_x.values.front());
+            unsigned int y_limit = std::lrint(print_config.machine_max_acceleration_y.values.front());
+            if (x_limit > 0) extruding_limit = std::min(extruding_limit, x_limit);
+            if (y_limit > 0) extruding_limit = std::min(extruding_limit, y_limit);
+        }
+        m_max_acceleration = extruding_limit;
+    } else {
+        m_max_acceleration = 0;
+    }
     m_max_travel_acceleration = static_cast<unsigned int>(
         std::round((use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) ?
                        print_config.machine_max_acceleration_travel.values.front() :

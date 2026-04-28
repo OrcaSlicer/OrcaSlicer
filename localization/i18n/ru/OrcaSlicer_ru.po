@@ -185,8 +185,8 @@ msgstr "Инструмент"
 msgid "Smart fill angle"
 msgstr "Угол для умной заливки"
 
-msgid "On overhangs only"
-msgstr "Только на нависаниях"
+msgid "On highlighted overhangs only"
+msgstr "Только на подсвеченных нависаниях"
 
 msgid "Auto support threshold angle: "
 msgstr "Пороговый угол автоподдержки: "

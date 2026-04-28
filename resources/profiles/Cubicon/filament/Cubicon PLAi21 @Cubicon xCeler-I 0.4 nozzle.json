@@ -1,10 +1,10 @@
 {
-    "type": "filament",
-    "name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "Cubicon PLAi21 @base",
-    "from": "system",
-    "instantiation": "true",
-    "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
-    ]
+	"type": "filament",
+	"name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle",
+	"inherits": "Cubicon PLAi21 @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-I 0.4 nozzle"
+	]
 }

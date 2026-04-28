@@ -178,8 +178,8 @@ msgstr "Tipo de ferramenta"
 msgid "Smart fill angle"
 msgstr "Ângulo de preenchimento inteligente"
 
-msgid "On overhangs only"
-msgstr "Apenas em saliências"
+msgid "On highlighted overhangs only"
+msgstr "Apenas em saliências destacadas"
 
 msgid "Auto support threshold angle: "
 msgstr "Ângulo limiar de suporte automático: "
@@ -4331,7 +4331,7 @@ msgstr ""
 "seam_slope_start_height precisa ser menor que layer_height.\n"
 "Redefinir para 0."
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."

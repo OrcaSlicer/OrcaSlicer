@@ -13,6 +13,15 @@ body:
         Before filing, please check if the issue already exists (either open or closed) by using the search bar on the issues page. If it does, comment there. Even if it's closed, we can reopen it based on your comment.
   - type: checkboxes
     attributes:
+      label: Is this issue reproducible in the latest nightly build?
+      description: >
+        Please verify this issue still happens in the latest nightly build first. It may already be fixed there:
+        [Nightly builds](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds).
+      options:
+        - label: I have checked the latest nightly build and the issue is still reproducible
+          required: true
+  - type: checkboxes
+    attributes:
       label: Is there an existing issue for this problem?
       description: Please search to see if an issue already exists for the bug you encountered.
       options:

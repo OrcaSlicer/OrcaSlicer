@@ -126,8 +126,8 @@ enum class NotificationType
 	SimplifySuggestion,
 	// Change of text will change font to similar one on.
 	UnknownFont,
-	// information about netfabb is finished repairing model (blocking proccess)
-	NetfabbFinished,
+	// information about cgal is finished repairing model (blocking process)
+	CgalFinished,
 	// Short meesage to fill space between start and finish of export
 	ExportOngoing,
     // Progressbar of download from prusaslicer://url
@@ -218,6 +218,7 @@ public:
 	void upload_job_notification_show_canceled(int id, const std::string& filename, const std::string& host);
 	void upload_job_notification_show_error(int id, const std::string& filename, const std::string& host);
     void push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelObject const *> objs);
+    void push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelInstance const *> insts);
     void close_slicing_serious_warning_notification(const std::string &text);
 	// Creates Slicing Error notification with a custom text and no fade out.
     void push_slicing_error_notification(const std::string &text, std::vector<ModelObject const *> objs);

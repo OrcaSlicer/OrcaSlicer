@@ -1,62 +1,62 @@
 {
-    "type": "filament",
+	"type": "filament",
 	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
-    "name": "PETG ESD (Performance)",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "fdm_filament_pet",
-    "filament_type": [
-        "PETG-ESD"
-    ],
-	"filament_flow_ratio": [
-        "1.00"
-    ],
-	"nozzle_temperature_initial_layer": [
-	  "270"
+	"setting_id": "GFSG99",
+	"name": "PETG ESD (Performance)",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_type": [
+		"PETG-ESD"
 	],
-    "nozzle_temperature": [
-      "270"
-    ],
-    "hot_plate_temp_initial_layer": [
-        "75"
-    ],
-    "hot_plate_temp" : [
-        "75"
-    ],
-    "fan_max_speed": [
-        "40"
-    ],
-    "fan_min_speed": [
-        "0"
-    ],
-    "filament_max_volumetric_speed": [
-      "36"
-    ],
-    "nozzle_temperature_range_high": [
-        "290"
-    ],
-    "nozzle_temperature_range_low": [
-        "250"
-    ],
-    "filament_density": [
-        "1.24"
-    ],
-    "compatible_printers": [
-	  "EXO42 Performance (0.4 nozzle)",
-	  "EXO65 Performance (0.4 nozzle)",
-	  "EXO65 Performance (0.6 nozzle)",
-	  "EXO65 Performance (0.8 nozzle)",
-	  "SH65 Performance (0.4 nozzle)",
-	  "EXO42 IDRE (0.4 nozzle)",
-	  "EXO42 IDRE COPY MODE (0.4 nozzle)",
-	  "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
-	  "EXO65 IDRE (0.4 nozzle)",
-	  "EXO65 IDRE COPY MODE (0.4 nozzle)",
-	  "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
-	  "SH65 IDRE (0.4 nozzle)",
-	  "SH65 IDRE COPY MODE (0.4 nozzle)",
-	  "SH65 IDRE MIRROR MODE (0.4 nozzle)",
-	  "VS30SC2 Performance (0.4 nozzle)"
-    ]
+	"filament_flow_ratio": [
+		"1.00"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"hot_plate_temp_initial_layer": [
+		"75"
+	],
+	"hot_plate_temp": [
+		"75"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"36"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"nozzle_temperature_range_low": [
+		"250"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"compatible_printers": [
+		"EXO42 Performance (0.4 nozzle)",
+		"EXO65 Performance (0.4 nozzle)",
+		"EXO65 Performance (0.6 nozzle)",
+		"EXO65 Performance (0.8 nozzle)",
+		"SH65 Performance (0.4 nozzle)",
+		"EXO42 IDRE (0.4 nozzle)",
+		"EXO42 IDRE COPY MODE (0.4 nozzle)",
+		"EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+		"EXO65 IDRE (0.4 nozzle)",
+		"EXO65 IDRE COPY MODE (0.4 nozzle)",
+		"EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+		"SH65 IDRE (0.4 nozzle)",
+		"SH65 IDRE COPY MODE (0.4 nozzle)",
+		"SH65 IDRE MIRROR MODE (0.4 nozzle)",
+		"VS30SC2 Performance (0.4 nozzle)"
+	]
 }

@@ -31,6 +31,7 @@ void break_to_debugger();
 // Platform specific Ctrl+/Alt+ (Windows, Linux) vs. ⌘/⌥ (OSX) prefixes 
 extern const std::string& shortkey_ctrl_prefix();
 extern const std::string& shortkey_alt_prefix();
+extern const std::string& shortkey_shift_prefix(); // Shift is the same on all platforms, but we provide a function for consistency with Ctrl/Alt prefixes
 
 extern AppConfig* get_app_config();
 

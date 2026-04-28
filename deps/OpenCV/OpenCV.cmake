@@ -55,6 +55,8 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_VTK=OFF
        -DWITH_JPEG=OFF
        -DWITH_WEBP=OFF
+       -DWITH_TIFF=OFF
+       -DBUILD_TIFF=OFF
        -DENABLE_PRECOMPILED_HEADERS=OFF
        -DINSTALL_TESTS=OFF
        -DINSTALL_C_EXAMPLES=OFF

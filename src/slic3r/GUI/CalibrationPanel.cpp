@@ -25,7 +25,7 @@ wxString get_calibration_type_name(CalibMode cali_mode)
     case CalibMode::Calib_PA_Line:
         return _L("Flow Dynamics");
     case CalibMode::Calib_Flow_Rate:
-        return _L("Flow Rate");
+        return _L("Flow ratio");
     case CalibMode::Calib_Vol_speed_Tower:
         return _L("Max Volumetric Speed");
     case CalibMode::Calib_Temp_Tower:

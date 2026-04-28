@@ -3,7 +3,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <wx/utils.h>
 

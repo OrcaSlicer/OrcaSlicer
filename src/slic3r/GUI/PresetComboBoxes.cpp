@@ -35,7 +35,6 @@
 #include "Tab.hpp"
 #include "ConfigWizard.hpp"
 #include "../Utils/ASCIIFolding.hpp"
-#include "../Utils/FixModelByWin10.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "BitmapCache.hpp"
@@ -1210,14 +1209,24 @@ void PlaterPresetComboBox::update()
             //BBS: move system to the end
             if (m_type == Preset::TYPE_PRINTER) {
                 auto printer_model = preset.config.opt_string("printer_model");
-                name = from_u8(printer_model);
+
+                // ORCA: Make system printer presets display the dirty "*" prefix when edited.
+                name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + printer_model : printer_model);
+
                 if (system_printer_models.count(printer_model) == 0) {
                     system_presets.emplace(name, bmp);
                     system_printer_models.insert(printer_model);
                 }
+                else if (is_selected) {
+                    const wxString alternate_name = from_u8(preset.is_dirty ? printer_model : Preset::suffix_modified() + printer_model);
+                    // Remove the old preset name if exists, and add the new one with the same name but with modified suffix if needed.
+                    if (system_presets.erase(alternate_name))
+                        system_presets.emplace(name, bmp);
+                }
             } else {
                 system_presets.emplace(name, bmp);
             }
+
             if (is_selected) {
                 tooltip = get_tooltip(preset);
                 selected_system_preset = name;

@@ -310,6 +310,17 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     m_edge_right  = new ResizeEdgePanel(this, ResizeEdgePanel::Right);
 #endif
 
+#ifdef __WXMSW__
+    if (HWND hWnd = GetHandle(); hWnd != nullptr) {
+        LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        if ((style & WS_CAPTION) != 0) {
+            SetWindowLongPtr(hWnd, GWL_STYLE, style & ~WS_CAPTION);
+            SetWindowPos(hWnd, nullptr, 0, 0, 0, 0,
+                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+    }
+#endif
+
     if (!wxGetApp().app_config->has("user_mode")) {
         wxGetApp().app_config->set("user_mode", "simple");
         wxGetApp().app_config->set_bool("developer_mode", false);
@@ -524,6 +535,28 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     update_layout();
     sizer->SetSizeHints(this);
 
+    #ifdef __WXMSW__
+    // SetMaximize causes the window to overlap the taskbar, due to the fact this window has wxMAXIMIZE_BOX off
+    // https://forums.wxwidgets.org/viewtopic.php?t=50634
+    // Fix it here
+    this->Bind(wxEVT_MAXIMIZE, [this](auto &e) {
+        wxDisplay display(this);
+        auto      size = display.GetClientArea().GetSize();
+        auto      pos  = display.GetClientArea().GetPosition();
+        HWND      hWnd = GetHandle();
+        RECT      borderThickness;
+        SetRectEmpty(&borderThickness);
+        AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE), FALSE, 0);
+        const auto max_size = size + wxSize{-borderThickness.left + borderThickness.right, -borderThickness.top + borderThickness.bottom};
+        const auto current_size = GetSize();
+        SetSize({std::min(max_size.x, current_size.x), std::min(max_size.y, current_size.y)});
+        Move(pos + wxPoint{borderThickness.left, borderThickness.top});
+        e.Skip();
+    });
+
+#endif // __WXMSW__
+ 
+
     // BBS
     Fit();
 
@@ -586,6 +619,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     #endif
 
         MarkdownTip::ExitTip();
+        // Prevent queued selection/UI refresh work from running as normal during reset.
+        wxGetApp().set_closing(true);
 
         m_plater->reset();
         this->shutdown();
@@ -758,7 +793,7 @@ void MainFrame::bind_diff_dialog()
 }
 
 
-#ifdef __WIN32__
+#ifdef __WXMSW__
 
 // Orca: Fix maximized window overlaps taskbar when taskbar auto hide is enabled (#8085)
 // Adopted from https://gist.github.com/MortenChristiansen/6463580
@@ -3243,26 +3278,18 @@ void MainFrame::init_menubar_as_editor()
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
-    // Flow rate (with submenu)
-    auto flowrate_menu = new wxMenu();
-    append_menu_item(
-        flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow ratio test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
+    // Flow rate (Wizard Dialog)
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
+        [this](wxCommandEvent&) {
+            if (!m_plater) return;
+            if (!m_flow_rate_calib_dlg)
+                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
+            m_flow_rate_calib_dlg->ShowModal();
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow ratio test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    flowrate_menu->AppendSeparator();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowratio calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowratio calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    m_topbar->GetCalibMenu()->AppendSubMenu(flowrate_menu, _L("Flow ratio"));
 
-    // Retraction test
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction test"), _L("Retraction test"),
+    // Retraction
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction"), _L("Retraction"),
         [this](wxCommandEvent&) {
             if (!m_retraction_calib_dlg)
                 m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
@@ -3311,16 +3338,9 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // help
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Tutorial"), _L("Calibration help"),
-        [this](wxCommandEvent&) {
-            std::string url = "https://www.orcaslicer.com/wiki/Calibration";
-            if (const std::string country_code = wxGetApp().app_config->get_country_code(); country_code == "CN") {
-                // Use gitee mirror for China users
-                url = "https://gitee.com/n0isyfox/orca-slicer-docs/wikis/%E6%A0%A1%E5%87%86/%E6%89%93%E5%8D%B0%E5%8F%82%E6%95%B0%E6%A0%A1%E5%87%86";
-            }
-            wxLaunchDefaultBrowser(url, wxBROWSER_NEW_WINDOW);
-        }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"), [this](wxCommandEvent &)
+                     { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr, [this]()
+                     {return m_plater->is_view3D_shown();; }, this);
 
 #else
     m_menubar->Append(fileMenu, wxString::Format("&%s", _L("File")));
@@ -3362,25 +3382,18 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flowrate (with submenu)
-    auto flowrate_menu = new wxMenu();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow ratio test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow ratio test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_submenu(calib_menu,flowrate_menu,wxID_ANY,_L("Flow ratio"),_L("Flow ratio"),"",
-                   [this]() {return m_plater->is_view3D_shown();; });
-    flowrate_menu->AppendSeparator();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowratio calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowratio calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
+    // ORCA: Flow rate (Wizard Dialog)
+    append_menu_item(calib_menu, wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
+        [this](wxCommandEvent&) {
+            if (!m_plater) return;
+            if (!m_flow_rate_calib_dlg)
+                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
+            m_flow_rate_calib_dlg->ShowModal();
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
-    // Retraction test
-    append_menu_item(calib_menu, wxID_ANY, _L("Retraction test"), _L("Retraction test"),
+    // Retraction
+    append_menu_item(calib_menu, wxID_ANY, _L("Retraction"), _L("Retraction"),
         [this](wxCommandEvent&) {
             if (!m_retraction_calib_dlg)
                 m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
@@ -3428,8 +3441,8 @@ void MainFrame::init_menubar_as_editor()
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     // help
-    append_menu_item(calib_menu, wxID_ANY, _L("Tutorial"), _L("Calibration help"),
-        [this](wxCommandEvent&) { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/Calibration", wxBROWSER_NEW_WINDOW); }, "", nullptr,
+    append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
+        [this](wxCommandEvent&) { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     m_menubar->Append(calib_menu,wxString::Format("&%s", _L("Calibration")));
@@ -4333,3 +4346,4 @@ void SettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 } // GUI
 } // Slic3r
+

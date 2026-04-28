@@ -163,8 +163,8 @@ msgstr "Verktygs typ"
 msgid "Smart fill angle"
 msgstr "Smart fyllningsvinkel"
 
-msgid "On overhangs only"
-msgstr "Endast på överhäng"
+msgid "On highlighted overhangs only"
+msgstr "Endast på markerade överhäng"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatisk support tröskelsvinkel: "

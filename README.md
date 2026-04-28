@@ -44,7 +44,7 @@ If you come across any of these in search results, please <b>report them</b> as 
 
 # Main features
 
-- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/Calibration)**  
+- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/calibration_guide)**  
   Comprehensive suite: temperature towers, flow rate, retraction & more for optimal performance.
 - **[Precise Wall](https://www.orcaslicer.com/wiki/quality_settings_precision#precise-wall) and [Seam Control](https://www.orcaslicer.com/wiki/quality_settings_seam)**  
   Adjust outer wall spacing and apply scarf seams to enhance print accuracy.
@@ -71,7 +71,7 @@ If you come across any of these in search results, please <b>report them</b> as 
 The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
 
 - **[Access the wiki here](https://www.orcaslicer.com/wiki)**
-- **[Contribute to the wiki](https://www.orcaslicer.com/wiki/How-to-wiki)**
+- **[Contribute to the wiki](https://www.orcaslicer.com/wiki/how_to_wiki)**
 
 # Download
 
@@ -137,14 +137,32 @@ winget install --id=SoftFever.OrcaSlicer -e
             ![mac_security_setting](./SoftFever_doc/mac_security_setting.png)
     </details>
 
-## Linux (Ubuntu)
+## Linux         
 
- 1. If you run into trouble executing it, try this command in the terminal:
+### Flathub (Recommended)
+OrcaSlicer is available through FlatHub:
+
+<a href='https://flathub.org/apps/com.orcaslicer.OrcaSlicer'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
+
+Install from the command line:
+
+```shell
+flatpak install flathub com.orcaslicer.OrcaSlicer
+flatpak run com.orcaslicer.OrcaSlicer
+```
+
+It can also be installed through graphical software managers (KDE Discover, GNOME Software, etc.) when Flathub is enabled. Search for **OrcaSlicer** in your software center.
+
+### AppImage
+ 1. Download App image from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
+ 2. Double click the downloaded file to run it.
+
+ 3. If you run into trouble executing it, try this command in the terminal:
     `chmod +x /path_to_appimage/OrcaSlicer_Linux.AppImage`
 
 # How to Compile
 
-All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/How-to-build) page.
+All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/how_to_build) page.
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 

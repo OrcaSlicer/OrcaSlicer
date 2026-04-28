@@ -1,8 +1,8 @@
 {
-    "type": "filament",
-    "name": "Generic PPS @base",
-    "inherits": "fdm_filament_pps",
-    "from": "system",
-    "filament_id": "GFT97",
-    "instantiation": "false"
+	"type": "filament",
+	"name": "Generic PPS @base",
+	"inherits": "fdm_filament_pps",
+	"from": "system",
+	"filament_id": "GFT97",
+	"instantiation": "false"
 }

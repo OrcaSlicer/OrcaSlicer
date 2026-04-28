@@ -26,6 +26,7 @@
 #include <boost/cast.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
+#include <unordered_map>
 
 #include "MainFrame.hpp"
 #include <boost/dll.hpp>
@@ -985,6 +986,17 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     //GetStardardFilePath(filepath);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " GetFilamentInfo:VendorDirectory - " << VendorDirectory << ", Filepath - "<<filepath;
 
+    const auto cache_it = filament_info_cache.find(filepath);
+    if (cache_it != filament_info_cache.end()) {
+        if (sVendor.empty()) {
+            sVendor = cache_it->second.vendor;
+        }
+        if (sType.empty()) {
+            sType = cache_it->second.type;
+        }
+        return cache_it->second.status;
+    }
+
     try {
         std::string contents;
         LoadFile(filepath, contents);
@@ -1014,6 +1026,7 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
 
                 if (!pFilaList.contains(FName)) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
+                    filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
                     return -1;
                 }
 
@@ -1025,28 +1038,36 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
                     inherits_path = (boost::filesystem::path(m_OrcaFilaLibPath) / boost::filesystem::path(FPath)).make_preferred();
 
                 //boost::filesystem::path nf(strNewFile.c_str());
-                if (boost::filesystem::exists(inherits_path))
-                    return GetFilamentInfo(VendorDirectory,pFilaList, inherits_path.string(), sVendor, sType);
-                else {
+                if (boost::filesystem::exists(inherits_path)) {
+                    const int ret = GetFilamentInfo(VendorDirectory,pFilaList, inherits_path.string(), sVendor, sType);
+                    filament_info_cache[filepath] = CachedFilamentInfo{ret, sVendor, sType};
+                    return ret;
+                } else {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
+                    filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
                     return -1;
                 }
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
                 if (sType == "") {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
+                    filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
                     return -1;
                 }
                 else
                     sVendor = "Generic";
+                    filament_info_cache[filepath] = CachedFilamentInfo{0, sVendor, sType};
                     return 0;
             }
         }
-        else
+        else {
+            filament_info_cache[filepath] = CachedFilamentInfo{0, sVendor, sType};
             return 0;
+        }
     }
     catch(nlohmann::detail::parse_error &err) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<filepath <<" got a nlohmann::detail::parse_error, reason = " << err.what();
+        filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
         return -1;
     }
     catch (std::exception &e)
@@ -1054,6 +1075,7 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
         // wxLogMessage("GUIDE: load_profile_error  %s ", e.what());
         // wxMessageBox(e.what(), "", MB_OK);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse " << filepath <<" got exception: "<<e.what();
+        filament_info_cache[filepath] = CachedFilamentInfo{-1, sVendor, sType};
         return -1;
     }
 
@@ -1155,6 +1177,7 @@ int GuideFrame::LoadProfileData()
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ", error: " << e.what() << std::endl;
     }
 
+    filament_info_cache.clear();
     return 0;
 }
 
@@ -1452,6 +1475,7 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
 
     return 0;
 }
+
 
 
 void GuideFrame::StrReplace(std::string &strBase, std::string strSrc, std::string strDes)
