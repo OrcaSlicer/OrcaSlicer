@@ -327,7 +327,7 @@ void FillGyroid::_fill_surface_single(
     Polylines polylines;
     if (params.gyroid_optimized) {
         const double lh = (params.layer_height > 0.) ? double(params.layer_height) : double(this->spacing);
-        const double omega     = compute_omega_factor(density_adjusted, this->spacing, lh);
+        const double omega     = compute_omega_factor(density_adjusted, this->spacing * params.multiline, lh);
         const double amplitude = compute_amplitude_factor(omega);
         polylines = make_optimized_gyroid_waves(
             scale_(this->z),
