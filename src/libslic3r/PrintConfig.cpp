@@ -225,6 +225,7 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "tpmsd", ipTpmsD },
     { "tpmsfk", ipTpmsFK },
     { "gyroid", ipGyroid },
+    { "optimizedgyroid", ipOptimizedGyroid },
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
@@ -2879,6 +2880,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("tpmsd");
     def->enum_values.push_back("tpmsfk");
     def->enum_values.push_back("gyroid");
+    def->enum_values.push_back("optimizedgyroid");
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
@@ -2905,6 +2907,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("TPMS-D"));
     def->enum_labels.push_back(L("TPMS-FK"));
     def->enum_labels.push_back(L("Gyroid"));
+    def->enum_labels.push_back(L("Optimized Gyroid"));
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));

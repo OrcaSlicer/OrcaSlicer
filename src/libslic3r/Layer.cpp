@@ -391,6 +391,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
             case ipRectilinear:
             case ipLine:
             case ipGyroid:
+            case ipOptimizedGyroid:
             case ipTpmsD:
             case ipTpmsFK:
             case ipAlignedRectilinear:

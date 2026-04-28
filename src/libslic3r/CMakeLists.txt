@@ -152,6 +152,8 @@ set(lisbslic3r_sources
     Fill/FillCrossHatch.hpp
     Fill/FillGyroid.cpp
     Fill/FillGyroid.hpp
+    Fill/FillOptimizedGyroid.cpp
+    Fill/FillOptimizedGyroid.hpp
     Fill/FillHoneycomb.cpp
     Fill/FillHoneycomb.hpp
     Fill/Fill.hpp

@@ -1404,6 +1404,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         case ipLateralHoneycomb:
         case ip3DHoneycomb:
         case ipGyroid:
+        case ipOptimizedGyroid:
         case ipTpmsD:
         case ipTpmsFK:
         case ipHilbertCurve:
