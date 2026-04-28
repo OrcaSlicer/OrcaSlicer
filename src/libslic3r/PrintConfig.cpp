@@ -2634,6 +2634,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 15. });
 
+    def = this->add("filament_cooling_before_tower", coFloats);
+    def->label = L("Wipe tower cooling");
+    def->tooltip = L("Temperature drop before entering filament tower");
+    def->sidetext = L(u8"\u2103" /* °C */); // degrees Celsius, CIS languages need translation
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable { 10. });
+
     def = this->add("filament_tower_interface_pre_extrusion_dist", coFloats);
     def->label = L("Interface layer pre-extrusion distance");
     def->tooltip = L("Pre-extrusion distance for prime tower interface layer (where different materials meet).");
@@ -7961,6 +7969,7 @@ std::set<std::string> filament_options_with_variant = {
     "nozzle_temperature",
     "filament_flush_volumetric_speed",
     "filament_flush_temp",
+    "filament_cooling_before_tower",
     "volumetric_speed_coefficients",
     "filament_adaptive_volumetric_speed",
     "filament_ironing_flow",

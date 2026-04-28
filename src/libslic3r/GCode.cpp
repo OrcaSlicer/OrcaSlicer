@@ -915,6 +915,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
                 auto flush_v_speed = m_print_config->filament_flush_volumetric_speed.values;
                 auto flush_temps = m_print_config->filament_flush_temp.values;
+                auto filament_cooling_before_tower = m_print_config->filament_cooling_before_tower.values;
                 for (size_t idx = 0; idx < flush_v_speed.size(); ++idx) {
                     if (flush_v_speed[idx] == 0)
                         flush_v_speed[idx] = m_print_config->filament_max_volumetric_speed.get_at(idx);
@@ -923,8 +924,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     if (flush_temps[idx] == 0)
                         flush_temps[idx] = m_print_config->nozzle_temperature_range_high.get_at(idx);
                 }
+                if (filament_cooling_before_tower.size() < m_print_config->filament_type.values.size())
+                    filament_cooling_before_tower.resize(m_print_config->filament_type.values.size(), m_print_config->filament_cooling_before_tower.get_at(0));
+                if (tcr.is_contact || gcodegen.m_layer_index == 0)
+                    std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
                 config.set_key_value("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
                 config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));
+                config.set_key_value("filament_cooling_before_tower", new ConfigOptionFloats(filament_cooling_before_tower));
                 config.set_key_value("flush_length", new ConfigOptionFloat(purge_length));
                 config.set_key_value("wipe_avoid_perimeter", new ConfigOptionBool(is_used_travel_avoid_perimeter));
                 config.set_key_value("wipe_avoid_pos_x", new ConfigOptionFloat(wipe_avoid_pos_x));
@@ -2822,6 +2828,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
     this->placeholder_parser().set("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
     this->placeholder_parser().set("flush_temperatures", new ConfigOptionInts(flush_temps));
+    this->placeholder_parser().set("filament_cooling_before_tower", new ConfigOptionFloatsNullable(m_config.filament_cooling_before_tower));
     //Set variable for total layer count so it can be used in custom gcode.
     this->placeholder_parser().set("total_layer_count", m_layer_count);
     // Useful for sequential prints.
@@ -7697,7 +7704,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
 
     auto flush_v_speed = m_print->config().filament_flush_volumetric_speed.values;
-    auto flush_temps =m_print->config().filament_flush_temp.values;
+    auto flush_temps = m_print->config().filament_flush_temp.values;
+    auto filament_cooling_before_tower = m_print->config().filament_cooling_before_tower.values;
     for (size_t idx = 0; idx < flush_v_speed.size(); ++idx) {
         if (flush_v_speed[idx] == 0)
             flush_v_speed[idx] = m_print->config().filament_max_volumetric_speed.get_at(idx);
@@ -7706,8 +7714,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         if (flush_temps[idx] == 0)
             flush_temps[idx] = m_print->config().nozzle_temperature_range_high.get_at(idx);
     }
+    if (filament_cooling_before_tower.size() < m_print->config().filament_type.values.size())
+        filament_cooling_before_tower.resize(m_print->config().filament_type.values.size(), m_print->config().filament_cooling_before_tower.get_at(0));
+    std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
     dyn_config.set_key_value("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
     dyn_config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));
+    dyn_config.set_key_value("filament_cooling_before_tower", new ConfigOptionFloats(filament_cooling_before_tower));
     dyn_config.set_key_value("flush_length", new ConfigOptionFloat(wipe_length));
 
     int flush_count = std::min(g_max_flush_count, (int)std::round(wipe_volume / g_purge_volume_one_time));
