@@ -1920,14 +1920,6 @@ void GLCanvas3D::render(bool only_init)
 
     if (!is_initialized() && !init())
         return;
-
-    // If a scene reload was postponed while the canvas was hidden, consume it on first visible render.
-    if (m_reload_delayed) {
-        reload_scene(true);
-        if (m_reload_delayed)
-            return;
-    }
-
     if (m_canvas_type == ECanvasType::CanvasView3D  && m_gizmos.get_current_type() == GLGizmosManager::Undefined) {
         enable_return_toolbar(false);
     }
@@ -2412,11 +2404,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
         return;
     }
 
-    if (!_set_current()) {
-        m_reload_delayed = true;
-        set_as_dirty();
-        return;
-    }
+    _set_current();
 
     m_hover_volume_idxs.clear();
 
@@ -2471,10 +2459,6 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
     auto model_volume_state_lower = [](const ModelVolumeState& m1, const ModelVolumeState& m2) { return m1.geometry_id < m2.geometry_id; };
 
     m_reload_delayed = !m_canvas->IsShown() && !refresh_immediately && !force_full_scene_refresh;
-    if (m_reload_delayed) {
-        set_as_dirty();
-        return;
-    }
 
     PrinterTechnology printer_technology = current_printer_technology();
 
@@ -2635,6 +2619,9 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
 
     //BBS clean hover_volume_idxs
     m_hover_volume_idxs.clear();
+
+    if (m_reload_delayed)
+        return;
 
     // BBS: do not check wipe tower changes
     bool update_object_list = false;
