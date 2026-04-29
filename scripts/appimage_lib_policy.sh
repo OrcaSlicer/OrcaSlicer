@@ -71,5 +71,5 @@ appimage_list_direct_dependencies() {
         if [[ -n "$dep" ]]; then
             echo "$dep"
         fi
-    done < <(ldd "$target" 2>/dev/null || true)
+    done < <("${APPIMAGE_LDD:-/usr/bin/ldd}" "$target" 2>/dev/null || ldd "$target" 2>/dev/null || true)
 }

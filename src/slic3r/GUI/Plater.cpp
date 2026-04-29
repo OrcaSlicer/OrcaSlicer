@@ -137,6 +137,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StaticGroup.hpp"
+#include "Widgets/MultiNozzleSync.hpp"
 
 #include "GUI_ObjectTable.hpp"
 #include "libslic3r/Thread.hpp"
@@ -411,14 +412,112 @@ enum class ActionButtonType : int {
     abSendGCode
 };
 
+// HoverLabel: title row with nozzle-count badge and edit button (ported from BBL Plater.cpp:437-555).
+// Orca's StaticGroup draws its label internally via LabeledStaticBox; HoverLabel provides the
+// interactive overlay — count "(N)" display and edit-icon button — that BBL drives via SetCount.
+class HoverLabel : public wxPanel
+{
+public:
+    HoverLabel(wxWindow *parent, const wxString &label) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
+    {
+        SetBackgroundColour(*wxWHITE);
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        m_label = new wxStaticText(this, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+        m_label->SetFont(Label::Body_13);
+        m_label->SetForegroundColour("#6B6B6B");
+        m_count = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+        m_count->SetFont(Label::Body_13.Bold());
+        m_count->SetForegroundColour("#262E30");
+        m_title_type = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+        m_title_type->SetForegroundColour("#ACACAC");
+        m_count->Hide();
+        m_title_type->Hide();
+        m_brace_left = new wxStaticText(this, wxID_ANY, "(", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+        m_brace_left->SetFont(Label::Body_13);
+        m_brace_left->SetForegroundColour("#262E30");
+        m_brace_right = new wxStaticText(this, wxID_ANY, ")", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+        m_brace_right->SetFont(Label::Body_13);
+        m_brace_right->SetForegroundColour("#262E30");
+        auto hover_icon = create_scaled_bitmap("dot", this, 16);
+        m_hover_btn = new wxBitmapButton(this, wxID_ANY, hover_icon, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+        m_hover_btn->SetMinSize(wxSize(FromDIP(25), -1));
+#ifdef __WXOSX__
+        m_hover_btn->SetBackgroundColour("#F7F7F7");
+#else
+        m_hover_btn->SetBackgroundColour(*wxWHITE);
+#endif
+        sizer->Add(m_label,       0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_brace_left,  0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_title_type,  0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_count,       0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_brace_right, 0, wxALIGN_CENTER_VERTICAL);
+        sizer->Add(m_hover_btn,   0, wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
+        SetSizerAndFit(sizer);
+        Layout();
+        m_hover_btn->Bind(wxEVT_BUTTON, [this](auto &) { if (m_enabled) m_hover_on_click(); });
+    }
+
+    void EnableEdit(bool enable)
+    {
+        m_enabled = enable;
+        m_hover_btn->SetBitmap(create_scaled_bitmap(enable ? "edit" : "dot"));
+    }
+
+    void SetOnHoverClick(std::function<void()> on_click) { m_hover_on_click = std::move(on_click); }
+
+    void SetCount(int count)
+    {
+        if (count == -1) {
+            m_count->Hide();
+            if (!m_title_type->IsShown()) { m_brace_left->Hide(); m_brace_right->Hide(); }
+        } else {
+            m_count->Show();
+            m_brace_left->Show();
+            m_brace_right->Show();
+            m_count->SetLabel(wxString::Format("%d", count));
+        }
+        Layout(); Fit();
+    }
+
+    void SetTitleWithType(int type)
+    {
+        if (type != 1) {
+            m_title_type->Hide();
+            if (!m_count->IsShown()) { m_brace_left->Hide(); m_brace_right->Hide(); }
+        } else {
+            m_brace_left->Show();
+            m_title_type->Show();
+            m_brace_right->Show();
+            m_title_type->SetLabel(_L("Aux"));
+        }
+        Layout(); Fit();
+    }
+
+    wxString GetSuffixStr() const { return m_title_type->IsShown() ? m_title_type->GetLabel() : ""; }
+
+    void SetTitle(const wxString &title) { m_label->SetLabel(title); Layout(); Fit(); }
+
+private:
+    wxStaticText        *m_label      = nullptr;
+    wxBitmapButton      *m_hover_btn  = nullptr;
+    wxStaticText        *m_count      = nullptr;
+    wxStaticText        *m_title_type = nullptr;
+    wxStaticText        *m_brace_left = nullptr;
+    wxStaticText        *m_brace_right= nullptr;
+    std::function<void()> m_hover_on_click;
+    bool                  m_enabled   = false;
+};
+
 struct ExtruderGroup : StaticGroup
 {
     ExtruderGroup(wxWindow * parent, int index, wxString const &title);
-    wxStaticBoxSizer *sizer        = nullptr;
-    ScalableButton *  btn_edit     = nullptr;
+    int               m_index        = 0;
+    HoverLabel *      hover_label    = nullptr;
+    wxStaticBoxSizer *sizer          = nullptr;
+    ScalableButton *  btn_edit       = nullptr;
     ComboBox *        combo_diameter = nullptr;
-    ComboBox *        combo_flow = nullptr;
-    AMSPreview *      ams[4]       = {nullptr};
+    ComboBox *        combo_flow     = nullptr;
+    AMSPreview *      ams[4]         = {nullptr};
     wxStaticText     *ams_not_installed_msg{nullptr};
     ScalableButton *  btn_up{nullptr};
     ScalableButton *  btn_down{nullptr};
@@ -441,6 +540,14 @@ struct ExtruderGroup : StaticGroup
             update_ams();
         }
     }
+
+    void     SetEditEnabled(bool enable);
+    void     SetCount(int count);
+    void     SetTitleWithType(int type);
+    void     SetTitle(const wxString &title);
+    wxString GetSuffixStr();
+    void     SetOnHoverClick(std::function<void()> on_click);
+    int      GetIndex() const { return m_index; }
 
     void update_ams();
 
@@ -564,7 +671,8 @@ struct Sidebar::priv
     void jump_to_object(ObjectDataViewModelNode* item);
     void can_search();
 
-    bool sync_extruder_list(bool &only_external_material);
+    bool sync_extruder_list(bool &only_external_material, bool is_manual = false);
+    std::optional<NozzleOption> get_nozzle_options(MachineObject *obj, int extruder_count, bool support_multi_nozzle, bool is_manual);
     bool switch_diameter(bool single);
     void update_sync_status(const MachineObject* obj);
 
@@ -1054,13 +1162,16 @@ public:
 };
 
 ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title)
-    : StaticGroup(parent, wxID_ANY, title)
+    : StaticGroup(parent, wxID_ANY, wxEmptyString) // empty: HoverLabel provides the visible title row
+    , m_index(index)
 {
     SetFont(Label::Body_10);
     SetForegroundColour(wxColour("#CECECE"));
     SetBorderColor(wxColour("#EEEEEE"));
     SetCornerRadius(FromDIP(PRINTER_PANEL_RADIUS)); // ORCA match radius with other boxes
     ShowBadge(true);
+
+    hover_label = new HoverLabel(this, title);
     // Nozzle
     wxStaticText *label_diameter = new wxStaticText(this, wxID_ANY, _L("Diameter"));
     label_diameter->SetFont(Label::Body_14);
@@ -1157,6 +1268,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     if (index < 0) {
         label_ams->Hide();
         ams_not_installed_msg->Hide();
+        hover_label->Hide(); // single-extruder box uses the LabeledStaticBox border only
         wxStaticBoxSizer *hsizer     = new wxStaticBoxSizer(this, wxHORIZONTAL);
         hsizer->Add(hsizer_diameter, 1, wxEXPAND | wxTOP| wxBOTTOM, FromDIP(8));
         //hsizer->Add(hsizer_nozzle, 1, wxEXPAND | wxALL, FromDIP(8));
@@ -1164,12 +1276,44 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         this->sizer = hsizer;
     } else {
         wxStaticBoxSizer *vsizer = new wxStaticBoxSizer(this, wxVERTICAL);
-        vsizer->Add(hsizer_ams, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(2));
+        vsizer->Add(hover_label,     0, wxLEFT | wxALL, FromDIP(2));
+        vsizer->Add(hsizer_ams,      0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(2));
         vsizer->Add(hsizer_diameter, 0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT | wxBOTTOM, FromDIP(2));
         //vsizer->Add(hsizer_nozzle, 0, wxEXPAND | wxALL, FromDIP(2));
         this->sizer = vsizer;
     }
     AMSCountPopupWindow::UpdateAMSCount(index < 0 ? 0 : index, this);
+}
+
+void ExtruderGroup::SetEditEnabled(bool enable)
+{
+    if (hover_label) hover_label->EnableEdit(enable);
+}
+
+void ExtruderGroup::SetCount(int count)
+{
+    if (hover_label) hover_label->SetCount(count);
+}
+
+void ExtruderGroup::SetTitleWithType(int type)
+{
+    if (hover_label) hover_label->SetTitleWithType(type);
+}
+
+void ExtruderGroup::SetTitle(const wxString &title)
+{
+    if (hover_label) hover_label->SetTitle(title);
+}
+
+wxString ExtruderGroup::GetSuffixStr()
+{
+    if (hover_label) return hover_label->GetSuffixStr();
+    return wxString();
+}
+
+void ExtruderGroup::SetOnHoverClick(std::function<void()> on_click)
+{
+    if (hover_label) hover_label->SetOnHoverClick(std::move(on_click));
 }
 
 void ExtruderGroup::update_ams()
@@ -1314,7 +1458,145 @@ bool Sidebar::priv::switch_diameter(bool single)
     return wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(preset->name);
 }
 
-bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
+// Printers where high-flow detection is unreliable — fall back to standard type only.
+static bool is_skip_high_flow_printer(const std::string &printer)
+{
+    static const std::set<std::string> invalidate_list = { "Bambu Lab X1E" };
+    return invalidate_list.count(printer) > 0;
+}
+
+// serialize/deserialize helpers for the "sync_extruder" app_config cache
+static std::string serialize_nozzle_config(const std::map<int, std::vector<DevNozzle>>& nozzle_cfg_map)
+{
+    std::ostringstream oss;
+    std::vector<DevNozzle> deputy_nozzles;
+    auto deputy_it = nozzle_cfg_map.find(1);
+    if (deputy_it != nozzle_cfg_map.end()) deputy_nozzles = deputy_it->second;
+    std::vector<DevNozzle> main_nozzles;
+    auto main_it = nozzle_cfg_map.find(0);
+    if (main_it != nozzle_cfg_map.end()) main_nozzles = main_it->second;
+    for (size_t i = 0; i < deputy_nozzles.size(); ++i) {
+        if (i > 0) oss << ";";
+        oss << std::fixed << std::setprecision(1) << deputy_nozzles[i].GetNozzleDiameter() << ","
+            << static_cast<int>(deputy_nozzles[i].GetNozzleFlowType());
+    }
+    oss << "|";
+    for (size_t i = 0; i < main_nozzles.size(); ++i) {
+        if (i > 0) oss << ";";
+        oss << std::fixed << std::setprecision(1) << main_nozzles[i].GetNozzleDiameter() << ","
+            << static_cast<int>(main_nozzles[i].GetNozzleFlowType());
+    }
+    return oss.str();
+}
+
+static std::map<int, std::vector<DevNozzle>> deserialize_nozzle_config(const std::string &config_str)
+{
+    std::map<int, std::vector<DevNozzle>> nozzle_cfg_map;
+    if (config_str.empty()) return nozzle_cfg_map;
+    std::vector<std::string> extruder_parts;
+    boost::split(extruder_parts, config_str, boost::is_any_of("|"));
+    auto get_nozzles_from_string = [](const std::string& part_str) -> std::vector<DevNozzle> {
+        std::vector<DevNozzle> nozzles;
+        std::vector<std::string> parts;
+        boost::split(parts, part_str, boost::is_any_of(";"));
+        for (const auto &part : parts) {
+            std::vector<std::string> values;
+            boost::split(values, part, boost::is_any_of(","));
+            if (values.size() == 2) {
+                DevNozzle nozzle;
+                nozzle.m_diameter = std::stof(values[0]);
+                nozzle.m_nozzle_flow = static_cast<NozzleFlowType>(std::stoi(values[1]));
+                nozzles.push_back(nozzle);
+            }
+        }
+        return nozzles;
+    };
+    if (extruder_parts.size() != 2) {
+        auto nozzles = get_nozzles_from_string(config_str);
+        nozzle_cfg_map[MAIN_EXTRUDER_ID] = nozzles;
+        nozzle_cfg_map[DEPUTY_EXTRUDER_ID] = { DevNozzle() };
+        return nozzle_cfg_map;
+    }
+    if (!extruder_parts[0].empty()) nozzle_cfg_map[DEPUTY_EXTRUDER_ID] = get_nozzles_from_string(extruder_parts[0]);
+    if (!extruder_parts[1].empty()) nozzle_cfg_map[MAIN_EXTRUDER_ID]   = get_nozzles_from_string(extruder_parts[1]);
+    return nozzle_cfg_map;
+}
+
+static bool is_same_nozzle_config(const std::map<int, std::vector<DevNozzle>> &config1, const std::map<int, std::vector<DevNozzle>> &config2)
+{
+    if (config1.size() != config2.size()) return false;
+    for (const auto& [eid, nozzles1] : config1) {
+        auto it = config2.find(eid);
+        if (it == config2.end()) return false;
+        const auto &nozzles2 = it->second;
+        if (nozzles1.size() != nozzles2.size()) return false;
+        auto sorted1 = nozzles1, sorted2 = nozzles2;
+        auto cmp = [](const DevNozzle &a, const DevNozzle &b) {
+            float da = a.GetNozzleDiameter(), db = b.GetNozzleDiameter();
+            if (std::abs(da - db) > EPSILON) return da < db;
+            return static_cast<int>(a.GetNozzleFlowType()) < static_cast<int>(b.GetNozzleFlowType());
+        };
+        std::sort(sorted1.begin(), sorted1.end(), cmp);
+        std::sort(sorted2.begin(), sorted2.end(), cmp);
+        for (size_t i = 0; i < sorted1.size(); ++i) {
+            if (std::abs(sorted1[i].GetNozzleDiameter() - sorted2[i].GetNozzleDiameter()) > EPSILON ||
+                sorted1[i].GetNozzleFlowType() != sorted2[i].GetNozzleFlowType())
+                return false;
+        }
+    }
+    return true;
+}
+
+static std::string serialize_nozzle_option(const NozzleOption& option)
+{
+    std::ostringstream oss;
+    oss << option.diameter << "|";
+    bool first = true;
+    for (const auto& pair : option.extruder_nozzle_stats) {
+        if (!first) oss << ";";
+        first = false;
+        oss << pair.first << ":";
+        bool first_stat = true;
+        for (const auto& stat_pair : pair.second) {
+            if (!first_stat) oss << ",";
+            first_stat = false;
+            oss << static_cast<int>(stat_pair.first) << "#" << stat_pair.second;
+        }
+    }
+    return oss.str();
+}
+
+static std::optional<NozzleOption> deserialize_nozzle_option(const std::string& option_str)
+{
+    if (option_str.empty()) return std::nullopt;
+    std::vector<std::string> parts;
+    boost::split(parts, option_str, boost::is_any_of("|"));
+    if (parts.size() != 2) return std::nullopt;
+    NozzleOption option;
+    option.diameter = parts[0];
+    std::vector<std::string> extruder_parts;
+    boost::split(extruder_parts, parts[1], boost::is_any_of(";"));
+    for (const auto& extruder_part : extruder_parts) {
+        if (extruder_part.empty()) continue;
+        std::vector<std::string> extruder_data;
+        boost::split(extruder_data, extruder_part, boost::is_any_of(":"));
+        if (extruder_data.size() != 2) continue;
+        int extruder_id = std::stoi(extruder_data[0]);
+        std::unordered_map<NozzleVolumeType, int> stats;
+        std::vector<std::string> stat_parts;
+        boost::split(stat_parts, extruder_data[1], boost::is_any_of(","));
+        for (const auto& stat_part : stat_parts) {
+            std::vector<std::string> kv;
+            boost::split(kv, stat_part, boost::is_any_of("#"));
+            if (kv.size() == 2)
+                stats[static_cast<NozzleVolumeType>(std::stoi(kv[0]))] = std::stoi(kv[1]);
+        }
+        option.extruder_nozzle_stats[extruder_id] = stats;
+    }
+    return option;
+}
+
+bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual)
 {
     MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
     auto           printer_name = plater->get_selected_printer_name_in_combox();
@@ -1362,19 +1644,33 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
     std::vector<int> extruder_map(extruder_nums);
     std::iota(extruder_map.begin(), extruder_map.end(), 0);
     const ConfigOptionInts *physical_extruder_map = cur_preset.config.option<ConfigOptionInts>("physical_extruder_map");
+    auto printer_model = cur_preset.config.opt_string("printer_model");
     if (physical_extruder_map != nullptr) {
         assert(physical_extruder_map->values.size() == extruder_nums);
         extruder_map = physical_extruder_map->values;
     }
     assert(obj->GetExtderSystem()->GetTotalExtderCount() == extruder_nums);
+    auto extruder_max_nozzle_count = cur_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count")->values;
+    bool support_multi_nozzle = std::any_of(extruder_max_nozzle_count.begin(), extruder_max_nozzle_count.end(), [](int val){ return val > 1; });
+    auto nozzle_option = get_nozzle_options(obj, extruder_nums, support_multi_nozzle, is_manual);
+    if (!nozzle_option && support_multi_nozzle)
+        return false;
 
     std::vector<float> nozzle_diameters;
     nozzle_diameters.resize(extruder_nums);
+    std::vector<NozzleVolumeType> target_types(extruder_nums, NozzleVolumeType::nvtStandard);
+
     for (size_t index = 0; index < extruder_nums; ++index) {
         int extruder_id = extruder_map[index];
-        nozzle_diameters[extruder_id] = obj->GetExtderSystem()->GetNozzleDiameter(index);
+        nozzle_diameters[extruder_id] = nozzle_option ? atof(nozzle_option->diameter.c_str()) : obj->GetExtderSystem()->GetNozzleDiameter(index);
+        std::optional<NozzleVolumeType> select_type;
         NozzleVolumeType target_type = NozzleVolumeType::nvtStandard;
-        auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
+        if (nozzle_option && nozzle_option->extruder_nozzle_stats.count(index)) {
+            if (nozzle_option->extruder_nozzle_stats.at(index).size() > 1)
+                select_type = NozzleVolumeType::nvtHybrid;
+            else
+                select_type = nozzle_option->extruder_nozzle_stats.at(index).begin()->first;
+        }
         if (obj->is_nozzle_flow_type_supported()) {
             if (obj->GetExtderSystem()->GetNozzleFlowType(index) == NozzleFlowType::NONE_FLOWTYPE) {
                 MessageDialog dlg(this->plater, _L("There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."),
@@ -1383,10 +1679,11 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
                 continue;
             }
             // hack code, only use standard flow for 0.2
-            if (std::fabs(nozzle_diameters[extruder_id] - 0.2) > EPSILON)
-                target_type = NozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id) - 1);
+            if (std::fabs(nozzle_diameters[extruder_id] - 0.2) > EPSILON && !is_skip_high_flow_printer(printer_model))
+                target_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id));
         }
-        printer_tab->set_extruder_volume_type(index, target_type);
+        if (select_type) target_type = *select_type;
+        target_types[index] = target_type;
     }
 
     int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
@@ -1410,7 +1707,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
 
     if (extruder_nums > 1) {
         int left_index  = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
-        int right_index = left_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[1]));
+        int right_index = right_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[1]));
         assert(left_index != -1 && right_index != -1);
         left_extruder->combo_diameter->SetSelection(left_index);
         right_extruder->combo_diameter->SetSelection(right_index);
@@ -1430,8 +1727,94 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
         is_switching_diameter = false;
     }
 
+    // apply nozzle volume types after preset switch so they override the stored value
+    auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
+    for (size_t idx = 0; idx < target_types.size(); ++idx)
+        printer_tab->set_extruder_volume_type(idx, target_types[idx]);
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " finish sync_extruder_list";
     return true;
+}
+
+std::optional<NozzleOption> Sidebar::priv::get_nozzle_options(MachineObject *obj, int extruder_count, bool support_multi_nozzle, bool is_manual)
+{
+    if (extruder_count < 2 || !support_multi_nozzle)
+        return std::nullopt;
+    if (!obj || !obj->GetNozzleSystem()) return std::nullopt;
+    auto nozzle_system = obj->GetNozzleSystem();
+
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    if (!preset_bundle) return std::nullopt;
+
+    std::string curr_dev_id = obj->get_dev_id();
+    std::map<int, std::vector<DevNozzle>> curr_nozzle_cfg;
+    for (const auto& ext_nozzle : nozzle_system->GetExtNozzles())
+        curr_nozzle_cfg[ext_nozzle.first].emplace_back(ext_nozzle.second);
+    for (const auto& rack_nozzle : nozzle_system->GetRackNozzles())
+        curr_nozzle_cfg[MAIN_EXTRUDER_ID].emplace_back(rack_nozzle.second);
+
+    AppConfig *app_config = wxGetApp().app_config;
+    std::string saved_dev_id           = app_config->get("sync_extruder", "dev_id");
+    std::string saved_nozzle_config_str = app_config->get("sync_extruder", "nozzle_config");
+    std::string saved_nozzle_option_str = app_config->get("sync_extruder", "nozzle_option");
+    std::optional<NozzleOption> nozzle_option;
+
+    if (is_manual) {
+        nozzle_option = tryPopUpMultiNozzleDialog(obj);
+    } else {
+        bool can_reuse_saved_option = false;
+        if (!saved_dev_id.empty() && !saved_nozzle_config_str.empty() && !saved_nozzle_option_str.empty() && saved_dev_id == curr_dev_id) {
+            auto saved_nozzle_config = deserialize_nozzle_config(saved_nozzle_config_str);
+            if (is_same_nozzle_config(saved_nozzle_config, curr_nozzle_cfg)) {
+                nozzle_option = deserialize_nozzle_option(saved_nozzle_option_str);
+                can_reuse_saved_option = nozzle_option.has_value();
+            }
+            if (can_reuse_saved_option) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Reusing saved nozzle option for dev_id: " << curr_dev_id;
+                // Write nozzle stats back into the preset bundle config
+                for (int extruder_id = 0; extruder_id < extruder_count; ++extruder_id) {
+                    NozzleVolumeType volume_type;
+                    int              nozzle_count;
+                    bool             clear_all = true;
+                    if (!nozzle_option->extruder_nozzle_stats.count(extruder_id)) {
+                        nozzle_count = 0;
+                        for (size_t idx = 0; idx < nvtHybrid; ++idx) {
+                            volume_type = static_cast<NozzleVolumeType>(idx);
+                            setExtruderNozzleCount(preset_bundle, extruder_id, volume_type, nozzle_count, clear_all);
+                            clear_all = false;
+                        }
+                    } else {
+                        for (auto &stat : nozzle_option->extruder_nozzle_stats.at(extruder_id)) {
+                            volume_type  = stat.first;
+                            nozzle_count = stat.second;
+                            setExtruderNozzleCount(preset_bundle, extruder_id, volume_type, nozzle_count, clear_all);
+                            clear_all = false;
+                        }
+                    }
+                }
+                preset_bundle->extruder_nozzle_stat.set_nozzle_data_flag(ExtruderNozzleStat::ndfMachine);
+            }
+        }
+        if (!can_reuse_saved_option)
+            nozzle_option = tryPopUpMultiNozzleDialog(obj);
+    }
+
+    if (nozzle_option) {
+        std::string current_nozzle_config = serialize_nozzle_config(curr_nozzle_cfg);
+        std::string current_nozzle_option = serialize_nozzle_option(*nozzle_option);
+        if (app_config->has_section("sync_extruder")) {
+            app_config->set("sync_extruder", "dev_id",        curr_dev_id);
+            app_config->set("sync_extruder", "nozzle_config", current_nozzle_config);
+            app_config->set("sync_extruder", "nozzle_option", current_nozzle_option);
+        } else {
+            std::map<std::string, std::string> data;
+            data["dev_id"]        = curr_dev_id;
+            data["nozzle_config"] = current_nozzle_config;
+            data["nozzle_option"] = current_nozzle_option;
+            app_config->set_section("sync_extruder", data);
+        }
+    }
+    return nozzle_option;
 }
 
 void Sidebar::priv::update_sync_status(const MachineObject *obj)
@@ -2052,6 +2435,21 @@ Sidebar::Sidebar(Plater *parent)
         p->left_extruder  = new ExtruderGroup(p->m_panel_printer_content, 0, _L("Left Nozzle"));
         p->right_extruder = new ExtruderGroup(p->m_panel_printer_content, 1, _L("Right Nozzle"));
         p->single_extruder = new ExtruderGroup(p->m_panel_printer_content, -1, _L("Nozzle"));
+
+        // Wire HoverLabel click to fire the full MultiNozzleSyncDialog (is_manual=true
+        // bypasses the saved-config cache and always shows the dialog).
+        p->left_extruder->SetOnHoverClick([this]() {
+            bool only_external;
+            if (p->sync_extruder_list(only_external, /*is_manual=*/true))
+                wxGetApp().plater()->update_machine_sync_status();
+        });
+        p->right_extruder->SetOnHoverClick([this]() {
+            bool only_external;
+            if (p->sync_extruder_list(only_external, /*is_manual=*/true))
+                wxGetApp().plater()->update_machine_sync_status();
+        });
+        p->single_extruder->SetEditEnabled(false); // single-extruder box is read-only
+
         auto switch_diameter = [this](wxCommandEvent & evt) {
             auto extruder = dynamic_cast<ExtruderGroup *>(dynamic_cast<ComboBox *>(evt.GetEventObject())->GetParent());
             p->is_switching_diameter = true;
@@ -3740,6 +4138,16 @@ PlaterPresetComboBox* Sidebar::printer_combox()
     return p->combo_printer;
 }
 
+void Sidebar::set_extruder_nozzle_count(int extruder_id, int nozzle_count)
+{
+    if (extruder_id == 0) {
+        p->left_extruder->SetCount(nozzle_count);
+        p->single_extruder->SetCount(nozzle_count);
+    } else if (extruder_id == 1) {
+        p->right_extruder->SetCount(nozzle_count);
+    }
+}
+
 ObjectList* Sidebar::obj_list()
 {
     // BBS
@@ -3825,7 +4233,8 @@ bool Sidebar::is_multifilament()
 void Sidebar::deal_btn_sync() {
     m_begin_sync_printer_status = true;
     bool only_external_material;
-    auto ok = p->sync_extruder_list(only_external_material);
+    // is_manual=true: user explicitly pressed Sync — always pop the dialog, skip cache
+    auto ok = p->sync_extruder_list(only_external_material, /*is_manual=*/true);
     if (ok) {
         pop_sync_nozzle_and_ams_dialog();
     }
@@ -6556,7 +6965,15 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                             is_user_cancel = true;
                             return -1;
-                        }, linear, angle, split_compound);
+                        }, linear, angle, split_compound,
+                        [&path](const std::vector<std::string>& names) {
+                            // BBL d3739fb40: STEP loader collects open shells; warn the user once
+                            // per file so they know the import may produce non-watertight geometry.
+                            wxString msg = wxString::Format(_L("STEP file %s contains unclosed shells which may cause slicing issues:"),
+                                                            from_path(path.filename())) + "\n\n";
+                            for (const auto& n : names) msg += wxString::FromUTF8(n) + "\n";
+                            wxMessageBox(msg, _L("Unclosed shell warning"), wxOK | wxICON_WARNING);
+                        });
                 }else {
                     model = Slic3r::Model:: read_from_file(
                     path.string(), nullptr, nullptr, strategy, &plate_data, &project_presets, &is_xxx, &file_version, nullptr,
@@ -9685,9 +10102,16 @@ void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
         delayed_scene_refresh = true;
     else {
         if (this->printer_technology == ptFFF) {
-            //BBS: only reload shells
-            this->update_fff_scene_only_shells(false);
-            //this->update_fff_scene();
+            // Reload shells AND gcode toolpaths. Originally only shells were
+            // reloaded here on the assumption that on_process_completed would
+            // run shortly after and call preview->reload_print(). But when
+            // Print::apply() invalidates mid-slice (CANCELED_INTERNAL), the
+            // EVT_PROCESS_COMPLETED is intentionally suppressed in
+            // BackgroundSlicingProcess::thread_proc — leaving the Preview
+            // tab on stale gcode until the user re-clicks Slice. Reloading
+            // here as well is a redundant no-op when the full pipeline runs
+            // and a correct refresh when it doesn't.
+            this->update_fff_scene();
         }
         else
             this->update_sla_scene();
@@ -11916,6 +12340,7 @@ const Print&    Plater::fff_print() const   { return p->fff_print; }
 Print&          Plater::fff_print()         { return p->fff_print; }
 const SLAPrint& Plater::sla_print() const   { return p->sla_print; }
 SLAPrint&       Plater::sla_print()         { return p->sla_print; }
+BackgroundSlicingProcess& Plater::background_process() { return p->background_process; }
 
 int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name)
 {
@@ -17738,7 +18163,13 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
                                 old_filament_maps != new_filament_maps);
 
         if (need_invalidate) {
-            if (need_slice) {
+            // BBL 6836da105: precheck filament printability before reslicing.
+            // If a filament can't be printed (e.g., wrong nozzle), skip the
+            // automatic slice and just invalidate so the user sees the error.
+            wxString filament_printable_error_msg;
+            const bool printable = curr_plate->check_filament_printable(
+                wxGetApp().preset_bundle->full_config(), filament_printable_error_msg);
+            if (need_slice && printable) {
                 wxPostEvent(this, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
             }
             else {

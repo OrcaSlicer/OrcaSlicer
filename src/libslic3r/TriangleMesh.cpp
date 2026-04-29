@@ -882,6 +882,20 @@ Polygon its_convex_hull_2d_above(const indexed_triangle_set &its, const Transfor
     return its_convex_hull_2d_above(its, [t](const Vec3f &p){ return t * p; }, z);
 }
 
+indexed_triangle_set its_make_xoy_center_rect(float width, float height, float depth)
+{
+    float x = width / 2.f, y = height /2.f, z = 0.f;
+    if (depth > 0.01f) {
+        z = depth / 2.f;
+        return {{{0, 3, 2}, {0, 2, 1}, {4, 5, 6}, {4, 6, 7}, {0, 4, 7}, {0, 7, 3}, {7, 6,2}, {7, 2,3}, {2, 6, 5}, {2, 5, 1}, {1, 5, 4}, {1, 4, 0}},
+                {{-x, -y, -z}, {x, -y, -z}, {x, y, -z}, {-x, y, -z},
+                 {-x, -y, z}, {x, -y, z}, {x, y, z}, {-x, y, z}}
+        };
+    } else {
+        return {{{0, 1, 2}, {0, 2, 3}}, {{-x, -y, z}, {x, -y, z}, {x, y, z}, {-x, y, z}}};
+    }
+}
+
 // Generate the vertex list for a cube solid of arbitrary size in X/Y/Z.
 indexed_triangle_set its_make_cube(double xd, double yd, double zd)
 {

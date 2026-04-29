@@ -627,7 +627,12 @@ void GLCanvas3D::LayersEditing::render_volumes(const GLCanvas3D& canvas, const G
 void GLCanvas3D::LayersEditing::adjust_layer_height_profile()
 {
     this->update_slicing_parameters();
-    PrintObject::update_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile);
+    bool nozzle_range_reset = false;
+    PrintObject::update_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile, nozzle_range_reset);
+    if (nozzle_range_reset)
+        wxGetApp().plater()->get_notification_manager()->push_plater_warning_notification(
+            _u8L("The variable layer height profile has been reset because some layer heights "
+                 "exceed the allowed range of the current nozzle."));
     Slic3r::adjust_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile, this->last_z, this->strength, this->band_width, this->last_action);
     m_layers_texture.valid = false;
 }
@@ -666,10 +671,15 @@ void GLCanvas3D::LayersEditing::generate_layer_height_texture()
     this->update_slicing_parameters();
     // Always try to update the layer height profile.
     bool update = !m_layers_texture.valid;
-    if (PrintObject::update_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile)) {
+    bool nozzle_range_reset = false;
+    if (PrintObject::update_layer_height_profile(*m_model_object, *m_slicing_parameters, m_layer_height_profile, nozzle_range_reset)) {
         // Initialized to the default value.
         update = true;
     }
+    if (nozzle_range_reset)
+        wxGetApp().plater()->get_notification_manager()->push_plater_warning_notification(
+            _u8L("The variable layer height profile has been reset because some layer heights "
+                 "exceed the allowed range of the current nozzle."));
     // Update if the layer height profile was changed, or when the texture is not valid.
     if (!update && !m_layers_texture.data.empty() && m_layers_texture.cells > 0)
         // Texture is valid, don't update.
@@ -5488,6 +5498,16 @@ void GLCanvas3D::update_sequential_clearance()
             shrink_factor = scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1);
         else
             shrink_factor = static_cast<float>(scale_(0.5 * fff_print()->config().extruder_clearance_radius.value + object_skirt_offset - 0.1));
+
+        // BBS: Add global skirt and per-object brim expansion for live sequential-clearance preview.
+        {
+            float extra = get_real_skirt_dist(fff_print()->config());
+            for (const PrintObject* obj : fff_print()->objects()) {
+                float brim_ext = static_cast<float>(obj->config().brim_width.value);
+                extra = std::max(extra, brim_ext);
+            }
+            shrink_factor += scale_(extra);
+        }
 
         double mitter_limit = scale_(0.1);
         m_sequential_print_clearance.m_hull_2d_cache.reserve(m_model->objects.size());

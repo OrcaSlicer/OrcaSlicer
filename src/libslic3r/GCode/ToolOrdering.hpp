@@ -50,6 +50,14 @@ public:
     	this->something_overridable |= out;
     	return out;
     }
+    //for byobject mode, there are no config, but object still have overridable setting
+    bool is_obj_overriddable(const ExtrusionEntityCollection &ee, const PrintObject &object) const;
+    bool is_obj_overriddable_and_mark(const ExtrusionEntityCollection &ee, const PrintObject &object)
+    {
+        bool out = this->is_obj_overriddable(ee, object);
+        this->something_overridable |= out;
+        return out;
+    }
 
     // BBS
     bool is_support_overriddable(const ExtrusionRole role, const PrintObject& object) const;
@@ -241,7 +249,8 @@ public:
     * called in dual extruder mode, the value in map will be 0 or 1
     * 0 based group id
     */
-    static std::vector<int> get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print,const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables);
+
+    static MultiNozzleUtils::MultiNozzleGroupResult get_recommended_filament_maps(Print* print, const std::vector<std::vector<unsigned int>>& layer_filaments, const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables);
 
     // should be called after doing reorder
     FilamentChangeStats get_filament_change_stats(FilamentChangeMode mode);

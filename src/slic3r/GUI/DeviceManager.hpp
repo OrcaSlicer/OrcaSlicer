@@ -20,6 +20,7 @@
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFirmware.h"
+#include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
@@ -87,6 +88,8 @@ class DevPrintOptions;
 class DevHMS;
 class DevLamp;
 class DevNozzleSystem;
+class DevNozzleRack;
+class DevFilaSwitch;
 class DeviceManager;
 class DevStorage;
 struct DevPrintTaskRatingInfo;
@@ -114,6 +117,8 @@ private:
     std::shared_ptr<DevExtensionTool> m_extension_tool;
     DevExtderSystem*  m_extder_system;
     DevNozzleSystem*  m_nozzle_system;
+    std::shared_ptr<DevNozzleMappingCtrl> m_nozzle_mapping_ptr;
+    std::shared_ptr<DevFilaSwitch>        m_fila_switch;
     DevFilaSystem*    m_fila_system;
     DevFan*           m_fan;
     DevBed *          m_bed;
@@ -328,6 +333,12 @@ public:
     std::weak_ptr<DevExtensionTool> GetExtensionTool() const { return m_extension_tool; }
 
     DevNozzleSystem* GetNozzleSystem() const { return m_nozzle_system;}
+    std::shared_ptr<DevNozzleRack> GetNozzleRack() const;
+    std::shared_ptr<DevFilaSwitch> GetFilaSwitch() const { return m_fila_switch; }
+
+    // H2C rack-nozzle mapping (in-memory, per-print). Mirrors BBL get_nozzle_mapping_result().
+    std::shared_ptr<DevNozzleMappingCtrl> get_nozzle_mapping_result() const { return m_nozzle_mapping_ptr; }
+    void clear_auto_nozzle_mapping();
 
     DevFilaSystem*   GetFilaSystem() const { return m_fila_system;}
     bool             HasAms() const;

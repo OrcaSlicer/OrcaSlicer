@@ -518,6 +518,15 @@ void MonitorPanel::jump_to_HMS()
         m_tabpanel->SetSelection(PT_HMS);
 }
 
+void MonitorPanel::jump_to_Upgrade()
+{
+    if (!this->IsShown())
+        return;
+    auto page = m_tabpanel->GetCurrentPage();
+    if (page && page != m_upgrade_panel)
+        m_tabpanel->SetSelection(PT_UPDATE);
+}
+
 void MonitorPanel::jump_to_LiveView()
 {
     if (!this->IsShown()) { return; }

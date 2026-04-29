@@ -333,6 +333,7 @@ inline Vec3f its_face_normal(const indexed_triangle_set &its, const stl_triangle
 inline Vec3f its_face_normal(const indexed_triangle_set &its, const int face_idx)
     { return its_face_normal(its, its.indices[face_idx]); }
 
+indexed_triangle_set    its_make_xoy_center_rect(float width,float height,float depth =0.f);
 indexed_triangle_set    its_make_cube(double x, double y, double z);
 indexed_triangle_set    its_make_prism(float width, float length, float height);
 indexed_triangle_set    its_make_cylinder(double r, double h, double fa=(2*PI/180));

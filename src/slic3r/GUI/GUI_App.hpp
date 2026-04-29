@@ -2,6 +2,7 @@
 #define slic3r_GUI_App_hpp_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
@@ -467,7 +468,7 @@ public:
     void            import_zip(wxWindow* parent, wxString& input_file) const;
     void            load_gcode(wxWindow* parent, wxString& input_file) const;
 
-    wxString        transition_tridid(int trid_id) const;
+    wxString        transition_tridid(int trid_id, std::optional<int> total_extruder_count = std::nullopt) const;
     void            ShowUserGuide();
     void            ShowDownNetPluginDlg();
     void            ShowUserLogin(bool show = true, const std::string& provider = ORCA_CLOUD_PROVIDER);

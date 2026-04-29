@@ -98,7 +98,7 @@ struct PlateData
     std::vector<int>          filament_maps;   // 1 base
     using LayerFilaments = std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>, GCodeProcessorResult::FilamentSequenceHash>;
     LayerFilaments layer_filaments;
-
+    std::vector<unsigned int> filament_change_sequence;
     // Hexadecimal number,
     // the 0th digit corresponds to extruder 1
     // the 1th digit corresponds to extruder 2
@@ -153,7 +153,7 @@ inline bool operator & (SaveStrategy & lhs, SaveStrategy rhs)
 }
 
 enum {
-    brim_points_format_version = 0
+    brim_points_format_version = 1
 };
 
 enum class LoadStrategy

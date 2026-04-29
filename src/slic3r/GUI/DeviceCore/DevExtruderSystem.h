@@ -39,6 +39,9 @@ public:
     DevExtder(DevExtderSystem* owner/*should not be nullptr*/, int id = -1) : system(owner), m_ext_id(id){};
 
 public:
+    // BBL ports of static helpers (used by AmsMappingPopup).
+    static std::unordered_map<int, bool> GetBackupStatus(unsigned int fila_back_group);
+
     // Ext
     int  GetExtId() const { return m_ext_id; }
 

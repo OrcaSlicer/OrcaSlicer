@@ -356,6 +356,7 @@ public:
     virtual void set_with_restore_2(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int start, int len, bool skip_error = false) = 0;
     virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride)                 = 0;
     virtual void set_with_nil(const ConfigOptionVectorBase* rhs, const ConfigOptionVectorBase* inherits, int stride)        = 0;
+    virtual void set_with_default(const ConfigOptionVectorBase* inherits) = 0;
     // Resize the vector of values, copy the newly added values from opt_default if provided.
     virtual void resize(size_t n, const ConfigOption *opt_default = nullptr) = 0;
     // Clear the values vector.
@@ -619,9 +620,37 @@ public:
             throw ConfigurationError("ConfigOptionVector::set_with_nil(): Assigning an incompatible type");
     }
 
+    //set a item related with extruder variants when load user config, set the missed value of some extruder to default ones from inherits
+    //this item has missed value with old user config
+    //inherits: item from inherit config
+    virtual void set_with_default(const ConfigOptionVectorBase* inherits) override
+    {
+        if (inherits->type() == this->type()) {
+            auto inherits_opt = static_cast<const ConfigOptionVector<T>*>(inherits);
+
+            if (inherits->size() <= this->size())
+                return;
+            size_t delta = inherits->size() - this->size();
+            this->values.resize(inherits->size(), this->values.front());
+
+            for (size_t i = 0; i < delta; i++) {
+                size_t index = inherits->size() - delta + i;
+                this->values[index] = inherits_opt->values[index];
+            }
+        }
+        else
+            throw ConfigurationError("ConfigOptionVector::set_with_default(): Assigning an incompatible type");
+    }
+
     const T& get_at(size_t i) const
     {
-        assert(! this->values.empty());
+        // H2C port: per-extruder/per-variant filament options can be empty when a profile is
+        // partially loaded via CLI (no GUI-driven filament_self_index expansion yet).
+        // Return a static default instead of crashing on values.front().
+        if (this->values.empty()) {
+            static const T s_default{};
+            return s_default;
+        }
         return (i < this->values.size()) ? this->values[i] : this->values.front();
     }
 
@@ -710,6 +739,7 @@ public:
     // Apply an override option, possibly a nullable one.
     bool apply_override(const ConfigOption *rhs, std::vector<int>& default_index) override {
         if (this->nullable())
+    //default_index are 0 based
         	throw ConfigurationError("Cannot override a nullable ConfigOption.");
         if (rhs->type() != this->type())
 			throw ConfigurationError("ConfigOptionVector.apply_override() applied to different types.");
@@ -743,8 +773,8 @@ public:
                 this->values[i] = rhs_vec->values[i];
                 modified        = true;
             } else {
-                if ((i < default_index.size()) && (default_index[i] - 1 < default_value.size()))
-                    this->values[i] = default_value[default_index[i] - 1];
+                if ((i < default_index.size()) && (default_index[i]  < default_value.size()))
+                    this->values[i] = default_value[default_index[i]];
                 else
                     this->values[i] = default_value[0];
             }

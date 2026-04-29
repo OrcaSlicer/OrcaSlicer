@@ -8,7 +8,7 @@
 class AnimaIcon : public wxPanel
 {
 public:
-    AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt = 1000);
+    AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt = 1000, int /*size*/ = 0);
     ~AnimaIcon();
 
     void Play();

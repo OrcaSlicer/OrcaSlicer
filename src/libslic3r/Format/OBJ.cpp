@@ -164,6 +164,15 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                         if (data.textureCoordinates.size() > 0) {
                             Vec2f                uv0(data.textureCoordinates[uvs[0] * 2], data.textureCoordinates[uvs[0] * 2 + 1]);
                             Vec2f                uv1(data.textureCoordinates[uvs[1] * 2], data.textureCoordinates[uvs[1] * 2 + 1]);
+                // H2C TODO
+                            //         return true;
+                //     }
+                //     return false;
+                // };
+                // auto set_face_color = [&uvs, &data, &mtl_data, &obj_info, &get_face_color](int face_index, const std::string mtl_name) {
+                //     if (mtl_data.new_mtl_unmap.find(mtl_name) != mtl_data.new_mtl_unmap.end()) {
+                //         RGBA face_color;
+                //         get_face_color(mtl_name,face_color);
                             Vec2f                uv2(data.textureCoordinates[uvs[2] * 2], data.textureCoordinates[uvs[2] * 2 + 1]);
                             std::array<Vec2f, 3> uv_array{uv0, uv1, uv2};
                             obj_info.uvs.emplace_back(uv_array);
@@ -190,6 +199,17 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                     }
                 };
                 if (exist_mtl) {
+                    // H2C TODO
+                    // if (mtl_data.first_time_using_makerlab && obj_info.mtl_colors.empty()) {
+                    //     obj_info.first_time_using_makerlab = true;
+                    //     obj_info.mtl_colors.reserve(mtl_data.mtl_orders.size());
+                    //     for (int i = 0; i < mtl_data.mtl_orders.size(); i++) {
+                    //         RGBA face_color;
+                    //         if (get_face_color(mtl_data.mtl_orders[i],face_color)) {
+                    //             obj_info.mtl_colors.emplace_back(face_color);
+                    //         }
+                    //     }
+                    // }
                     set_face_color_by_mtl(face_index);
                 }
                 if (cnt == 4) {

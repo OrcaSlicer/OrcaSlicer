@@ -331,6 +331,37 @@ void Slic3r::GUI::WxFontUtils::get_suitable_font_size(int max_height, wxDC &dc)
     }
 }
 
+static bool sIsFontFitting(wxDC& dc, const wxString& text, const wxFont& font, int fontSize, const wxSize& boxSize)
+{
+    wxFont tempFont = font;
+    tempFont.SetPointSize(fontSize);
+    wxCoord w, h;
+    dc.SetFont(tempFont);
+    dc.GetTextExtent(text, &w, &h);
+    return (w <= boxSize.GetWidth() && h <= boxSize.GetHeight());
+}
+
+void Slic3r::GUI::WxFontUtils::get_suitable_font_size(int height, int width, const wxString& content, wxDC& dc, int minSize, int maxSize)
+{
+    if (content.IsEmpty() || height <= 0 || width <= 0) return;
+    wxFont testFont = dc.GetFont();
+    int low = minSize;
+    int high = maxSize;
+    int bestSize = minSize;
+    const wxSize& boxSize = wxSize(width, height);
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (sIsFontFitting(dc, content, testFont, mid, boxSize)) {
+            bestSize = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    testFont.SetPointSize(bestSize);
+    dc.SetFont(testFont);
+}
+
 std::unique_ptr<Emboss::FontFile> WxFontUtils::set_italic(wxFont &font, const Emboss::FontFile &font_file)
 {
     static std::vector<wxFontStyle> italic_styles = {

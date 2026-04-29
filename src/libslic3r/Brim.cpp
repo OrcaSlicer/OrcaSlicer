@@ -641,12 +641,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
     }
 
     int  extruder_nums = print.config().nozzle_diameter.values.size();
-    std::vector<Polygons> extruder_unprintable_area = print.get_extruder_printable_polygons();
-    // Orca: if per-extruder print area is not specified, use the whole bed as printable area for all extruders
-    if (extruder_unprintable_area.empty()) {
-        extruder_unprintable_area.resize(extruder_nums, Polygons{Model::getBedPolygon()});
-    }
-    std::vector<int> filament_map = print.get_filament_maps();
+    const float scaled_flow_width = print.brim_flow().scaled_spacing();
 
     if (print.has_wipe_tower() && !print.get_fake_wipe_tower().outer_wall.empty()) {
         ExPolygons expolyFromLines{};
@@ -658,29 +653,37 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         expolygons_append(no_brim_area, expolyFromLines);
     }
 
-    for (const PrintObject* object : print.objects()) {
-        ExPolygons extruder_no_brim_area = no_brim_area;
-        auto iter = std::find_if(objPrintVec.begin(), objPrintVec.end(), [object](const std::pair<ObjectID, unsigned int>& item) {
-            return item.first == object->id();
-        });
-
-        if (iter != objPrintVec.end()) {
-            int extruder_id = filament_map[iter->second - 1] - 1;
-            auto bedPoly = extruder_unprintable_area[extruder_id];
-            auto bedExPoly   = diff_ex((offset(bedPoly, scale_(30.), jtRound, SCALED_RESOLUTION)), {bedPoly});
-            if (!bedExPoly.empty()) {
-                extruder_no_brim_area.push_back(bedExPoly.front());
-            }
-            //extruder_no_brim_area = offset2_ex(extruder_no_brim_area, scaled_flow_width, -scaled_flow_width); // connect scattered small areas to prevent generating very small brims
-
+    // Determine which extruders are actually used via printExtruders.
+    // If multiple extruders are used, clip brim to the shared printable area;
+    // if only one extruder is used, clip brim to that extruder's printable area.
+    // This avoids depending on filament_map which varies per-layer under dynamic map mode.
+    if (extruder_nums > 1) {
+        Polygons clip_printable;
+        if (printExtruders.size() > 1) {
+            clip_printable = print.get_extruder_shared_printable_polygon();
+        } else if (printExtruders.size() == 1) {
+            auto extruder_printable_polys = print.get_extruder_printable_polygons();
+            int eid = static_cast<int>(printExtruders.front());
+            if (!extruder_printable_polys.empty() && eid >= 0 && eid < (int)extruder_printable_polys.size())
+                clip_printable = extruder_printable_polys[eid];
         }
 
+        if (!clip_printable.empty()) {
+            auto bedExPoly = diff_ex(offset(clip_printable, scale_(30.), jtRound, SCALED_RESOLUTION), {clip_printable});
+            if (!bedExPoly.empty()) {
+                no_brim_area.push_back(bedExPoly.front());
+            }
+        }
+    }
+    no_brim_area = offset2_ex(no_brim_area, scaled_flow_width, -scaled_flow_width);
+
+    for (const PrintObject* object : print.objects()) {
         if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
-            brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], extruder_no_brim_area);
+            brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], no_brim_area);
         }
 
         if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
-            supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], extruder_no_brim_area);
+            supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], no_brim_area);
     }
 
     brim_area.clear();

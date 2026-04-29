@@ -696,7 +696,10 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 w0.emit_comment(GCodeWriter::full_gcode_comment, comment);
                 slop_move = w0.string();
             }
-            else if (m_to_lift_type == LiftType::NormalLift) {
+            else if (m_to_lift_type == LiftType::NormalLift
+                     || (m_to_lift_type == LiftType::SpiralLift && !this->is_current_position_clear())) {
+                // BBL 84e82b25a: SpiralLift needs a known starting position to plot the helix; if
+                // we can't see one, fall back to a vertical lift instead of emitting nothing.
                 slop_move = _travel_to_z(target.z(), "normal lift Z");
             }
         }
@@ -1033,6 +1036,19 @@ std::string GCodeWriter::unretract()
     return gcode;
 }
 
+double GCodeWriter::get_extruder_retracted_length(const int filament_id)
+{
+    double res = 0.0;
+    auto   filament_extruder_iter = Slic3r::lower_bound_by_predicate(m_filament_extruders.begin(), m_filament_extruders.end(), [filament_id](const Extruder &e) { return e.id() < filament_id; });
+    assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
+
+    if (filament_extruder_iter->is_share_extruder())
+        res = filament_extruder_iter->get_share_retracted_length();
+    else
+        res = filament_extruder_iter->get_single_retracted_length();
+
+    return res;
+}
 
 std::string GCodeWriter::unlift()
 {

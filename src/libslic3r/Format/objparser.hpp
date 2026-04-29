@@ -121,7 +121,9 @@ struct MtlData
 {
     // Version of the data structure for load / store in the private binary format.
     int version;
+    bool                                                        first_time_using_makerlab{false};
     std::unordered_map<std::string, std::shared_ptr<ObjNewMtl>> new_mtl_unmap;
+    std::vector<std::string>                                    mtl_orders;
 };
 extern bool objparse(const char *path, ObjData &data);
 extern bool mtlparse(const char *path, MtlData &data);

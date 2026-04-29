@@ -1853,12 +1853,21 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
 
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
     if (!used_filaments.empty()) {
+        const auto* opt_type      = config.option<ConfigOptionStrings>("filament_type");
+        const auto* opt_printable = config.option<ConfigOptionInts>("filament_printable");
+        const size_t types_size      = opt_type ? opt_type->values.size() : 0;
+        const size_t printable_size  = opt_printable ? opt_printable->values.size() : 0;
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
-            std::string filament_type = config.option<ConfigOptionStrings>("filament_type")->values.at(filament_id);
-            int filament_printable_status = config.option<ConfigOptionInts>("filament_printable")->values.at(filament_id);
+            // Skip invalid / out-of-range filament ids: get_extruders may return 0 (1-based) or
+            // an index beyond what filament_printable was sized to (e.g. when the H2C dual-nozzle
+            // expansion left the per-extruder variant lists shorter than the used-filaments set).
+            if (filament_id < 0 || (size_t)filament_id >= types_size || (size_t)filament_id >= printable_size)
+                continue;
+            std::string filament_type = opt_type->values[filament_id];
+            int filament_printable_status = opt_printable->values[filament_id];
             std::vector<int> filament_map  = get_real_filament_maps(config);
-            int extruder_idx = filament_map[filament_id] - 1;
+            int extruder_idx = (filament_id < (int)filament_map.size() && filament_map[filament_id] > 0) ? filament_map[filament_id] - 1 : 0;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
                 error_message  = wxString::Format(_L("The %s nozzle can not print %s."), extruder_name, filament_type);

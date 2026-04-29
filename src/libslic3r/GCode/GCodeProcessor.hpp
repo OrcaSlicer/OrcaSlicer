@@ -1,3 +1,6 @@
+// H2C TODO
+//const std::vector<int>& extruder_max_nozzle_count;
+            // const std::vector<double>& filament_cooling_before_tower;
 #ifndef slic3r_GCodeProcessor_hpp_
 #define slic3r_GCodeProcessor_hpp_
 
@@ -7,6 +10,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
 
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include <cstdint>
 #include <array>
 #include <vector>
@@ -78,6 +82,7 @@ class Print;
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
         unsigned int                                        total_filament_changes;
         unsigned int                                        total_extruder_changes;
+        unsigned int                                        total_nozzle_changes;
 
         PrintEstimatedStatistics() { reset(); }
 
@@ -95,6 +100,7 @@ class Print;
             used_filaments_per_role.clear();
             total_filament_changes = 0;
             total_extruder_changes = 0;
+            total_nozzle_changes   = 0;
         }
     };
 
@@ -153,6 +159,7 @@ class Print;
         GCodeCheckResult  gcode_check_result;
         FilamentPrintableResult filament_printable_reuslt;
         float initial_layer_time;
+        std::optional<MultiNozzleUtils::MultiNozzleGroupResult> nozzle_group_result;
 
         struct SettingsIds
         {
@@ -251,6 +258,7 @@ class Print;
         std::vector<NozzleType> nozzle_type;
         // first key stores filaments, second keys stores the layer ranges(enclosed) that use the filaments
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
+        std::vector<unsigned int> filament_change_sequence;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
 
@@ -289,6 +297,7 @@ class Print;
             filament_printable_reuslt = other.filament_printable_reuslt;
             layer_filaments = other.layer_filaments;
             filament_change_count_map = other.filament_change_count_map;
+            filament_change_sequence = other.filament_change_sequence;
             initial_layer_time = other.initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = other.time;
@@ -296,6 +305,7 @@ class Print;
             return *this;
         }
         void  lock() const { result_mutex.lock(); }
+            
         void  unlock() const { result_mutex.unlock(); }
     };
 
@@ -609,6 +619,7 @@ class Print;
             // Additional load / unload times for a filament exchange sequence.
             float filament_load_times;
             float filament_unload_times;
+            float hotend_change_times;
             //Orca:  time for tool change
             float machine_tool_change_time;
 
@@ -802,6 +813,8 @@ class Print;
         unsigned int m_layer_id;
         CpColor m_cp_color;
         SeamsDetector m_seams_detector;
+        //  H2C TODO - moved
+        GCodeProcessorResult m_result;
         OptionsZCorrector m_options_z_corrector;
         size_t m_last_default_color_id;
         bool m_detect_layer_based_on_tag {false};
@@ -825,7 +838,12 @@ class Print;
             ideaMaker,
             KissSlicer
         };
-
+        // const std::vector<int>& filament_nozzle_temps_initial_layer_;
+        // const std::vector<int>& extruder_max_nozzle_count_;
+        // const std::vector<double>& filament_cooling_before_tower_;
+        //                filament_nozzle_temps_initial_layer(filament_nozzle_temps_initial_layer_),
+        // extruder_max_nozzle_count(extruder_max_nozzle_count_),
+        //         filament_cooling_before_tower(filament_cooling_before_tower_),
         static const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> Producers;
         EProducer m_producer;
 
@@ -834,7 +852,6 @@ class Print;
 
         Print* m_print{ nullptr };
 
-        GCodeProcessorResult m_result;
         static unsigned int s_result_id;
 
     public:
@@ -853,7 +870,6 @@ class Print;
         void set_print(Print* print) { m_print = print; }
 
         DynamicConfig export_config_for_render() const;
-
         void enable_stealth_time_estimator(bool enabled);
         bool is_stealth_time_estimator_enabled() const {
             return m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Stealth)].enabled;
@@ -864,13 +880,15 @@ class Print;
         const GCodeProcessorResult& get_result() const { return m_result; }
         GCodeProcessorResult& result() { return m_result; }
         GCodeProcessorResult&& extract_result() { return std::move(m_result); }
-
+        const MultiNozzleUtils::NozzleStatusRecorder& get_nozzle_status() const { return m_nozzle_status_recorder; }
+        
         // Load a G-code into a stand-alone G-code viewer.
         // throws CanceledException through print->throw_if_canceled() (sent by the caller as callback).
         void process_file(const std::string& filename, std::function<void()> cancel_callback = nullptr);
 
         // Streaming interface, for processing G-codes just generated by PrusaSlicer in a pipelined fashion.
         void initialize(const std::string& filename);
+        void initialize_from_context(const MultiNozzleUtils::MultiNozzleGroupResult& nozzle_group_result);
         void initialize_result_moves() {
             // 1st move must be a dummy move
             assert(m_result.moves.empty());
@@ -911,6 +929,15 @@ class Print;
         bool process_kissslicer_tags(const std::string_view comment);
 
         bool detect_producer(const std::string_view comment);
+        // H2C TODO (6 lines)
+        // const std::vector<int>& filament_nozzle_temps_initial_layer;
+
+        std::optional<MultiNozzleUtils::MultiNozzleGroupResult> m_nozzle_group_result;
+        MultiNozzleUtils::NozzleStatusRecorder m_nozzle_status_recorder;
+        std::vector<int> m_extruder_max_nozzle_count;
+        std::vector<double> m_filament_cooling_before_tower;
+        
+        float get_hotend_change_time();
 
         // Move
         void process_G0(const GCodeReader::GCodeLine& line);

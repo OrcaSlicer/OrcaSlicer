@@ -7,6 +7,8 @@
 #include "SurfaceCollection.hpp"
 #include "ExtrusionEntityCollection.hpp"
 #include "BoundingBox.hpp"
+#include <libslic3r/Print.hpp>
+
 namespace Slic3r {
 
 class ExPolygon;
@@ -212,6 +214,7 @@ public:
     //BBS: this function calculate the maximum void grid area of sparse infill of this layer. Just estimated value
     coordf_t get_sparse_infill_max_void_area();
 
+    bool has_compatible_layer_regions(const PrintRegionConfig &config, const PrintRegionConfig &other_config);
     // FN_HIGHER_EQUAL: the provided object pointer has a Z value >= of an internal threshold.
     // Find the first item with Z value >= of an internal threshold of fn_higher_equal.
     // If no vec item with Z value >= of an internal threshold of fn_higher_equal is found, return vec.size()
@@ -247,6 +250,7 @@ public:
     }
 
     size_t get_extruder_id(unsigned int filament_id) const;
+    size_t get_config_idx_for_filament(unsigned int filament_id) const;
 
 protected:
     friend class PrintObject;

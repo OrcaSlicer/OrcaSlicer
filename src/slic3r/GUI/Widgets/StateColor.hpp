@@ -3,6 +3,10 @@
 
 #include <wx/colour.h>
 
+#define WXCOLOUR_GREY400 wxColour("#CECECE")
+#define WXCOLOUR_GREY300 wxColour(238, 238, 238)
+#define WXCOLOUR_GREY200 wxColour(248, 248, 248)
+
 #include <map>
 
 class StateColor
@@ -76,6 +80,14 @@ public:
     int states() const;
 
 public:
+    // BBL-port: stock gray button styling (lifted from BBL Widgets/StateColor.cpp:194).
+    static StateColor createButtonStyleGray() {
+        return StateColor(std::pair<wxColour, int>(wxColour(206, 206, 206), Pressed),
+                          std::pair<wxColour, int>(*wxWHITE, Focused),
+                          std::pair<wxColour, int>(wxColour(238, 238, 238), Hovered),
+                          std::pair<wxColour, int>(*wxWHITE, Normal));
+    }
+
     wxColour defaultColor();
 
     wxColour colorForStates(int states);

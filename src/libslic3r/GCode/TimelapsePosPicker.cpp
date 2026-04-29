@@ -139,7 +139,7 @@ namespace Slic3r {
         for (auto& obj : object_list) {
             for (auto& instance : obj->instances()) {
                 auto instance_bbox = get_real_instance_bbox(instance);
-                bool higher_than_curr_layer = (layer->object() == obj)  ?  false : instance_bbox.max.z() > z_target;
+                bool higher_than_curr_layer = (obj == object_list.back()) ? false : instance_bbox.max.z() > z_target;
                 if(range_intersect(instance_bbox.min.z(), instance_bbox.max.z(), z_low, z_high)){
                     ExPolygon expoly;
                     expoly.contour = {
@@ -498,7 +498,7 @@ namespace Slic3r {
         ExPolygons layer_slices = collect_object_slices_data(ctx.curr_layer, height_gap, object_list, by_object);
         Polygons camera_limit_areas = collect_limit_areas_for_camera(object_list);
         Polygons rod_limit_areas;
-        if (by_object) {
+        if (by_object && ctx.printed_objects && !ctx.printed_objects->empty()) {
             rod_limit_areas = collect_limit_areas_for_rod(object_list, ctx);
         }
         ExPolygons unplacable_area = union_ex(union_ex(layer_slices, camera_limit_areas), rod_limit_areas);
@@ -514,7 +514,7 @@ namespace Slic3r {
             center_p = get_objects_center(object_list);
 
         ExPolygons path_collision_area;
-        if (by_object) {
+        if (by_object && ctx.printed_objects && !ctx.printed_objects->empty()) {
             auto object_without_curr = ctx.printed_objects;
             if (object_without_curr && !object_without_curr->empty())
                 object_without_curr->pop_back();

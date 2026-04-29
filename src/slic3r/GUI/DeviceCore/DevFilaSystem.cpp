@@ -99,17 +99,19 @@ std::string DevAmsTray::get_filament_type()
 }
 
 
-DevAms::DevAms(const std::string& ams_id, int extruder_id, AmsType type)
+DevAms::DevAms(const std::string& ams_id, const std::set<int>& binded_extruder_set, AmsType type)
 {
     m_ams_id = ams_id;
-    m_ext_id = extruder_id;
+    m_binded_extruder_set = binded_extruder_set;
+    m_ext_id = binded_extruder_set.empty() ? -1 : *binded_extruder_set.begin();
     m_ams_type = type;
 }
 
-DevAms::DevAms(const std::string& ams_id, int nozzle_id, int type)
+DevAms::DevAms(const std::string& ams_id, const std::set<int>& binded_extruder_set, int type)
 {
     m_ams_id = ams_id;
-    m_ext_id = nozzle_id;
+    m_binded_extruder_set = binded_extruder_set;
+    m_ext_id = binded_extruder_set.empty() ? -1 : *binded_extruder_set.begin();
     m_ams_type = (AmsType)type;
     assert(DUMMY < type && m_ams_type <= N3S);
 }
@@ -384,7 +386,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     auto ams_it = system->amsList.find(ams_id);
                     if (ams_it == system->amsList.end())
                     {
-                        DevAms* new_ams = new DevAms(ams_id, extuder_id, type_id);
+                        DevAms* new_ams = new DevAms(ams_id, std::set<int>{extuder_id}, type_id);
                         system->amsList.insert(std::make_pair(ams_id, new_ams));
                         // new ams added event
                         curr_ams = new_ams;
@@ -394,6 +396,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                         if (extuder_id != ams_it->second->GetExtruderId())
                         {
                             ams_it->second->m_ext_id = extuder_id;
+                            ams_it->second->m_binded_extruder_set = {extuder_id};
                         }
 
                         curr_ams = ams_it->second;

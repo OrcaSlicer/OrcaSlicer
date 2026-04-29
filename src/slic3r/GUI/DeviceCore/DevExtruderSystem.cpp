@@ -12,6 +12,22 @@ using namespace nlohmann;
 
 namespace Slic3r
 {
+    std::unordered_map<int, bool> DevExtder::GetBackupStatus(unsigned int fila_back_group)
+    {
+        std::unordered_map<int, bool> trayid_group;
+        for (int i = 0; i < 16; i++) {
+            if (fila_back_group & (1 << i)) {
+                trayid_group[i] = true;
+            }
+        }
+        for (int j = 16; j <= 23; j++) {
+            if (fila_back_group & (1 << j)) {
+                trayid_group[128 + j - 16] = true;
+            }
+        }
+        return trayid_group;
+    }
+
     wxString DevExtder::GetDisplayLoc() const
     {
         if (system->GetTotalExtderCount() == 2)
@@ -48,17 +64,17 @@ namespace Slic3r
 
     NozzleType DevExtder::GetNozzleType() const
     {
-        return system->Owner()->GetNozzleSystem()->GetNozzle(m_current_nozzle_id).m_nozzle_type;
+        return system->Owner()->GetNozzleSystem()->GetNozzleByPosId(m_current_nozzle_id).m_nozzle_type;
     }
 
     NozzleFlowType DevExtder::GetNozzleFlowType() const
     {
-        return system->Owner()->GetNozzleSystem()->GetNozzle(m_current_nozzle_id).m_nozzle_flow;
+        return system->Owner()->GetNozzleSystem()->GetNozzleByPosId(m_current_nozzle_id).m_nozzle_flow;
     }
 
     float DevExtder::GetNozzleDiameter() const
     {
-        return system->Owner()->GetNozzleSystem()->GetNozzle(m_current_nozzle_id).m_diameter;
+        return system->Owner()->GetNozzleSystem()->GetNozzleByPosId(m_current_nozzle_id).m_diameter;
     }
 
     DevExtderSystem::DevExtderSystem(MachineObject* obj)

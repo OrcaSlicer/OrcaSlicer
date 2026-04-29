@@ -4284,6 +4284,18 @@ void TabFilament::toggle_options()
                         "filament_cooling_initial_speed", "filament_cooling_final_speed"})
             toggle_option(el, !is_BBL_printer);
 
+        // BBL: tower-interface filament params only apply to H2C/H2D/X2D-class printers.
+        // Hide the four lines on every other printer so the controls don't appear unused.
+        const std::string printer_model = printer_cfg.opt_string("printer_model");
+        const bool is_tower_interface_supported = printer_model.find("H2C") != std::string::npos
+                                                  || printer_model.find("H2D") != std::string::npos
+                                                  || printer_model.find("X2D") != std::string::npos;
+        for (auto el : {"filament_tower_interface_pre_extrusion_dist",
+                        "filament_tower_interface_pre_extrusion_length",
+                        "filament_tower_interface_purge_volume",
+                        "filament_tower_interface_print_temp"})
+            toggle_line(el, is_tower_interface_supported);
+
         bool multitool_ramming = m_config->opt_bool("filament_multitool_ramming", 0);
         toggle_option("filament_multitool_ramming_volume", multitool_ramming);
         toggle_option("filament_multitool_ramming_flow", multitool_ramming);

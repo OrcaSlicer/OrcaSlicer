@@ -24,6 +24,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/AboutDialog.hpp
     GUI/AmsMappingPopup.cpp
     GUI/AmsMappingPopup.hpp
+    GUI/AmsMappingPopupUpdate.cpp
     GUI/AMSMaterialsSetting.cpp
     GUI/AMSMaterialsSetting.hpp
     GUI/AMSSetting.cpp
@@ -512,6 +513,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/LabeledStaticBox.cpp
     GUI/Widgets/LabeledStaticBox.hpp
     GUI/Widgets/Label.hpp
+    GUI/Widgets/MultiNozzleSync.cpp
+    GUI/Widgets/MultiNozzleSync.hpp
     GUI/Widgets/PopupWindow.cpp
     GUI/Widgets/PopupWindow.hpp
     GUI/Widgets/ProgressBar.cpp

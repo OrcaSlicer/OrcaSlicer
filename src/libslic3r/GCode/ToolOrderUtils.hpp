@@ -7,7 +7,9 @@
 #include <limits>
 #include <memory>
 #include <unordered_set>
+#include "../MultiNozzleUtils.hpp"
 
+#define DEBUG_MULTI_NOZZLE_MCMF 0
 namespace Slic3r {
 
 using FlushMatrix = std::vector<std::vector<float>>;
@@ -29,7 +31,8 @@ public:
         const std::unordered_map<int, std::vector<int>>& uv_link_limits = {},
         const std::unordered_map<int, std::vector<int>>& uv_unlink_limits = {},
         const std::vector<int>& u_capacity = {},
-        const std::vector<int>& v_capacity = {}
+        const std::vector<int>& v_capacity = {},
+        const std::vector<std::pair<std::set<int>, int>>& v_group_capacity = {}
     );
     std::vector<int> solve();
 
@@ -71,8 +74,9 @@ public:
         const std::unordered_map<int, std::vector<int>>& uv_link_limits = {},
         const std::unordered_map<int, std::vector<int>>& uv_unlink_limits = {},
         const std::vector<int>& u_capacity = {},
-        const std::vector<int>& v_capacity = {}
-    );
+        const std::vector<int>& v_capacity = {},
+        const std::vector<std::pair<std::set<int>, int>>& v_group_capacity = {});
+
     std::vector<int> solve();
     ~MinFlushFlowSolver();
 private:
@@ -94,6 +98,35 @@ public:
 private:
     std::unique_ptr<MinCostMaxFlow> m_solver;
 };
+
+
+#if DEBUG_MULTI_NOZZLE_MCMF
+int reorder_filaments_for_multi_nozzle_extruder(const std::vector<unsigned int>& filament_lists,
+                                                const std::vector<int>& filament_maps,
+                                                const std::vector<std::vector<unsigned int>>& layer_filaments,
+                                                const std::vector<FlushMatrix>& flush_matrix,
+                                                std::optional<std::function<bool(int, std::vector<int> &)>> get_custom_seq,
+                                                int multi_nozzle_extruder_id,
+                                                int multi_nozzle_num,
+                                                std::vector<std::vector<unsigned int>> * layer_sequences = nullptr,
+                                                std::vector<std::vector<std::vector<int>>>* nozzle_match_per_layer = nullptr);
+
+std::vector<unsigned int> get_extruders_order(const std::vector<std::vector<float>> &wipe_volumes,
+    const std::vector<unsigned int> &curr_layer_extruders,
+    const std::vector<unsigned int> &next_layer_extruders,
+    const std::optional<unsigned int> &start_extruder_id,
+    bool use_forcast = false,
+    float *cost = nullptr);
+
+#endif
+
+
+int reorder_filaments_for_multi_nozzle_extruder(const std::vector<unsigned int>& filament_lists,
+                                                const MultiNozzleUtils::MultiNozzleGroupResult& nozzle_group_result,
+                                                const std::vector<std::vector<unsigned int>>& layer_filaments,
+                                                const std::vector<FlushMatrix>& flush_matrix,
+                                                const std::function<bool(int,std::vector<int>&)> get_custom_seq,
+                                                std::vector<std::vector<unsigned int>> * filament_sequences);
 
 
 std::vector<unsigned int> get_extruders_order(const std::vector<std::vector<float>> &wipe_volumes,

@@ -60,6 +60,10 @@
 		"0",
 		"0"
 	],
+	"extruder_max_nozzle_count": [
+		"1",
+		"1"
+	],
 	"head_wrap_detect_zone": [],
 	"hotend_cooling_rate": [
 		"2",

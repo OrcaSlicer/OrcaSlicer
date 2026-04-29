@@ -759,7 +759,8 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
         }
         return cluster;
     };
-
+// H2C TODO -- REMOVE IF NOT NEEDED
+// auto extrudable_collision = offset_ex(layer->lower_layer->lslices_extrudable, m_ts_data->m_xy_distance);
     if (!is_tree(stype)) return;
 
     max_cantilever_dist = 0;

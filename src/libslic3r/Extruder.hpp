@@ -70,6 +70,10 @@ public:
     double retract_restart_extra() const;
     double retract_length_toolchange() const;
     double retract_restart_extra_toolchange() const;
+    bool is_share_extruder() const { return m_share_extruder; }
+    double get_single_retracted_length() const { return m_retracted; }
+    double get_share_retracted_length() const { return m_share_retracted[extruder_id()]; }
+
     double travel_slope() const;
 
     bool   use_firmware_retraction() const;

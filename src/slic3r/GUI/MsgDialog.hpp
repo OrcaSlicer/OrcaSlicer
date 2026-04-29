@@ -68,6 +68,10 @@ struct MsgDialog : DPIDialog
 	virtual void on_dpi_changed(const wxRect& suggested_rect);
 	void SetButtonLabel(wxWindowID btn_id, const wxString& label, bool set_focus = false);
 
+	// BBL-port: exposed publicly so external callers (rack widgets) can add buttons.
+	Button* add_button(wxWindowID btn_id, bool set_focus = false, const wxString& label = wxString());
+	Button* get_button(wxWindowID btn_id);
+
 protected:
 	enum {
 		BORDER = 20,
@@ -80,10 +84,6 @@ protected:
 	};
 
 	MsgDialog(wxWindow *parent, const wxString &title, const wxString &headline, long style = wxOK, wxBitmap bitmap = wxNullBitmap, const wxString &forward_str = "");
-	// returns pointer to created button
-	Button* add_button(wxWindowID btn_id, bool set_focus = false, const wxString& label = wxString());
-	// returns pointer to found button or NULL
-	Button* get_button(wxWindowID btn_id);
 	void apply_style(long style);
 	void finalize();
 

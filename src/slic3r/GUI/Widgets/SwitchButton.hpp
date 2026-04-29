@@ -84,6 +84,7 @@ public:
     wxString rightLabel;
 
 	void updateState(wxString target);
+    void SetLabels(const wxString &left, const wxString &right);
 
 	bool switch_left{false};
     bool switch_right{false};

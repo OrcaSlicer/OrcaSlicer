@@ -983,7 +983,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
     }
 
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    DynamicPrintConfig full_config   = PresetBundle::construct_full_config(printer_preset, print_preset, preset_bundle->project_config, filament_presets, false, filament_map);
+    DynamicPrintConfig full_config   = PresetBundle::construct_full_config(printer_preset, print_preset, preset_bundle->project_config, filament_presets, false, filament_map, std::nullopt);
 
     set_for_auto_pa_model_and_config(calib_infos, full_config, model);
     if (!process_and_store_3mf(&model, full_config, params, error_message))

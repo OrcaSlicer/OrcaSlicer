@@ -9,6 +9,8 @@
 #include <map>
 #include <optional>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -50,6 +52,7 @@ public:
     }
 
     std::string              id;
+    DevAmsType               ams_type = DevAmsType::EXT_SPOOL; // BBL-port: AMS slot type for this tray
     std::string              tag_uid;             // tag_uid
     std::string              setting_id;          // tray_info_idx
     std::string              filament_setting_id; // setting_id
@@ -140,8 +143,8 @@ public:
     };
 
 public:
-    DevAms(const std::string& ams_id, int extruder_id, AmsType type);
-    DevAms(const std::string& ams_id, int nozzle_id, int type);
+    DevAms(const std::string& ams_id, const std::set<int>& binded_extruder_set, AmsType type);
+    DevAms(const std::string& ams_id, const std::set<int>& binded_extruder_set, int type);
     ~DevAms();
 
 public:
@@ -173,11 +176,18 @@ public:
     bool  SupportDrying() const { return m_ams_type > AMS_LITE; }
     int   GetLeftDryTime() const { return m_left_dry_time; }
 
+    // BBL-port: which extruders this AMS is bound to. Used by AmsMappingPopup routing.
+    std::set<int> GetBindedExtruderSet() const { return m_binded_extruder_set; }
+    void          SetBindedExtruderSet(const std::set<int>& s) { m_binded_extruder_set = s; }
+    // BBL-port: Filament-Track-Switch position (only set when switcher is present).
+    std::optional<int> GetSwitcherPos() const { return std::nullopt; }
+
 private:
     AmsType       m_ams_type = AmsType::AMS;
     std::string   m_ams_id;
     int           m_ext_id;//extruder id
     bool          m_exist = false;
+    std::set<int> m_binded_extruder_set;
 
     // slots and trays
     std::map<std::string, DevAmsTray*> m_trays;//id -> DevAmsTray*
@@ -289,6 +299,20 @@ class DevFilaSystemParser
 {
 public:
     static void ParseV1_0(const json& print_json, MachineObject* obj, DevFilaSystem* system, bool key_field_only);
+};
+
+// BBL-port stub: structure used by DevUtilBackend::GetFilamentDryingPreset.
+struct DevFilamentDryingPreset
+{
+    std::string filament_id;
+    std::unordered_set<DevAmsType> ams_limitations;
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_time_on_idle;
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_temperature_on_idle;
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_time_on_print;
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_temperature_on_print;
+    float filament_dev_drying_cooling_temperature = 0.f;
+    float filament_dev_drying_softening_temperature = 0.f;
+    float filament_dev_ams_drying_heat_distortion_temperature = 0.f;
 };
 
 }// namespace Slic3r

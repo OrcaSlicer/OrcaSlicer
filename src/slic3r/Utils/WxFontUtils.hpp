@@ -8,6 +8,7 @@
 #include <wx/dc.h>
 #include <wx/font.h>
 #include "libslic3r/Emboss.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 namespace Slic3r::GUI {
 
@@ -43,6 +44,9 @@ public:
     static bool is_bold(const wxFont &font);
 
     static void get_suitable_font_size(int max_height, wxDC &dc);
+    static void get_suitable_font_size(int height, int width, const wxString& content, wxDC& dc,
+                                       int minSize = ::Label::Body_8.GetPointSize(),
+                                       int maxSize = ::Label::Body_16.GetPointSize());
 
     /// <summary>
     /// Set italic into wx font

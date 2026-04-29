@@ -18,22 +18,26 @@ struct BrimPoint
 {
     Vec3f pos;
     float head_front_radius;
+    int volume_idx;
 
     BrimPoint()
-        : pos(Vec3f::Zero()), head_front_radius(0.f)
+        : pos(Vec3f::Zero()), head_front_radius(0.f), volume_idx(-1)
     {}
 
     BrimPoint(float pos_x,
                  float pos_y,
                  float pos_z,
-                 float head_radius)
+                 float head_radius,
+                 int volume_idx = -1)
         : pos(pos_x, pos_y, pos_z)
         , head_front_radius(head_radius)
+        , volume_idx(volume_idx)
     {}
 
-    BrimPoint(Vec3f position, float head_radius)
+    BrimPoint(Vec3f position, float head_radius, int volume_idx = -1)
         : pos(position)
         , head_front_radius(head_radius)
+        , volume_idx(volume_idx)
     {}
 
     Vec3f transform(const Transform3d &trsf)
@@ -56,7 +60,7 @@ struct BrimPoint
     bool operator!=(const BrimPoint &sp) const { return !(sp == (*this)); }
     template<class Archive> void serialize(Archive &ar)
     {
-        ar(pos, head_front_radius);
+        ar(pos, head_front_radius, volume_idx);
     }
 };
 

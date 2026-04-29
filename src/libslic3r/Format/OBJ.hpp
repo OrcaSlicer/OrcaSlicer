@@ -11,6 +11,8 @@ class ModelObject;
 struct ObjInfo {
     std::vector<RGBA> vertex_colors;
     std::vector<RGBA> face_colors;
+    std::vector<RGBA> mtl_colors;
+    bool              first_time_using_makerlab{false};
     bool              is_single_mtl{false};
     std::string       lost_material_name{""};
     std::vector<std::array<Vec2f,3>> uvs;
@@ -30,6 +32,8 @@ struct ObjDialogInOut
     bool                       deal_vertex_color;
     Model *                    model{nullptr};
     std::string lost_material_name{""};
+    std::vector<RGBA>          mtl_colors;
+    bool                       first_time_using_makerlab{false};
 };
 typedef std::function<void(ObjDialogInOut &in_out)> ObjImportColorFn;
 extern bool load_obj(const char *path, TriangleMesh *mesh, ObjInfo &vertex_colors, std::string &message);

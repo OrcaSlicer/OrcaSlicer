@@ -468,6 +468,8 @@ set(lisbslic3r_sources
     Zipper.hpp
     FilamentGroup.hpp
     FilamentGroup.cpp
+    MultiNozzleUtils.hpp
+    MultiNozzleUtils.cpp
     FilamentGroupUtils.hpp
     FilamentGroupUtils.cpp
     GCode/ToolOrderUtils.hpp

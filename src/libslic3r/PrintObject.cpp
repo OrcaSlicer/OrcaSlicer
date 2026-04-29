@@ -418,6 +418,61 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
     return geometric_unprintables;
 }
 
+
+// H2C TODO - OPTIONAL
+// std::unordered_map<int, std::unordered_map<int,double>>  PrintObject::calc_estimated_filament_print_time() const
+// {
+//     auto get_limit_from_volumetric_speed = [&](int filament_idx, int extruder_idx, double width, double height) {
+//         double max_volumetric_speed = print()->config().filament_max_volumetric_speed.values[filament_idx];
+//         double flow_ratio = print()->config().filament_flow_ratio.values[filament_idx];
+
+//         double mm3_per_mm = height * (width - height * (1 - PI / 4)) * flow_ratio;
+//         return max_volumetric_speed / mm3_per_mm;
+//         };
+
+//     std::unordered_map<int, std::unordered_map<int,double>> filament_print_time;
+//     // Iterate through all layers and regions to calculate the print area for each filament.
+//     int extruder_num = this->print()->config().nozzle_diameter.size();
+//     for (size_t idx = 0; idx < m_layers.size(); ++idx) {
+//         auto layer = m_layers[idx];
+
+//         for (auto layerm : layer->regions()) {
+//             const auto& region = layerm->region();
+//             double sparse_width = region.config().sparse_infill_line_width;
+//             double solid_width = region.config().internal_solid_infill_line_width;
+//             double wall_width = (region.config().outer_wall_line_width + region.config().inner_wall_line_width) / 2.f;
+
+//             int wall_filament = region.config().wall_filament - 1;
+//             int solid_infill_filament = region.config().solid_infill_filament - 1;
+//             int sparse_infill_filament = region.config().sparse_infill_filament - 1;
+
+//             auto sparse_infill_surfaces = layerm->fill_surfaces.filter_by_type(stInternal);
+//             double sparse_area = unscale_(unscale_(std::accumulate(sparse_infill_surfaces.begin(), sparse_infill_surfaces.end(), 0.0,
+//                 [](double val, const Surface* surface) { return val + surface->area(); })));
+//             double full_area = unscale_(unscale_(get_expolygons_area(layerm->raw_slices)));
+//             double infill_area = unscale_(unscale_(get_expolygons_area(layerm->fill_expolygons)));
+//             double solid_area = infill_area - sparse_area;
+//             double wall_area = full_area - infill_area;
+//             sparse_area *= region.config().sparse_infill_density.value / 100.0;
+
+//             for (int eidx = 0; eidx < extruder_num; ++eidx) {
+//                 double sparse_speed = std::min(region.config().sparse_infill_speed.values[eidx], get_limit_from_volumetric_speed(sparse_infill_filament, eidx, sparse_width, layer->height));
+//                 double solid_speed = std::min(region.config().internal_solid_infill_speed.values[eidx], get_limit_from_volumetric_speed(solid_infill_filament, eidx, solid_width, layer->height));
+//                 double wall_speed = std::min((region.config().inner_wall_speed.values[eidx] + region.config().outer_wall_speed.values[eidx]) / 2.0, get_limit_from_volumetric_speed(wall_filament, eidx, wall_width, layer->height));
+
+//                 double sparse_time = sparse_area / (sparse_speed * sparse_width);
+//                 double solid_time = solid_area / (solid_speed * solid_width);
+//                 double wall_time = wall_area / (wall_speed * wall_width);
+
+//                 filament_print_time[solid_infill_filament][eidx] += solid_time;
+//                 filament_print_time[sparse_infill_filament][eidx] += sparse_time;
+//                 filament_print_time[wall_filament][eidx] += wall_time;
+//             }
+//         }
+//     }
+//     return filament_print_time;
+// }
+
 // 1) Merges typed region slices into stInternal type.
 // 2) Increases an "extra perimeters" counter at region slices where needed.
 // 3) Generates perimeters, gap fills and fill regions (fill regions of type stInternal).
@@ -1261,6 +1316,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination"
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
+            || opt_key == "fill_multiline"
             || opt_key == "top_shell_thickness"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament"
@@ -3376,6 +3432,15 @@ static void clamp_exturder_to_default(ConfigOptionInt &opt, size_t num_extruders
         // assign the default extruder
         opt.value = 1;
 }
+static void clamp_exturder_to_default_protect0(ConfigOptionInt &opt, size_t num_extruders)
+{
+    if (opt.value > (int) num_extruders)
+        // assign the default extruder
+        opt.value = 1;
+    else if (opt.value < 1)
+        // assign the default extruder
+        opt.value = 1;
+}
 
 PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders)
 {
@@ -3411,9 +3476,10 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
             if (ConfigOption* my_opt = out.option(it->first, false); my_opt != nullptr) {
                 if (one_of(it->first, keys_extruders)) {
                     // Ignore "default" extruders.
-                    int extruder = static_cast<const ConfigOptionInt*>(it->second.get())->value;
-                    if (extruder > 0)
-                        my_opt->setInt(extruder);
+                    // BBS: 2025-10-20 skip these filament settings, they will be processed out of this func
+                    //int extruder = static_cast<const ConfigOptionInt*>(it->second.get())->value;
+                    //if (extruder > 0)
+                    //    my_opt->setInt(extruder);
                 } else
                     my_opt->set(it->second.get());
             }
@@ -3437,10 +3503,38 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         assert(volume.is_model_part());
     	apply_to_print_region_config(config, *layer_range_config);
     }
+
+    {//over write the seprate filament for features config
+        auto resolve_filament_value = [&](const std::string &key, int default_or_parent, int previous_value) -> int {
+            int   filament_value_temp = 0;
+            auto *opt_vol             = volume.config.get().opt<ConfigOptionInt>(key);
+            auto *opt_obj             = volume.get_object()->config.get().opt<ConfigOptionInt>(key);
+            if (opt_vol) // deside use which value
+                filament_value_temp = opt_vol->value;
+            else if (opt_obj)
+                filament_value_temp = opt_obj->value;
+
+            if (layer_range_config != nullptr && volume.is_model_part()) {
+                auto *opt = layer_range_config->opt<ConfigOptionInt>(key);
+                if (opt) filament_value_temp = opt->value;
+            }
+
+            if (filament_value_temp > 0)
+                return filament_value_temp;
+            else
+                return previous_value;
+        };
+        config.wall_filament.value          = resolve_filament_value("wall_filament", default_or_parent_region_config.wall_filament.value, config.wall_filament.value);
+        config.sparse_infill_filament.value = resolve_filament_value("sparse_infill_filament", default_or_parent_region_config.sparse_infill_filament.value,
+                                                                     config.sparse_infill_filament.value);
+        config.solid_infill_filament.value  = resolve_filament_value("solid_infill_filament", default_or_parent_region_config.solid_infill_filament.value,
+                                                                     config.solid_infill_filament.value);
+    }
+
     // Clamp invalid extruders to the default extruder (with index 1).
-    clamp_exturder_to_default(config.sparse_infill_filament,       num_extruders);
-    clamp_exturder_to_default(config.wall_filament,    num_extruders);
-    clamp_exturder_to_default(config.solid_infill_filament, num_extruders);
+    clamp_exturder_to_default_protect0(config.sparse_infill_filament, num_extruders);
+    clamp_exturder_to_default_protect0(config.wall_filament, num_extruders);
+    clamp_exturder_to_default_protect0(config.solid_infill_filament, num_extruders);
     if (config.sparse_infill_density.value < 0.00011f)
         // Switch of infill for very low infill rates, also avoid division by zero in infill generator for these very low rates.
         // See GH issue #5910.
@@ -3542,9 +3636,10 @@ std::vector<unsigned int> PrintObject::object_extruders() const
     return extruders;
 }
 
-bool PrintObject::update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile)
+bool PrintObject::update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile, bool &out_nozzle_range_reset)
 {
     bool updated = false;
+    out_nozzle_range_reset = false;
 
     if (layer_height_profile.empty()) {
         // use the constructor because the assignement is crashing on ASAN OsX
@@ -3563,7 +3658,25 @@ bool PrintObject::update_layer_height_profile(const ModelObject &model_object, c
             std::abs(layer_height_profile[layer_height_profile.size() - 2] - slicing_parameters.object_print_z_uncompensated_max + slicing_parameters.object_print_z_min) > 1e-3))
         layer_height_profile.clear();
 
-    if (layer_height_profile.empty() || layer_height_profile[1] != slicing_parameters.first_object_layer_height) {
+    // BBL 8a54c6b80: when the active nozzle changes (H2C rack swap to a smaller
+    // diameter), an existing variable-layer-height profile may exceed the new
+    // nozzle's min/max layer height. Without this clamp the slicer crashes.
+    // Reset the profile if any pair is out of range; the regenerator below
+    // will rebuild a valid one.
+    if (!layer_height_profile.empty()) {
+        for (size_t i = 1; i < layer_height_profile.size(); i += 2) {
+            if (layer_height_profile[i] < slicing_parameters.min_layer_height - EPSILON ||
+                layer_height_profile[i] > slicing_parameters.max_layer_height + EPSILON) {
+                out_nozzle_range_reset = true;
+                layer_height_profile.clear();
+                break;
+            }
+        }
+    }
+
+    bool not_match_flag = !slicing_parameters.has_raft(); // if there is raft layer_height_profile[1] could also be adaptive
+    not_match_flag &= !layer_height_profile.empty() && (layer_height_profile[1] != slicing_parameters.first_object_layer_height);
+    if (layer_height_profile.empty() || not_match_flag) {
         //layer_height_profile = layer_height_profile_adaptive(slicing_parameters, model_object.layer_config_ranges, model_object.volumes);
         layer_height_profile = layer_height_profile_from_ranges(slicing_parameters, model_object.layer_config_ranges);
         // The layer height profile is already compressed.

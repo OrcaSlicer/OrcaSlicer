@@ -425,7 +425,7 @@ public:
     virtual void            set_task(const TaskParams &params) {}
     // Perform the calculation. This is the only method that is to be called at a worker thread.
     virtual void            process(long long *time_cost_with_cache = nullptr, bool use_cache = false) = 0;
-    virtual int             export_cached_data(const std::string& dir_path, bool with_space=false) { return 0;}
+    virtual int             export_cached_data(const std::string& dir_path, int& obj_cnt_exported, bool with_space=false) { return 0;}
     virtual int            load_cached_data(const std::string& directory) { return 0;}
     // Clean up after process() finished, either with success, error or if canceled.
     // The adjustments on the Print / PrintObject data due to set_task() are to be reverted here.

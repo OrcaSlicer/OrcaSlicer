@@ -49,6 +49,7 @@ class Print;
 class SLAPrint;
 //BBS: add partplatelist and SlicingStatusEvent
 class PartPlateList;
+class BackgroundSlicingProcess;
 class SlicingStatusEvent;
 enum SLAPrintObjectStep : unsigned int;
 enum class ConversionType : int;
@@ -207,6 +208,8 @@ public:
     void update_dynamic_filament_list();
 
     PlaterPresetComboBox *  printer_combox();
+    // BBL-port: invoked from MultiNozzleSync after the Sync dialog confirms a count.
+    void set_extruder_nozzle_count(int extruder_id, int nozzle_count);
     ObjectList*             obj_list();
     ObjectSettings*         obj_settings();
     ObjectLayers*           obj_layers();
@@ -304,6 +307,7 @@ public:
     Print& fff_print();
     const SLAPrint& sla_print() const;
     SLAPrint& sla_print();
+    BackgroundSlicingProcess& background_process();
 
     int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString());
     // BBS: save & backup

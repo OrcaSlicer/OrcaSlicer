@@ -61,10 +61,7 @@ namespace Slic3r { namespace GUI {
 
 std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_type);
 void        print_ams_mapping_result(std::vector<FilamentInfo> &result);
-enum PrintFromType {
-    FROM_NORMAL,
-    FROM_SDCARD_VIEW,
-};
+// PrintFromType moved to DeviceCore/DevDefs.h (Slic3r::GUI namespace).
 
 enum PrintPageMode {
     PrintPageModePrepare = 0,
@@ -508,6 +505,7 @@ public:
     int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id);
 
     PrintFromType get_print_type() {return m_print_type;};
+    bool        use_dynamic_nozzle_map() const;
     wxString    format_steel_name(NozzleType type);
     PrintDialogStatus  get_status() { return m_print_status; }
 

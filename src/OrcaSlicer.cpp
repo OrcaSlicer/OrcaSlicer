@@ -1218,6 +1218,21 @@ int CLI::run(int argc, char **argv)
         const char* display_env = ::getenv("DISPLAY");
         if (display_env && *display_env) {
             XInitThreads();
+            // Xlib's default error handler calls exit() on any protocol error,
+            // which kills the process for benign races (e.g. gstxvimagesink
+            // calling XGetWindowAttributes on a destroyed Bambu camera surface).
+            // Replace with a logging handler that swallows the error.
+            XSetErrorHandler([](Display* dpy, XErrorEvent* ev) -> int {
+                char buf[256] = {0};
+                XGetErrorText(dpy, ev->error_code, buf, sizeof(buf));
+                BOOST_LOG_TRIVIAL(warning)
+                    << "X11 error: " << buf
+                    << " (request " << int(ev->request_code)
+                    << "." << int(ev->minor_code)
+                    << ", resource 0x" << std::hex << ev->resourceid << std::dec
+                    << ", serial " << ev->serial << ")";
+                return 0;
+            });
         }
     }
     #endif
@@ -5773,6 +5788,52 @@ int CLI::run(int argc, char **argv)
                                 else
                                     mode = part_plate->get_real_filament_map_mode(m_print_config);
                                 BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map mode is %2% ") % __LINE__ %(int)mode;
+                                // Common: sanitize filament_map -1 values for all modes
+                                std::vector<int> filament_maps;
+                                if (m_extra_config.option<ConfigOptionInts>("filament_map")) {
+                                    filament_maps = m_extra_config.option<ConfigOptionInts>("filament_map")->values;
+                                    int default_value = -1;
+                                    bool has_invalid_value = false;
+                                    for (int f_index = 0; f_index < filament_maps.size(); f_index++)
+                                    {
+                                        if (filament_maps[f_index] != -1)
+                                        {
+                                            if (default_value == -1)
+                                                default_value = filament_maps[f_index];
+                                            else
+                                                continue;
+                                        }
+                                        else
+                                            has_invalid_value = true;
+
+                                        if (has_invalid_value && (default_value != -1))
+                                            break;
+                                    }
+                                    BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map default_value %2%, has_invalid_value %3% ") % __LINE__ %default_value %has_invalid_value;
+
+                                    if (has_invalid_value)
+                                    {
+                                        for (int f_index = 0; f_index < filament_maps.size(); f_index++)
+                                        {
+                                            if (filament_maps[f_index] == -1)
+                                            {
+                                                if (default_value != -1) {
+                                                    filament_maps[f_index] = default_value;
+                                                    BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to first value %3%.")% (index + 1) %(f_index+1) %default_value;
+                                                }
+                                                else {
+                                                    filament_maps[f_index] = 1;
+                                                    BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to default value 1.")% (index + 1) %(f_index+1);
+                                                }
+                                            }
+                                        }
+                                        m_extra_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
+                                    }
+                                    part_plate->set_filament_maps(filament_maps);
+                                }
+                                else
+                                    filament_maps = part_plate->get_real_filament_maps(m_print_config);
+
                                 if (mode < FilamentMapMode::fmmManual) {
                                     std::vector<int> conflict_filament_vector;
                                     for (int index = 0; index < new_extruder_count; index++)
@@ -5806,50 +5867,6 @@ int CLI::run(int argc, char **argv)
                                     }
                                 }
                                 else {
-                                    std::vector<int> filament_maps;
-                                    if (m_extra_config.option<ConfigOptionInts>("filament_map")) {
-                                        filament_maps = m_extra_config.option<ConfigOptionInts>("filament_map")->values;
-                                        int default_value = -1;
-                                        bool has_invalid_value = false;
-                                        for (int f_index = 0; f_index < filament_maps.size(); f_index++)
-                                        {
-                                            if (filament_maps[f_index] != -1)
-                                            {
-                                                if (default_value == -1)
-                                                    default_value = filament_maps[f_index];
-                                                else
-                                                    continue;
-                                            }
-                                            else
-                                                has_invalid_value = true;
-
-                                            if (has_invalid_value && (default_value != -1))
-                                                break;
-                                        }
-                                        BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map default_value %2%, has_invalid_value %3% ") % __LINE__ %default_value %has_invalid_value;
-
-                                        if (has_invalid_value)
-                                        {
-                                            for (int f_index = 0; f_index < filament_maps.size(); f_index++)
-                                            {
-                                                if (filament_maps[f_index] == -1)
-                                                {
-                                                    if (default_value != -1) {
-                                                        filament_maps[f_index] = default_value;
-                                                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to first value %3%.")% (index + 1) %(f_index+1) %default_value;
-                                                    }
-                                                    else {
-                                                        filament_maps[f_index] = 1;
-                                                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to default value 1.")% (index + 1) %(f_index+1);
-                                                    }
-                                                }
-                                            }
-                                            m_extra_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
-                                        }
-                                        part_plate->set_filament_maps(filament_maps);
-                                    }
-                                    else
-                                        filament_maps = part_plate->get_real_filament_maps(m_print_config);
 
                                     for (int index = 0; index < filament_maps.size(); index++)
                                     {
@@ -6172,7 +6189,8 @@ int CLI::run(int argc, char **argv)
                                     BOOST_LOG_TRIVIAL(info) << "plate "<< index+1<< ":will export Slicing data to " << export_slice_data_dir;
                                     std::string plate_dir = export_slice_data_dir+"/"+std::to_string(index+1);
                                     bool with_space = (get_logging_level() >= 4)?true:false;
-                                    int ret = print->export_cached_data(plate_dir, with_space);
+                                    int obj_cnt_exported = 0;
+                                    int ret = print->export_cached_data(plate_dir, obj_cnt_exported, with_space);
                                     if (ret) {
                                         BOOST_LOG_TRIVIAL(error) << "plate "<< index+1<< ": export Slicing data error, ret=" << ret;
                                         export_slicedata_error = true;

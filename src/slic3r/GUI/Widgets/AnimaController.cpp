@@ -6,7 +6,7 @@
 #include "libslic3r/MacUtils.hpp"
 #endif
 
-AnimaIcon::AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt)
+AnimaIcon::AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt, int /*size*/)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize), m_ivt(ivt)
 {
     auto sizer = new wxBoxSizer(wxHORIZONTAL);

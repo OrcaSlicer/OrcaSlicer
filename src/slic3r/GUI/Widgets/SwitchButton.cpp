@@ -412,6 +412,14 @@ SwitchBoard::SwitchBoard(wxWindow *parent, wxString leftL, wxString right, wxSiz
     Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_ARROW); });
 }
 
+void SwitchBoard::SetLabels(const wxString &left, const wxString &right)
+{
+    if (leftLabel == left && rightLabel == right) return;
+    leftLabel  = left;
+    rightLabel = right;
+    Refresh();
+}
+
 void SwitchBoard::updateState(wxString target)
 {
     if (target.empty()) {
