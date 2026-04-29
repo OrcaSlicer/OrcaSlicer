@@ -2853,12 +2853,12 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(1));
 
     // Optimized gyroid wave (experimental). When enabled and the sparse infill pattern is gyroid,
-    // the wave is parameterized per region from density and layer geometry to bias the strand
-    // toward higher buckling resistance. Existing profiles are unaffected when this is off.
+    // the wave's spatial frequency is parameterized per region from density and layer geometry
+    // to bias the strand toward higher buckling resistance. Existing profiles are unaffected when off.
     def             = this->add("gyroid_optimized", coBool);
     def->label      = L("Optimize gyroid wave (experimental)");
     def->category   = L("Strength");
-    def->tooltip    = L("Auto-tunes gyroid wavelength and amplitude per region from density and layer height. "
+    def->tooltip    = L("Auto-tunes the gyroid wavelength per region from density and layer height. "
                         "Intended to increase compressive strength-to-mass on the same infill density. "
                         "Only applies when Sparse infill pattern is set to Gyroid.");
     def->set_default_value(new ConfigOptionBool(false));

@@ -925,9 +925,11 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
 
-                // Pass through gyroid_optimized so FillGyroid can branch into the optimized wave.
+                // Pass through gyroid_optimized only when the effective pattern is Gyroid,
+                // so non-Gyroid fills do not differ in SurfaceFillParams by an irrelevant flag
+                // (which would unnecessarily split fill batching).
                 // Stored on SurfaceFillParams; copied to FillParams during conversion.
-                params.gyroid_optimized = region_config.gyroid_optimized;
+                params.gyroid_optimized = (params.pattern == ipGyroid) && region_config.gyroid_optimized;
 
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,

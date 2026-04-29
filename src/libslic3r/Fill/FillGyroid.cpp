@@ -10,20 +10,16 @@
 
 // ---------------------------------------------------------------------------
 // Marching-squares scalar field for the optimized gyroid branch.
-// Modeled after FillTpmsFK.cpp's ScalarField. Distinct struct name
-// (GyroidField) to avoid ODR conflict with FillTpmsFK's ScalarField when
-// the marchsq namespace is shared across translation units.
+// Modeled after FillTpmsFK.cpp's ScalarField.
 //
 // The gyroid scalar field is the standard implicit equation
 //     F(x,y,z) = sin(fx*x)cos(fy*y) + sin(fy*y)cos(fz*z) + sin(fz*z)cos(fx*x)
-// Marching squares extracts the iso-zero contour, which gives much smoother
+// Marching squares extracts the iso-zero contour, which gives smoother
 // transitions between vertical and horizontal regimes than the analytical
-// asin-based wave generator (which produces visible kinks at the inflection
-// lines). Setting fz = omega * baseline anisotropically tightens the wave
-// along the print's Z (layer-stacking) axis, shortening the effective
+// asin-based wave generator. Setting fz = omega * baseline anisotropically
+// tightens the wave along the layer-stacking axis, shortening the effective
 // vertical strand length and improving column-buckling resistance under
-// Z-axis compression — which is the dominant FFF compression failure mode
-// (Z is not at delamination risk under compression, only under tension).
+// Z-axis compression.
 // ---------------------------------------------------------------------------
 namespace marchsq {
 using namespace Slic3r;
