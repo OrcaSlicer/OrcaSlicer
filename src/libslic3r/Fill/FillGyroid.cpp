@@ -314,9 +314,9 @@ void FillGyroid::_fill_surface_single(
         const float period_base    = float(2.0 * M_PI) * float(this->spacing) / density_factor;
         const float period         = period_base * std::cbrt(float(omega));
 
-        BoundingBox bb_field = bb;
-        bb_field.offset(scale_((params.multiline + 1) * this->spacing));
-        marchsq::GyroidField sf(bb_field, this->z, period, float(omega));
+        // bb is already expanded above by 10 * scale_(spacing) for edge artifacts;
+        // skip a second offset here to avoid raster-area bloat in the marching squares pass.
+        marchsq::GyroidField sf(bb, this->z, period, float(omega));
         polylines = marchsq::get_gyroid_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
     } else {
         polylines = make_gyroid_waves(
