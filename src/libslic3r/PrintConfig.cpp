@@ -3639,7 +3639,7 @@ void PrintConfigDef::init_fff_params()
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");
     def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
-    def->mode=comDevelop;
+    def->mode=comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     def->readonly=false;
 
