@@ -1646,6 +1646,49 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
+    if (opt_key == "dithering_local_z_mode") {
+        const bool local_z_enabled = boost::any_cast<bool>(value);
+        if (local_z_enabled &&
+            (!m_config->has("mixed_filament_region_collapse") ||
+             m_config->option("mixed_filament_region_collapse") == nullptr ||
+             m_config->opt_bool("mixed_filament_region_collapse"))) {
+            change_opt_value(*m_config, "mixed_filament_region_collapse", boost::any(false));
+            if (m_type == Preset::TYPE_PRINT) {
+                DynamicPrintConfig &project_cfg = wxGetApp().preset_bundle->project_config;
+                project_cfg.set_key_value("mixed_filament_region_collapse", new ConfigOptionBool(false));
+            }
+            if (Field *field = this->get_field("mixed_filament_region_collapse"))
+                field->set_value(boost::any(false), false);
+            update_dirty();
+        }
+        if (!local_z_enabled &&
+            m_config->has("dithering_local_z_whole_objects") &&
+            m_config->option("dithering_local_z_whole_objects") != nullptr &&
+            m_config->opt_bool("dithering_local_z_whole_objects")) {
+            change_opt_value(*m_config, "dithering_local_z_whole_objects", boost::any(false));
+            if (m_type == Preset::TYPE_PRINT) {
+                DynamicPrintConfig &project_cfg = wxGetApp().preset_bundle->project_config;
+                project_cfg.set_key_value("dithering_local_z_whole_objects", new ConfigOptionBool(false));
+            }
+            if (Field *field = this->get_field("dithering_local_z_whole_objects"))
+                field->set_value(boost::any(false), false);
+            update_dirty();
+        }
+        if (!local_z_enabled &&
+            m_config->has("dithering_local_z_direct_multicolor") &&
+            m_config->option("dithering_local_z_direct_multicolor") != nullptr &&
+            m_config->opt_bool("dithering_local_z_direct_multicolor")) {
+            change_opt_value(*m_config, "dithering_local_z_direct_multicolor", boost::any(false));
+            if (m_type == Preset::TYPE_PRINT) {
+                DynamicPrintConfig &project_cfg = wxGetApp().preset_bundle->project_config;
+                project_cfg.set_key_value("dithering_local_z_direct_multicolor", new ConfigOptionBool(false));
+            }
+            if (Field *field = this->get_field("dithering_local_z_direct_multicolor"))
+                field->set_value(boost::any(false), false);
+            update_dirty();
+        }
+    }
+
     // reload scene to update timelapse wipe tower
     if (opt_key == "timelapse_type") {
         bool wipe_tower_enabled = m_config->option<ConfigOptionBool>("enable_prime_tower")->value;
@@ -1941,10 +1984,42 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         return;
     }
 
+    const bool refresh_mixed_filament_panel =
+        m_type == Preset::TYPE_PRINT && opt_key == "mixed_filament_component_bias_enabled";
+
+    // Keep Mixed Filaments global settings in sync with project_config. In
+    // full_fff_config(), project_config is applied last and would otherwise
+    // override the edited print preset value from the Others panel.
+    if (m_type == Preset::TYPE_PRINT &&
+        (opt_key == "mixed_filament_gradient_mode" ||
+         opt_key == "mixed_filament_height_lower_bound" ||
+         opt_key == "mixed_filament_height_upper_bound" ||
+         opt_key == "mixed_color_layer_height_a" ||
+         opt_key == "mixed_color_layer_height_b" ||
+         opt_key == "mixed_filament_advanced_dithering" ||
+         opt_key == "mixed_filament_pointillism_pixel_size" ||
+         opt_key == "mixed_filament_pointillism_line_gap" ||
+         opt_key == "mixed_filament_component_bias_enabled" ||
+         opt_key == "mixed_filament_surface_indentation" ||
+         opt_key == "mixed_filament_region_collapse" ||
+         opt_key == "dithering_z_step_size" ||
+         opt_key == "dithering_local_z_mode" ||
+         opt_key == "dithering_local_z_whole_objects" ||
+         opt_key == "dithering_local_z_direct_multicolor" ||
+         opt_key == "dithering_step_painted_zones_only" ||
+         opt_key == "mixed_filament_definitions")) {
+        DynamicPrintConfig &project_cfg = wxGetApp().preset_bundle->project_config;
+        if (const ConfigOption *opt = m_config->option(opt_key))
+            project_cfg.set_key_value(opt_key, opt->clone());
+    }
+
     update();
     if(m_active_page)
         m_active_page->update_visibility(m_mode, true);
     m_page_view->GetParent()->Layout();
+
+    if (refresh_mixed_filament_panel && wxGetApp().plater() != nullptr)
+        wxGetApp().sidebar().update_mixed_filament_panel(false);
 }
 
 void Tab::show_timelapse_warning_dialog() {

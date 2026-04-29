@@ -157,6 +157,9 @@ public:
     bool						has_support = false;
     // Zero based extruder IDs, ordered to minimize tool switches.
     std::vector<unsigned int> 	extruders;
+    // When set, downstream reorder passes leave this layer's extruder
+    // sequence in place (used by grouped manual mixed-filament patterns).
+    bool                        preserve_extruder_order = false;
     // If per layer extruder switches are inserted by the G-code preview slider, this value contains the new (1 based) extruder, with which the whole object layer is being printed with.
     // If not overriden, it is set to 0.
     unsigned int 				extruder_override = 0;

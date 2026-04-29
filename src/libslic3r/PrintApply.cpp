@@ -1174,6 +1174,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     new_full_config.option("mixed_filament_height_lower_bound", true);
     new_full_config.option("mixed_filament_height_upper_bound", true);
     new_full_config.option("mixed_filament_advanced_dithering", true);
+    new_full_config.option("mixed_filament_pointillism_pixel_size", true);
+    new_full_config.option("mixed_filament_pointillism_line_gap", true);
     new_full_config.option("mixed_filament_component_bias_enabled", true);
     new_full_config.option("mixed_filament_surface_indentation", true);
     new_full_config.option("mixed_filament_region_collapse", true);
@@ -1190,6 +1192,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     m_config.option("mixed_filament_height_lower_bound", true);
     m_config.option("mixed_filament_height_upper_bound", true);
     m_config.option("mixed_filament_advanced_dithering", true);
+    m_config.option("mixed_filament_pointillism_pixel_size", true);
+    m_config.option("mixed_filament_pointillism_line_gap", true);
     m_config.option("mixed_filament_component_bias_enabled", true);
     m_config.option("mixed_filament_surface_indentation", true);
     m_config.option("mixed_filament_region_collapse", true);
@@ -1206,6 +1210,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     m_default_object_config.option("mixed_filament_height_lower_bound", true);
     m_default_object_config.option("mixed_filament_height_upper_bound", true);
     m_default_object_config.option("mixed_filament_advanced_dithering", true);
+    m_default_object_config.option("mixed_filament_pointillism_pixel_size", true);
+    m_default_object_config.option("mixed_filament_pointillism_line_gap", true);
     m_default_object_config.option("mixed_filament_component_bias_enabled", true);
     m_default_object_config.option("mixed_filament_surface_indentation", true);
     m_default_object_config.option("mixed_filament_region_collapse", true);
@@ -1386,6 +1392,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         float mixed_height_lower  = 0.04f;
         float mixed_height_upper  = 0.16f;
         bool  mixed_advanced_dither = false;
+        float mixed_pointillism_pixel_size = 0.f;
+        float mixed_pointillism_line_gap   = 0.f;
         float mixed_surface_indentation = 0.f;
         std::string mixed_custom_definitions;
 
@@ -1405,6 +1413,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             else
                 mixed_advanced_dither = (new_full_config.opt_int("mixed_filament_advanced_dithering") != 0);
         }
+        if (new_full_config.has("mixed_filament_pointillism_pixel_size"))
+            mixed_pointillism_pixel_size = float(new_full_config.opt_float("mixed_filament_pointillism_pixel_size"));
+        if (new_full_config.has("mixed_filament_pointillism_line_gap"))
+            mixed_pointillism_line_gap = float(new_full_config.opt_float("mixed_filament_pointillism_line_gap"));
         if (new_full_config.has("mixed_filament_surface_indentation"))
             mixed_surface_indentation = float(new_full_config.opt_float("mixed_filament_surface_indentation"));
         if (new_full_config.has("mixed_filament_definitions"))
@@ -1413,6 +1425,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         mixed_gradient_mode = std::clamp(mixed_gradient_mode, 0, 1);
         mixed_height_lower  = std::max(0.01f, mixed_height_lower);
         mixed_height_upper  = std::max(mixed_height_lower, mixed_height_upper);
+        mixed_pointillism_pixel_size = std::max(0.f, mixed_pointillism_pixel_size);
+        mixed_pointillism_line_gap   = std::max(0.f, mixed_pointillism_line_gap);
         mixed_surface_indentation = std::clamp(mixed_surface_indentation, -2.f, 2.f);
 
         BOOST_LOG_TRIVIAL(info) << "Print::apply mixed settings"
@@ -1420,6 +1434,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                                 << ", lower=" << mixed_height_lower
                                 << ", upper=" << mixed_height_upper
                                 << ", advanced_dither=" << (mixed_advanced_dither ? 1 : 0)
+                                << ", pointillism_pixel_size=" << mixed_pointillism_pixel_size
+                                << ", pointillism_line_gap=" << mixed_pointillism_line_gap
                                 << ", surface_indentation=" << mixed_surface_indentation
                                 << ", custom_definitions_len=" << mixed_custom_definitions.size()
                                 << ", physical_extruders=" << num_extruders;

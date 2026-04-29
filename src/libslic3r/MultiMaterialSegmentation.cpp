@@ -1829,15 +1829,14 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
 {
     const size_t                         num_layers = segmented_regions.size();
     std::vector<std::vector<ExPolygons>> segmented_regions_merged(num_layers);
-    segmented_regions_merged.assign(num_layers, std::vector<ExPolygons>(num_facets_states - 1));
+    segmented_regions_merged.assign(num_layers, std::vector<ExPolygons>(num_facets_states));
     assert(!top_and_bottom_layers.size() || num_facets_states == top_and_bottom_layers.size());
 
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - Merging segmented layers in parallel - Begin";
     tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&segmented_regions, &top_and_bottom_layers, &segmented_regions_merged, &num_facets_states, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
             assert(segmented_regions[layer_idx].size() == num_facets_states);
-            // Zero is skipped because it is the default color of the volume
-            for (size_t extruder_id = 1; extruder_id < num_facets_states; ++extruder_id) {
+            for (size_t extruder_id = 0; extruder_id < num_facets_states; ++extruder_id) {
                 throw_on_cancel_callback();
                 if (!segmented_regions[layer_idx][extruder_id].empty()) {
                     ExPolygons segmented_regions_trimmed = segmented_regions[layer_idx][extruder_id];
@@ -1849,16 +1848,16 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
                         }
                     }
 
-                    segmented_regions_merged[layer_idx][extruder_id - 1] = std::move(segmented_regions_trimmed);
+                    segmented_regions_merged[layer_idx][extruder_id] = std::move(segmented_regions_trimmed);
                 }
 
                 if (!top_and_bottom_layers.empty() && !top_and_bottom_layers[extruder_id][layer_idx].empty()) {
-                    bool was_top_and_bottom_empty = segmented_regions_merged[layer_idx][extruder_id - 1].empty();
-                    append(segmented_regions_merged[layer_idx][extruder_id - 1], top_and_bottom_layers[extruder_id][layer_idx]);
+                    bool was_top_and_bottom_empty = segmented_regions_merged[layer_idx][extruder_id].empty();
+                    append(segmented_regions_merged[layer_idx][extruder_id], top_and_bottom_layers[extruder_id][layer_idx]);
 
                     // Remove dimples (#7235) appearing after merging side segmentation of the model with tops and bottoms painted layers.
                     if (!was_top_and_bottom_empty)
-                        segmented_regions_merged[layer_idx][extruder_id - 1] = offset2_ex(union_ex(segmented_regions_merged[layer_idx][extruder_id - 1]), float(SCALED_EPSILON), -float(SCALED_EPSILON));
+                        segmented_regions_merged[layer_idx][extruder_id] = offset2_ex(union_ex(segmented_regions_merged[layer_idx][extruder_id]), float(SCALED_EPSILON), -float(SCALED_EPSILON));
                 }
             }
         }

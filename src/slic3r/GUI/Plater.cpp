@@ -11496,6 +11496,12 @@ void Plater::priv::on_filament_color_changed(wxCommandEvent &event)
     if (wxGetApp().app_config->get("auto_calculate_flush") != "disabled") {
         sidebar->auto_calc_flushing_volumes(modify_id);
     }
+
+    // Regenerate mixed filaments and refresh the mixed panel only. Color
+    // changes do not alter filament IDs, so the full on_filaments_change()
+    // path is unnecessary and can re-enter UI rebuilds mid-update.
+    wxGetApp().preset_bundle->update_multi_material_filament_presets();
+    sidebar->update_mixed_filament_panel();
 }
 
 void Plater::priv::install_network_plugin(wxCommandEvent &event)

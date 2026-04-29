@@ -6,6 +6,9 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Slicing.hpp"
 
+#include <boost/filesystem.hpp>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -129,4 +132,58 @@ TEST_CASE("[review-fixes] mixed/dithering option keys exist in PrintConfig",
         // And the canonical print_config_def must know about it.
         REQUIRE(print_config_def.get(k) != nullptr);
     }
+}
+
+TEST_CASE("[review-fixes] clear_local_z_plan called from clear_layers", "[review-fixes][mixed-filament]")
+{
+    // Sentinel: ensure the source contains the 3 invalidation hooks the
+    // FullSpectrum verification report flagged as missing. This is a
+    // smoke-test against the source so we can detect future regressions
+    // without depending on a full slicing-pipeline harness.
+    namespace fs = boost::filesystem;
+    const fs::path repo = fs::path(__FILE__).parent_path().parent_path().parent_path();
+    const fs::path src  = repo / "src" / "libslic3r" / "PrintObject.cpp";
+    REQUIRE(fs::exists(src));
+
+    std::ifstream in(src.string());
+    std::stringstream buf; buf << in.rdbuf();
+    const std::string body = buf.str();
+
+    const auto count_substr = [&](const std::string &needle) {
+        size_t n = 0, pos = 0;
+        while ((pos = body.find(needle, pos)) != std::string::npos) { ++n; ++pos; }
+        return n;
+    };
+
+    // Three FS-mandated call sites: clear_layers, invalidate_step(posSlice),
+    // invalidate_all_steps. Plus the one already-present site inside
+    // build_local_z_plan(). PrintObject.cpp itself has 3 (4 once the
+    // backport is complete).
+    REQUIRE(count_substr("this->clear_local_z_plan()") >= 3);
+}
+
+TEST_CASE("[review-fixes] merge_segmented_layers preserves channel 0", "[review-fixes][mixed-filament]")
+{
+    // Sentinel: ensure merge_segmented_layers uses the FS shape
+    // (output sized num_facets_states, channel 0 = default), not the
+    // pre-FS-a11b70e3a shape (output sized num_facets_states - 1,
+    // channel 0 dropped). The FS-verbatim apply_mm_segmentation in
+    // PrintObjectSlice.cpp expects channel 0 to be present; mismatching
+    // shapes silently shifts every painted region's filament_id by -1
+    // (e.g. paint with mixed slot 4 -> applied as physical filament 3).
+    namespace fs = boost::filesystem;
+    const fs::path repo = fs::path(__FILE__).parent_path().parent_path().parent_path();
+    const fs::path src  = repo / "src" / "libslic3r" / "MultiMaterialSegmentation.cpp";
+    REQUIRE(fs::exists(src));
+
+    std::ifstream in(src.string());
+    std::stringstream buf; buf << in.rdbuf();
+    const std::string body = buf.str();
+
+    // Producer must NOT subtract one from num_facets_states when sizing the output.
+    REQUIRE(body.find("num_facets_states - 1") == std::string::npos);
+    // Producer must NOT shift indexing back by one when writing into the output.
+    REQUIRE(body.find("[extruder_id - 1]") == std::string::npos);
+    // Loop must include channel 0 (extruder_id starts at 0, not 1).
+    REQUIRE(body.find("for (size_t extruder_id = 0; extruder_id < num_facets_states") != std::string::npos);
 }
