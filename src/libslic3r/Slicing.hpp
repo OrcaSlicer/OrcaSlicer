@@ -155,6 +155,13 @@ std::vector<double> layer_height_profile_adaptive(
     const SlicingParameters& slicing_params,
     const ModelObject& object, float quality_factor);
 
+std::vector<double> layer_height_overhang(
+    const SlicingParameters& slicing_params,
+    const ModelObject&       object,
+    float                    height,
+    std::vector<double>      input_height,
+    Transform3d              trafo = {});
+
 struct HeightProfileSmoothingParams
 {
     unsigned int radius;
@@ -183,6 +190,13 @@ void adjust_layer_height_profile(
     coordf_t                     layer_thickness_delta, 
     coordf_t                     band_width,
     LayerHeightEditActionType    action);
+    
+std::vector<double> layer_width_profile_adaptive(
+    const SlicingParameters& slicing_params,
+    const ModelObject&       object,
+    std::vector<coordf_t>    layer_height_profile,
+    const double             ow_width,
+    Transform3d              trafo = {});
 
 // Produce object layers as pairs of low / high layer boundaries, stored into a linear vector.
 // The object layers are based at z=0, ignoring the raft layers.

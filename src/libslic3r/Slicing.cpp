@@ -6,6 +6,8 @@
 #include "PrintConfig.hpp"
 #include "Model.hpp"
 
+#include "OverhangOptimization.hpp"
+
 // #define SLIC3R_DEBUG
 
 // Make assert active if SLIC3R_DEBUG
@@ -24,6 +26,7 @@ namespace Slic3r
 static const coordf_t MIN_LAYER_HEIGHT = 0.01;
 static const coordf_t MIN_LAYER_HEIGHT_DEFAULT = 0.07;
 static const double LAYER_HEIGHT_CHANGE_STEP = 0.04;
+static const size_t   LAYER_WIDTH_SMOOTH_WINDOW = 17;
 
 // Minimum layer height for the variable layer height algorithm.
 inline coordf_t min_layer_height_from_nozzle(const PrintConfig &print_config, int idx_nozzle)
@@ -736,6 +739,121 @@ bool adjust_layer_series_to_align_object_height(const SlicingParameters &slicing
     }
 
     return true;
+}
+
+std::vector<double> layer_height_overhang(
+    const SlicingParameters& slicing_params,
+    const ModelObject& object,
+    float height,
+    std::vector<double> input_height,
+    Transform3d trafo)
+{
+    OverhangOptimization moo;
+    moo.init(object, height, input_height, trafo);
+    std::vector<double> result;
+    result.push_back(0.0);
+    result.push_back(slicing_params.first_object_layer_height);
+    if (slicing_params.first_object_layer_height_fixed()) {
+        result.push_back(slicing_params.first_object_layer_height);
+        result.push_back(slicing_params.first_object_layer_height);
+    }
+    std::vector<double> result_b = moo.get_layer_height();
+    //std::vector<double> result_c = moo.smooth_layer(result_b);
+    HeightProfileSmoothingParams Hp(12,false);
+    //result_b = moo.smooth_layher_height(result_b);
+    result_b=smooth_height_profile(result_b,slicing_params,Hp);
+    result.insert(result.end(),result_b.begin(),result_b.end());
+    double z_gap = slicing_params.object_print_z_height() - result[result.size()-1];
+    if (z_gap > 0.0)
+    {
+        result.push_back(slicing_params.object_print_z_height());
+        result.push_back(std::clamp(z_gap, slicing_params.min_layer_height, slicing_params.max_layer_height));
+    }
+
+   /* std::ofstream outfile_input("input_overhang.txt");
+        for (int i = 0; i < result.size(); i++) {
+            outfile_input << result[i] << std::endl;
+        }
+        outfile_input.close();*/
+
+    return result;
+}
+
+std::vector<double> gaussian_kernel(size_t window_size, double sigma) {
+    size_t half_window = window_size / 2;
+    std::vector<double> kernel(window_size);
+    double sum = 0.0;
+
+    for (size_t i = 0; i < window_size; ++i) {
+        double x = i - half_window;
+        kernel[i] = exp(-0.5 * pow(x / sigma, 2));
+        sum += kernel[i];
+    }
+
+    // Normalize the kernel
+    for (size_t i = 0; i < window_size; ++i) {
+        kernel[i] /= sum;
+    }
+
+    return kernel;
+}
+
+void smooth_layer_width_profile_gaussian(std::vector<double>& layer_width_profile, size_t window_size) {
+    if (window_size == 0 || window_size % 2 == 0 || layer_width_profile.size() < window_size) {
+        // Handle invalid window size or too small profile
+        return;
+    }
+
+    size_t half_window = window_size / 2;
+    double sigma = window_size / 6.0;
+    std::vector<double> kernel = gaussian_kernel(window_size, sigma);
+    std::vector<double> smoothed_profile(layer_width_profile.size());
+
+    for (size_t i = half_window; i < layer_width_profile.size() - half_window; ++i) {
+        double sum = 0.0;
+        for (size_t j = 0; j < window_size; ++j) {
+            sum += layer_width_profile[i - half_window + j] * kernel[j];
+        }
+        smoothed_profile[i] = sum;
+    }
+
+    // Handle the boundaries
+    for (size_t i = 0; i < half_window; ++i) {
+        smoothed_profile[i] = smoothed_profile[half_window];
+        smoothed_profile[layer_width_profile.size() - 1 - i] = smoothed_profile[layer_width_profile.size() - 1 - half_window];
+    }
+
+    // Copy the smoothed values back to the original array
+    layer_width_profile = smoothed_profile;
+}
+
+std::vector<double> layer_width_profile_adaptive(const SlicingParameters& slicing_params,
+                                                 const ModelObject&       object,
+                                                 std::vector<coordf_t>    layer_height_profile,
+                                                 const double             ow_width,
+                                                 Transform3d              trafo)
+{
+    layer_height_profile = generate_object_layers(slicing_params, layer_height_profile, false);
+    SlicingAdaptive as;
+    as.set_slicing_parameters(slicing_params, ow_width, trafo);
+    as.prepare(object);
+    std::vector<coordf_t> layer_width_profile;
+    size_t current_facet = 0;
+
+    int print_z_idx = 0;
+    while (layer_height_profile[print_z_idx] + EPSILON < slicing_params.object_print_z_height()) {
+        if (print_z_idx > layer_height_profile.size())
+            break;
+        float height = layer_height_profile[print_z_idx + 1] - layer_height_profile[print_z_idx];
+        float width  = as.next_layer_width(layer_height_profile[print_z_idx], height, current_facet);
+
+        print_z_idx += 2;
+        layer_width_profile.push_back(width);
+        if (print_z_idx >= layer_height_profile.size())
+            break;
+    }
+    smooth_layer_width_profile_gaussian(layer_width_profile, LAYER_WIDTH_SMOOTH_WINDOW);
+    return layer_width_profile;
 }
 
 // Produce object layers as pairs of low / high layer boundaries, stored into a linear vector.

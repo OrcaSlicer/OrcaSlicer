@@ -601,6 +601,16 @@ Slic3r::GUI::PageShp Tab::add_options_page(const wxString& title, const std::str
     return page;
 }
 
+PageShp Tab::get_page(const wxString& title)
+{
+    for (PageShp page : m_pages) {
+        if (page->title() == title)
+            return page;
+    }
+
+    return nullptr;
+}
+
 // Names of categories is save in English always. We translate them only for UI.
 // But category "Extruder n" can't be translated regularly (using _()), so
 // just for this category we should splite the title and translate "Extruder" word separately
@@ -1794,6 +1804,20 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
+    if (opt_key == "overhang_outer_wall_optimization") {
+        DynamicPrintConfig new_conf = *m_config;
+        new_conf.set_key_value("overhang_outer_wall_optimization", new ConfigOptionBool(m_config->opt_bool("overhang_outer_wall_optimization")));
+        m_config_manipulation.apply(m_config, &new_conf);
+        wxGetApp().plater()->update();
+    }
+
+    if (opt_key == "overhang_layer_height_optimization") {
+        DynamicPrintConfig new_conf = *m_config;
+        new_conf.set_key_value("overhang_layer_height_optimization", new ConfigOptionBool(m_config->opt_bool("overhang_layer_height_optimization")));
+        m_config_manipulation.apply(m_config, &new_conf);
+        wxGetApp().plater()->update();
+    }
+
     string opt_key_without_idx = opt_key.substr(0, opt_key.find('#'));
 
     if (opt_key_without_idx == "long_retractions_when_cut") {
@@ -2368,6 +2392,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse", "quality_settings_overhangs#reverse-on-even");
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
+        optgroup->append_single_option_line("overhang_outer_wall_optimization");
+        optgroup->append_single_option_line("overhang_layer_height_optimization");
 
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Walls"), L"param_wall");

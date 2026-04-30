@@ -24,7 +24,7 @@ Flow LayerRegion::flow(FlowRole role) const
 
 Flow LayerRegion::flow(FlowRole role, double layer_height) const
 {
-    return m_region->flow(*m_layer->object(), role, layer_height, m_layer->id() == 0);
+    return m_region->flow(*m_layer->object(), role, layer_height, m_layer->id() == 0, m_layer->outer_perimeter_width());
 }
 
 Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const

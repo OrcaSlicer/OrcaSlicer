@@ -243,15 +243,17 @@ public:
 
     size_t get_extruder_id(unsigned int filament_id) const;
 
+    coordf_t outer_perimeter_width() const { return m_outer_perimeter_width; }
+
 protected:
     friend class PrintObject;
-    friend std::vector<Layer*> new_layers(PrintObject*, const std::vector<coordf_t>&);
+    friend std::vector<Layer*> new_layers(PrintObject*, const std::vector<coordf_t>&, const std::vector<coordf_t>&);
     friend std::string fix_slicing_errors(PrintObject* object, LayerPtrs&, const std::function<void()>&, int &);
 
-    Layer(size_t id, PrintObject *object, coordf_t height, coordf_t print_z, coordf_t slice_z) :
+    Layer(size_t id, PrintObject *object, coordf_t height, coordf_t print_z, coordf_t slice_z, coordf_t outer_perimeter_width = 0.0) :
         upper_layer(nullptr), lower_layer(nullptr), slicing_errors(false),
         slice_z(slice_z), print_z(print_z), height(height),
-        m_id(id), m_object(object) {}
+        m_id(id), m_object(object), m_outer_perimeter_width(outer_perimeter_width) {}
     virtual ~Layer();
 
 //BBS: method to simplify support path
@@ -265,6 +267,8 @@ private:
     size_t              m_id;
     PrintObject        *m_object;
     LayerRegionPtrs     m_regions;
+
+    float m_outer_perimeter_width;
 };
 
 enum SupportInnerType {

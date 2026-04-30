@@ -72,6 +72,8 @@ using namespace std::literals;
     #include <cassert>
 #endif
 
+#define BOTTOM_SHELL_THICKNESS 0.6
+
 namespace Slic3r {
 
 // Constructor is called from the main thread, therefore all Model / ModelObject / ModelIntance data are valid.
@@ -662,6 +664,19 @@ void PrintObject::prepare_infill()
 
 void PrintObject::infill()
 {
+    // Temporarily set the bottom shell to be thick
+    PrintRegionConfig temp_region_config;
+    const PrintObjectRegions::LayerRangeRegions layer_range = m_shared_regions->layer_ranges.front();
+    auto                                        it          = layer_range.volume_regions.begin();
+    temp_region_config                                      = it->region->config();
+    if (m_config.overhang_layer_height_optimization.value) {
+        temp_region_config = it->region->config();       
+        PrintRegionConfig new_config            = temp_region_config;
+        new_config.bottom_shell_thickness.value = BOTTOM_SHELL_THICKNESS;
+        //new_config.bottom_shell_layers.value    = BOTTOM_SHELL_LAYERS;
+        it->region->set_config(new_config);
+    }
+
     // prerequisites
     this->prepare_infill();
 
@@ -686,6 +701,13 @@ void PrintObject::infill()
         ### $_->fill_surfaces->clear for map @{$_->regions}, @{$object->layers};
         */
         this->set_done(posInfill);
+    }
+
+    // Reset the region config after infill
+    if (m_config.overhang_layer_height_optimization.value) {
+        const PrintObjectRegions::LayerRangeRegions layer_range = m_shared_regions->layer_ranges.front();
+        auto                                        it          = layer_range.volume_regions.begin();
+        it->region->set_config(temp_region_config);
     }
 }
 

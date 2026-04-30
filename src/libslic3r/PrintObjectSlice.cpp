@@ -23,7 +23,8 @@ bool PrintObject::infill_only_where_needed = false;
 LayerPtrs new_layers(
     PrintObject                 *print_object,
     // Object layers (pairs of bottom/top Z coordinate), without the raft.
-    const std::vector<coordf_t> &object_layers)
+    const std::vector<coordf_t> &object_layers,
+    const std::vector<coordf_t> &object_layers_width)
 {
     LayerPtrs out;
     out.reserve(object_layers.size());
@@ -34,7 +35,8 @@ LayerPtrs new_layers(
         coordf_t lo = object_layers[i_layer];
         coordf_t hi = object_layers[i_layer + 1];
         coordf_t slice_z = 0.5 * (lo + hi);
-        Layer *layer = new Layer(id ++, print_object, hi - lo, hi + zmin, slice_z);
+        float m_outer_perimeter_width = object_layers_width.empty() ? 0.0f : object_layers_width[i_layer / 2];
+        Layer *layer = new Layer(id ++, print_object, hi - lo, hi + zmin, slice_z, m_outer_perimeter_width);
         out.emplace_back(layer);
         if (prev != nullptr) {
             prev->upper_layer = layer;
@@ -793,11 +795,35 @@ void PrintObject::slice()
     //BBS: add flag to reload scene for shell rendering
     m_print->set_status(5, L("Slicing mesh"), PrintBase::SlicingStatus::RELOAD_SCENE);
     std::vector<coordf_t> layer_height_profile;
+    std::vector<coordf_t> layer_width_profile;
+
+    const PrintObjectRegions::LayerRangeRegions layer_range = m_shared_regions->layer_ranges.front();
+    auto                                        it          = layer_range.volume_regions.begin();
+
+    Transform3d trafo = this->trafo_centered();
+    double out_wall_width = it->region->config().outer_wall_line_width;
+    if (it->region->config().outer_wall_line_width.percent)
+        out_wall_width = 0.42 * out_wall_width / 100.f;
+
+
+    if (m_config.overhang_layer_height_optimization.value) {
+        this->update_layer_height_profile(*this->model_object(), m_slicing_params, layer_height_profile);
+        layer_height_profile = layer_height_overhang(m_slicing_params, *this->model_object(), m_slicing_params.layer_height,
+                                                    layer_height_profile, trafo);
+    }
+
     this->update_layer_height_profile(*this->model_object(), m_slicing_params, layer_height_profile);
+    
+    if (m_config.overhang_outer_wall_optimization.value) {
+        layer_width_profile = layer_width_profile_adaptive(m_slicing_params, *this->model_object(), layer_height_profile,
+                                                           out_wall_width, trafo);      
+    }
+    
     m_print->throw_if_canceled();
     m_typed_slices = false;
     this->clear_layers();
-    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value));
+    m_layers = new_layers(this, generate_object_layers(m_slicing_params, layer_height_profile, m_config.precise_z_height.value),
+                          layer_width_profile);
     this->slice_volumes();
     m_print->throw_if_canceled();
     int firstLayerReplacedBy = 0;

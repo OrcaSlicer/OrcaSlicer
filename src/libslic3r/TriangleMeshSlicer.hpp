@@ -94,6 +94,11 @@ inline std::vector<ExPolygons>  slice_mesh_ex(
     return slice_mesh_ex(mesh, zs, params, throw_on_cancel);
 }
 
+std::vector<float> get_mesh_overhang(
+    const indexed_triangle_set& mesh,
+    const std::vector<float>&   zs,
+    const MeshSlicingParams&    params);
+
 // Slice a triangle set with a set of Z slabs (thick layers).
 // The effect is similar to producing the usual top / bottom layers from a sliced mesh by 
 // subtracting layer[i] from layer[i - 1] for the top surfaces resp.

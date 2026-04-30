@@ -5,6 +5,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <cfloat>
+#include "TriangleMeshSlicer.hpp"
 
 // Based on the work of Florens Waserfall (@platch on github)
 // and his paper
@@ -32,8 +33,21 @@ legend("tan(a) as cura - topographic lines distance limit", "sqrt(tan(a)) as Pru
 	#define ADAPTIVE_LAYER_HEIGHT_DEBUG
 #endif /* NDEBUG */
 
+#define MID_ANGLE 20.f
+#define ANGLE_WIDTH 5.f
+#define LINE_WIDTH_0 0.42f
+#define LINE_WIDTH_1 0.52f
+#define LINE_WIDTH_2 0.62f
+#define LINE_WIDTH_3 0.72f
+#define LAYER_HEIGHT 0.14f
+#define LAYER_HEIGHT_WIDTH 0.04f
+#define LINEAR_WINDOW 0.5f
+#define LAYER_OVERHANG_RATIO 0.05f
+
 namespace Slic3r
 {
+
+const float slice_step = 0.1f;
 
 // By Florens Waserfall aka @platch:
 // This constant essentially describes the volumetric error at the surface which is induced 
@@ -67,6 +81,27 @@ static inline float layer_height_from_slope(const SlicingAdaptive::FaceZ &face, 
 //    return float(max_surface_deviation * face.n_sin);
 }
 
+static inline float outer_wall_width_from_slope(const SlicingAdaptive::FaceZ& face, float layer_height)
+{
+    if (layer_height >= 0.24f || face.up)
+        return LINE_WIDTH_0;
+
+    float angle_in_radians = std::asin(face.n_sin);
+
+    float angle_in_degrees = angle_in_radians * 180.0f / static_cast<float>(M_PI);
+    if ((angle_in_degrees <= (MID_ANGLE - ANGLE_WIDTH)) ||
+        (angle_in_degrees >= (MID_ANGLE + ANGLE_WIDTH)))
+        return LINE_WIDTH_0;
+
+    if (layer_height >= 0.24f)
+        return LINE_WIDTH_0;
+    else if (layer_height >= 0.16f)
+        return LINE_WIDTH_1;
+    else if (layer_height >= 0.12f)
+        return LINE_WIDTH_2;
+    return LINE_WIDTH_3;
+}
+
 void SlicingAdaptive::clear()
 {
 	m_faces.clear();
@@ -77,6 +112,23 @@ void SlicingAdaptive::prepare(const ModelObject &object)
     this->clear();
 
     TriangleMesh		 mesh			= object.raw_mesh();
+
+	indexed_triangle_set its = mesh.its;
+	if (its.indices.size() > 0) {
+		// make slice
+		float height = m_slicing_params.object_print_z_height();
+		int layerNum = height / slice_step;
+		std::vector<float> z_values(layerNum, 0.0f);
+		for (int i = 0; i < z_values.size(); i++)
+			z_values[i] = slice_step * (i + 1);
+
+		MeshSlicingParamsEx slicing_params_ex;
+		slicing_params_ex.trafo = m_trafo;
+		if (slicing_params_ex.trafo.rotation().determinant() < 0.)
+			its_flip_triangles(its);
+		m_overhang_ratio = get_mesh_overhang(mesh.its, z_values, slicing_params_ex);
+	}
+
     const ModelInstance &first_instance = *object.instances.front();
     mesh.transform(first_instance.get_matrix(), first_instance.is_left_handed());
 
@@ -89,7 +141,7 @@ void SlicingAdaptive::prepare(const ModelObject &object)
 			std::min(std::min(vertex[0].z(), vertex[1].z()), vertex[2].z()),
 			std::max(std::max(vertex[0].z(), vertex[1].z()), vertex[2].z())
 		};
-		m_faces.emplace_back(FaceZ({ face_z_span, std::abs(n.z()), std::sqrt(n.x() * n.x() + n.y() * n.y()) }));
+        m_faces.emplace_back(FaceZ({ face_z_span, std::abs(n.z()), std::sqrt(n.x() * n.x() + n.y() * n.y()), n.z() > 0 }));
     }
 
 	// 2) Sort faces lexicographically by their Z span.
@@ -192,6 +244,37 @@ float SlicingAdaptive::next_layer_height(const float print_z, float quality_fact
     BOOST_LOG_TRIVIAL(trace) << "adaptive layer computation, layer-bottom at z:" << print_z << ", quality_factor:" << quality_factor << ", resulting layer height:" << height;
 #endif  /* ADAPTIVE_LAYER_HEIGHT_DEBUG */
 	return height; 
+}
+
+float SlicingAdaptive::next_layer_width(const float print_z, float layer_height, size_t& current_facet)
+{
+    int idx = std::min(std::max(int(print_z / slice_step), 0), int(m_overhang_ratio.size() - 1));
+    if (!m_overhang_ratio.empty() && m_overhang_ratio[idx] < LAYER_OVERHANG_RATIO)
+        // return LINE_WIDTH_0;
+        return m_outwall_width;
+   // float width = LINE_WIDTH_0;
+    float width = m_outwall_width;
+    // find all facets intersecting the slice-layer
+    size_t ordered_id = current_facet;
+    {
+        bool first_hit = false;
+        for (; ordered_id < m_faces.size(); ++ordered_id) {
+            const std::pair<float, float>& zspan = m_faces[ordered_id].z_span;
+            // facet's minimum is higher than slice_z -> end loop
+            if (zspan.first >= print_z)
+                break;
+            if (zspan.second > print_z) {
+                if (!first_hit) {
+                    first_hit     = true;
+                    current_facet = ordered_id;
+                }
+                if (zspan.second < print_z + EPSILON)
+                    continue;
+                width = std::max(outer_wall_width_from_slope(m_faces[ordered_id], layer_height), width);
+            }
+        }
+    }
+    return width;
 }
 
 // Returns the distance to the next horizontal facet in Z-dir 

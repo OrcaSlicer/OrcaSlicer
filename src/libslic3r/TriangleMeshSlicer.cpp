@@ -42,6 +42,7 @@
 
 namespace Slic3r {
 const float epson = 1e-3;
+const float overhang_threshold_angle = 30.f;
 bool is_equal(float lh, float rh)
 {
     return abs(lh - rh) <= epson;
@@ -507,6 +508,54 @@ void slice_facet_at_zs(
     }
 }
 
+template<typename TransformVertex>
+void get_slice_facet_overhang(
+   // Scaled or unscaled vertices. transform_vertex_fn may scale zs.
+   const std::vector<Vec3f>                         &mesh_vertices,
+   const TransformVertex                            &transform_vertex_fn,
+   const stl_triangle_vertex_indices                &indices,
+   const Vec3i32                                      &edge_ids,
+   // Scaled or unscaled zs. If vertices have their zs scaled or transform_vertex_fn scales them, then zs have to be scaled as well.
+   const std::vector<float>                         &zs,
+   std::array<std::mutex, 64>                       &lines_mutex,
+   std::vector<float> &total_lines,
+   std::vector<float> &overhang_lines)
+{
+   stl_vertex vertices[3] { transform_vertex_fn(mesh_vertices[indices(0)]), transform_vertex_fn(mesh_vertices[indices(1)]), transform_vertex_fn(mesh_vertices[indices(2)]) };
+   stl_vertex normal = face_normal_normalized(vertices);
+
+   Eigen::Vector3f negative_z(0, 0, -1);
+   float v_magnitude = normal.norm();
+   float dot_product = normal.dot(negative_z);
+   float cos_theta = dot_product / v_magnitude;
+   float angle_radians = std::acos(cos_theta);
+   float angle_degrees = angle_radians * 180.0 / M_PI;
+
+   // find facet extents
+   const float min_z = fminf(vertices[0].z(), fminf(vertices[1].z(), vertices[2].z()));
+   const float max_z = fmaxf(vertices[0].z(), fmaxf(vertices[1].z(), vertices[2].z()));
+
+   // find layer extents
+   auto min_layer = std::lower_bound(zs.begin(), zs.end(), min_z); // first layer whose slice_z is >= min_z
+   auto max_layer = std::upper_bound(min_layer, zs.end(), max_z); // first layer whose slice_z is > max_z
+   int  idx_vertex_lowest = (vertices[1].z() == min_z) ? 1 : ((vertices[2].z() == min_z) ? 2 : 0);
+
+   for (auto it = min_layer; it != max_layer; ++ it) {
+        IntersectionLine il;
+        // Ignore horizontal triangles. Any valid horizontal triangle must have a vertical triangle connected, otherwise the part has zero volume.
+        if (min_z != max_z && slice_facet(*it, vertices, indices, edge_ids, idx_vertex_lowest, false, il) == FacetSliceType::Slicing) {
+            assert(il.edge_type != IntersectionLine::FacetEdgeType::Horizontal);
+            size_t slice_id = it - zs.begin();
+            boost::lock_guard<std::mutex> l(lines_mutex[slice_id % lines_mutex.size()]);
+            float len = il.length();
+            if (angle_degrees < overhang_threshold_angle) {
+                overhang_lines[slice_id] += len;
+            }
+            total_lines[slice_id] += len;
+        }
+   }
+}
+
 template<typename TransformVertex, typename ThrowOnCancel>
 static inline std::vector<IntersectionLines> slice_make_lines(
     const std::vector<stl_vertex>                   &vertices,
@@ -558,6 +607,38 @@ static inline IntersectionLines slice_make_lines(
             }
         }
     return lines;
+}
+
+template<typename TransformVertex>
+static inline void slice_count_overhang_lines(
+    const std::vector<stl_vertex>&                  vertices,
+    const TransformVertex&                          transform_vertex_fn,
+    const std::vector<stl_triangle_vertex_indices>& indices,
+    const std::vector<Vec3i32>&                     face_edge_ids,
+    const std::vector<float>&                       zs,
+    std::vector<float>*                             overhang_ratio = nullptr)
+{
+    std::vector<IntersectionLines> lines(zs.size(), IntersectionLines());
+    std::vector<float>             total_lines(zs.size(), 0.f);
+    std::vector<float>             overhang_lines(zs.size(), 0.f);
+    std::array<std::mutex, 64> lines_mutex;
+    tbb::parallel_for(
+        tbb::blocked_range<int>(0, int(indices.size())),
+                        [&vertices, &transform_vertex_fn, &indices, &face_edge_ids, &zs, &lines, &lines_mutex,
+                        &overhang_lines, &total_lines](const tbb::blocked_range<int>& range) {
+            for (int face_idx = range.begin(); face_idx < range.end(); ++face_idx) {
+                get_slice_facet_overhang(vertices, transform_vertex_fn,
+                                        indices[face_idx], face_edge_ids[face_idx],
+                                        zs, lines_mutex, total_lines, overhang_lines);
+            }
+        }
+    );
+   // calc overhang ratio
+   for (size_t i = 0; overhang_ratio && i < zs.size(); ++i) {
+       if (total_lines[i] > 0) {
+           (*overhang_ratio)[i] = overhang_lines[i] / total_lines[i];
+       }
+   }
 }
 
 // For projecting triangle sets onto slice slabs.
@@ -2047,6 +2128,25 @@ std::vector<ExPolygons> slice_mesh_ex(
 //    BOOST_LOG_TRIVIAL(debug) << "slice_mesh make_expolygons in parallel - end";
 
     return layers;
+}
+
+std::vector<float> get_mesh_overhang(
+    const indexed_triangle_set       &mesh,
+    // Unscaled Zs
+    const std::vector<float>         &zs,
+    const MeshSlicingParams          &params)
+{
+    std::vector<float> overhang_ratio(zs.size(), 0.f);
+    std::vector<IntersectionLines> lines;
+    std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh);
+
+    slice_count_overhang_lines(
+        //transform_mesh_vertices_for_slicing_overhang(mesh, params.trafo),
+        transform_mesh_vertices_for_slicing(mesh, params.trafo),
+       [](const Vec3f& p) { return p; }, mesh.indices, face_edge_ids, zs,
+        &overhang_ratio);
+
+    return overhang_ratio;
 }
 
 // Slice a triangle set with a set of Z slabs (thick layers).

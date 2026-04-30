@@ -179,8 +179,17 @@ struct SupportParameters {
         }
         if (support_style == smsDefault) {
             if (is_tree(object_config.support_type)) {
-                // Orca: use organic as default
-                support_style = smsTreeOrganic;
+                // organic support doesn't work with variable layer heights (including adaptive layer height and height range modifier, see #4313)
+                if (!object.has_variable_layer_heights && !object_config.overhang_layer_height_optimization.getBool() && !slicing_params.soluble_interface)
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "tree support default to organic support";
+                    support_style = smsTreeOrganic;
+                }
+                else
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "tree support default to hybrid tree due to adaptive layer height";
+                    support_style = smsTreeHybrid;
+                }
             } else {
                 support_style = smsGrid;
             }

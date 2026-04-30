@@ -1340,16 +1340,27 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         != m_objects.end();
 
     // Custom layering is not allowed for tree supports as of now.
-    for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx)
-        if (const PrintObject &print_object = *m_objects[print_object_idx];
-            print_object.has_support_material() && is_tree(print_object.config().support_type.value) && (print_object.config().support_style.value == smsTreeOrganic || 
-                // Orca: use organic as default
-                print_object.config().support_style.value == smsDefault) &&
-            print_object.model_object()->has_custom_layering()) {
-            if (const std::vector<coordf_t> &layers = layer_height_profile(print_object_idx); ! layers.empty())
-                if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
-                    return {_u8L("Variable layer height is not supported with Organic supports.") };
+    for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx) {
+        PrintObject &print_object = *m_objects[print_object_idx];
+        print_object.has_variable_layer_heights = false;
+        // use TreeHybrid as default
+        if (print_object.has_support_material() && is_tree(print_object.config().support_type.value) &&
+             print_object.model_object()->has_custom_layering()) {
+            if (const std::vector<coordf_t>& layers = layer_height_profile(print_object_idx); !layers.empty())
+                if (!check_object_layers_fixed(print_object.slicing_parameters(), layers)) {
+                    print_object.has_variable_layer_heights = true;
+                    BOOST_LOG_TRIVIAL(warning) << "print_object: " << print_object.model_object()->name
+                                               << " has_variable_layer_heights: " << print_object.has_variable_layer_heights;
+                    if (print_object.config().support_style.value == smsTreeOrganic) return {_u8L("Variable layer height is not supported with Organic supports.")};
+                }
         }
+
+        if (print_object.has_support_material() && is_tree(print_object.config().support_type.value)
+            && (print_object.config().support_style.value == smsTreeOrganic) && print_object.config().overhang_layer_height_optimization.value) {
+            if (const std::vector<coordf_t>& layers = layer_height_profile(print_object_idx); !layers.empty())
+                return {_u8L("Overhang Layer Height Optimization is not supported with Organic supports.")};
+        }
+    }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
         // Make sure all extruders use same diameter filament and have the same nozzle diameter
