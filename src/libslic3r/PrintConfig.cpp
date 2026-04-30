@@ -9115,8 +9115,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
 
         if (extruder_id > 0 && extruder_id <= static_cast<unsigned> (extruder_count)) {
             variant_index.resize(1);
-            ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(extruder_id - 1));
-            NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(extruder_id - 1));
+            int eid = std::clamp((int)(extruder_id - 1), 0, (int)opt_extruder_type->size() - 1);
+            ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(eid));
+            NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(std::clamp((int)(extruder_id - 1), 0, (int)opt_nozzle_volume_type->size() - 1)));
 
             //variant index
             variant_index[0] = get_index_for_extruder(extruder_id, id_name, extruder_type, nozzle_volume_type, variant_name);
@@ -9293,11 +9294,16 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
         std::vector<int> variant_index;
 
         variant_index.resize(filament_count, -1);
+        int extruder_type_size = (int)opt_extruder_type->size();
+        int nozzle_vol_type_size = (int)opt_nozzle_volume_type->size();
 
         for (int f_index = 0; f_index < filament_count; f_index++)
         {
-            ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(filament_maps[f_index] - 1));
-            NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(filament_maps[f_index] - 1));
+            // Clamp index to valid range - filament_maps may contain AMS slot numbers
+            // that exceed the extruder_type array size on single-extruder AMS printers
+            int ext_idx = std::clamp(filament_maps[f_index] - 1, 0, extruder_type_size - 1);
+            ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(ext_idx));
+            NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(std::clamp(filament_maps[f_index] - 1, 0, nozzle_vol_type_size - 1)));
 
             //variant index
             variant_index[f_index] = get_index_for_extruder(f_index+1, id_name, extruder_type, nozzle_volume_type, variant_name);
