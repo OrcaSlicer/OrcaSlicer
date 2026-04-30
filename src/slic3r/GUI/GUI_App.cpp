@@ -1,5 +1,9 @@
 #include "libslic3r/Technologies.hpp"
 #include "GUI_App.hpp"
+#ifdef ENABLE_MCP_SERVER
+#include "MCP/CommandDispatch.h"
+#include "MCP/McpApiServer.h"
+#endif
 #include "GUI_Init.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Factories.hpp"
@@ -3164,6 +3168,16 @@ bool GUI_App::on_init_inner()
     mainframe->Show(true);
     BOOST_LOG_TRIVIAL(info) << "main frame firstly shown";
 
+#ifdef ENABLE_MCP_SERVER
+    // Start MCP API server if enabled in settings (default: enabled)
+    {
+        auto mcp_enabled_str = app_config->get("mcp_server_enabled");
+        if (mcp_enabled_str.empty() || app_config->get_bool("mcp_server_enabled")) {
+            start_mcp_server();
+        }
+    }
+#endif
+
 //#if BBL_HAS_FIRST_PAGE
     //BBS: set tp3DEditor firstly
     /*plater_->canvas3D()->enable_render(false);
@@ -6144,6 +6158,38 @@ void GUI_App::stop_sync_user_preset()
             m_sync_update_thread.detach();
     }
 }
+
+#ifdef ENABLE_MCP_SERVER
+void GUI_App::start_mcp_server()
+{
+    if (m_mcp_server.is_running()) return;
+
+    // Read port from config, default to MCP_API_PORT
+    int port = MCP_API_PORT;
+    auto port_str = app_config->get("mcp_server_port");
+    if (!port_str.empty()) {
+        try { port = std::stoi(port_str); } catch (...) {}
+    }
+    m_mcp_server.set_port(port);
+
+    CommandDispatch::instance().init();
+    m_mcp_server.set_handler([](const std::string& method, const std::string& url, const std::string& body,
+                                 const std::map<std::string, std::string>& headers) {
+        return CommandDispatch::instance().handle_api_request(method, url, body, headers);
+    });
+    m_mcp_server.start();
+}
+
+void GUI_App::stop_mcp_server()
+{
+    m_mcp_server.stop();
+}
+
+bool GUI_App::is_mcp_server_running() const
+{
+    return m_mcp_server.is_running();
+}
+#endif
 
 void GUI_App::start_http_server()
 {

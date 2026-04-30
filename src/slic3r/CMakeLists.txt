@@ -742,6 +742,21 @@ endif()
 
 target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
 
+# MCP (Model Context Protocol) server for AI agent integration
+if(ENABLE_MCP_SERVER)
+    target_sources(libslic3r_gui PRIVATE
+        MCP/McpApiServer.h
+        MCP/McpApiServer.cpp
+        MCP/McpProtocol.h
+        MCP/McpProtocol.cpp
+        MCP/CommandDispatch.h
+        MCP/CommandDispatch.cpp
+        MCP/ToolSchemas.h
+        MCP/ToolSchemas.cpp
+    )
+    target_include_directories(libslic3r_gui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(libslic3r_gui PUBLIC ENABLE_MCP_SERVER)
+endif()
 
 if (MSVC)
     target_link_libraries(libslic3r_gui Setupapi.lib)

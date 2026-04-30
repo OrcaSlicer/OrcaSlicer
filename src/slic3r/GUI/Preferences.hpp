@@ -16,6 +16,8 @@
 #include "Widgets/TabCtrl.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
+class Button;
+
 namespace Slic3r { namespace GUI {
 
 #define DESIGN_GRAY900_COLOR wxColour("#363636") // Label color
@@ -82,6 +84,11 @@ public:
     wxString m_iot_environment_def;
 
     std::vector<wxFlexGridSizer*> f_sizers;
+
+#ifdef ENABLE_MCP_SERVER
+    wxStaticText* m_mcp_status_label{nullptr};
+    Button*       m_mcp_toggle_btn{nullptr};
+#endif
 
     wxBoxSizer *create_item_title(wxString title);
     wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange = {});

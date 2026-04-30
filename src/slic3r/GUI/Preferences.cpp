@@ -18,6 +18,11 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
+#ifdef ENABLE_MCP_SERVER
+#include <wx/clipbrd.h>
+#include "MCP/McpApiServer.h"
+#include "Widgets/Button.hpp"
+#endif
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
@@ -1754,6 +1759,130 @@ void PreferencesDialog::create_items()
         }
     });
     g_sizer->Add(item_reload_plugin);
+
+#ifdef ENABLE_MCP_SERVER
+    //// DEVELOPER > MCP Server
+    g_sizer->Add(create_item_title(_L("MCP Server (AI Agent Integration)")), 1, wxEXPAND);
+
+    // Helper: get configured port with safe parsing
+    auto get_mcp_port = [this]() -> int {
+        auto port_str = app_config->get("mcp_server_port");
+        if (!port_str.empty()) {
+            try { return std::stoi(port_str); } catch (...) {}
+        }
+        return MCP_API_PORT;
+    };
+
+    // Helper: update status label and button to reflect current server state.
+    // Performs a background TCP connect to verify the port is actually listening,
+    // then updates the UI on the main thread via CallAfter.
+    auto update_mcp_status = [this, get_mcp_port]() {
+        if (!m_mcp_status_label) return;
+        bool running = wxGetApp().is_mcp_server_running();
+        if (!running) {
+            m_mcp_status_label->SetLabel(_L("Stopped"));
+            m_mcp_status_label->SetForegroundColour(DESIGN_GRAY600_COLOR);
+            if (m_mcp_toggle_btn)
+                m_mcp_toggle_btn->SetLabel(_L("Start"));
+            return;
+        }
+        // Show intermediate state immediately
+        m_mcp_status_label->SetLabel(_L("Checking..."));
+        m_mcp_status_label->SetForegroundColour(wxColour("#FF8C00"));
+        if (m_mcp_toggle_btn)
+            m_mcp_toggle_btn->SetLabel(_L("Stop"));
+
+        // Ping in background thread to avoid blocking UI
+        int port = get_mcp_port();
+        std::thread([this, port]() {
+            bool ok = false;
+            try {
+                boost::asio::io_context ioc;
+                boost::asio::ip::tcp::socket sock(ioc);
+                boost::asio::ip::tcp::endpoint ep(boost::asio::ip::make_address("127.0.0.1"), port);
+                boost::system::error_code ec;
+                sock.connect(ep, ec);
+                ok = !ec;
+                if (ok) sock.close();
+            } catch (...) {}
+
+            wxGetApp().CallAfter([this, ok, port]() {
+                if (!m_mcp_status_label) return;
+                if (ok) {
+                    m_mcp_status_label->SetLabel(wxString::Format(_L("Running on port %d"), port));
+                    m_mcp_status_label->SetForegroundColour(wxColour("#00AE42"));
+                } else {
+                    m_mcp_status_label->SetLabel(_L("Not responding"));
+                    m_mcp_status_label->SetForegroundColour(wxColour("#FF0000"));
+                }
+            });
+        }).detach();
+    };
+
+    // Status label
+    {
+        wxBoxSizer *sizer_status = new wxBoxSizer(wxHORIZONTAL);
+        sizer_status->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+        m_mcp_status_label = new wxStaticText(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
+        m_mcp_status_label->SetFont(::Label::Body_14);
+        update_mcp_status();
+        sizer_status->Add(m_mcp_status_label, 0, wxALIGN_CENTER_VERTICAL);
+        g_sizer->Add(sizer_status);
+    }
+
+    // Start/Stop button
+    {
+        wxBoxSizer *sizer_btn = new wxBoxSizer(wxHORIZONTAL);
+        sizer_btn->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+        auto btn_title = new wxStaticText(m_parent, wxID_ANY, _L("MCP Server"), wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+        btn_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        btn_title->SetFont(::Label::Body_14);
+        btn_title->Wrap(DESIGN_TITLE_SIZE.x);
+
+        bool running = wxGetApp().is_mcp_server_running();
+        m_mcp_toggle_btn = new Button(m_parent, running ? _L("Stop") : _L("Start"));
+        m_mcp_toggle_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+        m_mcp_toggle_btn->SetToolTip(_L("Start or stop the MCP server for AI agent integration"));
+
+        m_mcp_toggle_btn->Bind(wxEVT_BUTTON, [this, update_mcp_status](wxCommandEvent &e) {
+            bool running = wxGetApp().is_mcp_server_running();
+            if (running) {
+                wxGetApp().stop_mcp_server();
+                app_config->set_bool("mcp_server_enabled", false);
+            } else {
+                wxGetApp().start_mcp_server();
+                app_config->set_bool("mcp_server_enabled", true);
+            }
+            app_config->save();
+            update_mcp_status();
+        });
+
+        sizer_btn->Add(btn_title,       0, wxALIGN_CENTER_VERTICAL);
+        sizer_btn->Add(m_mcp_toggle_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+        g_sizer->Add(sizer_btn);
+    }
+
+    // Port input — set default before creating the widget so it reads the value
+    if (app_config->get("mcp_server_port").empty())
+        app_config->set("mcp_server_port", std::to_string(MCP_API_PORT));
+    auto item_mcp_port = create_item_spinctrl(_L("Port"), "", "", _L("MCP server port (requires restart to take effect)"), "mcp_server_port", 1024, 65535);
+    g_sizer->Add(item_mcp_port);
+
+    // Copy MCP Config button
+    auto item_copy_config = create_item_button(_L("MCP Configuration"), _L("Copy MCP Config"), _L("Copy MCP server configuration JSON to clipboard"), "", [this, get_mcp_port]() {
+        wxString json = wxString::Format(
+            "{\"mcpServers\":{\"orca-slicer\":{\"type\":\"http\",\"url\":\"http://localhost:%d/mcp\"}}}",
+            get_mcp_port());
+        if (wxTheClipboard->Open()) {
+            wxTheClipboard->SetData(new wxTextDataObject(json));
+            wxTheClipboard->Close();
+            MessageDialog dlg(this, _L("MCP configuration copied to clipboard."), _L("MCP Server"), wxOK | wxICON_INFORMATION);
+            dlg.ShowModal();
+        }
+    });
+    g_sizer->Add(item_copy_config);
+#endif // ENABLE_MCP_SERVER
 
     //// DEVELOPER > Debug
 #if !BBL_RELEASE_TO_PUBLIC

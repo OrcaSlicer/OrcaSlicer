@@ -24,4 +24,6 @@ add_subdirectory(slic3rutils)
 add_subdirectory(fff_print)
 add_subdirectory(sla_print)
 
-
+if(ENABLE_MCP_SERVER)
+    add_subdirectory(mcp_server)
+endif()
