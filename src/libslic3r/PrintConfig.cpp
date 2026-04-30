@@ -2852,15 +2852,17 @@ void PrintConfigDef::init_fff_params()
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
-    // Optimized gyroid wave (experimental). When enabled and the sparse infill pattern is gyroid,
-    // the wave's spatial frequency is parameterized per region from density and layer geometry
-    // to bias the strand toward higher buckling resistance. Existing profiles are unaffected when off.
+    // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
+    // (vertical) axis at low infill density to shorten the effective column length under
+    // Z-axis compression. Filament use at the same `sparse_infill_density` setting is
+    // preserved. No effect above ~30% density (formula clamps to no-op).
     def             = this->add("gyroid_optimized", coBool);
-    def->label      = L("Optimize gyroid wave (experimental)");
+    def->label      = L("Z-buckling bias optimization (experimental)");
     def->category   = L("Strength");
-    def->tooltip    = L("Auto-tunes the gyroid wavelength per region from density and layer height. "
-                        "Intended to increase compressive strength-to-mass on the same infill density. "
-                        "Only applies when Sparse infill pattern is set to Gyroid.");
+    def->tooltip    = L("Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+                        "to shorten the effective vertical column length and improve Z-axis compression "
+                        "buckling resistance. Filament use is preserved. No effect at ~30% sparse infill "
+                        "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("sparse_infill_pattern", coEnum);
