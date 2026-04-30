@@ -2502,7 +2502,7 @@ std::map<std::string, std::string> GUI_App::get_extra_header()
     std::map<std::string, std::string> extra_headers;
     extra_headers.insert(std::make_pair("X-BBL-Client-Type", "slicer"));
     extra_headers.insert(std::make_pair("X-BBL-Client-Name", SLIC3R_APP_NAME));
-    extra_headers.insert(std::make_pair("X-BBL-Client-Version", VersionInfo::convert_full_version(SLIC3R_VERSION)));
+    extra_headers.insert(std::make_pair("X-BBL-Client-Version", get_bbl_client_version()));
 #if defined(__WINDOWS__)
 #ifdef _M_X64
     extra_headers.insert(std::make_pair("X-BBL-OS-Type", "windows"));
@@ -2522,6 +2522,16 @@ std::map<std::string, std::string> GUI_App::get_extra_header()
         extra_headers.insert(std::make_pair("X-BBL-Device-ID", app_config->get("slicer_uuid")));
     extra_headers.insert(std::make_pair("X-BBL-Language", convert_studio_language_to_api(into_u8(current_language_code_safe()))));
     return extra_headers;
+}
+
+std::string GUI_App::get_bbl_client_version()
+{
+    if (BBLNetworkPlugin::instance().get_get_my_token() == nullptr) {
+        // Legacy Bambu plugin lacks bambu_network_get_my_token. Pin client
+        // version so the auth server keeps using the ?access_token= redirect.
+        return "01.10.01.50";
+    }
+    return VersionInfo::convert_full_version(SLIC3R_VERSION);
 }
 
 //BBS
