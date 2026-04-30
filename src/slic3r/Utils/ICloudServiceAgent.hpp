@@ -353,6 +353,14 @@ public:
      */
     virtual int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body) = 0;
 
+    /**
+     * Exchange a one-time login ticket (from a third-party OAuth callback)
+     * for token + profile JSON. Used by the localhost callback handler when
+     * the auth server redirects with ?ticket=...&redirect_url=... instead of
+     * passing tokens directly in the URL.
+     */
+    virtual int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body) = 0;
+
     // ========================================================================
     // Analytics & Tracking
     // ========================================================================

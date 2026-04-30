@@ -628,6 +628,17 @@ int BBLCloudServiceAgent::get_my_profile(std::string token, unsigned int* http_c
     return -1;
 }
 
+int BBLCloudServiceAgent::get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_get_my_token();
+    if (func && agent) {
+        return func(agent, ticket, http_code, http_body);
+    }
+    return -1;
+}
+
 // ============================================================================
 // Analytics & Tracking
 // ============================================================================

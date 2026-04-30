@@ -707,6 +707,10 @@ public:
     bool            hot_reload_network_plugin();
     std::string     get_latest_network_version() const;
     bool            has_network_update_available() const;
+    // Return the client version to report to Bambu servers. Pinned to
+    // 01.10.01.50 when the legacy network plugin lacks get_my_token support
+    // so the auth server stays on the ?access_token= redirect path.
+    std::string     get_bbl_client_version();
 
 private:
     int             updating_bambu_networking();
