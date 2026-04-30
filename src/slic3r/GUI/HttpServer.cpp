@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -274,9 +275,13 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
     // third-party (Google) OAuth so that the access token never travels through
     // the URL. We exchange the ticket via the network plugin's get_my_token,
     // then run the same get_my_profile + change_user flow as access_token.
+    // Skip entirely on legacy plugins missing bambu_network_get_my_token —
+    // those clients pin X-BBL-Client-Version so the server stays on the legacy
+    // ?access_token= redirect path and never sends ?ticket= here.
     const std::string ticket = url_get_param(url, "ticket");
     const std::string ticket_redirect_url = url_get_param(url, "redirect_url");
-    if (!ticket.empty() && !ticket_redirect_url.empty()) {
+    if (!ticket.empty() && !ticket_redirect_url.empty() &&
+        BBLNetworkPlugin::instance().get_get_my_token() != nullptr) {
         BOOST_LOG_TRIVIAL(info) << "thirdparty_login: ticket flow";
         NetworkAgent* agent = wxGetApp().getAgent();
         if (!agent) {

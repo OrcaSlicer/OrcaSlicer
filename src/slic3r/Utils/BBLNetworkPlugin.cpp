@@ -176,7 +176,8 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
         << ", version=" << (loaded_version.empty() ? "unknown" : loaded_version)
         << ", send_message=" << (m_send_message ? "loaded" : "null")
         << ", start_print=" << (m_start_print ? "loaded" : "null")
-        << ", start_local_print=" << (m_start_local_print ? "loaded" : "null");
+        << ", start_local_print=" << (m_start_local_print ? "loaded" : "null")
+        << ", get_my_token=" << (m_get_my_token ? "loaded" : "null");
 
     return 0;
 }
