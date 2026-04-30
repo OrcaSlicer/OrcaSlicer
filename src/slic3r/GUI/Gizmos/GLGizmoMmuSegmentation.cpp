@@ -345,6 +345,12 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 {
     if (!m_c->selection_info()->model_object()) return;
 
+    float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+
     const float approx_height = m_imgui->scaled(22.0f);
     y = std::min(y, bottom_limit - approx_height);
     GizmoImguiSetNextWIndowPos(x, y, ImGuiCond_Always);
