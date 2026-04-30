@@ -52,6 +52,78 @@ using boost::property_tree::ptree;
 
 namespace Slic3r {
 
+namespace {
+
+struct ParsedName {
+    PresetOrigin::Kind kind { PresetOrigin::Kind::User };
+    std::string        bundle_id;
+    std::string        bare;
+};
+
+// Canonical names are built in-memory with '/' separators, so a straight prefix+split match is enough.
+static ParsedName parse_preset_name(const std::string &raw_name)
+{
+    ParsedName out;
+
+    auto try_prefix = [&](const char *dir, PresetOrigin::Kind kind) {
+        const std::string prefix = std::string(dir) + "/";
+        if (! boost::starts_with(raw_name, prefix))
+            return false;
+        const size_t id_start = prefix.size();
+        const size_t id_end   = raw_name.find('/', id_start);
+        if (id_end == std::string::npos || id_end == id_start)
+            return false;
+        out.kind      = kind;
+        out.bundle_id = raw_name.substr(id_start, id_end - id_start);
+        out.bare      = raw_name.substr(id_end + 1);
+        return true;
+    };
+
+    if (! try_prefix(PRESET_LOCAL_DIR,      PresetOrigin::Kind::LocalBundle) &&
+        ! try_prefix(PRESET_SUBSCRIBED_DIR, PresetOrigin::Kind::SubscribedBundle))
+        out.bare = raw_name;
+
+    return out;
+}
+
+} // namespace
+
+std::string get_preset_canonical_name(const std::string &preset_bare_name, const PresetOrigin &origin)
+{
+    switch (origin.kind) {
+    case PresetOrigin::Kind::LocalBundle:
+        return origin.bundle_id.empty() ? preset_bare_name : std::string(PRESET_LOCAL_DIR) + "/" + origin.bundle_id + "/" + preset_bare_name;
+    case PresetOrigin::Kind::SubscribedBundle:
+        return origin.bundle_id.empty() ? preset_bare_name : std::string(PRESET_SUBSCRIBED_DIR) + "/" + origin.bundle_id + "/" + preset_bare_name;
+    default:
+        return preset_bare_name;
+    }
+}
+
+std::string get_preset_bare_name(const std::string &canonical_name)
+{
+    const auto pos = canonical_name.find_last_of('/');
+    return pos == std::string::npos ? canonical_name : canonical_name.substr(pos + 1);
+}
+
+PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const PresetOrigin &explicit_origin)
+{
+    if (explicit_origin.kind != PresetOrigin::Kind::Auto)
+        return explicit_origin;
+
+    for (auto it = path.begin(); it != path.end(); ++ it) {
+        const auto next = std::next(it);
+        if (next == path.end())
+            break;
+        const std::string segment = it->string();
+        if (segment == PRESET_LOCAL_DIR)
+            return PresetOrigin(PresetOrigin::Kind::LocalBundle, next->string());
+        if (segment == PRESET_SUBSCRIBED_DIR)
+            return PresetOrigin(PresetOrigin::Kind::SubscribedBundle, next->string());
+    }
+    return PresetOrigin(PresetOrigin::Kind::User);
+}
+
 //BBS: add a function to load the version from xxx.json
 Semver get_version_from_json(std::string file_path)
 {
@@ -522,7 +594,7 @@ void Preset::load_info(const std::string& file)
 void Preset::save_info(std::string file)
 {
     //BBS: add project embedded preset logic
-    if (this->is_project_embedded)
+    if (this->is_project_embedded || this->is_from_bundle())
         return;
     if (file.empty()) {
         fs::path idx_file(this->file);
@@ -544,17 +616,26 @@ void Preset::save_info(std::string file)
     c.close();
 }
 
-void Preset::remove_files()
+void Preset::remove_files(bool cloud_already_deleted)
 {
     //BBS: add project embedded preset logic
-    if (this->is_project_embedded)
+    if (this->is_project_embedded) {
         return;
+    }
     // Erase the preset file.
     boost::nowide::remove(this->file.c_str());
     fs::path idx_path(this->file);
     idx_path.replace_extension(".info");
-    if (fs::exists(idx_path))
-        boost::nowide::remove(idx_path.string().c_str());
+    if (fs::exists(idx_path)) {
+        if (!this->setting_id.empty() && !cloud_already_deleted) {
+            // Cloud-synced preset - mark for deletion and keep .info file until sync confirms
+            this->sync_info = "delete";
+            this->save_info(idx_path.string());
+        } else {
+            // Local-only preset or cloud already confirmed deletion - safe to delete .info immediately
+            boost::nowide::remove(idx_path.string().c_str());
+        }
+    }
 }
 
 //BBS: add logic for only difference save
@@ -570,12 +651,15 @@ void Preset::save(DynamicPrintConfig* parent_config)
         from_str = std::string("User");
     else if (this->is_project_embedded)
         from_str = std::string("Project");
+    else if (this->is_from_bundle())
+        from_str = std::string("Bundle");
     else if (this->is_system)
         from_str = std::string("System");
     else
         from_str = std::string("Default");
 
     boost::filesystem::create_directories(fs::path(this->file).parent_path());
+    const std::string bare_name = get_preset_bare_name(this->name);
 
     //BBS: only save difference if it has parent
     if (parent_config) {
@@ -615,19 +699,22 @@ void Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
-        temp_config.save_to_json(this->file, this->name, from_str, this->version.to_string());
+        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     } else if (!filament_id.empty() && inherits().empty()) {
         DynamicPrintConfig temp_config = config;
         temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
-        temp_config.save_to_json(this->file, this->name, from_str, this->version.to_string());
+        temp_config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     } else {
-        this->config.save_to_json(this->file, this->name, from_str, this->version.to_string());
+        this->config.save_to_json(this->file, bare_name, from_str, this->version.to_string());
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
 
-    fs::path idx_file(this->file);
-    idx_file.replace_extension(".info");
-    this->save_info(idx_file.string());
+    // Bundle presets are synced via bundle_id and don't need individual .info files.
+    if (! this->is_from_bundle()) {
+        fs::path idx_file(this->file);
+        idx_file.replace_extension(".info");
+        this->save_info(idx_file.string());
+    }
 }
 
 void Preset::reload(Preset const &parent)
@@ -1205,19 +1292,34 @@ void PresetCollection::add_default_preset(const std::vector<std::string> &keys, 
     ++ m_num_default_presets;
 }
 
+std::string PresetCollection::canonical_preset_name(const std::string &name, const PresetOrigin &load_origin) const
+{
+    const ParsedName parsed = parse_preset_name(name);
+    PresetOrigin origin = load_origin;
+    if (origin.kind == PresetOrigin::Kind::Auto) {
+        origin.kind      = parsed.kind;
+        origin.bundle_id = parsed.bundle_id;
+    } else if (origin.is_bundle() && origin.bundle_id.empty()) {
+        origin.bundle_id = parsed.bundle_id;
+    }
+    return get_preset_canonical_name(parsed.bare, origin);
+}
+
 // Load all presets found in dir_path.
 // Throws an exception on error.
 void PresetCollection::load_presets(
     const std::string &dir_path, const std::string &subdir,
-    PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule substitution_rule)
+    PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule substitution_rule,
+    std::function<void(Preset&)> preset_loaded_fn, const PresetOrigin &load_origin)
 {
     // Don't use boost::filesystem::canonical() on Windows, it is broken in regard to reparse points,
     // see https://github.com/prusa3d/PrusaSlicer/issues/732
     boost::filesystem::path dir = boost::filesystem::absolute(boost::filesystem::path(dir_path) / subdir).make_preferred();
+    const PresetOrigin resolved_origin = detect_origin_from_path(dir, load_origin);
 
     // Load custom roots first
     if (fs::exists(dir / "base")) {
-        load_presets(dir.string(), "base", substitutions, substitution_rule);
+        load_presets(dir.string(), "base", substitutions, substitution_rule, nullptr, resolved_origin);
     }
 
     //BBS: add config related logs
@@ -1247,14 +1349,16 @@ void PresetCollection::load_presets(
         if (Slic3r::is_json_file(file_name)) {
             // Remove the .ini suffix.
             std::string name = file_name.erase(file_name.size() - 5);
-            if (this->find_preset(name, false)) {
+            std::string canonical_name = this->canonical_preset_name(name, resolved_origin);
+            if (this->find_preset(canonical_name, false)) {
                 // This happens when there's is a preset (most likely legacy one) with the same name as a system preset
                 // that's already been loaded from a bundle.
-                BOOST_LOG_TRIVIAL(warning) << "Preset already present, not loading: " << name;
+                BOOST_LOG_TRIVIAL(warning) << "Preset already present, not loading: " << canonical_name;
                 continue;
             }
             try {
-                Preset preset(m_type, name, false);
+                Preset preset(m_type, canonical_name, false);
+                preset.bundle_id = resolved_origin.bundle_id;
                 preset.file = dir_entry.path().string();
                 // Load the preset file, apply preset values on top of defaults.
                 try {
@@ -1305,7 +1409,6 @@ void PresetCollection::load_presets(
                         std::string inherits_value = option_str->value;
                         // Orca: try to find if the parent preset has been renamed
                         inherit_preset = this->find_preset2(inherits_value);
-
                     } else {
                         ;
                     }
@@ -1382,6 +1485,9 @@ void PresetCollection::load_presets(
                     if (fs::exists(file_path))
                         fs::remove(file_path);
                 }
+
+                if (preset_loaded_fn != nullptr)
+                    preset_loaded_fn(preset);
 
                 presets_loaded.emplace_back(preset);
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " load config successful and preset name is:" << preset.name;
@@ -1554,7 +1660,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
                     inherits_value.replace(pos, 1, 1, '~');
                     option_str->value = inherits_value;
                 }*/
-                inherit_preset = this->find_preset(inherits_value, false, true);
+                inherit_preset = this->find_preset2(inherits_value, true);
             }
             const Preset& default_preset = this->default_preset_for(config);
             if (inherit_preset) {
@@ -1655,9 +1761,10 @@ bool PresetCollection::reset_project_embedded_presets()
 void PresetCollection::set_sync_info_and_save(std::string name, std::string setting_id, std::string syncinfo, long long update_time)
 {
     lock();
+    const std::string canonical_name = this->canonical_preset_name(name);
     for (auto it = m_presets.begin(); it != m_presets.end(); it++) {
         Preset* preset = &m_presets[it - m_presets.begin()];
-        if (preset->name == name) {
+        if (preset->name == canonical_name) {
             if (syncinfo.empty())
                 preset->sync_info.clear();
             else
@@ -1722,7 +1829,7 @@ void PresetCollection::update_user_presets_directory(const std::string& dir_path
 }
 
 //BBS: save user presets to local
-void PresetCollection::save_user_presets(const std::string& dir_path, const std::string& type, std::vector<std::string>& need_to_delete_list)
+void PresetCollection::save_user_presets(const std::string& dir_path, const std::string& type, std::map<std::string, std::string>& need_to_delete_list)
 {
     boost::filesystem::path dir = boost::filesystem::absolute(boost::filesystem::path(dir_path) / type).make_preferred();
 
@@ -1776,31 +1883,37 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
 }
 
 //BBS: load one user preset from key-values
-bool PresetCollection::load_user_preset(std::string name, std::map<std::string, std::string> preset_values, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule)
+bool PresetCollection::load_user_preset(std::string name, std::map<std::string, std::string> preset_values, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule, const PresetOrigin &load_origin)
 {
     std::string errors_cummulative;
     // Store the loaded presets into a new vector, otherwise the binary search for already existing presets would be broken.
     // (see the "Preset already present, not loading" message).
     //std::deque<Preset> presets_loaded;
     int count = 0;
+    const std::string canonical_name = this->canonical_preset_name(name, load_origin);
+    auto update_alias = [this](Preset &preset) {
+        if (! preset.alias.empty())
+            return;
+        set_custom_preset_alias(preset);
+    };
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, name %1% , total value counts %2%")%name %preset_values.size();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, name %1% , total value counts %2%")%canonical_name %preset_values.size();
 
     //if the version is not matching, skip it
     if (preset_values.find(BBL_JSON_KEY_VERSION) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find version, not loading for user preset %1%")%name;
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find version, not loading for user preset %1%")%canonical_name;
         return false;
     }
     std::string version_str = preset_values[BBL_JSON_KEY_VERSION];
     boost::optional<Semver> cloud_version = Semver::parse(version_str);
     if (!cloud_version) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("invalid version %1%, not loading for user preset %2%")%version_str %name;
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("invalid version %1%, not loading for user preset %2%")%version_str %canonical_name;
         return false;
     }
 
     //setting_id
     if (preset_values.find(BBL_JSON_KEY_SETTING_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find setting_id, not loading for user preset %1%")%name;
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find setting_id, not loading for user preset %1%")%canonical_name;
         return false;
     }
     std::string cloud_setting_id = preset_values[BBL_JSON_KEY_SETTING_ID];
@@ -1813,17 +1926,17 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
 
     //user_id
     if (preset_values.find(BBL_JSON_KEY_USER_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find user_id, not loading for user preset %1%")%name;
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find user_id, not loading for user preset %1%")%canonical_name;
         return false;
     }
     std::string cloud_user_id = preset_values[BBL_JSON_KEY_USER_ID];
 
     lock();
     //std::string name = preset->name;
-    auto iter = this->find_preset_internal(name);
+    auto iter = this->find_preset_internal(canonical_name);
     bool need_update = false;
-    if ((iter != m_presets.end()) && (iter->name == name)) {
-        BOOST_LOG_TRIVIAL(info) << "Found the Preset locally: " << name;
+    if ((iter != m_presets.end()) && (iter->name == canonical_name)) {
+        BOOST_LOG_TRIVIAL(info) << "Found the Preset locally: " << canonical_name;
         //BBS: we should compare the time between cloud and local
         if ((cloud_update_time == 0) || (cloud_update_time <= iter->updated_time)) {
             if (cloud_update_time < iter->updated_time)
@@ -1835,7 +1948,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             fs::path idx_file(iter->file);
             idx_file.replace_extension(".info");
             iter->save_info(idx_file.string());
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("preset %1%'s update_time is eqaul or newer, cloud  update_time %2%, local update_time %3%")%name %cloud_update_time %iter->updated_time;
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("preset %1%'s update_time is eqaul or newer, cloud  update_time %2%, local update_time %3%")%canonical_name %cloud_update_time %iter->updated_time;
             unlock();
             return false;
         }
@@ -1847,7 +1960,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
 
     // base_id
     if (preset_values.find(BBL_JSON_KEY_BASE_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find base_id, not loading for user preset %1%") % name;
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
         unlock();
         return false;
     }
@@ -1857,14 +1970,14 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
     std::string cloud_filament_id;
     if ((m_type == Preset::TYPE_FILAMENT) && preset_values.find(BBL_JSON_KEY_FILAMENT_ID) != preset_values.end()) {
         cloud_filament_id = preset_values[BBL_JSON_KEY_FILAMENT_ID];
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << name << " filament_id: " << cloud_filament_id << " base_id: " << cloud_base_id;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << canonical_name << " filament_id: " << cloud_filament_id << " base_id: " << cloud_base_id;
     }
 
     DynamicPrintConfig new_config, cloud_config;
     try {
         ConfigSubstitutions config_substitutions = cloud_config.load_string_map(preset_values, rule);
         if (! config_substitutions.empty())
-            substitutions.push_back({ name, m_type, PresetConfigSubstitutions::Source::UserCloud, name, std::move(config_substitutions) });
+            substitutions.push_back({ canonical_name, m_type, PresetConfigSubstitutions::Source::UserCloud, canonical_name, std::move(config_substitutions) });
 
         //BBS: use inherit config as the base
         Preset* inherit_preset = nullptr;
@@ -1872,12 +1985,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         if (inherits_config) {
             ConfigOptionString * option_str = dynamic_cast<ConfigOptionString *> (inherits_config);
             std::string inherits_value = option_str->value;
-            /*size_t pos = inherits_value.find_first_of('*');
-            if (pos != std::string::npos) {
-                inherits_value.replace(pos, 1, 1, '~');
-                option_str->value = inherits_value;
-            }*/
-            inherit_preset = this->find_preset(inherits_value, false, true);
+            inherit_preset = this->find_preset2(inherits_value, true);
         }
         const Preset& default_preset = this->default_preset_for(cloud_config);
         if (inherit_preset) {
@@ -1891,7 +1999,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
             if (inherits_config2 && !inherits_config2->value.empty()) {
                 //we should skip this preset here
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, just skip")%name;
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, just skip")%canonical_name;
                 unlock();
                 return false;
             }
@@ -1917,7 +2025,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         std::string incorrect_keys = Preset::remove_invalid_keys(new_config, default_preset.config);
         if (!incorrect_keys.empty()) {
             ++m_errors;
-            BOOST_LOG_TRIVIAL(error) << "Error in a preset file: The preset \"" << name
+            BOOST_LOG_TRIVIAL(error) << "Error in a preset file: The preset \"" << canonical_name
                                      << "\" contains the following incorrect keys: " << incorrect_keys << ", which were removed";
         }
         if (need_update) {
@@ -1933,15 +2041,17 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             iter->setting_id = cloud_setting_id;
             iter->base_id = cloud_base_id;
             iter->filament_id = cloud_filament_id;
+            update_alias(*iter);
             //presets_loaded.emplace_back(*it->second);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", update the user preset %1% from cloud, type %2%, setting_id %3%, base_id %4%, sync_info %5% inherits %6%, filament_id %7%")
                % iter->name %Preset::get_type_string(m_type) %iter->setting_id %iter->base_id %iter->sync_info %iter->inherits() % iter->filament_id;
         }
         else {
             //create a new one
-            Preset preset(m_type, name, false);
+            Preset preset(m_type, canonical_name, false);
             preset.is_system = false;
             preset.loaded = true;
+            preset.bundle_id = load_origin.bundle_id;
             preset.config = new_config;
             preset.updated_time = cloud_update_time;
             preset.sync_info   = "save";
@@ -1950,6 +2060,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             preset.setting_id = cloud_setting_id;
             preset.base_id = cloud_base_id;
             preset.filament_id = cloud_filament_id;
+            update_alias(preset);
 
             size_t cur_index = iter - m_presets.begin();
             m_presets.insert(iter, preset);
@@ -1971,7 +2082,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
 
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, load user preset %1% , type %2%, errors_cummulative %3%")%name %Preset::get_type_string(m_type) %errors_cummulative;
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, load user preset %1% , type %2%, errors_cummulative %3%")%canonical_name %Preset::get_type_string(m_type) %errors_cummulative;
     return (need_update)?false:true;
 }
 
@@ -1992,16 +2103,23 @@ void PresetCollection::update_after_user_presets_loaded()
 //BBS: validate_preset
 bool PresetCollection::validate_preset(const std::string &preset_name, std::string &inherit_name)
 {
-    std::deque<Preset>::iterator it       = this->find_preset_internal(preset_name);
-    bool                         found    = (it != m_presets.end()) && (it->name == preset_name) && (it->is_system || it->is_default);
+    // Presets that came from system vendors, the built-in defaults, or any loaded bundle (local or
+    // subscribed) are trusted — their g-code isn't user-authored, so the 3MF importer should not
+    // warn about them.
+    auto is_trusted = [](const Preset &p) { return p.is_system || p.is_default || p.is_from_bundle(); };
+
+    const std::string canonical_name = this->canonical_preset_name(preset_name);
+    std::deque<Preset>::iterator it       = this->find_preset_internal(canonical_name);
+    bool                         found    = (it != m_presets.end()) && (it->name == canonical_name) && is_trusted(*it);
     if (!found) {
-        it = this->find_preset_renamed(preset_name);
-        found = it != m_presets.end() && (it->is_system || it->is_default);
+        it = this->find_preset_renamed(canonical_name);
+        found = it != m_presets.end() && is_trusted(*it);
     }
     if (!found) {
         if (!inherit_name.empty()) {
-            it    = this->find_preset_internal(inherit_name);
-            found = it != m_presets.end() && it->name == inherit_name && (it->is_system || it->is_default);
+            const std::string canonical_inherit_name = this->canonical_preset_name(inherit_name);
+            it    = this->find_preset_internal(canonical_inherit_name);
+            found = it != m_presets.end() && it->name == canonical_inherit_name && is_trusted(*it);
             if (found)
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": preset_name %1%, inherit_name %2%, found inherit in list")%preset_name %inherit_name;
             else
@@ -2078,7 +2196,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
     cfg.apply_only(combined_config, keys, true);
     std::string                 &inherits = Preset::inherits(cfg);
 
-    //BBS: add different settings check logic, replace the old system preset's default value with new system preset's default values
+    //add different settings check logic, replace the old system preset's default value with new system preset's default values
     std::deque<Preset>::iterator it       = this->find_preset_internal(original_name);
     bool                         found    = it != m_presets.end() && it->name == original_name;
     if (! found) {
@@ -2440,7 +2558,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         // Preset with the same name found.
         Preset &preset = *it;
         //BBS: add project embedded preset logic
-        if (preset.is_default || preset.is_system) {
+        if (!preset.can_overwrite()) {
         //if (preset.is_default || preset.is_external || preset.is_system)
             // Cannot overwrite the default preset.
             //BBS: add lock logic for sync preset in background
@@ -2499,6 +2617,9 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         preset.is_default  = false;
         preset.is_system   = false;
         preset.is_external = false;
+
+        preset.bundle_id.clear();
+
         preset.file        = this->path_for_preset(preset);
         // The newly saved preset will be activated -> make it visible.
         preset.is_visible  = true;
@@ -2541,7 +2662,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
 bool PresetCollection::delete_current_preset()
 {
     Preset &selected = this->get_selected_preset();
-    if (selected.is_default)
+    if (!selected.can_overwrite())
         return false;
 
     if (get_preset_base(selected) == &selected) {
@@ -2572,18 +2693,24 @@ bool PresetCollection::delete_current_preset()
     return true;
 }
 
-bool PresetCollection::delete_preset(const std::string& name)
+bool PresetCollection::delete_preset(const std::string& name, bool force)
 {
-    auto it = this->find_preset_internal(name);
+    Preset *preset_ptr = this->find_preset(name, false, true);
+    if (preset_ptr == nullptr)
+        return false;
+
+    auto it = this->find_preset_internal(preset_ptr->name);
+    if (it == m_presets.end() || it->name != preset_ptr->name)
+        return false;
 
     Preset& preset = *it;
-    if (preset.is_default)
+    // ORCA: if the preset can't be overridden then don't allow deletion
+    // force=true bypasses this for bundle preset cleanup from cloud sync
+    if (!force && !preset.can_overwrite())
         return false;
-    //BBS: add project embedded preset logic and refine is_external
-    //if (!preset.is_external && !preset.is_system) {
-    if (! preset.is_system) {
-        preset.remove_files();
-    }
+
+    preset.remove_files();
+
     //BBS: add lock logic for sync preset in background
     lock();
     set_printer_hold_alias(it->alias, *it, true);
@@ -2591,6 +2718,30 @@ bool PresetCollection::delete_preset(const std::string& name)
     unlock();
 
     return true;
+}
+
+void PresetCollection::check_and_fix_syncinfo(Preset& preset, const std::string& user_id)
+{
+    // user id can't be empty
+    if (user_id.empty())
+        return;
+    // correct the sync info if preset.user_id is empty(the profile json file is copied to the user folder with missing .info file) or preset.user_id
+    // is not equal to the current user id or preset.setting_id is not in expected format(the .info is copied from the older format)
+    if (preset.user_id.empty() || preset.user_id != user_id || preset.setting_id.find('-') == std::string::npos) {
+        preset.user_id    = user_id;
+        preset.setting_id = "";
+
+        if (preset.base_id.empty()) {
+            const std::string inherits      = Preset::inherits(preset.config);
+            Preset*           parent_preset = find_preset2(inherits, true);
+            if (parent_preset)
+                preset.base_id = parent_preset->setting_id;
+        }
+        // tell the sync logic to sync it as a new preset
+        preset.updated_time = 0;
+        preset.sync_info    = "create";
+        preset.save_info();
+    }
 }
 
 const Preset* PresetCollection::get_selected_preset_parent() const
@@ -2655,7 +2806,7 @@ const Preset *PresetCollection::get_preset_base(const Preset &child) const
     // Handle user preset
     if (child.inherits().empty())
         return &child; // this is user root
-    auto inherits = find_preset2(child.inherits(),true);
+    auto inherits = find_preset2(child.inherits(), true);
     return inherits ? get_preset_base(*inherits) : nullptr;
 }
 
@@ -2729,20 +2880,21 @@ const std::string& PresetCollection::get_suffix_modified() {
 // If a preset was not found by its name, null is returned.
 Preset* PresetCollection::find_preset(const std::string &name, bool first_visible_if_not_found, bool real, bool only_from_library)
 {
-    Preset key(m_type, name, false);
-    auto it = this->find_preset_internal(name, only_from_library);
-    // Ensure that a temporary copy is returned if the preset found is currently selected.
-    return (it != m_presets.end() && it->name == key.name) ? &this->preset(it - m_presets.begin(), real) :
-        first_visible_if_not_found ? &this->first_visible() : nullptr;
+    const ParsedName  parsed    = parse_preset_name(name);
+    const std::string canonical = get_preset_canonical_name(parsed.bare, PresetOrigin(parsed.kind, parsed.bundle_id));
+    auto it = this->find_preset_internal(canonical, only_from_library);
+    if (it != m_presets.end() && it->name == canonical)
+        return &this->preset(it - m_presets.begin(), real);
+    return first_visible_if_not_found ? &this->first_visible() : nullptr;
 }
 
 Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/* = true */)
 {
-    auto preset = find_preset(name,false,true);
+    auto preset = find_preset(name, false, true);
     if (preset == nullptr) {
         auto _name = get_preset_name_renamed(name);
         if (_name != nullptr)
-            preset = find_preset(*_name,false,true);
+            preset = find_preset(*_name, false, true);
         if (auto_match && preset == nullptr) {
             //Orca: one more try, find the most likely preset in OrcaFilamentLibrary
             if (name.find("Generic") != std::string::npos) {
@@ -2758,7 +2910,6 @@ Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/
             }
         }
     }
-
     return preset;
 }
 
@@ -3110,10 +3261,11 @@ bool PresetCollection::select_preset_by_name(const std::string &name_w_suffix, b
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, try to select by name %2%, force %3%")%Preset::get_type_string(m_type) %name_w_suffix %force;
     std::string name = Preset::remove_suffix_modified(name_w_suffix);
+    const std::string normalized_name = this->canonical_preset_name(name);
     // 1) Try to find the preset by its name.
-    auto it = this->find_preset_internal(name);
+    auto it = this->find_preset_internal(normalized_name);
     size_t idx = 0;
-    if (it != m_presets.end() && it->name == name && it->is_visible)
+    if (it != m_presets.end() && it->name == normalized_name && it->is_visible)
         // Preset found by its name and it is visible.
         idx = it - m_presets.begin();
     else {
@@ -3146,11 +3298,12 @@ bool PresetCollection::select_preset_by_name_strict(const std::string &name)
 {
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": %1%, try to select by name %2%")%Preset::get_type_string(m_type) %name;
+    const std::string canonical_name = this->canonical_preset_name(name);
     // 1) Try to find the preset by its name.
-    auto it = this->find_preset_internal(name);
+    auto it = this->find_preset_internal(canonical_name);
 
     size_t idx = (size_t)-1;
-    if (it != m_presets.end() && it->name == name && it->is_visible)
+    if (it != m_presets.end() && it->name == canonical_name && it->is_visible)
         // Preset found by its name.
         idx = it - m_presets.begin();
     // 2) Select the new preset.
@@ -3262,9 +3415,13 @@ void PresetCollection::update_map_system_profile_renamed()
 
 void PresetCollection::set_custom_preset_alias(Preset &preset)
 {
+    // For filaments, remove the postfix
+    // For printers, there is nothing to remove
+    // For prints AKA processes, the postfix should be kept
+    // Alias should be set here, as the preset name may be augmented further later (i.e., prefixing relative path for bundles)
+    std::string alias_name;
+    std::string preset_name = get_preset_bare_name(preset.name);
     if (m_type == Preset::Type::TYPE_FILAMENT && preset.config.has(BBL_JSON_KEY_INHERITS) && preset.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value.empty()) {
-        std::string alias_name;
-        std::string preset_name = preset.name;
         if (alias_name.empty()) {
             size_t end_pos = preset_name.find_first_of("@");
             if (end_pos != std::string::npos) {
@@ -3272,14 +3429,14 @@ void PresetCollection::set_custom_preset_alias(Preset &preset)
                 boost::trim_right(alias_name);
             }
         }
-        if (alias_name.empty() || is_alias_exist(alias_name, &preset))
-            preset.alias = "";
-        else {
-            preset.alias = std::move(alias_name);
-            m_map_alias_to_profile_name[preset.alias].push_back(preset.name);
-            set_printer_hold_alias(preset.alias, preset);
-        }
     }
+    else {
+        alias_name = preset_name;
+    }
+
+    preset.alias = std::move(alias_name);
+    m_map_alias_to_profile_name[preset.alias].push_back(preset.name);
+    set_printer_hold_alias(preset.alias, preset);
 }
 
 void PresetCollection::set_printer_hold_alias(const std::string &alias, Preset &preset, bool remove)
@@ -3380,7 +3537,7 @@ std::string PresetCollection::path_from_name(const std::string &new_name, bool d
 
 std::string PresetCollection::path_for_preset(const Preset &preset) const
 {
-    return path_from_name(preset.name, is_base_preset(preset));
+    return path_from_name(get_preset_bare_name(preset.name), is_base_preset(preset));
 }
 
 const Preset& PrinterPresetCollection::default_preset_for(const DynamicPrintConfig &config) const

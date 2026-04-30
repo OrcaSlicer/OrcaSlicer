@@ -1064,30 +1064,17 @@ void PresetUpdater::priv::sync_printer_config(std::string http_url)
 
 bool PresetUpdater::priv::install_bundles_rsrc(const std::vector<std::string>& bundles, bool snapshot) const
 {
-	Updates updates;
-
-	BOOST_LOG_TRIVIAL(info) << format("Installing %1% bundles from resources ...", bundles.size());
-
-	for (const auto &bundle : bundles) {
-		auto path_in_rsrc = (this->rsrc_path / bundle).replace_extension(".json");
-		auto path_in_vendors = (this->vendor_path / bundle).replace_extension(".json");
-		updates.updates.emplace_back(std::move(path_in_rsrc), std::move(path_in_vendors), Version(), bundle, "", "");
-
-        //BBS: add directory support
-        auto print_in_rsrc = this->rsrc_path / bundle;
-		auto print_in_vendors = this->vendor_path / bundle;
-        fs::path print_folder(print_in_vendors);
-        if (fs::exists(print_folder))
-            fs::remove_all(print_folder);
-        fs::create_directories(print_folder);
-		updates.updates.emplace_back(std::move(print_in_rsrc), std::move(print_in_vendors), Version(), bundle, "", "",[](const std::string name){
-        // return false if name is end with .stl, case insensitive
-        return boost::iends_with(name, ".stl") || boost::iends_with(name, ".png") || boost::iends_with(name, ".svg") ||
-               boost::iends_with(name, ".jpeg") || boost::iends_with(name, ".jpg") || boost::iends_with(name, ".3mf");
-        }, false, true);
+	// Use the Core library function to install bundles
+	// This function is now in libslic3r so both Core and GUI can use it
+	if (!Slic3r::install_vendor_bundles_from_resources(bundles)) {
+		BOOST_LOG_TRIVIAL(error) << "Failed to install bundles from resources";
+		return false;
 	}
 
-	return perform_updates(std::move(updates), snapshot);
+	// Snapshot logic is currently commented out in perform_updates, so we don't need to handle it here
+	// If snapshot logic is needed in the future, it can be added here
+
+	return true;
 }
 
 
