@@ -117,7 +117,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["toggle_wireframe"] = _L("Toggle Wireframe");
     m_desc["perform_remap"]    = _L("Remap filaments");
     m_desc["remap"]            = _L("Remap");
-    m_desc["cancel_remap"]     = _L("Cancel");
+    m_desc["remap_reset"]      = _L("Reset");
 
     std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
     std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
@@ -304,6 +304,43 @@ void GLGizmoMmuSegmentation::render_tooltip_button(float x, float y)
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, get_shortcuts(), x, y);
 }
 
+// ORCA
+bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale)
+{
+    ImDrawList* draw_list   = ImGui::GetWindowDrawList();
+    std::string label_id    = std::to_string(idx) + id_str + std::to_string(idx);
+    ImVec4      color_vec   = ImGuiWrapper::to_ImVec4(color);
+    ImVec2      size        = ImVec2(24.f  * scale, 24.f  * scale);
+    ImU32       bg_color    = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+    ImVec2      pos         = ImGui::GetCursorScreenPos();
+    bool        dark_tone   = (0.299 * color.r() + 0.587 * color.g() + 0.114 * color.b()) * 255.f < 80.f;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(8.f * scale, 8.f * scale));
+    ImGui::PushStyleColor(ImGuiCol_Text         , dark_tone ? ImVec4(1,1,1,1) : ImVec4(0,0,0,1));
+    ImGui::PushStyleColor(ImGuiCol_Button       , color_vec); // ORCA
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_vec); // ORCA
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive , color_vec); // ORCA
+    bool clicked = ImGui::Button(label_id.c_str(), size);
+    ImGui::PopStyleVar(4);
+    ImGui::PopStyleColor(4);
+
+    ImVec2 rect_max = {pos.x + size.x, pos.y + size.y};
+    draw_list->AddRect(pos, rect_max, bg_color, 3.f * scale, 0, 4.f * scale); // color square
+    if (active)
+        draw_list->AddRect(pos, rect_max, ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA), 3.f * scale, 0, 2.f * scale); // active border
+
+    if (color != map_color){ // show mapped color as bubble if mapped
+        ImVec2 center = {pos.x + size.x - 2.f, pos.y + 2.f};
+        draw_list->AddCircleFilled(center, 7.f * scale, bg_color, 16); // outer border for better visibility
+        draw_list->AddCircleFilled(center, 5.f * scale, ImGuiWrapper::to_ImU32(map_color), 16);
+    }
+
+    return clicked;
+};
+
 void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bottom_limit)
 {
     if (!m_c->selection_info()->model_object()) return;
@@ -363,67 +400,28 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
-    ImDrawList * draw_list = ImGui::GetWindowDrawList();
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    static float color_button_high  = 25.0;
-    draw_list->AddRectFilled({pos.x - 10.0f, pos.y - 7.0f}, {pos.x + window_width + ImGui::GetFrameHeight(), pos.y + color_button_high}, ImGui::GetColorU32(ImGuiCol_FrameBgActive, 1.0f), 5.0f);
-
-    float color_button = ImGui::GetCursorPos().y;
 
     m_imgui->text(m_desc.at("filaments"));
 
-    float start_pos_x = ImGui::GetCursorPos().x;
-    const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
-    const float item_spacing = m_imgui->scaled(0.8f);
     size_t n_extruder_colors = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
     for (int extruder_idx = 0; extruder_idx < n_extruder_colors; extruder_idx++) {
-        const ColorRGBA &extruder_color = m_extruders_colors[extruder_idx];
-        ImVec4           color_vec      = ImGuiWrapper::to_ImVec4(extruder_color);
-        std::string color_label = std::string("##extruder color ") + std::to_string(extruder_idx);
-        std::string item_text = std::to_string(extruder_idx + 1);
-        const ImVec2 label_size = ImGui::CalcTextSize(item_text.c_str(), NULL, true);
 
-        const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f),0.f);
+        if (extruder_idx % max_filament_items_per_line != 0)
+            ImGui::SameLine();
 
-        float button_offset = start_pos_x;
-        if (extruder_idx % max_filament_items_per_line != 0) {
-            button_offset += filament_item_width * (extruder_idx % max_filament_items_per_line);
-            ImGui::SameLine(button_offset);
+        // ORCA shared function for drawing filament button
+        if (draw_color_button(
+            extruder_idx + 1,                        // idx
+            "###extruder_color_",                    // button_id
+            m_extruders_colors[extruder_idx],        // color
+            m_extruders_colors[extruder_idx],        // mapped_color (not used in here)
+            m_selected_extruder_idx == extruder_idx, // is_active
+            scale
+        )){
+            m_selected_extruder_idx = extruder_idx;
         }
 
-        // draw filament background
-        ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip;
-        if (m_selected_extruder_idx != extruder_idx) flags |= ImGuiColorEditFlags_NoBorder;
-        #ifdef __APPLE__
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA); // ORCA use orca color for selected filament border
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0);
-            bool color_picked = ImGui::ColorButton(color_label.c_str(), color_vec, flags, button_size);
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
-        #else
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA); // ORCA use orca color for selected filament border
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0);
-            bool color_picked = ImGui::ColorButton(color_label.c_str(), color_vec, flags, button_size);
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
-        #endif
-        color_button_high = ImGui::GetCursorPos().y - color_button - 2.0;
-        if (color_picked) { m_selected_extruder_idx = extruder_idx; }
-
         if (extruder_idx < 16 && ImGui::IsItemHovered()) m_imgui->tooltip(_L("Shortcut Key ") + std::to_string(extruder_idx + 1), max_tooltip_width);
-
-        // draw filament id
-        float gray = 0.299 * extruder_color.r() + 0.587 * extruder_color.g() + 0.114 * extruder_color.b();
-        ImGui::SameLine(button_offset + (button_size.x - label_size.x) / 2.f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {10.0,15.0});
-        if (gray * 255.f < 80.f)
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s", item_text.c_str());
-        else
-            ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), "%s", item_text.c_str());
-
-        ImGui::PopStyleVar();
     }
     //ImGui::NewLine();
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
@@ -601,56 +599,23 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     ImGui::Separator();
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
-    if (m_imgui->button(m_desc.at("perform_remap"))) {
-        m_show_remap_panel = !m_show_remap_panel;
-    }
-
-    if (m_show_remap_panel)
-    {
-        ImGui::Spacing();
-
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        std::string title = into_u8(m_desc.at("perform_remap"));
-        float available_width = ImGui::GetContentRegionAvail().x;
-
-        // ORCA: Draw Background filled (consistent with Filaments section)
-        // Use static to remember height from previous frame so we can draw it behind.
-        static float remap_panel_high = 40.0f;
-        ImVec2 p_bg_min = ImGui::GetCursorScreenPos();
-        // Adjust background position: slight negative offset to align with padding, width fills available
-        // height from static variable.
-        draw_list->AddRectFilled({p_bg_min.x - 10.0f, p_bg_min.y - 7.0f}, {p_bg_min.x + available_width + ImGui::GetFrameHeight(), p_bg_min.y + remap_panel_high}, ImGui::GetColorU32(ImGuiCol_FrameBgActive, 1.0f), 5.0f);
-        
-        float start_y = ImGui::GetCursorPos().y;
-
-        // ORCA: Title as simple text - Removed as per request (redundant with button)
-        // m_imgui->text(title);
-
-        ImGui::BeginGroup();
-        // ORCA: Reduce vertical spacing within this group
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(m_imgui->scaled(0.4f), m_imgui->scaled(0.2f)));
-
-        render_filament_remap_ui(window_width, max_tooltip_width);
-
-        ImGui::PopStyleVar();
-        ImGui::EndGroup();
-
-        // ORCA: Update height for next frame fill
-        remap_panel_high = ImGui::GetCursorPos().y - start_y;
+    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0);
+    if (ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
+        render_filament_remap_ui(window_width, max_tooltip_width, scale);
 
         // ORCA: Add Remap and Cancel buttons (outside the panel)
-        ImGui::Spacing();
         if (m_imgui->button(m_desc.at("remap"))) {
             this->remap_filament_assignments();
             // Reset mapping to identity after apply
             for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
         ImGui::SameLine();
-        if (m_imgui->button(m_desc.at("cancel_remap"))) {
+        if (m_imgui->button(m_desc.at("remap_reset"))) {
             // Reset mapping to identity
             for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
     }
+    ImGui::PopStyleVar(1);
 
     ImGui::Separator();
 
@@ -1000,12 +965,9 @@ void GLGizmoMmuSegmentation::update_used_filaments()
     }
 }
 
-void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float max_tooltip_width)
+void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float max_tooltip_width, float scale)
 {
     size_t n_extr = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
-
-    const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
-    const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f), 0.f);
 
     int displayed_count = 0;
     const int max_per_line = 8;
@@ -1014,161 +976,63 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     for (size_t src : m_used_filaments) {
         if (src >= n_extr) continue;
 
-        const ColorRGBA &src_col = m_extruders_colors[src];          // keep for text contrast
-        const ColorRGBA &dst_col = m_extruders_colors[m_extruder_remap[src]];
-        
-        // ORCA: Button now shows the SOURCE color (per maintainer request)
-        // This keeps the UI stable until "Remap" is clicked.
-        ImVec4 col_vec = ImGuiWrapper::to_ImVec4(src_col);
-
         if (displayed_count > 0 && (displayed_count % max_per_line != 0))
             ImGui::SameLine();
         
-        std::string btn_id = "##remap_src_" + std::to_string(src);
         std::string pop_id = "popup_" + std::to_string(src);
-        
-        ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs |
-                                    ImGuiColorEditFlags_NoLabel  | ImGuiColorEditFlags_NoPicker |
-                                    ImGuiColorEditFlags_NoTooltip;
-        
-        // ORCA: Show border ONLY if the popup is open (visual feedback for active selection)
-        // Decoupled from m_selected_extruder_idx to prevent unwanted selection highlights.
-        if (!ImGui::IsPopupOpen(pop_id.c_str()))
-             flags |= ImGuiColorEditFlags_NoBorder;
-        
-        #ifdef __APPLE__
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0);
-            bool clicked = ImGui::ColorButton(btn_id.c_str(), col_vec, flags, button_size);
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
-        #else
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0);
-            bool clicked = ImGui::ColorButton(btn_id.c_str(), col_vec, flags, button_size);
-            ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor(1);
-        #endif
 
-        // overlay destination number with proper contrast calculation
-        // ORCA: Text still shows DESTINATION index, but contrast is against SOURCE color now.
-        std::string dst_txt = std::to_string(m_extruder_remap[src] + 1);
-        float gray = 0.299f * src_col.r() + 0.587f * src_col.g() + 0.114f * src_col.b();
-        ImVec2 txt_sz = ImGui::CalcTextSize(dst_txt.c_str());
-        ImVec2 pos = ImGui::GetItemRectMin();
-        ImVec2 size = ImGui::GetItemRectSize();
-        
-        if (gray * 255.f < 80.f)
-            ImGui::GetWindowDrawList()->AddText(
-                ImVec2(pos.x + (size.x - txt_sz.x) * 0.5f, pos.y + (size.y - txt_sz.y) * 0.5f),
-                IM_COL32(255,255,255,255), dst_txt.c_str());
-        else
-            ImGui::GetWindowDrawList()->AddText(
-                ImVec2(pos.x + (size.x - txt_sz.x) * 0.5f, pos.y + (size.y - txt_sz.y) * 0.5f),
-                IM_COL32(0,0,0,255), dst_txt.c_str());
+        // ORCA shared function for drawing filament button
+        bool src_clicked = draw_color_button(
+            (int)src + 1,                              // idx
+            "###remap_src_",                           // button_id
+            m_extruders_colors[src],                   // color
+            m_extruders_colors[m_extruder_remap[src]], // mapped_color (shows bubble if not matches with Color)
+            ImGui::IsPopupOpen(pop_id.c_str()),        // is_active
+            scale
+        );
 
-        // ORCA: Show NEW color as a small triangle in the corner if remapped
-        if (src != m_extruder_remap[src]) {
-            float s = m_imgui->scaled(0.55f);
-            float offset = m_imgui->scaled(0.15f); // Inset to avoid rounded corner clipping
-            ImVec2 p = ImVec2(pos.x + offset, pos.y + offset);
-            
-            // Contrast outline: White for dark backgrounds, Black for light backgrounds
-            // Use dst_col (new color) for outline contrast check? Or src_col?
-            // Usually outline is around the triangle (dst_col).
-            float dst_gray = 0.299f * dst_col.r() + 0.587f * dst_col.g() + 0.114f * dst_col.b();
-            ImU32 outline_col = (dst_gray * 255.f < 80.f) ? IM_COL32(255, 255, 255, 180) : IM_COL32(0, 0, 0, 180);
-
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            draw_list->AddTriangleFilled(
-                p,
-                ImVec2(p.x + s, p.y),
-                ImVec2(p.x, p.y + s),
-                ImGuiWrapper::to_ImU32(dst_col));
-            
-            // ORCA: Add a thin outline for better contrast when colors are similar
-            draw_list->AddTriangle(
-                p,
-                ImVec2(p.x + s, p.y),
-                ImVec2(p.x, p.y + s),
-                outline_col,
-                0.5f);
-        }
-
-        // popup with possible destinations
-        if (clicked) {
+        if (src_clicked) {
             // Calculate popup position centered below the current button
             ImVec2 button_pos = ImGui::GetItemRectMin();
             ImVec2 button_size = ImGui::GetItemRectSize();
             ImVec2 popup_pos(button_pos.x + button_size.x * 0.5f, button_pos.y + button_size.y);
-            
-            // Set popup styling BEFORE opening popup
+
+            // Ensure popup is within the main viewport bounds
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+            float est_width = ImGui::GetFrameHeight() * scale * max_per_line
+                            + ImGui::GetStyle().ItemSpacing.x * (max_per_line - 1)
+                            + ImGui::GetStyle().WindowPadding.x * 2;
+            popup_pos.x = std::max(viewport->WorkPos.x + est_width * 0.5f, std::min(popup_pos.x, viewport->WorkPos.x + viewport->WorkSize.x - est_width * 0.5f));
+            popup_pos.y += 3.f * scale; // slight gap vertically
+
             ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Appearing, ImVec2(0.5f, -0.1f));
             ImGui::SetNextWindowBgAlpha(1.0f); // Ensure full opacity
             ImGui::OpenPopup(pop_id.c_str());
         }
         
         // Apply popup styling before BeginPopup using standard Orca colors
-        ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f * scale);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
         // ORCA: Use FrameBgActive for consistency and to ensure visibility of white filaments
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
-        ImGui::PushStyleColor(ImGuiCol_Border, m_is_dark_mode ? ImVec4(0.5f, 0.5f, 0.5f, 1.0f) : ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+        ImGui::PushStyleColor(ImGuiCol_Border , ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_Separator)));
         
         if (ImGui::BeginPopup(pop_id.c_str())) {
-            
+
             m_imgui->text(_L("To:"));
 
             for (int dst = 0; dst < (int)n_extr; ++dst) {
-                const ColorRGBA &dst_col_popup = m_extruders_colors[dst];
-                ImVec4 dst_vec = ImGuiWrapper::to_ImVec4(dst_col_popup);
                 if (dst > 0 && (dst % max_per_line != 0))
                      ImGui::SameLine();
-                std::string dst_btn = "##dst_" + std::to_string(src) + "_" + std::to_string(dst);
-                
-                // Apply same styling to destination buttons
-                ImGuiColorEditFlags dst_flags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs |
-                                               ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_NoPicker |
-                                               ImGuiColorEditFlags_NoTooltip;
-                // Show border for currently selected destination filament
-                if (m_extruder_remap[src] != dst) dst_flags |= ImGuiColorEditFlags_NoBorder;
-                
-                #ifdef __APPLE__
-                    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0);
-                    bool dst_clicked = ImGui::ColorButton(dst_btn.c_str(), dst_vec, dst_flags, button_size);
-                    ImGui::PopStyleVar(2);
-                    ImGui::PopStyleColor(1);
-                #else
-                    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0);
-                    bool dst_clicked = ImGui::ColorButton(dst_btn.c_str(), dst_vec, dst_flags, button_size);
-                    ImGui::PopStyleVar(2);
-                    ImGui::PopStyleColor(1);
-                #endif
-                
-                // overlay destination number on popup buttons
-                std::string dst_num_txt = std::to_string(dst + 1);
-                float dst_gray = 0.299f * dst_col_popup.r() + 0.587f * dst_col_popup.g() + 0.114f * dst_col_popup.b();
-                ImVec2 dst_txt_sz = ImGui::CalcTextSize(dst_num_txt.c_str());
-                ImVec2 dst_pos = ImGui::GetItemRectMin();
-                ImVec2 dst_size = ImGui::GetItemRectSize();
-                
-                if (dst_gray * 255.f < 80.f)
-                    ImGui::GetWindowDrawList()->AddText(
-                        ImVec2(dst_pos.x + (dst_size.x - dst_txt_sz.x) * 0.5f, dst_pos.y + (dst_size.y - dst_txt_sz.y) * 0.5f),
-                        IM_COL32(255,255,255,255), dst_num_txt.c_str());
-                else
-                    ImGui::GetWindowDrawList()->AddText(
-                        ImVec2(dst_pos.x + (dst_size.x - dst_txt_sz.x) * 0.5f, dst_pos.y + (dst_size.y - dst_txt_sz.y) * 0.5f),
-                        IM_COL32(0,0,0,255), dst_num_txt.c_str());
-                
-                if (dst_clicked)
-                {
+                bool dst_clicked = draw_color_button(
+                    dst + 1,                      // idx
+                    "###remap_dst_",              // button_id
+                    m_extruders_colors[dst],      // color
+                    m_extruders_colors[dst],      // mapped_color (non fuctional in here)
+                    m_extruder_remap[src] == dst, // is_active
+                    scale
+                );
+                if (dst_clicked) {
                     m_extruder_remap[src] = dst;
                     // update the source button color immediately
                     ImGui::CloseCurrentPopup();
