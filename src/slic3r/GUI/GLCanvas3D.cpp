@@ -8996,10 +8996,8 @@ void GLCanvas3D::_render_assemble_control()
         same_line_width += (text_size_x + item_spacing);
         ImGui::SameLine(same_line_width);
 
-        if (clipper == nullptr) {
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-        }
+        if (clipper == nullptr)
+        return;
 
         ImGui::PushItemWidth(slider_width);
         bool view_slider_changed = imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
