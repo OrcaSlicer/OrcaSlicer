@@ -2474,6 +2474,14 @@ int OrcaCloudServiceAgent::get_my_profile(std::string token, unsigned int* http_
     return BAMBU_NETWORK_SUCCESS;
 }
 
+int OrcaCloudServiceAgent::get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body)
+{
+    BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_my_token (stub) - Orca cloud uses code-based OAuth, not tickets";
+    if (http_code) *http_code = 0;
+    if (http_body) *http_body = "";
+    return -1;
+}
+
 int OrcaCloudServiceAgent::track_enable(bool enable)
 {
     std::lock_guard<std::recursive_mutex> lock(state_mutex);
