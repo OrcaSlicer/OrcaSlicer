@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Keder PLA @System",
+	"inherits": "Keder PLA @base",
+	"from": "system",
+	"setting_id": "KDFSL01",
+	"instantiation": "true",
+	"compatible_printers": []
+}
