@@ -1614,6 +1614,16 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
             }, m_parent);
     }
 
+    if (init) {
+        append_menu_item(
+            menu, wxID_ANY, _L("Open config file"), "", [](wxCommandEvent&) {
+                plater()->sidebar().open_filament_config_file();
+            }, "", nullptr,
+            []() {
+                return plater()->sidebar().can_open_filament_config_file();
+            }, m_parent);
+    }
+
     const int item_id = menu->FindItem(_L("Merge with"));
     if (item_id != wxNOT_FOUND)
         menu->Destroy(item_id);

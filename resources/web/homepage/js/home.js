@@ -1,6 +1,10 @@
 //var TestData={"sequence_id":"0","command":"get_recent_projects","response":[{"path":"D:\\work\\Models\\Toy\\3d-puzzle-cube-model_files\\3d-puzzle-cube.3mf","time":"2022\/3\/24 20:33:10"},{"path":"D:\\work\\Models\\Art\\Carved Stone Vase - remeshed+drainage\\Carved Stone Vase.3mf","time":"2022\/3\/24 17:11:51"},{"path":"D:\\work\\Models\\Art\\Kity & Cat\\Cat.3mf","time":"2022\/3\/24 17:07:55"},{"path":"D:\\work\\Models\\Toy\\鐩村墤.3mf","time":"2022\/3\/24 17:06:02"},{"path":"D:\\work\\Models\\Toy\\minimalistic-dual-tone-whistle-model_files\\minimalistic-dual-tone-whistle.3mf","time":"2022\/3\/22 21:12:22"},{"path":"D:\\work\\Models\\Toy\\spiral-city-model_files\\spiral-city.3mf","time":"2022\/3\/22 18:58:37"},{"path":"D:\\work\\Models\\Toy\\impossible-dovetail-puzzle-box-model_files\\impossible-dovetail-puzzle-box.3mf","time":"2022\/3\/22 20:08:40"}]};
 
-var m_HotModelList=null;
+var m_HotModelList = null;
+
+// Project folders state
+var m_ProjectFolders = [];      // [{name, paths:[...]}]
+var m_CurrentFolderName = '';   // name of the open folder, or ''
 
 function OnInit()
 {
@@ -9,6 +13,7 @@ function OnInit()
 
 	SendMsg_GetLoginInfo();
 	SendMsg_GetRecentFile();
+	SendMsg_GetProjectFolders();
 	SendMsg_GetStaffPick();
 }
 
@@ -21,58 +26,79 @@ var sImages = {};
  
 function Set_RecentFile_MouseRightBtn_Event()
 {
-	$(".FileItem").mousedown(
+	$("#FileList .FileItem").mousedown(
 		function(e)
 		{			
 			//FilePath
 			RightBtnFilePath=$(this).attr('fpath');
 			
 			if(e.which == 3){
-				//鼠标点击了右键+$(this).attr('ff') );
 				ShowRecnetFileContextMenu();
 			}else if(e.which == 2){
-				//鼠标点击了中键
+				//middle button
 			}else if(e.which == 1){
-				//鼠标点击了左键
 				OnOpenRecentFile( encodeURI(RightBtnFilePath) );
 			}
 		});
 
 	$(document).bind("contextmenu",function(e){
-		//在这里书写代码，构建个性右键化菜单
 		return false;
 	});	
 	
     $(document).mousemove( function(e){
 		MousePosX=e.pageX;
 		MousePosY=e.pageY;
-		
-		let ContextMenuWidth=$('#recnet_context_menu').width();
-		let ContextMenuHeight=$('#recnet_context_menu').height();
-	
-		let DocumentWidth=$(document).width();
-		let DocumentHeight=$(document).height();
-		
-		//$("#DebugText").text( ContextMenuWidth+' - '+ContextMenuHeight+'<br/>'+
-		//					 DocumentWidth+' - '+DocumentHeight+'<br/>'+
-		//					 MousePosX+' - '+MousePosY +'<br/>' );
 	} );
 	
 
-	$(document).click( function(){		
-		var e = e || window.event;
-        var elem = e.target || e.srcElement;
-        while (elem) {
-			if (elem.id && elem.id == 'recnet_context_menu') {
-                    return;
-			}
-			elem = elem.parentNode;
-		}		
-		
-		$("#recnet_context_menu").hide();
-	} );
+	$(document).click( function(e){
+		var elem = e.target || e.srcElement;
+		var inRecent = false, inPicker = false, inOther = false;
+		var cur = elem;
+		while (cur) {
+			if (cur.id == 'recnet_context_menu')      { inRecent = true; break; }
+			if (cur.id == 'folder_picker_menu')        { inPicker = true; break; }
+			if (cur.id == 'folder_context_menu' ||
+			    cur.id == 'folder_file_context_menu')  { inOther  = true; break; }
+			cur = cur.parentNode;
+		}
 
+		if (inPicker || inOther) return; // keep everything open
+		if (inRecent) {
+			// User clicked a different item in the recent menu — close picker only
+			$('#folder_picker_menu').hide();
+			return;
+		}
+		HideAllContextMenus();
+	} );
+}
+
+function HideAllContextMenus()
+{
+	$("#recnet_context_menu").hide();
+	$("#folder_picker_menu").hide();
+	$("#folder_context_menu").hide();
+	$("#folder_file_context_menu").hide();
+}
+
+function ShowContextMenuAt(menuId)
+{
+	HideAllContextMenus();
+	$(menuId).offset({top: 10000, left:-10000});
+	$(menuId).show();
 	
+	let w = $(menuId).outerWidth();
+	let h = $(menuId).outerHeight();
+	let docW = $(document).width();
+	let docH = $(document).height();
+	
+	let rx = MousePosX;
+	let ry = MousePosY;
+	
+	if (rx + w + 24 > docW) rx = docW - w - 24;
+	if (ry + h + 24 > docH) ry = docH - h - 24;
+	
+	$(menuId).offset({top: ry, left: rx});
 }
 
 function SetLoginPanelVisibility(visible) {
@@ -89,40 +115,38 @@ function HandleStudio( pVal )
 	let strCmd = pVal['command'];
 	
 	if (strCmd == "get_recent_projects") {
-    ShowRecentFileList(pVal["response"]);
-  } else if (strCmd == "studio_userlogin") {
-    SetLoginInfo(pVal["data"]["avatar"], pVal["data"]["name"]);
-  } else if (strCmd == "studio_useroffline") {
-    SetUserOffline();
-  } else if (strCmd == "studio_set_mallurl") {
-    SetMallUrl(pVal["data"]["url"]);
-  } else if (strCmd == "studio_clickmenu") {
-    let strName = pVal["data"]["menu"];
-
-    GotoMenu(strName);
-  } else if (strCmd == "network_plugin_installtip") {
-    let nShow = pVal["show"] * 1;
-
-    if (nShow == 1) {
-      $("#NoPluginTip").show();
-      $("#NoPluginTip").css("display", "flex");
-    } else {
-      $("#NoPluginTip").hide();
-    }
-  } else if (strCmd == "modelmall_model_advise_get") {
-    //alert('hot');
-    if (m_HotModelList != null) {
-      let SS1 = JSON.stringify(pVal["hits"]);
-      let SS2 = JSON.stringify(m_HotModelList);
-
-      if (SS1 == SS2) return;
-    }
-
-    m_HotModelList = pVal["hits"];
-    ShowStaffPick(m_HotModelList);
-  } else if (data.cmd === "SetLoginPanelVisibility") {
-    SetLoginPanelVisibility(data.visible);
-  }
+		ShowRecentFileList(pVal["response"]);
+	} else if (strCmd == "get_project_folders") {
+		m_ProjectFolders = pVal["response"] || [];
+		ShowFolderList(m_ProjectFolders);
+	} else if (strCmd == "studio_userlogin") {
+		SetLoginInfo(pVal["data"]["avatar"], pVal["data"]["name"]);
+	} else if (strCmd == "studio_useroffline") {
+		SetUserOffline();
+	} else if (strCmd == "studio_set_mallurl") {
+		SetMallUrl(pVal["data"]["url"]);
+	} else if (strCmd == "studio_clickmenu") {
+		let strName = pVal["data"]["menu"];
+		GotoMenu(strName);
+	} else if (strCmd == "network_plugin_installtip") {
+		let nShow = pVal["show"] * 1;
+		if (nShow == 1) {
+			$("#NoPluginTip").show();
+			$("#NoPluginTip").css("display", "flex");
+		} else {
+			$("#NoPluginTip").hide();
+		}
+	} else if (strCmd == "modelmall_model_advise_get") {
+		if (m_HotModelList != null) {
+			let SS1 = JSON.stringify(pVal["hits"]);
+			let SS2 = JSON.stringify(m_HotModelList);
+			if (SS1 == SS2) return;
+		}
+		m_HotModelList = pVal["hits"];
+		ShowStaffPick(m_HotModelList);
+	} else if (strCmd == "SetLoginPanelVisibility") {
+		SetLoginPanelVisibility(pVal["visible"]);
+	}
 }
 
 function GotoMenu( strMenu )
@@ -155,10 +179,6 @@ function SetLoginInfo( strAvatar, strName )
     let OriginAvatar=$("#UserAvatarIcon").prop("src");
 	if(strAvatar!=OriginAvatar)
 		$("#UserAvatarIcon").prop("src",strAvatar);
-	else
-	{
-		//alert('Avatar is Same');
-	}
 	
 	$("#Login2").show();
 	$("#Login2").css("display","flex");
@@ -195,9 +215,6 @@ function ShowRecentFileList( pList )
 		let sName=OneFile['project_name'];
 		sImages[sPath] = sImg;
 		
-		//let index=sPath.lastIndexOf('\\')>0?sPath.lastIndexOf('\\'):sPath.lastIndexOf('\/');
-		//let sShortName=sPath.substring(index+1,sPath.length);
-		
 		let TmpHtml='<div class="FileItem"  fpath="'+sPath+'"  >'+
 				'<a class="FileTip" title="'+sPath+'"></a>'+
 				'<div class="FileImg" ><img src="'+sImg+'" onerror="this.onerror=null;this.src=\'img/d.png\';"  alt="No Image"  /></div>'+
@@ -216,24 +233,8 @@ function ShowRecentFileList( pList )
 
 function ShowRecnetFileContextMenu()
 {
-	$("#recnet_context_menu").offset({top: 10000, left:-10000});
-	$('#recnet_context_menu').show();
-	
-	let ContextMenuWidth=$('#recnet_context_menu').width();
-	let ContextMenuHeight=$('#recnet_context_menu').height();
-	
-    let DocumentWidth=$(document).width();
-	let DocumentHeight=$(document).height();
-
-	let RealX=MousePosX;
-	let RealY=MousePosY;
-	
-	if( MousePosX + ContextMenuWidth + 24 >DocumentWidth )
-		RealX=DocumentWidth-ContextMenuWidth-24;
-	if( MousePosY+ContextMenuHeight+24>DocumentHeight )
-		RealY=DocumentHeight-ContextMenuHeight-24;
-	
-	$("#recnet_context_menu").offset({top: RealY, left:RealX});
+	$('#CT_AddToFolder_Bar').show();
+	ShowContextMenuAt('#recnet_context_menu');
 }
 
 /*-------RecentFile MX Message------*/
@@ -309,7 +310,7 @@ function OnDeleteRecentFile( )
 	//Clear in UI
 	$("#recnet_context_menu").hide();
 	
-	let AllFile=$(".FileItem");
+	let AllFile=$("#FileList .FileItem");
 	let nFile=AllFile.length;
 	for(let p=0;p<nFile;p++)
 	{
@@ -344,16 +345,13 @@ function OnDeleteAllRecentFiles()
 
 function UpdateRecentClearBtnDisplay()
 {
-    let AllFile=$(".FileItem");
+    let AllFile=$("#FileList .FileItem");
 	let nFile=AllFile.length;	
 	if( nFile>0 )
 		$("#RecentClearAllBtn").show();
 	else
 		$("#RecentClearAllBtn").hide();
 }
-
-
-
 
 function OnExploreRecentFile( )
 {
@@ -365,7 +363,7 @@ function OnExploreRecentFile( )
 	
 	SendWXMessage( JSON.stringify(tSend) );	
 	
-	$("#recnet_context_menu").hide();
+	HideAllContextMenus();
 }
 
 function OnLogOut()
@@ -399,7 +397,354 @@ function OutputKey(keyCode, isCtrlDown, isShiftDown, isCmdDown) {
 	SendWXMessage(JSON.stringify(tSend));
 }
 
-//-------------User Manual------------
+
+/* ============================================================
+   PROJECT FOLDERS
+   ============================================================ */
+
+var m_RightClickFolderName = '';   // folder right-clicked in the folder list
+var m_FolderFilePath       = '';   // file right-clicked inside a folder view
+
+// ---- Request / receive ----
+
+function SendMsg_GetProjectFolders()
+{
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command'] = "get_project_folders";
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+// ---- Render: folder card list ----
+
+function ShowFolderList(folders)
+{
+	m_ProjectFolders = folders || [];
+
+	if (m_ProjectFolders.length === 0) {
+		$('#FolderList').html('');
+		$('#FolderEmptyHint').show();
+	} else {
+		$('#FolderEmptyHint').hide();
+		let html = '';
+		for (let i = 0; i < m_ProjectFolders.length; i++) {
+			let f = m_ProjectFolders[i];
+			let count = f['paths'] ? f['paths'].length : 0;
+			let safeName = $('<div>').text(f['name']).html();
+			html += '<div class="FolderCard" fname="' + safeName + '">' +
+				'<div class="FolderCardIcon"><img src="img/folder_card.svg" draggable="false" /></div>' +
+				'<div class="FolderCardName TextS1">' + safeName + '</div>' +
+				'<div class="FolderCardCount FileDate">' + count + ' project' + (count !== 1 ? 's' : '') + '</div>' +
+				'</div>';
+		}
+		$('#FolderList').html(html);
+	}
+
+	// Bind events to folder cards
+	$('.FolderCard').on('click', function() {
+		let name = $(this).attr('fname');
+		OnOpenFolder(name);
+	});
+	$('.FolderCard').on('mousedown', function(e) {
+		if (e.which === 3) {
+			m_RightClickFolderName = $(this).attr('fname');
+			ShowContextMenuAt('#folder_context_menu');
+		}
+	});
+
+	// If currently viewing a folder that just got updated, refresh the view
+	if (m_CurrentFolderName !== '') {
+		let found = m_ProjectFolders.find(function(f) { return f['name'] === m_CurrentFolderName; });
+		if (found) {
+			ShowFolderContent(found);
+		} else {
+			// Folder was deleted
+			OnBackToFolders();
+		}
+	}
+}
+
+// ---- Open a folder (drill-down) ----
+
+function OnOpenFolder(folderName)
+{
+	let folder = m_ProjectFolders.find(function(f) { return f['name'] === folderName; });
+	if (!folder) return;
+	m_CurrentFolderName = folderName;
+	ShowFolderContent(folder);
+}
+
+function ShowFolderContent(folder)
+{
+	$('#FolderListView').hide();
+	$('#FolderContentView').show();
+	$('#FolderContentTitle').text(folder['name']);
+
+	let paths = folder['paths'] || [];
+	if (paths.length === 0) {
+		$('#FolderContentFileList').html('');
+		$('#FolderContentEmpty').show();
+	} else {
+		$('#FolderContentEmpty').hide();
+		let html = '';
+		for (let i = 0; i < paths.length; i++) {
+			let p = paths[i];
+			let idx = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'));
+			let fname = (idx >= 0) ? p.substring(idx + 1) : p;
+			let sImg = sImages[p] || 'img/d.png';
+			let safePath = $('<div>').text(p).html();
+			html += '<div class="FileItem FolderFileItem" fpath="' + safePath + '">' +
+				'<a class="FileTip" title="' + safePath + '"></a>' +
+				'<div class="FileImg"><img src="' + sImg + '" onerror="this.onerror=null;this.src=\'img/d.png\';" alt="No Image" /></div>' +
+				'<div class="FileName TextS1">' + $('<div>').text(fname).html() + '</div>' +
+				'</div>';
+		}
+		$('#FolderContentFileList').html(html);
+	}
+
+	// Bind folder-file events
+	$('.FolderFileItem').on('click', function() {
+		let p = $(this).attr('fpath');
+		OnOpenFolderFile(p);
+	});
+	$('.FolderFileItem').on('mousedown', function(e) {
+		if (e.which === 3) {
+			m_FolderFilePath  = $(this).attr('fpath');
+			RightBtnFilePath  = m_FolderFilePath; // reuse for explore
+			ShowContextMenuAt('#folder_file_context_menu');
+		}
+	});
+}
+
+// ---- Back to folder list ----
+
+function OnBackToFolders()
+{
+	m_CurrentFolderName = '';
+	$('#FolderContentView').hide();
+	$('#FolderListView').show();
+}
+
+// ---- Custom input modal (replaces native prompt()) ----
+
+var _modalResolve = null;
+var _modalIsConfirm = false;
+
+function ShowInputModal(title, defaultValue)
+{
+	return new Promise(function(resolve) {
+		_modalResolve = resolve;
+		_modalIsConfirm = false;
+		$('#InputModalTitle').text(title);
+		$('#InputModalField').val(defaultValue || '').show();
+		$('#InputModalOverlay').css('display', 'flex');
+		// Defer focus so the element is visible first
+		setTimeout(function() {
+			$('#InputModalField').focus();
+			$('#InputModalField')[0].select();
+		}, 50);
+	});
+}
+
+function ShowConfirmModal(message)
+{
+	return new Promise(function(resolve) {
+		_modalResolve = resolve;
+		_modalIsConfirm = true;
+		$('#InputModalTitle').text(message);
+		$('#InputModalField').hide();
+		$('#InputModalOverlay').css('display', 'flex');
+	});
+}
+
+function OnInputModalOK()
+{
+	var val = _modalIsConfirm ? true : $('#InputModalField').val().trim();
+	$('#InputModalField').show();
+	$('#InputModalOverlay').hide();
+	if (_modalResolve) { _modalResolve(val); _modalResolve = null; }
+}
+
+function OnInputModalCancel()
+{
+	$('#InputModalField').show();
+	$('#InputModalOverlay').hide();
+	if (_modalResolve) { _modalResolve(_modalIsConfirm ? false : null); _modalResolve = null; }
+}
+
+function OnInputModalKeyDown(e)
+{
+	if (e.key === 'Enter')  { OnInputModalOK();     e.preventDefault(); }
+	if (e.key === 'Escape') { OnInputModalCancel(); e.preventDefault(); }
+}
+
+function OnInputModalOverlayClick(e)
+{
+	if (e.target.id === 'InputModalOverlay') OnInputModalCancel();
+}
+
+// ---- New Folder ----
+
+async function OnNewFolder()
+{
+	let name = await ShowInputModal('Enter folder name:');
+	if (name === null || name === '') return;
+	name = name.trim();
+
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command']     = 'create_project_folder';
+	tSend['data']        = { name: name };
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+// ---- New folder and immediately add current right-clicked file ----
+
+async function OnNewFolderAndAdd()
+{
+	HideAllContextMenus();
+	let name = await ShowInputModal('Enter new folder name:');
+	if (name === null || name === '') return;
+	name = name.trim();
+
+	// Create folder first
+	var tCreate = {};
+	tCreate['sequence_id'] = Math.round(new Date() / 1000);
+	tCreate['command']     = 'create_project_folder';
+	tCreate['data']        = { name: name };
+	SendWXMessage(JSON.stringify(tCreate));
+
+	// Then add file (small delay to let C++ process creation first)
+	setTimeout(function() {
+		var tAdd = {};
+		tAdd['sequence_id']       = Math.round(new Date() / 1000);
+		tAdd['command']           = 'add_to_project_folder';
+		tAdd['data']              = { folder_name: name, path: RightBtnFilePath };
+		SendWXMessage(JSON.stringify(tAdd));
+	}, 100);
+}
+
+// ---- Show "Add to Folder" picker from recent-file context menu ----
+
+function OnShowAddToFolderMenu(e)
+{
+	if (e) e.stopPropagation();
+	// Build picker list
+	let html = '';
+	for (let i = 0; i < m_ProjectFolders.length; i++) {
+		let safeName = $('<div>').text(m_ProjectFolders[i]['name']).html();
+		html += '<div class="CT_Item FolderPickerItem" fname="' + safeName + '">' +
+			'<div class="CT_Text">' + safeName + '</div>' +
+			'</div>';
+	}
+	$('#FolderPickerList').html(html);
+
+	// Bind click on each folder pick
+	$('.FolderPickerItem').off('click').on('click', function() {
+		let folderName = $(this).attr('fname');
+		OnAddToFolder(folderName);
+	});
+
+	// Show picker anchored to the right edge of the recent context menu,
+	// keeping the recent menu open so the user can see what they acted on.
+	var $recent = $('#recnet_context_menu');
+	var $picker = $('#folder_picker_menu');
+
+	// Temporarily show offscreen to measure
+	$picker.offset({top: 10000, left: -10000});
+	$picker.show();
+
+	var rOff = $recent.offset();
+	var rW   = $recent.outerWidth();
+	var rH   = $recent.outerHeight();
+	var pW   = $picker.outerWidth();
+	var pH   = $picker.outerHeight();
+	var docW = $(document).width();
+	var docH = $(document).height();
+
+	// Prefer right of recent menu; fall back to left if not enough room
+	var px = rOff.left + rW + 4;
+	if (px + pW + 8 > docW) px = rOff.left - pW - 4;
+
+	// Align top with recent menu; clamp to viewport
+	var py = rOff.top;
+	if (py + pH + 8 > docH) py = docH - pH - 8;
+
+	$picker.offset({top: py, left: px});
+}
+
+// ---- Add recent file to a folder ----
+
+function OnAddToFolder(folderName)
+{
+	HideAllContextMenus();
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command']     = 'add_to_project_folder';
+	tSend['data']        = { folder_name: folderName, path: RightBtnFilePath };
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+// ---- Open a project from folder view ----
+
+function OnOpenFolderFile(strPath)
+{
+	HideAllContextMenus();
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command']     = 'open_folder_project';
+	tSend['data']        = { path: strPath || m_FolderFilePath };
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+// ---- Remove a file from its folder ----
+
+function OnRemoveFromFolder()
+{
+	HideAllContextMenus();
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command']     = 'remove_from_project_folder';
+	tSend['data']        = { folder_name: m_CurrentFolderName, path: m_FolderFilePath };
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+// ---- Rename folder ----
+
+async function OnRenameFolder()
+{
+	HideAllContextMenus();
+	let oldName = m_RightClickFolderName;
+	let newName = await ShowInputModal('Rename folder:', oldName);
+	if (newName === null || newName === '' || newName === oldName) return;
+	newName = newName.trim();
+
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command']     = 'rename_project_folder';
+	tSend['data']        = { old_name: oldName, new_name: newName };
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+// ---- Delete folder ----
+
+async function OnDeleteFolder()
+{
+	HideAllContextMenus();
+	let name = m_RightClickFolderName;
+	let confirmed = await ShowConfirmModal('Delete folder "' + name + '"? The projects inside will not be deleted.');
+	if (!confirmed) return;
+
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command']     = 'delete_project_folder';
+	tSend['data']        = { name: name };
+	SendWXMessage(JSON.stringify(tSend));
+}
+
+/* ============================================================
+   END PROJECT FOLDERS
+   ============================================================ */
 
 function OpenWikiUrl( strUrl )
 {
@@ -455,7 +800,7 @@ function SendMsg_GetStaffPick()
 	
 	SendWXMessage( JSON.stringify(tSend) );
 	
-	setTimeout("SendMsg_GetStaffPick()",3600*1000*1);
+	setTimeout(SendMsg_GetStaffPick, 3600 * 1000);
 }
 
 function ShowStaffPick( ModelList )

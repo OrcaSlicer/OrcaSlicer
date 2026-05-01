@@ -328,6 +328,14 @@ public:
     std::vector<std::string> get_recent_projects() const;
     void set_recent_projects(const std::vector<std::string>& recent_projects);
 
+    // Project folders: user-defined named groups of project file paths
+    struct ProjectFolder {
+        std::string              name;
+        std::vector<std::string> paths;
+    };
+    std::vector<ProjectFolder> get_project_folders() const;
+    void set_project_folders(const std::vector<ProjectFolder>& folders);
+
 	void set_mouse_device(const std::string& name, double translation_speed, double translation_deadzone, float rotation_speed, float rotation_deadzone, double zoom_speed, bool swap_yz, bool invert_x, bool invert_y, bool invert_z, bool invert_yaw, bool invert_pitch, bool invert_roll);
 	std::vector<std::string> get_mouse_device_names() const;
 	bool get_mouse_device_translation_speed(const std::string& name, double& speed) const

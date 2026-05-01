@@ -4687,6 +4687,114 @@ std::string GUI_App::handle_web_request(std::string cmd)
             else if (command_str.compare("homepage_delete_all_recentfile") == 0) {
                 this->request_remove_project("");
             }
+            // --- Project Folders ---
+            else if (command_str.compare("get_project_folders") == 0) {
+                if (mainframe && mainframe->m_webview)
+                    mainframe->m_webview->SendProjectFolders();
+            }
+            else if (command_str.compare("create_project_folder") == 0) {
+                if (root.get_child_optional("data") != boost::none) {
+                    pt::ptree                    data_node   = root.get_child("data");
+                    boost::optional<std::string> folder_name = data_node.get_optional<std::string>("name");
+                    if (folder_name.has_value() && !folder_name.value().empty()) {
+                        auto folders = app_config->get_project_folders();
+                        bool exists  = false;
+                        for (const auto& f : folders)
+                            if (f.name == folder_name.value()) { exists = true; break; }
+                        if (!exists) {
+                            AppConfig::ProjectFolder nf;
+                            nf.name = folder_name.value();
+                            folders.push_back(nf);
+                            app_config->set_project_folders(folders);
+                            app_config->save();
+                        }
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendProjectFolders();
+                    }
+                }
+            }
+            else if (command_str.compare("rename_project_folder") == 0) {
+                if (root.get_child_optional("data") != boost::none) {
+                    pt::ptree                    data_node = root.get_child("data");
+                    boost::optional<std::string> old_name  = data_node.get_optional<std::string>("old_name");
+                    boost::optional<std::string> new_name  = data_node.get_optional<std::string>("new_name");
+                    if (old_name.has_value() && new_name.has_value() && !new_name.value().empty()) {
+                        auto folders = app_config->get_project_folders();
+                        for (auto& f : folders)
+                            if (f.name == old_name.value()) { f.name = new_name.value(); break; }
+                        app_config->set_project_folders(folders);
+                        app_config->save();
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendProjectFolders();
+                    }
+                }
+            }
+            else if (command_str.compare("delete_project_folder") == 0) {
+                if (root.get_child_optional("data") != boost::none) {
+                    pt::ptree                    data_node   = root.get_child("data");
+                    boost::optional<std::string> folder_name = data_node.get_optional<std::string>("name");
+                    if (folder_name.has_value()) {
+                        auto folders = app_config->get_project_folders();
+                        folders.erase(std::remove_if(folders.begin(), folders.end(),
+                            [&](const AppConfig::ProjectFolder& f) { return f.name == folder_name.value(); }),
+                            folders.end());
+                        app_config->set_project_folders(folders);
+                        app_config->save();
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendProjectFolders();
+                    }
+                }
+            }
+            else if (command_str.compare("add_to_project_folder") == 0) {
+                if (root.get_child_optional("data") != boost::none) {
+                    pt::ptree                    data_node   = root.get_child("data");
+                    boost::optional<std::string> folder_name = data_node.get_optional<std::string>("folder_name");
+                    boost::optional<std::string> path        = data_node.get_optional<std::string>("path");
+                    if (folder_name.has_value() && path.has_value()) {
+                        auto folders = app_config->get_project_folders();
+                        for (auto& f : folders) {
+                            if (f.name == folder_name.value()) {
+                                if (std::find(f.paths.begin(), f.paths.end(), path.value()) == f.paths.end())
+                                    f.paths.push_back(path.value());
+                                break;
+                            }
+                        }
+                        app_config->set_project_folders(folders);
+                        app_config->save();
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendProjectFolders();
+                    }
+                }
+            }
+            else if (command_str.compare("remove_from_project_folder") == 0) {
+                if (root.get_child_optional("data") != boost::none) {
+                    pt::ptree                    data_node   = root.get_child("data");
+                    boost::optional<std::string> folder_name = data_node.get_optional<std::string>("folder_name");
+                    boost::optional<std::string> path        = data_node.get_optional<std::string>("path");
+                    if (folder_name.has_value() && path.has_value()) {
+                        auto folders = app_config->get_project_folders();
+                        for (auto& f : folders) {
+                            if (f.name == folder_name.value()) {
+                                f.paths.erase(std::remove(f.paths.begin(), f.paths.end(), path.value()), f.paths.end());
+                                break;
+                            }
+                        }
+                        app_config->set_project_folders(folders);
+                        app_config->save();
+                        if (mainframe && mainframe->m_webview)
+                            mainframe->m_webview->SendProjectFolders();
+                    }
+                }
+            }
+            else if (command_str.compare("open_folder_project") == 0) {
+                if (root.get_child_optional("data") != boost::none) {
+                    pt::ptree                    data_node = root.get_child("data");
+                    boost::optional<std::string> path      = data_node.get_optional<std::string>("path");
+                    if (path.has_value())
+                        this->request_open_project(path.value());
+                }
+            }
+            // --- End Project Folders ---
             else if (command_str.compare("homepage_explore_recentfile") == 0) {
                 if (root.get_child_optional("data") != boost::none) {
                     pt::ptree                    data_node = root.get_child("data");

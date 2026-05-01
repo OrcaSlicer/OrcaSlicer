@@ -1286,6 +1286,59 @@ void AppConfig::set_recent_projects(const std::vector<std::string>& recent_proje
     }
 }
 
+std::vector<AppConfig::ProjectFolder> AppConfig::get_project_folders() const
+{
+    std::vector<ProjectFolder> folders;
+    const auto it_names = m_storage.find("project_folder_names");
+    if (it_names == m_storage.end())
+        return folders;
+    for (const auto& kvp : it_names->second) {
+        ProjectFolder folder;
+        folder.name = kvp.second;
+        std::string section = std::string("project_folder_") + kvp.first;
+        const auto it_items = m_storage.find(section);
+        if (it_items != m_storage.end()) {
+            for (const auto& item : it_items->second)
+                folder.paths.push_back(item.second);
+        }
+        folders.push_back(folder);
+    }
+    return folders;
+}
+
+void AppConfig::set_project_folders(const std::vector<ProjectFolder>& folders)
+{
+    // Remove all existing folder sections
+    auto it_names = m_storage.find("project_folder_names");
+    if (it_names != m_storage.end()) {
+        for (const auto& kvp : it_names->second) {
+            std::string section = std::string("project_folder_") + kvp.first;
+            m_storage.erase(section);
+        }
+        m_storage.erase(it_names);
+    }
+
+    if (!folders.empty()) {
+        auto& name_section = m_storage["project_folder_names"];
+        for (unsigned int i = 0; i < (unsigned int)folders.size(); ++i) {
+            auto n = std::to_string(i + 1);
+            if (n.length() == 1) n = "00" + n;
+            else if (n.length() == 2) n = "0" + n;
+            name_section[n] = folders[i].name;
+
+            std::string section = std::string("project_folder_") + n;
+            auto& item_section = m_storage[section];
+            for (unsigned int j = 0; j < (unsigned int)folders[i].paths.size(); ++j) {
+                auto m = std::to_string(j + 1);
+                if (m.length() == 1) m = "00" + m;
+                else if (m.length() == 2) m = "0" + m;
+                item_section[m] = folders[i].paths[j];
+            }
+        }
+    }
+    m_dirty = true;
+}
+
 void AppConfig::set_mouse_device(const std::string& name, double translation_speed, double translation_deadzone,
                                  float rotation_speed, float rotation_deadzone, double zoom_speed, bool swap_yz, bool invert_x, bool invert_y, bool invert_z, bool invert_yaw, bool invert_pitch, bool invert_roll)
 {

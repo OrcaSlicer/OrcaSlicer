@@ -159,19 +159,98 @@
 		</div>
 	</div>
 	
-    <div style="height: 14px;"></div>	
+    <div style="height: 14px;"></div>
+
+	<!-- ===== Project Folders Section ===== -->
+	<div id="FolderArea">
+		<!-- Folder list view -->
+		<div id="FolderListView">
+			<div id="FolderTitleBlock">
+				<div id="FolderTitle" class="Content-Title trans TextS1" tid="folder_title">Project view</div>
+				<div id="NewFolderBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnNewFolder()">+ New Folder</div>
+			</div>
+			<div id="FolderList"></div>
+			<div id="FolderEmptyHint" class="FolderEmptyHint" style="display:none;">
+				<div class="trans" tid="folder_empty_hint">No folders yet. Click "+ New Folder" to create one, then right-click a recent project to add it.</div>
+			</div>
+		</div>
+		<!-- Folder contents view (drill-down) -->
+		<div id="FolderContentView" style="display:none;">
+			<div id="FolderContentHeader">
+				<div id="FolderBackBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnBackToFolders()">&#8592; Back</div>
+				<div id="FolderContentTitle" class="Content-Title TextS1"></div>
+			</div>
+			<div id="FolderContentFileList" class="FolderContentFileList"></div>
+			<div id="FolderContentEmpty" class="FolderEmptyHint" style="display:none;">
+				<div class="trans" tid="folder_content_empty">This folder is empty. Right-click a recent project to add it here.</div>
+			</div>
+		</div>
+	</div>
+	<!-- ===== End Project Folders Section ===== -->
+
+	<div style="height: 14px;"></div>	
 	
 	<div id="recnet_context_menu">
 		<div id="CT_Delete_Bar" class="CT_Item" onClick="OnDeleteRecentFile()">
 			<div class="CT_Icon CT_Delete"></div>
-			<div class="CT_Text trans" tid="t88">clear</div>
+			<div class="CT_Text trans" tid="t88">Clear</div>
 		</div>
 		<div id="CT_Folder_Bar" class="CT_Item " onClick="OnExploreRecentFile()" >
 			<div class="CT_Icon CT_Explore"></div>
-			<div class="CT_Text trans" tid="t89">open in explorer </div>
-		</div>				
+			<div class="CT_Text trans" tid="t89">Open in explorer</div>
+		</div>
+		<div class="CT_Seperate"></div>
+		<div id="CT_AddToFolder_Bar" class="CT_Item" onClick="OnShowAddToFolderMenu(event)">
+			<div class="CT_Icon CT_FolderAdd"></div>
+			<div class="CT_Text trans" tid="folder_add">Add to folder</div>
+		</div>
     </div>
-	
+
+	<!-- Add-to-folder picker -->
+	<div id="folder_picker_menu" style="display:none;">
+		<div id="FolderPickerList"></div>
+		<div class="CT_Seperate"></div>
+		<div class="CT_Item FolderPickerNewItem" onClick="OnNewFolderAndAdd()">
+			<div class="CT_Text">+ New folder</div>
+		</div>
+	</div>
+
+	<!-- Folder card context menu -->
+	<div id="folder_context_menu" style="display:none;">
+		<div id="FCT_Rename_Bar" class="CT_Item" onClick="OnRenameFolder()">
+			<div class="CT_Text trans" tid="folder_rename">Rename</div>
+		</div>
+		<div id="FCT_Delete_Bar" class="CT_Item" onClick="OnDeleteFolder()">
+			<div class="CT_Text trans" tid="folder_delete">Delete folder</div>
+		</div>
+	</div>
+
+	<!-- Folder file context menu (file inside an open folder) -->
+	<div id="folder_file_context_menu" style="display:none;">
+		<div id="FFCT_Open_Bar" class="CT_Item" onClick="OnOpenFolderFile()">
+			<div class="CT_Text trans" tid="folder_file_open">Open project</div>
+		</div>
+		<div id="FFCT_Remove_Bar" class="CT_Item" onClick="OnRemoveFromFolder()">
+			<div class="CT_Text trans" tid="folder_file_remove">Remove from folder</div>
+		</div>
+		<div id="FFCT_Explore_Bar" class="CT_Item" onClick="OnExploreRecentFile()">
+			<div class="CT_Icon CT_Explore"></div>
+			<div class="CT_Text trans" tid="t89">Open in explorer</div>
+		</div>
+	</div>
+
+	<!-- Custom input modal (replaces native prompt()) -->
+	<div id="InputModalOverlay" style="display:none;" onClick="OnInputModalOverlayClick(event)">
+		<div id="InputModalBox">
+			<div id="InputModalTitle"></div>
+			<input id="InputModalField" type="text" autocomplete="off" spellcheck="false"
+				onkeydown="OnInputModalKeyDown(event)" />
+			<div id="InputModalButtons">
+				<div id="InputModalCancel" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnInputModalCancel()">Cancel</div>
+				<div id="InputModalOK"     class="ButtonStyleRegular ButtonTypeWindow" onClick="OnInputModalOK()">OK</div>
+			</div>
+		</div>
+	</div>
 	
 </div>
 
@@ -180,6 +259,9 @@
 <script type="text/javascript">
 	//HandleStudio(TestData);
     document.onkeydown = function (event) {
+		// Let the modal input field handle its own keys
+		if (document.activeElement && document.activeElement.id === 'InputModalField') return;
+
 		var e = event || window.event || arguments.callee.caller.arguments[0];
 
 		if (e.ctrlKey && e.metaKey)
