@@ -319,9 +319,9 @@ bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, cons
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 7.f * scale);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(0, 0));
     ImGui::PushStyleColor(ImGuiCol_Text         , dark_tone ? ImVec4(1,1,1,1) : ImVec4(0,0,0,1));
-    ImGui::PushStyleColor(ImGuiCol_Button       , color_vec); // ORCA
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_vec); // ORCA
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive , color_vec); // ORCA
+    ImGui::PushStyleColor(ImGuiCol_Button       , color_vec);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_vec);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive , color_vec);
     bool clicked = ImGui::Button(label_id.c_str(), size);
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(4);
@@ -1020,26 +1020,32 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
             // Calculate popup position centered below the current button
             ImVec2 button_pos = ImGui::GetItemRectMin();
             ImVec2 button_size = ImGui::GetItemRectSize();
-            ImVec2 popup_pos(button_pos.x + button_size.x * 0.5f, button_pos.y + button_size.y);
 
             // Ensure popup is within the main viewport bounds
-            ImGuiViewport* viewport = ImGui::GetMainViewport();
-            float est_width = ImGui::GetFrameHeight() * scale * max_per_line
-                            + ImGui::GetStyle().ItemSpacing.x * (max_per_line - 1)
-                            + ImGui::GetStyle().WindowPadding.x * 2;
-            popup_pos.x = std::max(viewport->WorkPos.x + est_width * 0.5f, std::min(popup_pos.x, viewport->WorkPos.x + viewport->WorkSize.x - est_width * 0.5f));
-            popup_pos.y += 3.f * scale; // slight gap vertically
+            int   dst_count   = (int)std::min(n_extr, (size_t)max_per_line);
+            float est_popup_w = button_size.x * dst_count
+                              + ImGui::GetStyle().ItemSpacing.x * (dst_count - 1)
+                              + ImGui::GetStyle().WindowPadding.x * 2.f;
+
+            ImGuiViewport* vp = ImGui::GetMainViewport();
+            float right_limit = vp->WorkPos.x + vp->WorkSize.x - est_popup_w * 0.5f; // pivot is 0.5 so subtract half
+            float centered_x  = button_pos.x + button_size.x * 0.5f;                 // pivot 0.5 just needs center x
+
+            ImVec2 popup_pos(std::min(centered_x, right_limit), button_pos.y + button_size.y);
 
             ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Appearing, ImVec2(0.5f, -0.1f));
             ImGui::SetNextWindowBgAlpha(1.0f); // Ensure full opacity
             ImGui::OpenPopup(pop_id.c_str());
         }
+
+        if (ImGui::IsItemHovered() && src != m_extruder_remap[src]) // show tooltip if it has mapping info
+            m_imgui->tooltip(std::to_string(src + 1) + " >> " + std::to_string(m_extruder_remap[src] + 1), max_tooltip_width);
         
         // Apply popup styling before BeginPopup using standard Orca colors
         ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding  , 8.0f * scale);
-        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 3.0f * scale); // thicker border to prevent mixing with main window. Current ImGui version not supports shadows
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 2.0f * scale); // thicker & colored border to prevent mixing with main window. Current ImGui version not supports shadows
         ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-        ImGui::PushStyleColor(ImGuiCol_Border , ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_Separator)));
+        ImGui::PushStyleColor(ImGuiCol_Border , ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA));
         
         if (ImGui::BeginPopup(pop_id.c_str())) {
             
