@@ -3088,12 +3088,13 @@ bool FillRectilinear::fill_surface_trapezoidal(
     case 0: // Grid / Trapezoidal
     {
         // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
-        //      P1--P2
-        //     /      \
-        //  P0/        \P3__P4
+        //         P2--P3
+        //        /      \
+        //  P0_P1/        \P4_
         //
-        // P1x-P2x=P3x-P4x=d1
-        // P0y-P1y=P2y-P3y=d2
+        // P0xP1x=P4xP0x=d1/2
+        // P2xP3x=d1
+        // P1yP2y=P2yP3y=d2
         
         const coord_t d2 = coord_t(0.5 * period - d1);
 
@@ -3113,11 +3114,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Build complete rows from xmin to xmax
         for (coord_t x = xmin; x < xmax; x += period) {
             // Normal row
-            base_row_normal.points.emplace_back(Point(x, d1 / 2));                    // P0
-            base_row_normal.points.emplace_back(Point(x + d1, d1 / 2));               // P1
-            base_row_normal.points.emplace_back(Point(x + d1 + d2, d1 / 2 + d2));     // P2
-            base_row_normal.points.emplace_back(Point(x + 2 * d1 + d2, d1 / 2 + d2)); // P3
-            base_row_normal.points.emplace_back(Point(x + 2 * d1 + 2 * d2, d1 / 2));  // P4
+            base_row_normal.points.emplace_back(Point(x, d1 / 2));                             // P0
+            base_row_normal.points.emplace_back(Point(x + d1 / 2, d1 / 2));                    // P1
+            base_row_normal.points.emplace_back(Point(x + d1 / 2 + d2, d1 / 2 + d2));          // P2
+            base_row_normal.points.emplace_back(Point(x + d1 / 2 + d2 + d1, d1 / 2 + d2));     // P3
+            base_row_normal.points.emplace_back(Point(x + period - d1 / 2, d1 / 2));           // P4
         }
 
         // Flipped row (mirrored vertically)
@@ -3150,8 +3151,6 @@ bool FillRectilinear::fill_surface_trapezoidal(
             for (Polyline& pl : polylines) {
                 for (Point& p : pl.points) {
                     std::swap(p.x(), p.y());
-                    p.x() += d1 / 2;
-                    p.y() -= d1 / 2;
                 }
             }
         }
@@ -3165,8 +3164,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
         //     /     \
         //  P0/       \P3_P4
         //  ----------------
-        // P1x-P2x=P3x-P4x=d2
-        // P0y-P1y=P2y-P3y=h-2d1
+        // P1xP2x=P3xP4x=d2
+        // P0yP1y=P2yP3y=h-2d1
         //
         
         // Triangular pattern density adjustment:
