@@ -20,32 +20,72 @@
 <script type="text/javascript" src="js/home.js"></script>
 </head>
 <body class="ZScrol" onLoad="OnInit()">
-<div id="LeftBoard" style="display: none;">
+<div id="LeftBoard">
 	<div id="LoginArea">
-	<div id="Login1">
-		<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
-		<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
-	</div>
-		
-	<div id="Login2">
-		<div>
-			<img id="UserAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
+
+	<!-- Orca Login Section -->
+	<div id="OrcaLoginSection">
+		<div id="OrcaLogin1">
+			<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
+			<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
 		</div>
-		<div id="UserName" class="TextS1"></div>
-		<div id="LogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnLogOut()">log out</div>
-	</div>	
-		
-	<div id="NoPluginTip">	
-	    <div id="NoPluginText"><a class="RedFont trans" tid="t76">Network plugin not detected. Click </a><a Class="LinkBtn trans" onClick="BeginDownloadNetworkPlugin()" tid="t77">here</a><a class="RedFont trans" tid="t78"> to install it.</a></div>
+
+		<div id="OrcaLogin2">
+			<div>
+				<img id="UserAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
+			</div>
+			<div id="UserName" class="TextS1"></div>
+			<div id="LogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnLogOut()">log out</div>
+		</div>
 	</div>
-		
+
+	<!-- Bambu Cloud Section -->
+	<div id="BambuCloudSection">
+		<div id="BambuCloudHeader" onClick="ToggleBambuSection()">
+			<svg class="bambu-chevron" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
+			<span class="trans" tid="orca6">Bambu Cloud</span>
+			<span class="bambu-status-dot"></span>
+		</div>
+
+		<div id="BambuCloudBody">
+			<div id="BambuLogin1">
+				<div id="BambuLoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnBambuLoginOrRegister()"><span class="trans" tid="t26">login</span></div>
+			</div>
+
+			<div id="BambuLogin2">
+				<div>
+					<img id="BambuAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
+				</div>
+				<div id="BambuUserName" class="TextS1"></div>
+				<div id="BambuLogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnBambuLogOut()">log out</div>
+			</div>
+
+			<div id="NoPluginTip">
+				<div id="NoPluginText"><a class="RedFont trans" tid="t76">Network plugin not detected. Click </a><a Class="LinkBtn trans" onClick="BeginDownloadNetworkPlugin()" tid="t77">here</a><a class="RedFont trans" tid="t78"> to install it.</a></div>
+			</div>
+		</div>
+	</div>
+
 	</div>
 
 	<div id="BtnArea">
 	    <div menu="recent" class="BtnItem BtnItemSelected" onClick="GotoMenu('recent')">
 			<div class="BtnIcon "><img class="LeftIcon" src="img/i2.png" /></div>
 			<div class="trans" tid="t28">recent</div> 
-		</div>	
+		</div>
+	    <div class="BtnItem BtnShortcut" onClick="OpenUrlInLocalBrowser('https://cloud.orcaslicer.com')">
+			<div class="BtnIcon "><img class="ShortcutBrandIcon" src="../image/logo.png" /></div>
+			<div class="ShortcutTextRow">
+				<div>OrcaCloud</div>
+				<svg class="ShortcutMark" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+					<path d="M6 3.5H3.5C2.95 3.5 2.5 3.95 2.5 4.5V12.5C2.5 13.05 2.95 13.5 3.5 13.5H11.5C12.05 13.5 12.5 13.05 12.5 12.5V10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+					<path d="M8.5 3.5H13.5V8.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+					<path d="M13.5 3.5L7 10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
+		</div>
 
 	</div>
 </div>

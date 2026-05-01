@@ -26,7 +26,8 @@ public:
         wxBitmap icon;
         wxBitmap icon_textctrl;// display icon for TextInput.eg.PrinterInfoBox
         void *   data{nullptr};
-        wxString group{};
+        wxString group_key{};
+        wxString group_label{};
         wxString alias{};
         wxString tip{};
         int      flag{0};

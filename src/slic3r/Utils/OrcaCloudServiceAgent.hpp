@@ -16,8 +16,9 @@ class wxSecretStore;
 
 namespace Slic3r {
 
-// Forward declaration
+// Forward declarations
 class AppConfig;
+struct BundleMetadata;
 
 // Constants for OAuth loopback server
 namespace auth_constants {
@@ -39,12 +40,12 @@ struct ProfileUpsert {
     std::string id;
     std::string name;
     nlohmann::json content;
-    std::string updated_at;
-    std::string created_at;
+    long long updated_time;
+    long long created_time;
 };
 
 struct SyncPullResponse {
-    std::string next_cursor;
+    long long next_cursor;
     std::vector<ProfileUpsert> upserts;
     std::vector<std::string> deletes;
 };
@@ -52,14 +53,14 @@ struct SyncPullResponse {
 struct SyncPushResult {
     bool success;
     int http_code;
-    std::string new_updated_at;
+    long long new_updated_time;
     ProfileUpsert server_version;
     bool server_deleted;
     std::string error_message;
 };
 
 struct SyncState {
-    std::string last_sync_timestamp;
+    long long last_sync_timestamp;
 };
 
 #endif // ORCA_SYNC_STRUCTS_DEFINED
@@ -87,6 +88,8 @@ public:
         std::string access_token;
         std::string refresh_token;
         std::string user_id;
+        // Orca auth semantics: user_name is unique orca cloud username(orca_xxxxx), user_nickname is
+        // the display name shown in the UI when available.
         std::string user_name;
         std::string user_nickname;
         std::string user_avatar;
@@ -108,10 +111,14 @@ public:
     explicit OrcaCloudServiceAgent(std::string log_dir);
     ~OrcaCloudServiceAgent() override;
 
+    std::string get_id() const override { return ORCA_CLOUD_PROVIDER; }
+
     // Configuration
     void configure_urls(AppConfig* app_config);
     void set_api_base_url(const std::string& url);
     void set_auth_base_url(const std::string& url);
+    void set_cloud_base_url(const std::string& url);
+    std::string get_cloud_base_url() const { return cloud_base_url; }
     void set_use_encrypted_token_file(bool use);
     bool get_use_encrypted_token_file() const;
 
@@ -157,6 +164,7 @@ public:
     int connect_server() override;
     bool is_server_connected() override;
     int refresh_connection() override;
+    bool is_refresh_running() const { return refresh_running.load(); }
     int start_subscribe(std::string module) override;
     int stop_subscribe(std::string module) override;
     int add_subscribe(std::vector<std::string> dev_list) override;
@@ -199,6 +207,7 @@ public:
     int get_model_mall_home_url(std::string* url) override;
     int get_model_mall_detail_url(std::string* url, std::string id) override;
     int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body) override;
+    int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body) override;
 
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Analytics & Tracking
@@ -222,8 +231,6 @@ public:
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Extra Features
     // ========================================================================
-    int set_extra_http_header(std::map<std::string, std::string> extra_headers) override;
-    std::string get_studio_info_url() override;
     int get_mw_user_preference(std::function<void(std::string)> callback) override;
     int get_mw_user_4ulist(int seed, int limit, std::function<void(std::string)> callback) override;
     std::string get_version() override;
@@ -231,9 +238,8 @@ public:
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Callbacks
     // ========================================================================
-    int set_on_user_login_fn(OnUserLoginFn fn) override;
-    int set_on_server_connected_fn(OnServerConnectedFn fn) override;
-    int set_on_http_error_fn(OnHttpErrorFn fn) override;
+    int set_on_server_connected_fn(AppOnServerConnectedFn fn) override;
+    int set_on_http_error_fn(AppOnHttpErrorFn fn) override;
     int set_get_country_code_fn(GetCountryCodeFn fn) override;
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
@@ -242,6 +248,14 @@ public:
     void save_sync_state();
     void clear_sync_state();
     const SyncState& get_sync_state() const { return sync_state; }
+
+    // ========================================================================
+    // Orca-Specific: Bundle Subscription
+    // ========================================================================
+    bool unsubscribe_bundle(const std::string& bundle_id);
+    std::string get_bundle_url(const std::string& bundle_id) const;
+    int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
+    int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
 
     // ========================================================================
     // Additional Public Methods - Auth
@@ -266,10 +280,10 @@ public:
     bool set_user_session(const std::string& token,
                           const std::string& user_id,
                           const std::string& username,
-                          const std::string& name,
                           const std::string& nickname,
                           const std::string& avatar,
                           const std::string& refresh_token = "");
+    bool set_user_session(const nlohmann::json& session_json, bool notify_login = true);
     void clear_session();
 
 private:
@@ -283,7 +297,7 @@ private:
         const std::string& profile_id,
         const std::string& name,
         const nlohmann::json& content,
-        const std::string& original_updated_at = ""
+        const std::string& original_updated_time = ""
     );
 
     // HTTP request helpers
@@ -302,7 +316,6 @@ private:
     void compute_fallback_path();
     bool decode_jwt_expiry(const std::string& token, std::chrono::system_clock::time_point& out_tp);
     bool should_refresh_locked(std::chrono::seconds skew) const;
-    void invoke_user_login_callback(int online_login, bool login);
 
     // Callback invocation
     void invoke_server_connected_callback(int return_code, int reason_code);
@@ -317,6 +330,7 @@ private:
     std::string config_dir;
     std::string api_base_url;
     std::string auth_base_url;
+    std::string cloud_base_url;
     std::string country_code;
     std::map<std::string, std::string> extra_headers;
     std::map<std::string, std::string> auth_headers;
@@ -341,9 +355,8 @@ private:
     std::string sync_state_path;
 
     // Callbacks
-    OnUserLoginFn on_user_login_fn;
-    OnServerConnectedFn on_server_connected_fn;
-    OnHttpErrorFn on_http_error_fn;
+    AppOnServerConnectedFn on_server_connected_fn;
+    AppOnHttpErrorFn on_http_error_fn;
     GetCountryCodeFn get_country_code_fn;
     QueueOnMainFn queue_on_main_fn;
     mutable std::mutex callback_mutex;

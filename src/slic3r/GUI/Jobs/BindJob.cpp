@@ -125,7 +125,7 @@ void BindJob::process(Ctl &ctl)
         post_fail_event(result_code, result_info);
         return;
     }
-    dev->update_user_machine_list_info();
+    dev->update_user_machine_list_info(wxGetApp().get_printer_cloud_provider());
 
      wxCommandEvent event(EVT_BIND_MACHINE_SUCCESS);
      event.SetEventObject(m_event_handle);

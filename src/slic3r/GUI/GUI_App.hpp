@@ -6,11 +6,13 @@
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
 #include "OpenGLManager.hpp"
+#include "PresetBundleDialog.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/BBLCloudServiceAgent.hpp"
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "slic3r/GUI/WebUserLoginDialog.hpp"
 #include "slic3r/GUI/BindDialog.hpp"
@@ -293,12 +295,20 @@ private:
     Slic3r::UserManager* m_user_manager { nullptr };
     Slic3r::TaskManager* m_task_manager { nullptr };
     NetworkAgent* m_agent { nullptr };
-    std::vector<std::string> need_delete_presets;   // store setting ids of preset
+    std::map<std::string, std::string> need_delete_presets;   // store setting ids of preset
     std::vector<bool> m_create_preset_blocked { false, false, false, false, false, false }; // excceed limit
     bool m_networking_compatible { false };
     bool m_networking_need_update { false };
     bool m_networking_cancel_update { false };
     std::shared_ptr<UpgradeNetworkJob> m_upgrade_network_job;
+
+    // ORCA: for installing vendors on the main thread when presets to be synced requires it
+    // vendor structure is:
+    // [vendor_name]: { model: variants, model: variants, ... }
+    // filaments structure is:
+    // [filament_name]: true/false, ...
+    std::map<std::string, std::map<std::string, std::set<std::string>>> need_add_vendors;
+    std::map<std::string, std::string> need_add_filaments;
 
     // login widget
     ZUserLogin*     login_dlg { nullptr };
@@ -460,27 +470,29 @@ public:
     wxString        transition_tridid(int trid_id) const;
     void            ShowUserGuide();
     void            ShowDownNetPluginDlg();
-    void            ShowUserLogin(bool show = true);
+    void            ShowUserLogin(bool show = true, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            ShowOnlyFilament();
-    //BBS
-    void            request_login(bool show_user_info = false);
-    bool            check_login();
-    void            get_login_info();
-    bool            is_user_login();
+    // Orca auth
+    void            request_login(bool show_user_info = false, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    bool            check_login(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            get_login_info(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    bool            is_user_login(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    const std::string& get_printer_cloud_provider() const;
 
-    void            request_user_login(int online_login = 0);
-    void            request_user_handle(int online_login = 0);
-    void            request_user_logout();
-    int             request_user_unbind(std::string dev_id);
+    void            request_user_login(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            request_user_handle(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            request_user_logout(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            post_logout_to_webview(const std::string& provider);
+    int             request_user_unbind(std::string dev_id, const std::string& provider = ORCA_CLOUD_PROVIDER);
     std::string     handle_web_request(std::string cmd);
-    void            handle_script_message(std::string msg);
+    void            handle_script_message(std::string msg, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            request_model_download(wxString url);
     void            download_project(std::string project_id);
     void            request_project_download(std::string project_id);
     void            request_open_project(std::string project_id);
     void            request_remove_project(std::string project_id);
 
-    void            handle_http_error(unsigned int status, std::string body);
+    void            handle_http_error(unsigned int status, std::string body, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            on_http_error(wxCommandEvent &evt);
     void            on_update_machine_list(wxCommandEvent& evt);
     void            on_user_login(wxCommandEvent &evt);
@@ -507,19 +519,36 @@ public:
     void            push_notification(const MachineObject* obj, wxString msg, wxString title = wxEmptyString, UserNotificationStyle style = UserNotificationStyle::UNS_NORMAL);
     void            reload_settings();
     void            remove_user_presets();
+
+    bool            maybe_migrate_user_presets_on_login();
+
+    // ORCA: functions for loading unloaded vendors to allow for proper inheritance when syncing user presets/bundles
+    bool            check_preset_parent_available(const std::pair<std::string, std::map<std::string, std::string>>& preset_data);
+    void            add_pending_vendor_preset(const std::pair<std::string, std::map<std::string, std::string>>& preset_data);
+    void            load_pending_vendors();
+
     void            sync_preset(Preset* preset);
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
-    void            start_http_server();
-    void            start_http_server(int port);
+
+    // Bundle subscription sync
+    void            check_bundle_updates();
+    void            sync_bundle(std::string bundle_id, std::string version);
+    bool            unsubscribe_bundle(const std::string& id);
+    void            update_single_bundle(wxCommandEvent& evt);
+
+    PresetBundleDialog* m_preset_bundle_dlg{nullptr};
+
+    void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 
-    void            on_show_check_privacy_dlg(int online_login = 0);
+    void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            show_check_privacy_dlg(wxCommandEvent& evt);
     void            on_check_privacy_update(wxCommandEvent &evt);
     bool            check_privacy_update();
-    void            check_privacy_version(int online_login = 0);
+    void            check_privacy_version(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            check_track_enable();
 
     static bool     catch_error(std::function<void()> cb, const std::string& err);
@@ -560,10 +589,13 @@ public:
     bool            checked_tab(Tab* tab);
     //BBS: add preset combox re-active logic
     void            load_current_presets(bool active_preset_combox = false, bool check_printer_presets = true);
-    std::vector<std::string> &get_delete_cache_presets();
-    std::vector<std::string> get_delete_cache_presets_lock();
-    void            delete_preset_from_cloud(std::string setting_id);
+    std::map<std::string, std::string> &get_delete_cache_presets();
+    std::map<std::string, std::string> get_delete_cache_presets_lock();
+    void            process_delete_presets();
+    void            delete_preset_from_cloud(std::string setting_id, std::string preset_file_path);
     void            preset_deleted_from_cloud(std::string setting_id);
+    void            scan_orphaned_info_files();
+    static std::string extract_setting_id_from_info(const std::string& info_file_path);
 
     wxString        filter_string(wxString str);
 	wxString        current_language_code() const { return m_active_language_code.empty() && m_wxLocale ? m_wxLocale->GetCanonicalName() : m_active_language_code; }
@@ -572,7 +604,8 @@ public:
     bool            is_localized() const { return m_wxLocale->GetLocale() != "English"; }
 
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
-
+    void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_exportpresetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     virtual bool OnExceptionInMainLoop() override;
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
     bool            open_browser_with_warning_dialog(const wxString& url, int flags = 0);
@@ -707,6 +740,10 @@ public:
     bool            hot_reload_network_plugin();
     std::string     get_latest_network_version() const;
     bool            has_network_update_available() const;
+    // Orca: return the client version to report to Bambu servers. Pinned to
+    // 01.10.01.50 when the legacy network plugin lacks get_my_token support
+    // so the auth server stays on the ?access_token= redirect path.
+    std::string     get_bbl_client_version();
 
 private:
     int             updating_bambu_networking();
@@ -718,10 +755,6 @@ private:
     void            remove_old_networking_plugins();
     void            drain_pending_events(int timeout_ms);
     bool            wait_for_network_idle(int timeout_ms);
-    //BBS set extra header for http request
-    std::map<std::string, std::string> get_extra_header();
-    void            init_http_extra_header();
-    void            update_http_extra_header();
     bool            check_older_app_config(Semver current_version, bool backup);
     void            copy_older_config();
     void            window_pos_save(wxTopLevelWindow* window, const std::string &name);
@@ -747,6 +780,9 @@ private:
 
 DECLARE_APP(GUI_App)
 wxDECLARE_EVENT(EVT_CONNECT_LAN_MODE_PRINT, wxCommandEvent);
+wxDECLARE_EVENT(EVT_UPDATE_PRESET_BUNDLE, wxCommandEvent);
+wxDECLARE_EVENT(EVT_UPDATE_BUNDLE_COMPLETE, wxCommandEvent);
+
 
 bool is_support_filament(int extruder_id, bool strict_check = true);
 bool is_soluble_filament(int extruder_id);

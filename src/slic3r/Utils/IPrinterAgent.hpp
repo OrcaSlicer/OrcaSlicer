@@ -59,7 +59,6 @@ class IPrinterAgent {
 public:
     virtual ~IPrinterAgent() = default;
 
-    // ========================================================================
     // Cloud Agent Dependency
     // ========================================================================
     /**
@@ -157,6 +156,29 @@ public:
      * Update the selected machine preference.
      */
     virtual int set_user_selected_machine(std::string dev_id) = 0;
+
+    // ========================================================================
+    // Subscriptions
+    // ========================================================================
+    /**
+     * Subscribe to a logical module (for example app- or tunnel-scoped streams).
+     */
+    virtual int start_subscribe(std::string module) { (void) module; return BAMBU_NETWORK_SUCCESS; }
+
+    /**
+     * Stop listening to a formerly subscribed module.
+     */
+    virtual int stop_subscribe(std::string module) { (void) module; return BAMBU_NETWORK_SUCCESS; }
+
+    /**
+     * Subscribe to push streams for specific device identifiers.
+     */
+    virtual int add_subscribe(std::vector<std::string> dev_list) { (void) dev_list; return BAMBU_NETWORK_SUCCESS; }
+
+    /**
+     * Remove device-level subscriptions.
+     */
+    virtual int del_subscribe(std::vector<std::string> dev_list) { (void) dev_list; return BAMBU_NETWORK_SUCCESS; }
 
     // ========================================================================
     // Print Job Operations

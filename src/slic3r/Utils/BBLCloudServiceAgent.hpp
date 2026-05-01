@@ -3,7 +3,7 @@
 
 #include "ICloudServiceAgent.hpp"
 #include <string>
-#include <memory>
+#include <map>
 
 namespace Slic3r {
 
@@ -18,6 +18,8 @@ class BBLCloudServiceAgent : public ICloudServiceAgent {
 public:
     BBLCloudServiceAgent();
     ~BBLCloudServiceAgent() override;
+
+    std::string get_id() const override { return BBL_CLOUD_PROVIDER; }
 
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Auth Methods
@@ -48,9 +50,6 @@ public:
     std::string get_access_token() const override;
     std::string get_refresh_token() const override;
     bool ensure_token_fresh(const std::string& reason) override;
-
-    // Auth Callbacks
-    int set_on_user_login_fn(OnUserLoginFn fn) override;
 
     // ========================================================================
     // ICloudServiceAgent Interface Implementation - Cloud Methods
@@ -98,6 +97,7 @@ public:
     int get_model_mall_home_url(std::string* url) override;
     int get_model_mall_detail_url(std::string* url, std::string id) override;
     int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body) override;
+    int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body) override;
 
     // Analytics & Tracking
     int track_enable(bool enable) override;
@@ -115,20 +115,22 @@ public:
     int get_model_mall_rating_result(int job_id, std::string& rating_result, unsigned int& http_code, std::string& http_error) override;
 
     // Extra Features
-    int set_extra_http_header(std::map<std::string, std::string> extra_headers) override;
-    std::string get_studio_info_url() override;
     int get_mw_user_preference(std::function<void(std::string)> callback) override;
     int get_mw_user_4ulist(int seed, int limit, std::function<void(std::string)> callback) override;
     std::string get_version() override;
 
     // Cloud Callbacks
-    int set_on_server_connected_fn(OnServerConnectedFn fn) override;
-    int set_on_http_error_fn(OnHttpErrorFn fn) override;
+    int set_on_server_connected_fn(AppOnServerConnectedFn fn) override;
+    int set_on_http_error_fn(AppOnHttpErrorFn fn) override;
     int set_get_country_code_fn(GetCountryCodeFn fn) override;
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
 private:
+    int set_extra_http_header();
+    static std::map<std::string, std::string> get_extra_header();
     bool m_enable_track{false};
+    AppOnServerConnectedFn m_app_on_server_connected_fn;
+    AppOnHttpErrorFn m_app_on_http_error_fn;
 };
 
 } // namespace Slic3r

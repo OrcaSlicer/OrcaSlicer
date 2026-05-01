@@ -79,40 +79,151 @@ body
 
 #LoginArea
 {
-	height: 180px;
+	min-height: 180px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
 	flex-wrap: nowrap;
 	position: relative;
 	width:262px;
 }
 
-
-#Login1
+#OrcaLoginSection
 {
-	height:36px;
-	line-height: 36px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+}
+
+#OrcaLogin1
+{
 	display: flex;
 	flex-direction: column;		/*ORCA*/
 	align-items: center;		/*Allow icon centered vertically*/
 	justify-content: center;	/*and use login button in new line*/
 	user-select: none;
+	padding: 10px 0;
+}
+
+#OrcaLogin2
+{
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 14px 0 16px;
+	box-sizing: border-box;
+	width: 262px;
+}
+
+/* --- Bambu Cloud Section --- */
+#BambuCloudSection
+{
+	display: none;  /* shown by cloud_providers_info from backend */
+	border-top: 1px solid;
+	width: 262px;
+}
+
+#BambuCloudHeader
+{
+	height: 40px;
+	display: flex;
+	align-items: center;
+	padding: 0 20px;
+	cursor: pointer;
+	font-size: 13px;
+	color: #A8A8A8;
+	gap: 8px;
+}
+
+#BambuCloudHeader:hover
+{
+	color: inherit;
+}
+
+.bambu-chevron
+{
+	width: 12px;
+	height: 12px;
+	transition: transform 0.2s ease;
+	transform: rotate(0deg);
+}
+
+.bambu-chevron.expanded
+{
+	transform: rotate(90deg);
+}
+
+.bambu-status-dot
+{
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: #A8A8A8;
+	margin-left: auto;
+}
+
+.bambu-status-dot.online
+{
+	background-color: #4CAF50;
+}
+
+#BambuCloudBody
+{
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 0.25s ease;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+#BambuCloudBody.expanded
+{
+	max-height: 200px;
 }
 
 #NoPluginTip
 {
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	bottom: 0px;
-	right: 0px;
-	z-index: 1;
+	position: static;
 	display: none;
 	flex-direction: column;
-	justify-content: flex-end;
-	padding: 5px;
+	padding: 5px 10px;
+	z-index: auto;
+}
+
+#BambuLogin1
+{
+	padding: 10px 0;
+}
+
+#BambuLogin2
+{
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 8px 0;
+	width: 262px;
+}
+
+#BambuAvatarIcon
+{
+	height: 40px;
+	border-radius: 50%;
+}
+
+#BambuUserName
+{
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	width: 80%;
+	text-align: center;
+	font-size: 13px;
 }
 
 
@@ -132,18 +243,14 @@ body
 	height:96px; /*ORCA use bigger icon to fit logo size*/
 }
 
-#Login2
-{
-	display: none;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	width: 262px;
-}
-
 #UserAvatarIcon
 {
-	height: 85px;
+	width: 64px;
+	height: 64px;
+	display: block;
+	margin: 2px auto 10px;
+	object-fit: cover;
+	border-radius: 50%;
 }
 
 #UserName
@@ -153,11 +260,13 @@ body
 	text-align: center;
 	overflow: hidden; 
 	width: 80%;
+	max-width: 190px;
+	line-height: 22px;
 }
 
 #LogoutBtn
 {
-	margin-top: 5px;
+	margin-top: 8px;
 }
 
 /*------------------*/
@@ -199,6 +308,38 @@ body
 {
 	width:20px;
 	height: 20px;
+}
+
+.BtnShortcut
+{
+	padding-right: 18px;
+}
+
+.ShortcutBrandIcon
+{
+	width: 20px;
+	height: 20px;
+	border-radius: 5px;
+	display: block;
+}
+
+.ShortcutTextRow
+{
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	min-width: 0;
+}
+
+.ShortcutMark
+{
+	width: 14px;
+	height: 14px;
+	margin-left: auto;
+	color: currentColor;
+	opacity: 0.72;
+	flex: 0 0 auto;
 }
 
 
@@ -321,6 +462,7 @@ body
 	flex: 1;
 	display: flex;
 	flex-direction: column;
+	min-height: 0;
 }
 
 #RecentTitleBlock
@@ -348,6 +490,7 @@ body
 	flex-wrap: wrap;
 	align-content: flex-start;
 	overflow-y: auto;
+	min-height: 0;
 }
 
 .FileItem

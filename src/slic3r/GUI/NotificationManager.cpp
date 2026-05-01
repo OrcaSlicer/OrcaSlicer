@@ -2231,6 +2231,138 @@ void NotificationManager::push_import_finished_notification(const std::string& p
     set_slicing_progress_hidden();
 }
 
+// SharedProfilesNotification implementation
+
+void NotificationManager::SharedProfilesNotification::init()
+{
+	PopNotification::init();
+	// Add one extra line for the hyperlink row ("Browse shared profiles" + "Don't show again")
+	m_lines_count++;
+}
+
+void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	float x_offset = m_left_indentation;
+	float shift_y = m_line_height;
+	float starting_y = m_line_height / 2;
+
+	// Render main text line(s)
+	int last_end = 0;
+	std::string line;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(x_offset);
+			ImGui::SetCursorPosY(starting_y + i * shift_y);
+			imgui.text(line.c_str());
+		}
+	}
+
+	// Render "Browse shared profiles" hyperlink on the next line
+	float hyper_y = starting_y + m_endlines.size() * shift_y;
+	render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
+
+	// Render "Don't show again" hyperlink after the browse link
+	{
+		float dont_show_x = x_offset + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).x;
+		std::string dont_show_text = _u8L("Don't show again");
+		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
+
+		// Invisible button
+		ImGui::SetCursorPosX(dont_show_x - 4);
+		ImGui::SetCursorPosY(hyper_y - 5);
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+		if (imgui.button("##dont_show_btn", part_size.x + 6, part_size.y + 10)) {
+			wxGetApp().app_config->set_bool("show_shared_profiles_notification", false);
+			wxGetApp().app_config->save();
+			close();
+		}
+		ImGui::PopStyleColor(3);
+
+		// Hover color
+		ImVec4 color = m_HyperTextColor;
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
+			color.y += 0.1f;
+
+		// Text
+		push_style_color(ImGuiCol_Text, color, m_state == EState::FadingOut, m_current_fade_opacity);
+		ImGui::SetCursorPosX(dont_show_x);
+		ImGui::SetCursorPosY(hyper_y);
+		imgui.text(dont_show_text.c_str());
+		ImGui::PopStyleColor();
+
+		// Underline
+		ImVec2 lineEnd = ImGui::GetItemRectMax();
+		lineEnd.y -= 2;
+		ImVec2 lineStart = lineEnd;
+		lineStart.x = ImGui::GetItemRectMin().x;
+		ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
+			IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
+				(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+	}
+}
+
+bool NotificationManager::SharedProfilesNotification::on_text_click()
+{
+	wxLaunchDefaultBrowser(m_explore_url);
+	return false;
+}
+
+void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrapper& imgui,
+	const float text_x, const float text_y, const std::string text, bool more)
+{
+	// Invisible button
+	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
+	ImGui::SetCursorPosX(text_x - 4);
+	ImGui::SetCursorPosY(text_y - 5);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+	if (imgui.button("##browse_btn", part_size.x + 6, part_size.y + 10)) {
+		if (on_text_click()) {
+			close();
+		}
+	}
+	ImGui::PopStyleColor(3);
+
+	// Hover color
+	ImVec4 HyperColor = m_HyperTextColor;
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
+		HyperColor.y += 0.1f;
+
+	// Text
+	push_style_color(ImGuiCol_Text, HyperColor, m_state == EState::FadingOut, m_current_fade_opacity);
+	ImGui::SetCursorPosX(text_x);
+	ImGui::SetCursorPosY(text_y);
+	imgui.text(text.c_str());
+	ImGui::PopStyleColor();
+
+	// Underline
+	ImVec2 lineEnd = ImGui::GetItemRectMax();
+	lineEnd.y -= 2;
+	ImVec2 lineStart = lineEnd;
+	lineStart.x = ImGui::GetItemRectMin().x;
+	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
+		IM_COL32((int)(HyperColor.x * 255), (int)(HyperColor.y * 255), (int)(HyperColor.z * 255),
+			(int)(HyperColor.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+}
+
+void NotificationManager::push_shared_profiles_notification(const std::string& explore_url)
+{
+	close_notification_of_type(NotificationType::OrcaSharedProfilesAvailable);
+	NotificationData data{ NotificationType::OrcaSharedProfilesAvailable, NotificationLevel::RegularNotificationLevel, 0,
+		_u8L("Shared profiles may be available for this printer."),
+		_u8L("Browse shared profiles") };
+	push_notification_data(std::make_unique<NotificationManager::SharedProfilesNotification>(data, m_id_provider, m_evt_handler, explore_url), 0);
+}
+
 void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)
 {
     // If already exists

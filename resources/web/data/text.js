@@ -111,6 +111,7 @@ var LangText = {
     orca3: "Stealth Mode",
     orca4: "This stops the transmission of data to Bambu's cloud services. Users who don't use BBL machines or use LAN mode only can safely turn on this function.",
     orca5: "Enable Stealth Mode.",
+    orca6: "Bambu Cloud",
   },
   ca_ES: {
     t1: "Benvingut a Orca Slicer",
@@ -220,6 +221,7 @@ var LangText = {
     t113: "Pots canviar la teva elecció en les preferències en qualsevol moment.",
     orca1: "Editar Informació del Projecte",
     orca2: "no hi ha informació del model",
+    orca6: "Bambu Cloud",
   },
   es_ES: {
     t1: "Bienvenido a Orca Slicer",
@@ -333,6 +335,7 @@ var LangText = {
     orca3: "Modo sigiloso",
     orca4: "Esta función detiene la transmisión de datos a los servicios en la nube de Bambu. Los usuarios que no utilicen máquinas BBL o que solo usen el modo LAN pueden activar esta función con seguridad.",
     orca5: "Activar modo sigiloso.",
+    orca6: "Bambu Cloud",
   },
   it_IT: {
     t1: "Benvenuti in OrcaSlicer",
@@ -445,6 +448,7 @@ var LangText = {
     orca3: "Modalità invisibile",
     orca4: "Con questa modalità, la trasmissione dei dati ai servizi cloud di Bambu sarà interrotta. Gli utenti che non utilizzano macchine BBL o che usano solo la modalità LAN possono attivare questa funzione in modo sicuro.",
     orca5: "Abilita la modalità invisibile.",
+    orca6: "Bambu Cloud",
   },
   de_DE: {
     t1: "Willkommen im Orca Slicer",
@@ -548,6 +552,7 @@ var LangText = {
     t126: "Laden……",
     orca1: "Edit Project Info",
     orca2: "no model information",
+    orca6: "Bambu Cloud",
   },
   cs_CZ: {
     t1: "Vítejte v Orca Slicer",
@@ -651,6 +656,7 @@ var LangText = {
     t126: "Načtení probíhá……",
     orca1: "Edit Project Info",
     orca2: "no model information",
+    orca6: "Bambu Cloud",
   },
   fr_FR: {
     t1: "Bienvenue sur Orca Slicer",
@@ -773,6 +779,7 @@ var LangText = {
     wk14: "Par rapport au format STL, le format STEP apporte des informations plus efficaces. Grâce à la grande précision de ce format, de nombreuses trajectoires d'extrusion peuvent être générées sous forme d'arcs. Il inclut également la relation d'assemblage de chaque pièce d'un modèle, qui peut être utilisée pour restaurer la vue d'assemblage après la coupe d'un modèle.",
     wk15: "Texte 3D",
     wk16: "Avec l'outil Texte 3D, les utilisateurs peuvent facilement créer diverses formes de texte 3D dans le projet, ce qui rend le modèle plus personnalisé. Orca Slicer fournit des dizaines de polices et prend en charge les styles gras et italique pour donner au texte une plus grande flexibilité.",
+    orca6: "Bambu Cloud",
   },
   zh_CN: {
     t1: "欢迎使用Orca Slicer",
@@ -899,6 +906,7 @@ var LangText = {
     wk16: "使用3D文本工具，用户可以轻松地在项目中创建各种3D文本形状，使模型更加个性化。Orca Slicer提供了数十种字体，并支持粗体和斜体样式，使文本具有更大的灵活性。",
     orca1: "编辑项目信息",
     orca2: "该模型没有相关信息",
+    orca6: "Bambu Cloud",
   },
   zh_TW: {
     t1: "歡迎使用 Orca Slicer",
@@ -1004,6 +1012,7 @@ var LangText = {
     wk16: "使用３Ｄ文字工具，使用者可以輕鬆地在項目中建立各種３Ｄ文字形狀，使模型更加個性化。Orca Slicer 提供了數十種字體，並支援粗體和斜體樣式，使文字具有更大的靈活性。",
     orca1: "編輯專案資訊",
     orca2: "沒有模型相關資訊",
+    orca6: "Bambu Cloud",
   },
   ru_RU: {
     t1: "Приветствуем в Orca Slicer!",
@@ -1116,7 +1125,8 @@ var LangText = {
     orca2: "Информация отсутствует",
     orca3: "Режим конфиденциальности",
     orca4: "Это остановит передачу данных в облачные сервисы Bambu. Помешает только владельцам Bambu Lab, не использующим режим «Только LAN».",
-    orca5: "Включить режим конфиденциальности"
+    orca5: "Включить режим конфиденциальности",
+    orca6: "Bambu Cloud",
   },
   ko_KR: {
     t1: "Orca Slicer에 오신 것을 환영합니다",
@@ -1209,6 +1219,7 @@ var LangText = {
     t126: "로딩 중……",
     orca1: "Edit Project Info",
     orca2: "no model information",
+    orca6: "Bambu Cloud",
   },
   tr_TR: {
     t1: "Orca Slicer'a hoş geldiniz",
@@ -1322,6 +1333,7 @@ var LangText = {
     orca3: "Gizli Mod",
     orca4: "Bu, Bambu'nun bulut hizmetlerine veri iletimini durdurur. BBL makinelerini kullanmayan veya yalnızca LAN modunu kullanan kullanıcılar bu işlevi güvenle açabilir.",
     orca5: "Gizli Modu etkinleştirin.",
+    orca6: "Bambu Cloud",
   },
   pl_PL: {
     t1: "Witamy w Orca Slicer",
@@ -1435,6 +1447,7 @@ var LangText = {
     orca3: "Tryb «Niewidzialny»",
     orca4: "To wyłączy przesyłanie danych do usług chmurowych Bambu. Użytkownicy, którzy nie korzystają z maszyn BBL lub używają tylko trybu LAN, mogą bez obaw włączyć tę opcję.",
     orca5: "Włącz tryb «Niewidzialny»",
+    orca6: "Bambu Cloud",
   },
   pt_BR: {
     t1: "Bem-vindo ao Orca Slicer",
@@ -1548,6 +1561,7 @@ var LangText = {
     orca3: "Modo Furtivo",
     orca4: "Isso interrompe a transmissão de dados para os serviços de nuvem da Bambu. Usuários que não usam máquinas BBL ou usam somente o modo LAN podem ativar essa função com segurança.",
     orca5: "Habilita Modo Furtivo.",
+    orca6: "Bambu Cloud",
   },
   lt_LT: {
     t1: "Pasisveikinkite su Orca Slicer",
@@ -1660,6 +1674,7 @@ var LangText = {
     orca3: "Slaptas režimas",
     orca4: "Tai sustabdo duomenų perdavimą į Bambu debesijos paslaugas. Vartotojai, kurie nenaudoja BBL mašinų arba naudoja tik LAN režimą, gali drąsiai įjungti šią funkciją.",
     orca5: "Įjungti slaptą režimą.",
+    orca6: "Bambu Cloud",
   },
 };
 
