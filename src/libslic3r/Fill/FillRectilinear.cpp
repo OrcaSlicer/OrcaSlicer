@@ -3092,9 +3092,9 @@ bool FillRectilinear::fill_surface_trapezoidal(
         //        /      \
         //  P0_P1/        \P4_
         //
-        // P0x-P1x=P4x-P0x=d1/2
-        // P2x-P3x=d1
-        // P1y-P2y=P2y-P3y=d2
+        // P0xP1x=P4xP0x=d1/2
+        // P2xP3x=d1
+        // P1yP2y=P2yP3y=d2
         
         const coord_t d2 = coord_t(0.5 * period - d1);
 
@@ -3164,8 +3164,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
         //     /     \
         //  P0/       \P3_P4
         //  ----------------
-        // P1x-P2x=P3x-P4x=d2
-        // P0y-P1y=P2y-P3y=h-2d1
+        // P1xP2x=P3xP4x=d2
+        // P0yP1y=P2yP3y=h-2d1
         //
         
         // Triangular pattern density adjustment:
