@@ -718,10 +718,6 @@ void PrintObject::ironing()
 
 bool PrintObject::need_z_contouring() const
 {
-    if (this->config().zaa_enabled) {
-        return true;
-    }
-
     size_t num_regions = this->num_printing_regions();
     for (size_t region_id = 0; region_id < num_regions; region_id++) {
         if (this->printing_region(region_id).config().zaa_enabled)
