@@ -3280,10 +3280,12 @@ bool FillRectilinear::fill_surface_trapezoidal(
         if ((num_periods_y % 2) != 0)
             ++num_periods_y;
 
-        const coord_t x_min_aligned = -num_periods_x * period - period /2;
-        const coord_t x_max_aligned =  num_periods_x * period - period / 2;
-        const coord_t y_min_aligned = -num_periods_y * hex_height - tri_height * 2 / 3;
-        const coord_t y_max_aligned =  num_periods_y * hex_height - tri_height * 2 / 3;
+        const coord_t x_alignment_shift = period / 2;
+        const coord_t y_alignment_shift = (2 * tri_height) / 3;
+        const coord_t x_min_aligned = -num_periods_x * period - x_alignment_shift;
+        const coord_t x_max_aligned =  num_periods_x * period - x_alignment_shift;
+        const coord_t y_min_aligned = -num_periods_y * hex_height - y_alignment_shift;
+        const coord_t y_max_aligned =  num_periods_y * hex_height - y_alignment_shift;
 
         const size_t estimated_rows = (y_max_aligned - y_min_aligned) / hex_height + 2;
         const size_t estimated_polylines = (estimated_rows + 1) * 2;
@@ -3324,11 +3326,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
         for (coord_t y = y_min_aligned; y < y_max_aligned; y += hex_height, ++pair_idx) {
             const coord_t x_shift = (pair_idx % 2 == 0) ? 0 : period / 2;
-            const coord_t x_offset = x_shift + global_x_shift;
-            const coord_t y_offset = y + global_y_shift;
-
-            append_row_with_shift(star_row_normal, x_offset, y_offset);
-            append_row_with_shift(star_row_mirrored, x_offset, y_offset);
+            append_row_with_shift(star_row_normal, x_shift + global_x_shift, y + global_y_shift);
+            append_row_with_shift(star_row_mirrored, x_shift + global_x_shift, y + global_y_shift);
         }
 
         if (layer_mod)
