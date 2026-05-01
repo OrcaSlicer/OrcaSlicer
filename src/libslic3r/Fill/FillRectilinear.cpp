@@ -3280,10 +3280,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
         if ((num_periods_y % 2) != 0)
             ++num_periods_y;
 
-        const coord_t x_min_aligned = -num_periods_x * period;
-        const coord_t x_max_aligned =  num_periods_x * period;
-        const coord_t y_min_aligned = -num_periods_y * hex_height;
-        const coord_t y_max_aligned =  num_periods_y * hex_height;
+        const coord_t x_min_aligned = -num_periods_x * period - period /2;
+        const coord_t x_max_aligned =  num_periods_x * period - period / 2;
+        const coord_t y_min_aligned = -num_periods_y * hex_height - tri_height * 2 / 3;
+        const coord_t y_max_aligned =  num_periods_y * hex_height - tri_height * 2 / 3;
 
         const size_t estimated_rows = (y_max_aligned - y_min_aligned) / hex_height + 2;
         const size_t estimated_polylines = (estimated_rows + 1) * 2;
