@@ -6387,7 +6387,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             speed = is_perimeter(path.role()) ? m_config.get_abs_value("initial_layer_speed") :
                                                 m_config.get_abs_value("initial_layer_infill_speed");
         }
-    } else if (m_config.slow_down_layers > 1 && !m_config.raft_layers > 0) {
+    } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
         
         if (_layer > 0 && _layer < m_config.slow_down_layers) {
             const auto first_layer_speed =
