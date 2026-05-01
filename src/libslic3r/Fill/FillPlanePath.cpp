@@ -153,6 +153,23 @@ void FillPlanePath::_fill_surface_single(
 
                     // Then add the center spiral back
                     chained.push_back(std::move(center_spiral));
+                } else if (params.reverse_fill_direction) {
+                    // Reverse fill direction: ensure the main spiral starts from the outer edge.
+                    // Find the longest polyline (the main spiral segment).
+                    auto it = std::max_element(polylines.begin(), polylines.end(),
+                        [](const Polyline& a, const Polyline& b) { return a.length() < b.length(); });
+                    Polyline main_spiral = std::move(*it);
+
+                    // Ensure the spiral starts from the outer edge (outside-in)
+                    if (main_spiral.first_point().squaredNorm() < main_spiral.last_point().squaredNorm())
+                        main_spiral.reverse();
+
+                    // Chain the remaining polylines
+                    polylines.erase(it);
+                    chained = chain_polylines(std::move(polylines));
+
+                    // Put the main spiral first so it prints from outside in
+                    chained.insert(chained.begin(), std::move(main_spiral));
                 } else {
                     chained = chain_polylines(std::move(polylines));
                 }
