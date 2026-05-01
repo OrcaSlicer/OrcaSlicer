@@ -3050,7 +3050,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     FillParams                                params,
     const std::initializer_list<SweepParams>& sweep_params,
     Polylines&                                polylines_out,
-    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars (WIP)
+    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars
 {
     assert(params.multiline > 1);
 
@@ -3259,9 +3259,9 @@ bool FillRectilinear::fill_surface_trapezoidal(
         break;
     }
 
-    case 2: // Stars
+    case 2: // Tri-hexagon / FillStars
     {
-        // Keep period and layer rotation behavior aligned with triangular infill.
+        // Pattern parameters
         const coord_t hex_height = coord_t(0.5 * std::sqrt(3.0) * period);
         const coord_t tri_height = hex_height / 2;
         const coord_t d1_half = d1 / 2;
