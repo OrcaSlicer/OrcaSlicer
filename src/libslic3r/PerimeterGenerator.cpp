@@ -1829,6 +1829,12 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 }
                                 //TODO: add other polys as holes inside this one (-margin)
                             } else if (/*this->config->counterbore_hole_bridging.value == chbBridgesOverhangs || */this->config->counterbore_hole_bridging.value == chbBridges) {
+                                // Partially bridged counterbore handling should not rewrite generic bridge islands
+                                // because by doing so regular bridges will lose their overhang-wall perimeters.
+                                if (surface->expolygon.holes.empty()) {
+                                    unsupported_filtered.clear(); // "Partially bridged" only applies to hole-bearing bridge islands. 
+                                    continue;
+                                }
                                 //simplify to avoid most of artefacts from printing lines.
                                 ExPolygons bridgeable_simplified;
                                 for (ExPolygon& poly : bridgeable) {
