@@ -717,7 +717,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_sizer_ams_right_horizonal->AddStretchSpacer();
      m_sizer_ams_right_horizonal->AddSpacer(FromDIP(5));
-     m_sizer_ams_right_horizonal->Add(m_reset_btn, 0, wxALIGN_TOP | wxEXPAND );
+     m_sizer_ams_right_horizonal->Add(m_reset_btn, 0, wxEXPAND );
      m_reset_btn->Hide();
      m_right_first_text_panel->SetSizer(m_sizer_ams_right_horizonal);
      const int same_height = 15;
@@ -813,7 +813,7 @@ void AmsMapingPopup::msw_rescale()
     m_split_left_line->SetMaxSize(wxSize(-1, 1));
     sizer_split_ams->Add(0, 0, 0, wxEXPAND, 0);
     sizer_split_ams->Add(ams_title_text, 0, wxALIGN_CENTER, 0);
-    sizer_split_ams->Add(m_split_left_line, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND, 0);
+    sizer_split_ams->Add(m_split_left_line, 1, wxEXPAND, 0);
     return sizer_split_ams;
  }
 

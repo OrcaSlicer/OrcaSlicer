@@ -13,9 +13,10 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 namespace Slic3r::GUI {
 
@@ -88,55 +89,61 @@ bool GLGizmoMmuSegmentation::on_init()
     // BBS
     m_shortcut_key = WXK_CONTROL_N;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
-    const wxString shift = _L("Shift+");
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
-    m_desc["clipping_of_view"]     = _L("Section view");
-    m_desc["reset_direction"]     = _L("Reset direction");
-    m_desc["cursor_size_caption"]  = ctrl + _L("Mouse wheel");
-    m_desc["cursor_size"]          = _L("Pen size");
-    m_desc["cursor_type"]          = _L("Pen shape");
+    m_desc["clipping_of_view"] = _L("Section view");
+    m_desc["reset_direction"]  = _L("Reset direction");
+    m_desc["cursor_size"]      = _L("Brush size");
+    m_desc["cursor_type"]      = _L("Brush shape");
+    m_desc["paint"]            = _L("Paint");
+    m_desc["erase"]            = _L("Erase");
+    m_desc["shortcut_key"]     = _L("Choose filament");
+    m_desc["edge_detection"]   = _L("Edge detection");
+    m_desc["gap_area"]         = _L("Gap area");
+    m_desc["perform"]          = _L("Perform");
+    m_desc["remove_all"]       = _L("Erase all painting");
+    m_desc["circle"]           = _L("Circle");
+    m_desc["sphere"]           = _L("Sphere");
+    m_desc["pointer"]          = _L("Triangles");
+    m_desc["filaments"]        = _L("Filaments");
+    m_desc["tool_type"]        = _L("Tool type");
+    m_desc["tool_brush"]       = _L("Brush");
+    m_desc["tool_smart_fill"]  = _L("Smart fill");
+    m_desc["tool_bucket_fill"] = _L("Bucket fill");
+    m_desc["smart_fill_angle"] = _L("Smart fill angle");
+    m_desc["height_range"]     = _L("Height range");
+    m_desc["toggle_wireframe"] = _L("Toggle Wireframe");
+    m_desc["perform_remap"]    = _L("Remap filaments");
+    m_desc["remap"]            = _L("Remap");
+    m_desc["cancel_remap"]     = _L("Cancel");
 
-    m_desc["paint_caption"]        = _L("Left mouse button");
-    m_desc["paint"]                = _L("Paint");
-    m_desc["erase_caption"]        = shift + _L("Left mouse button");
-    m_desc["erase"]                = _L("Erase");
-    m_desc["shortcut_key_caption"] = _L("Key 1~9");
-    m_desc["shortcut_key"]         = _L("Choose filament");
-    m_desc["edge_detection"]       = _L("Edge detection");
-    m_desc["gap_area_caption"]     = ctrl + _L("Mouse wheel");
-    m_desc["gap_area"]             = _L("Gap area");
-    m_desc["perform"]              = _L("Perform");
+    std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
+    std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
+    std::pair<wxString, wxString> clipping_shortcut         = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
+    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L("Enter"),       m_desc["toggle_wireframe"]};
 
-    m_desc["remove_all"]           = _L("Erase all painting");
-    m_desc["circle"]               = _L("Circle");
-    m_desc["sphere"]               = _L("Sphere");
-    m_desc["pointer"]              = _L("Triangles");
+    m_shortcuts_brush = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        clipping_shortcut,
+        toggle_wireframe_shortcut
+    };
 
-    m_desc["filaments"]            = _L("Filaments");
-    m_desc["tool_type"]            = _L("Tool type");
-    m_desc["tool_brush"]           = _L("Brush");
-    m_desc["tool_smart_fill"]      = _L("Smart fill");
-    m_desc["tool_bucket_fill"]     = _L("Bucket fill");
+    m_shortcuts_bucket_fill = {
+        paint_shortcut,
+        erase_shortcut,
+        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        clipping_shortcut,
+        toggle_wireframe_shortcut
+    };
 
-    m_desc["smart_fill_angle_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["smart_fill_angle"]     = _L("Smart fill angle");
-
-    m_desc["height_range_caption"] = ctrl + _L("Mouse wheel");
-    m_desc["height_range"]         = _L("Height range");
-
-    //add toggle wire frame hint
-    m_desc["toggle_wireframe_caption"]        = alt + shift + _L("Enter");
-    m_desc["toggle_wireframe"]                = _L("Toggle Wireframe");
-
-    // Filament remapping descriptions
-    m_desc["perform_remap"]                   = _L("Remap filaments");
-    m_desc["remap"]                           = _L("Remap");
-    m_desc["cancel_remap"]                    = _L("Cancel");
+    m_shortcuts_gap_fill = {
+        {ctrl + _L("Mouse wheel"), m_desc["gap_area"]},
+        toggle_wireframe_shortcut
+    };
 
     init_extruders_data();
 
@@ -279,52 +286,22 @@ static void render_extruders_combo(const std::string& label,
     selection_idx = selection_out;
 }
 
-void GLGizmoMmuSegmentation::show_tooltip_information(float caption_max, float x, float y)
+void GLGizmoMmuSegmentation::render_tooltip_button(float x, float y)
 {
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 15.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        std::vector<std::string> tip_items;
+    auto get_shortcuts = [this]() -> std::vector<std::pair<wxString, wxString>> {
         switch (m_tool_type) {
-            case ToolType::BRUSH: 
-                tip_items = {"paint", "erase", "cursor_size", "clipping_of_view", "toggle_wireframe"};
-                break;
-            case ToolType::BUCKET_FILL: 
-                tip_items = {"paint", "erase", "smart_fill_angle", "clipping_of_view", "toggle_wireframe"};
-                break;
-            case ToolType::SMART_FILL:
-                // TODO:
-                break;
-            case ToolType::GAP_FILL:
-                tip_items = {"gap_area", "toggle_wireframe"};
-                break;
-            default:
-                break;
+        case ToolType::BRUSH: return m_shortcuts_brush;
+
+        case ToolType::BUCKET_FILL:
+        case ToolType::SMART_FILL: return m_shortcuts_bucket_fill;
+
+        case ToolType::GAP_FILL: return m_shortcuts_gap_fill;
+
+        default: return {};
         }
-        for (const auto &t : tip_items) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
+    };
+
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, get_shortcuts(), x, y);
 }
 
 void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bottom_limit)
@@ -513,66 +490,44 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc.at("cursor_size"));
-        ImGui::SameLine(circle_max_width);
+        ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width + circle_max_width);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        ImGui::Separator();
-        if (m_c->object_clipper()->get_position() == 0.f) {
-            ImGui::AlignTextToFramePadding();
-            m_imgui->text(m_desc.at("clipping_of_view"));
-        }
-        else {
-            if (m_imgui->button(m_desc.at("reset_direction"))) {
-                wxGetApp().CallAfter([this]() {
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                    });
+        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
+            if (m_vertical_only) {
+                m_horizontal_only = false;
             }
         }
-
-        auto clp_dist = float(m_c->object_clipper()->get_position());
-        ImGui::SameLine(circle_max_width);
-        ImGui::PushItemWidth(sliders_width);
-        bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width + circle_max_width);
-        ImGui::PushItemWidth(1.5 * slider_icon_width);
-        bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-        if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
-
-    } else if (m_current_tool == ImGui::TriangleButtonIcon) {
+        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
+            if (m_horizontal_only) {
+                m_vertical_only = false;
+            }
+        }
+    } 
+    else if (m_current_tool == ImGui::TriangleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type   = ToolType::BRUSH;
 
-        if (m_c->object_clipper()->get_position() == 0.f) {
-            ImGui::AlignTextToFramePadding();
-            m_imgui->text(m_desc.at("clipping_of_view"));
-        }
-        else {
-            if (m_imgui->button(m_desc.at("reset_direction"))) {
-                wxGetApp().CallAfter([this]() {
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                    });
+        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
+            if (m_vertical_only) {
+                m_horizontal_only = false;
             }
         }
-
-        auto clp_dist = float(m_c->object_clipper()->get_position());
-        ImGui::SameLine(clipping_slider_left);
-        ImGui::PushItemWidth(sliders_width);
-        bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width + clipping_slider_left);
-        ImGui::PushItemWidth(1.5 * slider_icon_width);
-        bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-        if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
-
-    } else if (m_current_tool == ImGui::FillButtonIcon) {
+        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
+            if (m_horizontal_only) {
+                m_vertical_only = false;
+            }
+        }
+    } 
+    else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
-        m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
         m_tool_type = ToolType::BUCKET_FILL;
+
+        m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
 
         if (m_detect_geometry_edge) {
             ImGui::AlignTextToFramePadding();
@@ -593,94 +548,57 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             // set to negative value to disable edge detection
             m_smart_fill_angle = -1.f;
         }
-        ImGui::Separator();
-        if (m_c->object_clipper()->get_position() == 0.f) {
-            ImGui::AlignTextToFramePadding();
-            m_imgui->text(m_desc.at("clipping_of_view"));
-        }
-        else {
-            if (m_imgui->button(m_desc.at("reset_direction"))) {
-                wxGetApp().CallAfter([this]() {
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                    });
-            }
-        }
-
-        auto clp_dist = float(m_c->object_clipper()->get_position());
-        ImGui::SameLine(sliders_left_width);
-        ImGui::PushItemWidth(sliders_width);
-        bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width + sliders_left_width);
-        ImGui::PushItemWidth(1.5 * slider_icon_width);
-        bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-        if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true);}
-
-    } else if (m_current_tool == ImGui::HeightRangeIcon) {
+    } 
+    else if (m_current_tool == ImGui::HeightRangeIcon) {
         m_tool_type   = ToolType::BRUSH;
         m_cursor_type = TriangleSelector::CursorType::HEIGHT_RANGE;
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["height_range"] + ":");
-        ImGui::SameLine(height_max_width);
+        ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         std::string format_str = std::string("%.2f") + I18N::translate_utf8("mm", "Height range," "Facet in [cursor z, cursor z + height] will be selected.");
         m_imgui->bbl_slider_float_style("##cursor_height", &m_cursor_height, CursorHeightMin, CursorHeightMax, format_str.data(), 1.0f, true);
-        ImGui::SameLine(drag_left_width + height_max_width);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_height_input", &m_cursor_height, 0.05f, 0.0f, 0.0f, "%.2f");
-
-        ImGui::Separator();
-        if (m_c->object_clipper()->get_position() == 0.f) {
-            ImGui::AlignTextToFramePadding();
-            m_imgui->text(m_desc.at("clipping_of_view"));
-        }
-        else {
-            if (m_imgui->button(m_desc.at("reset_direction"))) {
-                wxGetApp().CallAfter([this]() {
-                    m_c->object_clipper()->set_position_by_ratio(-1., false);
-                    });
-            }
-        }
-
-        auto clp_dist = float(m_c->object_clipper()->get_position());
-        ImGui::SameLine(height_max_width);
-        ImGui::PushItemWidth(sliders_width);
-        bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-        ImGui::SameLine(drag_left_width + height_max_width);
-        ImGui::PushItemWidth(1.5 * slider_icon_width);
-        bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-        if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
     }
     else if (m_current_tool == ImGui::GapFillIcon) {
         m_tool_type = ToolType::GAP_FILL;
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["gap_area"] + ":");
-        ImGui::SameLine(gap_area_slider_left);
+        ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         std::string format_str = std::string("%.2f") + I18N::translate_utf8("", "Triangle patch area threshold,""triangle patch will be merged to neighbor if its area is less than threshold");
         m_imgui->bbl_slider_float_style("##gap_area", &TriangleSelectorPatch::gap_area, TriangleSelectorPatch::GapAreaMin, TriangleSelectorPatch::GapAreaMax, format_str.data(), 1.0f, true);
-        ImGui::SameLine(drag_left_width + gap_area_slider_left);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
     }
 
     ImGui::Separator();
-    if(m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)){
-        if(m_vertical_only){
-            m_horizontal_only = false;
+    if (m_c->object_clipper()->get_position() == 0.f) {
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("clipping_of_view"));
+    } else {
+        if (m_imgui->button(m_desc.at("reset_direction"))) {
+            wxGetApp().CallAfter([this]() { m_c->object_clipper()->set_position_by_ratio(-1., false); });
         }
     }
-    if(m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)){
-        if(m_horizontal_only){
-            m_vertical_only = false;
-        }
+
+    auto clp_dist = float(m_c->object_clipper()->get_position());
+    ImGui::SameLine(sliders_left_width);
+    ImGui::PushItemWidth(sliders_width);
+    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
+    ImGui::SameLine(drag_left_width + sliders_left_width);
+    ImGui::PushItemWidth(1.5 * slider_icon_width);
+    bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
+
+    if (slider_clp_dist || b_clp_dist_input) {
+        m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
     }
 
     ImGui::Separator();
-    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
-
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
     if (m_imgui->button(m_desc.at("perform_remap"))) {
@@ -689,6 +607,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     if (m_show_remap_panel)
     {
+        ImGui::Spacing();
+
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         std::string title = into_u8(m_desc.at("perform_remap"));
         float available_width = ImGui::GetContentRegionAvail().x;
@@ -719,7 +639,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         remap_panel_high = ImGui::GetCursorPos().y - start_y;
 
         // ORCA: Add Remap and Cancel buttons (outside the panel)
-        ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.2f));
+        ImGui::Spacing();
         if (m_imgui->button(m_desc.at("remap"))) {
             this->remap_filament_assignments();
             // Reset mapping to identity after apply
@@ -732,12 +652,10 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         }
     }
 
-    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(caption_max, x, get_cur_y);
+    render_tooltip_button(x, y);
 
     float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));

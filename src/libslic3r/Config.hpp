@@ -199,6 +199,7 @@ enum ConfigOptionType {
 enum ConfigOptionMode {
     comSimple = 0,
     comAdvanced,
+    comExpert,
     comDevelop,
 };
 
@@ -587,26 +588,30 @@ public:
             auto rhs_opt = static_cast<const ConfigOptionVector<T>*>(rhs);
             auto inherits_opt = static_cast<const ConfigOptionVector<T>*>(inherits);
 
-            if (inherits->size() != rhs->size())
-                throw ConfigurationError("ConfigOptionVector::set_with_nil(): rhs size different with inherits size");
+            if (stride <= 0)
+                throw ConfigurationError("ConfigOptionVector::set_with_nil(): invalid stride");
 
-            this->values.resize(inherits->size(), this->values.front());
+            // Tolerate legacy/transitional presets where vector sizes may diverge
+            // (for example after reducing extruder/variant count).
+            // Keep rhs as source of truth and nil-mark only on overlapping range.
+            this->values = rhs_opt->values;
 
-            for (size_t i = 0; i < inherits_opt->size(); i= i+stride) {
+            const size_t overlap_size = std::min(rhs_opt->size(), inherits_opt->size());
+
+            for (size_t i = 0; i < overlap_size; i += size_t(stride)) {
+                const size_t group_size = std::min(size_t(stride), overlap_size - i);
                 bool set_nil = true;
-                for (size_t j = 0; j < stride; j++) {
-                    if (inherits_opt->values[i +j] != rhs_opt->values[i +j]) {
+                for (size_t j = 0; j < group_size; ++j) {
+                    if (inherits_opt->values[i + j] != rhs_opt->values[i + j]) {
                         set_nil = false;
                         break;
                     }
                 }
 
-                for (size_t j = 0; j < stride; j++) {
+                for (size_t j = 0; j < group_size; ++j) {
                     if (set_nil) {
-                        this->set_at_to_nil(i +j);
+                        this->set_at_to_nil(i + j);
                     }
-                    else
-                        this->values[i +j] = rhs_opt->values[i +j];
                 }
             }
         }

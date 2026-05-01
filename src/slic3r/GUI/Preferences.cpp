@@ -284,7 +284,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         if (combobox->GetSelection() == m_current_language_selected)
             return;
 
-        if (e.GetString().mb_str() != app_config->get(param)) {
+        if (e.GetString().ToStdString() != app_config->get(param)) {
             {
                 //check if the project has changed
                 if (wxGetApp().plater()->is_project_dirty()) {
@@ -1004,11 +1004,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
         if (param == "developer_mode") {
             m_developer_mode_def = app_config->get("developer_mode");
-            if (m_developer_mode_def == "true") {
-                Slic3r::GUI::wxGetApp().save_mode(comDevelop);
-            } else {
-                Slic3r::GUI::wxGetApp().save_mode(comAdvanced);
-            }
+            Slic3r::GUI::wxGetApp().update_mode();
         }
 
         // webview  dump_vedio
@@ -1359,6 +1355,11 @@ void PreferencesDialog::create_items()
 
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
+
+#ifdef __linux__
+    auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
+    g_sizer->Add(item_window_button_pos);
+#endif
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);

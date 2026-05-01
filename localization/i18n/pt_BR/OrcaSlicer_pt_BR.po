@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-03-20 23:26+0800\n"
-"PO-Revision-Date: 2026-03-08 21:15-0300\n"
+"PO-Revision-Date: 2026-03-22 17:15-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -178,8 +178,8 @@ msgstr "Tipo de ferramenta"
 msgid "Smart fill angle"
 msgstr "Ângulo de preenchimento inteligente"
 
-msgid "On overhangs only"
-msgstr "Apenas em saliências"
+msgid "On highlighted overhangs only"
+msgstr "Apenas em saliências destacadas"
 
 msgid "Auto support threshold angle: "
 msgstr "Ângulo limiar de suporte automático: "
@@ -4331,7 +4331,7 @@ msgstr ""
 "seam_slope_start_height precisa ser menor que layer_height.\n"
 "Redefinir para 0."
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -5025,7 +5025,7 @@ msgid "Actual Speed: "
 msgstr "Velocidade Real: "
 
 msgid "PA: "
-msgstr "PA: "
+msgstr "AP: "
 
 msgid "Statistics of All Plates"
 msgstr "Estatísticas de Todas as Placas"
@@ -5436,7 +5436,7 @@ msgid "Return"
 msgstr "Retornar"
 
 msgid "Canvas Toolbar"
-msgstr "Barra de ferramentas da tela"
+msgstr "Barra de Ferramentas de Tela"
 
 msgid "Fit camera to scene or selected object."
 msgstr "Ajustar câmera à cena ou objeto selecionado."
@@ -6061,10 +6061,10 @@ msgid "Retraction test"
 msgstr "Teste de retração"
 
 msgid "Cornering"
-msgstr "Curvas"
+msgstr "Quinas"
 
 msgid "Cornering calibration"
-msgstr "Calibração de curvas"
+msgstr "Calibração de quinas"
 
 msgid "Input Shaping Frequency"
 msgstr "Frequência da Modelagem de Entrada"
@@ -7226,13 +7226,13 @@ msgid "Enable AI monitoring of printing"
 msgstr "Ativar monitoramento de IA da impressão"
 
 msgid "Pausing Sensitivity:"
-msgstr "Sensibilidade de pausa:"
+msgstr "Sensibilidade de Pausa:"
 
 msgid "Spaghetti Detection"
 msgstr "Detecção de Emaranhado"
 
 msgid "Detect spaghetti failures (scattered lose filament)."
-msgstr "Detectar falhas de espaguete (filamento solto espalhado)."
+msgstr "Detectar falhas de emaranhado (filamento solto espalhado)."
 
 msgid "Purge Chute Pile-Up Detection"
 msgstr "Detecção de Acúmulo na Calha de Purga"
@@ -9826,8 +9826,8 @@ msgid ""
 "Enabling both precise Z height and the prime tower may cause slicing errors. "
 "Do you still want to enable?"
 msgstr ""
-"Habilitar tanto a altura Z precisa quanto a torre de preparação pode causar "
-"erros de fatiamento. Deseja continuar habilitando?"
+"Habilitar a altura Z precisa e a torre de preparação juntas pode causar "
+"erros de fatiamento. Deseja habilitar mesmo assim?"
 
 msgid ""
 "A prime tower is required for clumping detection. There may be flaws on the "
@@ -9841,8 +9841,8 @@ msgid ""
 "Enabling both precise Z height and the prime tower may cause slicing errors. "
 "Do you still want to enable precise Z height?"
 msgstr ""
-"Habilitar tanto a altura Z precisa quanto a torre de preparação pode causar "
-"erros de fatiamento. Deseja continuar habilitando a altura Z precisa?"
+"Habilitar a altura Z precisa e a torre de preparação juntas pode causar "
+"erros de fatiamento. Deseja habilitar a altura Z precisa mesmo assim?"
 
 msgid ""
 "A prime tower is required for smooth timelapse. There may be flaws on the "
@@ -11154,7 +11154,7 @@ msgid "Configuration package changed"
 msgstr "Pacote de configuração alterado"
 
 msgid "Toolbar"
-msgstr "Barra de ferramentas"
+msgstr "Barra de Ferramentas"
 
 msgid "Objects list"
 msgstr "Lista de objetos"
@@ -11885,7 +11885,7 @@ msgstr ""
 msgid ""
 "Enabling both precise Z height and the prime tower may cause slicing errors."
 msgstr ""
-"Habilitar tanto a altura Z precisa quanto a torre de preparação pode causar "
+"Habilitar a altura Z precisa e a torre de preparação juntas pode causar "
 "erros de fatiamento."
 
 msgid ""
@@ -13947,7 +13947,7 @@ msgstr ""
 "adaptativa deve ser expandida nas direções XY."
 
 msgid "Grab length"
-msgstr "Comprimento de agarre"
+msgstr "Comprimento de pega"
 
 msgid "Extruder Color"
 msgstr "Cor da Extrusora"
@@ -14631,7 +14631,7 @@ msgstr ""
 "suporte."
 
 msgid "Filament ramming length"
-msgstr "Comprimento de compactação do filamento"
+msgstr "Comprimento de moldeamento do filamento"
 
 msgid ""
 "When changing the extruder, it is recommended to extrude a certain length of "
@@ -17427,7 +17427,7 @@ msgid "Purge remaining filament into prime tower."
 msgstr "Purgar o filamento restante na torre de preparo."
 
 msgid "Enable filament ramming"
-msgstr "Habilitar compactação de filamento"
+msgstr "Habilitar moldeamento de filamento"
 
 msgid "No sparse layers (beta)"
 msgstr "Sem camadas esparsas (beta)"
@@ -19904,13 +19904,13 @@ msgid "Record Factor"
 msgstr "Registrar Fator"
 
 msgid "We found the best flow ratio for you"
-msgstr "Encontramos o melhor fluxo para você"
+msgstr "Encontramos a melhor taxa de fluxo para você"
 
 msgid "Flow Ratio"
-msgstr "Fluxo"
+msgstr "Taxa de Fluxo"
 
 msgid "Please input a valid value (0.0 < flow ratio < 2.0)"
-msgstr "Por favor insira um valor válido (0.0 < fluxo < 2.0)"
+msgstr "Por favor insira um valor válido (0.0 < taxa de fluxo < 2.0)"
 
 msgid "Please enter the name of the preset you want to save."
 msgstr "Por favor insira o nome da predefinição que você deseja salvar."
@@ -19932,7 +19932,7 @@ msgstr "Pular Calibração2"
 
 #, c-format, boost-format
 msgid "flow ratio : %s "
-msgstr "fluxo: %s "
+msgstr "taxa de fluxo: %s "
 
 msgid "Please choose a block with smoothest top surface."
 msgstr "Por favor escolha um bloco com a superfície superior mais lisa."
@@ -19948,7 +19948,7 @@ msgid "Complete Calibration"
 msgstr "Calibração Completa"
 
 msgid "Fine Calibration based on flow ratio"
-msgstr "Calibração Fina baseada no fluxo"
+msgstr "Calibração Fina baseada na taxa de fluxo"
 
 msgid "Title"
 msgstr "Título"
@@ -20404,7 +20404,7 @@ msgstr ""
 "DampingEnd <= 1)"
 
 msgid "Cornering test"
-msgstr "Teste de curvas"
+msgstr "Teste de quinas"
 
 msgid "SCV-V2"
 msgstr "SCV-V2"
@@ -20416,11 +20416,11 @@ msgid "End: "
 msgstr "Final: "
 
 msgid "Cornering settings"
-msgstr "Configurações de curvas"
+msgstr "Configurações de quinas"
 
 msgid "Note: Lower values = sharper corners but slower speeds."
 msgstr ""
-"Nota: Valores mais baixos = cantos mais nítidos, mas velocidades mais lentas."
+"Nota: Valores mais baixos = quinas mais nítidas, mas velocidades mais lentas."
 
 msgid ""
 "Marlin 2 Junction Deviation detected:\n"
@@ -20453,7 +20453,7 @@ msgid ""
 "(0 <= Cornering <= %s)"
 msgstr ""
 "Por favor, insira valores válidos:\n"
-"(0 <= Curvas <= %s)"
+"(0 <= Quinas <= %s)"
 
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
@@ -22317,7 +22317,7 @@ msgid "Restart Later"
 msgstr "Reiniciar Depois"
 
 msgid "NO RAMMING AT ALL"
-msgstr "SEM COMPACTAÇÃO"
+msgstr "SEM NENHUM MOLDEAMENTO"
 
 msgid "Volumetric speed"
 msgstr "Velocidade volumétrica"
@@ -22770,9 +22770,6 @@ msgstr ""
 "aumentar adequadamente a temperatura da mesa aquecida pode reduzir a "
 "probabilidade de empenamento?"
 
-#~ msgid "BambuStudio warning"
-#~ msgstr "Aviso do Bambu Studio"
-
 #~ msgid ""
 #~ "Zero first layer height is invalid.\n"
 #~ "\n"
@@ -22789,30 +22786,12 @@ msgstr ""
 #~ "A posição da torre de preparo ultrapassou os limites da placa de "
 #~ "impressão e foi reposicionada para a borda válida mais próxima."
 
-#~ msgid "Check for Update"
-#~ msgstr "Verificar Atualizações"
-
-#~ msgid "Detect spaghetti failure(scattered lose filament)."
-#~ msgstr "Detectar falha de emaranhado (filamentos soltos e dispersos)."
-
-#~ msgid "Rotate of view"
-#~ msgstr "Rotação da vista"
-
-#~ msgid "Move of view"
-#~ msgstr "Movimento da vista"
-
-#~ msgid "Zoom of view"
-#~ msgstr "Zoom da vista"
-
 #~ msgid ""
 #~ "Enabling both precise Z height and the prime tower may cause the size of "
 #~ "prime tower to increase. Do you still want to enable?"
 #~ msgstr ""
-#~ "Habilitar a altura Z precisa e a torre de preparo pode fazer com que o "
-#~ "tamanho da torre de preparo aumente. Deseja habilitar mesmo assim?"
-
-#~ msgid "Extruders count"
-#~ msgstr "Número de extrusoras"
+#~ "Habilitar a altura Z precisa e a torre de preparação juntas pode causar "
+#~ "o aumento de tamanho da torre de preparo. Deseja habilitar mesmo assim?"
 
 #~ msgid ""
 #~ "Missing BambuSource component registered for media playing! Please re-"
@@ -23099,11 +23078,6 @@ msgstr ""
 
 #~ msgid "Junction Deviation settings"
 #~ msgstr "Configurações de Desvio de Junção"
-
-#~ msgid "Note: Lower values = sharper corners but slower speeds"
-#~ msgstr ""
-#~ "Nota: Valores mais baixos = cantos mais nítidos, mas velocidades mais "
-#~ "lentas"
 
 #~ msgid ""
 #~ "Please input valid values:\n"

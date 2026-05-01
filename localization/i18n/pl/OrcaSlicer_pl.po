@@ -164,8 +164,8 @@ msgstr "Typ narzędzia"
 msgid "Smart fill angle"
 msgstr "Kąt inteligentnego wypełniania"
 
-msgid "On overhangs only"
-msgstr "Tylko na nawisach"
+msgid "On highlighted overhangs only"
+msgstr "Tylko na podświetlonych nawisach"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatyczny kąt progowy podpory: "

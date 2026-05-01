@@ -1,12 +1,20 @@
 {
-    "type": "filament",
-    "setting_id": "GFSA04",
-    "name": "Bambu ABS @Qidi Q2C 0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Bambu ABS@Q2C-Series",
-    "chamber_temperature": ["0"],
-    "filament_max_volumetric_speed": ["2"],
-    "pressure_advance": ["0.03"],
-	"compatible_printers": ["Qidi Q2C 0.2 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSA04",
+	"name": "Bambu ABS @Qidi Q2C 0.2 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Bambu ABS@Q2C-Series",
+	"chamber_temperature": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
 }
