@@ -73,7 +73,7 @@ enum AuthorizationType {
 
 enum InfillPattern : int {
     ipMonotonic, ipMonotonicLine,
-    ipRectilinear, ipAlignedRectilinear, ipZigZag, ipCrossZag, ipLockedZag,
+    ipRectilinear, ipAlignedRectilinear, ipZigZag, ipCrossZag, ipLockedZag,ipFloatingConcentric,
     ipLine, ipGrid,
     ipTriangles, ipStars,
     ipCubic, ipAdaptiveCubic, ipQuarterCubic, ipSupportCubic, ipLightning,
@@ -985,6 +985,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,               tree_support_auto_brim))
     ((ConfigOptionFloat,              tree_support_brim_width))
     ((ConfigOptionBool,               detect_narrow_internal_solid_infill))
+    ((ConfigOptionBool,               detect_floating_vertical_shell))
     // ((ConfigOptionBool,               adaptive_layer_height))
     ((ConfigOptionFloat,              support_bottom_interface_spacing))
     ((ConfigOptionEnum<PerimeterGeneratorType>, wall_generator))
@@ -1156,6 +1157,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                 filter_out_gap_fill))
     ((ConfigOptionFloatOrPercent,       small_perimeter_speed))
     ((ConfigOptionFloat,                small_perimeter_threshold))
+    ((ConfigOptionFloatOrPercent, vertical_shell_speed))
     ((ConfigOptionFloat,                top_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                bottom_solid_infill_flow_ratio))
     ((ConfigOptionFloatOrPercent,       infill_anchor))

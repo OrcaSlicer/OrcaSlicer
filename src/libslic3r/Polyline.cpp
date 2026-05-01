@@ -636,6 +636,58 @@ void ThickPolyline::start_at_index(int index)
     }
 }
 
+Polyline Polyline::rebase_at(size_t idx)
+{
+    if (!this->is_closed())
+        return  {};
+    Polyline ret = *this;
+    size_t n = this->points.size();
+    for (size_t j = 0; j < n - 1; ++j) {
+        ret.points[j] = this->points[(idx + j) % (n - 1)];
+    }
+    ret.points[n - 1] = ret.points.front();
+    return ret;
+}
+
+ThickPolyline ThickPolyline::rebase_at(size_t idx)
+{
+    if (!this->is_closed())
+        return {};
+
+    ThickPolyline ret = *this;
+    static_cast<Polyline&>(ret) = Polyline::rebase_at(idx);
+    size_t n = this->points.size();
+    ret.width.resize(2 * n - 2, 0);
+
+    auto get_in_width = [&](size_t i)->double {
+        if (i == 0) return this->width[0];
+        if (i == n - 1) return this->width.back();
+        return this->width[2 * i - 1];
+        };
+    auto get_out_width = [&](size_t i)->double {
+        if (i == 0) return this->width[0];
+        if (i == n - 1) return this->width.back();
+        return this->width[2 * i];
+        };
+
+    ret.width[0] = get_out_width(idx % (n-1));
+    for (size_t j = 1; j < n - 1; ++j) {
+        size_t i = (idx + j) % (n-1);
+        ret.width[2 * j - 1] = get_in_width(i);
+        ret.width[2 * j] = get_out_width(i);
+    }
+
+    ret.width[2 * n - 3] = ret.width.front();
+    return ret;
+}
+
+coordf_t ThickPolyline::get_width_at(size_t point_idx) const
+{
+    if (point_idx < 2)
+        return width[point_idx];
+    return width[2 * point_idx - 1];
+}
+
 Lines3 Polyline3::lines() const
 {
     Lines3 lines;

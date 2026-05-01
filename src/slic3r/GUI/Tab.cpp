@@ -2438,6 +2438,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("infill_combination_max_layer_height", "strength_settings_advanced#max-layer-height");
         optgroup->append_single_option_line("detect_narrow_internal_solid_infill", "strength_settings_advanced#detect-narrow-internal-solid-infill");
         optgroup->append_single_option_line("ensure_vertical_shell_thickness", "strength_settings_advanced#ensure-vertical-shell-thickness");
+        optgroup->append_single_option_line("detect_floating_vertical_shell","strength_settings_advanced#detect-floating-vertical-shell");
+
 
     page = add_options_page(L("Speed"), "custom-gcode_speed"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("First layer speed"), L"param_speed_first", 15);
@@ -2452,6 +2454,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("small_perimeter_threshold", "speed_settings_other_layers_speed#small-perimeters-threshold");
         optgroup->append_single_option_line("sparse_infill_speed", "speed_settings_other_layers_speed#sparse-infill");
         optgroup->append_single_option_line("internal_solid_infill_speed", "speed_settings_other_layers_speed#internal-solid-infill");
+        optgroup->append_single_option_line("vertical_shell_speed", "speed_settings_other_layers_speed#vertical-shell-speed", 0);
         optgroup->append_single_option_line("top_surface_speed", "speed_settings_other_layers_speed#top-surface");
         optgroup->append_single_option_line("gap_infill_speed", "speed_settings_other_layers_speed#gap-infill");
         optgroup->append_single_option_line("ironing_speed", "speed_settings_other_layers_speed#ironing-speed");

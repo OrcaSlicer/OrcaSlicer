@@ -28,6 +28,7 @@
 // BBS: new infill pattern header
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
+#include "FillFloatingConcentric.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
@@ -73,6 +74,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
     case ipLockedZag:           return new FillLockedZag();
+    case ipFloatingConcentric:      return new FillFloatingConcentric();
     default: throw Slic3r::InvalidArgument("unknown type");
     }
 }

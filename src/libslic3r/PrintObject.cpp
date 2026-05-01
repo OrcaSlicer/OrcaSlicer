@@ -1224,6 +1224,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "top_surface_density"
             || opt_key == "bottom_surface_density"
             || opt_key == "initial_layer_line_width"
+            || opt_key == "detect_floating_vertical_shell"
             || opt_key == "small_area_infill_flow_compensation"
             || opt_key == "lateral_lattice_angle_1"
             || opt_key == "lateral_lattice_angle_2"
@@ -1323,6 +1324,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "inner_wall_speed"
             || opt_key == "internal_solid_infill_speed"
             || opt_key == "top_surface_speed"
+            || opt_key == "vertical_shell_speed"
             || opt_key == "bed_mesh_min"
             || opt_key == "bed_mesh_max"
             || opt_key == "adaptive_bed_mesh_margin"
@@ -1440,6 +1442,7 @@ void PrintObject::detect_surfaces_type()
         if (interface_shells)
             surfaces_new.assign(num_layers, Surfaces());
 
+        // interface_shell 启用与否，决定着是否区分不同材料。开启后，不同材料间的接触面都会被识别为顶面、底面
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0,
             	spiral_mode ?
@@ -1511,7 +1514,7 @@ void PrintObject::detect_surfaces_type()
                         surfaces_append(
                             bottom,
                             opening_ex(
-                                diff_ex(layerm_slices_surfaces, lower_layer->lslices, ApplySafetyOffset::Yes),
+                                diff_ex(layerm_slices_surfaces, lower_layer->lslices, ApplySafetyOffset::Yes),//完全悬空
                                 offset),
                             surface_type_bottom_other);
                         // if user requested internal shells, we need to identify surfaces
@@ -1523,8 +1526,8 @@ void PrintObject::detect_surfaces_type()
                                 bottom,
                                 opening_ex(
                                     diff_ex(
-                                        intersection(layerm_slices_surfaces, lower_layer->lslices), // supported
-                                        lower_layer->m_regions[region_id]->slices.surfaces,
+                                        intersection(layerm_slices_surfaces, lower_layer->lslices), // supported // 先扣掉完全悬空
+                                        lower_layer->m_regions[region_id]->slices.surfaces,//再扣掉同材料的区域
                                         ApplySafetyOffset::Yes),
                                     offset),
                                 stBottom);
@@ -1545,7 +1548,7 @@ void PrintObject::detect_surfaces_type()
                         const auto cracks = intersection_ex(top, bottom);
                         if (!cracks.empty()) {
                             if (lower_layer) { // Only detect small cracks for non-first layer, because first layer should always be bottom
-                                const float small_crack_threshold = -layerm->flow(frExternalPerimeter).scaled_width() * 1.5;
+                                const float small_crack_threshold = -layerm->flow(frExternalPerimeter).scaled_width() * 1.5;    
                                 
                                 for (const auto& crack : cracks) {
                                     if (offset_ex(crack, small_crack_threshold).empty()) {
@@ -1603,9 +1606,6 @@ void PrintObject::detect_surfaces_type()
 
                     surfaces_append(surfaces_out, std::move(top));
                     surfaces_append(surfaces_out, std::move(bottom));
-
-        //            Slic3r::debugf "  layer %d has %d bottom, %d top and %d internal surfaces\n",
-        //                $layerm->layer->id, scalar(@bottom), scalar(@top), scalar(@internal) if $Slic3r::debug;
 
         #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
                     layerm->export_region_slices_to_svg_debug("detect_surfaces_type-final");
@@ -1875,6 +1875,8 @@ void PrintObject::discover_vertical_shells()
         BOOST_LOG_TRIVIAL(debug) << "Discovering vertical shells in parallel - start : cache top / bottom";
         //FIXME Improve the heuristics for a grain size.
         size_t grain_size = std::max(num_layers / 16, size_t(1));
+        // With interface_shell disabled, different materials are not distinguished, so the traversal order is layer-by-layer, and within each layer, regions are traversed.
+        // The top area contains walls, the bottom area contains walls, and the holes are sparsely filled areas.
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
             [this, &cache_top_botom_regions](const tbb::blocked_range<size_t>& range) {
@@ -1933,6 +1935,9 @@ void PrintObject::discover_vertical_shells()
                         }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
                     }
+                    // Save some computing time by reducing the number of polygons.
+                    cache.top_surfaces = union_(cache.top_surfaces);
+                    cache.bottom_surfaces = union_(cache.bottom_surfaces);
                     cache.holes = union_(cache.holes);
                 }
             });
@@ -2373,7 +2378,7 @@ void PrintObject::bridge_over_infill()
                 unsupported_area   = diff(unsupported_area, lower_layer_solids);
                 
                 for (const LayerRegion *region : layer->regions()) {
-                    SurfacesPtr region_internal_solids = region->fill_surfaces.filter_by_type(stInternalSolid);
+                        auto region_internal_solids = region->fill_surfaces.filter_by_types({ stInternalSolid,stFloatingVerticalShell }); // 取当前层的实心区域
                     for (const Surface *s : region_internal_solids) {
                         Polygons unsupported         = intersection(to_polygons(s->expolygon), unsupported_area);
                         

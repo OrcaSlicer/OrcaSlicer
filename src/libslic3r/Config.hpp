@@ -30,8 +30,14 @@
 namespace Slic3r {
     struct FloatOrPercent
     {
-        double  value;
-        bool    percent;
+        double  value = 0;
+        bool    percent = false;
+
+        FloatOrPercent() {}
+        FloatOrPercent(double value_, bool percent_) : value(value_), percent(percent_) { }
+
+        double get_abs_value(double ratio_over) const { return this->percent ? (ratio_over * this->value / 100) : this->value; }
+
     private:
         friend class cereal::access;
         template<class Archive> void serialize(Archive& ar) { ar(this->value); ar(this->percent); }
