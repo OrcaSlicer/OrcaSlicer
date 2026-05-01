@@ -3259,13 +3259,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
         break;
     }
 
-    case 2: // Stars (basic scaffold, point layout to be refined)
+    case 2: // Stars
     {
         // Keep period and layer rotation behavior aligned with triangular infill.
-        // TODO: Replace row point templates with the final star points.
-        
         const coord_t hex_height = coord_t(0.5 * std::sqrt(3.0) * period);
-        const coord_t tri_height = hex_height/2;
+        const coord_t tri_height = hex_height / 2;
         const coord_t d1_half = d1 / 2;
         const coord_t chamfer_height = std::sqrt(3.0) * d1_half;
         const coord_t d1_half_base = d1_half / std::sqrt(3.0);
@@ -3278,7 +3276,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
         const coord_t half_h = bb.size().y() / 2;
 
         const coord_t num_periods_x = coord_t(std::ceil(half_w / double(period)));
-        coord_t num_periods_y = coord_t(std::ceil(half_h / double(hex_height )));
+        coord_t num_periods_y = coord_t(std::ceil(half_h / double(hex_height)));
         if ((num_periods_y % 2) != 0)
             ++num_periods_y;
 
@@ -3291,10 +3289,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
         const size_t estimated_polylines = (estimated_rows + 1) * 2;
         polylines.reserve(estimated_polylines);
 
+        constexpr size_t k_points_per_star_cell = 7;
         Polyline star_row_normal;
-        star_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
-        Polyline star_row_shifted;
-        star_row_shifted.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
+        star_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * k_points_per_star_cell);
+        Polyline star_row_mirrored;
+        star_row_mirrored.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * k_points_per_star_cell);
 
         for (coord_t x = x_min_aligned; x < x_max_aligned; x += period) {
             star_row_normal.points.emplace_back(Point(x, hex_height));                                               // P0
@@ -3306,31 +3305,30 @@ bool FillRectilinear::fill_surface_trapezoidal(
             star_row_normal.points.emplace_back(Point(x + (period * 3) / 4 + d1, hex_height));                       // P6
         }
 
-        star_row_shifted.points = star_row_normal.points;
-        for (auto& p : star_row_shifted.points)
+        star_row_mirrored.points = star_row_normal.points;
+        for (auto& p : star_row_mirrored.points)
             p.y() = hex_height - p.y();
 
         size_t pair_idx = 0;
         const coord_t global_x_shift = period / 2;
         const coord_t global_y_shift = tri_height;
+        auto append_row_with_shift = [&polylines](const Polyline& row_template, coord_t x_shift, coord_t y_shift) {
+            Polyline row = row_template;
+            for (Point& p : row.points) {
+                p.x() += x_shift;
+                p.y() += y_shift;
+            }
+            if (!row.points.empty())
+                polylines.emplace_back(std::move(row));
+        };
+
         for (coord_t y = y_min_aligned; y < y_max_aligned; y += hex_height, ++pair_idx) {
             const coord_t x_shift = (pair_idx % 2 == 0) ? 0 : period / 2;
+            const coord_t x_offset = x_shift + global_x_shift;
+            const coord_t y_offset = y + global_y_shift;
 
-            Polyline star_line_normal = star_row_normal;
-            for (Point& p : star_line_normal.points) {
-                p.x() += x_shift + global_x_shift;
-                p.y() += y + global_y_shift;
-            }
-            if (!star_line_normal.points.empty())
-                polylines.emplace_back(std::move(star_line_normal));
-
-            Polyline star_line_mirrored = star_row_shifted;
-            for (Point& p : star_line_mirrored.points) {
-                p.x() += x_shift + global_x_shift;
-                p.y() += y + global_y_shift;
-            }
-            if (!star_line_mirrored.points.empty())
-                polylines.emplace_back(std::move(star_line_mirrored));
+            append_row_with_shift(star_row_normal, x_offset, y_offset);
+            append_row_with_shift(star_row_mirrored, x_offset, y_offset);
         }
 
         if (layer_mod)
