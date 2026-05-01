@@ -79,8 +79,6 @@ boost::filesystem::path	into_path(const wxString &str);
 
 // Display an About dialog
 extern void about();
-// Display a Login dialog
-extern void login();
 // Ask the destop to open the datadir using the default file explorer.
 extern void desktop_open_datadir_folder();
 // Ask the destop to open one folder

@@ -36,7 +36,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     m_presets = tab->get_presets();
 
     const Preset &sel_preset  = m_presets->get_selected_preset();
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.is_from_bundle() && !sel_preset.alias.empty() ? sel_preset.alias : sel_preset.name;
 
     // if name contains extension
     if (boost::iends_with(preset_name, ".ini")) {
@@ -162,7 +162,7 @@ void SavePresetDialog::Item::update()
     }
 
     const Preset *existing = m_presets->find_preset(m_preset_name, false);
-    if (m_valid_type == Valid && existing && (existing->is_default || existing->is_system)) {
+    if (m_valid_type == Valid && existing && !existing->can_overwrite()) {
         info_line = _L("Overwriting a system profile is not allowed.");
         m_valid_type = NoValid;
     }
@@ -230,13 +230,11 @@ void SavePresetDialog::Item::update_valid_bmp()
 void SavePresetDialog::Item::accept()
 {
     if (m_valid_type == Warning) {
-        // BBS add sync info
         auto    it               = m_presets->find_preset(m_preset_name, false);
         Preset &current_preset   = *it;
-        current_preset.sync_info = "delete";
         if (!current_preset.setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << current_preset.name << ", setting_id = " << current_preset.setting_id;
-            wxGetApp().delete_preset_from_cloud(current_preset.setting_id);
+            wxGetApp().delete_preset_from_cloud(current_preset.setting_id, current_preset.file);
         }
         m_presets->delete_preset(m_preset_name);
     }

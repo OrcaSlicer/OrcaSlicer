@@ -248,8 +248,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            m_presets.set_sync_info_and_save(need_delete_preset->name, need_delete_preset->setting_id, "delete", 0);
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id);
+            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
@@ -4348,7 +4347,7 @@ void ExportConfigsDialog::data_init()
 
             const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
             for (const Preset &filament_preset : filament_presets) {
-                if (filament_preset.is_system || filament_preset.is_default || filament_preset.is_project_embedded) continue;
+                if (!filament_preset.is_user()) continue;
                 if (filament_preset.is_compatible) {
                     Preset *new_filament_preset = new Preset(filament_preset);
                     m_filament_presets[preset_name].push_back(new_filament_preset);
@@ -4357,7 +4356,7 @@ void ExportConfigsDialog::data_init()
 
             const std::deque<Preset> &process_presets = preset_bundle.prints.get_presets();
             for (const Preset &process_preset : process_presets) {
-                if (process_preset.is_system || process_preset.is_default || process_preset.is_project_embedded) continue;
+                if (!process_preset.is_user()) continue;
                 if (process_preset.is_compatible) {
                     Preset *new_prpcess_preset = new Preset(process_preset);
                     m_process_presets[preset_name].push_back(new_prpcess_preset);
@@ -4371,7 +4370,7 @@ void ExportConfigsDialog::data_init()
     }
     const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
     for (const Preset &filament_preset : filament_presets) {
-        if (filament_preset.is_system || filament_preset.is_default) continue;
+        if (!filament_preset.can_overwrite()) continue;
         Preset *new_filament_preset = new Preset(filament_preset);
         const Preset *base_filament_preset = preset_bundle.filaments.get_preset_base(*new_filament_preset);
 

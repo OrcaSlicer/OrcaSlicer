@@ -1597,12 +1597,15 @@ bool bbl_calc_md5(std::string &filename, std::string &md5_out)
 }
 
 // SoftFever: copy directory recursively
-void copy_directory_recursively(const boost::filesystem::path &source, const boost::filesystem::path &target, std::function<bool(const std::string)> filter)
+void copy_directory_recursively(const boost::filesystem::path& source,
+                                const boost::filesystem::path& target,
+                                std::function<bool(const std::string)> filter,
+                                bool merge_mode)
 {
     BOOST_LOG_TRIVIAL(info) << Slic3r::format("copy_directory_recursively %1% -> %2%", source, target);
     std::string error_message;
 
-    if (boost::filesystem::exists(target))
+    if (!merge_mode && boost::filesystem::exists(target))
         boost::filesystem::remove_all(target);
     boost::filesystem::create_directories(target);
     for (auto &dir_entry : boost::filesystem::directory_iterator(source))
@@ -1613,7 +1616,7 @@ void copy_directory_recursively(const boost::filesystem::path &source, const boo
 
         if (boost::filesystem::is_directory(dir_entry)) {
             const auto target_path = target / name;
-            copy_directory_recursively(dir_entry, target_path);
+            copy_directory_recursively(dir_entry, target_path, filter, merge_mode);
         }
         else {
 			if(filter && filter(name))
@@ -1628,6 +1631,76 @@ void copy_directory_recursively(const boost::filesystem::path &source, const boo
         }
     }
     return;
+}
+
+bool install_vendor_bundles_from_resources(
+    const std::vector<std::string>& bundle_names,
+    const std::string& resource_subdir,
+    const std::string& data_subdir)
+{
+    namespace fs = boost::filesystem;
+
+    fs::path rsrc_path = fs::path(Slic3r::resources_dir()) / resource_subdir;
+    fs::path vendor_path = fs::path(Slic3r::data_dir()) / data_subdir;
+
+    BOOST_LOG_TRIVIAL(info) << "Installing " << bundle_names.size() << " bundles from resources...";
+
+    for (const auto &bundle : bundle_names) {
+        try {
+            // Install the JSON file
+            auto path_in_rsrc = (rsrc_path / bundle).replace_extension(".json");
+            auto path_in_vendors = (vendor_path / bundle).replace_extension(".json");
+
+            if (!fs::exists(path_in_rsrc)) {
+                BOOST_LOG_TRIVIAL(warning) << "Bundle not found in resources: " << bundle;
+                return false;
+            }
+
+            // Create target directory if needed
+            if (!fs::exists(vendor_path))
+                fs::create_directories(vendor_path);
+
+            // Copy JSON file
+            std::string error_message;
+            CopyFileResult cfr = copy_file(path_in_rsrc.string(), path_in_vendors.string(), error_message, false);
+            if (cfr != CopyFileResult::SUCCESS) {
+                BOOST_LOG_TRIVIAL(error) << "Failed to copy " << bundle << ".json: " << error_message;
+                return false;
+            }
+
+            // Copy the vendor directory (if it exists)
+            auto dir_in_rsrc = rsrc_path / bundle;
+            auto dir_in_vendors = vendor_path / bundle;
+
+            if (fs::exists(dir_in_rsrc) && fs::is_directory(dir_in_rsrc)) {
+                // Remove existing directory
+                if (fs::exists(dir_in_vendors))
+                    fs::remove_all(dir_in_vendors);
+                fs::create_directories(dir_in_vendors);
+
+                // Copy with file filter (same as PresetUpdater::install_bundles_rsrc)
+                // Filter out certain file types: .stl, .png, .svg, .jpeg, .jpg, .3mf
+                auto file_filter = [](const std::string name) -> bool {
+                    return boost::iends_with(name, ".stl") ||
+                           boost::iends_with(name, ".png") ||
+                           boost::iends_with(name, ".svg") ||
+                           boost::iends_with(name, ".jpeg") ||
+                           boost::iends_with(name, ".jpg") ||
+                           boost::iends_with(name, ".3mf");
+                };
+
+                copy_directory_recursively(dir_in_rsrc, dir_in_vendors, file_filter);
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "Successfully installed bundle: " << bundle;
+
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "Exception installing bundle " << bundle << ": " << e.what();
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void save_string_file(const boost::filesystem::path& p, const std::string& str)

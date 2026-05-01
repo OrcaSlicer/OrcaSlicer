@@ -285,7 +285,7 @@ void PingCodeBindDialog::on_bind_printer(wxCommandEvent& event)
     }
 
     NetworkAgent* agent = wxGetApp().getAgent();
-    if (agent && agent->is_user_login() && ping_code.length() == PING_CODE_LENGTH) {
+    if (agent && agent->is_user_login(wxGetApp().get_printer_cloud_provider()) && ping_code.length() == PING_CODE_LENGTH) {
         auto result = agent->ping_bind(ping_code.ToStdString());
 
         if(result < 0){
@@ -868,11 +868,12 @@ void BindMachineDialog::on_show(wxShowEvent &event)
 
         m_printer_name->SetLabelText(from_u8(m_machine_info->get_dev_name()));
 
-        if (wxGetApp().is_user_login()) {
-            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_nickname());
+        const std::string provider = wxGetApp().get_printer_cloud_provider();
+        if (wxGetApp().is_user_login(provider)) {
+            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_nickname(provider));
             m_user_name->SetLabelText(username_text);
 
-            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar();
+            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar(provider);
             Slic3r::Http http = Slic3r::Http::get(avatar_url);
             std::string  suffix = avatar_url.substr(avatar_url.find_last_of(".") + 1);
             http.header("accept", "image/" + suffix)
@@ -1017,7 +1018,7 @@ void UnBindMachineDialog::on_cancel(wxCommandEvent &event)
 
 void UnBindMachineDialog::on_unbind_printer(wxCommandEvent &event)
 {
-    if (!wxGetApp().is_user_login()) {
+    if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider())) {
         m_status_text->SetLabelText(_L("Please log in first."));
         return;
     }
@@ -1073,11 +1074,12 @@ void UnBindMachineDialog::on_show(wxShowEvent &event)
         m_printer_name->SetLabelText(from_u8(m_machine_info->get_dev_name()));
 
 
-        if (wxGetApp().is_user_login()) {
-            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_name());
+        const std::string provider = wxGetApp().get_printer_cloud_provider();
+        if (wxGetApp().is_user_login(provider)) {
+            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_name(provider));
             m_user_name->SetLabelText(username_text);
 
-            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar();
+            std::string avatar_url = wxGetApp().getAgent()->get_user_avatar(provider);
             Slic3r::Http http = Slic3r::Http::get(avatar_url);
             std::string  suffix = avatar_url.substr(avatar_url.find_last_of(".") + 1);
             http.header("accept", "image/" + suffix)

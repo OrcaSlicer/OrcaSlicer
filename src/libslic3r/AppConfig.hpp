@@ -29,6 +29,7 @@ using namespace nlohmann;
 #define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
+#define SETTING_CLOUD_PROVIDERS "cloud_providers"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
@@ -373,6 +374,13 @@ public:
     bool should_remind_network_update_later() const;
     void set_remind_network_update_later(bool remind);
     void clear_remind_network_update_later();
+
+    // Cloud providers (semicolon-delimited, e.g. "orca;bambu")
+    std::vector<std::string> get_cloud_providers() const;
+    void set_cloud_providers(const std::vector<std::string>& providers);
+    bool has_cloud_provider(const std::string& provider) const;
+    void add_cloud_provider(const std::string& provider);
+    void remove_cloud_provider(const std::string& provider);
 
 private:
 	template<typename T>
