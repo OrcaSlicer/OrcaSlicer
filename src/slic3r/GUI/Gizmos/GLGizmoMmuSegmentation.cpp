@@ -307,19 +307,20 @@ void GLGizmoMmuSegmentation::render_tooltip_button(float x, float y)
 // ORCA
 bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, const ColorRGBA& color, ColorRGBA& map_color, bool active, float scale)
 {
-    ImDrawList* draw_list   = ImGui::GetWindowDrawList();
-    std::string label_id    = std::to_string(idx) + id_str + std::to_string(idx);
-    ImVec2      pos         = ImGui::GetCursorScreenPos();
-    ImVec2      size        = ImVec2(24.f  * scale, 24.f  * scale);
-    ImVec4      color_vec   = ImGuiWrapper::to_ImVec4(color);
-    ImU32       bg_color    = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-    ImU32       br_color    = active ? ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA) : ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_Separator));
-    bool        dark_tone   = (0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b()) < 0.51f; // matching values used by wxWidgets with clr.GetLuminance() < 0.51
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    std::string label_id  = std::to_string(idx) + id_str + std::to_string(idx);
+    ImVec2      pos       = ImGui::GetCursorScreenPos();
+    ImVec2      size      = ImVec2(25.f  * scale, 25.f  * scale);
+    ImVec4      color_vec = ImGuiWrapper::to_ImVec4(color);
+    ImU32       bg_color  = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+    ImU32       br_color  = ImGui::ColorConvertFloat4ToU32(active ? ImGuiWrapper::COL_ORCA : m_is_dark_mode ? ImVec4(.35f, .35f, .35f, 1) : ImVec4(.85f, .85f, .85f, 1));
+    bool        dark_tone = (0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b()) < 0.51f; // matching values used by wxWidgets with clr.GetLuminance() < 0.51
+    float       radius    = 3.f * scale;
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , radius);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(0, 0));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(8.f * scale, 8.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(7.f * scale, 7.f * scale));
     ImGui::PushStyleColor(ImGuiCol_Text         , dark_tone ? ImVec4(1,1,1,1) : ImVec4(0,0,0,1));
     ImGui::PushStyleColor(ImGuiCol_Button       , color_vec); // ORCA
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_vec); // ORCA
@@ -329,8 +330,8 @@ bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, cons
     ImGui::PopStyleColor(4);
 
     ImVec2 rect_max = {pos.x + size.x, pos.y + size.y};
-    draw_list->AddRect(pos, rect_max, bg_color, 3.f * scale, 0, 4.f * scale); // color square
-    draw_list->AddRect(pos, rect_max, br_color, 3.f * scale, 0, 2.f * scale); // outer border
+    draw_list->AddRect(pos, rect_max, bg_color, radius, 0, 5.f * scale); // color square
+    draw_list->AddRect(pos, rect_max, br_color, radius, 0, (active ? 3.f : 1.f) * scale); // outer border
 
     if (color != map_color){ // show mapped color as bubble if mapped
         ImVec2 center = {pos.x + size.x - 2.f, pos.y + 2.f};
@@ -435,17 +436,32 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     if (ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
         render_filament_remap_ui(window_width, max_tooltip_width, scale);
 
+        bool has_mapping = false;
+        for (size_t i = 0; i < m_extruder_remap.size(); ++i){
+            if(m_extruder_remap[i] != i){
+                has_mapping = true;
+                break;
+            }
+        }
+
         // ORCA: Add Remap and Cancel buttons (outside the panel)
+        m_imgui->disabled_begin(!has_mapping); // disable when no mapping
         if (m_imgui->button(m_desc.at("remap"))) {
             this->remap_filament_assignments();
             // Reset mapping to identity after apply
             for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
-        ImGui::SameLine();
-        if (m_imgui->button(m_desc.at("remap_reset"))) {
-            // Reset mapping to identity
-            for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
+        m_imgui->disabled_end(/*m_is_unknown_font*/);
+
+        if (has_mapping){  // show only when it has mapping
+            ImGui::SameLine();
+            if (m_imgui->button(m_desc.at("remap_reset"))) {
+                // Reset mapping to identity
+                for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
+            }
         }
+
+        ImGui::Dummy(ImVec2(0.0f, 3.f * scale));
         ImGui::TreePop();
     }
     ImGui::PopStyleVar(1);
@@ -1041,7 +1057,7 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                     ImGui::CloseCurrentPopup();
                 }
             }
-            ImGui::Dummy(ImVec2(0.0f, 3.f * scale));
+            ImGui::Dummy(ImVec2(0.0f, 2.f * scale));
             ImGui::EndPopup();
         }
         
