@@ -310,32 +310,34 @@ bool GLGizmoMmuSegmentation::draw_color_button(int idx, std::string id_str, cons
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     std::string label_id  = std::to_string(idx) + id_str + std::to_string(idx);
     ImVec2      pos       = ImGui::GetCursorScreenPos();
-    ImVec2      size      = ImVec2(25.f  * scale, 25.f  * scale);
+    ImVec2      size      = ImVec2(27.f * scale, 27.f * scale);
     ImVec4      color_vec = ImGuiWrapper::to_ImVec4(color);
-    ImU32       bg_color  = ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
     ImU32       br_color  = ImGui::ColorConvertFloat4ToU32(active ? ImGuiWrapper::COL_ORCA : m_is_dark_mode ? ImVec4(.35f, .35f, .35f, 1) : ImVec4(.85f, .85f, .85f, 1));
     bool        dark_tone = (0.299f * color.r() + 0.587f * color.g() + 0.114f * color.b()) < 0.51f; // matching values used by wxWidgets with clr.GetLuminance() < 0.51
-    float       radius    = 3.f * scale;
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , radius);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 7.f * scale);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(0, 0));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(7.f * scale, 7.f * scale));
     ImGui::PushStyleColor(ImGuiCol_Text         , dark_tone ? ImVec4(1,1,1,1) : ImVec4(0,0,0,1));
     ImGui::PushStyleColor(ImGuiCol_Button       , color_vec); // ORCA
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color_vec); // ORCA
     ImGui::PushStyleColor(ImGuiCol_ButtonActive , color_vec); // ORCA
     bool clicked = ImGui::Button(label_id.c_str(), size);
-    ImGui::PopStyleVar(4);
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(4);
 
-    ImVec2 rect_max = {pos.x + size.x, pos.y + size.y};
-    draw_list->AddRect(pos, rect_max, bg_color, radius, 0, 5.f * scale); // color square
-    draw_list->AddRect(pos, rect_max, br_color, radius, 0, (active ? 3.f : 1.f) * scale); // outer border
+    auto drawBorder = [&](float d, float r, float t, ImU32 col) {
+        draw_list->AddRect({pos.x + d * scale, pos.y + d * scale}, {pos.x + size.x - d * scale , pos.y + size.y - d * scale}, col, r * scale, 0, t * scale);
+    };
+    drawBorder(1.5f, 3.f, 4.f, ImGui::ColorConvertFloat4ToU32(ImGui::GetStyleColorVec4(ImGuiCol_WindowBg)));
+    if(active)
+        drawBorder(.5f, 4.f , 2.f, br_color);
+    else
+        drawBorder(3.f, 2.5f, 1.f, br_color);
 
     if (color != map_color){ // show mapped color as bubble if mapped
-        ImVec2 center = {pos.x + size.x - 2.f, pos.y + 2.f};
-        draw_list->AddCircleFilled(center, 7.f * scale, br_color, 16); // outer border for better visibility
+        ImVec2 center = {pos.x + size.x - 3.f * scale, pos.y + 3.f * scale};
+        draw_list->AddCircleFilled(center, 6.f * scale, br_color, 16); // outer border for better visibility
         draw_list->AddCircleFilled(center, 5.f * scale, ImGuiWrapper::to_ImU32(map_color), 16);
     }
 
@@ -411,12 +413,13 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     m_imgui->text(m_desc.at("filaments"));
 
     size_t n_extruder_colors = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(7.f * scale, 7.f * scale));
+    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0); // removes extra space on tree node indentation
     for (int extruder_idx = 0; extruder_idx < n_extruder_colors; extruder_idx++) {
 
         if (extruder_idx % max_filament_items_per_line != 0)
             ImGui::SameLine();
 
-        // ORCA shared function for drawing filament button
         if (draw_color_button(
             extruder_idx + 1,                        // idx
             "###extruder_color_",                    // button_id
@@ -432,7 +435,6 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
-    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0);
     if (ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
         render_filament_remap_ui(window_width, max_tooltip_width, scale);
 
@@ -443,6 +445,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
                 break;
             }
         }
+
+        ImGui::Dummy(ImVec2(0,0));
 
         // ORCA: Add Remap and Cancel buttons (outside the panel)
         m_imgui->disabled_begin(!has_mapping); // disable when no mapping
@@ -461,12 +465,12 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             }
         }
 
-        ImGui::Dummy(ImVec2(0.0f, 3.f * scale));
+        //ImGui::Dummy(ImVec2(0.0f, 3.f * scale));
         ImGui::TreePop();
     }
-    ImGui::PopStyleVar(1);
-    //ImGui::NewLine();
-    //ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
+    ImGui::PopStyleVar(2); // IndentSpacing ItemSpacing
+
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
 
     m_imgui->text(m_desc.at("tool_type"));
 
@@ -994,6 +998,7 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     const int max_per_line = 8;
 
     // ORCA: Use m_used_filaments to show only relevant source filaments
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(7.f * scale, 7.f * scale));
     for (size_t src : m_used_filaments) {
         if (src >= n_extr) continue;
 
@@ -1067,6 +1072,7 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         
         displayed_count++;
     }
+    ImGui::PopStyleVar(1); // ItemSpacing
 }
 
 void GLGizmoMmuSegmentation::remap_filament_assignments()
