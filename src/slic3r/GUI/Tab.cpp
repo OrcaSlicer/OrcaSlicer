@@ -2324,7 +2324,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("zaa_enabled");
         optgroup->append_single_option_line("zaa_minimize_perimeter_height");
         optgroup->append_single_option_line("zaa_min_z");
-        optgroup->append_single_option_line("ironing_expansion");
+        optgroup->append_single_option_line("zaa_dont_alternate_fill_direction");
+        // Orca: it's not used yet, so hide it in UI for now
+        // optgroup->append_single_option_line("ironing_expansion");
 
         optgroup = page->new_optgroup(L("Wall generator"), L"param_wall_generator");
         optgroup->append_single_option_line("wall_generator", "quality_settings_wall_generator");
