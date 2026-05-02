@@ -3068,12 +3068,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Grid pattern parameters
         period     = coord_t((2.0 * d1 / params.density) * std::sqrt(2.0));
         base_angle = rotate_vector.first + M_PI_4; // 45
-    } else if (Pattern_type == 1 || Pattern_type == 2) {
-        // Triangular-family pattern parameters (triangles / stars WIP)
-        period     = coord_t(( 2.0 * d1 / params.density) * std::sqrt(3.0));
-        base_angle = rotate_vector.first + M_PI_2; //90
     } else {
-        return false;
+        // Triangular-family pattern parameters (triangles / stars)
+        period     = coord_t((2.0 * d1 / params.density) * std::sqrt(3.0));
+        base_angle = rotate_vector.first + M_PI_2; // 90
     }
 
     // Obtain the expolygon and rotate to align with pattern base angle
