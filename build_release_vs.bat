@@ -9,6 +9,13 @@ for %%a in (%*) do (
     if "%%a"=="-x" set USE_NINJA=1
 )
 
+@REM Configure target architecture
+if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
+    set CMAKE_TARGET_ARCH="ARM64"
+) else (
+    set CMAKE_TARGET_ARCH="x64"
+)
+
 if "%USE_NINJA%"=="1" (
     echo Using Ninja Multi-Config generator
     set CMAKE_GENERATOR="Ninja Multi-Config"
@@ -116,7 +123,7 @@ if "%USE_NINJA%"=="1" (
     cmake ../ -G %CMAKE_GENERATOR% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target deps
 ) else (
-    cmake ../ -G %CMAKE_GENERATOR% -A x64 -DCMAKE_BUILD_TYPE=%build_type%
+    cmake ../ -G %CMAKE_GENERATOR% -A %CMAKE_TARGET_ARCH% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target deps -- -m
 )
 @echo off
@@ -135,7 +142,7 @@ if "%USE_NINJA%"=="1" (
     cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD
 ) else (
-    cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake .. -G %CMAKE_GENERATOR% -A %CMAKE_TARGET_ARCH% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
     cmake --build . --config %build_type% --target ALL_BUILD -- -m
 )
 @echo off
