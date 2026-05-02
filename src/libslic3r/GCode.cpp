@@ -4113,7 +4113,7 @@ static bool split_extrusion_collection_for_pointillism_paths(
             dst         = std::make_unique<ExtrusionEntityCollection>();
             dst->no_sort = source.no_sort;
         }
-        ExtrusionPath out_path(piece, src_path);
+        ExtrusionPath out_path(Polyline3(piece), src_path);
         out_path.inset_idx = k_pointillism_path_inset_marker;
         dst->append(std::move(out_path));
         ++out_stats.segment_count;
@@ -4123,7 +4123,7 @@ static bool split_extrusion_collection_for_pointillism_paths(
     for (const ExtrusionEntity* entity : flattened.entities) {
         auto split_one_path = [&](const ExtrusionPath& path) {
             Polylines pieces;
-            split_polyline_by_length_for_pointillism(path.polyline, split_length_scaled, pieces);
+            split_polyline_by_length_for_pointillism(path.polyline.to_polyline(), split_length_scaled, pieces);
             const double trim_each_end = std::max(0.0, split_gap_scaled * 0.5);
             for (Polyline& piece : pieces) {
                 if (trim_each_end > EPSILON &&
@@ -4665,7 +4665,7 @@ static inline void append_clipped_path_lz(const ExtrusionPath& src_path,
                                            const double         flow_height_override,
                                            ExtrusionEntityCollection& dst)
 {
-    Polylines segments{src_path.polyline};
+    Polylines segments{src_path.polyline.to_polyline()};
     if (include_masks != nullptr && !include_masks->empty())
         segments = intersection_pl(std::move(segments), *include_masks);
     if (exclude_masks != nullptr && !exclude_masks->empty())
@@ -4674,7 +4674,7 @@ static inline void append_clipped_path_lz(const ExtrusionPath& src_path,
     for (Polyline& segment : segments) {
         if (!segment.is_valid())
             continue;
-        ExtrusionPath clipped(segment, src_path);
+        ExtrusionPath clipped(Polyline3(segment), src_path);
         apply_local_z_flow_height_override(clipped, flow_height_override);
         dst.append(std::move(clipped));
     }
@@ -4766,13 +4766,13 @@ static inline Polylines collect_local_z_polylines(const ExtrusionEntityCollectio
     ExtrusionEntityCollection flattened = source.flatten(false);
     for (const ExtrusionEntity* entity : flattened.entities) {
         if (const auto* path = dynamic_cast<const ExtrusionPath*>(entity)) {
-            lines.emplace_back(path->polyline);
+            lines.emplace_back(path->polyline.to_polyline());
         } else if (const auto* multipath = dynamic_cast<const ExtrusionMultiPath*>(entity)) {
             for (const ExtrusionPath& p : multipath->paths)
-                lines.emplace_back(p.polyline);
+                lines.emplace_back(p.polyline.to_polyline());
         } else if (const auto* loop = dynamic_cast<const ExtrusionLoop*>(entity)) {
             for (const ExtrusionPath& p : loop->paths)
-                lines.emplace_back(p.polyline);
+                lines.emplace_back(p.polyline.to_polyline());
         }
     }
     return lines;

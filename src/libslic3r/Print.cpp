@@ -153,16 +153,16 @@ static bool extrusion_collection_has_local_z_perimeter_segment(const ExtrusionEn
     ExtrusionEntityCollection flattened = source.flatten(false);
     for (const ExtrusionEntity *entity : flattened.entities) {
         if (const auto *path = dynamic_cast<const ExtrusionPath*>(entity)) {
-            if (local_z_segments_exist(intersection_pl(Polylines{path->polyline}, include_masks)))
+            if (local_z_segments_exist(intersection_pl(Polylines{path->polyline.to_polyline()}, include_masks)))
                 return true;
         } else if (const auto *multipath = dynamic_cast<const ExtrusionMultiPath*>(entity)) {
             for (const ExtrusionPath &path : multipath->paths) {
-                if (local_z_segments_exist(intersection_pl(Polylines{path.polyline}, include_masks)))
+                if (local_z_segments_exist(intersection_pl(Polylines{path.polyline.to_polyline()}, include_masks)))
                     return true;
             }
         } else if (const auto *loop = dynamic_cast<const ExtrusionLoop*>(entity)) {
             for (const ExtrusionPath &path : loop->paths) {
-                if (local_z_segments_exist(intersection_pl(Polylines{path.polyline}, include_masks)))
+                if (local_z_segments_exist(intersection_pl(Polylines{path.polyline.to_polyline()}, include_masks)))
                     return true;
             }
         }

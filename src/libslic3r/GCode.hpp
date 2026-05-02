@@ -416,16 +416,7 @@ private:
         return resolved_1based == 0 ? 0 : resolved_1based - 1;
     }
 
-    // Mixed-filament resolution: convert a virtual 1-based filament ID to a zero-based
-    // physical extruder ID ready to pass to set_extruder(). When mixed_mgr is null or
-    // the ID is not a mixed slot the call is a no-op (returns virtual_id_1based - 1).
-    unsigned int resolve_extruder_for_layer(unsigned int virtual_id_1based,
-                                            const LayerTools &layer_tools) const
-    {
-        const unsigned int resolved_1based = layer_tools.resolve_mixed_1based(virtual_id_1based);
-        return resolved_1based == 0 ? 0 : resolved_1based - 1;
-    }
-
+    void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
     void            set_last_pos(const Point3 &pos) { m_last_pos = pos; m_last_pos_defined = true; }
     bool            last_pos_defined() const { return m_last_pos_defined; }
     void            set_extruders(const std::vector<unsigned int> &extruder_ids);
