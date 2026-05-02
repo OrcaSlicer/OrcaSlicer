@@ -98,22 +98,63 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                   }}
 };
 
-std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::PART_CATEGORY_SETTINGS=
-{
-    { L("Quality"), {{"ironing_type", "",8},{"ironing_flow", "",9},{"ironing_spacing", "",10},{"ironing_inset", "", 11},{"bridge_flow", "",11},{"make_overhang_printable", "",11},{"bridge_density", "", 1}
-                    }},
-    { L("Strength"), {{"wall_loops", "",1},{"top_shell_layers", L("Top Solid Layers"),1},{"top_shell_thickness", L("Top Minimum Shell Thickness"),1},{"top_surface_density", L("Top Surface Density"),1},
-                    {"bottom_shell_layers", L("Bottom Solid Layers"),1}, {"bottom_shell_thickness", L("Bottom Minimum Shell Thickness"),1},{"bottom_surface_density", L("Bottom Surface Density"),1},
-                    {"sparse_infill_density", "",1},{"sparse_infill_pattern", "",1},{"lateral_lattice_angle_1", "",1},{"lateral_lattice_angle_2", "",1},{"infill_overhang_angle", "",1},{"infill_anchor", "",1},{"infill_anchor_max", "",1},{"top_surface_pattern", "",1},{"bottom_surface_pattern", "",1}, {"internal_solid_infill_pattern", "",1},
-                    {"align_infill_direction_to_model", "", 1},
-                    {"extra_solid_infills", "", 1},
-                    {"infill_combination", "",1}, {"infill_combination_max_layer_height", "",1}, {"infill_wall_overlap", "",1},{"top_bottom_infill_wall_overlap", "",1}, {"solid_infill_direction", "",1}, {"infill_direction", "",1}, {"bridge_angle", "",1}, {"internal_bridge_angle", "",1}, {"minimum_sparse_infill_area", "",1}
-                    }},
-    { L("Speed"), {{"outer_wall_speed", "",1},{"inner_wall_speed", "",2},{"sparse_infill_speed", "",3},{"top_surface_speed", "",4}, {"internal_solid_infill_speed", "",5},
-                    {"enable_overhang_speed", "",6}, {"overhang_1_4_speed", "",7}, {"overhang_2_4_speed", "",8}, {"overhang_3_4_speed", "",9}, {"overhang_4_4_speed", "",10},
-                    {"bridge_speed", "",11}, {"gap_infill_speed", "",12}, {"internal_bridge_speed", "", 13}
-                    }}
-};
+std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATEGORY_SETTINGS =
+    {{L("Quality"),
+      {{"ironing_type", "", 8},
+       {"ironing_flow", "", 9},
+       {"ironing_spacing", "", 10},
+       {"ironing_inset", "", 11},
+       {"bridge_flow", "", 11},
+       {"make_overhang_printable", "", 11},
+       {"bridge_density", "", 1},
+       {"ironing_expansion", "", 14},
+       {"zaa_enabled", "", 1},
+       {"zaa_minimize_perimeter_height", "", 2},
+       {"zaa_dont_alternate_fill_direction", "", 3},
+       {"zaa_min_z", "", 4}}},
+     {L("Strength"),
+      {{"wall_loops", "", 1},
+       {"top_shell_layers", L("Top Solid Layers"), 1},
+       {"top_shell_thickness", L("Top Minimum Shell Thickness"), 1},
+       {"top_surface_density", L("Top Surface Density"), 1},
+       {"bottom_shell_layers", L("Bottom Solid Layers"), 1},
+       {"bottom_shell_thickness", L("Bottom Minimum Shell Thickness"), 1},
+       {"bottom_surface_density", L("Bottom Surface Density"), 1},
+       {"sparse_infill_density", "", 1},
+       {"sparse_infill_pattern", "", 1},
+       {"lateral_lattice_angle_1", "", 1},
+       {"lateral_lattice_angle_2", "", 1},
+       {"infill_overhang_angle", "", 1},
+       {"infill_anchor", "", 1},
+       {"infill_anchor_max", "", 1},
+       {"top_surface_pattern", "", 1},
+       {"bottom_surface_pattern", "", 1},
+       {"internal_solid_infill_pattern", "", 1},
+       {"align_infill_direction_to_model", "", 1},
+       {"extra_solid_infills", "", 1},
+       {"infill_combination", "", 1},
+       {"infill_combination_max_layer_height", "", 1},
+       {"infill_wall_overlap", "", 1},
+       {"top_bottom_infill_wall_overlap", "", 1},
+       {"solid_infill_direction", "", 1},
+       {"infill_direction", "", 1},
+       {"bridge_angle", "", 1},
+       {"internal_bridge_angle", "", 1},
+       {"minimum_sparse_infill_area", "", 1}}},
+     {L("Speed"),
+      {{"outer_wall_speed", "", 1},
+       {"inner_wall_speed", "", 2},
+       {"sparse_infill_speed", "", 3},
+       {"top_surface_speed", "", 4},
+       {"internal_solid_infill_speed", "", 5},
+       {"enable_overhang_speed", "", 6},
+       {"overhang_1_4_speed", "", 7},
+       {"overhang_2_4_speed", "", 8},
+       {"overhang_3_4_speed", "", 9},
+       {"overhang_4_4_speed", "", 10},
+       {"bridge_speed", "", 11},
+       {"gap_infill_speed", "", 12},
+       {"internal_bridge_speed", "", 13}}}};
 
 std::vector<std::string> SettingsFactory::get_options(const bool is_part)
 {

@@ -119,18 +119,50 @@ class MultiPoint3
 public:
     Points3 points;
 
-    void append(const Vec3crd& point) { this->points.push_back(point); }
+    void append(const Point3& point) { this->points.push_back(point); }
+    void append(const Vec3crd& point) { this->points.push_back(Point3(point)); }
+    void append(const Points3::const_iterator& begin, const Points3::const_iterator& end)
+    {
+        this->points.insert(this->points.end(), begin, end);
+    }
 
-    void translate(double x, double y);
-    void translate(const Point& vector);
+    void translate(double x, double y, double z = 0) { this->translate(Point3(coord_t(x), coord_t(y), coord_t(z))); }
+    void translate(const Point3& vector);
+    void reverse() { std::reverse(this->points.begin(), this->points.end()); }
+    void rotate(double angle) { this->rotate(cos(angle), sin(angle)); }
+    void rotate(double cos_angle, double sin_angle);
+    void rotate(double angle, const Point3 &center);
+
+    Point3& first_point() { return this->points.front(); }
+    Point3& last_point() { return this->points.back(); }
+    const Point3& first_point() const { return this->points.front(); }
+    const Point3& last_point() const { return this->points.back(); }
+    size_t size() const { return this->points.size(); }
+    bool empty() const { return this->points.empty(); }
+    void clear() { this->points.clear(); }
+
+    auto begin() { return this->points.begin(); }
+    auto end() { return this->points.end(); }
+    auto begin() const { return this->points.begin(); }
+    auto end() const { return this->points.end(); }
+
     virtual Lines3 lines() const = 0;
     double length() const;
     bool is_valid() const { return this->points.size() >= 2; }
 
     BoundingBox3 bounding_box() const;
 
+    // Find a point in the points array
+    int find_point(const Point &point) const;
+    int find_point(const Point &point, const double scaled_epsilon) const;
+    int find_point(const Point3 &point) const;
+    int find_point(const Point3 &point, const double scaled_epsilon) const;
+
     // Remove exact duplicates, return true if any duplicate has been removed.
     bool remove_duplicate_points();
+
+    // Douglas-Peucker simplification
+    static Points3 _douglas_peucker(const Points3 &points, double tolerance);
 };
 
 extern BoundingBox get_extents(const MultiPoint &mp);

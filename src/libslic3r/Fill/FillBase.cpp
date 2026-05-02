@@ -308,7 +308,9 @@ std::pair<float, Point> Fill::_infill_direction(const Surface *surface) const
     } else if (this->layer_id != size_t(-1) && !fixed_angle) {
         // alternate fill direction
         //Orca: Do not alternate direction if Fill.fixed_angle is true
-        out_angle += this->_layer_angle(this->layer_id / surface->thickness_layers);
+        if (!this->dont_alternate_fill_direction) {
+            out_angle += this->_layer_angle(this->layer_id / surface->thickness_layers);
+        }
     } else {
 //    	printf("Layer_ID undefined!\n");
     }

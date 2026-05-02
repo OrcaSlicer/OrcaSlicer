@@ -16,11 +16,11 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
         if (line_len < SCALED_EPSILON) {
             // The line is so tiny that we don't care about its width when we connect it to another line.
             if (!path.empty())
-                path.polyline.points.back() = line.b; // If the variable path is non-empty, connect this tiny line to it.
+                path.polyline.points.back() = Point3(line.b); // If the variable path is non-empty, connect this tiny line to it.
             else if (i + 1 < (int)lines.size()) // If there is at least one following line, connect this tiny line to it.
                 lines[i + 1].a = line.a;
             else if (!multi_path.paths.empty())
-                multi_path.paths.back().polyline.points.back() = line.b; // Connect this tiny line to the last finished path.
+                multi_path.paths.back().polyline.points.back() = Point3(line.b); // Connect this tiny line to the last finished path.
 
             // If any of the above isn't satisfied, then remove this tiny line.
             continue;
@@ -65,8 +65,8 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
         const double w        = fmax(line.a_width, line.b_width);
         const Flow   new_flow = (role == erOverhangPerimeter && flow.bridge()) ? flow : flow.with_width(unscale<float>(w) + flow.height() * float(1. - 0.25 * PI));
         if (path.polyline.points.empty()) {
-            path.polyline.append(line.a);
-            path.polyline.append(line.b);
+            path.polyline.append(Point3(line.a));
+            path.polyline.append(Point3(line.b));
             // Convert from spacing to extrusion width based on the extrusion model
             // of a square extrusion ended with semi circles.
             #ifdef SLIC3R_DEBUG
@@ -81,7 +81,7 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
             if (thickness_delta <= merge_tolerance) {
                 // the width difference between this line and the current flow
                 // (of the previous line) width is within the accepted tolerance
-                path.polyline.append(line.b);
+                path.polyline.append(Point3(line.b));
             } else {
                 // we need to initialize a new line
                 multi_path.paths.emplace_back(std::move(path));
@@ -124,13 +124,13 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
                 path = ExtrusionPath(role);
                 double length = lines[start_index].length();
                 double sum = lines[start_index].length() * 0.5 * (lines[start_index].a_width + lines[start_index].b_width);
-                path.polyline.append(lines[start_index].a);
+                path.polyline.append(Point3(lines[start_index].a));
                 for (int idx = start_index + 1; idx < i; idx++) {
                     length += lines[idx].length();
                     sum += lines[idx].length() * 0.5 * (lines[idx].a_width + lines[idx].b_width);
-                    path.polyline.append(lines[idx].a);
+                    path.polyline.append(Point3(lines[idx].a));
                 }
-                path.polyline.append(lines[i].a);
+                path.polyline.append(Point3(lines[i].a));
                 if (length > SCALED_EPSILON) {
                     double w = sum / length;
                     Flow new_flow = flow.with_width(unscale<float>(w) + flow.height() * float(1. - 0.25 * PI));
@@ -193,13 +193,13 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
         path = ExtrusionPath(role);
         double length = lines[start_index].length();
         double sum = lines[start_index].length() * lines[start_index].a_width;
-        path.polyline.append(lines[start_index].a);
+        path.polyline.append(Point3(lines[start_index].a));
         for (int idx = start_index + 1; idx < final_size; idx++) {
             length += lines[idx].length();
             sum += lines[idx].length() * lines[idx].a_width;
-            path.polyline.append(lines[idx].a);
+            path.polyline.append(Point3(lines[idx].a));
         }
-        path.polyline.append(lines[final_size - 1].b);
+        path.polyline.append(Point3(lines[final_size - 1].b));
         if (length > SCALED_EPSILON) {
             double w = sum / length;
             Flow new_flow = flow.with_width(unscale<float>(w) + flow.height() * float(1. - 0.25 * PI));

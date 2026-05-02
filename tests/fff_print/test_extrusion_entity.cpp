@@ -11,18 +11,19 @@
 
 using namespace Slic3r;
 
-static inline Slic3r::Point random_point(float LO=-50, float HI=50) 
+static inline Slic3r::Point3 random_point3(float LO=-50, float HI=50)
 {
-    Vec2f pt = Vec2f(LO, LO) + (Vec2d(rand(), rand()) * (HI-LO) / RAND_MAX).cast<float>();
-	return pt.cast<coord_t>();
+    Vec3f pt = Vec3f(LO, LO, LO) + (Vec3d(rand(), rand(), rand()) * (HI-LO) / RAND_MAX).cast<float>();
+	return Point3(pt.cast<coord_t>());
 }
+
 
 // build a sample extrusion entity collection with random start and end points.
 static Slic3r::ExtrusionPath random_path(size_t length = 20, float LO = -50, float HI = 50)
 {
     ExtrusionPath t {erPerimeter, 1.0, 1.0, 1.0};
     for (size_t j = 0; j < length; ++ j)
-        t.polyline.append(random_point(LO, HI));
+        t.polyline.append(random_point3(LO, HI));
     return t;
 }
 
