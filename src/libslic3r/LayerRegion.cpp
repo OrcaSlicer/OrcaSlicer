@@ -3,6 +3,7 @@
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include "PerimeterGenerator.hpp"
+#include "Point.hpp"
 #include "Print.hpp"
 #include "Surface.hpp"
 #include "BoundingBox.hpp"

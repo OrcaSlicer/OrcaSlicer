@@ -118,8 +118,8 @@ public:
     ExtrusionEntityCollection chained_path_from(const Point &start_near, ExtrusionRole role = erMixed) const 
     	{ return this->no_sort ? *this : chained_path_from(this->entities, start_near, role); }
     void reverse() override;
-    const Point& first_point() const override { return this->entities.front()->first_point(); }
-    const Point& last_point() const override { return this->entities.back()->last_point(); }
+    Point first_point() const override { return this->entities.front()->first_point(); }
+    Point last_point() const override { return this->entities.back()->last_point(); }
     // Produce a list of 2D polygons covered by the extruded paths, offsetted by the extrusion width.
     // Increase the offset by scaled_epsilon to achieve an overlap, so a union will produce no gaps.
     void polygons_covered_by_width(Polygons &out, const float scaled_epsilon) const override;
