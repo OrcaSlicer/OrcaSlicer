@@ -48,7 +48,7 @@ LayerPtrs new_layers(
         }
         if (zaa_active) {
             slice_z = lo + z_offset;
-            if (slice_z < lo || slice_z > hi) {
+            if ((slice_z < lo && !is_approx(slice_z, lo)) || (slice_z > hi && !is_approx(slice_z, hi))) {
                 throw RuntimeError("Bad min Z value");
             }
         }
