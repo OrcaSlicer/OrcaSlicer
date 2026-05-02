@@ -4124,14 +4124,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("zaa_enabled", coBool);
     def->label    = L("Z contouring enabled");
     def->category = L("Quality");
-    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing)");
+    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing).");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("zaa_minimize_perimeter_height", coFloat);
     def->label    = L("Minimize wall height angle");
     def->category = L("Quality");
-    def->tooltip  = L("Reduce height of top surface perimeters to match height of model edge. "
+    def->tooltip  = L("Reduce height of top surface perimeters to match height of model edge.\n"
                        "Effects perimeters whose slope is less than this angle in degrees. Reasonable value is 35. Set 0 to disable.");
     def->sidetext = L("°");
     def->min      = 0;
@@ -4142,14 +4142,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("zaa_dont_alternate_fill_direction", coBool);
     def->label    = L("Don't alternate fill direction");
     def->category = L("Quality");
-    def->tooltip  = L("Disable alternating fill direction when using Z contouring");
+    def->tooltip  = L("Disable alternating fill direction when using Z contouring.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("zaa_min_z", coFloat);
     def->label    = L("Minimum z height");
     def->category = L("Quality");
-    def->tooltip  = L("Minimum z layer height. Also controls slicing plane");
+    def->tooltip  = L("Minimum z layer height.\nAlso controls slicing plane.");
     def->sidetext = L("mm");
     def->min      = 0;
     def->max      = 100;
