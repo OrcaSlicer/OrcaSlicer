@@ -13,8 +13,8 @@ if (APPLE AND IS_CROSS_COMPILE)
     endif()
     ExternalProject_Add(dep_OpenEXR
         EXCLUDE_FROM_ALL    ON
-        URL https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
-        URL_HASH SHA256=0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
+        URL https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.10.zip
+        URL_HASH SHA256=8580AE0D1372FD54BA7AD79314253A9DB2C69099EAEE6472B3C1081895168C08
         INSTALL_DIR         ${DESTDIR}
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/OpenEXR
         ${_openxr_list_sep}
@@ -30,19 +30,12 @@ if (APPLE AND IS_CROSS_COMPILE)
     )
 else()
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(_patch_cmd ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/0001-OpenEXR-GCC13.patch)
-else ()
-    set(_patch_cmd "")
-endif ()
-
 orcaslicer_add_cmake_project(OpenEXR
     # GIT_REPOSITORY https://github.com/openexr/openexr.git
-    URL https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
-    URL_HASH SHA256=0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
-    PATCH_COMMAND ${_patch_cmd}
+    URL https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.10.zip
+    URL_HASH SHA256=8580AE0D1372FD54BA7AD79314253A9DB2C69099EAEE6472B3C1081895168C08
     DEPENDS ${ZLIB_PKG}
-    GIT_TAG v2.5.5
+    GIT_TAG v2.5.10
     CMAKE_ARGS
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DBUILD_TESTING=OFF
