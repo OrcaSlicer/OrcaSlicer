@@ -3262,11 +3262,13 @@ bool FillRectilinear::fill_surface_trapezoidal(
     case 2: // Tri-hexagon / FillStars
     {
         // Pattern parameters
-        const coord_t hex_height = coord_t(0.5 * std::sqrt(3.0) * period);
-        const coord_t tri_height = hex_height / 2;
-        const coord_t d1_half = d1 / 2;
+        const coord_t hex_height     = coord_t(0.5 * std::sqrt(3.0) * period);
+        const coord_t tri_height     = hex_height / 2;
+        const coord_t d1_half        = d1 / 2;
         const coord_t chamfer_height = std::sqrt(3.0) * d1_half;
-        const coord_t d1_half_base = d1_half / std::sqrt(3.0);
+        const coord_t d1_half_base   = d1_half / std::sqrt(3.0);
+        const coord_t half_period    = period / 2;
+        const coord_t quarter_period = period / 4;
 
         bb.merge(align_to_grid(bb.center(), Point(period, tri_height)));
         const size_t layer_mod = infill_layer_id % 3;
@@ -3276,33 +3278,32 @@ bool FillRectilinear::fill_surface_trapezoidal(
         const coord_t half_h = bb.size().y() / 2;
 
         const coord_t num_periods_x = coord_t(std::ceil(half_w / double(period)));
-        coord_t num_periods_y = coord_t(std::ceil(half_h / double(hex_height)));
+        coord_t num_periods_y       = coord_t(std::ceil(half_h / double(hex_height)));
         if ((num_periods_y % 2) != 0)
             ++num_periods_y;
 
-        const coord_t x_alignment_shift = period / 2;
+        const coord_t x_alignment_shift = half_period;
         const coord_t y_alignment_shift = (2 * tri_height) / 3;
-        const coord_t x_min_aligned = -num_periods_x * period - x_alignment_shift;
-        const coord_t x_max_aligned =  num_periods_x * period - x_alignment_shift;
-        const coord_t y_min_aligned = -num_periods_y * hex_height - y_alignment_shift;
-        const coord_t y_max_aligned =  num_periods_y * hex_height - y_alignment_shift;
+        const coord_t x_min_aligned     = -num_periods_x * period - x_alignment_shift;
+        const coord_t x_max_aligned     = num_periods_x * period - x_alignment_shift;
+        const coord_t y_min_aligned     = -num_periods_y * hex_height - y_alignment_shift;
+        const coord_t y_max_aligned     = num_periods_y * hex_height - y_alignment_shift;
 
-        const size_t estimated_rows = (y_max_aligned - y_min_aligned) / hex_height + 2;
+        const size_t estimated_rows      = (y_max_aligned - y_min_aligned) / hex_height + 2;
         const size_t estimated_polylines = (estimated_rows + 1) * 2;
         polylines.reserve(estimated_polylines);
 
-        constexpr size_t k_points_per_star_cell = 7;
         Polyline star_row_normal;
-        star_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * k_points_per_star_cell);
+        star_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
         Polyline star_row_mirrored;
-        star_row_mirrored.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * k_points_per_star_cell);
+        star_row_mirrored.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
 
         for (coord_t x = x_min_aligned; x < x_max_aligned; x += period) {
             star_row_normal.points.emplace_back(Point(x, hex_height));                                               // P0
-            star_row_normal.points.emplace_back(Point(x + period / 4 - d1, hex_height));                             // P1
-            star_row_normal.points.emplace_back(Point(x + period / 4 + d1_half, hex_height - chamfer_height));       // P2
-            star_row_normal.points.emplace_back(Point(x + period / 2 - d1_half_base, tri_height + d1_half));         // P3
-            star_row_normal.points.emplace_back(Point(x + period / 2 + d1_half_base, tri_height + d1_half));         // P4
+            star_row_normal.points.emplace_back(Point(x + quarter_period - d1, hex_height));                         // P1
+            star_row_normal.points.emplace_back(Point(x + quarter_period + d1_half, hex_height - chamfer_height));   // P2
+            star_row_normal.points.emplace_back(Point(x + half_period - d1_half_base, tri_height + d1_half));        // P3
+            star_row_normal.points.emplace_back(Point(x + half_period + d1_half_base, tri_height + d1_half));        // P4
             star_row_normal.points.emplace_back(Point(x + (period * 3) / 4 - d1_half, hex_height - chamfer_height)); // P5
             star_row_normal.points.emplace_back(Point(x + (period * 3) / 4 + d1, hex_height));                       // P6
         }
@@ -3311,10 +3312,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
         for (auto& p : star_row_mirrored.points)
             p.y() = hex_height - p.y();
 
-        size_t pair_idx = 0;
-        const coord_t global_x_shift = period / 2;
+        size_t pair_idx              = 0;
+        const coord_t global_x_shift = half_period;
         const coord_t global_y_shift = tri_height;
-        auto append_row_with_shift = [&polylines](const Polyline& row_template, coord_t x_shift, coord_t y_shift) {
+        auto append_row_with_shift   = [&polylines](const Polyline& row_template, coord_t x_shift, coord_t y_shift) {
             Polyline row = row_template;
             for (Point& p : row.points) {
                 p.x() += x_shift;
@@ -3325,7 +3326,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
         };
 
         for (coord_t y = y_min_aligned; y < y_max_aligned; y += hex_height, ++pair_idx) {
-            const coord_t x_shift = (pair_idx % 2 == 0) ? 0 : period / 2;
+            const coord_t x_shift = (pair_idx % 2 == 0) ? 0 : half_period;
             append_row_with_shift(star_row_normal, x_shift + global_x_shift, y + global_y_shift);
             append_row_with_shift(star_row_mirrored, x_shift + global_x_shift, y + global_y_shift);
         }
