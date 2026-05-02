@@ -1181,7 +1181,9 @@ namespace SupportMaterialInternal {
                         // This is a complete loop.
                         // Add the outer contour first.
                         Polygon poly;
-                        poly.points = ep.polyline.points;
+                        // Convert Points3 to Points
+                        for (const Point3 &p3 : ep.polyline.points)
+                            poly.points.emplace_back(p3.x(), p3.y());
                         poly.points.pop_back();
                         if (poly.area() < 0)
                             poly.reverse();

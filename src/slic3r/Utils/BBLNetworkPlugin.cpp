@@ -546,7 +546,6 @@ void BBLNetworkPlugin::load_all_function_pointers()
     m_set_country_code = reinterpret_cast<func_set_country_code>(get_function("bambu_network_set_country_code"));
     m_start = reinterpret_cast<func_start>(get_function("bambu_network_start"));
     m_set_on_ssdp_msg_fn = reinterpret_cast<func_set_on_ssdp_msg_fn>(get_function("bambu_network_set_on_ssdp_msg_fn"));
-    m_set_on_user_login_fn = reinterpret_cast<func_set_on_user_login_fn>(get_function("bambu_network_set_on_user_login_fn"));
     m_set_on_printer_connected_fn = reinterpret_cast<func_set_on_printer_connected_fn>(get_function("bambu_network_set_on_printer_connected_fn"));
     m_set_on_server_connected_fn = reinterpret_cast<func_set_on_server_connected_fn>(get_function("bambu_network_set_on_server_connected_fn"));
     m_set_on_http_error_fn = reinterpret_cast<func_set_on_http_error_fn>(get_function("bambu_network_set_on_http_error_fn"));
@@ -601,7 +600,6 @@ void BBLNetworkPlugin::load_all_function_pointers()
     m_get_setting_list = reinterpret_cast<func_get_setting_list>(get_function("bambu_network_get_setting_list"));
     m_get_setting_list2 = reinterpret_cast<func_get_setting_list2>(get_function("bambu_network_get_setting_list2"));
     m_delete_setting = reinterpret_cast<func_delete_setting>(get_function("bambu_network_delete_setting"));
-    m_get_studio_info_url = reinterpret_cast<func_get_studio_info_url>(get_function("bambu_network_get_studio_info_url"));
     m_set_extra_http_header = reinterpret_cast<func_set_extra_http_header>(get_function("bambu_network_set_extra_http_header"));
     m_get_my_message = reinterpret_cast<func_get_my_message>(get_function("bambu_network_get_my_message"));
     m_check_user_task_report = reinterpret_cast<func_check_user_task_report>(get_function("bambu_network_check_user_task_report"));
@@ -650,7 +648,6 @@ void BBLNetworkPlugin::clear_all_function_pointers()
     m_set_country_code = nullptr;
     m_start = nullptr;
     m_set_on_ssdp_msg_fn = nullptr;
-    m_set_on_user_login_fn = nullptr;
     m_set_on_printer_connected_fn = nullptr;
     m_set_on_server_connected_fn = nullptr;
     m_set_on_http_error_fn = nullptr;
@@ -705,7 +702,6 @@ void BBLNetworkPlugin::clear_all_function_pointers()
     m_get_setting_list = nullptr;
     m_get_setting_list2 = nullptr;
     m_delete_setting = nullptr;
-    m_get_studio_info_url = nullptr;
     m_set_extra_http_header = nullptr;
     m_get_my_message = nullptr;
     m_check_user_task_report = nullptr;

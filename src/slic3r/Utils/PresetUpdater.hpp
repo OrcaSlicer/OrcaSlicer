@@ -58,6 +58,7 @@ public:
 
 	void on_update_notification_confirm();
     void do_printer_config_update();
+	void check_vendor_update(const std::string& vendor_id);
 
 	bool version_check_enabled() const;
 
