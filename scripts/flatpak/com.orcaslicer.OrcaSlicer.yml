@@ -305,6 +305,12 @@ modules:
         url: https://github.com/SoftFever/orca_deps/releases/download/freetype-2.12.1.tar.gz/freetype-2.12.1.tar.gz
         sha256: efe71fd4b8246f1b0b1b9bfca13cfff1c9ad85930340c27df469733bbb620938
         dest: external-packages/FREETYPE
+      
+      # GLEW 2.3.1
+      - type: file
+        url: https://github.com/nigels-com/glew/releases/download/glew-2.3.1/glew-2.3.1.zip
+        sha256: 09E0083AE46930ABA9B53E72C92EE1A557E24ED393526FEC26CB0EBABD834720
+        dest: external-packages/GLEW
 
   - name: OrcaSlicer
     buildsystem: simple
