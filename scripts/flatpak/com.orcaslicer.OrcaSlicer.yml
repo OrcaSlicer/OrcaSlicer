@@ -208,7 +208,7 @@ modules:
       # OpenEXR v2.5.10
       - type: file
         url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.10.zip
-        sha256: 8580AE0D1372FD54BA7AD79314253A9DB2C69099EAEE6472B3C1081895168C08
+        sha256: 8580ae0d1372fd54ba7ad79314253a9db2c69099eaee6472b3c1081895168c08
         dest: external-packages/OpenEXR
 
       # OpenVDB (custom fork)
