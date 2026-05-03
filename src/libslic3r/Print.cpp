@@ -1168,12 +1168,13 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
         StringObjectException ret;
 
         for (const auto &objectID_t : print.print_object_ids()) {
-            std::set<int> obj_used_extruder_ids;
+            std::set<unsigned int> obj_used_extruder_ids;
             auto                     print_object = print.get_object(objectID_t);// current object
             if (print_object){
                 auto object_extruders_t = print_object->object_extruders(); // object used extruder
                 for (unsigned int extruder : object_extruders_t) {
-                    obj_used_extruder_ids.insert(static_cast<int>(extruder));
+                    // object_extruders() returns 0-based filament indexes; 0 is the first filament.
+                    obj_used_extruder_ids.insert(extruder);
                 }
             }
 
