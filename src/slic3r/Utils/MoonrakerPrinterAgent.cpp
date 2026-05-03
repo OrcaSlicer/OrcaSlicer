@@ -1044,7 +1044,7 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
                 if (internal_idx != size_t(-1)) {
                     const auto& p = bundle->filaments.preset(internal_idx);
                     std::string generic_id = map_filament_type_to_generic_id(tray.tray_type);
-                    BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found manufacturer-specific profile " << p.name;
+                    BOOST_LOG_TRIVIAL(debug) << "Filament sync: Using final fallback manufacturer-specific profile " << p.name;
                     tray.tray_info_idx = p.filament_id;
                     tray.tray_type = p.config.opt_string("filament_type", 0u);
                 }
