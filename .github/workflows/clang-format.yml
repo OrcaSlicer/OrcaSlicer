@@ -68,5 +68,5 @@ jobs:
         if: steps.linter.outputs.checks-failed > 0
         run: |
           echo "::error::clang-format violations detected. See the file annotations or the job step summary above for details."
-          echo "::error::To fix locally, install clang-format 18 and run: git clang-format origin/${{ github.base_ref }}"
+          echo "::error::To fix locally, run `git clang-format origin/main` in the devcontainer."
           exit 1
