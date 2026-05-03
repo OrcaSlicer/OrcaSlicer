@@ -1198,6 +1198,8 @@ static std::vector<std::string> s_Preset_print_options{
     "wall_maximum_deviation",
     "small_perimeter_speed",
     "small_perimeter_threshold",
+    "small_support_perimeter_speed",
+    "small_support_perimeter_threshold",
     "bridge_angle",
     "internal_bridge_angle",
     "relative_bridge_angle",

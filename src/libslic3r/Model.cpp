@@ -3226,6 +3226,7 @@ double Model::findMaxSpeed(const ModelObject* object) {
     double topSolidInfillSpeedObj = Model::printSpeedMap.topSolidInfillSpeed;
     double supportSpeedObj = Model::printSpeedMap.supportSpeed;
     double smallPerimeterSpeedObj = Model::printSpeedMap.smallPerimeterSpeed;
+    double smallSupportPerimeterSpeedObj = Model::printSpeedMap.smallSupportPerimeterSpeed;
     for (std::string objectKey : objectKeys) {
         if (objectKey == "inner_wall_speed"){
             perimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
@@ -3243,8 +3244,10 @@ double Model::findMaxSpeed(const ModelObject* object) {
             externalPerimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
         if (objectKey == "small_perimeter_speed")
             smallPerimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
+        if (objectKey == "small_support_perimeter_speed")
+            smallSupportPerimeterSpeedObj = object->config.get().opt_float_nullable(objectKey, 0);
     }
-    objMaxSpeed = std::max(perimeterSpeedObj, std::max(externalPerimeterSpeedObj, std::max(infillSpeedObj, std::max(solidInfillSpeedObj, std::max(topSolidInfillSpeedObj, std::max(supportSpeedObj, std::max(smallPerimeterSpeedObj, objMaxSpeed)))))));
+    objMaxSpeed = std::max(perimeterSpeedObj, std::max(externalPerimeterSpeedObj, std::max(infillSpeedObj, std::max(solidInfillSpeedObj, std::max(topSolidInfillSpeedObj, std::max(supportSpeedObj, std::max(smallPerimeterSpeedObj, std::max(smallSupportPerimeterSpeedObj, objMaxSpeed))))))));
     if (objMaxSpeed <= 0) objMaxSpeed = 250.;
     return objMaxSpeed;
 }

@@ -2807,6 +2807,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("ironing_speed", "speed_settings_other_layers_speed#ironing-speed");
         optgroup->append_single_option_line("support_speed", "speed_settings_other_layers_speed#support", 0);
         optgroup->append_single_option_line("support_interface_speed", "speed_settings_other_layers_speed#support-interface", 0);
+        optgroup->append_single_option_line("small_support_perimeter_speed", "speed_settings_other_layers_speed#small-tree-support-perimeters", 0);
+        optgroup->append_single_option_line("small_support_perimeter_threshold", "speed_settings_other_layers_speed#small-tree-support-perimeters-threshold", 0);
         optgroup = page->new_optgroup(L("Overhang speed"), L"param_overhang_speed", 15);
         optgroup->append_single_option_line("enable_overhang_speed", "speed_settings_overhang_speed#slow-down-for-overhang", 0);
 

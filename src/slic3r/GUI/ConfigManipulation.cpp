@@ -844,6 +844,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 //    toggle_line("support_speed", have_support_material || have_skirt_height);
 //    toggle_line("support_interface_speed", have_support_material && have_support_interface);
 
+    // Orca:
+    for (auto el : {"small_support_perimeter_speed", "small_support_perimeter_threshold"})
+        toggle_field(el, config->opt_bool("enable_support"));
+
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);
 
