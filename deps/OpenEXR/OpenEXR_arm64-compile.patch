@@ -1,0 +1,42 @@
+--- ../OpenEXR-orig/OpenEXR/IlmImf/ImfDwaCompressor.cpp	2021-02-12 17:56:19.000000000 +0100
++++ ./OpenEXR/IlmImf/ImfDwaCompressor.cpp	2023-06-01 13:21:32.666695400 +0200
+@@ -159,6 +159,7 @@
+ #include <limits>
+ 
+ #include <cstddef>
++#include <cstdint>
+ 
+ 
+ // Windows specific addition to prevent the indirect import of the redefined min/max macros
+--- ../OpenEXR-orig/OpenEXR/IlmImf/ImfHuf.cpp	2021-02-12 17:56:19.000000000 +0100
++++ ./OpenEXR/IlmImf/ImfHuf.cpp	2023-06-01 13:21:53.018583400 +0200
+@@ -53,6 +53,7 @@
+ #include <cstring>
+ #include <cassert>
+ #include <algorithm>
++#include <cstdint>
+ 
+ 
+ using namespace std;
+--- ../OpenEXR-orig/OpenEXR/IlmImf/ImfMisc.cpp	2021-02-12 17:56:19.000000000 +0100
++++ ./OpenEXR/IlmImf/ImfMisc.cpp	2023-06-01 13:22:15.777480000 +0200
+@@ -40,6 +40,7 @@
+ //
+ //-----------------------------------------------------------------------------
+ 
++#include <cstdint>
+ #include <ImfMisc.h>
+ #include <ImfHeader.h>
+ #include <ImfAttribute.h>
+
+--- ../OpenEXR-orig/OpenEXR/IlmImf/ImfSimd.h	2021-02-12 17:56:19.000000000 +0100
++++ ./OpenEXR/IlmImf/ImfSimd.h	2023-06-01 13:22:15.777480000 +0200
+@@ -45,7 +45,7 @@
+ 
+ 
+ // GCC and Visual Studio SSE2 compiler flags
+-#if defined __SSE2__ || (_MSC_VER >= 1300 && !_M_CEE_PURE)
++#if defined __SSE2__ || (_MSC_VER >= 1300 && !_M_CEE_PURE) && !defined(_M_ARM64)
+     #define IMF_HAVE_SSE2 1
+ #endif
+ 
