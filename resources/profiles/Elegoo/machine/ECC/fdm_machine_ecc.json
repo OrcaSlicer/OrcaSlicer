@@ -114,7 +114,7 @@
 		"0.8"
 	],
 	"retract_length_toolchange": [
-		"2"
+		"0"
 	],
 	"z_hop": [
 		"0.4"
