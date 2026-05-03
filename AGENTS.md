@@ -31,6 +31,15 @@ ctest --test-dir ./tests/fff_print
 - `#pragma once` for headers. Smart pointers and RAII preferred
 - Parallelization via TBB — be mindful of shared state
 
+## Formatting
+
+`.clang-format` (clang-format 18), enforced on PR-changed lines by `.github/workflows/clang-format.yml`. Untouched code is left alone.
+
+```bash
+git clang-format --diff origin/main    # preview
+git clang-format origin/main           # apply
+```
+
 ## Key Entry Points
 
 - App startup: `src/OrcaSlicer.cpp`
