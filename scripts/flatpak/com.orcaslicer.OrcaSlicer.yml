@@ -205,10 +205,10 @@ modules:
         sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
         dest: external-packages/Blosc
 
-      # OpenEXR v2.5.5
+      # OpenEXR v2.5.10
       - type: file
-        url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
-        sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
+        url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.10.zip
+        sha256: 8580AE0D1372FD54BA7AD79314253A9DB2C69099EAEE6472B3C1081895168C08
         dest: external-packages/OpenEXR
 
       # OpenVDB (custom fork)
