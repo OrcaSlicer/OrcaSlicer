@@ -340,9 +340,17 @@ bool NetworkAgent::is_server_connected(const std::string& provider)
     return false;
 }
 
-int NetworkAgent::refresh_connection()
+int NetworkAgent::refresh_connection(const std::string& provider)
 {
-    return invoke_on_all_cloud_agents(m_cloud_agents, [](ICloudServiceAgent& cloud_agent) { return cloud_agent.refresh_connection(); });
+    if(provider.empty())
+        return invoke_on_all_cloud_agents(m_cloud_agents, [](ICloudServiceAgent& cloud_agent) { return cloud_agent.refresh_connection(); });
+    else {
+        const auto cloud_agent = get_cloud_agent(provider);
+        if (cloud_agent)
+            return cloud_agent->refresh_connection();
+        return -1;
+    }
+     
 }
 
 void NetworkAgent::enable_multi_machine(bool enable, const std::string& provider)
