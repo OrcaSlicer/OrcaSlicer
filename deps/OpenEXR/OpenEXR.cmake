@@ -34,7 +34,6 @@ orcaslicer_add_cmake_project(OpenEXR
     # GIT_REPOSITORY https://github.com/openexr/openexr.git
     URL https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.10.zip
     URL_HASH SHA256=8580AE0D1372FD54BA7AD79314253A9DB2C69099EAEE6472B3C1081895168C08
-    PATCH_COMMAND ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/OpenEXR_arm64-compile.patch
     DEPENDS ${ZLIB_PKG}
     GIT_TAG v2.5.10
     CMAKE_ARGS
