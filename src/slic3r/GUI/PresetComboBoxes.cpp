@@ -1175,8 +1175,8 @@ void PlaterPresetComboBox::update()
         }
 
         bool single_bar = false;
-        wxString name = preset.name;
-        preset_aliases[name] = get_preset_name(preset).ToStdString(); // ORCA
+        wxString name = from_u8(preset.name);
+        preset_aliases[name] = get_preset_name(preset).utf8_string(); // ORCA
 
         // Track bundle names for bundled presets
         if (preset.is_from_bundle()) {
@@ -1232,7 +1232,7 @@ void PlaterPresetComboBox::update()
                 name = from_u8(is_selected && preset.is_dirty ? Preset::suffix_modified() + printer_model : printer_model);
 
                 if (system_printer_models.count(printer_model) == 0) {
-                    preset_aliases[name] = name.ToStdString(); // ORCA
+                    preset_aliases[name] = name.utf8_string(); // ORCA
                     system_presets.emplace(name, bmp);
                     system_printer_models.insert(printer_model);
                 }
@@ -1676,8 +1676,8 @@ void TabPresetComboBox::update()
         wxBitmap* bmp = get_bmp(preset);
         assert(bmp);
 
-        const wxString name = preset.name;
-        preset_aliases[name] = get_preset_name(preset).ToStdString();
+        const wxString name = from_u8(preset.name);
+        preset_aliases[name] = get_preset_name(preset).utf8_string();
         if (preset.is_system)
             preset_descriptions.emplace(name, from_u8(preset.description));
 

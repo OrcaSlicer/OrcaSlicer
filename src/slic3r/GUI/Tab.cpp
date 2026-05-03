@@ -6808,10 +6808,10 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         // Collect and set indices of depending_presets marked as compatible.
         wxArrayInt selections;
         auto *compatible_printers = dynamic_cast<const ConfigOptionStrings*>(m_config->option(deps.key_list));
-        if (compatible_printers != nullptr || !compatible_printers->values.empty())
+        if (compatible_printers != nullptr && !compatible_printers->values.empty())
             for (auto preset_name : compatible_printers->values)
                 for (size_t idx = 0; idx < presets.GetCount(); ++idx)
-                    if (presets[idx] == preset_name) {
+                    if (presets[idx] == from_u8(preset_name)) {
                         selections.Add(idx);
                         break;
                     }
