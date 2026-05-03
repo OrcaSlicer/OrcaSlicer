@@ -1,0 +1,75 @@
+#!/bin/bash
+
+if ! command -v qlist > /dev/null 2>&1; then
+    echo "app-portage/portage-utils is required but not installed. Installing..."
+    sudo emerge --ask --verbose app-portage/portage-utils
+fi
+
+REQUIRED_DEV_PACKAGES=(
+    app-crypt/libsecret
+    dev-build/autoconf
+    dev-build/cmake
+    dev-build/libtool
+    dev-build/ninja
+    dev-cpp/gstreamermm
+    dev-libs/libmspack
+    dev-libs/libspnav
+    dev-libs/openssl
+    dev-vcs/git
+    gui-libs/eglexternalplatform
+    kde-frameworks/extra-cmake-modules
+    media-libs/glew
+    media-libs/gst-plugins-base:1.0
+    media-libs/gstreamer:1.0
+    net-misc/curl
+    net-misc/wget
+    sys-apps/dbus
+    sys-apps/file
+    sys-apps/texinfo
+    sys-devel/gcc
+    sys-devel/gettext
+    sys-devel/m4
+    virtual/libudev
+    x11-libs/gtk+:3
+)
+
+if [[ -n "$UPDATE_LIB" ]]
+then
+    echo -e "Updating Gentoo ...\n"
+
+    # Check which version of webkit-gtk is available/preferred
+    if qlist -I net-libs/webkit-gtk:4 > /dev/null 2>&1; then
+        REQUIRED_DEV_PACKAGES+=(net-libs/webkit-gtk:4)
+    elif qlist -I net-libs/webkit-gtk:4.1 > /dev/null 2>&1; then
+        REQUIRED_DEV_PACKAGES+=(net-libs/webkit-gtk:4.1)
+    else
+        # Default to 4.1 if neither is installed
+        REQUIRED_DEV_PACKAGES+=(net-libs/webkit-gtk:4.1)
+    fi
+
+    if [[ -n "$BUILD_DEBUG" ]]
+    then
+        REQUIRED_DEV_PACKAGES+=(dev-libs/openssl net-misc/curl)
+    fi
+
+    # Filter out packages that are already installed
+    packages_to_install=()
+    for pkg in "${REQUIRED_DEV_PACKAGES[@]}"; do
+        if ! qlist -I "$pkg" > /dev/null 2>&1; then
+            packages_to_install+=("$pkg")
+        fi
+    done
+
+    # Install them if there are any to install
+    if [ ${#packages_to_install[@]} -gt 0 ]; then
+        sudo emerge --ask --verbose --noreplace "${packages_to_install[@]}"
+    else
+        echo "All required packages are already installed."
+    fi
+
+    echo -e "done\n"
+    exit 0
+fi
+
+export FOUND_GTK3_DEV
+FOUND_GTK3_DEV=$(qlist -I x11-libs/gtk+:3 2>/dev/null || find /usr/lib64/libgtk-3.so 2>/dev/null || true)

@@ -52,6 +52,9 @@ class PrintHostQueueDialog;
 class Plater;
 class MainFrame;
 class ParamsDialog;
+#ifdef __WXGTK__
+class ResizeEdgePanel;
+#endif
 
 enum QuickSlice
 {
@@ -201,7 +204,7 @@ protected:
     virtual void on_dpi_changed(const wxRect &suggested_rect) override;
     virtual void on_sys_color_changed() override;
 
-#ifdef __WIN32__
+#ifdef __WXMSW__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
 #endif
 
@@ -356,8 +359,10 @@ public:
 
     //SoftFever
     void show_device(bool bBBLPrinter);
+    void fit_tab_labels(); // ORCA
 
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
+    FlowRateCalibrationDialog* m_flow_rate_calib_dlg{ nullptr };
     Temp_Calibration_Dlg* m_temp_calib_dlg{ nullptr };
     MaxVolumetricSpeed_Test_Dlg* m_vol_test_dlg { nullptr };
     VFA_Test_Dlg* m_vfa_test_dlg { nullptr };
@@ -422,6 +427,14 @@ public:
     uint32_t  			m_ulSHChangeNotifyRegister { 0 };
 	static constexpr int WM_USER_MEDIACHANGED { 0x7FFF }; // WM_USER from 0x0400 to 0x7FFF, picking the last one to not interfere with wxWidgets allocation
 #endif // _WIN32
+
+#ifdef __WXGTK__
+    friend class ResizeEdgePanel;
+    ResizeEdgePanel* m_edge_bottom{nullptr};
+    ResizeEdgePanel* m_edge_left{nullptr};
+    ResizeEdgePanel* m_edge_right{nullptr};
+    void update_edge_panels();
+#endif // __WXGTK__
 };
 
 wxDECLARE_EVENT(EVT_HTTP_ERROR, wxCommandEvent);

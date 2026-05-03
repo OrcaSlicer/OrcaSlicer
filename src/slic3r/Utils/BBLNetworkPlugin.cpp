@@ -1,4 +1,5 @@
 #include "BBLNetworkPlugin.hpp"
+#include "NetworkAgent.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,9 +162,22 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     // Load all function pointers
     load_all_function_pointers();
 
+    // Sync legacy network flag from NetworkAgent (set during GUI_App initialization)
+    m_use_legacy_network = NetworkAgent::use_legacy_network;
+
+    std::string loaded_version;
     if (m_get_version) {
-        (void) m_get_version();
+        loaded_version = m_get_version();
     }
+
+    BOOST_LOG_TRIVIAL(info) << "BBLNetworkPlugin::initialize: legacy_mode="
+        << (m_use_legacy_network ? "true" : "false")
+        << ", library=" << library
+        << ", version=" << (loaded_version.empty() ? "unknown" : loaded_version)
+        << ", send_message=" << (m_send_message ? "loaded" : "null")
+        << ", start_print=" << (m_start_print ? "loaded" : "null")
+        << ", start_local_print=" << (m_start_local_print ? "loaded" : "null")
+        << ", get_my_token=" << (m_get_my_token ? "loaded" : "null");
 
     return 0;
 }
@@ -532,7 +546,6 @@ void BBLNetworkPlugin::load_all_function_pointers()
     m_set_country_code = reinterpret_cast<func_set_country_code>(get_function("bambu_network_set_country_code"));
     m_start = reinterpret_cast<func_start>(get_function("bambu_network_start"));
     m_set_on_ssdp_msg_fn = reinterpret_cast<func_set_on_ssdp_msg_fn>(get_function("bambu_network_set_on_ssdp_msg_fn"));
-    m_set_on_user_login_fn = reinterpret_cast<func_set_on_user_login_fn>(get_function("bambu_network_set_on_user_login_fn"));
     m_set_on_printer_connected_fn = reinterpret_cast<func_set_on_printer_connected_fn>(get_function("bambu_network_set_on_printer_connected_fn"));
     m_set_on_server_connected_fn = reinterpret_cast<func_set_on_server_connected_fn>(get_function("bambu_network_set_on_server_connected_fn"));
     m_set_on_http_error_fn = reinterpret_cast<func_set_on_http_error_fn>(get_function("bambu_network_set_on_http_error_fn"));
@@ -587,7 +600,6 @@ void BBLNetworkPlugin::load_all_function_pointers()
     m_get_setting_list = reinterpret_cast<func_get_setting_list>(get_function("bambu_network_get_setting_list"));
     m_get_setting_list2 = reinterpret_cast<func_get_setting_list2>(get_function("bambu_network_get_setting_list2"));
     m_delete_setting = reinterpret_cast<func_delete_setting>(get_function("bambu_network_delete_setting"));
-    m_get_studio_info_url = reinterpret_cast<func_get_studio_info_url>(get_function("bambu_network_get_studio_info_url"));
     m_set_extra_http_header = reinterpret_cast<func_set_extra_http_header>(get_function("bambu_network_set_extra_http_header"));
     m_get_my_message = reinterpret_cast<func_get_my_message>(get_function("bambu_network_get_my_message"));
     m_check_user_task_report = reinterpret_cast<func_check_user_task_report>(get_function("bambu_network_check_user_task_report"));
@@ -609,6 +621,7 @@ void BBLNetworkPlugin::load_all_function_pointers()
     m_get_model_mall_home_url = reinterpret_cast<func_get_model_mall_home_url>(get_function("bambu_network_get_model_mall_home_url"));
     m_get_model_mall_detail_url = reinterpret_cast<func_get_model_mall_detail_url>(get_function("bambu_network_get_model_mall_detail_url"));
     m_get_my_profile = reinterpret_cast<func_get_my_profile>(get_function("bambu_network_get_my_profile"));
+    m_get_my_token = reinterpret_cast<func_get_my_token>(get_function("bambu_network_get_my_token"));
     m_track_enable = reinterpret_cast<func_track_enable>(get_function("bambu_network_track_enable"));
     m_track_remove_files = reinterpret_cast<func_track_remove_files>(get_function("bambu_network_track_remove_files"));
     m_track_event = reinterpret_cast<func_track_event>(get_function("bambu_network_track_event"));
@@ -635,7 +648,6 @@ void BBLNetworkPlugin::clear_all_function_pointers()
     m_set_country_code = nullptr;
     m_start = nullptr;
     m_set_on_ssdp_msg_fn = nullptr;
-    m_set_on_user_login_fn = nullptr;
     m_set_on_printer_connected_fn = nullptr;
     m_set_on_server_connected_fn = nullptr;
     m_set_on_http_error_fn = nullptr;
@@ -690,7 +702,6 @@ void BBLNetworkPlugin::clear_all_function_pointers()
     m_get_setting_list = nullptr;
     m_get_setting_list2 = nullptr;
     m_delete_setting = nullptr;
-    m_get_studio_info_url = nullptr;
     m_set_extra_http_header = nullptr;
     m_get_my_message = nullptr;
     m_check_user_task_report = nullptr;
@@ -712,6 +723,7 @@ void BBLNetworkPlugin::clear_all_function_pointers()
     m_get_model_mall_home_url = nullptr;
     m_get_model_mall_detail_url = nullptr;
     m_get_my_profile = nullptr;
+    m_get_my_token = nullptr;
     m_track_enable = nullptr;
     m_track_remove_files = nullptr;
     m_track_event = nullptr;

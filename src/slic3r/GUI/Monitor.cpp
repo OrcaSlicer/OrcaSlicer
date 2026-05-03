@@ -68,7 +68,7 @@ AddMachinePanel::AddMachinePanel(wxWindow* parent, wxWindowID id, const wxPoint&
     m_button_add_machine->SetBorderColor(0x909090);
     m_button_add_machine->SetMinSize(wxSize(96, 39));
     btn_sizer->Add(m_button_add_machine, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
-    m_staticText_add_machine = new wxStaticText(this, wxID_ANY, wxT("click to add machine"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_add_machine = new wxStaticText(this, wxID_ANY, _L("click to add machine"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_add_machine->Wrap(-1);
     m_staticText_add_machine->SetForegroundColour(0x909090);
     btn_sizer->Add(m_staticText_add_machine, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 5);
@@ -200,7 +200,7 @@ void MonitorPanel::init_tabpanel()
 
     std::string network_ver = Slic3r::NetworkAgent::get_version();
     if (!network_ver.empty()) {
-        m_tabpanel->SetFooterText(wxString::Format("Network plugin v%s", network_ver));
+        m_tabpanel->SetFooterText(wxString::Format(_L("Network plug-in v%s"), network_ver));
     }
 
     m_initialized = true;
@@ -362,7 +362,7 @@ void MonitorPanel::update_all()
         // only disconnected server in cloud mode
         if (obj->connection_type() != "lan") {
             if (m_agent) {
-                server_status = m_agent->is_server_connected() ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
+                server_status = m_agent->is_server_connected(wxGetApp().get_printer_cloud_provider()) ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
             }
         }
         show_status((int) MONITOR_DISCONNECTED + server_status);
@@ -543,9 +543,9 @@ void MonitorPanel::update_network_version_footer()
 
     wxString footer_text;
     if (!suffix.empty() && configured_base == binary_version) {
-        footer_text = wxString::Format("Network plugin v%s (%s)", binary_version, suffix);
+        footer_text = wxString::Format(_L("Network plug-in v%s (%s)"), binary_version, suffix);
     } else {
-        footer_text = wxString::Format("Network plugin v%s", binary_version);
+        footer_text = wxString::Format(_L("Network plug-in v%s"), binary_version);
     }
 
     m_tabpanel->SetFooterText(footer_text);

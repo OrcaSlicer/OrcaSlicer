@@ -2,9 +2,13 @@
 #include "wx/artprov.h"
 #include "wx/aui/framemanager.h"
 #include "wx/display.h"
+#include <wx/utils.h>
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#ifdef __WXGTK__
+#include "LinuxDisplayBackend.hpp"
+#endif
 #include "wxExtensions.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
@@ -12,6 +16,10 @@
 #include "PartPlate.hpp"
 
 #include <boost/log/trivial.hpp>
+
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 
 #define TOPBAR_ICON_SIZE  18
 #define TOPBAR_TITLE_WIDTH  300
@@ -32,41 +40,66 @@ enum CUSTOM_ID
     ID_AMS_NOTEBOOK,
 };
 
+CenteredTitle::CenteredTitle(wxWindow* parent)
+    : wxControl()
+{
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+        wxBufferedPaintDC dc(this);
+        dc.SetBackground(wxBrush(wxColour(38, 46, 48)));
+        dc.Clear();
+
+        dc.SetTextForeground(*wxWHITE);
+
+        wxFontMetrics fm = dc.GetFontMetrics();
+        int textHeight = fm.ascent + fm.descent;
+
+        wxRect   rect       = GetClientRect();
+        wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, wxMax(0, rect.GetWidth() - FromDIP(8)));
+
+        int y = rect.y + (rect.height - textHeight) / 2;
+        int x = rect.x + ((ellipsized != m_title)                      // is ellipsized
+            ? FromDIP(4)                                               // align to left when clipped
+            : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2); // centered when has available space
+
+        dc.DrawText(ellipsized, x, y);
+    });
+
+    // repaint for Ellipsize
+    Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        Refresh();
+        e.Skip();
+    });
+
+    auto forwardMouseEvent = [this](wxMouseEvent& e) {
+        if (e.LeftDown() && e.GetClickCount() > 1) return; // prevent duplicate event
+        e.SetPosition(GetParent()->ScreenToClient(ClientToScreen(e.GetPosition())));
+        GetParent()->GetEventHandler()->ProcessEvent(e);
+    };
+
+    Bind(wxEVT_LEFT_DOWN,   forwardMouseEvent);
+    Bind(wxEVT_LEFT_DCLICK, forwardMouseEvent);
+}
+
+void CenteredTitle::SetTitle(const wxString& title) {
+    m_title = title;
+    Refresh();
+}
+
+// required for proper height
+wxSize CenteredTitle::DoGetBestSize() const
+{
+    return wxSize(10, FromDIP(30));
+}
+
+
 class BBLTopbarArt : public wxAuiDefaultToolBarArt
 {
 public:
-    virtual void DrawLabel(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect) wxOVERRIDE;
     virtual void DrawBackground(wxDC& dc, wxWindow* wnd, const wxRect& rect) wxOVERRIDE;
     virtual void DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect) wxOVERRIDE;
 };
-
-void BBLTopbarArt::DrawLabel(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect)
-{
-    dc.SetFont(m_font);
-#ifdef __WINDOWS__
-    dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT));
-#else
-    dc.SetTextForeground(*wxWHITE);
-#endif
-
-    int textWidth = 0, textHeight = 0;
-    dc.GetTextExtent(item.GetLabel(), &textWidth, &textHeight);
-
-    wxRect clipRect = rect;
-    clipRect.width -= 1;
-    dc.SetClippingRegion(clipRect);
-
-    int textX, textY;
-    if (textWidth < rect.GetWidth()) {
-        textX = rect.x + 1 + (rect.width - textWidth) / 2;
-    }
-    else {
-        textX = rect.x + 1;
-    }
-    textY = rect.y + (rect.height - textHeight) / 2;
-    dc.DrawText(item.GetLabel(), textX, textY);
-    dc.DestroyClippingRegion();
-}
 
 void BBLTopbarArt::DrawBackground(wxDC& dc, wxWindow* wnd, const wxRect& rect)
 {
@@ -96,9 +129,10 @@ void BBLTopbarArt::DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& i
     int bmpX = 0, bmpY = 0;
     int textX = 0, textY = 0;
 
-    const wxBitmap& bmp = item.GetState() & wxAUI_BUTTON_STATE_DISABLED
-        ? item.GetDisabledBitmap()
-        : item.GetBitmap();
+    // ORCA resolves the toolbar item bitmap using the actual window DPI context used for painting.
+    // GetBitmap() / GetDisabledBitmap() was using internal window pointer (m_window), not the paint-time wnd
+    // m_window was created before final DPI context was known so items not scales properly
+    const wxBitmap bmp = item.GetCurrentBitmapFor(wnd);
 
     const wxSize bmpSize = bmp.IsOk() ? bmp.GetScaledSize() : wxSize(0, 0);
 
@@ -202,7 +236,37 @@ void BBLTopbar::Init(wxFrame* parent)
 
     wxInitAllImageHandlers();
 
-    this->AddSpacer(5);
+    bool window_btns_on_left = false;
+
+#ifdef __linux__
+    window_btns_on_left = wxGetApp().app_config->get("window_buttons_on_left")  == "true";
+
+    if(window_btns_on_left){
+        wxBitmap close_bitmap = create_scaled_bitmap("topbar_close", nullptr, TOPBAR_ICON_SIZE);
+        wxAuiToolBarItem* close_btn = this->AddTool(wxID_CLOSE_FRAME, "", close_bitmap);
+
+        this->AddSpacer(FromDIP(4));
+
+        maximize_bitmap = create_scaled_bitmap("topbar_max", nullptr, TOPBAR_ICON_SIZE);
+        window_bitmap = create_scaled_bitmap("topbar_win", nullptr, TOPBAR_ICON_SIZE);
+        if (m_frame->IsMaximized()) {
+            maximize_btn = this->AddTool(wxID_MAXIMIZE_FRAME, "", window_bitmap);
+        }
+        else {
+            maximize_btn = this->AddTool(wxID_MAXIMIZE_FRAME, "", maximize_bitmap);
+        }
+
+        this->AddSpacer(FromDIP(4));
+
+        wxBitmap iconize_bitmap = create_scaled_bitmap("topbar_min", nullptr, TOPBAR_ICON_SIZE);
+        wxAuiToolBarItem* iconize_btn = this->AddTool(wxID_ICONIZE_FRAME, "", iconize_bitmap);
+
+        this->AddSpacer(15);
+    }
+#endif
+
+    if(!window_btns_on_left)
+        this->AddSpacer(5);
 
     /*wxBitmap logo_bitmap = create_scaled_bitmap("topbar_logo", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* logo_item = this->AddTool(ID_LOGO, "", logo_bitmap);
@@ -253,21 +317,22 @@ void BBLTopbar::Init(wxFrame* parent)
     m_calib_item                   = this->AddTool(ID_CALIB, _L("Calibration"), calib_bitmap);
     m_calib_item->SetDisabledBitmap(calib_bitmap_inactive);
 
-    this->AddSpacer(FromDIP(10));
-    this->AddStretchSpacer(1);
+    this->AddSpacer(FromDIP(25));
+    //this->AddStretchSpacer(1);
 
-    m_title_item = this->AddLabel(ID_TITLE, "", FromDIP(TOPBAR_TITLE_WIDTH));
-    m_title_item->SetAlignment(wxALIGN_CENTRE);
+    m_title_ctrl = new CenteredTitle(this);
+    wxAuiToolBarItem* title_item = this->AddControl(m_title_ctrl, "");
+    title_item->SetProportion(1); 
 
-    this->AddSpacer(FromDIP(10));
-    this->AddStretchSpacer(1);
+    this->AddSpacer(FromDIP(25));
+    //this->AddStretchSpacer(1);
 
-    m_publish_bitmap = create_scaled_bitmap("topbar_publish", nullptr, TOPBAR_ICON_SIZE);
-    m_publish_item = this->AddTool(ID_PUBLISH, "", m_publish_bitmap);
-    m_publish_disable_bitmap = create_scaled_bitmap("topbar_publish_disable", nullptr, TOPBAR_ICON_SIZE);
-    m_publish_item->SetDisabledBitmap(m_publish_disable_bitmap);
-    this->EnableTool(m_publish_item->GetId(), false);
-    this->AddSpacer(FromDIP(4));
+    //m_publish_bitmap = create_scaled_bitmap("topbar_publish", nullptr, TOPBAR_ICON_SIZE);
+    //m_publish_item = this->AddTool(ID_PUBLISH, "", m_publish_bitmap);
+    //m_publish_disable_bitmap = create_scaled_bitmap("topbar_publish_disable", nullptr, TOPBAR_ICON_SIZE);
+    //m_publish_item->SetDisabledBitmap(m_publish_disable_bitmap);
+    //this->EnableTool(m_publish_item->GetId(), false);
+    //this->AddSpacer(FromDIP(4));
 
     /*wxBitmap model_store_bitmap = create_scaled_bitmap("topbar_store", nullptr, TOPBAR_ICON_SIZE);
     m_model_store_item = this->AddTool(ID_MODEL_STORE, "", model_store_bitmap);
@@ -275,8 +340,9 @@ void BBLTopbar::Init(wxFrame* parent)
     */
 
     //this->AddSeparator();
-    this->AddSpacer(FromDIP(4));
+    //this->AddSpacer(FromDIP(4));
 
+    if(!window_btns_on_left){
     wxBitmap iconize_bitmap = create_scaled_bitmap("topbar_min", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* iconize_btn = this->AddTool(wxID_ICONIZE_FRAME, "", iconize_bitmap);
 
@@ -295,6 +361,7 @@ void BBLTopbar::Init(wxFrame* parent)
 
     wxBitmap close_bitmap = create_scaled_bitmap("topbar_close", nullptr, TOPBAR_ICON_SIZE);
     wxAuiToolBarItem* close_btn = this->AddTool(wxID_CLOSE_FRAME, "", close_bitmap);
+    }
 
     Realize();
     // m_toolbar_h = this->GetSize().GetHeight();
@@ -315,12 +382,16 @@ void BBLTopbar::Init(wxFrame* parent)
     this->Bind(wxEVT_LEFT_DCLICK, &BBLTopbar::OnMouseLeftDClock, this);
     this->Bind(wxEVT_LEFT_DOWN, &BBLTopbar::OnMouseLeftDown, this);
     this->Bind(wxEVT_LEFT_UP, &BBLTopbar::OnMouseLeftUp, this);
+    this->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& event) {
+        m_last_mouse_position = wxDefaultPosition;
+        event.Skip();
+    });
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnOpenProject, this, wxID_OPEN);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnSaveProject, this, wxID_SAVE);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnRedo, this, wxID_REDO);
     this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnUndo, this, wxID_UNDO);
     //this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnModelStoreClicked, this, ID_MODEL_STORE);
-    this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnPublishClicked, this, ID_PUBLISH);
+    //this->Bind(wxEVT_AUITOOLBAR_TOOL_DROPDOWN, &BBLTopbar::OnPublishClicked, this, ID_PUBLISH);
 }
 
 BBLTopbar::~BBLTopbar()
@@ -337,11 +408,11 @@ void BBLTopbar::OnOpenProject(wxAuiToolBarEvent& event)
     plater->load_project();
 }
 
-void BBLTopbar::show_publish_button(bool show)
-{
-    this->EnableTool(m_publish_item->GetId(), show);
-    Refresh();
-}
+//void BBLTopbar::show_publish_button(bool show)
+//{
+//    this->EnableTool(m_publish_item->GetId(), show);
+//    Refresh();
+//}
 
 void BBLTopbar::OnSaveProject(wxAuiToolBarEvent& event)
 {
@@ -442,12 +513,9 @@ wxMenu* BBLTopbar::GetCalibMenu()
 
 void BBLTopbar::SetTitle(wxString title)
 {
-    wxGCDC dc(this);
-    title = wxControl::Ellipsize(title, dc, wxELLIPSIZE_END, FromDIP(TOPBAR_TITLE_WIDTH));
-
-    m_title_item->SetLabel(title);
-    m_title_item->SetAlignment(wxALIGN_CENTRE);
-    this->Refresh();
+    m_titleText = title;
+    if (m_title_ctrl)
+        m_title_ctrl->SetTitle(title);
 }
 
 void BBLTopbar::SetMaximizedSize()
@@ -496,7 +564,8 @@ void BBLTopbar::Rescale() {
     item->SetBitmap(create_scaled_bitmap("calib_sf", this, TOPBAR_ICON_SIZE));
     item->SetDisabledBitmap(create_scaled_bitmap("calib_sf_inactive", this, TOPBAR_ICON_SIZE));
 
-    item = this->FindTool(ID_TITLE);
+    if (m_title_ctrl)
+        m_title_ctrl->SetTitle(m_titleText);
 
     /*item = this->FindTool(ID_PUBLISH);
     item->SetBitmap(create_scaled_bitmap("topbar_publish", this, TOPBAR_ICON_SIZE));
@@ -532,6 +601,18 @@ void BBLTopbar::OnIconize(wxAuiToolBarEvent& event)
 
 void BBLTopbar::OnFullScreen(wxAuiToolBarEvent& event)
 {
+#ifdef __WXGTK__
+    GtkWindow* gtk_window = GTK_WINDOW(m_frame->m_widget);
+    if (gtk_window_is_maximized(gtk_window)) {
+        gtk_window_unmaximize(gtk_window);
+    }
+    else {
+        m_normalRect = m_frame->GetRect();
+        gtk_window_maximize(gtk_window);
+    }
+    return;
+#endif
+
     if (m_frame->IsMaximized()) {
         m_frame->Restore();
     }
@@ -548,10 +629,11 @@ void BBLTopbar::OnCloseFrame(wxAuiToolBarEvent& event)
 
 void BBLTopbar::OnMouseLeftDClock(wxMouseEvent& mouse)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    m_last_mouse_position = mouse.GetPosition();
+    wxPoint mouse_pos = this->ClientToScreen(mouse.GetPosition());
+    wxAuiToolBarItem* item = this->FindToolByPosition(mouse.GetX(), mouse.GetY());
     // check whether mouse is not on any tool item
-    if (this->FindToolByCurrentPosition() != NULL &&
-        this->FindToolByCurrentPosition() != m_title_item) {
+    if (item != NULL && item->GetWindow() != m_title_ctrl) {
         mouse.Skip();
         return;
     }
@@ -617,27 +699,41 @@ void BBLTopbar::OnCalibToolItem(wxAuiToolBarEvent &evt)
 
 void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    m_last_mouse_position = event.GetPosition();
+    // Use event-relative coords converted to screen, instead of wxGetMousePosition()
+    // which returns (0,0) on Wayland for global screen coordinates.
+    wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
     wxPoint frame_pos = m_frame->GetScreenPosition();
+    wxAuiToolBarItem* item = this->FindToolByPosition(event.GetX(), event.GetY());
     m_delta = mouse_pos - frame_pos;
 
-    if (FindToolByCurrentPosition() == NULL 
-        || this->FindToolByCurrentPosition() == m_title_item)
+    if (item == NULL || item->GetWindow() == m_title_ctrl)
     {
-        CaptureMouse();
 #ifdef __WXMSW__
+        CaptureMouse();
         ReleaseMouse();
         ::PostMessage((HWND) m_frame->GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(mouse_pos.x, mouse_pos.y));
         return;
-#endif //  __WXMSW__
+#elif defined(__WXGTK__)
+        // Use WM-integrated drag for smoother window movement on Linux.
+        gtk_window_begin_move_drag(
+            GTK_WINDOW(m_frame->m_widget),
+            1,  // left mouse button
+            mouse_pos.x, mouse_pos.y,
+            gtk_get_current_event_time());
+        return;
+#else
+        CaptureMouse();
+#endif
     }
-    
+
     event.Skip();
 }
 
 void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    m_last_mouse_position = event.GetPosition();
+    wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
     if (HasCapture())
     {
         ReleaseMouse();
@@ -648,7 +744,10 @@ void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 
 void BBLTopbar::OnMouseMotion(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = ::wxGetMousePosition();
+    m_last_mouse_position = event.GetPosition();
+    // Use event-relative coords converted to screen, instead of wxGetMousePosition()
+    // which returns (0,0) on Wayland for global screen coordinates.
+    wxPoint mouse_pos = this->ClientToScreen(event.GetPosition());
 
     if (!HasCapture()) {
         //m_frame->OnMouseMotion(event);
@@ -692,18 +791,38 @@ void BBLTopbar::OnMenuClose(wxMenuEvent& event)
 
 wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
 {
+    if (m_last_mouse_position != wxDefaultPosition && GetClientRect().Contains(m_last_mouse_position))
+        return this->FindToolByPosition(m_last_mouse_position.x, m_last_mouse_position.y);
+
+#ifdef __WXGTK__
+    if (Slic3r::GUI::is_running_on_wayland())
+        return nullptr;
+#endif
+
     wxPoint mouse_pos = ::wxGetMousePosition();
     wxPoint client_pos = this->ScreenToClient(mouse_pos);
     return this->FindToolByPosition(client_pos.x, client_pos.y);
 }
 
-#ifdef __WIN32__
+#ifdef __WXMSW__
+WXLRESULT CenteredTitle::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
+{
+    switch (nMsg) {
+    case WM_NCHITTEST: {
+        // Pass all mouse event to parent
+        return HTTRANSPARENT;
+    }
+    }
+
+    return wxControl::MSWWindowProc(nMsg, wParam, lParam);
+}
+
 WXLRESULT BBLTopbar::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 {
     switch (nMsg) {
     case WM_NCHITTEST: {
-        const wxAuiToolBarItem* current_item = this->FindToolByCurrentPosition();
-        if (current_item != nullptr && current_item != m_title_item) {
+        wxAuiToolBarItem* item = this->FindToolByCurrentPosition();
+        if (item != NULL && item->GetWindow() != m_title_ctrl) {
             break;
         }
 

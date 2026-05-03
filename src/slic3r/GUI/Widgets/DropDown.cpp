@@ -340,14 +340,14 @@ void DropDown::render(wxDC &dc)
             states2 &= ~StateColor::Enabled;
         // Skip by group
         if (group.IsEmpty()) {
-            if (!item.group.IsEmpty()) {
-                if (groups.find(item.group) != groups.end())
+            if (!item.group_key.IsEmpty()) {
+                if (groups.find(item.group_key) != groups.end())
                     continue;
-                groups.insert(item.group);
-                if (!item.group.IsEmpty()) {
+                groups.insert(item.group_key);
+                if (!item.group_key.IsEmpty()) {
                     bool disabled = true;
                     for (int j = i + 1; j < items.size(); ++j) {
-                        if (items[i].group != item.group && (items[j].style & DD_ITEM_STYLE_DISABLED) == 0) {
+                        if (items[j].group_key == item.group_key && (items[j].style & DD_ITEM_STYLE_DISABLED) == 0) {
                             disabled = false;
                             break;
                         }
@@ -357,7 +357,7 @@ void DropDown::render(wxDC &dc)
                 }
             }
         } else {
-            if (item.group != group)
+            if (item.group_key != group)
                 continue;
         }
         bool is_hover = index == hover_item;
@@ -391,8 +391,8 @@ void DropDown::render(wxDC &dc)
             pt.y = rcContent.y;
         }
         auto text = group.IsEmpty()
-                        ? (item.group.IsEmpty() ? item.text : item.group)
-                        : (item.text.StartsWith(group) && !group.EndsWith(' ') ? item.text.substr(group.size()).Trim(false) : item.text);
+                        ? (item.group_key.IsEmpty() ? item.text : item.group_label)
+                        : item.text;
         if (!text_off && !text.IsEmpty()) {
             wxSize tSize = dc.GetMultiLineTextExtent(text);
             if (pt.x + tSize.x > rcContent.GetRight()) {
@@ -405,7 +405,7 @@ void DropDown::render(wxDC &dc)
             dc.SetFont(GetFont());
             dc.SetTextForeground(text_color.colorForStates(states2));
             dc.DrawText(text, pt);
-            if (group.IsEmpty() && !item.group.IsEmpty()) {
+            if (group.IsEmpty() && !item.group_key.IsEmpty()) {
                 auto szBmp = arrow_bitmap.GetBmpSize();
                 pt.x = rcContent.GetRight() - szBmp.x - 5;
                 pt.y = rcContent.y + (rcContent.height - szBmp.y) / 2;
@@ -420,7 +420,9 @@ int DropDown::hoverIndex()
 {
     if (hover_item < 0)
         return -1;
-    if (count == items.size())
+    // BUG FIX: Can't take the shortcut if subDropDown exists (which means there are groups)
+    // because we need to detect group headers which return negative indices
+    if (count == items.size() && subDropDown == nullptr)
         return hover_item;
     int index = -1;
     std::set<wxString> groups;
@@ -428,18 +430,18 @@ int DropDown::hoverIndex()
         auto &item = items[i];
         // Skip by group
         if (group.IsEmpty()) {
-            if (!item.group.IsEmpty()) {
-                if (groups.find(item.group) == groups.end())
-                    groups.insert(item.group);
+            if (!item.group_key.IsEmpty()) {
+                if (groups.find(item.group_key) == groups.end())
+                    groups.insert(item.group_key);
                 else
                     continue;
             }
         } else {
-            if (item.group != group)
+            if (item.group_key != group)
                 continue;
         }
         if (++index == hover_item)
-            return (item.group.IsEmpty() || !group.IsEmpty()) ? i : -i - 2;
+            return (item.group_key.IsEmpty() || !group.IsEmpty()) ? i : -i - 2;
     }
     return -1;
 }
@@ -448,10 +450,12 @@ int DropDown::selectedItem()
 {
     if (selection < 0)
         return -1;
-    if (count == items.size())
+    // BUG FIX: Can't take the shortcut if subDropDown exists (which means there are groups)
+    // because the visual position differs from the actual item index when groups are shown
+    if (count == items.size() && subDropDown == nullptr)
         return selection;
     auto & sel = items[selection];
-    if (group.IsEmpty() ? !sel.group.IsEmpty() : sel.group != group)
+    if (group.IsEmpty() ? !sel.group_key.IsEmpty() : sel.group_key != group)
         return -1;
     if (selection == 0)
         return 0;
@@ -461,14 +465,14 @@ int DropDown::selectedItem()
         auto &item = items[i];
         // Skip by group
         if (group.IsEmpty()) {
-            if (!item.group.IsEmpty()) {
-                if (groups.find(item.group) == groups.end())
-                    groups.insert(item.group);
+            if (!item.group_key.IsEmpty()) {
+                if (groups.find(item.group_key) == groups.end())
+                    groups.insert(item.group_key);
                 else
                     continue;
             }
         } else {
-            if (item.group != group)
+            if (item.group_key != group)
                 continue;
         }
         ++index;
@@ -489,24 +493,24 @@ void DropDown::messureSize()
         auto &item = items[i];
         // Skip by group
         if (group.IsEmpty()) {
-            if (!item.group.IsEmpty()) {
-                if (groups.find(item.group) == groups.end())
-                    groups.insert(item.group);
+            if (!item.group_key.IsEmpty()) {
+                if (groups.find(item.group_key) == groups.end())
+                    groups.insert(item.group_key);
                 else
                     continue;
             }
         } else {
-            if (item.group != group)
+            if (item.group_key != group)
                 continue;
         }
         ++count;
         wxSize size1;
         if (!text_off) {
             auto text = group.IsEmpty()
-                        ? (item.group.IsEmpty() ? item.text : item.group)
-                        : (item.text.StartsWith(group) && !group.EndsWith(' ') ? item.text.substr(group.size()).Trim(false) : item.text);
+                        ? (item.group_key.IsEmpty() ? item.text : item.group_label)
+                        : item.text;
             size1 = dc.GetMultiLineTextExtent(text);
-            if (group.IsEmpty() && !item.group.IsEmpty())
+            if (group.IsEmpty() && !item.group_key.IsEmpty())
                 size1.x += 5 + arrow_bitmap.GetBmpWidth();
         }
         if (item.icon.IsOk()) {
@@ -521,7 +525,7 @@ void DropDown::messureSize()
     }
     if (!align_icon) iconSize.x = 0;
     wxSize szContent = textSize;
-    if (szContent.x < FromDIP(120))
+    if (szContent.x < FromDIP(120) && !use_content_width)
         szContent.x = FromDIP(120);
     szContent.x += 10;
     if (check_bitmap.bmp().IsOk()) {
@@ -692,7 +696,7 @@ void DropDown::mouseMove(wxMouseEvent &event)
         int index  = hoverIndex();
         if (index < -1) {
             auto & drop = *subDropDown;
-            drop.group  = items[-index - 2].group;
+            drop.group  = items[-index - 2].group_key;
             drop.need_sync = true;
             drop.messureSize();
             drop.autoPosition();
