@@ -6232,7 +6232,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
         gcode += this->travel_to(first_point, path.role(), "move to first " + description + " point", z);
 
-        m_need_change_layer_lift_z = false;
         // Orca: ensure Z matches planned layer height
         if (!slope_need_z_travel && (_last_pos_undefined || m_need_change_layer_lift_z)) {
             const std::string z_sync_comment = _last_pos_undefined ?
