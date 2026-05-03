@@ -309,7 +309,7 @@ modules:
       # GLEW 2.3.1
       - type: file
         url: https://github.com/nigels-com/glew/releases/download/glew-2.3.1/glew-2.3.1.zip
-        sha256: 09E0083AE46930ABA9B53E72C92EE1A557E24ED393526FEC26CB0EBABD834720
+        sha256: 09e0083ae46930aba9b53e72c92ee1a557e24ed393526fec26cb0ebabd834720
         dest: external-packages/GLEW
 
   - name: OrcaSlicer
