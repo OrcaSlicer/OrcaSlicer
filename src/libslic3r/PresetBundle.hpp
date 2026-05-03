@@ -6,10 +6,12 @@
 #include "enum_bitmask.hpp"
 
 #include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 #include <optional>
 #include <array>
 #include <boost/filesystem/path.hpp>
+#include <unordered_set>
 
 #define DEFAULT_USER_FOLDER_NAME "default"
 #define BUNDLE_STRUCTURE_JSON_NAME "bundle_structure.json"
@@ -72,6 +74,79 @@ struct FilamentBaseInfo
     int  filament_printable = 3;
 };
 
+enum BundleType{
+    Default = 0,
+    Local,
+    Subscribed,
+};
+
+// Orca: Bundle metadata structure for imported preset bundles
+struct BundleMetadata
+{
+    std::string                     id;         // Bundle ID: UUID (OrcaCloud) or name+timestamp (external)
+    std::string                     name;       // Display name
+    std::string                     version;    // Bundle version
+    std::string                     description;
+    std::string                     author;
+    long long                       imported_time{0};
+    long long                       updated_time{0};
+
+    BundleType                      bundle_type{Default};
+    std::string                     path;
+
+    // Cached preset names by type (populated on load)
+    std::vector<std::string>        print_presets;
+    std::vector<std::string>        filament_presets;
+    std::vector<std::string>        printer_presets;
+
+    // Runtime-only flags
+    bool                            is_subscribed{false};
+    bool                            update_available{false};
+    bool                            not_found{false};
+    bool                            unauthorized{false};
+
+    bool load_from_json(const std::string& path);
+    bool save_to_json(const std::string& path) const;
+};
+
+struct PresetBundleMetadata
+{
+    // To make sure write locks take precedent, pausereads needs to be true for when Orca needs to read or manipulate the container
+    // We only need to explicitly pause reads when entering a region in Orca which we deem necessary to quickly acquire write locks.
+    std::unordered_map<std::string, BundleMetadata> m_bundles;
+    std::shared_mutex RWMtx;
+    std::atomic<bool> pauseReads{false};
+
+    void PauseRead()
+    {
+        pauseReads.store(true);
+    }
+
+    void UnpauseRead()
+    {
+        pauseReads.store(false);
+    }
+
+    void ReadLock()
+    {
+        RWMtx.lock_shared();
+    }
+    void ReadUnlock()
+    {
+        RWMtx.unlock_shared();
+    }
+
+    void WriteLock()
+    {
+        RWMtx.lock();
+    }
+
+    void WriteUnlock()
+    {
+        RWMtx.unlock();
+    }
+};
+
 // Bundle of Print + Filament + Printer presets.
 class PresetBundle
 {
@@ -82,6 +157,10 @@ public:
                                                     std::vector<Preset>            &in_filament_presets,
                                                     bool                            apply_extruder,
                                                     std::optional<std::vector<int>> filament_maps_new);
+
+    // ORCA: utility function to find the vendor for a given preset name
+    static std::string find_preset_vendor(const std::string& preset_name, Preset::Type type);
+
     PresetBundle();
     PresetBundle(const PresetBundle &rhs);
     PresetBundle& operator=(const PresetBundle &rhs);
@@ -114,18 +193,52 @@ public:
     // BBS Load user presets
     PresetsConfigSubstitutions load_user_presets(std::string user, ForwardCompatibilitySubstitutionRule rule);
     PresetsConfigSubstitutions load_user_presets(AppConfig &config, std::map<std::string, std::map<std::string, std::string>>& my_presets, ForwardCompatibilitySubstitutionRule rule);
-    PresetsConfigSubstitutions import_presets(std::vector<std::string> &files, std::function<int(std::string const &)> override_confirm, ForwardCompatibilitySubstitutionRule rule);
-    bool                       import_json_presets(PresetsConfigSubstitutions &            substitutions,
-                                                   std::string &                           file,
-                                                   std::function<int(std::string const &)> override_confirm,
-                                                   ForwardCompatibilitySubstitutionRule    rule,
-                                                   int &                                   overwrite,
-                                                   std::vector<std::string> &              result);
-    void save_user_presets(AppConfig& config, std::vector<std::string>& need_to_delete_list);
+    // Orca: Import subscribed bundle presets (load and save to disk in one operation), handles one bundle at a time
+    PresetsConfigSubstitutions update_subscribed_presets(AppConfig& config,
+                                                         const std::map<std::string, std::map<std::string, std::string>>& bundle_presets,
+                                                         const BundleMetadata& remote_metadata,
+                                                         ForwardCompatibilitySubstitutionRule rule);
+
+    PresetsConfigSubstitutions import_presets(std::vector<std::string>& files,
+                                              std::function<int(std::string const&)> override_confirm,
+                                              ForwardCompatibilitySubstitutionRule rule,
+                                              AppConfig& config);
+
+    bool import_json_presets(PresetsConfigSubstitutions& substitutions,
+                             std::string& file,
+                             std::function<int(std::string const&)> override_confirm,
+                             ForwardCompatibilitySubstitutionRule rule,
+                             int& overwrite,
+                             std::vector<std::string>& result,
+                             const std::string& bundle_dir = "");
+                             
+    void save_user_presets(AppConfig& config, std::map<std::string, std::string>& need_to_delete_list);
+    void check_and_fix_user_presets_syncinfo(const std::string& user_id);
     void remove_users_preset(AppConfig &config, std::map<std::string, std::map<std::string, std::string>> * my_presets = nullptr);
     void update_user_presets_directory(const std::string preset_folder);
     void remove_user_presets_directory(const std::string preset_folder);
     void update_system_preset_setting_ids(std::map<std::string, std::map<std::string, std::string>>& system_presets);
+
+    // Apply vendor configuration changes (Core library version, no GUI dependencies)
+    // This function installs vendors from resources and loads them into the preset bundle
+    //
+    // Parameters:
+    //   new_vendors: Map of vendor names to their enabled printer models and variants
+    //   new_filaments: Map of filament names to their settings
+    //   app_config: Pointer to AppConfig to update with new vendor/filament selections
+    //   preferred_printer_model: Optional preferred printer model to select
+    //   preferred_printer_variant: Optional preferred printer variant to select
+    //   preferred_filament: Optional preferred filament to select
+    //
+    // Returns: true if successful, false otherwise
+    bool apply_vendor_config(
+        const std::map<std::string, std::map<std::string, std::set<std::string>>>& new_vendors,
+        const std::map<std::string, std::string>& new_filaments,
+        AppConfig* app_config,
+        bool overwrite = true,
+        const std::string& preferred_printer_model = std::string(),
+        const std::string& preferred_printer_variant = std::string(),
+        const std::string& preferred_filament = std::string());
 
     //BBS: add API to get previous machine
     int validate_presets(const std::string &file_name, DynamicPrintConfig& config, std::set<std::string>& different_gcodes);
@@ -231,6 +344,12 @@ public:
     // Orca: for OrcaFilamentLibrary
     std::map<std::string, DynamicPrintConfig> m_config_maps;
     std::map<std::string, std::string> m_filament_id_maps;
+
+    // Orca: Bundle metadata and cached preset names
+    // std::map<std::string, BundleMetadata>  m_bundles;
+    fs::path dir_user_presets_local;
+    fs::path dir_user_presets_subscribed;
+    PresetBundleMetadata bundles;
 
         struct ObsoletePresets
     {
@@ -385,8 +504,13 @@ private:
 
     // Orca: used for validation only
     bool validation_mode = false;
-    std::string vendor_to_validate = ""; 
+    std::string vendor_to_validate = "";
     int m_errors = 0;
+
+    // Helper function: save preset to bundle directory with common logic
+    bool save_preset_to_bundle_dir(Preset& preset, PresetCollection* collection,
+                                   const std::string& bundle_id, const std::string& type_subdir,
+                                   const std::string& bundle_base_dir);
 
 };
 

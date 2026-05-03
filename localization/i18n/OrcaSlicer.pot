@@ -162,7 +162,7 @@ msgstr ""
 msgid "Smart fill angle"
 msgstr ""
 
-msgid "On overhangs only"
+msgid "On highlighted overhangs only"
 msgstr ""
 
 msgid "Auto support threshold angle: "
@@ -10181,6 +10181,9 @@ msgid "Zoom out"
 msgstr ""
 
 msgid "Switch between Prepare/Preview"
+msgstr ""
+
+msgid "Toggle printable for object/part"
 msgstr ""
 
 msgid "Plater"

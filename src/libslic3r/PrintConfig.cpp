@@ -695,6 +695,18 @@ void PrintConfigDef::init_common_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionInt(1));	
 
+    def           = this->add("elefant_foot_layers_density", coPercent);
+    def->label    = L("Elefant foot layers density");
+    def->category = L("Quality");
+    def->tooltip  = L("Density of internal solid infill for elefant foot layers compensation. "
+                      "The initial value for the second layer is set. "
+                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers. ");
+    def->sidetext = "%";
+    def->min      = 50;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(100));
+
     def = this->add("layer_height", coFloat);
     def->label = L("Layer height");
     def->category = L("Quality");
@@ -1582,6 +1594,17 @@ void PrintConfigDef::init_fff_params()
     def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("brim_flow_ratio", coFloat);
+    def->label = L("Brim flow ratio");
+    def->category = L("Support");
+    def->tooltip = L("This factor affects the amount of material for brims.\n\n"
+                     "The actual brim flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio.\n\n"
+                     "Note: The resulting value will not be affected by the first-layer flow ratio.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
 
     def = this->add("brim_use_efc_outline", coBool);
     def->label = L("Brim follows compensated outline");
@@ -2572,7 +2595,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Number of cooling moves");
     def->tooltip = L("Filament is cooled by being moved back and forth in the "
                    "cooling tubes. Specify desired number of these moves.");
-    def->max = 0;
+    def->min = 0;
     def->max = 20;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { 4 });
@@ -3616,7 +3639,7 @@ void PrintConfigDef::init_fff_params()
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");
     def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
-    def->mode=comDevelop;
+    def->mode=comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     def->readonly=false;
 
@@ -4087,6 +4110,51 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Use a fixed absolute angle for ironing.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def           = this->add("ironing_expansion", coFloat);
+    def->label    = L("Ironing expansion");
+    def->category = L("Quality");
+    def->tooltip  = L("Expand or contract the ironing area.");
+    def->sidetext = L("mm");
+    def->min      = -100;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("zaa_enabled", coBool);
+    def->label    = L("Z contouring enabled");
+    def->category = L("Quality");
+    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing)");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zaa_minimize_perimeter_height", coFloat);
+    def->label    = L("Minimize wall height angle");
+    def->category = L("Quality");
+    def->tooltip  = L("Reduce height of top surface perimeters to match height of model edge. "
+                       "Effects perimeters whose slope is less than this angle in degrees. Reasonable value is 35. Set 0 to disable.");
+    def->sidetext = L("°");
+    def->min      = 0;
+    def->max      = 90;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("zaa_dont_alternate_fill_direction", coBool);
+    def->label    = L("Don't alternate fill direction");
+    def->category = L("Quality");
+    def->tooltip  = L("Disable alternating fill direction when using Z contouring");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zaa_min_z", coFloat);
+    def->label    = L("Minimum z height");
+    def->category = L("Quality");
+    def->tooltip  = L("Minimum z layer height. Also controls slicing plane");
+    def->sidetext = L("mm");
+    def->min      = 0;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
@@ -4663,6 +4731,15 @@ void PrintConfigDef::init_fff_params()
     def->height = 6;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
+
+    def = this->add("process_change_extrusion_role_gcode", coString);
+    def->label = L("Change extrusion role G-code (process)");
+    def->tooltip = L("This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
     
     def = this->add("printer_model", coString);
     def->label = L("Printer type");
@@ -6223,6 +6300,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("filament_change_extrusion_role_gcode", coStrings);
+    def->label = L("Change extrusion role G-code (filament)");
+    def->tooltip = L("This G-code is inserted when the extrusion role is changed for the active filament.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{ "" });
+
     def = this->add("top_surface_line_width", coFloatOrPercent);
     def->label = L("Top surface");
     def->category = L("Quality");
@@ -6755,6 +6841,29 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.0;
     def->max = 25.0;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("wall_maximum_resolution", coFloat);
+    def->label = L("Maximum wall resolution");
+    def->category = L("Quality");
+    def->tooltip  = L("This value determines the smallest wall line segment length in mm. "
+        "The smaller you set this value, the more accurate and precise the walls will be.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->min = 0.005;
+    def->max = 0.5f;
+    def->set_default_value(new ConfigOptionFloat(0.5f));
+
+    def = this->add("wall_maximum_deviation", coFloat);
+    def->label = L("Maximum wall deviation");
+    def->category = L("Quality");
+    def->tooltip = L("The maximum deviation allowed when reducing the resolution for the 'Maximum wall resolution' setting. If you increase this, "
+        "the print will be less accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits 'Maximum wall resolution', "
+        "so if the two conflict, 'Maximum wall deviation' takes precedence.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->min = 0.005f;
+    def->max = 0.05f;
+    def->set_default_value(new ConfigOptionFloat(0.025f));
 
     def = this->add("initial_layer_min_bead_width", coPercent);
     def->label = L("First layer minimum wall width");
@@ -10696,6 +10805,8 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
                                "travel_point_1_x", "travel_point_1_y", "travel_point_2_x", "travel_point_2_y", "travel_point_3_x",
                                "travel_point_3_y", "x_after_toolchange", "y_after_toolchange", "z_after_toolchange"}},
     {"change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"filament_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"process_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"printing_by_object_gcode",    {}},
     {"machine_pause_gcode",         {}},
     {"template_custom_gcode",       {}},
@@ -10883,8 +10994,32 @@ bool has_skirt(const DynamicPrintConfig& cfg)
         || (opt_draft_shield && opt_draft_shield->getInt() != dsDisabled);
 }
 float get_real_skirt_dist(const DynamicPrintConfig& cfg) {
-    return has_skirt(cfg) ? cfg.opt_float("skirt_distance") : 0;
+    if (!has_skirt(cfg)) return 0.f;
+
+    float dist = cfg.opt_float("skirt_distance");
+
+    int loops = cfg.opt_int("skirt_loops");
+    auto opt_draft_shield = cfg.option("draft_shield");
+    if (opt_draft_shield && opt_draft_shield->getInt() != dsDisabled && loops == 0) {
+        loops = 1;
+    }
+
+    float width = cfg.opt_float("initial_layer_line_width");
+    if (width <= 0.f) {
+        width = cfg.opt_float("line_width");
+    }
+    if (width <= 0.f) {
+        auto* nd = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
+        if (nd && !nd->values.empty()) {
+            width = *std::max_element(nd->values.begin(), nd->values.end());
+        } else {
+            width = 0.4f;
+        }
+    }
+
+    return dist + loops * width;
 }
+
 static bool is_XL_printer(const std::string& printer_notes)
 {
     return boost::algorithm::contains(printer_notes, "PRINTER_VENDOR_PRUSA3D")
