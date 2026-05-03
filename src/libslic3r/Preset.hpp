@@ -676,8 +676,10 @@ public:
     }
     
     size_t first_visible_idx() const;
-    // Return the index of the first visible, compatible, system base preset
-    // matching the given filament_type.  Falls back to base type, then any visible.
+    // Return the index of the first visible, compatible preset matching the given filament_type.
+    // If want_user is true, prefer a user preset; if want_child is true, prefer a child preset.
+    // If no visible compatible preset matches the requested type/category, fall back to a less specific
+    // match for the same filament type, then finally to any visible compatible preset.
     size_t first_visible_idx_by_type(const std::string& filament_type, bool want_user, bool want_child) const;
     // Return the filament_id of the best-matching visible preset for the given filament type.
     std::string filament_id_by_type(const std::string& filament_type) const;
