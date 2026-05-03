@@ -67,6 +67,17 @@ jobs:
       - name: Fail if formatting violations were found
         if: steps.linter.outputs.checks-failed > 0
         run: |
-          echo "::error::clang-format violations detected. See the file annotations or the job step summary above for details."
-          echo "::error::To fix locally, run `git clang-format origin/${{ github.base_ref }}` in the devcontainer."
+          echo "::error::clang-format violations detected. See file annotations or the job summary below."
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+
+          ### How to fix
+
+          Inside the devcontainer:
+
+          ```bash
+          git clang-format origin/${{ github.base_ref }}
+          ```
+
+          Then commit the changes and push.
+          EOF
           exit 1
