@@ -74,19 +74,21 @@ constexpr const char* SECRET_STORE_SERVICE = "OrcaSlicer/Auth";
 constexpr const char* SECRET_STORE_USER    = "orca_refresh_token";
 constexpr std::chrono::seconds TOKEN_REFRESH_SKEW{900}; // 15 minutes
 
-std::string generate_uuid_for_setting_id(const std::string& name = "")
+std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "")
 {
     if (name.empty()) {
         return "";
     }
 
-    // Use a fixed namespace UUID for OrcaSlicer profiles
-    // This ensures the same name always generates the same UUID
+    // Mix user_id into the hashed input so two different users generating a setting_id
+    // for an identically-named preset get distinct UUIDs. Without this, the cloud's ID
+    // space collides across accounts and the second user's create gets HTTP 409 with
+    // server_profile=null on every sync (the foreign owner's record is not exposed).
     static const boost::uuids::uuid orca_namespace =
         boost::uuids::string_generator()("f47ac10b-58cc-4372-a567-0e02b2c3d479");
 
     boost::uuids::name_generator_sha1 gen(orca_namespace);
-    boost::uuids::uuid id = gen(name);
+    boost::uuids::uuid id = user_id.empty() ? gen(name) : gen(user_id + "/" + name);
     return boost::uuids::to_string(id);
 }
 
@@ -904,7 +906,7 @@ int OrcaCloudServiceAgent::get_user_presets(std::map<std::string, std::map<std::
 
 std::string OrcaCloudServiceAgent::request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code)
 {
-    std::string new_id = generate_uuid_for_setting_id(name);
+    std::string new_id = generate_uuid_for_setting_id(name, get_user_id());
     if (new_id.empty()) {
         BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: request_setting_id failed - name is empty";
         return "";
