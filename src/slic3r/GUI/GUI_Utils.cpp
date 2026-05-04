@@ -13,6 +13,10 @@
     #include <wx/msw/registry.h>
 #endif // _WIN32
 
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif 
+
 #include <wx/toplevel.h>
 #include <wx/sizer.h>
 #include <wx/checkbox.h>
@@ -495,6 +499,60 @@ void fit_in_display(wxTopLevelWindow& window, wxSize desired_size)
 
     window.SetSize(desired_size);
 }
+
+#ifdef __WXGTK__
+void RemoveButtonBorder(wxWindow* win)
+{
+    GtkWidget* widget = win->GetHandle();
+    if (!widget) return;
+
+#if GTK_CHECK_VERSION(3, 0, 0)
+    // GTK3+: use CSS provider
+    GtkCssProvider* provider = gtk_css_provider_new();
+
+    const char* css =
+        "button {"
+        "  border: none;"
+        "  outline: none;"
+        "  box-shadow: none;"
+        "  padding: 0px;"
+        "  margin: 0px;"
+        "  min-height: 0px;"
+        "  min-width: 0px;"
+        "  background: none;"
+        "}";
+
+#if GTK_CHECK_VERSION(4, 0, 0)
+    // GTK4: no GError argument
+    gtk_css_provider_load_from_data(provider, css, -1);
+#else
+    // GTK3: has GError argument
+    gtk_css_provider_load_from_data(provider, css, -1, nullptr);
+#endif
+
+    GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_provider(
+        ctx,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(provider);
+
+#else
+    // GTK2: use rc string, no CSS
+    gtk_rc_parse_string(
+        "style \"no-border\" {"
+        "  GtkButton::inner-border = { 0, 0, 0, 0 }"
+        "  GtkWidget::focus-line-width = 0"
+        "  GtkWidget::focus-padding = 0"
+        "  xthickness = 0"
+        "  ythickness = 0"
+        "}"
+        "widget \"*.GtkBitmapToggleButton\" style \"no-border\""
+    );
+#endif
+}
+#endif // __WXGTK__
 
 #ifdef __linux__
 // Detect if the application is running inside a debugger.

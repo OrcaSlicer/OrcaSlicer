@@ -29,13 +29,14 @@
 #include <unordered_map>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <boost/log/trivial.hpp>
 #include <wx/progdlg.h>
 #include <wx/listbook.h>
 #include <wx/numformatter.h>
 #include <wx/utils.h>
 #include <wx/headerctrl.h>
 
-#include "slic3r/Utils/FixModelByWin10.hpp"
+#include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -459,6 +460,15 @@ void ObjectList::create_objects_ctrl()
     AppendBitmapColumn(" ", colEditing, wxOSX ? wxDATAVIEW_CELL_EDITABLE : wxDATAVIEW_CELL_INERT, m_columns_width[colEditing] * em,
         wxALIGN_CENTER_HORIZONTAL, 0);
 
+
+    // Open filament editor faster
+    this->Bind(wxEVT_DATAVIEW_ITEM_ACTIVATED, [this](wxDataViewEvent& event) {
+        if (event.GetColumn() == colFilament) {
+            // Trigger the editor opening manually
+            this->EditItem(event.GetItem(), GetColumn(colFilament));
+        }
+    });
+
     //for (int cn = colName; cn < colCount; cn++) {
     //    GetColumn(cn)->SetResizeable(cn == colName);
     //}
@@ -568,7 +578,7 @@ MeshErrorsInfo ObjectList::get_mesh_errors_info(const int obj_idx, const int vol
     if (non_manifold_edges)
         *non_manifold_edges = stats.open_edges;
 
-    if (is_windows10() && !sidebar_info)
+    if (!sidebar_info)
         tooltip += "\n" + _L("Click the icon to repair model object");
 
     return { tooltip, get_warning_icon_name(stats) };
@@ -1540,9 +1550,9 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
         }
         else if (col_num == colName)
         {
-            if (is_windows10() && m_objects_model->HasWarningIcon(item) &&
+            if (m_objects_model->HasWarningIcon(item) &&
                 mouse_pos.x > 2 * wxGetApp().em_unit() && mouse_pos.x < 4 * wxGetApp().em_unit())
-                fix_through_netfabb();
+                fix_through_cgal();
             else if (evt_context_menu)
                 show_context_menu(evt_context_menu); // show context menu for "Name" column too
         }
@@ -5377,6 +5387,11 @@ ModelVolume* ObjectList::get_selected_model_volume()
     return (*m_objects)[obj_idx]->volumes[vol_idx];
 }
 
+// ORCA: kept as dead code (not called by any active path). Preserved in #if 0
+// form for traceability with upstream Bambu Studio -- removing outright would
+// produce merge conflicts on every BBL sync. The active "Change Type" UI goes
+// through the submenu in GUI_Factories.cpp -> ObjectList::set_volume_type().
+#if 0
 void ObjectList::change_part_type()
 {
   wxDataViewItemArray selections;
@@ -5573,6 +5588,7 @@ void ObjectList::change_part_type()
 
   return;
 }
+#endif
 
 ModelVolumeType ObjectList::get_selected_volume_type()
 {
@@ -5644,6 +5660,26 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
         }
         if (volumes.empty())
             return;
+    }
+
+    // Defense-in-depth safety net against issue #5070: SVG/text volumes carry emboss metadata
+    // (text_configuration, emboss_shape) that only makes sense for Part / Negative Part / Modifier.
+    // ModelVolume::set_type() does not clear that metadata, so converting such volumes to
+    // Support Blocker / Support Enforcer leaves stale emboss state attached to a support volume
+    // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
+    // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
+    // in MenuFactory::append_menu_item_change_type, see #13120).
+    // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
+    // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+        const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
+            [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
+        if (has_text_or_svg) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                << ": blocked attempt to set SUPPORT_BLOCKER/ENFORCER on SVG/text volume; "
+                << "UI guard should have prevented this -- possible regression in the Change Type menu";
+            return;
+        }
     }
 
     const bool any_diff = std::any_of(volumes.begin(), volumes.end(),
@@ -5948,7 +5984,7 @@ void ObjectList::rename_item()
         update_name_in_model(item);
 }
 
-void ObjectList::fix_through_netfabb()
+void ObjectList::fix_through_cgal()
 {
     // Do not fix anything when a gizmo is open. There might be issues with updates
     // and what is worse, the snapshot time would refer to the internal stack.
@@ -5968,11 +6004,11 @@ void ObjectList::fix_through_netfabb()
     // clear selections from the non-broken models if any exists
     // and than fill names of models to repairing
     if (vol_idxs.empty()) {
-#if !FIX_THROUGH_NETFABB_ALWAYS
+#if !FIX_THROUGH_CGAL_ALWAYS
         for (int i = int(obj_idxs.size())-1; i >= 0; --i)
                 if (object(obj_idxs[i])->get_repaired_errors_count() == 0)
                     obj_idxs.erase(obj_idxs.begin()+i);
-#endif // FIX_THROUGH_NETFABB_ALWAYS
+#endif // FIX_THROUGH_CGAL_ALWAYS
         for (int obj_idx : obj_idxs)
             if (object(obj_idx))
                 model_names.push_back(object(obj_idx)->name);
@@ -5980,11 +6016,11 @@ void ObjectList::fix_through_netfabb()
     else {
         ModelObject* obj = object(obj_idxs.front());
         if (obj) {
-#if !FIX_THROUGH_NETFABB_ALWAYS
+#if !FIX_THROUGH_CGAL_ALWAYS
             for (int i = int(vol_idxs.size()) - 1; i >= 0; --i)
                 if (obj->get_repaired_errors_count(vol_idxs[i]) == 0)
                     vol_idxs.erase(vol_idxs.begin() + i);
-#endif // FIX_THROUGH_NETFABB_ALWAYS
+#endif // FIX_THROUGH_CGAL_ALWAYS
             for (int vol_idx : vol_idxs)
                 model_names.push_back(obj->volumes[vol_idx]->name);
         }
@@ -6013,12 +6049,17 @@ void ObjectList::fix_through_netfabb()
         }
 
         plater->clear_before_change_mesh(obj_idx);
+        const size_t volumes_before = object(obj_idx)->volumes.size();
         std::string res;
-        if (!fix_model_by_win10_sdk_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
+        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
             return false;
         //wxGetApp().plater()->changed_mesh(obj_idx);
         object(obj_idx)->ensure_on_bed();
         plater->changed_mesh(obj_idx);
+
+        const size_t volumes_after = object(obj_idx)->volumes.size();
+        if (volumes_after != volumes_before)
+            add_volumes_to_object_in_list(obj_idx);
 
         plater->get_partplate_list().notify_instance_update(obj_idx, 0);
         plater->sidebar().obj_list()->update_plate_values_for_items();
@@ -6043,10 +6084,10 @@ void ObjectList::fix_through_netfabb()
     if (vol_idxs.empty()) {
         int vol_idx{ -1 };
         for (int obj_idx : obj_idxs) {
-#if !FIX_THROUGH_NETFABB_ALWAYS
+#if !FIX_THROUGH_CGAL_ALWAYS
             if (object(obj_idx)->get_repaired_errors_count(vol_idx) == 0)
                 continue;
-#endif // FIX_THROUGH_NETFABB_ALWAYS
+#endif // FIX_THROUGH_CGAL_ALWAYS
             if (!fix_and_update_progress(obj_idx, vol_idx, model_idx, progress_dlg, succes_models, failed_models))
                 break;
             model_idx++;
@@ -6079,7 +6120,7 @@ void ObjectList::fix_through_netfabb()
     }
     if (msg.IsEmpty())
         msg = _L("Repairing was canceled");
-    plater->get_notification_manager()->push_notification(NotificationType::NetfabbFinished, NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel, into_u8(msg));
+    plater->get_notification_manager()->push_notification(NotificationType::CgalFinished, NotificationManager::NotificationLevel::PrintInfoShortNotificationLevel, into_u8(msg));
 }
 
 void ObjectList::simplify()

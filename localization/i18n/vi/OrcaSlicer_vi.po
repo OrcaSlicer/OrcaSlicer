@@ -167,8 +167,8 @@ msgstr "Loại công cụ"
 msgid "Smart fill angle"
 msgstr "Góc tô thông minh"
 
-msgid "On overhangs only"
-msgstr "Chỉ trên overhang"
+msgid "On highlighted overhangs only"
+msgstr "Chỉ trên các overhang được làm nổi bật"
 
 msgid "Auto support threshold angle: "
 msgstr "Góc ngưỡng tự động support: "

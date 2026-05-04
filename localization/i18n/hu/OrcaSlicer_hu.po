@@ -169,8 +169,8 @@ msgstr "Eszköz típusa"
 msgid "Smart fill angle"
 msgstr "Okos kitöltési szög"
 
-msgid "On overhangs only"
-msgstr "Csak túlnyúlásokon"
+msgid "On highlighted overhangs only"
+msgstr "Csak a kiemelt túlnyúlásokon"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatikus támasz szögének határértéke: "
@@ -14963,7 +14963,19 @@ msgid "First layer travel speed"
 msgstr "Első réteg mozgási sebessége"
 
 msgid "Travel speed of the first layer."
-msgstr "Az első réteg utazási sebessége."
+msgstr "Az első réteg mozgási sebessége."
+
+msgid "First layer travel acceleration"
+msgstr "Első réteg mozgási gyorsulása"
+
+msgid "Travel acceleration of first layer."
+msgstr "Az első réteg mozgási gyorsulása."
+
+msgid "First layer travel jerk"
+msgstr "Első réteg mozgási jerkje"
+
+msgid "Travel jerk of first layer."
+msgstr "Az első réteg mozgási jerkje."
 
 msgid "Number of slow layers"
 msgstr "Lassú rétegek száma"
@@ -22662,7 +22674,7 @@ msgstr ""
 "Mikor nyomtass nyitott ajtóval\n"
 "Tudtad, hogy a nyomtató ajtajának kinyitásával csökkentheted az extruder/"
 "fejegység eltömődésének valószínűségét, ha alacsonyabb hőmérsékletű "
-"filamentet nyomtatsz? További információ a Wikiben olvashatsz erről."
+"filamentet nyomtatsz? További információ erről a Wikiben található."
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
@@ -22738,5 +22750,3 @@ msgstr ""
 #~ "maximális áramlás közül a kisebbik korlátozza. Kikapcsolva csak a "
 #~ "felhasználó által megadott maximális áramlás érvényesül."
 
-#~ msgid "Travel speed of First layer."
-#~ msgstr "Az első réteg mozgási sebessége."

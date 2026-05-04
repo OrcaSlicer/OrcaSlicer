@@ -171,8 +171,8 @@ msgstr "ツールタイプ"
 msgid "Smart fill angle"
 msgstr "自動充填角度"
 
-msgid "On overhangs only"
-msgstr "オーバーハングのみ"
+msgid "On highlighted overhangs only"
+msgstr "強調表示されたオーバーハングのみ"
 
 msgid "Auto support threshold angle: "
 msgstr "自動サポート角度閾値"
