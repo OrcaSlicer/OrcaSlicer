@@ -1597,6 +1597,31 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
 }
 
 // Create ironing extrusions over top surfaces.
+// Selects the extruder used for ironing the given region (1-based filament id),
+// or -1 if ironing is disabled by config. Pure routing decision extracted from
+// make_ironing so it can be unit-tested without running a full slice — and so
+// downstream code can ask "would this region be ironed, and on what extruder?"
+// without re-implementing the gating logic.
+//
+// The gating mirrors the original conditional in make_ironing: AllSolid always
+// irons; TopSurfaces and TopmostOnly require either some top shells or
+// (in spiral mode) more than one bottom shell, and TopmostOnly additionally
+// requires being on the topmost layer.
+int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
+                                   bool spiral_mode,
+                                   bool is_topmost_layer)
+{
+    if (cfg.ironing_type == IroningType::NoIroning)
+        return -1;
+    const bool gate = (cfg.ironing_type == IroningType::AllSolid)
+        || ((cfg.top_shell_layers > 0 || (spiral_mode && cfg.bottom_shell_layers > 1))
+            && (cfg.ironing_type == IroningType::TopSurfaces
+                || (cfg.ironing_type == IroningType::TopmostOnly && is_topmost_layer)));
+    if (!gate)
+        return -1;
+    return cfg.top_surface_filament_id;
+}
+
 void Layer::make_ironing()
 {
 	// LayerRegion::slices contains surfaces marked with SurfaceType.
@@ -1665,19 +1690,10 @@ void Layer::make_ironing()
 		if (! layerm->slices.empty()) {
 			IroningParams ironing_params;
 			const PrintRegionConfig &config = layerm->region().config();
-			if (config.ironing_type != IroningType::NoIroning &&
-			    (config.ironing_type == IroningType::AllSolid ||
-				    ((config.top_shell_layers > 0 || (this->object()->print()->config().spiral_mode && config.bottom_shell_layers > 1)) &&
-					    (config.ironing_type == IroningType::TopSurfaces ||
-					        (config.ironing_type == IroningType::TopmostOnly && layerm->layer()->upper_layer == nullptr))))) {
-				if (config.outer_wall_filament_id == config.top_surface_filament_id || config.wall_loops == 0) {
-					// Iron the whole face.
-					ironing_params.extruder = config.top_surface_filament_id;
-				} else {
-					// Iron just the infill.
-					ironing_params.extruder = config.top_surface_filament_id;
-				}
-			}
+			ironing_params.extruder = Layer::choose_ironing_extruder(
+				config,
+				/*spiral_mode=*/this->object()->print()->config().spiral_mode,
+				/*is_topmost_layer=*/layerm->layer()->upper_layer == nullptr);
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
