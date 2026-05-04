@@ -372,6 +372,13 @@ public:
     // The operation may merge split triangles if they are being assigned the same color.
     void seed_fill_apply_on_triangles(EnforcerBlockerType new_state);
 
+    // Remap painting data from source mesh to target mesh using spatial mapping.
+    // Both meshes must be in the same coordinate space.
+    static TriangleSplittingData remap_painting(
+        const indexed_triangle_set& source_its,
+        const TriangleSplittingData& source_painting,
+        const indexed_triangle_set& target_its);
+
 protected:
     // Triangle and info about how it's split.
     class Triangle {
@@ -521,10 +528,9 @@ private:
 
     int m_free_triangles_head { -1 };
     int m_free_vertices_head { -1 };
+
+    friend class TriangleCursor;
 };
-
-
-
 
 } // namespace Slic3r
 
