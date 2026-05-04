@@ -1892,19 +1892,30 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
 
                                     // Normalize anchor size for partial bridges:
                                     // derive the bridge core first, then add a bounded overlap into support.
-                                    // A full BRIDGE_INFILL_MARGIN here can merge nearby bridge islands,
-                                    // which may force a single bridge direction across unrelated halves.
-                                    const coordf_t anchor_overlap = std::min(bridged_infill_margin, coordf_t(ext_perimeter_width)*0.9);
-                                    ExPolygons bridge_core = diff_ex(unsupported_filtered, support, ApplySafetyOffset::Yes);
-                                    bridge_core = offset2_ex(bridge_core, -anchor_overlap, anchor_overlap);
+                                    // Keep this tied to bridge/perimeter spacing (not outer wall width),
+                                    // otherwise custom external width changes can shift bridge endpoints.
+                                    const coordf_t anchor_overlap = std::min(bridged_infill_margin, coordf_t(perimeter_spacing) * 0.9);
+                                    const coordf_t core_smoothing = std::min(anchor_overlap, coordf_t(perimeter_spacing) * 0.5);
+                                    ExPolygons bridge_core_raw = diff_ex(unsupported_filtered, support, ApplySafetyOffset::Yes);
+                                    ExPolygons bridge_core = offset2_ex(bridge_core_raw, -core_smoothing, core_smoothing);
+                                    // Keep narrow edge-touching cores if smoothing collapses them.
+                                    if (bridge_core.empty()) {
+                                        bridge_core = bridge_core_raw;
+                                    }
                                     if (bridge_core.empty()) {
                                         bridge_core = unsupported_filtered;
                                     }
-                                    ExPolygons anchor_overlap_area = intersection_ex(
-                                        offset_ex(bridge_core, anchor_overlap),
-                                        support,
-                                        ApplySafetyOffset::Yes);
-                                    unsupported_filtered = union_ex(bridge_core, anchor_overlap_area);
+
+                                    ExPolygons rebuilt_partial_bridges;
+                                    for (const ExPolygon &core_island : bridge_core) {
+                                        ExPolygons island_core{ core_island };
+                                        ExPolygons island_anchor_overlap = intersection_ex(
+                                            offset_ex(island_core, anchor_overlap),
+                                            support,
+                                            ApplySafetyOffset::Yes);
+                                        expolygons_append(rebuilt_partial_bridges, union_ex(island_core, island_anchor_overlap));
+                                    }
+                                    unsupported_filtered = rebuilt_partial_bridges.empty() ? bridge_core : rebuilt_partial_bridges;
                                     unsupported_filtered = intersection_ex(unsupported_filtered, reference);
                                 // } else {
                                 //     ExPolygons unbridgeable = intersection_ex(unsupported, diff_ex(unsupported_filtered, offset_ex(bridgeable_simplified, ext_perimeter_width / 2)));
