@@ -1,12 +1,12 @@
 {
-    "type": "machine_model",
-    "name": "re3D Terabot X2",
-    "model_id": "TBX2",
-    "nozzle_diameter": "1.75",
-    "machine_tech": "FFF",
-    "family": "re3D",
-    "bed_model": "",
-    "bed_texture": "Gigabot 4_buildplate_texture.png",
-    "hotend_model": "GBX-HOTEND.stl",
-    "default_materials": "re3D rPP;re3D Greengate rPETG;"
+	"type": "machine_model",
+	"name": "re3D Terabot X2",
+	"model_id": "TBX2",
+	"nozzle_diameter": "1.75",
+	"machine_tech": "FFF",
+	"family": "re3D",
+	"bed_model": "",
+	"bed_texture": "re3D Terabot X2_buildplate_texture.svg",
+	"hotend_model": "GBX-HOTEND.stl",
+	"default_materials": "re3D rPP;re3D Greengate rPETG;"
 }

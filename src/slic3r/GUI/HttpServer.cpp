@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -161,7 +162,7 @@ void session::read_body()
     int                                nbuffer = 1000;
     std::shared_ptr<std::vector<char>> bufptr  = std::make_shared<std::vector<char>>(nbuffer);
     async_read(socket, boost::asio::buffer(*bufptr, nbuffer),
-               [this, self](const boost::beast::error_code& e, std::size_t s) { server.stop(self); });
+               [this, self, bufptr](const boost::beast::error_code& e, std::size_t s) { server.stop(self); });
 }
 
 void session::read_next_line()
@@ -246,18 +247,27 @@ void HttpServer::IOServer::stop_all()
 
 HttpServer::HttpServer(boost::asio::ip::port_type port) : port(port) {}
 
+HttpServer::~HttpServer()
+{
+    stop();
+}
+
 void HttpServer::start()
 {
+    if (start_http_server)
+        return;
+
     BOOST_LOG_TRIVIAL(info) << "start_http_service...";
-    start_http_server    = true;
-    m_http_server_thread = create_thread([this] {
+    server_             = std::make_unique<IOServer>(*this);
+    IOServer* io_server = server_.get();
+    start_http_server   = true;
+    m_http_server_thread = create_thread([io_server] {
         set_current_thread_name("http_server");
-        server_ = std::make_unique<IOServer>(*this);
-        server_->acceptor.listen();
+        io_server->acceptor.listen();
 
-        server_->do_accept();
+        io_server->do_accept();
 
-        server_->io_service.run();
+        io_server->io_service.run();
     });
 }
 
@@ -265,9 +275,14 @@ void HttpServer::stop()
 {
     start_http_server = false;
     if (server_) {
-        server_->acceptor.close();
-        server_->stop_all();
-        server_->io_service.stop();
+        IOServer* io_server = server_.get();
+        boost::asio::post(io_server->io_service, [io_server] {
+            boost::system::error_code ec;
+            io_server->acceptor.cancel(ec);
+            io_server->acceptor.close(ec);
+            io_server->stop_all();
+            io_server->io_service.stop();
+        });
     }
     if (m_http_server_thread.joinable())
         m_http_server_thread.join();
@@ -280,6 +295,11 @@ void HttpServer::set_request_handler(const std::function<std::shared_ptr<Respons
 }
 
 std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const std::string& url)
+{
+    return auth_handle_request(url, BBL_CLOUD_PROVIDER);
+}
+
+std::shared_ptr<HttpServer::Response> HttpServer::auth_handle_request(const std::string& url, const std::string& provider)
 {
     BOOST_LOG_TRIVIAL(info) << "thirdparty_login: get_response";
 
@@ -355,10 +375,10 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
         payload["data"]["code"] = auth_code;
         payload["data"]["state"] = state;
 
-        agent->change_user(payload.dump());
-        const bool login_ok = agent->is_user_login();
+        agent->change_user(payload.dump(), provider);
+        const bool login_ok = agent->is_user_login(provider);
         if (login_ok) {
-            wxGetApp().request_user_login(1);
+            wxGetApp().request_user_login(1, provider);
             GUI::wxGetApp().CallAfter([] { wxGetApp().ShowUserLogin(false); });
         }
 
@@ -387,7 +407,7 @@ std::shared_ptr<HttpServer::Response> HttpServer::bbl_auth_handle_request(const 
 
         unsigned int http_code;
         std::string  http_body;
-        int          result = agent->get_my_profile(access_token, &http_code, &http_body);
+        int          result = agent->get_my_profile(access_token, &http_code, &http_body, provider);
         if (result == 0) {
             json profile_j;
             try {

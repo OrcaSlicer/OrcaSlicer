@@ -33,6 +33,7 @@
 #include "format.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
+#include "Gizmos/GLGizmoUtils.hpp"
 
 #include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -224,43 +225,6 @@ bool GLCanvas3D::LayersEditing::is_allowed() const
 
 float GLCanvas3D::LayersEditing::s_overlay_window_width;
 
-void GLCanvas3D::LayersEditing::show_tooltip_information(const GLCanvas3D& canvas, std::map<wxString, wxString> captions_texts, float x, float y)
-{
-    ImTextureID normal_id = canvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id = canvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    ImGuiWrapper& imgui = *wxGetApp().imgui();
-    float caption_max = 0.f;
-    for (auto caption_text : captions_texts) {
-        caption_max = std::max(imgui.calc_text_size(caption_text.first).x, caption_max);
-    }
-    caption_max += GImGui->Style.WindowPadding.x + imgui.scaled(1);
-
-	float  scale       = canvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max, &imgui](const wxString& caption, const wxString& text) {
-            imgui.text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui.text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto& caption_text : captions_texts) draw_text_with_caption(caption_text.first, caption_text.second);
-
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
 void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(const GLCanvas3D& canvas) {
     if (!m_enabled)
         return;
@@ -358,15 +322,18 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(const GLCanv
 
     ImGui::Separator();
 
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + canvas.m_main_toolbar.get_height();
-    std::map<wxString, wxString> captions_texts = {
-        {_L("Left mouse button") + ":" , _L("Add detail")},
-        {_L("Right mouse button") + ":", _L("Remove detail")},
-        {_L("Shift+") + _L("Left mouse button") + ":", _L("Reset to base")},
-        {_L("Shift+") + _L("Right mouse button") + ":", _L("Smoothing")},
-        {_L("Mouse wheel:"), _L("Increase/decrease edit area")}
+    const wxString shift = GUI::shortkey_shift_prefix();
+    std::vector<std::pair<wxString, wxString>> shortcuts = {
+        {_L("Left mouse button"),          _L("Add detail")},
+        {_L("Right mouse button"),         _L("Remove detail")},
+        {shift + _L("Left mouse button"),  _L("Reset to base")},
+        {shift + _L("Right mouse button"), _L("Smoothing")},
+        {_L("Mouse wheel"),                _L("Increase/decrease edit area")}
     };
-    show_tooltip_information(canvas, captions_texts, x, get_cur_y);
+
+    float y = canvas.m_main_toolbar.get_height();
+    GLGizmoUtils::render_tooltip_button(&imgui, canvas, shortcuts, x, y);
+
     ImGui::SameLine();
     if (imgui.button(_L("Reset")))
         wxPostEvent((wxEvtHandler*)canvas.get_wxglcanvas(), SimpleEvent(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE));
@@ -1080,6 +1047,8 @@ wxDEFINE_EVENT(EVT_CUSTOMEVT_TICKSCHANGED, wxCommandEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE, SimpleEvent);
 wxDEFINE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDEFINE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
+wxDEFINE_EVENT(EVT_GLCANVAS_PRINTABLE, SimpleEvent);
+
 
 const double GLCanvas3D::DefaultCameraZoomToBoxMarginFactor = 1.25;
 const double GLCanvas3D::DefaultCameraZoomToBedMarginFactor = 2.00;
@@ -1222,13 +1191,13 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 
     m_selection.set_volumes(&m_volumes.volumes);
 
-    m_assembly_view_desc["object_selection_caption"] = _L("Left mouse button");
-    m_assembly_view_desc["object_selection"]         = _L("Object selection");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    m_assembly_view_desc["part_selection_caption"]   = _L("Alt+") + _L("Left mouse button");
-    m_assembly_view_desc["part_selection"]           = _L("Part selection");
-    m_assembly_view_desc["number_key_caption"]       = "1~16 " + _L("number keys");
-    m_assembly_view_desc["number_key"]       = _L("Number keys can quickly change the color of objects");
+    const wxString alt   = GUI::shortkey_alt_prefix();
+
+    m_shortcuts_assembly_view = {
+        {_L("Left mouse button"),       _L("Object Selection")},
+        {alt + _L("Left mouse button"), _L("Part Selection")},
+        {"1~16 " + _L("number keys"),   _L("Number keys can quickly change the color of objects")},
+    };
 }
 
 GLCanvas3D::~GLCanvas3D()
@@ -2358,6 +2327,13 @@ void GLCanvas3D::ensure_on_bed(unsigned int object_idx, bool allow_negative_z)
     InstancesToZMap instances_min_z;
 
     for (GLVolume* volume : m_volumes.volumes) {
+        ModelObject*   mo = m_model->objects[volume->object_idx()];
+        ModelInstance* mi = mo->instances[volume->instance_idx()];
+
+        if (!mi->auto_drop) {
+            continue;
+        }
+
         if (volume->object_idx() == (int)object_idx && !volume->is_modifier) {
             double min_z = volume->transformed_convex_hull_bounding_box().min.z();
             std::pair<int, int> instance = std::make_pair(volume->object_idx(), volume->instance_idx());
@@ -3515,6 +3491,8 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         //    }
         //    break;
         //}
+        case 'v':
+        case 'V': { post_event(SimpleEvent(EVT_GLCANVAS_PRINTABLE)); break; }
         default:  { evt.Skip(); break; }
         }
     }
@@ -3986,14 +3964,14 @@ void GLCanvas3D::on_set_color_timer(wxTimerEvent& evt)
 }
 
 
-void GLCanvas3D::schedule_extra_frame(int miliseconds)
+void GLCanvas3D::schedule_extra_frame(int milliseconds)
 {
     // Schedule idle event right now
-    if (miliseconds == 0)
+    if (milliseconds == 0)
     {
-        // We want to wakeup idle evnt but most likely this is call inside render cycle so we need to wait
+        // We want to wakeup idle event but most likely this is call inside render cycle so we need to wait
         if (m_in_render)
-            miliseconds = 33;
+            milliseconds = 33;
         else {
             m_dirty = true;
             wxWakeUpIdle();
@@ -4003,12 +3981,12 @@ void GLCanvas3D::schedule_extra_frame(int miliseconds)
     int remaining_time = m_render_timer.GetInterval();
     // Timer is not running
     if (!m_render_timer.IsRunning()) {
-        m_render_timer.StartOnce(miliseconds);
-    // Timer is running - restart only if new period is shorter than remaning period
+        m_render_timer.StartOnce(milliseconds);
+    // Timer is running - restart only if new period is shorter than remaining period
     } else {
-        if (miliseconds + 20 < remaining_time) {
+        if (milliseconds + 20 < remaining_time) {
             m_render_timer.Stop();
-            m_render_timer.StartOnce(miliseconds);
+            m_render_timer.StartOnce(milliseconds);
         }
     }
 }
@@ -4867,28 +4845,30 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
 
             // Move instances/volumes
             ModelObject* model_object = m_model->objects[object_idx];
-            if (model_object != nullptr) {
-                if (selection_mode == Selection::Instance) {
-                    if (m_canvas_type == GLCanvas3D::ECanvasType::CanvasAssembleView) {
-                        if ((model_object->instances[instance_idx]->get_assemble_offset() - v->get_instance_offset()).norm() > 1e-2) {
-                            model_object->instances[instance_idx]->set_assemble_transformation(v->get_instance_transformation());
-                        }
-                    } else {
-                        model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
-                    }
-                }
-                else if (selection_mode == Selection::Volume) {
-                    auto cur_mv = model_object->volumes[volume_idx];
-                    if (cur_mv->get_transformation() != v->get_volume_transformation()) {
-                        cur_mv->set_transformation(v->get_volume_transformation());
-                        // BBS: backup
-                        Slic3r::save_object_mesh(*model_object);
-                    }
-                }
+            if (model_object == nullptr) 
+                continue;
 
-                object_moved = true;
-                model_object->invalidate_bounding_box();
+            if (selection_mode == Selection::Instance) {
+                if (m_canvas_type == GLCanvas3D::ECanvasType::CanvasAssembleView) {
+                    if ((model_object->instances[instance_idx]->get_assemble_offset() - v->get_instance_offset()).norm() > 1e-2) {
+                        model_object->instances[instance_idx]->set_assemble_transformation(v->get_instance_transformation());
+                    }
+                } else {
+                    model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
+                }
             }
+            else if (selection_mode == Selection::Volume) {
+                auto cur_mv = model_object->volumes[volume_idx];
+                if (cur_mv->get_transformation() != v->get_volume_transformation()) {
+                    cur_mv->set_transformation(v->get_volume_transformation());
+                    // BBS: backup
+                    Slic3r::save_object_mesh(*model_object);
+                }
+            }
+
+            object_moved = true;
+            model_object->invalidate_bounding_box();
+            
         }
         else if (object_idx >= 1000 && object_idx < 1000 + n_plates) {
             // Move a wipe tower proxy.
@@ -4899,20 +4879,27 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, 0);
 
-    // Fixes flying instances
+    // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
-        ModelObject* m = m_model->objects[i.first];
-        const double shift_z = m->get_instance_min_z(i.second);
+        ModelObject* mo = m_model->objects[i.first];
+        ModelInstance* mi  = mo->instances[i.second];
+            
+        if (!mi->auto_drop) {
+            continue;
+        }
+
+        const double shift_z = mo->get_instance_min_z(i.second);
         //BBS: don't call translate if the z is zero
         if ((current_printer_technology() == ptSLA || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
             const Vec3d shift(0.0, 0.0, -shift_z);
             m_selection.translate(i.first, i.second, shift);
-            m->translate_instance(i.second, shift);
+            mo->translate_instance(i.second, shift);
             //BBS: notify instance updates to part plater list
             m_selection.notify_instance_update(i.first, i.second);
         }
         wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
     }
+    
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
@@ -4986,40 +4973,47 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
 
         // Rotate instances/volumes.
         ModelObject* model_object = m_model->objects[object_idx];
-        if (model_object != nullptr) {
-            if (selection_mode == Selection::Instance) {
-                if (m_canvas_type == GLCanvas3D::ECanvasType::CanvasAssembleView) {
-                    model_object->instances[instance_idx]->set_assemble_from_transform(v->get_instance_transformation().get_matrix());
-                } else {
-                    model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
-                }
+        if (model_object == nullptr)
+            continue;
+
+        if (selection_mode == Selection::Instance) {
+            if (m_canvas_type == GLCanvas3D::ECanvasType::CanvasAssembleView) {
+                model_object->instances[instance_idx]->set_assemble_from_transform(v->get_instance_transformation().get_matrix());
+            } else {
+                model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
             }
-            else if (selection_mode == Selection::Volume) {
-                auto cur_mv = model_object->volumes[volume_idx];
-                if (cur_mv->get_transformation() != v->get_volume_transformation()) {
-                    cur_mv->set_transformation(v->get_volume_transformation());
-                    // BBS: backup
-                    Slic3r::save_object_mesh(*model_object);
-                }
-            }
-            model_object->invalidate_bounding_box();
         }
+        else if (selection_mode == Selection::Volume) {
+            auto cur_mv = model_object->volumes[volume_idx];
+            if (cur_mv->get_transformation() != v->get_volume_transformation()) {
+                cur_mv->set_transformation(v->get_volume_transformation());
+                // BBS: backup
+                Slic3r::save_object_mesh(*model_object);
+            }
+        }
+        model_object->invalidate_bounding_box();
     }
 
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, -1);
+
     if (m_canvas_type != CanvasAssembleView) {
-        // Fixes sinking/flying instances
+        // Fixes sinking/flying instances (snaps object to buildplate)
         for (const std::pair<int, int> &i : done) {
-            ModelObject *m = m_model->objects[i.first];
+            ModelObject *mo = m_model->objects[i.first];
+            ModelInstance* mi = mo->instances[i.second];
+
+            if (!mi->auto_drop) {
+                continue;
+            }
 
             // BBS: don't call translate if the z is zero
-            const double shift_z = m->get_instance_min_z(i.second);
+            const double shift_z = mo->get_instance_min_z(i.second);
             // leave sinking instances as sinking
             if ((min_zs.find({i.first, i.second})->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
                 const Vec3d shift(0.0, 0.0, -shift_z);
                 m_selection.translate(i.first, i.second, shift);
-                m->translate_instance(i.second, shift);
+                mo->translate_instance(i.second, shift);
                 // BBS: notify instance updates to part plater list
                 m_selection.notify_instance_update(i.first, i.second);
             }
@@ -5027,6 +5021,7 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
             wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
         }
     }
+
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
@@ -5074,42 +5069,49 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
 
         // Rotate instances/volumes
         ModelObject* model_object = m_model->objects[object_idx];
-        if (model_object != nullptr) {
-            if (selection_mode == Selection::Instance) {
-                model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
-            }
-            else if (selection_mode == Selection::Volume) {
-                auto cur_mv = model_object->volumes[volume_idx];
-                if (cur_mv->get_transformation() != v->get_volume_transformation()) {
-                    model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
-                    cur_mv->set_transformation(v->get_volume_transformation());
-                    // BBS: backup
-                    Slic3r::save_object_mesh(*model_object);
-                }
-            }
-            model_object->invalidate_bounding_box();
+        if (model_object == nullptr)
+            continue;
+
+        if (selection_mode == Selection::Instance) {
+            model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
         }
+        else if (selection_mode == Selection::Volume) {
+            auto cur_mv = model_object->volumes[volume_idx];
+            if (cur_mv->get_transformation() != v->get_volume_transformation()) {
+                model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
+                cur_mv->set_transformation(v->get_volume_transformation());
+                // BBS: backup
+                Slic3r::save_object_mesh(*model_object);
+            }
+        }
+        model_object->invalidate_bounding_box();
     }
 
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, -1);
 
-    // Fixes sinking/flying instances
+    // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
-        ModelObject* m = m_model->objects[i.first];
+        ModelObject* mo = m_model->objects[i.first];
+        ModelInstance* mi = mo->instances[i.second];
+
+        if (!mi->auto_drop) {
+            continue;
+        }
 
         //BBS: don't call translate if the z is zero
-        double shift_z = m->get_instance_min_z(i.second);
+        double shift_z = mo->get_instance_min_z(i.second);
         // leave sinking instances as sinking
         if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
             Vec3d shift(0.0, 0.0, -shift_z);
             m_selection.translate(i.first, i.second, shift);
-            m->translate_instance(i.second, shift);
+            mo->translate_instance(i.second, shift);
             //BBS: notify instance updates to part plater list
             m_selection.notify_instance_update(i.first, i.second);
         }
         wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
     }
+    
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
     //BBS: notify object info update
@@ -5179,35 +5181,41 @@ void GLCanvas3D::do_mirror(const std::string& snapshot_type)
 
         // Mirror instances/volumes
         ModelObject* model_object = m_model->objects[object_idx];
-        if (model_object != nullptr) {
-            if (selection_mode == Selection::Instance)
-                model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
-            else if (selection_mode == Selection::Volume) {
-                if (model_object->volumes[volume_idx]->get_transformation() != v->get_volume_transformation()) {
-                    model_object->volumes[volume_idx]->set_transformation(v->get_volume_transformation());
-                    // BBS: backup
-                    Slic3r::save_object_mesh(*model_object);
-                }
-            }
+        if (model_object == nullptr)
+            continue;
 
-            model_object->invalidate_bounding_box();
+        if (selection_mode == Selection::Instance)
+            model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
+        else if (selection_mode == Selection::Volume) {
+            if (model_object->volumes[volume_idx]->get_transformation() != v->get_volume_transformation()) {
+                model_object->volumes[volume_idx]->set_transformation(v->get_volume_transformation());
+                // BBS: backup
+                Slic3r::save_object_mesh(*model_object);
+            }
         }
+
+        model_object->invalidate_bounding_box();
     }
 
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, -1);
 
-    // Fixes sinking/flying instances
+    // Fixes sinking/flying instances (snaps object to buildplate)
     for (const std::pair<int, int>& i : done) {
-        ModelObject* m = m_model->objects[i.first];
+        ModelObject* mo = m_model->objects[i.first];
+        ModelInstance* mi = mo->instances[i.second];
+
+        if (!mi->auto_drop) {
+            continue;
+        }
 
         //BBS: don't call translate if the z is zero
-        double shift_z = m->get_instance_min_z(i.second);
+        double shift_z = mo->get_instance_min_z(i.second);
         // leave sinking instances as sinking
         if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD)&&(shift_z != 0.0f)) {
             Vec3d shift(0.0, 0.0, -shift_z);
             m_selection.translate(i.first, i.second, shift);
-            m->translate_instance(i.second, shift);
+            mo->translate_instance(i.second, shift);
             //BBS: notify instance updates to part plater list
             m_selection.notify_instance_update(i.first, i.second);
         }
@@ -5216,10 +5224,8 @@ void GLCanvas3D::do_mirror(const std::string& snapshot_type)
         //BBS: notify instance updates to part plater list
         PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
         plate_list.notify_instance_update(i.first, i.second);
-
-        //BBS: nofity object list to update
-        wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
-    }
+    }    
+    
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
@@ -8878,45 +8884,32 @@ void GLCanvas3D::_render_paint_toolbar() const
     ImGui::PopStyleColor();
 }
 
-float GLCanvas3D::_show_assembly_tooltip_information(float caption_max, float x, float y) const
+float GLCanvas3D::_render_assembly_tooltip_button(ImGuiWrapper* imgui_wrapper) const
 {
-    ImGuiWrapper *imgui     = wxGetApp().imgui();
-    ImTextureID normal_id = m_gizmos.get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_gizmos.get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
+    const float text_height = imgui_wrapper->calc_text_size(_L("part selection")).y;
+    ImVec2      windowPos   = ImGui::GetWindowPos();
+    float       x           = windowPos.x;
+    float       y           = windowPos.y - ImGui::GetFrameHeight() - (5 * text_height);
+    y -= ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight(); // correct default ToolTipButton behaviour
 
-    caption_max += imgui->calc_text_size(": "sv).x + 35.f;
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, *this, m_shortcuts_assembly_view, x, y);
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(12.f, 0.f));
 
-    float  scale       = get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
+    float scale = get_scale();
+#ifdef WIN32
+    int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+    scale *= (float) dpi / (float) DPI_DEFAULT;
+#endif                                                   // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
+    float same_line_width = button_size.x * 1.8; // with an space size
+    ImGui::SameLine(same_line_width);
+    same_line_width = imgui_wrapper->calc_text_size("|"sv).x + same_line_width + imgui_wrapper->calc_text_size("  "sv).x;
+    imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, "|");
+    ImGui::SameLine(same_line_width);
 
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [&imgui, & caption_max](const wxString &caption, const wxString &text) {
-            imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 3>{"object_selection", "part_selection", "number_key"}) {
-            draw_text_with_caption(m_assembly_view_desc.at(t + "_caption") + ": ", m_assembly_view_desc.at(t));
-        }
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-    auto same_line_size = button_size.x * 1.8;//with an space size
-    ImGui::SameLine(same_line_size);
-    same_line_size = imgui->calc_text_size("|"sv).x + same_line_size + imgui->calc_text_size("  "sv).x;
-    imgui->text_colored(ImGuiWrapper::COL_ACTIVE, "|");
-    ImGui::SameLine(same_line_size);
-    return same_line_size;
+    return same_line_width; // return the width of the space taken by the tooltip button and the separator
 }
 
 //BBS
@@ -8950,19 +8943,11 @@ void GLCanvas3D::_render_assemble_control()
     imgui->begin(_L("Assemble Control"), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     ImGui::AlignTextToFramePadding();
-    float tip_icon_size;
+    float tooltip_button_width;
     {
-        float caption_max = 0.f;
-        for (const auto &t : std::array<std::string, 3>{"object_selection", "part_selection", "number_key"}) {
-            caption_max = std::max(caption_max, imgui->calc_text_size(m_assembly_view_desc.at(t + "_caption")).x);
-        }
-        const ImVec2 pos = ImGui::GetCursorScreenPos();
-        const float text_y = imgui->calc_text_size(_L("Part selection")).y;
-        float get_cur_x = pos.x;
-        float get_cur_y = pos.y - ImGui::GetFrameHeight() - 4 * text_y;
-        tip_icon_size =_show_assembly_tooltip_information(caption_max, get_cur_x, get_cur_y);
+        tooltip_button_width = _render_assembly_tooltip_button(imgui);
     }
-    float same_line_width = tip_icon_size;
+    float same_line_width = tooltip_button_width;
     {
         float clp_dist = m_gizmos.m_assemble_view_data->model_objects_clipper()->get_position();
         if (clp_dist == 0.f) {
@@ -9515,6 +9500,7 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     std::string text;
     ErrorType error = ErrorType::PLATER_WARNING;
     const ModelObject* conflictObj=nullptr;
+    const ModelInstance* conflictInst=nullptr;
     switch (warning) {
     case EWarning::GCodeConflict: {
         static std::string prevConflictText;
@@ -9525,12 +9511,17 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         std::string objName2 = m_gcode_viewer.m_conflict_result.value()._objName2;
         double      height   = m_gcode_viewer.m_conflict_result.value()._height;
         int         layer    = m_gcode_viewer.m_conflict_result.value().layer;
+        const PrintInstance *inst2 = reinterpret_cast<const PrintInstance *>(m_gcode_viewer.m_conflict_result.value()._obj2);
+
         text = (boost::format(_u8L("Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s).")) % layer %
                 height % objName1 % objName2)
                    .str();
         prevConflictText        = text;
-        const PrintObject *obj2 = reinterpret_cast<const PrintObject *>(m_gcode_viewer.m_conflict_result.value()._obj2);
-        conflictObj             = obj2->model_object();
+        
+        if (inst2) {
+            if (inst2->model_instance) conflictInst = inst2->model_instance;
+            else if (inst2->print_object) conflictObj = inst2->print_object->model_object();
+        }
         break;
     }
     case EWarning::ObjectOutside:      text = _u8L("An object is laid over the plate boundaries."); break;
@@ -9778,8 +9769,13 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         }
         break;
     case SLICING_SERIOUS_WARNING:
-        if (state)
-            notification_manager.push_slicing_serious_warning_notification(text, conflictObj ? std::vector<ModelObject const*>{conflictObj} : std::vector<ModelObject const*>{});
+        if (state) {
+            if (conflictInst) {
+                notification_manager.push_slicing_serious_warning_notification(text, std::vector<ModelInstance const*>{conflictInst});
+            } else {
+                notification_manager.push_slicing_serious_warning_notification(text, conflictObj ? std::vector<ModelObject const*>{conflictObj} : std::vector<ModelObject const*>{});
+            }
+        }
         else
             notification_manager.close_slicing_serious_warning_notification(text);
         break;

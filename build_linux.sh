@@ -508,6 +508,15 @@ if [[ -n "${USE_LLD}" ]] ; then
     fi
 fi
 
+# Auto-detect ccache for faster rebuilds
+export CMAKE_CCACHE_ARGS=()
+if command -v ccache >/dev/null 2>&1 ; then
+    echo "ccache found at $(command -v ccache), enabling compiler caching..."
+    export CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+else
+    echo "Note: ccache not found. Install ccache for faster rebuilds."
+fi
+
 if [[ -n "${BUILD_DEPS}" ]] ; then
     echo "Configuring dependencies..."
     read -r -a BUILD_ARGS <<< "${DEPS_EXTRA_BUILD_ARGS}"
@@ -521,7 +530,7 @@ if [[ -n "${BUILD_DEPS}" ]] ; then
     fi
 
     print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
-    print_and_run cmake --build deps/$BUILD_DIR
+    print_and_run cmake --build deps/$BUILD_DIR -j1
 fi
 
 if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then

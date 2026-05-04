@@ -219,7 +219,7 @@ void create_volume(TriangleMesh &&mesh, const ObjectID& object_id, const ModelVo
 /// Create projection for cut surface from mesh
 /// </summary>
 /// <param name="tr">Volume transformation in object</param>
-/// <param name="shape_scale">Convert shape to milimeters</param>
+/// <param name="shape_scale">Convert shape to millimeters</param>
 /// <param name="z_range">Bounding box 3d of model volume for projection ranges</param> 
 /// <returns>Orthogonal cut_projection</returns>
 OrthoProject create_projection_for_cut(Transform3d tr, double shape_scale, const std::pair<float, float> &z_range);

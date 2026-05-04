@@ -2430,7 +2430,7 @@ bool MachineObject::is_connected()
     if (!is_lan_mode_printer()) {
         NetworkAgent* m_agent = Slic3r::GUI::wxGetApp().getAgent();
         if (m_agent) {
-            return m_agent->is_server_connected();
+            return m_agent->is_server_connected(Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
         }
     }
     return true;

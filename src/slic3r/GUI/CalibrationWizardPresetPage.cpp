@@ -1694,7 +1694,7 @@ void CalibrationPresetPage::update_show_status()
 
     MachineObject* obj_ = dev->get_selected_machine();
     if (!obj_) {
-        if (agent->is_user_login()) {
+        if (agent->is_user_login(wxGetApp().get_printer_cloud_provider())) {
             show_status(CaliPresetPageStatus::CaliPresetStatusInvalidPrinter);
         }
         else {
@@ -1704,7 +1704,7 @@ void CalibrationPresetPage::update_show_status()
     }
 
     if (!obj_->is_lan_mode_printer()) {
-        if (!agent->is_server_connected()) {
+        if (!agent->is_server_connected(wxGetApp().get_printer_cloud_provider())) {
             show_status(CaliPresetPageStatus::CaliPresetStatusConnectingServer);
             return;
         }

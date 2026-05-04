@@ -1,9 +1,9 @@
 {
-    "type": "filament",
-    "name": "eSUN PLA-Basic @System",
-    "inherits": "eSUN PLA-Basic @base",
-    "from": "system",
-    "setting_id": "OGFSL04_00",
-    "instantiation": "true",
-    "compatible_printers": []
+	"type": "filament",
+	"name": "eSUN PLA-Basic @System",
+	"inherits": "eSUN PLA-Basic @base",
+	"from": "system",
+	"setting_id": "OGFSL04_00",
+	"instantiation": "true",
+	"compatible_printers": []
 }

@@ -162,7 +162,7 @@ msgstr ""
 msgid "Smart fill angle"
 msgstr ""
 
-msgid "On overhangs only"
+msgid "On highlighted overhangs only"
 msgstr ""
 
 msgid "Auto support threshold angle: "
@@ -10183,6 +10183,9 @@ msgstr ""
 msgid "Switch between Prepare/Preview"
 msgstr ""
 
+msgid "Toggle printable for object/part"
+msgstr ""
+
 msgid "Plater"
 msgstr ""
 
@@ -12997,6 +13000,18 @@ msgid "First layer travel speed"
 msgstr ""
 
 msgid "Travel speed of the first layer."
+msgstr ""
+
+msgid "First layer travel acceleration"
+msgstr ""
+
+msgid "Travel acceleration of first layer."
+msgstr ""
+
+msgid "First layer travel jerk"
+msgstr ""
+
+msgid "Travel jerk of first layer."
 msgstr ""
 
 msgid "Number of slow layers"

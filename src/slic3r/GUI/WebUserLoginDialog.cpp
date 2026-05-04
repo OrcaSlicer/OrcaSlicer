@@ -24,6 +24,8 @@
 #endif
 
 #include <boost/cast.hpp>
+#include <boost/asio.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <nlohmann/json.hpp>
@@ -85,7 +87,50 @@ END_EVENT_TABLE()
 
 int ZUserLogin::web_sequence_id = 20000;
 
-ZUserLogin::ZUserLogin() : wxDialog((wxWindow *) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer")
+namespace {
+
+int reserve_loopback_port()
+{
+    try {
+        boost::asio::io_service       io_service;
+        boost::asio::ip::tcp::acceptor acceptor(io_service, {boost::asio::ip::tcp::v4(), 0});
+        return static_cast<int>(acceptor.local_endpoint().port());
+    } catch (...) {
+        return 0;
+    }
+}
+
+std::string rewrite_loopback_url(std::string url, int port)
+{
+    if (port <= 0) {
+        return url;
+    }
+
+    const std::string old_port = std::to_string(LOCALHOST_PORT);
+    const std::string new_port = std::to_string(port);
+
+    boost::replace_all(url, std::string(LOCALHOST_URL) + old_port, std::string(LOCALHOST_URL) + new_port);
+    boost::replace_all(url, "http://127.0.0.1:" + old_port, "http://127.0.0.1:" + new_port);
+    boost::replace_all(url, "http%3A%2F%2Flocalhost%3A" + old_port, "http%3A%2F%2Flocalhost%3A" + new_port);
+    boost::replace_all(url, "http%3A%2F%2F127.0.0.1%3A" + old_port, "http%3A%2F%2F127.0.0.1%3A" + new_port);
+
+    return url;
+}
+
+}
+
+int ZUserLogin::ensure_loopback_port()
+{
+    if (m_loopback_port <= 0) {
+        m_loopback_port = reserve_loopback_port();
+    }
+    int port = m_loopback_port > 0 ? m_loopback_port : LOCALHOST_PORT;
+    wxGetApp().start_http_server(port, m_cloud_agent->get_id());
+    return port;
+}
+
+ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
+    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer"), m_cloud_agent(cloud_agent)
 {
     SetBackgroundColour(*wxWHITE);
     const auto bblnetwork_enabled =wxGetApp().app_config->get_bool("installed_networking");
@@ -138,14 +183,11 @@ ZUserLogin::ZUserLogin() : wxDialog((wxWindow *) (wxGetApp().mainframe), wxID_AN
         // Get the login URL from the cloud service agent
         wxString strlang = wxGetApp().current_language_code_safe();
         strlang.Replace("_", "-");
-        TargetUrl = wxString::FromUTF8(agent->get_cloud_login_url(strlang.ToStdString()));
-        m_networkOk = TargetUrl.StartsWith("file://");
+        TargetUrl = wxString::FromUTF8(m_cloud_agent->get_cloud_login_url(strlang.ToStdString()));
 
         BOOST_LOG_TRIVIAL(info) << "login url = " << TargetUrl.ToStdString();
 
-        m_bbl_user_agent = wxString::Format("BBL-Slicer/v%s", SLIC3R_VERSION);
-
-        // set the frame icon
+        m_bbl_user_agent = wxString::Format("BBL-Slicer/v%s", wxGetApp().get_bbl_client_version());
 
         // Create the webview
         m_browser = WebView::CreateWebView(this, TargetUrl);
@@ -155,12 +197,6 @@ ZUserLogin::ZUserLogin() : wxDialog((wxWindow *) (wxGetApp().mainframe), wxID_AN
         }
         m_browser->Hide();
         m_browser->SetSize(0, 0);
-
-        // Log backend information
-        // wxLogMessage(wxWebView::GetBackendVersionInfo().ToString());
-        // wxLogMessage("Backend: %s Version: %s",
-        // m_browser->GetClassInfo()->GetClassName(),wxWebView::GetBackendVersionInfo().ToString());
-        // wxLogMessage("User Agent: %s", m_browser->GetUserAgent());
 
         // Connect the webview events
         Bind(wxEVT_WEBVIEW_NAVIGATING, &ZUserLogin::OnNavigationRequest, this, m_browser->GetId());
@@ -172,19 +208,15 @@ ZUserLogin::ZUserLogin() : wxDialog((wxWindow *) (wxGetApp().mainframe), wxID_AN
         Bind(wxEVT_WEBVIEW_FULLSCREEN_CHANGED, &ZUserLogin::OnFullScreenChanged, this, m_browser->GetId());
         Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ZUserLogin::OnScriptMessage, this, m_browser->GetId());
 
-        // Connect the idle events
-        // Bind(wxEVT_IDLE, &ZUserLogin::OnIdle, this);
-        // Bind(wxEVT_CLOSE_WINDOW, &ZUserLogin::OnClose, this);
-
         // UI
         SetTitle(_L("Login"));
         // Set a more sensible size for web browsing
         wxSize pSize = FromDIP(wxSize(650, 840));
         SetSize(pSize);
 
-        int screenheight = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y, NULL);
-        int screenwidth = wxSystemSettings::GetMetric(wxSYS_SCREEN_X, NULL);
-        int MaxY = (screenheight - pSize.y) > 0 ? (screenheight - pSize.y) / 2 : 0;
+        int     screenheight = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y, NULL);
+        int     screenwidth  = wxSystemSettings::GetMetric(wxSYS_SCREEN_X, NULL);
+        int     MaxY         = (screenheight - pSize.y) > 0 ? (screenheight - pSize.y) / 2 : 0;
         wxPoint tmpPT((screenwidth - pSize.x) / 2, MaxY);
         Move(tmpPT);
 #if defined(WIN32) || defined(__APPLE__) || defined(__WXMAC__)
@@ -305,8 +337,7 @@ void ZUserLogin::OnDocumentLoaded(wxWebViewEvent &evt)
 {
     // Only notify if the document is the main frame, not a subframe
     wxString tmpUrl = evt.GetURL();
-    NetworkAgent* agent = wxGetApp().getAgent();
-    std::string strHost = agent->get_cloud_service_host();
+    std::string strHost = m_cloud_agent->get_cloud_service_host();
 
     if (tmpUrl.StartsWith("file://") || tmpUrl.Contains(strHost)) {
         m_networkOk = true;
@@ -354,11 +385,10 @@ void ZUserLogin::OnScriptMessage(wxWebViewEvent &evt)
         json j = json::parse(into_u8(str_input));
         wxString strCmd = j["command"];
         
-        NetworkAgent* agent = wxGetApp().getAgent();
-        if (agent && strCmd == "get_login_cmd" && agent->get_cloud_agent()) {
+        if (m_cloud_agent && strCmd == "get_login_cmd") {
             // Return login config (backend_url, apikey, pkce)
             // WebView handles provider selection internally
-            std::string login_cmd = agent->build_login_cmd();
+            std::string login_cmd = m_cloud_agent->build_login_cmd();
             m_loopback_port       = 0;
             try {
                 json cfg = json::parse(login_cmd);
@@ -413,13 +443,11 @@ void ZUserLogin::OnScriptMessage(wxWebViewEvent &evt)
 
             // Handle message after modal dialog ends to avoid deadlock
             // Use wxTheApp->CallAfter to ensure it runs after modal loop exits
-            wxTheApp->CallAfter([message_json]() {
-                wxGetApp().handle_script_message(message_json);
-            });
+            const auto provider = m_cloud_agent->get_id();
+            wxTheApp->CallAfter([message_json, provider]() { wxGetApp().handle_script_message(message_json, provider); });
         }
         else if (strCmd == "get_localhost_url") {
-            int loopback_port = m_loopback_port > 0 ? m_loopback_port : LOCALHOST_PORT;
-            wxGetApp().start_http_server(loopback_port);
+            int loopback_port = ensure_loopback_port();
             std::string sequence_id = j["sequence_id"].get<std::string>();
             CallAfter([this, sequence_id] {
                 json ack_j;
@@ -435,8 +463,8 @@ void ZUserLogin::OnScriptMessage(wxWebViewEvent &evt)
         else if (strCmd == "thirdparty_login") {
             if (j["data"].contains("url")) {
                 std::string jump_url = j["data"]["url"].get<std::string>();
-                int loopback_port = m_loopback_port > 0 ? m_loopback_port : LOCALHOST_PORT;
-                wxGetApp().start_http_server(loopback_port);
+                int loopback_port = ensure_loopback_port();
+                jump_url = rewrite_loopback_url(jump_url, loopback_port);
                 CallAfter([this, jump_url] {
                     wxString url = wxString::FromUTF8(jump_url);
                     wxLaunchDefaultBrowser(url);

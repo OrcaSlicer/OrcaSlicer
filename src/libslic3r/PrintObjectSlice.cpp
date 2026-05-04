@@ -4,6 +4,7 @@
 
 #include "ClipperUtils.hpp"
 #include "ElephantFootCompensation.hpp"
+#include "Exception.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
@@ -34,6 +35,23 @@ LayerPtrs new_layers(
         coordf_t lo = object_layers[i_layer];
         coordf_t hi = object_layers[i_layer + 1];
         coordf_t slice_z = 0.5 * (lo + hi);
+        bool zaa_active = false;
+        coordf_t z_offset = 0.0;
+        size_t num_regions = print_object->num_printing_regions();
+        for (size_t rid = 0; rid < num_regions; ++rid) {
+            const auto &rcfg = print_object->printing_region(rid).config();
+            if (rcfg.zaa_enabled) {
+                if (!zaa_active || rcfg.zaa_min_z < z_offset)
+                    z_offset = rcfg.zaa_min_z;
+                zaa_active = true;
+            }
+        }
+        if (zaa_active) {
+            slice_z = lo + z_offset;
+            if ((slice_z < lo && !is_approx(slice_z, lo)) || (slice_z > hi && !is_approx(slice_z, hi))) {
+                throw RuntimeError("Bad min Z value");
+            }
+        }
         Layer *layer = new Layer(id ++, print_object, hi - lo, hi + zmin, slice_z);
         out.emplace_back(layer);
         if (prev != nullptr) {
