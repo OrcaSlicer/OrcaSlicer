@@ -421,10 +421,7 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
 
     std::unordered_map<FuzzySkinConfig, SurfacesPtr> regions;
     for (auto region : *g.compatible_regions) {
-        const auto&   region_config = region->region().config();
-        const coord_t wall_width = scaled<coord_t>((region_config.outer_wall_line_width.value ? region_config.outer_wall_line_width.value :
-                                                                                                g.object_config->line_width.value)) *
-                                   g.print_config->filament_flow_ratio.get_at(g.print_config->master_extruder_id.value);
+        const auto&           region_config = region->region().config();
         const FuzzySkinConfig cfg{region_config.fuzzy_skin,
                                   scaled<coord_t>(region_config.fuzzy_skin_thickness.value),
                                   scaled<coord_t>(region_config.fuzzy_skin_point_distance.value),
