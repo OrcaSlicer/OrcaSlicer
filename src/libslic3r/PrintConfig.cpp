@@ -5239,7 +5239,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Scarf joint flow ratio");
     def->category = L("Quality");
     def->tooltip = L("This factor affects the amount of material for scarf joints.");
-    def->mode = comDevelop;
+    def->mode = comExpert;
     def->max = 2;
     def->set_default_value(new ConfigOptionFloat(1));
 
