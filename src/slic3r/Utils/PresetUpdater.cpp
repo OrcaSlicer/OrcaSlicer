@@ -4,6 +4,9 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <functional>
+#include <atomic>
+#include <mutex>
+#include <set>
 #include <thread>
 #include <unordered_map>
 #include <ostream>
@@ -199,6 +202,12 @@ struct PresetUpdater::priv
 	bool has_waiting_printer_updates { false };
     Updates waiting_printer_updates;
 
+    // Per-vendor update checking
+    std::set<std::string> checked_vendors;
+    std::mutex vendor_check_mutex;
+    std::vector<std::thread> vendor_check_threads;
+    std::atomic<bool> vendor_check_cancel{false};
+
     struct Resource
     {
         std::string              version;
@@ -219,7 +228,7 @@ struct PresetUpdater::priv
 	void sync_version() const;
 	void parse_version_string(const std::string& body) const;
     void sync_resources(std::string http_url, std::map<std::string, Resource> &resources, bool check_patch = false,  std::string current_version="", std::string changelog_file="");
-    void sync_config();
+    void sync_vendor_config(const std::string& vendor_id);
     void sync_tooltip(std::string http_url, std::string language);
     void sync_plugins(std::string http_url, std::string plugin_version);
     void sync_printer_config(std::string http_url);
@@ -642,124 +651,102 @@ void PresetUpdater::priv::sync_resources(std::string http_url, std::map<std::str
     }
 }
 
-// Orca: sync config update for currect App version
-void PresetUpdater::priv::sync_config()
+// Orca: per-vendor config update check
+void PresetUpdater::priv::sync_vendor_config(const std::string& vendor_id)
 {
-    auto cache_profile_path        = cache_path;
-    auto cache_profile_update_file = cache_path / "profiles_update.json";
-    std::string asset_name;
-    if (fs::exists(cache_profile_update_file)) {
-        try {
-            boost::nowide::ifstream f(cache_profile_update_file.string());
-            json                    data = json::parse(f);
-            if (data.contains("name"))
-                asset_name = data["name"].get<std::string>();
-            f.close();
-        } catch (const std::exception& ex) {
-            BOOST_LOG_TRIVIAL(error) << "[Orca Updater]: failed to read profiles_update.json when sync_config: " << ex.what() << std::endl;
-        } catch (...) {
-            // catch any other errors (that we have no information about)
-            BOOST_LOG_TRIVIAL(error) << "[Orca Updater]: unknown failure when reading profiles_update.json in sync_config" << std::endl;
-        }
-    }
+    if (!enabled_config_update) return;
+
+    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] checking vendor update for " << vendor_id;
+
+    auto check_cancel = [this](Http::Progress, bool &cancel_http) {
+        if (cancel || vendor_check_cancel) cancel_http = true;
+    };
+
     AppConfig *app_config = GUI::wxGetApp().app_config;
+    std::string url = app_config->profile_update_url()
+        + "?vendor=" + Http::url_encode(vendor_id)
+        + "&orca_version=" + Http::url_encode(SoftFever_VERSION);
 
-    auto profile_update_url = app_config->profile_update_url() + "/" + SoftFever_VERSION;
-    // parse the assets section and get the latest asset by comparing the name
+    std::string online_version_str; // this represents the PROFILE VERSION, not ORCA VERSION
+    std::string download_url_str;
 
-    Http::get(profile_update_url)
-        .on_error([cache_profile_path, cache_profile_update_file](std::string body, std::string error, unsigned http_status) {
-            // Orca: we check the response body to see if it's "Not Found", if so, it means for the current Orca version we don't have OTA
-            // updates, we can delete the cache file
-            if (!body.empty()) {
-                try {
-                    json j = json::parse(body);
-                    if (j.contains("message") && j["message"].get<std::string>() == "Not Found") {
-                        // The current Orca version does not have any OTA updates, delete the cache file
-                        if (fs::exists(cache_profile_path / "profiles"))
-                            fs::remove_all(cache_profile_path / "profiles");
-                        if (fs::exists(cache_profile_update_file))
-                            fs::remove(cache_profile_update_file);
-                    }
-                } catch (...) {}
-            }
-            BOOST_LOG_TRIVIAL(info) << format("Error getting: `%1%`: HTTP %2%, %3%", "sync_config_orca", http_status, error);
-        })
+    Http::get(url)
         .timeout_connect(5)
-        .on_complete([this, asset_name, cache_profile_path, cache_profile_update_file](std::string body, unsigned http_status) {
-            // Http response OK
-            if (http_status != 200)
-                return;
+        .on_progress(check_cancel)
+        .on_error([&vendor_id](std::string body, std::string error, unsigned http_status) {
+            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] vendor check HTTP error for "
+                                       << vendor_id << ": " << error;
+        })
+        .on_complete([&](std::string body, unsigned http_status) {
+            if (http_status != 200) return;
             try {
                 json j = json::parse(body);
-
-                struct update
-                {
-                    std::string url;
-                    std::string name;
-                    int         ver = -9999;
-                } latest_update;
-
-                if (!(j.contains("message") && j["message"].get<std::string>() == "Not Found")) {
-                    json assets = j.at("assets");
-                    if (assets.is_array()) {
-                        for (auto asset : assets) {
-                            std::string name          = asset["name"].get<std::string>();
-                            int         versionNumber = -1;
-                            std::regex  regexPattern("orcaslicer-profiles_ota_.*\\.([0-9]+)\\.zip$");
-                            std::smatch matches;
-                            if (std::regex_search(name, matches, regexPattern) && matches.size() > 1) {
-                                versionNumber = std::stoi(matches[1].str());
-                            }
-                            if (versionNumber > 0 && versionNumber > latest_update.ver) {
-                                latest_update.url  = asset["browser_download_url"].get<std::string>();
-                                latest_update.name = name;
-                                latest_update.ver  = versionNumber;
-                            }
-                        }
-                    }
+                if (j.contains("vendor_version") && j.contains("download_url")) {
+                    online_version_str = j["vendor_version"].get<std::string>();
+                    download_url_str = j["download_url"].get<std::string>();
                 }
-
-                if (cancel)
-                    return;
-
-                if (latest_update.ver > 0) {
-                    if (latest_update.name == asset_name)
-                        return;
-                    if (fs::exists(cache_profile_path / "profiles"))
-                        fs::remove_all(cache_profile_path / "profiles");
-                    fs::create_directories(cache_profile_path / "profiles");
-                    // download the file
-                    std::string download_url  = latest_update.url;
-                    std::string download_file = (cache_path / (latest_update.name + TMP_EXTENSION)).string();
-                    if (!get_file(download_url, download_file)) {
-                        return;
-                    }
-
-                    // extract the file downloaded
-                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]start to unzip the downloaded file " << download_file;
-                    if (!extract_file(download_file, cache_profile_path)) {
-                        BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]extract downloaded file"
-                                                   << " failed, path: " << download_file;
-                        return;
-                    }
-                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]finished unzip the downloaded file " << download_file;
-                    boost::nowide::ofstream f(cache_profile_update_file.string());
-                    json                    data;
-                    data["name"] = latest_update.name;
-                    f << data << std::endl;
-                    f.close();
-                } else {
-                    // The current Orca version does not have any OTA updates, delete the cache file
-                    if (fs::exists(cache_profile_path / "profiles"))
-                        fs::remove_all(cache_profile_path / "profiles");
-                    if (fs::exists(cache_profile_update_file))
-                        fs::remove(cache_profile_update_file);
-                }
-
-            } catch (...) {}
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] vendor check JSON parse failed: " << e.what();
+            }
         })
         .perform_sync();
+
+    if (cancel || vendor_check_cancel) return;
+    if (online_version_str.empty() || download_url_str.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "[Orca Updater] no update available for vendor " << vendor_id;
+        return;
+    }
+
+    if (cancel || vendor_check_cancel) return;
+
+    // Clear only this vendor's cached data
+    auto cache_profile_path = cache_path / "profiles";
+    fs::create_directories(cache_profile_path);
+    boost::system::error_code ec;
+    fs::remove_all(cache_profile_path / vendor_id, ec);
+    fs::remove(cache_profile_path / (vendor_id + ".json"), ec);
+    fs::remove(cache_profile_path / (vendor_id + ".changelog"), ec);
+
+    // Download the zip
+    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] downloading update for " << vendor_id
+                            << " version " << online_version_str;
+    fs::path download_file = cache_path / (vendor_id + TMP_EXTENSION);
+    bool download_ok = false;
+
+    Http::get(download_url_str)
+        .timeout_connect(5)
+        .on_progress(check_cancel)
+        .on_error([&vendor_id](std::string body, std::string error, unsigned http_status) {
+            BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] download failed for " << vendor_id << ": " << error;
+        })
+        .on_complete([&](std::string body, unsigned http_status) {
+            if (http_status != 200) return;
+            fs::fstream file(download_file, std::ios::out | std::ios::binary | std::ios::trunc);
+            if (!file.good()) return;
+            file.write(body.c_str(), body.size());
+            file.close();
+            if (file.good())
+                download_ok = true;
+        })
+        .perform_sync();
+
+    if (!download_ok || cancel || vendor_check_cancel) return;
+
+    // Extract vendor profile bundles under ota/profiles. The downloaded zip contains
+    // the vendor json/folder at its root.
+    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] extracting update for " << vendor_id;
+    if (!extract_file(download_file, cache_profile_path)) {
+        BOOST_LOG_TRIVIAL(warning) << "[Orca Updater] extraction failed for " << vendor_id;
+        return;
+    }
+    fs::remove(download_file, ec);
+
+    if (cancel || vendor_check_cancel) return;
+
+    BOOST_LOG_TRIVIAL(info) << "[Orca Updater] vendor " << vendor_id << " update cached, notifying UI";
+    GUI::wxGetApp().CallAfter([] {
+        GUI::wxGetApp().check_config_updates_from_updater();
+    });
 }
 
 void PresetUpdater::priv::sync_tooltip(std::string http_url, std::string language)
@@ -1064,30 +1051,17 @@ void PresetUpdater::priv::sync_printer_config(std::string http_url)
 
 bool PresetUpdater::priv::install_bundles_rsrc(const std::vector<std::string>& bundles, bool snapshot) const
 {
-	Updates updates;
-
-	BOOST_LOG_TRIVIAL(info) << format("Installing %1% bundles from resources ...", bundles.size());
-
-	for (const auto &bundle : bundles) {
-		auto path_in_rsrc = (this->rsrc_path / bundle).replace_extension(".json");
-		auto path_in_vendors = (this->vendor_path / bundle).replace_extension(".json");
-		updates.updates.emplace_back(std::move(path_in_rsrc), std::move(path_in_vendors), Version(), bundle, "", "");
-
-        //BBS: add directory support
-        auto print_in_rsrc = this->rsrc_path / bundle;
-		auto print_in_vendors = this->vendor_path / bundle;
-        fs::path print_folder(print_in_vendors);
-        if (fs::exists(print_folder))
-            fs::remove_all(print_folder);
-        fs::create_directories(print_folder);
-		updates.updates.emplace_back(std::move(print_in_rsrc), std::move(print_in_vendors), Version(), bundle, "", "",[](const std::string name){
-        // return false if name is end with .stl, case insensitive
-        return boost::iends_with(name, ".stl") || boost::iends_with(name, ".png") || boost::iends_with(name, ".svg") ||
-               boost::iends_with(name, ".jpeg") || boost::iends_with(name, ".jpg") || boost::iends_with(name, ".3mf");
-        }, false, true);
+	// Use the Core library function to install bundles
+	// This function is now in libslic3r so both Core and GUI can use it
+	if (!Slic3r::install_vendor_bundles_from_resources(bundles)) {
+		BOOST_LOG_TRIVIAL(error) << "Failed to install bundles from resources";
+		return false;
 	}
 
-	return perform_updates(std::move(updates), snapshot);
+	// Snapshot logic is currently commented out in perform_updates, so we don't need to handle it here
+	// If snapshot logic is needed in the future, it can be added here
+
+	return true;
 }
 
 
@@ -1253,8 +1227,7 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
                     ifs.close();
                 }
 
-                bool version_match = ((vendor_ver.maj() == cache_ver.maj()) && (vendor_ver.min() == cache_ver.min()));
-                if (version_match && (vendor_ver < cache_ver)) {
+                if (vendor_ver < cache_ver) {
                     BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:need to update settings from " << vendor_ver.to_string()
                                             << " to newer version " << cache_ver.to_string() << ", app version " << SLIC3R_VERSION;
                     Version version;
@@ -1264,6 +1237,10 @@ Updates PresetUpdater::priv::get_config_updates(const Semver &old_slic3r_version
                     updates.updates.emplace_back(std::move(file_path), std::move(path_in_vendor.string()), std::move(version), vendor_name, changelog, "", force_update, false);
                     //Orca: update vendor folder
                     updates.updates.emplace_back(cache_profile_path / vendor_name, vendor_path / vendor_name, Version(), vendor_name, "", "", force_update, true);
+                } else {
+                    BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:cached settings for " << vendor_name
+                                            << " are not newer than installed version, installed " << vendor_ver.to_string()
+                                            << ", cached " << cache_ver.to_string();
                 }
             }
         }
@@ -1352,6 +1329,12 @@ PresetUpdater::~PresetUpdater()
 		p->cancel = true;
 		p->thread.join();
 	}
+	if (p) {
+		p->vendor_check_cancel = true;
+		for (auto& t : p->vendor_check_threads)
+			if (t.joinable())
+				t.join();
+	}
 }
 
 //BBS: change directories by design
@@ -1366,20 +1349,30 @@ void PresetUpdater::sync(std::string http_url, std::string language, std::string
 	// into the closure (but perhaps the compiler can elide this).
     VendorMap vendors = preset_bundle ? preset_bundle->vendors : VendorMap{};
 
-	p->thread = std::thread([this, vendors, http_url, language, plugin_version]() {
+    // Determine active vendor before entering the thread
+    std::string active_vendor;
+    if (preset_bundle) {
+        const Preset& printer = preset_bundle->printers.get_edited_preset();
+        if (printer.vendor)
+            active_vendor = printer.vendor->id;
+    }
+
+	p->thread = std::thread([this, vendors, active_vendor, http_url, language, plugin_version]() {
 		this->p->prune_tmps();
 		if (p->cancel)
 			return;
 		this->p->sync_version();
 		if (p->cancel)
 			return;
-        if (!vendors.empty()) {
-		    this->p->sync_config();
-		    if (p->cancel)
-			    return;
-            GUI::wxGetApp().CallAfter([] {
-                GUI::wxGetApp().check_config_updates_from_updater();
-            });
+        // Per-vendor config check for the active vendor at startup
+        if (!active_vendor.empty() && !vendors.empty()) {
+            this->p->sync_vendor_config(active_vendor);
+            if (p->cancel)
+                return;
+            {
+                std::lock_guard<std::mutex> lock(this->p->vendor_check_mutex);
+                this->p->checked_vendors.insert(active_vendor);
+            }
         }
 		if (p->cancel)
 			return;
@@ -1390,6 +1383,25 @@ void PresetUpdater::sync(std::string http_url, std::string language, std::string
 		//remove the tooltip currently
 		//this->p->sync_tooltip(http_url, language);
 	});
+}
+
+void PresetUpdater::check_vendor_update(const std::string& vendor_id)
+{
+    if (!p->enabled_config_update) return;
+    if (vendor_id.empty()) return;
+
+    std::lock_guard<std::mutex> lock(p->vendor_check_mutex);
+
+    if (!p->checked_vendors.insert(vendor_id).second)
+        return;
+
+    p->vendor_check_threads.emplace_back([this, vendor_id]() {
+        try {
+            this->p->sync_vendor_config(vendor_id);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "[Orca Updater] vendor update failed for " << vendor_id << ": " << e.what();
+        }
+    });
 }
 
 void PresetUpdater::slic3r_update_notify()
