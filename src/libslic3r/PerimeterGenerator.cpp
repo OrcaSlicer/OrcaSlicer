@@ -1894,8 +1894,9 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     // derive the bridge core first, then add a bounded overlap into support.
                                     // A full BRIDGE_INFILL_MARGIN here can merge nearby bridge islands,
                                     // which may force a single bridge direction across unrelated halves.
-                                    const coordf_t anchor_overlap = std::min(bridged_infill_margin, coordf_t(ext_perimeter_width));
+                                    const coordf_t anchor_overlap = std::min(bridged_infill_margin, coordf_t(ext_perimeter_width)*0.9);
                                     ExPolygons bridge_core = diff_ex(unsupported_filtered, support, ApplySafetyOffset::Yes);
+                                    bridge_core = offset2_ex(bridge_core, -anchor_overlap, anchor_overlap);
                                     if (bridge_core.empty()) {
                                         bridge_core = unsupported_filtered;
                                     }
