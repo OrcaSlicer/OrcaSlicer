@@ -71,7 +71,7 @@ public:
     int set_on_http_error_fn(AppOnHttpErrorFn fn);
     int set_get_country_code_fn(GetCountryCodeFn fn);
     int connect_server();
-    int refresh_connection();
+    int refresh_connection(const std::string& provider = "");
 
     int change_user(std::string user_info, const std::string& provider = ORCA_CLOUD_PROVIDER);
     bool is_user_login(const std::string& provider = ORCA_CLOUD_PROVIDER);

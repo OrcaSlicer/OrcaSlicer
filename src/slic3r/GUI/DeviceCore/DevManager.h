@@ -116,7 +116,7 @@ public:
 class DeviceManagerRefresher : public wxObject
 {
     wxTimer* m_timer{ nullptr };
-    int            m_timer_interval_msec = 1000;
+    int            m_timer_interval_msec = 5000;
 
     DeviceManager* m_manager{ nullptr };
 
