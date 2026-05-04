@@ -2321,10 +2321,10 @@ void TabPrint::build()
         optgroup->append_single_option_line("ironing_angle_fixed", "quality_settings_ironing#fixed-angle");
 
         optgroup = page->new_optgroup("Z Contouring", L"param_advanced");
-        optgroup->append_single_option_line("zaa_enabled");
-        optgroup->append_single_option_line("zaa_minimize_perimeter_height");
-        optgroup->append_single_option_line("zaa_min_z");
-        optgroup->append_single_option_line("zaa_dont_alternate_fill_direction");
+        optgroup->append_single_option_line("zaa_enabled", "quality_settings_z_contouring");
+        optgroup->append_single_option_line("zaa_minimize_perimeter_height", "quality_settings_z_contouring#minimize-wall-height-angle");
+        optgroup->append_single_option_line("zaa_min_z", "quality_settings_z_contouring#minimum-z-height");
+        optgroup->append_single_option_line("zaa_dont_alternate_fill_direction", "quality_settings_z_contouring#dont-alternate-fill-direction");
         // Orca: it's not used yet, so hide it in UI for now
         // optgroup->append_single_option_line("ironing_expansion");
 
@@ -6808,10 +6808,10 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         // Collect and set indices of depending_presets marked as compatible.
         wxArrayInt selections;
         auto *compatible_printers = dynamic_cast<const ConfigOptionStrings*>(m_config->option(deps.key_list));
-        if (compatible_printers != nullptr || !compatible_printers->values.empty())
+        if (compatible_printers != nullptr && !compatible_printers->values.empty())
             for (auto preset_name : compatible_printers->values)
                 for (size_t idx = 0; idx < presets.GetCount(); ++idx)
-                    if (presets[idx] == preset_name) {
+                    if (presets[idx] == from_u8(preset_name)) {
                         selections.Add(idx);
                         break;
                     }

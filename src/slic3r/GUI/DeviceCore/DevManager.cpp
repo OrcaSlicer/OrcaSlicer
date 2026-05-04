@@ -913,12 +913,13 @@ namespace Slic3r
         }
 
         // do some refresh
-        if (Slic3r::GUI::wxGetApp().is_user_login(Slic3r::GUI::wxGetApp().get_printer_cloud_provider()))
+        const auto cloud_provider = Slic3r::GUI::wxGetApp().get_printer_cloud_provider();
+        if (Slic3r::GUI::wxGetApp().is_user_login(cloud_provider))
         {
             m_manager->check_pushing();
             try
             {
-                agent->refresh_connection();
+                agent->refresh_connection(cloud_provider);
             }
             catch (...)
             {
