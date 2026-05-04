@@ -34,6 +34,46 @@ jobs:
           python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
           exit ${PIPESTATUS[0]}
 
+      - name: Check profile indentation
+        id: indentation_check
+        continue-on-error: true
+        run: |
+          set +e
+          python3 - <<'PY' 2>&1 | tee ${{ runner.temp }}/indentation_check.log
+          import re
+          from pathlib import Path
+          import sys
+
+          profiles_root = Path("resources/profiles")
+          invalid_files = []
+
+          for file_path in sorted(profiles_root.rglob("*.json")):
+            try:
+              for line_number, line in enumerate(file_path.read_text(encoding="utf-8").splitlines(), start=1):
+                if not line.strip():
+                  continue
+                leading_ws = re.match(r"^[ \t]*", line).group(0)
+                if " " in leading_ws:
+                  invalid_files.append((file_path, line_number))
+                  break
+            except Exception as exc:
+              print(f"[ERROR] Unable to read {file_path}: {exc}")
+              invalid_files.append((file_path, 0))
+
+          if invalid_files:
+            for path, line in invalid_files:
+              if line > 0:
+                print(f"[ERROR] Space indentation found in {path}:{line}")
+              else:
+                print(f"[ERROR] Could not validate indentation in {path}")
+            print("Use tab indentation in profile JSON files (1 tab per indentation level).")
+            print("Tip: run python3 ./scripts/orca_filament_lib.py --fix --force to normalize formatting.")
+            sys.exit(1)
+
+          print("All profile JSON files use tab-only indentation.")
+          PY
+          exit ${PIPESTATUS[0]}
+
       # download
       - name: Download
         working-directory: ${{ github.workspace }}
@@ -62,7 +102,7 @@ jobs:
           exit ${PIPESTATUS[0]}
 
       - name: Prepare comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           mkdir -p ${{ runner.temp }}/profile-check-results
 
@@ -75,6 +115,15 @@ jobs:
               echo ""
               echo '```'
               head -c 30000 ${{ runner.temp }}/extra_json_check.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.indentation_check.outcome }}" = "failure" ]; then
+              echo "### Indentation Check Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/indentation_check.log || echo "No output captured"
               echo '```'
               echo ""
             fi
@@ -104,7 +153,7 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
 
       - name: Upload comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         uses: actions/upload-artifact@v7
         with:
           name: profile-check-results
@@ -112,7 +161,7 @@ jobs:
           retention-days: 1
 
       - name: Fail if any check failed
-        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           echo "One or more profile checks failed. See above for details."
           exit 1
