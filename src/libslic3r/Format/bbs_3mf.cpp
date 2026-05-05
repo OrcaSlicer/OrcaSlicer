@@ -322,6 +322,10 @@ static constexpr const char* CUSTOM_SUPPORTS_ATTR = "paint_supports";
 static constexpr const char* CUSTOM_FUZZY_SKIN_ATTR  = "paint_fuzzy_skin";
 static constexpr const char* CUSTOM_SEAM_ATTR = "paint_seam";
 static constexpr const char* MMU_SEGMENTATION_ATTR = "paint_color";
+// Companion to paint_color carrying overrides for high-index extruders that don't fit in
+// the 6-bit legacy encoding. Comma-separated decimal integers, one per NONE-encoded leaf
+// in tree-traversal order. Absent when the triangle has no high-index colors.
+static constexpr const char* MMU_SEGMENTATION_EXT_ATTR = "paint_color_ext";
 // BBS
 static constexpr const char* FACE_PROPERTY_ATTR = "face_property";
 
@@ -722,6 +726,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<std::string> custom_supports;
             std::vector<std::string> custom_seam;
             std::vector<std::string> mmu_segmentation;
+            std::vector<std::string> mmu_segmentation_ext;
             std::vector<std::string> fuzzy_skin;
             // BBS
             std::vector<std::string> face_properties;
@@ -742,6 +747,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 custom_supports.clear();
                 custom_seam.clear();
                 mmu_segmentation.clear();
+                mmu_segmentation_ext.clear();
                 fuzzy_skin.clear();
             }
         };
@@ -3700,6 +3706,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             m_curr_object->geometry.custom_supports.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SUPPORTS_ATTR));
             m_curr_object->geometry.custom_seam.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SEAM_ATTR));
             m_curr_object->geometry.mmu_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR));
+            m_curr_object->geometry.mmu_segmentation_ext.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_EXT_ATTR));
             m_curr_object->geometry.fuzzy_skin.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_FUZZY_SKIN_ATTR));
             // BBS
             m_curr_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
@@ -4907,6 +4914,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 volume->seam_facets.reserve(triangles_count);
                 volume->mmu_segmentation_facets.reserve(triangles_count);
                 volume->fuzzy_skin_facets.reserve(triangles_count);
+                // mmu_segmentation_ext is only populated for files written by an OrcaSlicer
+                // build that supports >16 filaments; older files have an empty vector.
+                const bool has_mmu_ext = sub_object->geometry.mmu_segmentation_ext.size() == triangles_count;
                 for (size_t i=0; i<triangles_count; ++i) {
                     assert(i < sub_object->geometry.custom_supports.size());
                     assert(i < sub_object->geometry.custom_seam.size());
@@ -4916,8 +4926,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         volume->supported_facets.set_triangle_from_string(i, sub_object->geometry.custom_supports[i]);
                     if (! sub_object->geometry.custom_seam[i].empty())
                         volume->seam_facets.set_triangle_from_string(i, sub_object->geometry.custom_seam[i]);
-                    if (! sub_object->geometry.mmu_segmentation[i].empty())
+                    if (! sub_object->geometry.mmu_segmentation[i].empty()) {
                         volume->mmu_segmentation_facets.set_triangle_from_string(i, sub_object->geometry.mmu_segmentation[i]);
+                        if (has_mmu_ext && ! sub_object->geometry.mmu_segmentation_ext[i].empty())
+                            volume->mmu_segmentation_facets.set_triangle_ext_from_string(i, sub_object->geometry.mmu_segmentation_ext[i]);
+                    }
                     if (!sub_object->geometry.fuzzy_skin[i].empty())
                         volume->fuzzy_skin_facets.set_triangle_from_string(i, sub_object->geometry.fuzzy_skin[i]);
                 }
@@ -5068,6 +5081,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             volume->supported_facets.reserve(triangles_count);
             volume->seam_facets.reserve(triangles_count);
             volume->mmu_segmentation_facets.reserve(triangles_count);
+            const bool has_mmu_ext = geometry.mmu_segmentation_ext.size() == geometry.mmu_segmentation.size();
             for (size_t i=0; i<triangles_count; ++i) {
                 size_t index = volume_data.first_triangle_id + i;
                 assert(index < geometry.custom_supports.size());
@@ -5077,8 +5091,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     volume->supported_facets.set_triangle_from_string(i, geometry.custom_supports[index]);
                 if (! geometry.custom_seam[index].empty())
                     volume->seam_facets.set_triangle_from_string(i, geometry.custom_seam[index]);
-                if (! geometry.mmu_segmentation[index].empty())
+                if (! geometry.mmu_segmentation[index].empty()) {
                     volume->mmu_segmentation_facets.set_triangle_from_string(i, geometry.mmu_segmentation[index]);
+                    if (has_mmu_ext && ! geometry.mmu_segmentation_ext[index].empty())
+                        volume->mmu_segmentation_facets.set_triangle_ext_from_string(i, geometry.mmu_segmentation_ext[index]);
+                }
             }
             volume->supported_facets.shrink_to_fit();
             volume->seam_facets.shrink_to_fit();
@@ -5385,6 +5402,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             current_object->geometry.custom_supports.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SUPPORTS_ATTR));
             current_object->geometry.custom_seam.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_SEAM_ATTR));
             current_object->geometry.mmu_segmentation.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_ATTR));
+            current_object->geometry.mmu_segmentation_ext.push_back(bbs_get_attribute_value_string(attributes, num_attributes, MMU_SEGMENTATION_EXT_ATTR));
             current_object->geometry.fuzzy_skin.push_back(bbs_get_attribute_value_string(attributes, num_attributes, CUSTOM_FUZZY_SKIN_ATTR));
             // BBS
             current_object->geometry.face_properties.push_back(bbs_get_attribute_value_string(attributes, num_attributes, FACE_PROPERTY_ATTR));
@@ -7179,6 +7197,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     output_buffer += "=\"";
                     output_buffer += mmu_painting_data_string;
                     output_buffer += "\"";
+
+                    // Emit the ext attribute only when the triangle has at least one
+                    // high-index extruder leaf; older slicers lacking ext support will
+                    // ignore this attribute and render the paint with high-index leaves
+                    // dropped to NONE (the lossy-but-coherent fallback).
+                    std::string mmu_ext_string = volume->mmu_segmentation_facets.get_triangle_ext_as_string(i);
+                    if (! mmu_ext_string.empty()) {
+                        output_buffer += " ";
+                        output_buffer += MMU_SEGMENTATION_EXT_ATTR;
+                        output_buffer += "=\"";
+                        output_buffer += mmu_ext_string;
+                        output_buffer += "\"";
+                    }
                 }
 
                 std::string fuzzy_skin_painting_data_string = volume->fuzzy_skin_facets.get_triangle_as_string(i);

@@ -749,13 +749,23 @@ public:
 
     // Serialize triangle into string, for serialization into 3MF/AMF.
     std::string get_triangle_as_string(int i) const;
+    // Companion to get_triangle_as_string for high-index extruders. Returns a comma-separated
+    // list of decimal integers, one per NONE-encoded leaf in tree-traversal order; a 0 entry
+    // means the leaf is genuinely unpainted, a non-zero entry overrides the leaf to that
+    // extruder. Returns an empty string if the triangle has no high-index overrides.
+    std::string get_triangle_ext_as_string(int i) const;
 
     // Before deserialization, reserve space for n_triangles.
     void reserve(int n_triangles) { m_data.triangles_to_split.reserve(n_triangles); }
     // Deserialize triangles one by one, with strictly increasing triangle_id.
     void set_triangle_from_string(int triangle_id, const std::string& str);
+    // Companion to set_triangle_from_string. Must be called only after the triangle's
+    // base paint_color string has been set. Parses a comma-separated list of decimal
+    // integers (the format produced by get_triangle_ext_as_string) and attaches them
+    // as overrides on the most-recently-added triangle.
+    void set_triangle_ext_from_string(int triangle_id, const std::string& str);
     // After deserializing the last triangle, shrink data to fit.
-    void shrink_to_fit() { m_data.triangles_to_split.shrink_to_fit(); m_data.bitstream.shrink_to_fit(); }
+    void shrink_to_fit() { m_data.triangles_to_split.shrink_to_fit(); m_data.bitstream.shrink_to_fit(); m_data.ext_overrides.shrink_to_fit(); }
     bool equals(const FacetsAnnotation &other) const;
 
 private:
