@@ -171,7 +171,7 @@ void TriangleSelector::Triangle::set_division(int sides_to_split, int special_si
 }
 
 // Real-time collision detection, Ericson, Chapter 3.4
-inline Vec3f barycentric(const Vec3f& pt, const Vec3f& p1, const Vec3f& p2, const Vec3f& p3)
+static Vec3f barycentric(const Vec3f& pt, const Vec3f& p1, const Vec3f& p2, const Vec3f& p3)
 {
     std::array<Vec3f, 3> v     = {p2 - p1, p3 - p1, pt - p1};
     float                d00   = v[0].dot(v[0]);
@@ -186,7 +186,7 @@ inline Vec3f barycentric(const Vec3f& pt, const Vec3f& p1, const Vec3f& p2, cons
     return barycentric_cords;
 }
 
-inline bool is_point_inside_triangle(const Vec3f &pt, const Vec3f &p1, const Vec3f &p2, const Vec3f &p3)
+static bool is_point_inside_triangle(const Vec3f &pt, const Vec3f &p1, const Vec3f &p2, const Vec3f &p3)
 {
     Vec3f barycentric_cords = barycentric(pt, p1, p2, p3);
     return std::all_of(begin(barycentric_cords), end(barycentric_cords), [](float cord) { return 0.f <= cord && cord <= 1.0; });
@@ -2211,8 +2211,7 @@ std::vector<EnforcerBlockerType> TriangleSelector::extract_used_facet_states(con
     return out;
 }
 
-inline bool segments_intersect_proj(
-    const Vec3f& p1, const Vec3f& p2, const Vec3f& p3, const Vec3f& p4, const std::function<std::pair<float, float>(const Vec3f&)>& proj)
+static bool segments_intersect_proj(const Vec3f& p1, const Vec3f& p2, const Vec3f& p3, const Vec3f& p4, const std::function<std::pair<float, float>(const Vec3f&)>& proj)
 {
     auto cross2d  = [](float ax, float ay, float bx, float by) -> float { return ax * by - ay * bx; };
     auto [u1, v1] = proj(p1);
@@ -2332,13 +2331,22 @@ public:
 
     bool is_facet_visible(int facet_idx, const std::vector<Vec3f>& face_normals) const override
     {
-        return TriangleSelector::Cursor::is_facet_visible(*this, facet_idx, face_normals);
+        const Vec3f& n = face_normals[facet_idx];
+
+        return check_normal(n, this->dir);
+    }
+
+    static bool check_normal(const Vec3f& facet_norm, const Vec3f& camera_dir)
+    {
+        const float a = -(facet_norm.dot(camera_dir));
+        return std::clamp(a, 0.f, 1.f) >= facet_angle_limit;
     }
 
 private:
     const std::array<const Vec3f, 3> vertices_;
     const float tolerance_     = EPSILON;
     const float tolerance_sqr_ = tolerance_ * tolerance_;
+    static const double facet_angle_limit;
 
     static float point_to_line_dist(const Vec3f& p, const Vec3f& a, const Vec3f& b)
     {
@@ -2346,6 +2354,8 @@ private:
         return line.distance(p);
     }
 };
+const double TriangleCursor::facet_angle_limit = cos(Geometry::deg2rad(5));
+
 
 // Remap painting data from source mesh to target mesh using spatial mapping.
 TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
@@ -2423,14 +2433,6 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     // 4. For each painted face, we find the nearest target face, and apply the TriangleCursor to paint it
     TriangleMesh target_mesh(target_its);
     TriangleSelector target_selector(target_mesh);
-    const auto facet_angle_limit = cos(Geometry::deg2rad(5));
-    auto check_normal = [&source_selector, &target_selector, facet_angle_limit](int src_idx, int dst_idx) -> bool {
-        const Vec3f& norm_a = source_selector.m_face_normals[src_idx];
-        const Vec3f& norm_b = target_selector.m_face_normals[dst_idx];
-        const float a       = norm_a.dot(norm_b);
-
-        return std::clamp(a, 0.f, 1.f) >= facet_angle_limit;
-    };
     for (auto tri_ref : painted_triangles) {
         const Triangle& tri = tri_ref.get();
         const Vec3f& pv0    = source_selector.m_vertices[tri.verts_idxs[0]].v;
@@ -2449,12 +2451,15 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
             if (face_idx >= target_its.indices.size())
                 return true;
 
+            const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
+            const Vec3f& norm_b = target_selector.m_face_normals[face_idx];
+
             const Vec3i32& face = target_its.indices[face_idx];
             const Vec3f& ta     = target_its.vertices[face(0)];
             const Vec3f& tb     = target_its.vertices[face(1)];
             const Vec3f& tc     = target_its.vertices[face(2)];
 
-            if (check_normal(tri.source_triangle, face_idx) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
+            if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
                 target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
                                              Transform3d::Identity(), true);
