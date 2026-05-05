@@ -2361,7 +2361,8 @@ const double TriangleCursor::facet_angle_limit = cos(Geometry::deg2rad(5));
 TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     const indexed_triangle_set& source_its,
     const TriangleSplittingData& source_painting,
-    const indexed_triangle_set& target_its)
+    const indexed_triangle_set& target_its,
+    const Transform3d& target_transform)
 {
     TriangleSelector::TriangleSplittingData result;
     if (source_painting.bitstream.empty())
@@ -2385,7 +2386,9 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         return result;
 
     // 3. Build AABB tree of target mesh so we could find nearest face quickly
-    AABBTreeIndirect::Tree3f target_tree = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(target_its.vertices, target_its.indices);
+    TriangleMesh target_mesh(target_its);
+    target_mesh.transform(target_transform);
+    AABBTreeIndirect::Tree3f target_tree = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(target_mesh.its.vertices, target_mesh.its.indices);
     
     // Helper: check overlap between a paint triangle and a target triangle.
     // Uses 3D barycentric point-in-triangle tests and dominant-axis 2D projection
@@ -2431,7 +2434,6 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     };
 
     // 4. For each painted face, we find the nearest target face, and apply the TriangleCursor to paint it
-    TriangleMesh target_mesh(target_its);
     TriangleSelector target_selector(target_mesh);
     for (auto tri_ref : painted_triangles) {
         const Triangle& tri = tri_ref.get();
@@ -2448,16 +2450,16 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
 
         AABBTreeIndirect::traverse(target_tree, AABBTreeIndirect::intersecting(pt_bbox), [&](const AABBTreeIndirect::Tree3f::Node& node) -> bool {
             size_t face_idx = node.idx;
-            if (face_idx >= target_its.indices.size())
+            if (face_idx >= target_mesh.its.indices.size())
                 return true;
 
             const Vec3f& norm_a = source_selector.m_face_normals[tri.source_triangle];
             const Vec3f& norm_b = target_selector.m_face_normals[face_idx];
 
-            const Vec3i32& face = target_its.indices[face_idx];
-            const Vec3f& ta     = target_its.vertices[face(0)];
-            const Vec3f& tb     = target_its.vertices[face(1)];
-            const Vec3f& tc     = target_its.vertices[face(2)];
+            const Vec3i32& face = target_mesh.its.indices[face_idx];
+            const Vec3f& ta     = target_mesh.its.vertices[face(0)];
+            const Vec3f& tb     = target_mesh.its.vertices[face(1)];
+            const Vec3f& tc     = target_mesh.its.vertices[face(2)];
 
             if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face

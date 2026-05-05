@@ -373,11 +373,12 @@ public:
     void seed_fill_apply_on_triangles(EnforcerBlockerType new_state);
 
     // Remap painting data from source mesh to target mesh using spatial mapping.
-    // Both meshes must be in the same coordinate space.
+    // `target_transform` should transform the target mesh into source's coordinate space.
     static TriangleSplittingData remap_painting(
         const indexed_triangle_set& source_its,
         const TriangleSplittingData& source_painting,
-        const indexed_triangle_set& target_its);
+        const indexed_triangle_set& target_its,
+        const Transform3d& target_transform);
 
 protected:
     // Triangle and info about how it's split.

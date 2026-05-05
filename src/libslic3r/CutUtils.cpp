@@ -34,7 +34,7 @@ static void remap_and_set_painting(ModelVolume* vol, const SavedPainting* saved)
                          FacetsAnnotation& target_facets) {
         if (src_data.bitstream.empty())
             return;
-        auto result = TriangleSelector::remap_painting(saved->its, src_data, vol->mesh().its);
+        auto result = TriangleSelector::remap_painting(saved->its, src_data, vol->mesh().its, translation_transform(vol->mesh().get_init_shift()));
         if (!result.bitstream.empty())
             target_facets.set_data(result);
     };
