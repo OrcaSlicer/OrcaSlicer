@@ -10,6 +10,7 @@
 #include "format.hpp"
 #include "nlohmann/json.hpp"
 
+#include <algorithm>
 #include <utility>
 #include <vector>
 #include <stdexcept>
@@ -40,7 +41,7 @@ using namespace nlohmann;
 namespace Slic3r {
 
 static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
-static const std::string PROFILE_UPDATE_URL = "https://api.github.com/repos/OrcaSlicer/orcaslicer-profiles/releases/tags";
+static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
 static const std::string MODELS_STR = "models";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
@@ -320,6 +321,11 @@ void AppConfig::set_defaults()
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
     }
+
+    if (get("preset_bundle_auto_update").empty()) {
+        set_bool("preset_bundle_auto_update", false);
+    }
+
 #ifdef __linux__
     if (get(SETTING_USE_ENCRYPTED_TOKEN_FILE).empty())
         set_bool(SETTING_USE_ENCRYPTED_TOKEN_FILE, true);
@@ -355,6 +361,10 @@ void AppConfig::set_defaults()
 
     if (get("show_daily_tips").empty()) {
         set_bool("show_daily_tips", true);
+    }
+
+    if (get("show_shared_profiles_notification").empty()) {
+        set_bool("show_shared_profiles_notification", true);
     }
 
     if (get("auto_calculate_flush").empty()){
@@ -801,6 +811,18 @@ std::string AppConfig::load()
             }
             if (it_section->second.empty())
                 m_storage.erase(it_section);
+        }
+
+        // Default for new installs
+        if (get(SETTING_CLOUD_PROVIDERS).empty()) {
+            // Migrate add bbl cloud if installed_networking is true
+            bool enable_bbl_cloud = get_bool("installed_networking");
+            if (enable_bbl_cloud) {
+                // Legacy Bambu-only user: give them both providers
+                set(SETTING_CLOUD_PROVIDERS, "orca;bbl");
+            } else {
+                set(SETTING_CLOUD_PROVIDERS, "orca");
+            }
         }
     }
 
@@ -1570,6 +1592,62 @@ void AppConfig::set_remind_network_update_later(bool remind)
 void AppConfig::clear_remind_network_update_later()
 {
     set_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER, false);
+}
+
+std::vector<std::string> AppConfig::get_cloud_providers() const
+{
+    std::vector<std::string> result;
+    std::string providers = get(SETTING_CLOUD_PROVIDERS);
+    if (providers.empty()) {
+        result.push_back("orca");
+        return result;
+    }
+
+    std::stringstream ss(providers);
+    std::string provider;
+    while (std::getline(ss, provider, ';')) {
+        if (!provider.empty())
+            result.push_back(provider);
+    }
+    // Ensure "orca" is always present
+    if (std::find(result.begin(), result.end(), "orca") == result.end()) {
+        result.insert(result.begin(), "orca");
+    }
+    return result;
+}
+
+void AppConfig::set_cloud_providers(const std::vector<std::string>& providers)
+{
+    std::string joined;
+    for (size_t i = 0; i < providers.size(); ++i) {
+        if (i > 0) joined += ";";
+        joined += providers[i];
+    }
+    set(SETTING_CLOUD_PROVIDERS, joined);
+}
+
+bool AppConfig::has_cloud_provider(const std::string& provider) const
+{
+    auto providers = get_cloud_providers();
+    return std::find(providers.begin(), providers.end(), provider) != providers.end();
+}
+
+void AppConfig::add_cloud_provider(const std::string& provider)
+{
+    auto providers = get_cloud_providers();
+    if (std::find(providers.begin(), providers.end(), provider) == providers.end()) {
+        providers.push_back(provider);
+        set_cloud_providers(providers);
+    }
+}
+
+void AppConfig::remove_cloud_provider(const std::string& provider)
+{
+    if (provider == "orca")
+        return; // Cannot remove orca
+    auto providers = get_cloud_providers();
+    providers.erase(std::remove(providers.begin(), providers.end(), provider), providers.end());
+    set_cloud_providers(providers);
 }
 
 void AppConfig::reset_selections()

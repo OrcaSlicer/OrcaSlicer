@@ -929,6 +929,11 @@ std::string GCodeWriter::extrude_arc_to_xy(const Vec2d& point, const Vec2d& cent
 
 std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion)
 {
+    // Check if Z actually changes (at export precision) before emitting it.
+    // ZAA sloped extrusions call this for every segment, but many consecutive
+    // segments share the same quantized Z — emitting it every time is redundant.
+    bool z_changed = (GCodeG1Formatter::quantize_xyzf(point(2)) != GCodeG1Formatter::quantize_xyzf(m_pos(2)));
+
     m_pos = point;
     m_lifted = 0;
     if (!force_no_extrusion)
@@ -938,7 +943,10 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
     Vec3d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset, point(2) };
 
     GCodeG1Formatter w;
-    w.emit_xyz(point_on_plate);
+    if (z_changed)
+        w.emit_xyz(point_on_plate);
+    else
+        w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     if (!force_no_extrusion)
         w.emit_e(filament()->E());
     //BBS
