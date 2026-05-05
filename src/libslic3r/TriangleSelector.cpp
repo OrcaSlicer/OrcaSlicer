@@ -170,25 +170,69 @@ void TriangleSelector::Triangle::set_division(int sides_to_split, int special_si
     this->special_side_idx = char(special_side_idx);
 }
 
+// Pre-computed barycentric resolver
 // Real-time collision detection, Ericson, Chapter 3.4
-static Vec3f barycentric(const Vec3f& pt, const Vec3f& p1, const Vec3f& p2, const Vec3f& p3)
+// Cache inspired by Don Hatch at https://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates/23745#comment390123_23745
+struct Barycentric
 {
-    std::array<Vec3f, 3> v     = {p2 - p1, p3 - p1, pt - p1};
-    float                d00   = v[0].dot(v[0]);
-    float                d01   = v[0].dot(v[1]);
-    float                d11   = v[1].dot(v[1]);
-    float                d20   = v[2].dot(v[0]);
-    float                d21   = v[2].dot(v[1]);
-    float                denom = d00 * d11 - d01 * d01;
+public:
+    Barycentric(const Vec3f& a, const Vec3f& b, const Vec3f& c)
+        :a_(a)
+    {
+         // Pre-compute denominator
+        const Vec3f v0 = b - a;
+        const Vec3f v1 = c - a;
+        const float d00 = v0.dot(v0);
+        const float d01 = v0.dot(v1);
+        const float d11 = v1.dot(v1);
+        const float inv_denom_ = 1.0f / (d00 * d11 - d01 * d01);
+        
+        x1_ = (d11 * v0 - d01 * v1) * inv_denom_;
+        x2_ = (d00 * v1 - d01 * v0) * inv_denom_;
+    }
 
-    Vec3f barycentric_cords(1.f, (d11 * d20 - d01 * d21) / denom, (d00 * d21 - d01 * d20) / denom);
-    barycentric_cords.x() = barycentric_cords.x() - barycentric_cords.y() - barycentric_cords.z();
-    return barycentric_cords;
-}
+    Vec3f calc(const Vec3f& p) const
+    {
+        const Vec3f v2  = p - a_;
+        const float v = v2.dot(x1_);
+        const float w = v2.dot(x2_);
+        const float u = 1.f - v - w;
+
+        return {u, v, w};
+    }
+
+    bool is_point_inside_triangle(const Vec3f& p) const
+    {
+        const Vec3f barycentric_cords = calc(p);
+        return std::all_of(begin(barycentric_cords), end(barycentric_cords), [](float cord) { return 0.f <= cord && cord <= 1.0; });
+    }
+
+    static Vec3f calc(const Vec3f& pt, const Vec3f& p1, const Vec3f& p2, const Vec3f& p3)
+    {
+        const std::array<Vec3f, 3> vec = {p2 - p1, p3 - p1, pt - p1};
+        const float d00                = vec[0].dot(vec[0]);
+        const float d01                = vec[0].dot(vec[1]);
+        const float d11                = vec[1].dot(vec[1]);
+        const float d20                = vec[2].dot(vec[0]);
+        const float d21                = vec[2].dot(vec[1]);
+        const float denom              = d00 * d11 - d01 * d01;
+
+        const float v = (d11 * d20 - d01 * d21) / denom;
+        const float w = (d00 * d21 - d01 * d20) / denom;
+        const float u = 1.f - v - w;
+
+        return {u, v, w};
+    }
+
+private:
+    Vec3f a_;
+    Vec3f x1_;
+    Vec3f x2_;
+};
 
 static bool is_point_inside_triangle(const Vec3f &pt, const Vec3f &p1, const Vec3f &p2, const Vec3f &p3)
 {
-    Vec3f barycentric_cords = barycentric(pt, p1, p2, p3);
+    Vec3f barycentric_cords = Barycentric::calc(pt, p1, p2, p3);
     return std::all_of(begin(barycentric_cords), end(barycentric_cords), [](float cord) { return 0.f <= cord && cord <= 1.0; });
 }
 
@@ -2211,21 +2255,22 @@ std::vector<EnforcerBlockerType> TriangleSelector::extract_used_facet_states(con
     return out;
 }
 
-static bool segments_intersect_proj(const Vec3f& p1, const Vec3f& p2, const Vec3f& p3, const Vec3f& p4, const std::function<std::pair<float, float>(const Vec3f&)>& proj)
+static bool segments_intersect_proj(const Vec3f& p1, const Vec3f& p2, const Vec3f& p3, const Vec3f& p4, const std::pair<int, int>& proj)
 {
     auto cross2d  = [](float ax, float ay, float bx, float by) -> float { return ax * by - ay * bx; };
-    auto [u1, v1] = proj(p1);
-    auto [u2, v2] = proj(p2);
-    auto [u3, v3] = proj(p3);
-    auto [u4, v4] = proj(p4);
-    float ru = u2 - u1, rv = v2 - v1;
-    float su = u4 - u3, sv = v4 - v3;
-    float denom = cross2d(ru, rv, su, sv);
+    const auto [u_axis, v_axis] = proj;
+    const auto u1 = p1(u_axis), v1 = p1(v_axis);
+    const auto u2 = p2(u_axis), v2 = p2(v_axis);
+    const auto u3 = p3(u_axis), v3 = p3(v_axis);
+    const auto u4 = p4(u_axis), v4 = p4(v_axis);
+    const float ru = u2 - u1, rv = v2 - v1;
+    const float su = u4 - u3, sv = v4 - v3;
+    const float denom = cross2d(ru, rv, su, sv);
     if (std::abs(denom) < 1e-10f)
         return false;
-    float dpu = u3 - u1, dpv = v3 - v1;
-    float t1 = cross2d(dpu, dpv, su, sv) / denom;
-    float t2 = cross2d(dpu, dpv, ru, rv) / denom;
+    const float dpu = u3 - u1, dpv = v3 - v1;
+    const float t1 = cross2d(dpu, dpv, su, sv) / denom;
+    const float t2 = cross2d(dpu, dpv, ru, rv) / denom;
     return 0.f <= t1 && t1 <= 1.0f && 0.f <= t2 && t2 <= 1.f;
 };
 
@@ -2240,7 +2285,7 @@ public:
                             const TriangleSelector::ClippingPlane& clipping_plane_,
                             const std::array<const Vec3f, 3>& vertices)
         : TriangleSelector::SinglePointCursor(center_, source_, radius_world, trafo_, clipping_plane_)
-        , vertices_(vertices)
+        , barycentric_(vertices[0], vertices[1], vertices[2])
     {}
     ~TriangleCursor() override = default;
 
@@ -2266,7 +2311,7 @@ public:
 
     bool is_mesh_point_inside(const Vec3f& point) const override
     {
-        return is_point_inside_triangle(point, vertices_[0], vertices_[1], vertices_[2]);
+        return barycentric_.is_point_inside_triangle(point);
     }
 
     bool is_edge_inside_cursor(const TriangleSelector::Triangle& tr, const std::vector<TriangleSelector::Vertex>& vertices) const override
@@ -2305,19 +2350,19 @@ public:
             }
 
             // If any projected end is inside the triangle, then is in
-            if (is_point_inside_triangle(pt_a, vertices_[0], vertices_[1], vertices_[2]) ||
-                is_point_inside_triangle(pt_b, vertices_[0], vertices_[1], vertices_[2])) {
+            if (barycentric_.is_point_inside_triangle(pt_a) ||
+                barycentric_.is_point_inside_triangle(pt_b)) {
                 return true;
             }
 
             // Otherwise see if the segment (pt_a, pt_b) intersects the triangle
             {
-                const Vec3f uvw_a = barycentric(pt_a, vertices_[0], vertices_[1], vertices_[2]);
-                const Vec3f uvw_b = barycentric(pt_b, vertices_[0], vertices_[1], vertices_[2]);
-                auto proj = [](const Vec3f& p) -> std::pair<float, float> { return {p(0), p(1)}; };
-                const Vec3f uvw_0 = {1.f,0.f,0.f};
-                const Vec3f uvw_1 = {0.f,1.f,0.f};
-                const Vec3f uvw_2 = {0.f,0.f,1.f};
+                const Vec3f uvw_a = barycentric_.calc(pt_a);
+                const Vec3f uvw_b = barycentric_.calc(pt_b);
+                const Vec3f uvw_0 {1.f,0.f,0.f};
+                const Vec3f uvw_1 {0.f,1.f,0.f};
+                const Vec3f uvw_2 {0.f,0.f,1.f};
+                constexpr std::pair<int, int> proj{0, 1};
 
                 if (segments_intersect_proj(uvw_a, uvw_b, uvw_0, uvw_1, proj)||
                     segments_intersect_proj(uvw_a, uvw_b, uvw_0, uvw_2, proj)||
@@ -2343,7 +2388,7 @@ public:
     }
 
 private:
-    const std::array<const Vec3f, 3> vertices_;
+    const Barycentric barycentric_;
     const float tolerance_     = EPSILON;
     const float tolerance_sqr_ = tolerance_ * tolerance_;
     static const double facet_angle_limit;
@@ -2413,12 +2458,9 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         Vec3f n_abs = (n1.cwiseAbs() + n2.cwiseAbs());
         int axis = (n_abs.x() >= n_abs.y() && n_abs.x() >= n_abs.z()) ? 0
                  : (n_abs.y() >= n_abs.z()) ? 1 : 2;
-        int u_axis = (axis + 1) % 3;
-        int v_axis = (axis + 2) % 3;
-
-        auto proj = [&](const Vec3f& p) -> std::pair<float, float> {
-            return { p(u_axis), p(v_axis) };
-        };
+        const int u_axis = (axis + 1) % 3;
+        const int v_axis = (axis + 2) % 3;
+        const std::pair<int, int> proj{u_axis, v_axis};
 
         if (segments_intersect_proj(pa, pb, ta, tb, proj)) return true;
         if (segments_intersect_proj(pa, pb, tb, tc, proj)) return true;
