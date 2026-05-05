@@ -6,11 +6,6 @@
 
 namespace Slic3r {
 
-namespace {
-// Match G-code XY precision (typically 0.001 mm) to suppress coordinate-quantization micro-segments.
-constexpr float k_min_spiral_segment_xy = 0.001f;
-}
-
 namespace SpiralVaseHelpers {
 /** == Smooth Spiral Helpers == */
 /** Distance between a and b */
@@ -85,7 +80,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
         return gcode;
     }
     
-    const float min_segment_xy = std::max(k_min_spiral_segment_xy, float(m_config.resolution.value));
+    const float min_segment_xy = std::max(0.001f, float(m_config.resolution.value));
 
     // Get total XY length for this layer by summing all extrusion moves.
     float total_layer_length = 0;
@@ -140,18 +135,15 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
     float finishing_flowrate = float(m_config.spiral_finishing_flow_ratio.value);
 
     float len = 0.f;
-    float pending_skipped_e = 0.f;
     SpiralVase::SpiralPoint last_point = previous_layer != NULL && previous_layer->size() >0? previous_layer->at(previous_layer->size()-1): SpiralVase::SpiralPoint(0,0);
-    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_xy, &pending_skipped_e]
+    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_xy]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
         if (line.cmd_is("G1")) {
             // Orca: Filter out retractions at layer change
             if (line.retracting(reader))
                 return;
-            if (line.extruding(reader) && line.dist_XY(reader) < min_segment_xy) {
-                pending_skipped_e += line.dist_E(reader);
+            if (line.extruding(reader) && line.dist_XY(reader) < min_segment_xy)
                 return;
-            }
             if (line.has_z() && !(line.has_x() || line.has_y())) {
                 // If this is the initial Z move of the layer, replace it with a
                 // (redundant) move to the last Z of previous layer.
@@ -164,7 +156,8 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                     if (dist_XY >= min_segment_xy && line.extruding(reader) && total_layer_length > 0.f) { // Exclude wipe and retract
                         len += dist_XY;
                         float factor = len / total_layer_length;
-                        size_t transition_gcode_size = transition_gcode.size();
+                        GCodeReader::GCodeLine transitionLine;
+                        bool has_transition_line = false;
                         if (transition_in){
                             // Transition layer, interpolate the amount of extrusion starting from spiral_vase_starting_flow_rate to 100%.
                             float starting_e_factor = starting_flowrate + (factor * (1.f - starting_flowrate));
@@ -174,10 +167,10 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                             // So clone the line before we mess with its Z and duplicate it into a new layer that ramps down E
                             // We add this new layer at the very end
                             // As with transition_in, the amount is ramped down from 100% to spiral_vase_finishing_flow_rate
-                            GCodeReader::GCodeLine transitionLine(line);
+                            transitionLine = line;
                             float finishing_e_factor = finishing_flowrate + ((1.f -factor) * (1.f - finishing_flowrate));
                             transitionLine.set(E, line.e() * finishing_e_factor, 5 /*decimal_digits*/);
-                            transition_gcode += transitionLine.raw() + '\n';
+                            has_transition_line = true;
                         }
                         // This line is the core of Spiral Vase mode, ramp up the Z smoothly
                         line.set(Z, z + factor * layer_height);
@@ -196,12 +189,8 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                                     // Remove tiny movement
                                     // We need to figure out the distance of this new line!
                                     float modified_dist_XY = SpiralVaseHelpers::distance(last_point, target);
-                                    if (modified_dist_XY < min_segment_xy) {
-                                        pending_skipped_e += line.dist_E(reader);
-                                        if (transition_out)
-                                            transition_gcode.resize(transition_gcode_size);
+                                    if (modified_dist_XY < min_segment_xy)
                                         return;
-                                    }
                                     else {
                                         line.set(X, target.x);
                                         line.set(Y, target.y);
@@ -214,13 +203,9 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                                 }
                             }
                         }
-
-                        if (pending_skipped_e > 0.f) {
-                            line.set(E, line.e() + pending_skipped_e, 5 /*decimal_digits*/);
-                            pending_skipped_e = 0.f;
-                        }
-
                         new_gcode += line.raw() + '\n';
+                        if (has_transition_line)
+                            transition_gcode += transitionLine.raw() + '\n';
                     }
                     return;
                     /*  Skip travel moves: the move to first perimeter point will
