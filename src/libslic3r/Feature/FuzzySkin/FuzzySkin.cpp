@@ -246,7 +246,7 @@ static void fuzzy_extrusion_line_ripple(Arachne::ExtrusionJunctions& ext_lines, 
 
     const double anchor_arc_mm   = ripple_anchor_arc_mm(poly);
     const double phase_shift_rad = ripple_phase_shift_rad(cfg);
-    const double phase_at_anchor = M_PI * 2. + phase_shift_rad;
+    const double phase_at_anchor = M_PI * 2.0 + phase_shift_rad;
 
     auto arc_phase = [&](double arc_mm) -> double { return N * (2.0 * M_PI) * (arc_mm - anchor_arc_mm) / perimeter_mm + phase_at_anchor; };
 
