@@ -2299,10 +2299,10 @@ public:
             Vec3f pt_a = pts_proj[idx_a];
             Vec3f pt_b = pts_proj[idx_b];
             if (std::abs(dist_a) > tolerance_) {
-                pt_a = (tolerance_ - dist_b) / (dist_a - dist_b) * (pts_proj[idx_a] - pts_proj[idx_b]);
+                pt_a = (tolerance_ - dist_b) / (dist_a - dist_b) * (pts_proj[idx_a] - pts_proj[idx_b]) + pts_proj[idx_b];
             }
             if (std::abs(dist_b) > tolerance_) {
-                pt_b = (tolerance_ - dist_a) / (dist_b - dist_a) * (pts_proj[idx_b] - pts_proj[idx_a]);
+                pt_b = (tolerance_ - dist_a) / (dist_b - dist_a) * (pts_proj[idx_b] - pts_proj[idx_a]) + pts_proj[idx_a];
             }
 
             // If any projected end is inside the triangle, then is in
@@ -2315,7 +2315,7 @@ public:
             {
                 const Vec3f uvw_a = barycentric(pt_a, vertices_[0], vertices_[1], vertices_[2]);
                 const Vec3f uvw_b = barycentric(pt_b, vertices_[0], vertices_[1], vertices_[2]);
-                auto proj = [&](const Vec3f& p) -> std::pair<float, float> { return {p(0), p(1)}; };
+                auto proj = [](const Vec3f& p) -> std::pair<float, float> { return {p(0), p(1)}; };
                 const Vec3f uvw_0 = {1.f,0.f,0.f};
                 const Vec3f uvw_1 = {0.f,1.f,0.f};
                 const Vec3f uvw_2 = {0.f,0.f,1.f};
