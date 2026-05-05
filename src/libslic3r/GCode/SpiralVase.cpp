@@ -91,13 +91,11 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
         //FIXME Performance warning: This copies the GCodeConfig of the reader.
         GCodeReader r = m_reader;  // clone
         bool set_z = false;
-        r.parse_buffer(gcode, [&total_layer_length, &layer_height, &z, &set_z, min_segment_xy]
+        r.parse_buffer(gcode, [&total_layer_length, &layer_height, &z, &set_z]
             (GCodeReader &reader, const GCodeReader::GCodeLine &line) {
             if (line.cmd_is("G1")) {
                 if (line.extruding(reader)) {
-                    const float dist_XY = line.dist_XY(reader);
-                    if (dist_XY >= min_segment_xy)
-                        total_layer_length += dist_XY;
+                    total_layer_length += line.dist_XY(reader);
                 } else if (line.has(Z)) {
                     layer_height += line.dist_Z(reader);
                     if (!set_z) {
@@ -111,11 +109,6 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
 
     // Remove layer height from initial Z.
     z -= layer_height;
-
-    if (total_layer_length <= 0.f) {
-        m_reader.parse_buffer(gcode);
-        return gcode;
-    }
 
     std::vector<SpiralVase::SpiralPoint>* current_layer = new std::vector<SpiralVase::SpiralPoint>();
     std::vector<SpiralVase::SpiralPoint>* previous_layer = m_previous_layer;
@@ -153,7 +146,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
             } else {
                 float dist_XY = line.dist_XY(reader);
                 if (line.has_x() || line.has_y()) { // Sometimes lines have X/Y but the move is to the last position
-                    if (dist_XY >= min_segment_xy && line.extruding(reader) && total_layer_length > 0.f) { // Exclude wipe and retract
+                    if (dist_XY > 0 && line.extruding(reader)) { // Exclude wipe and retract
                         len += dist_XY;
                         float factor = len / total_layer_length;
                         GCodeReader::GCodeLine transitionLine;
