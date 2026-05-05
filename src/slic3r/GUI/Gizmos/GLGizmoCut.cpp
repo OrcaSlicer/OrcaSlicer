@@ -3330,7 +3330,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                                               only_if(m_rotate_lower, ModelObjectCutAttribute::FlipLower) |
                                               only_if(dowels_count > 0, ModelObjectCutAttribute::CreateDowels) |
                                               only_if(!has_connectors && !cut_with_groove && cut_mo->cut_id.id().invalid(), ModelObjectCutAttribute::InvalidateCutInfo) |
-                                              ModelObjectCutAttribute::KeepPaint;
+                                              only_if(wxGetApp().app_config->get_bool("keep_painting"),ModelObjectCutAttribute::KeepPaint);
 
         // update cut_id for the cut object in respect to the attributes
         update_object_cut_id(cut_mo->cut_id, attributes, dowels_count);
