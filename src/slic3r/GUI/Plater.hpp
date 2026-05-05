@@ -32,6 +32,7 @@
 #define FILAMENT_SYSTEM_COLORS_NUM      16
 
 class wxButton;
+class wxBitmap;
 class ScalableButton;
 class wxScrolledWindow;
 class wxString;
@@ -84,6 +85,10 @@ using t_optgroups = std::vector <std::shared_ptr<ConfigOptionsGroup>>;
 
 class Plater;
 enum class ActionButtonType : int;
+
+bool      filament_mapping_badges_enabled(PresetBundle* preset_bundle);
+int       filament_badge_number(PresetBundle* preset_bundle, Plater* plater, size_t filament_id);
+wxBitmap* filament_badge_bitmap(Plater* plater, size_t filament_idx, int badge_number, int icon_width, int icon_height);
 
 #define EVT_PUBLISHING_START        1
 #define EVT_PUBLISHING_STOP         2
@@ -186,6 +191,10 @@ public:
     void delete_filament(size_t filament_id = size_t(-1), int replace_filament_id = -1);  // 0 base, -1 means default
     void change_filament(size_t from_id, size_t to_id);  // 0 base
     void edit_filament();
+    void set_current_plate_filament_mapping(size_t filament_id, int extruder_id);
+    bool uses_filament_mapping_badges() const;
+    int  get_current_plate_filament_mapping(size_t filament_id) const;
+    void update_filament_mapping_labels();
     void add_custom_filament(wxColour new_col);
     bool is_new_project_in_gcode3mf();
     // BBS

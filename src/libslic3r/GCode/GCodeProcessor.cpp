@@ -20,6 +20,7 @@
 
 #include <float.h>
 #include <assert.h>
+#include <cctype>
 #include <regex>
 #include <charconv>
 #include <string>
@@ -921,21 +922,50 @@ void GCodeProcessor::run_post_process()
     if (out.f == nullptr)
         throw Slic3r::RuntimeError(std::string("GCode processor post process export failed.\nCannot open file for writing.\n"));
 
-    std::vector<double> filament_mm(m_result.filaments_count, 0.0);
-    std::vector<double> filament_cm3(m_result.filaments_count, 0.0);
-    std::vector<double> filament_g(m_result.filaments_count, 0.0);
-    std::vector<double> filament_cost(m_result.filaments_count, 0.0);
+    const bool compact_to_physical_extruders = uses_physical_tool_ids() && !m_filament_maps.empty();
+    size_t     exported_filament_count = m_result.filaments_count;
+    if (compact_to_physical_extruders) {
+        exported_filament_count = 0;
+        for (int mapped_extruder_id : m_filament_maps) {
+            if (mapped_extruder_id >= 0)
+                exported_filament_count = std::max(exported_filament_count, static_cast<size_t>(mapped_extruder_id + 1));
+        }
+        if (exported_filament_count == 0)
+            exported_filament_count = m_result.filaments_count;
+    }
+
+    std::vector<double> filament_mm(exported_filament_count, 0.0);
+    std::vector<double> filament_cm3(exported_filament_count, 0.0);
+    std::vector<double> filament_g(exported_filament_count, 0.0);
+    std::vector<double> filament_cost(exported_filament_count, 0.0);
 
     double filament_total_g = 0.0;
     double filament_total_cost = 0.0;
 
     for (const auto& [id, volume] : m_result.print_statistics.total_volumes_per_extruder) {
-        filament_mm[id] = volume / (static_cast<double>(M_PI) * sqr(0.5 * m_result.filament_diameters[id]));
-        filament_cm3[id] = volume * 0.001;
-        filament_g[id] = filament_cm3[id] * double(m_result.filament_densities[id]);
-        filament_cost[id] = filament_g[id] * double(m_result.filament_costs[id]) * 0.001;
-        filament_total_g += filament_g[id];
-        filament_total_cost += filament_cost[id];
+        if (id >= m_result.filament_diameters.size() ||
+            id >= m_result.filament_densities.size() ||
+            id >= m_result.filament_costs.size())
+            continue;
+
+        const size_t output_id =
+            compact_to_physical_extruders && id < m_filament_maps.size() && m_filament_maps[id] >= 0 ?
+            static_cast<size_t>(m_filament_maps[id]) :
+            id;
+        if (output_id >= exported_filament_count)
+            continue;
+
+        const double used_mm = volume / (static_cast<double>(M_PI) * sqr(0.5 * m_result.filament_diameters[id]));
+        const double used_cm3 = volume * 0.001;
+        const double used_g = used_cm3 * double(m_result.filament_densities[id]);
+        const double cost = used_g * double(m_result.filament_costs[id]) * 0.001;
+
+        filament_mm[output_id] += used_mm;
+        filament_cm3[output_id] += used_cm3;
+        filament_g[output_id] += used_g;
+        filament_cost[output_id] += cost;
+        filament_total_g += used_g;
+        filament_total_cost += cost;
     }
 
     double total_g_wipe_tower = m_print->print_statistics().total_wipe_tower_filament;
@@ -1736,6 +1766,7 @@ void GCodeProcessor::register_commands()
         {"M572", [this](const GCodeReader::GCodeLine& line) { process_M572(line); }}, // RepRapFirmware/Duet: Set pressure advance
 
         {"T", [this](const GCodeReader::GCodeLine& line) { process_T(line); }}, // Select Tool
+        {"VT", [this](const GCodeReader::GCodeLine& line) { process_VT(line); }},
         {"SYNC", [this](const GCodeReader::GCodeLine& line) { process_SYNC(line); }}, // SYNC TIME
 
         {"VG1", [this](const GCodeReader::GCodeLine& line) { process_VG1(line); }},
@@ -1932,6 +1963,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_flavor = config.gcode_flavor;
 
     m_single_extruder_multi_material = config.single_extruder_multi_material;
+    m_orca_managed_extruder_mapping  = config.option<ConfigOptionBool>("use_physical_extruder_ids_only") != nullptr &&
+                                       config.use_physical_extruder_ids_only;
 
     size_t filament_count = config.filament_diameter.values.size();
     m_result.filaments_count = filament_count;
@@ -2062,6 +2095,12 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
     m_parser.apply_config(config);
+
+    const ConfigOptionBool* single_extruder_multi_material = config.option<ConfigOptionBool>("single_extruder_multi_material");
+    m_single_extruder_multi_material = single_extruder_multi_material != nullptr && single_extruder_multi_material->getBool();
+
+    const ConfigOptionBool* use_physical_extruder_ids_only = config.option<ConfigOptionBool>("use_physical_extruder_ids_only");
+    m_orca_managed_extruder_mapping = use_physical_extruder_ids_only != nullptr && use_physical_extruder_ids_only->getBool();
 
     //BBS
     const ConfigOptionFloatsNullable* nozzle_volume = config.option<ConfigOptionFloatsNullable>("nozzle_volume");
@@ -2195,7 +2234,6 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     }
 
     const ConfigOptionPoints* extruder_offset = config.option<ConfigOptionPoints>("extruder_offset");
-    const ConfigOptionBool* single_extruder_multi_material = config.option<ConfigOptionBool>("single_extruder_multi_material");
     if (extruder_offset != nullptr) {
         //BBS: for single extruder multi material, only use the offset of first extruder
         if (single_extruder_multi_material != nullptr && single_extruder_multi_material->getBool()) {
@@ -2450,6 +2488,8 @@ void GCodeProcessor::reset()
     m_g1_line_id = 0;
     m_layer_id = 0;
     m_cp_color.reset();
+    m_pending_logical_filament_id = -1;
+    m_orca_managed_extruder_mapping = false;
 
     m_producer = EProducer::Unknown;
 
@@ -2814,6 +2854,11 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         {
             std::string comment_content = comment.substr(1); // only format like ";V{cmd}" is valid
             if (comment_content[0] == 'V' || comment_content[0] == 'v') {
+                if (comment_content.size() > 2 && (comment_content[1] == 'T' || comment_content[1] == 't') &&
+                    std::isdigit(static_cast<unsigned char>(comment_content[2]))) {
+                    process_VT(comment_content);
+                    return;
+                }
                 GCodeReader reader;
                 GCodeReader::GCodeLine new_line;
                 reader.parse_line(comment_content, [&new_line](const auto& greader, const auto& gline) {
@@ -5341,6 +5386,32 @@ void GCodeProcessor::process_T(const GCodeReader::GCodeLine& line)
     process_T(line.cmd());
 }
 
+void GCodeProcessor::process_VT(const GCodeReader::GCodeLine& line)
+{
+    process_VT(line.raw());
+}
+
+void GCodeProcessor::process_VT(const std::string_view command)
+{
+    if (command.size() < 2 || std::toupper(static_cast<unsigned char>(command[0])) != 'V' || std::toupper(static_cast<unsigned char>(command[1])) != 'T')
+        return;
+
+    std::string_view payload = command.substr(2);
+    while (!payload.empty() && std::isspace(static_cast<unsigned char>(payload.front())))
+        payload.remove_prefix(1);
+    if (!payload.empty() && (payload.front() == 'T' || payload.front() == 't'))
+        payload.remove_prefix(1);
+    while (!payload.empty() && std::isspace(static_cast<unsigned char>(payload.front())))
+        payload.remove_prefix(1);
+
+    unsigned int filament_id = 0;
+    auto [end, ec] = std::from_chars(payload.data(), payload.data() + payload.size(), filament_id);
+    if (ec != std::errc() || end == payload.data() || filament_id >= m_result.filaments_count)
+        return;
+
+    m_pending_logical_filament_id = static_cast<int>(filament_id);
+}
+
 void GCodeProcessor::process_M1020(const GCodeReader::GCodeLine &line)
 {
     int curr_filament_id = get_filament_id(false);
@@ -5373,10 +5444,6 @@ void GCodeProcessor::process_T(const std::string_view command)
     auto         ret          = std::from_chars(command.data() + 1, command.data()+command.size(), eid);
     if (std::errc::invalid_argument == ret.ec)
         return;
-
-    int curr_filament_id = get_filament_id(false);
-    int curr_extruder_id = get_extruder_id(false);
-    //TODO: multi switch
     if (command.length() > 1) {
         if (eid < 0 || eid > 254) {
             //BBS: T255, T1000 and T1100 is used as special command for BBL machine and does not cost time. return directly
@@ -5389,11 +5456,27 @@ void GCodeProcessor::process_T(const std::string_view command)
                 BOOST_LOG_TRIVIAL(error) << "Invalid T command (" << command << ").";
         }
         else {
-            if (eid >= m_result.filaments_count) {
+            int target_filament_id = -1;
+            if (uses_physical_tool_ids()) {
+                if (m_pending_logical_filament_id >= 0 &&
+                    m_pending_logical_filament_id < static_cast<int>(m_filament_maps.size()) &&
+                    m_filament_maps[m_pending_logical_filament_id] == static_cast<int>(eid)) {
+                    target_filament_id = m_pending_logical_filament_id;
+                } else {
+                    target_filament_id = resolve_filament_for_tool_id(eid);
+                }
+            } else {
+                target_filament_id = (eid < m_result.filaments_count) ? static_cast<int>(eid) : -1;
+            }
+            if (target_filament_id == -1) {
                 BOOST_LOG_TRIVIAL(error) << "Invalid T command (" << command << ").";
                 return;
             }
-            process_filament_change(eid);
+            if (uses_physical_tool_ids() &&
+                target_filament_id < static_cast<int>(m_filament_maps.size()) &&
+                m_filament_maps[target_filament_id] == static_cast<int>(eid))
+                m_pending_logical_filament_id = -1;
+            process_filament_change(target_filament_id);
         }
     }
 }
@@ -5472,9 +5555,43 @@ void GCodeProcessor::process_filament_change(int id)
         }
     }
     m_cp_color.current = m_extruder_colors[next_filament_id];
+    if (m_pending_logical_filament_id == next_filament_id)
+        m_pending_logical_filament_id = -1;
     simulate_st_synchronize(extra_time);
     // store tool change move
     store_move_vertex(EMoveType::Tool_change);
+}
+
+bool GCodeProcessor::uses_physical_tool_ids() const
+{
+    return m_orca_managed_extruder_mapping &&
+           !s_IsBBLPrinter &&
+           !m_single_extruder_multi_material;
+}
+
+int GCodeProcessor::resolve_filament_for_tool_id(unsigned int tool_id) const
+{
+    const int physical_extruder_id = static_cast<int>(tool_id);
+    if (physical_extruder_id < 0 || physical_extruder_id >= static_cast<int>(m_filament_id.size()))
+        return -1;
+
+    const int current_filament_id = get_filament_id(false);
+    if (current_filament_id >= 0 && current_filament_id < static_cast<int>(m_filament_maps.size()) &&
+        m_filament_maps[current_filament_id] == physical_extruder_id)
+        return current_filament_id;
+
+    if (m_filament_id[physical_extruder_id] != static_cast<unsigned char>(-1))
+        return static_cast<int>(m_filament_id[physical_extruder_id]);
+
+    if (m_last_filament_id[physical_extruder_id] != static_cast<unsigned char>(-1))
+        return static_cast<int>(m_last_filament_id[physical_extruder_id]);
+
+    for (size_t filament_id = 0; filament_id < m_filament_maps.size(); ++filament_id) {
+        if (m_filament_maps[filament_id] == physical_extruder_id)
+            return static_cast<int>(filament_id);
+    }
+
+    return physical_extruder_id < static_cast<int>(m_result.filaments_count) ? physical_extruder_id : -1;
 }
 
 void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)

@@ -204,6 +204,93 @@ wxDEFINE_EVENT(EVT_REPAIR_MODEL,                    wxCommandEvent);
 wxDEFINE_EVENT(EVT_FILAMENT_COLOR_CHANGED,          wxCommandEvent);
 wxDEFINE_EVENT(EVT_INSTALL_PLUGIN_NETWORKING,       wxCommandEvent);
 wxDEFINE_EVENT(EVT_UPDATE_PLUGINS_WHEN_LAUNCH,       wxCommandEvent);
+
+static bool orca_managed_extruder_mapping_enabled(PresetBundle* preset_bundle)
+{
+    if (preset_bundle == nullptr)
+        return false;
+
+    const Preset& edited_printer_preset = preset_bundle->printers.get_edited_preset();
+    const DynamicPrintConfig& printer_config = edited_printer_preset.config;
+    const bool single_extruder_multi_material = printer_config.has("single_extruder_multi_material") &&
+                                                printer_config.opt_bool("single_extruder_multi_material");
+    const bool use_physical_extruder_ids_only = printer_config.has("use_physical_extruder_ids_only") &&
+                                                printer_config.opt_bool("use_physical_extruder_ids_only");
+    return edited_printer_preset.printer_technology() == ptFFF &&
+           !preset_bundle->is_bbl_vendor() &&
+           !single_extruder_multi_material &&
+           preset_bundle->get_printer_extruder_count() > 1 &&
+           use_physical_extruder_ids_only;
+}
+
+bool filament_mapping_badges_enabled(PresetBundle* preset_bundle)
+{
+    return orca_managed_extruder_mapping_enabled(preset_bundle);
+}
+
+static DynamicPrintConfig full_config_for_current_mapping_mode(PresetBundle* preset_bundle, PartPlate* plate)
+{
+    if (preset_bundle == nullptr)
+        return DynamicPrintConfig();
+
+    if (!orca_managed_extruder_mapping_enabled(preset_bundle) || plate == nullptr)
+        return preset_bundle->full_config(false);
+
+    return preset_bundle->full_config(false, plate->get_real_filament_maps(preset_bundle->project_config));
+}
+
+int filament_badge_number(PresetBundle* preset_bundle, Plater* plater, size_t filament_id)
+{
+    if (!filament_mapping_badges_enabled(preset_bundle))
+        return int(filament_id) + 1;
+
+    const int physical_extruder_count = std::max(1, preset_bundle->get_printer_extruder_count());
+    if (filament_id < size_t(physical_extruder_count))
+        return int(filament_id) + 1;
+
+    if (plater == nullptr)
+        return 1;
+
+    std::vector<int> filament_map;
+    PartPlate* current_plate = plater->get_partplate_list().get_curr_plate();
+    if (current_plate != nullptr)
+        filament_map = current_plate->get_real_filament_maps(preset_bundle->project_config);
+    else
+        filament_map = plater->get_global_filament_map();
+
+    if (filament_id >= filament_map.size())
+        return 1;
+
+    const int mapped_extruder = filament_map[filament_id];
+    if (mapped_extruder < 1 || mapped_extruder > physical_extruder_count)
+        return 1;
+
+    return mapped_extruder;
+}
+
+wxBitmap* filament_badge_bitmap(Plater* plater, size_t filament_idx, int badge_number, int icon_width, int icon_height)
+{
+    if (plater == nullptr)
+        return nullptr;
+
+    const std::string label = std::to_string(badge_number);
+    const auto filament_color_info = plater->get_filament_colors_render_info();
+    const auto filament_color_type = plater->get_filament_color_render_type();
+    const auto fallback_colors     = plater->get_extruder_colors_from_plater_config();
+
+    if (filament_idx < filament_color_info.size() && filament_idx < filament_color_type.size() && !filament_color_info[filament_idx].empty()) {
+        std::vector<std::string> colors = Slic3r::split_string(filament_color_info[filament_idx], ' ');
+        if (colors.size() <= 1)
+            return get_extruder_color_icon(colors.empty() ? "#636363" : colors.front(), label, icon_width, icon_height);
+
+        return get_extruder_color_icon(colors, filament_color_type[filament_idx] == "0", label, icon_width, icon_height);
+    }
+
+    if (filament_idx < fallback_colors.size())
+        return get_extruder_color_icon(fallback_colors[filament_idx], label, icon_width, icon_height);
+
+    return nullptr;
+}
 wxDEFINE_EVENT(EVT_INSTALL_PLUGIN_HINT,             wxCommandEvent);
 wxDEFINE_EVENT(EVT_PREVIEW_ONLY_MODE_HINT,          wxCommandEvent);
 //BBS: change light/dark mode
@@ -2364,7 +2451,8 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     if ((filament_idx % 2) == 0) // Dont add right column item. this one create equal spacing on left, right & middle
         combo_and_btn_sizer->AddSpacer(FromDIP((filament_idx % 2) == 0 ? 12 : 3)); // Content Margin
 
-    (*combo)->clr_picker->SetLabel(wxString::Format("%d", filament_idx + 1));
+    const int badge_number = filament_badge_number(wxGetApp().preset_bundle, p->plater, size_t(filament_idx));
+    (*combo)->clr_picker->SetLabel(wxString::Format("%d", badge_number));
     combo_and_btn_sizer->Add((*combo)->clr_picker, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()) - FromDIP(2)); // ElementSpacing - 2 (from combo box))
     combo_and_btn_sizer->Add(*combo, 1, wxALL | wxEXPAND, FromDIP(2))->SetMinSize({-1, FromDIP(30)});
 
@@ -2387,6 +2475,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, filament_idx](wxCommandEvent) {
+        update_filament_mapping_labels();
         auto menu = p->plater->filament_action_menu(filament_idx);
         wxPoint pt { 0, edit_btn->GetSize().GetHeight() + 10 };
         pt = edit_btn->ClientToScreen(pt);
@@ -2496,6 +2585,7 @@ void Sidebar::update_all_preset_comboboxes()
     }
 
     show_SEMM_buttons(should_show_SEMM_buttons());
+    update_filament_mapping_labels();
 
     //p->m_staticText_filament_settings->Update();
 
@@ -2587,6 +2677,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         for (size_t i = 0; i < filament_cnt; i++)
             p->combos_filament[i]->update();
 
+        update_filament_mapping_labels();
         update_dynamic_filament_list();
         break;
     }
@@ -2612,6 +2703,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
     case Preset::TYPE_PRINTER:
     {
         update_all_preset_comboboxes();
+        update_filament_mapping_labels();
         p->show_preset_comboboxes();
 
         /* update bed shape */
@@ -3109,6 +3201,7 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
 
     Layout();
     p->m_panel_filament_title->Refresh();
+    update_filament_mapping_labels();
     update_ui_from_settings();
     update_dynamic_filament_list();
 }
@@ -3169,6 +3262,7 @@ void Sidebar::on_filaments_delete(size_t filament_id)
 
     Layout();
     p->m_panel_filament_title->Refresh();
+    update_filament_mapping_labels();
     update_ui_from_settings();
     dynamic_filament_list.update();
 }
@@ -3222,6 +3316,72 @@ void Sidebar::edit_filament()
     if (p->m_menu_filament_id >= 0 && p->m_menu_filament_id < p->combos_filament.size()
             && p->combos_filament[p->m_menu_filament_id]->switch_to_tab())
         p->editing_filament = p->m_menu_filament_id; // sync with TabPresetComboxBox's m_filament_idx
+}
+
+void Sidebar::set_current_plate_filament_mapping(size_t filament_id, int extruder_id)
+{
+    if (!uses_filament_mapping_badges())
+        return;
+
+    PartPlate *curr_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    if (curr_plate == nullptr)
+        return;
+
+    const int physical_extruder_count = wxGetApp().preset_bundle->get_printer_extruder_count();
+    if (physical_extruder_count <= 0 || extruder_id < 1 || extruder_id > physical_extruder_count)
+        return;
+    if (filament_id < size_t(physical_extruder_count))
+        return;
+
+    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    auto        filament_maps  = curr_plate->get_real_filament_maps(project_config);
+    filament_maps.resize(wxGetApp().preset_bundle->filament_presets.size(), 1);
+    if (filament_id >= filament_maps.size())
+        return;
+
+    if (curr_plate->get_filament_map_mode() == fmmManual && filament_maps[filament_id] == extruder_id)
+        return;
+
+    wxGetApp().plater()->take_snapshot("Set Filament Extruder Mapping");
+    curr_plate->set_filament_map_mode(fmmManual);
+    filament_maps[filament_id] = extruder_id;
+    curr_plate->set_filament_maps(filament_maps);
+    curr_plate->update_slice_result_valid_state(false);
+
+    wxGetApp().plater()->update_project_dirty_from_presets();
+    wxGetApp().plater()->set_plater_dirty(true);
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    update_filament_mapping_labels();
+    wxGetApp().plater()->update();
+}
+
+bool Sidebar::uses_filament_mapping_badges() const
+{
+    return filament_mapping_badges_enabled(wxGetApp().preset_bundle);
+}
+
+int Sidebar::get_current_plate_filament_mapping(size_t filament_id) const
+{
+    return filament_badge_number(wxGetApp().preset_bundle, p != nullptr ? p->plater : nullptr, filament_id);
+}
+
+void Sidebar::update_filament_mapping_labels()
+{
+    if (p == nullptr)
+        return;
+
+    const int icon_width  = FromDIP(20);
+    const int icon_height = FromDIP(20);
+
+    for (size_t filament_idx = 0; filament_idx < p->combos_filament.size(); ++filament_idx) {
+        const int badge_number = filament_badge_number(wxGetApp().preset_bundle, p->plater, filament_idx);
+        wxBitmap* bitmap = filament_badge_bitmap(p->plater, filament_idx, badge_number, icon_width, icon_height);
+
+        if (bitmap != nullptr)
+            p->combos_filament[filament_idx]->clr_picker->SetBitmap(*bitmap);
+        p->combos_filament[filament_idx]->clr_picker->SetLabel(wxString::Format("%d", badge_number));
+        p->combos_filament[filament_idx]->clr_picker->Refresh();
+    }
 }
 
 void Sidebar::add_custom_filament(wxColour new_col) {
@@ -3715,7 +3875,7 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor || preset_bundle.get_printer_extruder_count() > 1;
 }
 
 void Sidebar::show_SEMM_buttons(bool bshow)
@@ -3791,6 +3951,12 @@ wxButton* Sidebar::get_wiping_dialog_button()
 
 void Sidebar::set_flushing_volume_warning(const bool flushing_volume_modify)
 {
+    const auto &printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    if (!printer_config.opt_bool("single_extruder_multi_material")) {
+        p->m_flushing_volume_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
+        return;
+    }
+
     if(flushing_volume_modify){
         p->m_flushing_volume_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
         p->m_flushing_volume_btn->SetBorderColor(wxColour("#FF6F00"));
@@ -7922,8 +8088,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     const auto& preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle->get_printer_extruder_count() > 1) {
         PartPlate* cur_plate = background_process.get_current_plate();
-        std::vector<int> f_maps = cur_plate->get_real_filament_maps(preset_bundle->project_config);
-        invalidated = background_process.apply(this->model, preset_bundle->full_config(false, f_maps));
+        invalidated = background_process.apply(this->model, full_config_for_current_mapping_mode(preset_bundle, cur_plate));
         background_process.fff_print()->set_extruder_filament_info(get_extruder_filament_info());
     }
     else
@@ -16788,16 +16953,37 @@ void Plater::set_global_filament_map_mode(FilamentMapMode mode)
     mode_ptr->value = mode;
 }
 
+static std::vector<int> normalize_global_filament_map(const std::vector<int> &filament_map)
+{
+    const size_t filament_count = wxGetApp().preset_bundle->filament_presets.size();
+    const int    physical_extruder_count = std::max(1, wxGetApp().preset_bundle->get_printer_extruder_count());
+
+    std::vector<int> normalized = filament_map;
+    normalized.resize(filament_count, 1);
+    for (size_t filament_idx = 0; filament_idx < normalized.size(); ++filament_idx) {
+        int &mapped_extruder = normalized[filament_idx];
+        if (filament_idx < size_t(physical_extruder_count)) {
+            mapped_extruder = int(filament_idx) + 1;
+            continue;
+        }
+
+        if (mapped_extruder < 1 || mapped_extruder > physical_extruder_count)
+            mapped_extruder = 1;
+    }
+
+    return normalized;
+}
+
 void Plater::set_global_filament_map(const std::vector<int>& filament_map)
 {
     auto& project_config = wxGetApp().preset_bundle->project_config;
-    project_config.option<ConfigOptionInts>("filament_map")->values = filament_map;
+    project_config.option<ConfigOptionInts>("filament_map")->values = normalize_global_filament_map(filament_map);
 }
 
 std::vector<int> Plater::get_global_filament_map() const
 {
     auto& project_config = wxGetApp().preset_bundle->project_config;
-    return project_config.option<ConfigOptionInts>("filament_map")->values;
+    return normalize_global_filament_map(project_config.option<ConfigOptionInts>("filament_map")->values);
 }
 
 
@@ -17321,8 +17507,7 @@ void Plater::apply_background_progress()
     //always apply the current plate's print
     Print::ApplyStatus invalidated;
     if (preset_bundle->get_printer_extruder_count() > 1) {
-        std::vector<int> f_maps = part_plate->get_real_filament_maps(preset_bundle->project_config);
-        invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false, f_maps));
+        invalidated = p->background_process.apply(this->model(), full_config_for_current_mapping_mode(preset_bundle, part_plate));
     }
     else
         invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false));
@@ -17366,8 +17551,7 @@ int Plater::select_plate(int plate_index, bool need_slice)
 
         //always apply the current plate's print
         if (preset_bundle->get_printer_extruder_count() > 1) {
-            std::vector<int> f_maps = part_plate->get_real_filament_maps(preset_bundle->project_config);
-            invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false, f_maps));
+            invalidated = p->background_process.apply(this->model(), full_config_for_current_mapping_mode(preset_bundle, part_plate));
         }
         else
             invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false));
@@ -17788,8 +17972,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             part_plate->get_print(&print, &gcode_result, NULL);
             //always apply the current plate's print
             if (preset_bundle->get_printer_extruder_count() > 1) {
-                std::vector<int> f_maps = part_plate->get_real_filament_maps(preset_bundle->project_config);
-                invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false, f_maps));
+                invalidated = p->background_process.apply(this->model(), full_config_for_current_mapping_mode(preset_bundle, part_plate));
             }
             else
                 invalidated = p->background_process.apply(this->model(), preset_bundle->full_config(false));

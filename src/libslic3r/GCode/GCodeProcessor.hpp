@@ -801,6 +801,7 @@ class Print;
         unsigned int m_g1_line_id;
         unsigned int m_layer_id;
         CpColor m_cp_color;
+        int m_pending_logical_filament_id{-1};
         SeamsDetector m_seams_detector;
         OptionsZCorrector m_options_z_corrector;
         size_t m_last_default_color_id;
@@ -808,6 +809,7 @@ class Print;
         int m_seams_count;
         bool m_measure_g29_time {false};
         bool m_single_extruder_multi_material;
+        bool m_orca_managed_extruder_mapping { false };
         float m_preheat_time;
         int m_preheat_steps;
         bool m_disable_m73;
@@ -927,6 +929,8 @@ class Print;
         void process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise);
 
         void process_VG1(const GCodeReader::GCodeLine& line);
+        void process_VT(const GCodeReader::GCodeLine& line);
+        void process_VT(const std::string_view command);
 
 
         // BBS: handle delay command
@@ -1060,6 +1064,8 @@ class Print;
         void process_M623(const GCodeReader::GCodeLine &line);
 
         void process_filament_change(int id);
+        bool uses_physical_tool_ids() const;
+        int resolve_filament_for_tool_id(unsigned int tool_id) const;
 
         // post process the file with the given filename to:
         // 1) add remaining time lines M73 and update moves' gcode ids accordingly
@@ -1118,5 +1124,3 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
-

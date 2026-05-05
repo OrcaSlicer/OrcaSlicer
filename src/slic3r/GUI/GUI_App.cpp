@@ -7803,12 +7803,14 @@ void GUI_App::load_current_presets(bool active_preset_combox/*= false*/, bool ch
 
     auto& edited_printer_preset = preset_bundle->printers.get_edited_preset();
     PrinterTechnology printer_technology = edited_printer_preset.printer_technology();
-    // ORCA: Sync filament count with the printer's nozzle count before loading presets for multi-tool printers.
-    // This ensures filament_presets vector is properly sized when combo boxes are created/updated.
+    // ORCA: Ensure the logical filament count is never smaller than the physical nozzle count.
+    // Extra logical filaments may intentionally exist and be remapped onto the available tools.
     if (printer_technology == ptFFF && !edited_printer_preset.config.opt_bool("single_extruder_multi_material")) {
         auto* nozzle_diameter = edited_printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
         if (nozzle_diameter) {
-            preset_bundle->set_num_filaments(nozzle_diameter->values.size());
+            const auto* filament_colours = preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour");
+            const size_t logical_filament_count = filament_colours ? filament_colours->values.size() : 0;
+            preset_bundle->set_num_filaments(std::max(logical_filament_count, nozzle_diameter->values.size()));
         }
     }
 	this->plater()->set_printer_technology(printer_technology);

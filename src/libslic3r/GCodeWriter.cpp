@@ -28,6 +28,7 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
 {
     this->config.apply(print_config, true);
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
+    m_use_physical_extruder_ids_only = print_config.use_physical_extruder_ids_only.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
                            print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
     if (use_mach_limits) {
@@ -160,7 +161,29 @@ std::string GCodeWriter::set_temperature(unsigned int temperature, bool wait, in
     // set tool to -1 to make sure we won't emit T parameter for single extruder or SEMM
     if (!this->multiple_extruders || m_single_extruder_multi_material)
         tool = -1;
+    else
+        tool = get_output_tool_id(tool);
     return set_temperature(temperature, this->config.gcode_flavor, wait, tool);
+}
+
+bool GCodeWriter::uses_strict_physical_tool_ids() const
+{
+    return multiple_extruders && !m_single_extruder_multi_material && !m_is_bbl_printers && m_use_physical_extruder_ids_only;
+}
+
+int GCodeWriter::get_output_tool_id(int tool) const
+{
+    if (tool < 0 || !uses_strict_physical_tool_ids())
+        return tool;
+
+    const size_t logical_tool_id = static_cast<size_t>(tool);
+    if (logical_tool_id < config.filament_map.size()) {
+        const int mapped_tool = config.filament_map.get_at(logical_tool_id) - 1;
+        if (mapped_tool >= 0)
+            return mapped_tool;
+    }
+
+    return tool;
 }
 
 // BBS
@@ -518,16 +541,22 @@ std::string GCodeWriter::toolchange(unsigned int filament_id)
     assert(filament_extruder_iter != m_filament_extruders.end() && filament_extruder_iter->id() == filament_id);
     m_curr_extruder_id = filament_extruder_iter->extruder_id();
     m_curr_filament_extruder[m_curr_extruder_id] = &*filament_extruder_iter;
+    const unsigned int toolchange_id = uses_strict_physical_tool_ids() ?
+        filament_extruder_iter->extruder_id() :
+        filament_id;
 
     // return the toolchange command
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;
     if (this->multiple_extruders || (this->config.filament_diameter.values.size() > 1 && !is_bbl_printers())) {
         // BBS
+        if (uses_strict_physical_tool_ids())
+            gcode << ";VT T" << filament_id << "\n";
+
         if (this->m_is_bbl_printers)
             gcode << "M1020 S" << filament_id;
         else
-            gcode << this->toolchange_prefix() << filament_id;
+            gcode << this->toolchange_prefix() << toolchange_id;
         //BBS
         if (GCodeWriter::full_gcode_comment)
             gcode << " ; change extruder";

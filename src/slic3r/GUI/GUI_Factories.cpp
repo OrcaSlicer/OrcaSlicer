@@ -1655,6 +1655,12 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
             }, m_parent);
     }
 
+    // During menu-factory initialization the Sidebar has not been constructed yet.
+    // Build only the static items above here; the dynamic filament-specific submenus
+    // are rebuilt on demand when the menu is actually opened.
+    if (init)
+        return;
+
     const int item_id = menu->FindItem(_L("Merge with"));
     if (item_id != wxNOT_FOUND)
         menu->Destroy(item_id);
@@ -1675,6 +1681,33 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     }
     append_submenu(menu, sub_menu, wxID_ANY, _L("Merge with"), "", "",
         [filaments_cnt]() { return filaments_cnt > 1; }, m_parent);
+
+    const int physical_extruder_cnt = wxGetApp().preset_bundle->get_printer_extruder_count();
+    const bool can_use_filament_mapping = plater()->sidebar().uses_filament_mapping_badges();
+    const int mapping_item_id       = menu->FindItem(_L("Extruder Mapping"));
+    if (mapping_item_id != wxNOT_FOUND)
+        menu->Destroy(mapping_item_id);
+
+    const bool can_remap_filament    = can_use_filament_mapping && active_filament_menu_id >= physical_extruder_cnt;
+    if (can_remap_filament) {
+        wxMenu *mapping_menu      = new wxMenu();
+        const int current_mapping = plater()->sidebar().get_current_plate_filament_mapping(active_filament_menu_id);
+        for (int extruder_id = 1; extruder_id <= physical_extruder_cnt; ++extruder_id) {
+            const wxString item_name = wxString::Format(_L("Extruder %d"), extruder_id);
+            wxMenuItem *item = append_menu_check_item(
+                mapping_menu, wxID_ANY, item_name, "",
+                [active_filament_menu_id, extruder_id](wxCommandEvent &) {
+                    plater()->sidebar().set_current_plate_filament_mapping(size_t(active_filament_menu_id), extruder_id);
+                },
+                mapping_menu,
+                []() { return true; },
+                [current_mapping, extruder_id]() { return current_mapping == extruder_id; },
+                m_parent);
+            item->Check(current_mapping == extruder_id);
+        }
+        append_submenu(menu, mapping_menu, wxID_ANY, _L("Extruder Mapping"), "", "",
+            [physical_extruder_cnt]() { return physical_extruder_cnt > 1; }, m_parent);
+    }
 }
 
 //BBS: add part plate related logic
@@ -2008,6 +2041,7 @@ void MenuFactory::append_menu_items_instance_manipulation(wxMenu* menu)
 }
 
 wxMenu *MenuFactory::filament_action_menu(int active_filament_menu_id) {
+    plater()->sidebar().update_filament_mapping_labels();
     create_filament_action_menu(false, active_filament_menu_id);
     return &m_filament_action_menu;
 }

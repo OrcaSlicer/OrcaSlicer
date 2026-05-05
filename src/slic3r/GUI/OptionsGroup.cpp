@@ -945,6 +945,26 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 	boost::any ret;
 	wxString text_value = wxString("");
 	const ConfigOptionDef* opt = config.def()->get(opt_key);
+    if (opt == nullptr)
+        return ret;
+
+    const ConfigOption *config_opt = config.option(opt_key);
+    if (config_opt == nullptr && bool(opt->default_value)) {
+        switch (opt->type) {
+        case coBool:
+            return static_cast<const ConfigOptionBool*>(opt->default_value.get())->value != 0;
+        case coInt:
+            return static_cast<const ConfigOptionInt*>(opt->default_value.get())->value;
+        case coFloat:
+            return double_to_string(static_cast<const ConfigOptionFloat*>(opt->default_value.get())->value);
+        case coString:
+            return from_u8(static_cast<const ConfigOptionString*>(opt->default_value.get())->value);
+        case coEnum:
+            return opt->default_value->getInt();
+        default:
+            break;
+        }
+    }
 
     if (opt->nullable)
     {

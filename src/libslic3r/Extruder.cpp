@@ -21,10 +21,10 @@ Extruder::Extruder(unsigned int id, GCodeConfig *config, bool share_extruder) :
 unsigned int Extruder::extruder_id() const
 {
     assert(m_config);
-    if (m_id < m_config->filament_map.size()) {
+    if (m_config->use_physical_extruder_ids_only && !m_config->single_extruder_multi_material && m_id < m_config->filament_map.size()) {
         return m_config->filament_map.get_at(m_id) - 1;
     }
-    return 0;
+    return m_id;
 }
 
 double Extruder::extrude(double dE)

@@ -34,6 +34,66 @@ static const Slic3r::ColorRGBA TRANSPARENT_PLANE_COLOR = { 0.8f, 0.8f, 0.8f, 0.5
 namespace Slic3r {
 namespace GUI {
 
+namespace {
+
+constexpr int WIPE_TOWER_OBJECT_IDX_BASE = 1000;
+
+bool is_wipe_tower_proxy_object_idx(int obj_idx)
+{
+    Plater *plater = wxGetApp().plater();
+    if (plater == nullptr)
+        return false;
+
+    const int plate_count = plater->get_partplate_list().get_plate_count();
+    return obj_idx >= WIPE_TOWER_OBJECT_IDX_BASE && obj_idx < WIPE_TOWER_OBJECT_IDX_BASE + plate_count;
+}
+
+ModelObject *checked_model_object(Model *model, int obj_idx, const char *caller)
+{
+    if (model == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << caller << ": selection has no model";
+        return nullptr;
+    }
+
+    if (obj_idx < 0 || size_t(obj_idx) >= model->objects.size()) {
+        BOOST_LOG_TRIVIAL(error) << caller << ": selection references invalid object index " << obj_idx
+                                 << " while model contains " << model->objects.size() << " objects";
+        return nullptr;
+    }
+
+    ModelObject *object = model->objects[obj_idx];
+    if (object == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << caller << ": selection references null object at index " << obj_idx;
+        return nullptr;
+    }
+
+    return object;
+}
+
+const ModelObject *checked_model_object(const Model *model, int obj_idx, const char *caller)
+{
+    if (model == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << caller << ": selection has no model";
+        return nullptr;
+    }
+
+    if (obj_idx < 0 || size_t(obj_idx) >= model->objects.size()) {
+        BOOST_LOG_TRIVIAL(error) << caller << ": selection references invalid object index " << obj_idx
+                                 << " while model contains " << model->objects.size() << " objects";
+        return nullptr;
+    }
+
+    const ModelObject *object = model->objects[obj_idx];
+    if (object == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << caller << ": selection references null object at index " << obj_idx;
+        return nullptr;
+    }
+
+    return object;
+}
+
+} // namespace
+
 Selection::VolumeCache::TransformCache::TransformCache()
     : position(Vec3d::Zero())
     , rotation_matrix(Transform3d::Identity())
@@ -586,7 +646,11 @@ void Selection::set_printable(bool printable)
     // set printable value for all instances in object
     for (const auto& [obj_idx, inst_idx] : instances_idxs)
     {
-        ModelObject* object = m_model->objects[obj_idx];
+        if (is_wipe_tower_proxy_object_idx(obj_idx))
+            continue;
+        ModelObject* object = checked_model_object(m_model, obj_idx, __FUNCTION__);
+        if (object == nullptr)
+            continue;
         for (auto inst : object->instances)
             inst->printable = printable;
         wxGetApp().obj_list()->update_printable_state(obj_idx, inst_idx);
@@ -614,7 +678,11 @@ bool Selection::get_auto_drop() const {
 
     // return false, if one of the instances in the selection has auto_drop disabled, otherwise return true
     for (const auto& [obj_idx, inst_idx] : instances_idxs) {
-        ModelObject* object = m_model->objects[obj_idx];
+        if (is_wipe_tower_proxy_object_idx(obj_idx))
+            continue;
+        const ModelObject* object = checked_model_object(m_model, obj_idx, __FUNCTION__);
+        if (object == nullptr)
+            return false;
         for (const auto* inst : object->instances) {
             if (!inst->auto_drop) {
                 return false;
@@ -642,7 +710,11 @@ void Selection::set_auto_drop(bool enabled)
 
     // set auto_drop value for all instances in object
     for (const auto& [obj_idx, inst_idx] : instances_idxs) {
-        ModelObject* object = m_model->objects[obj_idx];
+        if (is_wipe_tower_proxy_object_idx(obj_idx))
+            continue;
+        ModelObject* object = checked_model_object(m_model, obj_idx, __FUNCTION__);
+        if (object == nullptr)
+            continue;
         for (auto* inst : object->instances) {
             inst->auto_drop = enabled;
         }
@@ -2292,6 +2364,10 @@ void Selection::update_type()
         const GLVolume* volume = (*m_volumes)[i];
         int obj_idx = volume->object_idx();
         int inst_idx = volume->instance_idx();
+        if (!volume->is_wipe_tower && checked_model_object(m_model, obj_idx, __FUNCTION__) == nullptr) {
+            m_type = Invalid;
+            return;
+        }
         ObjectIdxsToInstanceIdxsMap::iterator obj_it = m_cache.content.find(obj_idx);
         if (obj_it == m_cache.content.end())
             obj_it = m_cache.content.insert(ObjectIdxsToInstanceIdxsMap::value_type(obj_idx, InstanceIdxsList())).first;
@@ -2319,7 +2395,11 @@ void Selection::update_type()
             }
             else
             {
-                const ModelObject* model_object = m_model->objects[first->object_idx()];
+                const ModelObject* model_object = checked_model_object(m_model, first->object_idx(), __FUNCTION__);
+                if (model_object == nullptr) {
+                    m_type = Invalid;
+                    return;
+                }
                 unsigned int volumes_count = (unsigned int)model_object->volumes.size();
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 if (volumes_count * instances_count == 1)
@@ -2352,7 +2432,11 @@ void Selection::update_type()
 
             if (m_cache.content.size() == 1) // single object
             {
-                const ModelObject* model_object = m_model->objects[m_cache.content.begin()->first];
+                const ModelObject* model_object = checked_model_object(m_model, m_cache.content.begin()->first, __FUNCTION__);
+                if (model_object == nullptr) {
+                    m_type = Invalid;
+                    return;
+                }
                 unsigned int model_volumes_count = (unsigned int)model_object->volumes.size();
 
                 unsigned int instances_count = (unsigned int)model_object->instances.size();

@@ -1105,11 +1105,22 @@ void PlaterPresetComboBox::update()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
-        if (m_filament_idx < bitmaps.size()) {
-            clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
+        if (filament_mapping_badges_enabled(m_preset_bundle)) {
+            const int mapped_extruder = filament_badge_number(m_preset_bundle, wxGetApp().plater(), size_t(m_filament_idx));
+            const int icon_width = FromDIP(20);
+            const int icon_height = FromDIP(20);
+            wxBitmap* bitmap = filament_badge_bitmap(wxGetApp().plater(), size_t(m_filament_idx), mapped_extruder, icon_width, icon_height);
+
+            if (bitmap != nullptr)
+                clr_picker->SetBitmap(*bitmap);
+            clr_picker->SetLabel(wxString::Format("%d", mapped_extruder));
         } else {
-            return;
+            std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
+            if (m_filament_idx < bitmaps.size()) {
+                clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
+            } else {
+                return;
+            }
         }
 #ifdef __WXOSX__
         clr_picker->SetLabel(clr_picker->GetLabel()); // Let setBezelStyle: be called

@@ -427,7 +427,12 @@ if (NOT MSVC AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMP
 
     if((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang") AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 15)
         include(CheckCXXCompilerFlag)
+        unset(HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV CACHE)
+        set(_OLD_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Werror=unknown-warning-option")
         check_cxx_compiler_flag(-Wno-error=enum-constexpr-conversion HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
+        set(CMAKE_REQUIRED_FLAGS "${_OLD_CMAKE_REQUIRED_FLAGS}")
+        unset(_OLD_CMAKE_REQUIRED_FLAGS)
         if(HAS_WNO_ERROR_ENUM_CONSTEXPR_CONV)
             add_compile_options(-Wno-error=enum-constexpr-conversion)
         endif()

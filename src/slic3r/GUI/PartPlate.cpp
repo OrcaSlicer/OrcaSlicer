@@ -58,6 +58,61 @@ static const int PARTPLATE_EDIT_PLATE_NAME_ICON_SIZE = 9; // ORCA this also scal
 static const int PARTPLATE_ICON_GAP_TOP = 3;
 static const int PARTPLATE_ICON_GAP_LEFT = 3;
 static const int PARTPLATE_ICON_GAP_Y = 5;
+
+static bool orca_managed_extruder_mapping_enabled()
+{
+    Slic3r::PresetBundle *preset_bundle = Slic3r::GUI::wxGetApp().preset_bundle;
+    if (preset_bundle == nullptr)
+        return false;
+
+    const Slic3r::Preset &edited_printer_preset = preset_bundle->printers.get_edited_preset();
+    const Slic3r::DynamicPrintConfig &printer_config = edited_printer_preset.config;
+    const bool single_extruder_multi_material = printer_config.has("single_extruder_multi_material") &&
+                                                printer_config.opt_bool("single_extruder_multi_material");
+    const bool use_physical_extruder_ids_only = printer_config.has("use_physical_extruder_ids_only") &&
+                                                printer_config.opt_bool("use_physical_extruder_ids_only");
+    return edited_printer_preset.printer_technology() == Slic3r::ptFFF &&
+           !preset_bundle->is_bbl_vendor() &&
+           !single_extruder_multi_material &&
+           preset_bundle->get_printer_extruder_count() > 1 &&
+           use_physical_extruder_ids_only;
+}
+
+static std::vector<int> normalize_filament_maps(const std::vector<int> &maps, size_t filament_count, int physical_extruder_count, bool use_orca_mapping)
+{
+    const int max_extruder_id = std::max(1, physical_extruder_count);
+
+    std::vector<int> normalized = maps;
+    normalized.resize(filament_count, 1);
+    for (size_t filament_idx = 0; filament_idx < normalized.size(); ++filament_idx) {
+        int &mapped_extruder = normalized[filament_idx];
+        if (filament_idx < size_t(physical_extruder_count)) {
+            mapped_extruder = int(filament_idx) + 1;
+            continue;
+        }
+
+        if (!use_orca_mapping) {
+            mapped_extruder = 1;
+            continue;
+        }
+
+        if (mapped_extruder < 1 || mapped_extruder > max_extruder_id)
+            mapped_extruder = 1;
+    }
+
+    return normalized;
+}
+
+static Slic3r::DynamicPrintConfig full_config_for_current_mapping_mode(Slic3r::PresetBundle *preset_bundle, Slic3r::GUI::PartPlate *part_plate, const Slic3r::DynamicConfig &project_config)
+{
+    if (preset_bundle == nullptr)
+        return Slic3r::DynamicPrintConfig();
+
+    if (!orca_managed_extruder_mapping_enabled() || part_plate == nullptr)
+        return preset_bundle->full_config(false);
+
+    return preset_bundle->full_config(false, part_plate->get_real_filament_maps(project_config));
+}
 static const int PARTPLATE_TEXT_OFFSET_X1 = 3;
 static const int PARTPLATE_TEXT_OFFSET_X2 = 1;
 static const int PARTPLATE_TEXT_OFFSET_Y = 1;
@@ -305,13 +360,16 @@ PrintSequence PartPlate::get_real_print_seq(bool* plate_same_as_global) const
 std::vector<int> PartPlate::get_real_filament_maps(const DynamicConfig& g_config, bool* use_global_param) const
 {
 	auto maps = get_filament_maps();
+    const size_t filament_count = wxGetApp().preset_bundle->filament_presets.size();
+    const int    physical_extruder_count = wxGetApp().preset_bundle->get_printer_extruder_count();
+    const bool   use_orca_mapping = orca_managed_extruder_mapping_enabled();
 	if (!maps.empty()) {
 		if (use_global_param) { *use_global_param = false; }
-		return maps;
+		return normalize_filament_maps(maps, filament_count, physical_extruder_count, use_orca_mapping);
 	}
 	auto g_maps = g_config.option<ConfigOptionInts>("filament_map")->values;
 	if (use_global_param) { *use_global_param = true; }
-	return g_maps;
+	return normalize_filament_maps(g_maps, filament_count, physical_extruder_count, use_orca_mapping);
 }
 
 FilamentMapMode PartPlate::get_real_filament_map_mode(const DynamicConfig& g_config, bool* use_global_param) const
@@ -1851,13 +1909,18 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
     if (mode != fmmManual)
         return true;
 
+    const auto *filament_printable = config.option<ConfigOptionInts>("filament_printable");
+    const auto *physical_extruder_map = config.option<ConfigOptionInts>("physical_extruder_map");
+    if (filament_printable == nullptr || physical_extruder_map == nullptr || physical_extruder_map->values.size() != 2)
+        return true;
+
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
     if (!used_filaments.empty()) {
+        std::vector<int> filament_map = get_real_filament_maps(config);
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
             std::string filament_type = config.option<ConfigOptionStrings>("filament_type")->values.at(filament_id);
-            int filament_printable_status = config.option<ConfigOptionInts>("filament_printable")->values.at(filament_id);
-            std::vector<int> filament_map  = get_real_filament_maps(config);
+            int filament_printable_status = filament_printable->values.at(filament_id);
             int extruder_idx = filament_map[filament_id] - 1;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
@@ -3704,15 +3767,23 @@ void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 std::vector<int> PartPlate::get_filament_maps() const
 {
     std::string key = "filament_map";
+    const bool  use_orca_mapping = orca_managed_extruder_mapping_enabled();
     if (m_config.has(key))
-        return m_config.option<ConfigOptionInts>(key)->values;
+        return normalize_filament_maps(m_config.option<ConfigOptionInts>(key)->values,
+                                       wxGetApp().preset_bundle->filament_presets.size(),
+                                       wxGetApp().preset_bundle->get_printer_extruder_count(),
+                                       use_orca_mapping);
 
     return {};
 }
 
 void PartPlate::set_filament_maps(const std::vector<int>& f_maps)
 {
-    m_config.option<ConfigOptionInts>("filament_map", true)->values = f_maps;
+    m_config.option<ConfigOptionInts>("filament_map", true)->values =
+        normalize_filament_maps(f_maps,
+                                wxGetApp().preset_bundle->filament_presets.size(),
+                                wxGetApp().preset_bundle->get_printer_extruder_count(),
+                                true);
 }
 
 void PartPlate::clear_filament_map()
@@ -4143,8 +4214,7 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
     coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
     coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
 
-    std::vector<int> filament_maps = part_plate->get_real_filament_maps(proj_cfg);
-    DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config(false, filament_maps);
+    DynamicPrintConfig full_config = full_config_for_current_mapping_mode(wxGetApp().preset_bundle, part_plate, proj_cfg);
     const DynamicPrintConfig &print_cfg = wxGetApp().preset_bundle->prints.get_edited_preset().config;
     float w = dynamic_cast<const ConfigOptionFloat *>(print_cfg.option("prime_tower_width"))->value;
     float v = dynamic_cast<const ConfigOptionFloat *>(full_config.option("prime_volume"))->value;

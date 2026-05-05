@@ -5598,6 +5598,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("use_physical_extruder_ids_only", coBool);
+    def->label = L("Enable Orca-managed extruder mapping");
+    def->tooltip = L("When enabled, Orca maps logical filaments to physical extruders, shows the per-filament extruder mapping UI, and exports only physical extruder IDs and slots. When disabled, Orca keeps vanilla logical-filament behavior and the printer may remap them at print start. Extra virtual filaments use Extruder 1 as the fallback basis for nozzle-limited settings such as layer-height and line-width constraints.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("manual_filament_change", coBool);
     def->label = L("Manual Filament Change");
     def->tooltip = L("Enable this option to omit the custom Change filament G-code only at the beginning of the print. "

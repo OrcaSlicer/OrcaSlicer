@@ -85,6 +85,18 @@ static void validate_custom_gcode_cb(Tab* tab, const wxString& title, const t_co
 
 static const std::vector<std::string> plate_keys = { "curr_bed_type", "skirt_start_angle", "first_layer_print_sequence", "first_layer_sequence_choice", "other_layers_print_sequence", "other_layers_sequence_choice", "print_sequence", "spiral_mode"};
 
+static void materialize_config_option_if_missing(DynamicPrintConfig &config, const std::string &opt_key)
+{
+    if (config.has(opt_key))
+        return;
+
+    const ConfigOptionDef *opt_def = config.def()->get(opt_key);
+    if (opt_def == nullptr || !opt_def->default_value)
+        return;
+
+    config.set_key_value(opt_key, opt_def->default_value->clone());
+}
+
 void Tab::Highlighter::set_timer_owner(wxEvtHandler* owner, int timerid/* = wxID_ANY*/)
 {
     m_timer.SetOwner(owner, timerid);
@@ -1507,8 +1519,10 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
-    if (opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" )
+    if (opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" ) {
         update_wiping_button_visibility();
+        wxGetApp().sidebar().update_filament_mapping_labels();
+    }
 
 
     if (opt_key == "pellet_flow_coefficient")
@@ -1524,8 +1538,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 
     if (opt_key == "single_extruder_multi_material"  ){
-        const auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
-        wxGetApp().sidebar().show_SEMM_buttons(bSEMM);
+        wxGetApp().sidebar().show_SEMM_buttons(Sidebar::should_show_SEMM_buttons());
+        wxGetApp().sidebar().update_filament_mapping_labels();
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
@@ -1576,8 +1590,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
 
     if (opt_key == "single_extruder_multi_material"  ){
-        const auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
-        wxGetApp().sidebar().show_SEMM_buttons(bSEMM);
+        wxGetApp().sidebar().show_SEMM_buttons(Sidebar::should_show_SEMM_buttons());
+        wxGetApp().sidebar().update_filament_mapping_labels();
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
@@ -4853,6 +4867,8 @@ if (is_marlin_flavor)
         // create a page, but pretend it's an extruder page, so we can add it to m_pages ourselves
         auto page     = add_options_page(L("Multimaterial"), "custom-gcode_multi_material", true); // ORCA: icon only visible on placeholders
         auto optgroup = page->new_optgroup(L("Single extruder multi-material setup"), "param_multi_material");
+        materialize_config_option_if_missing(*m_config, "use_physical_extruder_ids_only");
+        materialize_config_option_if_missing(m_presets->get_selected_preset().config, "use_physical_extruder_ids_only");
         optgroup->append_single_option_line("single_extruder_multi_material", "printer_multimaterial_setup#single-extruder-multi-material");
         ConfigOptionDef def;
         def.type    = coInt, def.set_default_value(new ConfigOptionInt((int) m_extruders_count));
@@ -4863,6 +4879,7 @@ if (is_marlin_flavor)
         def.mode    = comAdvanced;
         Option option(def, "extruders_count");
         optgroup->append_single_option_line(option, "printer_multimaterial_setup#extruders");
+        optgroup->append_single_option_line("use_physical_extruder_ids_only");
 
         // Orca: rebuild missed extruder pages
         optgroup->m_on_change = [this, optgroup_wk = ConfigOptionsGroupWkp(optgroup)](t_config_option_key opt_key, boost::any value) {
@@ -5281,6 +5298,7 @@ void TabPrinter::toggle_options()
             load_config(new_conf);
         }
         toggle_option("extruders_count", !bSEMM);
+        toggle_line("use_physical_extruder_ids_only", !bSEMM);
         toggle_option("manual_filament_change", bSEMM);
         toggle_option("purge_in_prime_tower", bSEMM && supports_wipe_tower_2);
     }
@@ -5417,6 +5435,10 @@ void TabPrinter::update()
 
 void TabPrinter::update_fff()
 {
+    materialize_config_option_if_missing(*m_config, "use_physical_extruder_ids_only");
+    materialize_config_option_if_missing(m_presets->get_edited_preset().config, "use_physical_extruder_ids_only");
+    materialize_config_option_if_missing(m_presets->get_selected_preset().config, "use_physical_extruder_ids_only");
+
     if (m_use_silent_mode != m_config->opt_bool("silent_mode"))	{
         m_rebuild_kinematics_page = true;
         m_use_silent_mode = m_config->opt_bool("silent_mode");

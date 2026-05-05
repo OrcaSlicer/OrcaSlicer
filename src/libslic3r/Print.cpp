@@ -2934,8 +2934,45 @@ void Print::finalize_first_layer_convex_hull()
     m_first_layer_convex_hull = Geometry::convex_hull(m_first_layer_convex_hull.points);
 }
 
+static bool uses_orca_managed_extruder_mapping(const PrintConfig &config)
+{
+    return config.use_physical_extruder_ids_only &&
+           !config.single_extruder_multi_material &&
+           config.nozzle_diameter.values.size() > 1;
+}
+
+static std::vector<int> normalize_filament_maps(const std::vector<int> &maps, size_t filament_count, size_t physical_extruder_count, bool use_orca_mapping)
+{
+    const int max_extruder_id = std::max(1, int(physical_extruder_count));
+
+    std::vector<int> normalized = maps;
+    normalized.resize(filament_count, 1);
+    for (size_t filament_idx = 0; filament_idx < normalized.size(); ++filament_idx) {
+        int &mapped_extruder = normalized[filament_idx];
+        if (filament_idx < physical_extruder_count) {
+            mapped_extruder = int(filament_idx) + 1;
+            continue;
+        }
+
+        if (!use_orca_mapping) {
+            mapped_extruder = 1;
+            continue;
+        }
+
+        if (mapped_extruder < 1 || mapped_extruder > max_extruder_id)
+            mapped_extruder = 1;
+    }
+
+    return normalized;
+}
+
 void Print::update_filament_maps_to_config(std::vector<int> f_maps)
 {
+    const bool use_orca_mapping = uses_orca_managed_extruder_mapping(m_config);
+    f_maps = normalize_filament_maps(f_maps,
+                                     m_config.filament_colour.values.size(),
+                                     m_config.nozzle_diameter.values.size(),
+                                     use_orca_mapping);
     if (m_config.filament_map.values != f_maps)
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament maps changed after pre-slicing.");
@@ -2976,7 +3013,10 @@ void Print::apply_config_for_render(const DynamicConfig &config)
 
 std::vector<int> Print::get_filament_maps() const
 {
-    return m_config.filament_map.values;
+    return normalize_filament_maps(m_config.filament_map.values,
+                                   m_config.filament_colour.values.size(),
+                                   m_config.nozzle_diameter.values.size(),
+                                   uses_orca_managed_extruder_mapping(m_config));
 }
 
 FilamentMapMode Print::get_filament_map_mode() const

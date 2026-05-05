@@ -34,6 +34,7 @@
 #include <string>
 #include <utility>
 #include <string_view>
+#include <functional>
 
 #include <regex>
 #include <boost/algorithm/string.hpp>
@@ -81,6 +82,8 @@ using namespace std::literals::string_view_literals;
 #endif
 
 #include <assert.h>
+#include <cctype>
+#include <limits>
 
 namespace Slic3r {
 
@@ -226,6 +229,84 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcode += '\n';
     }
 
+    static std::string_view trim_left_view(std::string_view text)
+    {
+        size_t pos = 0;
+        while (pos < text.size() && std::isspace(static_cast<unsigned char>(text[pos])))
+            ++pos;
+        return text.substr(pos);
+    }
+
+    static bool parse_unsigned_suffix(std::string_view text, size_t start, unsigned int &value, size_t &digits_begin, size_t &digits_end)
+    {
+        digits_begin = start;
+        while (digits_begin < text.size() && std::isspace(static_cast<unsigned char>(text[digits_begin])))
+            ++digits_begin;
+        if (digits_begin >= text.size() || !std::isdigit(static_cast<unsigned char>(text[digits_begin])))
+            return false;
+
+        digits_end = digits_begin;
+        while (digits_end < text.size() && std::isdigit(static_cast<unsigned char>(text[digits_end])))
+            ++digits_end;
+
+        unsigned int parsed = 0;
+        const std::string digits(text.substr(digits_begin, digits_end - digits_begin));
+        std::istringstream ss(digits);
+        if (!(ss >> parsed))
+            return false;
+
+        value = parsed;
+        return true;
+    }
+
+    static bool rewrite_command_suffix_tool_id(std::string &code, std::string_view command_prefix, const std::function<unsigned int(unsigned int)> &mapper)
+    {
+        const std::string_view trimmed = trim_left_view(code);
+        if (!boost::starts_with(std::string(trimmed), std::string(command_prefix)))
+            return false;
+
+        const size_t prefix_offset = static_cast<size_t>(trimmed.data() - code.data());
+        unsigned int tool_id = 0;
+        size_t digits_begin = 0;
+        size_t digits_end   = 0;
+        if (!parse_unsigned_suffix(code, prefix_offset + command_prefix.size(), tool_id, digits_begin, digits_end))
+            return false;
+
+        code.replace(digits_begin, digits_end - digits_begin, std::to_string(mapper(tool_id)));
+        return true;
+    }
+
+    static bool rewrite_command_parameter_tool_id(std::string &code, std::string_view command, char parameter_name, const std::function<unsigned int(unsigned int)> &mapper)
+    {
+        const std::string_view trimmed = trim_left_view(code);
+        if (!boost::starts_with(std::string(trimmed), std::string(command)))
+            return false;
+
+        size_t pos = static_cast<size_t>(trimmed.data() - code.data()) + command.size();
+        while (pos < code.size()) {
+            while (pos < code.size() && std::isspace(static_cast<unsigned char>(code[pos])))
+                ++pos;
+            if (pos >= code.size())
+                break;
+
+            if (code[pos] == parameter_name) {
+                unsigned int tool_id = 0;
+                size_t digits_begin = 0;
+                size_t digits_end   = 0;
+                if (!parse_unsigned_suffix(code, pos + 1, tool_id, digits_begin, digits_end))
+                    return false;
+
+                code.replace(digits_begin, digits_end - digits_begin, std::to_string(mapper(tool_id)));
+                return true;
+            }
+
+            while (pos < code.size() && !std::isspace(static_cast<unsigned char>(code[pos])))
+                ++pos;
+        }
+
+        return false;
+    }
+
 
     // Return true if tch_prefix is found in custom_gcode
     static bool custom_gcode_changes_tool(const std::string& custom_gcode, const std::string& tch_prefix, unsigned next_extruder)
@@ -252,6 +333,59 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         NEXT:;
         }
         return ok;
+    }
+
+    static std::string virtual_toolchange_comment(unsigned int filament_id)
+    {
+        return ";VT T" + std::to_string(filament_id) + "\n";
+    }
+
+    static bool line_changes_tool(const std::string_view line, const std::string& tch_prefix, unsigned int tool_id)
+    {
+        size_t pos = 0;
+        while (pos < line.size() && std::isspace(static_cast<unsigned char>(line[pos])))
+            ++pos;
+        if (pos >= line.size() || line.compare(pos, tch_prefix.size(), tch_prefix) != 0)
+            return false;
+
+        std::string suffix(line.substr(pos + tch_prefix.size()));
+        std::istringstream ss(suffix);
+        unsigned int parsed_tool_id = std::numeric_limits<unsigned int>::max();
+        return (ss >> parsed_tool_id) && parsed_tool_id == tool_id;
+    }
+
+    static void annotate_toolchange_gcode_with_virtual_tool(std::string& custom_gcode, const std::string& tch_prefix, unsigned int tool_id, unsigned int filament_id)
+    {
+        if (custom_gcode.empty())
+            return;
+
+        const std::string marker = virtual_toolchange_comment(filament_id);
+        std::string annotated;
+        annotated.reserve(custom_gcode.size() + marker.size());
+
+        size_t line_start = 0;
+        while (line_start < custom_gcode.size()) {
+            size_t line_end = custom_gcode.find('\n', line_start);
+            if (line_end == std::string::npos)
+                line_end = custom_gcode.size();
+            else
+                ++line_end;
+
+            std::string_view line(custom_gcode.data() + line_start, line_end - line_start);
+            std::string_view line_without_newline = line;
+            if (!line_without_newline.empty() && line_without_newline.back() == '\n')
+                line_without_newline.remove_suffix(1);
+            if (!line_without_newline.empty() && line_without_newline.back() == '\r')
+                line_without_newline.remove_suffix(1);
+
+            if (line_changes_tool(line_without_newline, tch_prefix, tool_id))
+                annotated += marker;
+
+            annotated.append(line.data(), line.size());
+            line_start = line_end;
+        }
+
+        custom_gcode.swap(annotated);
     }
 
     std::string OozePrevention::pre_toolchange(GCode& gcodegen)
@@ -833,8 +967,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             int old_filament_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->id() : -1;
             int old_extruder_id = gcodegen.writer().filament() ? (int)gcodegen.writer().filament()->extruder_id() : -1;
 
-            config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
-            config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
+            config.set_key_value("previous_extruder", new ConfigOptionInt(old_extruder_id));
+            config.set_key_value("next_extruder", new ConfigOptionInt(int(gcodegen.get_toolchange_id(new_filament_id))));
             config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
             config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
             config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
@@ -951,6 +1085,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             toolchange_gcode_str = gcodegen.placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &config);
 
             check_add_eol(toolchange_gcode_str);
+            if (gcodegen.uses_physical_tool_ids())
+                annotate_toolchange_gcode_with_virtual_tool(toolchange_gcode_str, gcodegen.writer().toolchange_prefix(),
+                    gcodegen.get_toolchange_id(new_filament_id), new_filament_id);
 
             //BBS
             {
@@ -972,7 +1109,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string toolchange_command;
         if (tcr.priming || (new_filament_id >= 0 && gcodegen.writer().need_toolchange(new_filament_id)))
             toolchange_command = gcodegen.writer().toolchange(new_filament_id);
-        if (!custom_gcode_changes_tool(toolchange_gcode_str, gcodegen.writer().toolchange_prefix(), new_filament_id))
+        const bool custom_gcode_has_toolchange = custom_gcode_changes_tool(toolchange_gcode_str, gcodegen.writer().toolchange_prefix(), gcodegen.get_toolchange_id(new_filament_id));
+        if (!custom_gcode_has_toolchange)
             toolchange_gcode_str += toolchange_command;
         else {
             // We have informed the m_writer about the current extruder_id, we can ignore the generated G-code.
@@ -1031,7 +1169,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string toolchange_unretract_str = gcodegen.unretract();
         check_add_eol(toolchange_unretract_str);
 
-        gcodegen.placeholder_parser().set("current_extruder", new_filament_id);
+        gcodegen.placeholder_parser().set("current_extruder", gcodegen.get_toolchange_id(new_filament_id));
         gcodegen.placeholder_parser().set("retraction_distance_when_cut", gcodegen.m_config.retraction_distances_when_cut.get_at(new_filament_id));
         gcodegen.placeholder_parser().set("long_retraction_when_cut", gcodegen.m_config.long_retractions_when_cut.get_at(new_filament_id));
         gcodegen.placeholder_parser().set("retraction_distance_when_ec", gcodegen.m_config.retraction_distances_when_ec.get_at(new_filament_id));
@@ -1043,7 +1181,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (!filament_start_gcode.empty()) {
             // Process the filament_start_gcode for the active filament only.
             DynamicConfig config;
-            config.set_key_value("filament_extruder_id", new ConfigOptionInt(new_filament_id));
+            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(gcodegen.get_toolchange_id(new_filament_id))));
             start_filament_gcode_str = gcodegen.placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
             if (add_change_filament_624) {
                 start_filament_gcode_str += "M625\n";
@@ -1987,7 +2125,7 @@ namespace DoExport {
     }
 } // namespace DoExport
 
-bool GCode::is_BBL_Printer()
+bool GCode::is_BBL_Printer() const
 {
     if (m_curr_print)
         return m_curr_print->is_BBL_printer();
@@ -2258,60 +2396,254 @@ namespace DoExport {
         const bool                   has_wipe_tower,
 	    const WipeTowerData         &wipe_tower_data,
 	    const std::vector<Extruder> &extruders,
-		PrintStatistics 		    &print_statistics)
+		PrintStatistics 		    &print_statistics,
+        const std::vector<int>      *strict_filament_map = nullptr,
+        size_t                       strict_physical_extruder_count = 0)
     {
 		std::string filament_stats_string_out;
 
 	    print_statistics.clear();
         print_statistics.total_toolchanges = std::max(0, wipe_tower_data.number_of_toolchanges);
 	    if (! extruders.empty()) {
-	        std::pair<std::string, unsigned int> out_filament_used_mm ("; filament used [mm] = ", 0);
-	        std::pair<std::string, unsigned int> out_filament_used_cm3("; filament used [cm3] = ", 0);
-	        std::pair<std::string, unsigned int> out_filament_used_g  ("; filament used [g] = ", 0);
-	        std::pair<std::string, unsigned int> out_filament_cost    ("; filament cost = ", 0);
-	        for (const Extruder &extruder : extruders) {
-	            double used_filament   = extruder.used_filament() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] : 0.f);
-	            double extruded_volume = extruder.extruded_volume() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] * 2.4052f : 0.f); // assumes 1.75mm filament diameter
-	            double filament_weight = extruded_volume * extruder.filament_density() * 0.001;
-	            double filament_cost   = filament_weight * extruder.filament_cost()    * 0.001;
-                auto append = [&extruder](std::pair<std::string, unsigned int> &dst, const char *tmpl, double value) {
-                    assert(is_decimal_separator_point());
-	                while (dst.second < extruder.id()) {
-	                    // Fill in the non-printing extruders with zeros.
-	                    dst.first += (dst.second > 0) ? ", 0" : "0";
+            const bool use_strict_physical_stats = strict_filament_map != nullptr && strict_physical_extruder_count > 0;
+            if (!use_strict_physical_stats) {
+	            std::pair<std::string, unsigned int> out_filament_used_mm ("; filament used [mm] = ", 0);
+	            std::pair<std::string, unsigned int> out_filament_used_cm3("; filament used [cm3] = ", 0);
+	            std::pair<std::string, unsigned int> out_filament_used_g  ("; filament used [g] = ", 0);
+	            std::pair<std::string, unsigned int> out_filament_cost    ("; filament cost = ", 0);
+	            for (const Extruder &extruder : extruders) {
+	                double used_filament   = extruder.used_filament() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] : 0.f);
+	                double extruded_volume = extruder.extruded_volume() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] * 2.4052f : 0.f); // assumes 1.75mm filament diameter
+	                double filament_weight = extruded_volume * extruder.filament_density() * 0.001;
+	                double filament_cost   = filament_weight * extruder.filament_cost()    * 0.001;
+                    auto append = [&extruder](std::pair<std::string, unsigned int> &dst, const char *tmpl, double value) {
+                        assert(is_decimal_separator_point());
+	                    while (dst.second < extruder.id()) {
+	                        // Fill in the non-printing extruders with zeros.
+	                        dst.first += (dst.second > 0) ? ", 0" : "0";
+	                        ++ dst.second;
+	                    }
+	                    if (dst.second > 0)
+	                        dst.first += ", ";
+	                    char buf[64];
+						sprintf(buf, tmpl, value);
+	                    dst.first += buf;
 	                    ++ dst.second;
+	                };
+	                append(out_filament_used_mm,  "%.2lf", used_filament);
+	                append(out_filament_used_cm3, "%.2lf", extruded_volume * 0.001);
+	                if (filament_weight > 0.) {
+	                    print_statistics.total_weight = print_statistics.total_weight + filament_weight;
+	                    append(out_filament_used_g, "%.2lf", filament_weight);
+	                    if (filament_cost > 0.) {
+	                        print_statistics.total_cost = print_statistics.total_cost + filament_cost;
+	                        append(out_filament_cost, "%.2lf", filament_cost);
+	                    }
 	                }
-	                if (dst.second > 0)
-	                    dst.first += ", ";
-	                char buf[64];
-					sprintf(buf, tmpl, value);
-	                dst.first += buf;
-	                ++ dst.second;
-	            };
-	            append(out_filament_used_mm,  "%.2lf", used_filament);
-	            append(out_filament_used_cm3, "%.2lf", extruded_volume * 0.001);
-	            if (filament_weight > 0.) {
-	                print_statistics.total_weight = print_statistics.total_weight + filament_weight;
-	                append(out_filament_used_g, "%.2lf", filament_weight);
-	                if (filament_cost > 0.) {
-	                    print_statistics.total_cost = print_statistics.total_cost + filament_cost;
-	                    append(out_filament_cost, "%.2lf", filament_cost);
-	                }
+	                print_statistics.total_used_filament += used_filament;
+	                print_statistics.total_extruded_volume += extruded_volume;
+	                print_statistics.total_wipe_tower_filament += has_wipe_tower ? used_filament - extruder.used_filament() : 0.;
+	                print_statistics.total_wipe_tower_cost += has_wipe_tower ? (extruded_volume - extruder.extruded_volume())* extruder.filament_density() * 0.001 * extruder.filament_cost() * 0.001 : 0.;
 	            }
-	            print_statistics.total_used_filament += used_filament;
-	            print_statistics.total_extruded_volume += extruded_volume;
-	            print_statistics.total_wipe_tower_filament += has_wipe_tower ? used_filament - extruder.used_filament() : 0.;
-	            print_statistics.total_wipe_tower_cost += has_wipe_tower ? (extruded_volume - extruder.extruded_volume())* extruder.filament_density() * 0.001 * extruder.filament_cost() * 0.001 : 0.;
-	        }
-	        filament_stats_string_out += out_filament_used_mm.first;
-            filament_stats_string_out += "\n" + out_filament_used_cm3.first;
-            if (out_filament_used_g.second)
-                filament_stats_string_out += "\n" + out_filament_used_g.first;
-            if (out_filament_cost.second)
-               filament_stats_string_out += "\n" + out_filament_cost.first;
-            filament_stats_string_out += "\n";
+	            filament_stats_string_out += out_filament_used_mm.first;
+                filament_stats_string_out += "\n" + out_filament_used_cm3.first;
+                if (out_filament_used_g.second)
+                    filament_stats_string_out += "\n" + out_filament_used_g.first;
+                if (out_filament_cost.second)
+                   filament_stats_string_out += "\n" + out_filament_cost.first;
+                filament_stats_string_out += "\n";
+            } else {
+                std::vector<double> used_mm(strict_physical_extruder_count, 0.0);
+                std::vector<double> used_cm3(strict_physical_extruder_count, 0.0);
+                std::vector<double> used_g(strict_physical_extruder_count, 0.0);
+                std::vector<double> cost(strict_physical_extruder_count, 0.0);
+                bool has_weight = false;
+                bool has_cost = false;
+
+                for (const Extruder &extruder : extruders) {
+                    double used_filament   = extruder.used_filament() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] : 0.f);
+                    double extruded_volume = extruder.extruded_volume() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] * 2.4052f : 0.f); // assumes 1.75mm filament diameter
+                    double filament_weight = extruded_volume * extruder.filament_density() * 0.001;
+                    double filament_cost   = filament_weight * extruder.filament_cost() * 0.001;
+
+                    size_t physical_extruder_id = extruder.id();
+                    if (extruder.id() < strict_filament_map->size()) {
+                        const int mapped_tool = strict_filament_map->at(extruder.id()) - 1;
+                        if (mapped_tool >= 0)
+                            physical_extruder_id = static_cast<size_t>(mapped_tool);
+                    }
+                    if (physical_extruder_id >= strict_physical_extruder_count)
+                        continue;
+
+                    used_mm[physical_extruder_id] += used_filament;
+                    used_cm3[physical_extruder_id] += extruded_volume * 0.001;
+                    used_g[physical_extruder_id] += filament_weight;
+                    cost[physical_extruder_id] += filament_cost;
+
+                    has_weight |= filament_weight > 0.;
+                    has_cost |= filament_cost > 0.;
+                    print_statistics.total_weight += filament_weight;
+                    print_statistics.total_cost += filament_cost;
+                    print_statistics.total_used_filament += used_filament;
+                    print_statistics.total_extruded_volume += extruded_volume;
+                    print_statistics.total_wipe_tower_filament += has_wipe_tower ? used_filament - extruder.used_filament() : 0.;
+                    print_statistics.total_wipe_tower_cost += has_wipe_tower ? (extruded_volume - extruder.extruded_volume()) * extruder.filament_density() * 0.001 * extruder.filament_cost() * 0.001 : 0.;
+                }
+
+                auto append_values = [](const char *prefix, const std::vector<double> &values) {
+                    std::string out = prefix;
+                    for (size_t i = 0; i < values.size(); ++i) {
+                        if (i != 0)
+                            out += ", ";
+                        char buf[64];
+                        sprintf(buf, "%.2lf", values[i]);
+                        out += buf;
+                    }
+                    return out;
+                };
+
+                filament_stats_string_out += append_values("; filament used [mm] = ", used_mm);
+                filament_stats_string_out += "\n" + append_values("; filament used [cm3] = ", used_cm3);
+                if (has_weight)
+                    filament_stats_string_out += "\n" + append_values("; filament used [g] = ", used_g);
+                if (has_cost)
+                    filament_stats_string_out += "\n" + append_values("; filament cost = ", cost);
+                filament_stats_string_out += "\n";
+            }
         }
         return filament_stats_string_out;
+    }
+
+    static std::string format_strict_physical_filament_stats(
+        const bool                   has_wipe_tower,
+        const WipeTowerData         &wipe_tower_data,
+        const std::vector<Extruder> &extruders,
+        PrintStatistics             &print_statistics,
+        const std::vector<int>      &strict_filament_map,
+        size_t                       strict_physical_extruder_count)
+    {
+        return update_print_stats_and_format_filament_stats(
+            has_wipe_tower,
+            wipe_tower_data,
+            extruders,
+            print_statistics,
+            &strict_filament_map,
+            strict_physical_extruder_count);
+    }
+
+    static size_t physical_extruder_count(const DynamicPrintConfig &cfg)
+    {
+        const ConfigOptionFloats *nozzle_diameter = cfg.option<ConfigOptionFloats>("nozzle_diameter");
+        return nozzle_diameter ? nozzle_diameter->values.size() : 0;
+    }
+
+    static bool uses_strict_physical_metadata(const Print &print, const DynamicPrintConfig &cfg)
+    {
+        const bool single_extruder_multi_material =
+            cfg.has("single_extruder_multi_material") &&
+            cfg.opt_bool("single_extruder_multi_material");
+        const bool use_physical_extruder_ids_only =
+            cfg.has("use_physical_extruder_ids_only") &&
+            cfg.opt_bool("use_physical_extruder_ids_only");
+        return physical_extruder_count(cfg) > 1 &&
+               !single_extruder_multi_material &&
+               !print.is_BBL_printer() &&
+               use_physical_extruder_ids_only;
+    }
+
+    static void compact_filament_vector_options(DynamicPrintConfig &cfg, size_t target_filament_count)
+    {
+        for (const std::string &key : cfg.keys()) {
+            if (key.rfind("filament_", 0) != 0)
+                continue;
+            if (key == "filament_map" || key == "filament_self_index")
+                continue;
+
+            ConfigOption *opt = cfg.option(key, false);
+            if (opt == nullptr || !opt->is_vector())
+                continue;
+
+            if (ConfigOptionVectorBase *vector_opt = dynamic_cast<ConfigOptionVectorBase *>(opt);
+                vector_opt != nullptr && vector_opt->size() > target_filament_count)
+                vector_opt->resize(target_filament_count);
+        }
+    }
+
+    static void normalize_flush_volumes_matrix_for_filament_count(DynamicPrintConfig &cfg, size_t target_filament_count)
+    {
+        ConfigOptionFloats *flush_multiplier = cfg.option<ConfigOptionFloats>("flush_multiplier", false);
+        ConfigOptionFloats *flush_matrix = cfg.option<ConfigOptionFloats>("flush_volumes_matrix", false);
+        if (flush_multiplier == nullptr || flush_matrix == nullptr || target_filament_count == 0)
+            return;
+
+        const size_t heads_count = flush_multiplier->values.size();
+        if (heads_count == 0)
+            return;
+
+        const size_t expected_size = heads_count * target_filament_count * target_filament_count;
+        if (flush_matrix->values.size() == expected_size)
+            return;
+
+        if (flush_matrix->values.size() % heads_count == 0) {
+            const size_t per_head_values = flush_matrix->values.size() / heads_count;
+            const size_t source_filament_count = static_cast<size_t>(std::sqrt(static_cast<double>(per_head_values)));
+            if (source_filament_count * source_filament_count == per_head_values && source_filament_count >= target_filament_count) {
+                std::vector<double> compact_matrix(expected_size, 0.0);
+                for (size_t head = 0; head < heads_count; ++head) {
+                    for (size_t from = 0; from < target_filament_count; ++from) {
+                        for (size_t to = 0; to < target_filament_count; ++to) {
+                            compact_matrix[head * target_filament_count * target_filament_count + from * target_filament_count + to] =
+                                flush_matrix->values[head * source_filament_count * source_filament_count + from * source_filament_count + to];
+                        }
+                    }
+                }
+                flush_matrix->values = std::move(compact_matrix);
+                return;
+            }
+        }
+
+        if (flush_matrix->values.size() > expected_size)
+            flush_matrix->values.resize(expected_size);
+        else
+            flush_matrix->values.resize(expected_size, 0.0);
+    }
+
+    static void compact_strict_physical_metadata(const Print &print, DynamicPrintConfig &cfg)
+    {
+        if (!uses_strict_physical_metadata(print, cfg))
+            return;
+
+        const size_t extruder_count = physical_extruder_count(cfg);
+        const std::vector<double> original_flush_vector =
+            cfg.option<ConfigOptionFloats>("flush_volumes_vector", false) ?
+            cfg.option<ConfigOptionFloats>("flush_volumes_vector")->values :
+            std::vector<double>();
+
+        cfg.set_num_filaments(static_cast<unsigned int>(extruder_count));
+        compact_filament_vector_options(cfg, extruder_count);
+
+        if (ConfigOptionInts *filament_map = cfg.option<ConfigOptionInts>("filament_map", false)) {
+            filament_map->values.resize(extruder_count, 1);
+            for (size_t i = 0; i < extruder_count; ++i)
+                filament_map->values[i] = static_cast<int>(i + 1);
+        }
+
+        if (ConfigOptionInts *filament_self_index = cfg.option<ConfigOptionInts>("filament_self_index", false)) {
+            filament_self_index->values.resize(extruder_count, 1);
+            for (size_t i = 0; i < extruder_count; ++i)
+                filament_self_index->values[i] = static_cast<int>(i + 1);
+        }
+
+        if (ConfigOptionFloats *flush_vector = cfg.option<ConfigOptionFloats>("flush_volumes_vector", false)) {
+            flush_vector->values = original_flush_vector;
+            const size_t compact_size = extruder_count * 2;
+            if (flush_vector->values.size() > compact_size)
+                flush_vector->values.resize(compact_size);
+        }
+
+        if (ConfigOptionFloats *flush_matrix = cfg.option<ConfigOptionFloats>("flush_volumes_matrix", false)) {
+            normalize_flush_volumes_matrix_for_filament_count(cfg, extruder_count);
+        }
     }
 }
 
@@ -2412,6 +2744,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
     const bool is_bbl_printers = print.is_BBL_printer();
     const WipeTowerType wipe_tower_type = print.wipe_tower_type();
+    DynamicPrintConfig header_export_config = print.full_print_config();
+    DoExport::compact_strict_physical_metadata(print, header_export_config);
+    const bool strict_physical_metadata = DoExport::uses_strict_physical_metadata(print, header_export_config);
+    const size_t strict_physical_extruder_count = DoExport::physical_extruder_count(header_export_config);
+    const std::vector<int> strict_filament_map = print.get_filament_maps();
     m_calib_config.clear();
     // resets analyzer's tracking data
     m_last_height  = 0.f;
@@ -2543,11 +2880,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     {
         std::string filament_density_list = "; filament_density: ";
-        (filament_density_list+=m_config.filament_density.serialize()) +='\n';
+        (filament_density_list += header_export_config.opt_serialize("filament_density")) += '\n';
         file.writeln(filament_density_list);
 
         std::string filament_diameter_list = "; filament_diameter: ";
-        (filament_diameter_list += m_config.filament_diameter.serialize()) += '\n';
+        (filament_diameter_list += header_export_config.opt_serialize("filament_diameter")) += '\n';
         file.writeln(filament_diameter_list);
 
         coordf_t max_height_z = -1;
@@ -2561,6 +2898,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     {
         auto used_filaments = print.get_slice_used_filaments(false);
+        if (strict_physical_metadata) {
+            std::vector<unsigned int> used_physical_filaments;
+            used_physical_filaments.reserve(used_filaments.size());
+            for (unsigned int filament_id : used_filaments) {
+                unsigned int physical_filament_id = filament_id;
+                if (filament_id < strict_filament_map.size()) {
+                    const int mapped_filament = strict_filament_map[filament_id] - 1;
+                    if (mapped_filament >= 0)
+                        physical_filament_id = static_cast<unsigned int>(mapped_filament);
+                }
+                if (std::find(used_physical_filaments.begin(), used_physical_filaments.end(), physical_filament_id) == used_physical_filaments.end())
+                    used_physical_filaments.push_back(physical_filament_id);
+            }
+            used_filaments = std::move(used_physical_filaments);
+        }
         std::ostringstream out;
         out << "; filament: ";
         for (size_t idx = 0; idx < used_filaments.size(); ++idx) {
@@ -2748,7 +3100,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     print.throw_if_canceled();
 
     m_cooling_buffer = make_unique<CoolingBuffer>(*this);
-    m_cooling_buffer->set_current_extruder(initial_extruder_id);
+    m_cooling_buffer->set_current_extruder(get_toolchange_id(initial_extruder_id));
 
     int extruder_id = get_extruder_id(initial_extruder_id);
 
@@ -2782,16 +3134,16 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     match_physical_extruder_for_each_filament(first_filaments, m_config);
     this->placeholder_parser().set("first_tools", new ConfigOptionInts(first_filaments));
     this->placeholder_parser().set("first_filaments", new ConfigOptionInts(first_filaments));
-    this->placeholder_parser().set("initial_tool", initial_extruder_id);
-    this->placeholder_parser().set("initial_extruder", initial_extruder_id);
+    this->placeholder_parser().set("initial_tool", get_toolchange_id(initial_extruder_id));
+    this->placeholder_parser().set("initial_extruder", get_toolchange_id(initial_extruder_id));
     //BBS
     match_physical_extruder_for_each_filament(first_non_support_filaments, m_config);
 
     this->placeholder_parser().set("first_non_support_tools", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
-    this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
-    this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
-    this->placeholder_parser().set("current_extruder", initial_extruder_id);
+    this->placeholder_parser().set("initial_no_support_tool", get_toolchange_id(initial_non_support_extruder_id));
+    this->placeholder_parser().set("initial_no_support_extruder", get_toolchange_id(initial_non_support_extruder_id));
+    this->placeholder_parser().set("current_extruder", get_toolchange_id(initial_extruder_id));
     //Orca: set the key for compatibilty
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
@@ -3066,6 +3418,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             file.write(m_writer.set_chamber_temperature(max_chamber_temp, true)); // set chamber_temperature
     }
 
+    if (uses_physical_tool_ids())
+        file.write(virtual_toolchange_comment(initial_extruder_id));
+
     // Write the custom start G-code
     file.writeln(machine_start_gcode);
 
@@ -3078,12 +3433,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // add the missing filament start gcode in machine start gcode
         {
             DynamicConfig config;
-            config.set_key_value("filament_extruder_id", new ConfigOptionInt((int)(initial_non_support_extruder_id)));
+            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_toolchange_id(initial_non_support_extruder_id))));
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
             std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values.at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
             file.writeln(filament_start_gcode);
-            // mark the first filament used in print
-            file.write_format(";VT%d\n", initial_extruder_id);
+            // Mark the initial logical filament for the preview parser.
+            file.write(virtual_toolchange_comment(initial_extruder_id));
         }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
@@ -3103,7 +3458,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Wipe tower will control the extruder switching, it will call the filament_start_gcode.
     } else {
             DynamicConfig config;
-            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(initial_extruder_id)));
+            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_toolchange_id(initial_extruder_id))));
             file.writeln(this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.values[initial_extruder_id], initial_extruder_id, &config));
     }
 */
@@ -3257,7 +3612,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 }
                 // Reset the cooling buffer internal state (the current position, feed rate, accelerations).
                 m_cooling_buffer->reset(this->writer().get_position());
-                m_cooling_buffer->set_current_extruder(initial_extruder_id);
+                m_cooling_buffer->set_current_extruder(get_toolchange_id(initial_extruder_id));
                 // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
                 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
                 // and export G-code into file.
@@ -3403,12 +3758,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         if (print.config().single_extruder_multi_material) {
             // Process the filament_end_gcode for the active filament only.
             int extruder_id = m_writer.filament()->id();
-            config.set_key_value("filament_extruder_id", new ConfigOptionInt(extruder_id));
+            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_toolchange_id(extruder_id))));
             file.writeln(this->placeholder_parser_process("filament_end_gcode", print.config().filament_end_gcode.get_at(extruder_id), extruder_id, &config));
         } else {
             for (const std::string &end_gcode : print.config().filament_end_gcode.values) {
                 int extruder_id = (unsigned int)(&end_gcode - &print.config().filament_end_gcode.values.front());
-                config.set_key_value("filament_extruder_id", new ConfigOptionInt(extruder_id));
+                config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_toolchange_id(extruder_id))));
                 file.writeln(this->placeholder_parser_process("filament_end_gcode", end_gcode, extruder_id, &config));
             }
         }
@@ -3437,12 +3792,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     print.throw_if_canceled();
 
     // Get filament stats.
-    file.write(DoExport::update_print_stats_and_format_filament_stats(
-    	// Const inputs
-        has_wipe_tower, print.wipe_tower_data(),
-        m_writer.extruders(),
-        // Modifies
-        print.m_print_statistics));
+    if (strict_physical_metadata) {
+        file.write(DoExport::format_strict_physical_filament_stats(
+            has_wipe_tower,
+            print.wipe_tower_data(),
+            m_writer.extruders(),
+            print.m_print_statistics,
+            strict_filament_map,
+            strict_physical_extruder_count));
+    } else {
+        file.write(DoExport::update_print_stats_and_format_filament_stats(
+            has_wipe_tower,
+            print.wipe_tower_data(),
+            m_writer.extruders(),
+            print.m_print_statistics));
+    }
     print.m_print_statistics.initial_tool = initial_extruder_id;
     if (!is_bbl_printers) {
         file.write_format("; total filament used [g] = %.2lf\n",
@@ -3489,7 +3853,7 @@ void GCode::export_layer_filaments(GCodeProcessorResult* result)
     if (result == nullptr)
         return;
 
-    const std::vector<int>filament_map = m_config.filament_map.values; // 1 based
+    const std::vector<int> filament_map = m_print ? m_print->get_filament_maps() : m_config.filament_map.values; // 1 based
     std::vector<int>prev_filament(m_config.nozzle_diameter.size(), -1);
     for (size_t idx = 0; idx < m_sorted_layer_filaments.size(); ++idx) {
         for (auto f : m_sorted_layer_filaments[idx]) {
@@ -3541,6 +3905,88 @@ size_t GCode::get_extruder_id(unsigned int filament_id) const
         return m_print->get_extruder_id(filament_id);
     }
     return 0;
+}
+
+bool GCode::uses_physical_tool_ids() const
+{
+    return m_writer.multiple_extruders &&
+           !m_config.single_extruder_multi_material &&
+           !is_BBL_Printer() &&
+           m_config.use_physical_extruder_ids_only;
+}
+
+bool GCode::uses_strict_physical_tool_ids() const
+{
+    return uses_physical_tool_ids();
+}
+
+unsigned int GCode::get_strict_physical_tool_id(unsigned int tool_id) const
+{
+    if (!uses_strict_physical_tool_ids())
+        return tool_id;
+
+    if (tool_id < m_config.filament_map.size()) {
+        const int mapped_tool_id = m_config.filament_map.get_at(tool_id) - 1;
+        if (mapped_tool_id >= 0)
+            return static_cast<unsigned int>(mapped_tool_id);
+    }
+
+    return tool_id;
+}
+
+unsigned int GCode::get_toolchange_id(unsigned int filament_id) const
+{
+    return uses_physical_tool_ids() ? static_cast<unsigned int>(get_extruder_id(filament_id)) : filament_id;
+}
+
+std::string GCode::rewrite_tool_related_gcode_to_physical(const std::string &gcode) const
+{
+    if (!uses_strict_physical_tool_ids() || gcode.empty())
+        return gcode;
+
+    const auto map_tool_id = [this](unsigned int tool_id) {
+        return this->get_strict_physical_tool_id(tool_id);
+    };
+
+    std::string out;
+    out.reserve(gcode.size());
+    const std::string toolchange_prefix = m_writer.toolchange_prefix();
+
+    size_t line_start = 0;
+    while (line_start < gcode.size()) {
+        size_t line_end = gcode.find('\n', line_start);
+        const bool has_newline = line_end != std::string::npos;
+        if (!has_newline)
+            line_end = gcode.size();
+
+        std::string line = gcode.substr(line_start, line_end - line_start);
+        const size_t comment_pos = line.find(';');
+        std::string code = line.substr(0, comment_pos);
+
+        bool rewritten = false;
+        if (!toolchange_prefix.empty() && toolchange_prefix.front() != ';')
+            rewritten = rewrite_command_suffix_tool_id(code, toolchange_prefix, map_tool_id);
+        if (!rewritten)
+            rewritten = rewrite_command_parameter_tool_id(code, "M104", 'T', map_tool_id);
+        if (!rewritten)
+            rewritten = rewrite_command_parameter_tool_id(code, "M109", 'T', map_tool_id);
+        if (!rewritten)
+            rewritten = rewrite_command_parameter_tool_id(code, "M104.1", 'T', map_tool_id);
+        if (!rewritten)
+            rewritten = rewrite_command_parameter_tool_id(code, "M109.1", 'T', map_tool_id);
+        if (!rewritten)
+            rewritten = rewrite_command_parameter_tool_id(code, "G10", 'P', map_tool_id);
+
+        out += code;
+        if (comment_pos != std::string::npos)
+            out.append(line, comment_pos, std::string::npos);
+        if (has_newline)
+            out += '\n';
+
+        line_start = has_newline ? line_end + 1 : line_end;
+    }
+
+    return out;
 }
 
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
@@ -3804,7 +4250,7 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
             }
         }
 
-        return output;
+        return rewrite_tool_related_gcode_to_physical(output);
     } 
     catch (std::runtime_error &err) 
     {
@@ -5457,6 +5903,12 @@ void GCode::apply_print_config(const PrintConfig &print_config)
 void GCode::append_full_config(const Print &print, std::string &str)
 {
     DynamicPrintConfig cfg = print.full_print_config();
+    DoExport::compact_strict_physical_metadata(print, cfg);
+    if (DoExport::uses_strict_physical_metadata(print, cfg)) {
+        const ConfigOptionStrings *filament_colours = cfg.option<ConfigOptionStrings>("filament_colour", false);
+        if (filament_colours != nullptr)
+            DoExport::normalize_flush_volumes_matrix_for_filament_count(cfg, filament_colours->values.size());
+    }
     { // correct the flush_volumes_matrix with flush_multiplier values
         std::vector<double> temp_cfg_flush_multiplier = cfg.option<ConfigOptionFloats>("flush_multiplier")->values;
         std::vector<double> temp_flush_volumes_matrix = cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
@@ -7570,7 +8022,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {
-        this->placeholder_parser().set("current_extruder", new_filament_id);
+        this->placeholder_parser().set("current_extruder", get_toolchange_id(new_filament_id));
         this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));
         this->placeholder_parser().set("long_retraction_when_ec", m_config.long_retractions_when_ec.get_at(new_filament_id));
 
@@ -7583,7 +8035,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
             config.set_key_value("layer_z", new ConfigOptionFloat(this->writer().get_position().z() - m_config.z_offset.value));
             config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
-            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(new_filament_id)));
+            config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_toolchange_id(new_filament_id))));
             config.set_key_value("retraction_distance_when_cut",
                                  new ConfigOptionFloat(m_config.retraction_distances_when_cut.get_at(new_filament_id)));
             config.set_key_value("long_retraction_when_cut", new ConfigOptionBool(m_config.long_retractions_when_cut.get_at(new_filament_id)));
@@ -7686,8 +8138,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
                 wipe_volume = flush_matrix[old_filament_id_in_new_extruder * number_of_extruders + new_filament_id];
                 wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);
             }
-        }
-        else {
+        } else {
             wipe_volume = flush_matrix[old_filament_id * number_of_extruders + new_filament_id];
             wipe_volume *= m_config.flush_multiplier.get_at(new_extruder_id);  // if is multi_extruder only use the fist extruder matrix
         }
@@ -7713,8 +8164,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     float         wipe_avoid_pos_x            = 110.f;
     DynamicConfig dyn_config;
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
-    dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
-    dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
+    dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id >= 0 ? int(get_toolchange_id(old_filament_id)) : -1));
+    dyn_config.set_key_value("next_extruder", new ConfigOptionInt(int(get_toolchange_id(new_filament_id))));
     dyn_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
     dyn_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
     dyn_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -7808,6 +8259,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         toolchange_gcode_parsed = placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_filament_id, &dyn_config);
         check_add_eol(toolchange_gcode_parsed);
+        if (uses_physical_tool_ids())
+            annotate_toolchange_gcode_with_virtual_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(),
+                get_toolchange_id(new_filament_id), new_filament_id);
         gcode += toolchange_gcode_parsed;
 
         //BBS
@@ -7835,7 +8289,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     //BBS: don't add T[next extruder] if there is no T cmd on filament change
      //We inform the writer about what is happening, but we may not use the resulting gcode.
     std::string toolchange_command = m_writer.toolchange(new_filament_id);
-    if (!custom_gcode_changes_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(), new_filament_id))
+    const bool custom_gcode_has_toolchange = custom_gcode_changes_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(), get_toolchange_id(new_filament_id));
+    if (!custom_gcode_has_toolchange)
         gcode += toolchange_command;
     else {
         // user provided his own toolchange gcode, no need to do anything
@@ -7849,7 +8304,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_writer.set_temperature(temp, false);
     }
 
-    this->placeholder_parser().set("current_extruder", new_filament_id);
+    this->placeholder_parser().set("current_extruder", get_toolchange_id(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));
@@ -7864,7 +8319,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(this->writer().get_position().z() - m_config.z_offset.value));
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
-        config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(new_filament_id)));
+        config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_toolchange_id(new_filament_id))));
         if (toolchange_temp_override > 0) {
             auto temps = m_config.nozzle_temperature.values;
             if (new_filament_id < temps.size())
