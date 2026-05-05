@@ -7,6 +7,7 @@
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
 #include "MsgDialog.hpp"
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -42,7 +43,8 @@ extern std::string& get_right_extruder_unprintable_text();
 
 bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* partplate_ref, bool force_pop_up)
 {
-    auto full_config = wxGetApp().preset_bundle->full_config();
+    BOOST_LOG_TRIVIAL(info) << "try_pop_up_before_slice: ENTER";
+    DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config();
     const auto nozzle_diameters = full_config.option<ConfigOptionFloats>("nozzle_diameter");
     if (nozzle_diameters->size() <= 1)
         return true;
@@ -62,6 +64,9 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     FilamentMapMode applied_mode = get_applied_map_mode(full_config, plater_ref,partplate_ref, sync_plate);
     std::vector<int> applied_maps = get_applied_map(full_config, plater_ref, partplate_ref, sync_plate);
     applied_maps.resize(filament_colors.size(), 1);
+    BOOST_LOG_TRIVIAL(info) << "try_pop_up_before_slice: applied_mode=" << (int)applied_mode
+                            << " applied_maps.size=" << applied_maps.size()
+                            << " filament_colors.size=" << filament_colors.size();
 
     if (!force_pop_up && applied_mode != fmmManual)
         return true;
@@ -75,6 +80,7 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
         filament_lists = partplate_ref->get_extruders();
     }
 
+    BOOST_LOG_TRIVIAL(info) << "try_pop_up_before_slice: showing dialog";
     FilamentMapDialog map_dlg(plater_ref,
         filament_colors,
         filament_types,
@@ -90,6 +96,9 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     if (ret == wxID_OK) {
         FilamentMapMode new_mode = map_dlg.get_mode();
         std::vector<int> new_maps = map_dlg.get_filament_maps();
+        BOOST_LOG_TRIVIAL(info) << "try_pop_up_before_slice: OK, new_mode=" << (int)new_mode
+                                << " new_maps.size=" << new_maps.size()
+                                << " sync_plate=" << sync_plate;
         if (sync_plate) {
             if (is_slice_all) {
                 auto plate_list = plater_ref->get_partplate_list().get_plate_list();
@@ -110,7 +119,9 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
             if (new_mode == fmmManual)
                 plater_ref->set_global_filament_map(new_maps);
         }
+        BOOST_LOG_TRIVIAL(info) << "try_pop_up_before_slice: calling plater_ref->update()";
         plater_ref->update();
+        BOOST_LOG_TRIVIAL(info) << "try_pop_up_before_slice: update() OK";
         // check whether able to slice, if not, return false
         if (!get_left_extruder_unprintable_text().empty() || !get_right_extruder_unprintable_text().empty()){
             return false;

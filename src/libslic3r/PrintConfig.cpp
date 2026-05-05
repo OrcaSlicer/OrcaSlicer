@@ -540,7 +540,8 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ExtruderType)
 static const t_config_enum_values s_keys_map_NozzleVolumeType = {
     { "Standard",  nvtStandard },
     { "High Flow", nvtHighFlow },
-    { "Hybrid", nvtHybrid}
+    { "Hybrid", nvtHybrid },
+    { "TPU High Flow", nvtTPUHighFlow }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NozzleVolumeType)
 
@@ -2507,6 +2508,37 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2. });
+
+    // BBS: H2C filament cooling/heating variables for change_filament_gcode
+    def = this->add("filament_cooling_before_tower", coFloats);
+    def->label  = L("Wipe tower cooling");
+    def->tooltip = L("Temperature drop before entering filament tower");
+    def->sidetext = L(u8"\u2103" /* °C */);
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{10});
+
+    def          = this->add("filament_pre_cooling_temperature_nc", coInts);
+    def->label   = L("Pre-cooling temperature");
+    def->tooltip = L("To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.");
+    def->mode     = comDevelop;
+    def->sidetext = L(u8"\u2103" /* °C */);
+    def->min      = 0;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionIntsNullable{0});
+
+    def = this->add("hotend_cooling_rate", coFloats);
+    def->nullable = true;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloatsNullable{2});
+
+    def = this->add("hotend_heating_rate", coFloats);
+    def->nullable = true;
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloatsNullable{2});
+
+    def = this->add("enable_pre_heating", coBool);
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("machine_load_filament_time", coFloat);
     def->label = L("Filament load time");

@@ -1853,21 +1853,34 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
 
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
     if (!used_filaments.empty()) {
-        const auto* opt_type      = config.option<ConfigOptionStrings>("filament_type");
-        const auto* opt_printable = config.option<ConfigOptionInts>("filament_printable");
-        const size_t types_size      = opt_type ? opt_type->values.size() : 0;
-        const size_t printable_size  = opt_printable ? opt_printable->values.size() : 0;
+        auto *filament_type_opt = config.option<ConfigOptionStrings>("filament_type");
+        auto *filament_printable_opt = config.option<ConfigOptionInts>("filament_printable");
+        if (!filament_type_opt || !filament_printable_opt)
+            return true;
+
+        const auto &filament_types = filament_type_opt->values;
+        const auto &filament_printable_values = filament_printable_opt->values;
+        std::vector<int> filament_map = get_real_filament_maps(config);
+
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
             // Skip invalid / out-of-range filament ids: get_extruders may return 0 (1-based) or
             // an index beyond what filament_printable was sized to (e.g. when the H2C dual-nozzle
-            // expansion left the per-extruder variant lists shorter than the used-filaments set).
-            if (filament_id < 0 || (size_t)filament_id >= types_size || (size_t)filament_id >= printable_size)
+            // expansion left the per-extruder variant lists shorter than the used-filaments set,
+            // or when full_config(apply_extruder=true) compresses to per-extruder counts).
+            if (filament_id < 0 ||
+                static_cast<size_t>(filament_id) >= filament_types.size() ||
+                static_cast<size_t>(filament_id) >= filament_printable_values.size())
                 continue;
-            std::string filament_type = opt_type->values[filament_id];
-            int filament_printable_status = opt_printable->values[filament_id];
-            std::vector<int> filament_map  = get_real_filament_maps(config);
-            int extruder_idx = (filament_id < (int)filament_map.size() && filament_map[filament_id] > 0) ? filament_map[filament_id] - 1 : 0;
+
+            std::string filament_type = filament_types[filament_id];
+            int filament_printable_status = filament_printable_values[filament_id];
+
+            if (static_cast<size_t>(filament_id) >= filament_map.size())
+                continue;
+            int extruder_idx = filament_map[filament_id] - 1;
+            if (extruder_idx < 0)
+                continue;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
                 error_message  = wxString::Format(_L("The %s nozzle can not print %s."), extruder_name, filament_type);
@@ -6125,7 +6138,7 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 						BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("print is null!");
 					}
 					//parse filament info
-					plate_data_item->parse_filament_info(m_plate_list[i]->get_slice_result());
+					plate_data_item->parse_filament_info(m_plate_list[i]->get_slice_result(), print ? &print->full_print_config() : nullptr);
 				} else {
 					BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "slice result = " << m_plate_list[i]->get_slice_result()
 										<< ", result valid = " << m_plate_list[i]->is_slice_result_valid();

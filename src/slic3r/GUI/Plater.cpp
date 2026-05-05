@@ -1623,7 +1623,12 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
         return false;
     }
-    if (machine_print_name != target_model_id) {
+    bool sync_type_match = (machine_print_name == target_model_id);
+    if (!sync_type_match) {
+        auto compatible = DevPrinterConfigUtil::get_compatible_machine(machine_print_name);
+        sync_type_match = std::find(compatible.begin(), compatible.end(), target_model_id) != compatible.end();
+    }
+    if (!sync_type_match) {
         MessageDialog dlg(this->plater, _L("The currently selected machine preset is inconsistent with the connected printer type.\n"
                                             "Are you sure to continue syncing?"), _L("Sync printer information"), wxICON_WARNING | wxYES | wxNO);
         if (dlg.ShowModal() == wxID_NO) {
@@ -1849,7 +1854,15 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
     bool printer_synced = false;
     // 1. update printer status
     const Preset &cur_preset = wxGetApp().preset_bundle->printers.get_edited_preset();
-    if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
+    auto preset_type = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+    auto show_type = obj->get_show_printer_type();
+    // Check direct match or compatible_machine match (firmware reports family ID e.g. "O1C", preset has model ID e.g. "O1C2")
+    bool type_match = (preset_type == show_type);
+    if (!type_match) {
+        auto compatible = DevPrinterConfigUtil::get_compatible_machine(show_type);
+        type_match = std::find(compatible.begin(), compatible.end(), preset_type) != compatible.end();
+    }
+    if (preset_bundle && type_match) {
         panel_printer_preset->ShowBadge(true);
         printer_synced = true;
 
@@ -1915,13 +1928,21 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         extruder_infos[0].diameter = float(value);
     }
     else if(extruder_nums == 2){
-        double value = 0.0;
-        left_extruder->diameter.ToDouble(&value);
-        extruder_infos[0].diameter = float(value);
-    
-        value = 0.0;
-        right_extruder->diameter.ToDouble(&value);
-        extruder_infos[1].diameter = float(value);
+        // Read nozzle diameter from preset config directly
+        // (UI wxStrings may be locale-dependent or uninitialized)
+        auto *nozzle_diam_opt = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+        if (nozzle_diam_opt && nozzle_diam_opt->values.size() >= 2) {
+            extruder_infos[0].diameter = float(nozzle_diam_opt->values[0]);
+            extruder_infos[1].diameter = float(nozzle_diam_opt->values[1]);
+        } else {
+            double value = 0.0;
+            left_extruder->diameter.ToDouble(&value);
+            extruder_infos[0].diameter = float(value);
+        
+            value = 0.0;
+            right_extruder->diameter.ToDouble(&value);
+            extruder_infos[1].diameter = float(value);
+        }
     }
 
     std::vector<ExtruderInfo> machine_extruder_infos(obj->GetExtderSystem()->GetTotalExtderCount());
@@ -3786,7 +3807,12 @@ bool Sidebar::need_auto_sync_extruder_list_after_connect_priner(const MachineObj
     std::string   machine_print_name = obj->get_show_printer_type();
     PresetBundle *preset_bundle      = wxGetApp().preset_bundle;
     std::string   target_model_id    = preset_bundle->printers.get_selected_preset().get_printer_type(preset_bundle);
-    if (machine_print_name != target_model_id) {
+    bool auto_sync_match = (machine_print_name == target_model_id);
+    if (!auto_sync_match) {
+        auto compatible = DevPrinterConfigUtil::get_compatible_machine(machine_print_name);
+        auto_sync_match = std::find(compatible.begin(), compatible.end(), target_model_id) != compatible.end();
+    }
+    if (!auto_sync_match) {
         return false;
     }
 
@@ -5847,9 +5873,8 @@ void Plater::priv::update(unsigned int flags)
     unsigned int update_status = 0;
     const bool force_background_processing_restart = this->printer_technology == ptSLA || (flags & (unsigned int)UpdateParams::FORCE_BACKGROUND_PROCESSING_UPDATE);
     if (force_background_processing_restart)
-        // Update the SLAPrint from the current Model, so that the reload_scene()
-        // pulls the correct data.
         update_status = this->update_background_process(false, flags & (unsigned int)UpdateParams::POSTPONE_VALIDATION_ERROR_MESSAGE);
+
     //BBS TODO reload_scene
     this->view3D->reload_scene(false, flags & (unsigned int)UpdateParams::FORCE_FULL_SCREEN_REFRESH);
     if (is_preview_shown()) this->preview->reload_print();
@@ -9910,7 +9935,11 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
                 if (obj && obj->is_multi_extruders()) {
                     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
                     Preset& cur_preset = preset_bundle->printers.get_edited_preset();
-                    if (cur_preset.get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
+                    auto _preset_t = cur_preset.get_printer_type(preset_bundle);
+                    auto _show_t = obj->get_show_printer_type();
+                    bool _t_match = (_preset_t == _show_t);
+                    if (!_t_match) { auto _c = DevPrinterConfigUtil::get_compatible_machine(_show_t); _t_match = std::find(_c.begin(), _c.end(), _preset_t) != _c.end(); }
+                    if (_t_match) {
                         double preset_nozzle_diameter = cur_preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values[0];
                         bool   same_nozzle_diameter   = true;
 
@@ -11347,7 +11376,11 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         return true;
     }
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
+    auto _pt2 = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
+    auto _st2 = obj->get_show_printer_type();
+    bool _m2 = (_pt2 == _st2);
+    if (!_m2 && preset_bundle) { auto _c2 = DevPrinterConfigUtil::get_compatible_machine(_st2); _m2 = std::find(_c2.begin(), _c2.end(), _pt2) != _c2.end(); }
+    if (preset_bundle && _m2) {
         bool is_same_as_printer = true;
         auto nozzle_volumes_values = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
         assert(obj->GetExtderSystem()->GetTotalExtderCount() == 2 && nozzle_volumes_values.size() == 2);
@@ -11437,7 +11470,12 @@ bool Plater::priv::get_machine_sync_status()
         return false;
 
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    return preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type();
+    if (!preset_bundle) return false;
+    auto _pt3 = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+    auto _st3 = obj->get_show_printer_type();
+    if (_pt3 == _st3) return true;
+    auto _c3 = DevPrinterConfigUtil::get_compatible_machine(_st3);
+    return std::find(_c3.begin(), _c3.end(), _pt3) != _c3.end();
 }
 
 bool Plater::priv::init_collapse_toolbar()
@@ -15428,7 +15466,12 @@ Preset *get_printer_preset(const MachineObject *obj)
         std::string model_id = printer_it->get_current_printer_type(preset_bundle);
 
         std::string printer_type = obj->get_show_printer_type();
-        if (model_id.compare(printer_type) == 0 && printer_nozzle_vals && abs(printer_nozzle_vals->get_at(0) - machine_nozzle_diameter) < 1e-3) {
+        bool id_match = (model_id.compare(printer_type) == 0);
+        if (!id_match) {
+            auto compatible = DevPrinterConfigUtil::get_compatible_machine(printer_type);
+            id_match = std::find(compatible.begin(), compatible.end(), model_id) != compatible.end();
+        }
+        if (id_match && printer_nozzle_vals && abs(printer_nozzle_vals->get_at(0) - machine_nozzle_diameter) < 1e-3) {
             printer_preset = &(*printer_it);
         }
     }
@@ -18146,22 +18189,28 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 
     if (filament_dlg.ShowModal() == wxID_OK) {
         std::vector<int> new_filament_maps = filament_dlg.get_filament_maps();
+        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: OK pressed, new_filament_maps size=" << new_filament_maps.size();
         std::vector<int> old_filament_maps = curr_plate->get_real_filament_maps(project_config);
+        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: old_filament_maps size=" << old_filament_maps.size();
 
         FilamentMapMode  old_map_mode = curr_plate->get_filament_map_mode();
         FilamentMapMode  new_map_mode = filament_dlg.get_mode();
+        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: old_mode=" << (int)old_map_mode << " new_mode=" << (int)new_map_mode;
 
         if (new_map_mode != old_map_mode) {
+            BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: setting filament_map_mode";
             curr_plate->set_filament_map_mode(new_map_mode);
         }
 
         if (new_map_mode == fmmManual){
+            BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: setting filament_maps for manual mode";
             curr_plate->set_filament_maps(new_filament_maps);
         }
 
         bool need_invalidate = (old_map_mode != new_map_mode ||
                                 old_filament_maps != new_filament_maps);
 
+        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: need_invalidate=" << need_invalidate << " need_slice=" << need_slice;
         if (need_invalidate) {
             // BBL 6836da105: precheck filament printability before reslicing.
             // If a filament can't be printed (e.g., wrong nozzle), skip the
@@ -18175,7 +18224,14 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
             else {
                 curr_plate->update_slice_result_valid_state(false);
                 set_plater_dirty(true);
-                update();
+                BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: calling update()";
+                try {
+                    update();
+                    BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: update() completed OK";
+                } catch (const std::exception& ex) {
+                    BOOST_LOG_TRIVIAL(error) << "filament_map_dialog: update() threw: " << ex.what();
+                    throw;
+                }
             }
         }
     }

@@ -7158,7 +7158,7 @@ bool GUI_App::load_language(wxString language, bool initial)
     m_imgui->set_language(into_u8(requested_language_code));
 
     //FIXME This is a temporary workaround, the correct solution is to switch to "C" locale during file import / export only.
-    //wxSetlocale(LC_NUMERIC, "C");
+    wxSetlocale(LC_NUMERIC, "C");
     Preset::update_suffix_modified((_L("*") + " ").ToUTF8().data());
     HintDatabase::get_instance().reinit();
 	return true;

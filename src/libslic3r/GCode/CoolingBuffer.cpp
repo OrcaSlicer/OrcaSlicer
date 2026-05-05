@@ -802,6 +802,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
             ironing_fan_control = false; // ORCA: Add support for ironing fan speed control
             ironing_fan_speed = 0; // ORCA: Add support for ironing fan speed control
         }
+
         if (fan_speed_new != m_fan_speed) {
             m_fan_speed = fan_speed_new;
             m_current_fan_speed = fan_speed_new;
@@ -995,11 +996,16 @@ std::string CoolingBuffer::apply_layer_cooldown(
                 m_current_fan_speed = ironing_fan_speed;
             }
             else if(fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] && m_current_fan_speed != -1){
+                // BBS compat: use m_fan_speed (base fan) not stale m_current_fan_speed
+                m_current_fan_speed = m_fan_speed;
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, m_current_fan_speed);
                 fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = false;
             }
-            else
+            else {
+                // Restore base fan speed and sync m_current_fan_speed (BBS compat)
+                m_current_fan_speed = m_fan_speed;
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, m_fan_speed);
+            }
             need_set_fan = false;
         }
         pos = line_end;

@@ -1325,12 +1325,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                support_object_skip_flush))
     ((ConfigOptionEnum<BedTempFormula>, bed_temperature_formula))
     ((ConfigOptionInts,                physical_extruder_map))
+    ((ConfigOptionFloatsNullable,      hotend_cooling_rate))
+    ((ConfigOptionFloatsNullable,      hotend_heating_rate))
+    ((ConfigOptionBool,                enable_pre_heating))
     ((ConfigOptionIntsNullable,        nozzle_flush_dataset))
     ((ConfigOptionFloatsNullable,      filament_flush_volumetric_speed))
     ((ConfigOptionIntsNullable,        filament_flush_temp))
     ((ConfigOptionFloatsNullable,      filament_cooling_before_tower))
-    ((ConfigOptionFloatsNullable,      hotend_cooling_rate))
-    ((ConfigOptionFloatsNullable,      hotend_heating_rate))
     ((ConfigOptionFloat,               wipe_tower_center_pos_x))
     ((ConfigOptionFloat,               wipe_tower_center_pos_y))
     ((ConfigOptionBool,                wipe_tower_center_pos_valid))
@@ -1644,7 +1645,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoint,               bed_mesh_probe_distance))
     ((ConfigOptionFloat,               adaptive_bed_mesh_margin))
 
-
+    // BBS: H2C filament cooling before tower
+    ((ConfigOptionFloatsNullable,      filament_cooling_before_tower))
 )
 
 // This object is mapped to Perl as Slic3r::Config::Full.

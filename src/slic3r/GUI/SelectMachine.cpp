@@ -62,6 +62,12 @@ std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_t
     else if (nozzle_volume_type == NozzleVolumeType::nvtHighFlow) {
         return "high_flow";
     }
+    else if (nozzle_volume_type == NozzleVolumeType::nvtTPUHighFlow) {
+        return "tpu_high_flow";
+    }
+    else if (nozzle_volume_type == NozzleVolumeType::nvtHybrid) {
+        return "hybrid_flow";
+    }
     else {
         assert(false);
         return "";

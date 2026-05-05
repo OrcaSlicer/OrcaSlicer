@@ -252,6 +252,8 @@ static constexpr const char* FILAMENT_TYPE_TAG = "type";
 static constexpr const char *FILAMENT_COLOR_TAG = "color";
 static constexpr const char *FILAMENT_USED_M_TAG = "used_m";
 static constexpr const char *FILAMENT_USED_G_TAG = "used_g";
+static constexpr const char *FILAMENT_USED_FOR_SUPPORT     = "used_for_support";
+static constexpr const char *FILAMENT_USED_FOR_OBJECT      = "used_for_object";
 static constexpr const char *FILAMENT_TRAY_INFO_ID_TAG     = "tray_info_idx";
 static constexpr const char *LAYER_FILAMENT_LISTS_TAG      = "layer_filament_lists";
 static constexpr const char *LAYER_FILAMENT_LIST_TAG       = "layer_filament_list";
@@ -638,7 +640,7 @@ bool bbs_is_valid_object_type(const std::string& type)
 
 namespace Slic3r {
 
-void PlateData::parse_filament_info(GCodeProcessorResult *result)
+void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicPrintConfig *config)
 {
     if (!result) return;
 
@@ -652,6 +654,17 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         return ret;
     };
 
+    // Determine support filament IDs from config
+    std::set<int> support_filament_ids;
+    if (config) {
+        auto get_support_id = [&](const char* key) {
+            auto opt = config->option<ConfigOptionInt>(key);
+            if (opt && opt->value > 0) support_filament_ids.insert(opt->value - 1);
+        };
+        get_support_id("support_filament");
+        get_support_id("support_interface_filament");
+    }
+
     for (auto it = ps.total_volumes_per_extruder.begin(); it != ps.total_volumes_per_extruder.end(); it++) {
         double volume                           = it->second;
         auto [used_filament_m, used_filament_g] = get_used_filament_from_volume(volume, it->first);
@@ -660,7 +673,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         info.id = it->first;
         info.used_g = used_filament_g;
         info.used_m = used_filament_m;
-
+        // Prefer slicing-engine result when available (post-slicing assignment is most accurate).
         if (result && result->nozzle_group_result) {
             auto nozzle_for_filament = result->nozzle_group_result->get_nozzle_for_filament(it->first);
             if (nozzle_for_filament) {
@@ -668,6 +681,39 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 info.group_id = nozzle_for_filament->group_id;
                 info.nozzle_volume_type = get_nozzle_volume_type_string(nozzle_for_filament->volume_type);
             }
+        }
+
+        // Fall back to config-derived values for any field the engine path didn't fill,
+        // and always derive used_for_object/support from config (engine doesn't expose this).
+        if (config) {
+            if (info.nozzle_diameter == 0) {
+                auto nozzle_opt = config->option<ConfigOptionFloats>("nozzle_diameter");
+                if (nozzle_opt) {
+                    int idx = std::min((int)it->first, (int)nozzle_opt->values.size() - 1);
+                    if (idx >= 0) info.nozzle_diameter = nozzle_opt->values[idx];
+                }
+            }
+
+            if (info.nozzle_volume_type.empty()) {
+                auto nvt_opt = dynamic_cast<const ConfigOptionEnumsGeneric*>(config->option("nozzle_volume_type"));
+                if (nvt_opt && !nvt_opt->values.empty()) {
+                    int extruder_idx = 0;
+                    auto fmap_opt = config->option<ConfigOptionInts>("filament_map");
+                    if (fmap_opt && it->first < fmap_opt->values.size()) {
+                        extruder_idx = std::max(0, fmap_opt->values[it->first] - 1);
+                    }
+                    int nvt_idx = std::min(extruder_idx, (int)nvt_opt->values.size() - 1);
+                    info.nozzle_volume_type = get_nozzle_volume_type_string((NozzleVolumeType)nvt_opt->values[nvt_idx]);
+                    if (info.group_id < 0) info.group_id = extruder_idx;
+                } else {
+                    info.nozzle_volume_type = get_nozzle_volume_type_string(nvtStandard);
+                    if (info.group_id < 0) info.group_id = 0;
+                }
+            }
+
+            bool is_support = support_filament_ids.count(it->first) > 0;
+            info.used_for_support = is_support;
+            info.used_for_object  = !is_support || support_filament_ids.empty();
         }
 
         slice_filaments_info.push_back(info);
@@ -8184,10 +8230,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                            << FILAMENT_TYPE_TAG << "=\"" << it->type << "\" "
                            << FILAMENT_COLOR_TAG << "=\"" << it->color << "\" "
                            << FILAMENT_USED_M_TAG << "=\"" << it->used_m << "\" "
-                        << FILAMENT_USED_G_TAG << "=\"" << it->used_g << "\" "
-                        << FILAMENT_NOZZLE_GROUP_ID_TAG << "=\"" << it->group_id << "\" "
-                        << FILAMENT_NOZZLE_DIAMETER_TAG << "=\"" << it->nozzle_diameter << "\" "
-                        << FILAMENT_NOZZLE_VOLUME_TYPE_TAG << "=\"" << it->nozzle_volume_type << "\"/>\n";
+                           << FILAMENT_USED_G_TAG << "=\"" << it->used_g << "\" "
+                           << FILAMENT_USED_FOR_OBJECT << "=\"" << it->used_for_object << "\" "
+                           << FILAMENT_USED_FOR_SUPPORT << "=\"" << it->used_for_support << "\" "
+                           << FILAMENT_NOZZLE_GROUP_ID_TAG << "=\"" << it->group_id << "\" "
+                           << FILAMENT_NOZZLE_DIAMETER_TAG << "=\"" << it->nozzle_diameter << "\" "
+                           << FILAMENT_NOZZLE_VOLUME_TYPE_TAG << "=\"" << it->nozzle_volume_type << "\"/>\n";
                 }
 
                 for (auto it = plate_data->warnings.begin(); it != plate_data->warnings.end(); it++) {

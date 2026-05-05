@@ -1413,6 +1413,8 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
 
                     for (int filament: filaments_set)
                     {
+                        if (filament < 1 || filament - 1 >= (int)filament_maps.size())
+                            continue;
                         if (filament_maps[filament - 1] == extruder_id)
                         {
                             object_filament_info.manual_filaments.emplace(filament, extruder_id);
