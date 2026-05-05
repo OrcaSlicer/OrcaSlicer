@@ -1056,22 +1056,36 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     bool has_too_hot_mismatch = false;
     bool has_too_cold_mismatch = false;
 
+    auto is_range_unset = [](int low, int high) {
+        return low <= 0 && high <= 0;
+    };
+
     for (size_t i = 0; i < count; ++i) {
         const int temp_i = print_temperatures[i];
         const int low_i  = std::min(nozzle_temperature_range_low[i], nozzle_temperature_range_high[i]);
         const int high_i = std::max(nozzle_temperature_range_low[i], nozzle_temperature_range_high[i]);
+        const bool range_i_unset = is_range_unset(low_i, high_i);
 
         for (size_t j = i + 1; j < count; ++j) {
             const int temp_j = print_temperatures[j];
             const int low_j  = std::min(nozzle_temperature_range_low[j], nozzle_temperature_range_high[j]);
             const int high_j = std::max(nozzle_temperature_range_low[j], nozzle_temperature_range_high[j]);
+            const bool range_j_unset = is_range_unset(low_j, high_j);
 
             // Each material's print temperature should fit every other selected
             // material's recommended nozzle temperature range.
-            if (temp_i < low_j || temp_j < low_i)
-                has_too_cold_mismatch = true;
-            if (temp_i > high_j || temp_j > high_i)
-                has_too_hot_mismatch = true;
+            if (!range_j_unset) {
+                if (temp_i < low_j)
+                    has_too_cold_mismatch = true;
+                if (temp_i > high_j)
+                    has_too_hot_mismatch = true;
+            }
+            if (!range_i_unset) {
+                if (temp_j < low_i)
+                    has_too_cold_mismatch = true;
+                if (temp_j > high_i)
+                    has_too_hot_mismatch = true;
+            }
 
             if (has_too_hot_mismatch && has_too_cold_mismatch)
                 return FilamentCompatibilityType::HighLowMixed;
@@ -1165,12 +1179,11 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
         bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
 
         for (const auto &objectID_t : print.print_object_ids()) {
-            std::set<int> obj_used_extruder_ids;
+            std::set<unsigned int> obj_used_extruder_ids;
             auto                     print_object = print.get_object(objectID_t);// current object
             if (print_object){
                 auto object_extruders_t = print_object->object_extruders(); // object used extruder
-                for (int extruder : object_extruders_t) {
-                    assert(extruder > 0);
+                for (unsigned int extruder : object_extruders_t) {
                     obj_used_extruder_ids.insert(extruder);
                 }
             }
@@ -1186,9 +1199,8 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
             }
             std::vector<unsigned int> obj_used_extruders;
             obj_used_extruders.reserve(obj_used_extruder_ids.size());
-            for (const int extruder_idx : obj_used_extruder_ids)
-                if (extruder_idx >= 0)
-                    obj_used_extruders.push_back(static_cast<unsigned int>(extruder_idx));
+            for (const unsigned int extruder_idx : obj_used_extruder_ids)
+                obj_used_extruders.push_back(extruder_idx);
 
             std::vector<int> print_temperatures;
             std::vector<int> range_lows;
