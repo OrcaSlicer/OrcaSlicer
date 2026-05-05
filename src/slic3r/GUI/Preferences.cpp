@@ -1356,6 +1356,9 @@ void PreferencesDialog::create_items()
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
 
+    auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
+    g_sizer->Add(item_shared_profiles);
+
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
     g_sizer->Add(item_window_button_pos);
@@ -1533,6 +1536,45 @@ void PreferencesDialog::create_items()
         dlg.ShowModal();
     });
     g_sizer->Add(item_network_test);
+
+    //// ONLINE > Cloud Providers
+    g_sizer->Add(create_item_title(_L("Cloud Providers")), 1, wxEXPAND);
+
+    {
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+        auto text = new wxStaticText(m_parent, wxID_ANY, _L("Enable Bambu Cloud"),
+            wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+        text->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        text->SetFont(::Label::Body_14);
+        text->SetToolTip(_L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
+        text->Wrap(DESIGN_TITLE_SIZE.x);
+
+        auto cb = new ::CheckBox(m_parent);
+        cb->SetValue(app_config->has_cloud_provider(BBL_CLOUD_PROVIDER));
+        cb->SetToolTip(text->GetToolTipText());
+
+        cb->Bind(wxEVT_TOGGLEBUTTON, [this, cb](wxCommandEvent &e) {
+            e.Skip(); // let CheckBox::update() refresh the bitmap
+            if (cb->GetValue()) {
+                app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+            } else {
+                app_config->remove_cloud_provider(BBL_CLOUD_PROVIDER);
+            }
+            app_config->save();
+
+            // Update homepage visibility immediately
+            auto *mainframe = wxGetApp().mainframe;
+            if (mainframe && mainframe->m_webview)
+                mainframe->m_webview->SendCloudProvidersInfo();
+        });
+
+        sizer->Add(text, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
+        sizer->Add(cb, 0, wxALIGN_CENTER | wxRIGHT | wxLEFT, FromDIP(5));
+
+        g_sizer->Add(sizer);
+    }
 
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);

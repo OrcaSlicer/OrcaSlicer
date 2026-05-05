@@ -1198,7 +1198,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
     ((ConfigOptionFloat,                scarf_joint_flow_ratio))
     ((ConfigOptionPercent,              scarf_overhang_threshold))
-)
+    
+    // Orca: Z Anti-Aliasing (aka Z Contouring)
+    ((ConfigOptionBool, zaa_enabled))
+    ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
+    ((ConfigOptionFloat, zaa_min_z))
+    ((ConfigOptionFloat, zaa_minimize_perimeter_height))
+    )
 
 PRINT_CONFIG_CLASS_DEFINE(
     MachineEnvelopeConfig,

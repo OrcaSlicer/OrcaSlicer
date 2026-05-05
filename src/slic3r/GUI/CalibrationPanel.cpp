@@ -244,13 +244,14 @@ void SelectMObjectPopup::Popup(wxWindow* WXUNUSED(focus))
         m_refresh_timer->Start(MACHINE_LIST_REFRESH_INTERVAL);
     }
 
-    if (wxGetApp().is_user_login()) {
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
+    if (wxGetApp().is_user_login(provider)) {
         if (!get_print_info_thread) {
-            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token)] {
+            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token), provider] {
                 NetworkAgent* agent = wxGetApp().getAgent();
                 unsigned int http_code;
                 std::string body;
-                int result = agent->get_user_print_info(&http_code, &body);
+                int result = agent->get_user_print_info(&http_code, &body, provider);
 
                 wxGetApp().CallAfter([token, this, result, body]() {
                     if (token.expired()) {return;}
@@ -585,7 +586,7 @@ void CalibrationPanel::update_all() {
         // only disconnected server in cloud mode
         if (obj->connection_type() != "lan") {
             if (m_agent) {
-                server_status = m_agent->is_server_connected() ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
+                server_status = m_agent->is_server_connected(wxGetApp().get_printer_cloud_provider()) ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
             }
         }
         show_status((int)MONITOR_DISCONNECTED + server_status);

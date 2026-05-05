@@ -12,6 +12,10 @@
 #include "libslic3r/MacUtils.hpp"
 #endif
 
+#ifdef __WXGTK3__
+#include "../GUI_Utils.hpp"
+#endif
+
 #include <wx/dcmemory.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
@@ -32,6 +36,11 @@ SwitchButton::SwitchButton(wxWindow* parent, wxWindowID id)
 	SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
 	Bind(wxEVT_TOGGLEBUTTON, [this](auto& e) { update(); e.Skip(); });
 	SetFont(Label::Body_12);
+
+#ifdef __WXGTK3__
+    Slic3r::GUI::RemoveButtonBorder(this);
+#endif
+
 	Rescale();
 }
 
