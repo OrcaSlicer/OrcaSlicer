@@ -1504,7 +1504,9 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
     if (prests.empty()) return true;
 
     bed_temp = 0;
-    std::vector<std::string> filament_types;
+    std::vector<int> print_temperatures;
+    std::vector<int> range_lows;
+    std::vector<int> range_highs;
     for (auto &item : prests) {
         const auto& item_preset = item.second;
         if (!item_preset)
@@ -1530,15 +1532,22 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
             if (bed_temp == 0)
                 bed_temp = bed_temp_int;
         }
-        std::string display_filament_type;
-        filament_types.push_back(item_preset->config.get_filament_type(display_filament_type, 0));
+
+        const ConfigOptionInts *opt_nozzle_temp = item_preset->config.option<ConfigOptionInts>("nozzle_temperature");
+        const ConfigOptionInts *opt_range_low   = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low");
+        const ConfigOptionInts *opt_range_high  = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high");
+        if (opt_nozzle_temp && opt_range_low && opt_range_high) {
+            print_temperatures.push_back(opt_nozzle_temp->get_at(0));
+            range_lows.push_back(opt_range_low->get_at(0));
+            range_highs.push_back(opt_range_high->get_at(0));
+        }
 
         // check is it in the filament blacklist
         if (!is_filament_in_blacklist(item.first, item_preset, error_tips))
             return false;
     }
 
-    if (Print::check_multi_filaments_compatibility(filament_types) == FilamentCompatibilityType::HighLowMixed) {
+    if (Print::check_multi_filaments_compatibility(print_temperatures, range_lows, range_highs) == FilamentCompatibilityType::HighLowMixed) {
         error_tips = _u8L("Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing");
         return false;
     }
