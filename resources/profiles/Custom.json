@@ -16,11 +16,10 @@
 			"name": "Generic RRF Printer",
 			"sub_path": "machine/MyRRF.json"
 		},
-        {    
-            "name": "Generic Repetier Printer",
-            "sub_path": "machine/MyRepetier.json"
-        },
-        
+		{
+			"name": "Generic Repetier Printer",
+			"sub_path": "machine/MyRepetier.json"
+		},
 		{
 			"name": "Generic ToolChanger Printer",
 			"sub_path": "machine/MyToolChanger.json"
@@ -42,11 +41,11 @@
 		{
 			"name": "fdm_process_rrf_common",
 			"sub_path": "process/fdm_process_rrf_common.json"
-        },
-        {
-            "name": "fdm_process_repetier_common",
-            "sub_path": "process/fdm_process_repetier_common.json"
-        },
+		},
+		{
+			"name": "fdm_process_repetier_common",
+			"sub_path": "process/fdm_process_repetier_common.json"
+		},
 		
 		{
 			"name": "0.08mm Extra Fine @MyKlipper",
@@ -140,10 +139,10 @@
 			"name": "0.28mm Extra Draft @MyRRF",
 			"sub_path": "process/0.28mm Extra Draft @MyRRF.json"
 		},
-        {
-            "name": "0.20mm Standard @MyRepetier",
-            "sub_path": "process/0.20mm Standard @MyRepetier.json"
-        },
+		{
+			"name": "0.20mm Standard @MyRepetier",
+			"sub_path": "process/0.20mm Standard @MyRepetier.json"
+		},
 		{
 			"name": "0.08mm Extra Fine @MyToolChanger",
 			"sub_path": "process/0.08mm Extra Fine @MyToolChanger.json"
@@ -244,10 +243,10 @@
 			"name": "fdm_rrf_common",
 			"sub_path": "machine/fdm_rrf_common.json"
 		},
-        {
-            "name": "fdm_repetier_common",
-            "sub_path": "machine/fdm_repetier_common.json"
-        },
+		{
+			"name": "fdm_repetier_common",
+			"sub_path": "machine/fdm_repetier_common.json"
+		},
 		{
 			"name": "MyKlipper 0.2 nozzle",
 			"sub_path": "machine/MyKlipper 0.2 nozzle.json"
@@ -272,10 +271,10 @@
 			"name": "MyRRF 0.4 nozzle",
 			"sub_path": "machine/MyRRF 0.4 nozzle.json"
 		},
-        {
-            "name": "MyRepetier 0.4 nozzle",
-            "sub_path": "machine/MyRepetier 0.4 nozzle.json"
-        },
+		{
+			"name": "MyRepetier 0.4 nozzle",
+			"sub_path": "machine/MyRepetier 0.4 nozzle.json"
+		},
 		{
 			"name": "MyToolChanger 0.2 nozzle",
 			"sub_path": "machine/MyToolChanger 0.2 nozzle.json"
