@@ -1,5 +1,4 @@
 #include <random>
-#include <cmath>
 
 #include "libslic3r/Algorithm/LineSplit.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
@@ -180,7 +179,7 @@ static void fuzzy_polyline_ripple(Points& poly, const FuzzySkinConfig& cfg)
 
     // Phase function: φ(s) = N·2π·(s - anchor_arc) / perimeter + π/2 + phase_shift
     // Adding π/2 ensures sin(φ) = 1 at the anchor when phase_shift = 0 (a peak).
-    const double phase_at_anchor = M_PI_2 + phase_shift_rad;
+    const double phase_at_anchor = M_PI * 2.0 + phase_shift_rad;
     auto arc_phase = [&](double arc_mm) -> double { return N * (2.0 * M_PI) * (arc_mm - anchor_arc_mm) / perimeter_mm + phase_at_anchor; };
 
     Points out;
@@ -247,7 +246,7 @@ static void fuzzy_extrusion_line_ripple(Arachne::ExtrusionJunctions& ext_lines, 
 
     const double anchor_arc_mm   = ripple_anchor_arc_mm(poly);
     const double phase_shift_rad = ripple_phase_shift_rad(cfg);
-    const double phase_at_anchor = M_PI_2 + phase_shift_rad;
+    const double phase_at_anchor = M_PI * 2. + phase_shift_rad;
 
     auto arc_phase = [&](double arc_mm) -> double { return N * (2.0 * M_PI) * (arc_mm - anchor_arc_mm) / perimeter_mm + phase_at_anchor; };
 
