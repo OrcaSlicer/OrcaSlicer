@@ -4465,11 +4465,19 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         [](const std::string &s) { return s.empty(); });
     if (stats_useful) {
         auto parsed = get_extruder_nozzle_stats(nozzle_stats_ptr->values);
-        // H2C self-heal: 3mf projects saved by Orca builds without nozzle-inventory
-        // tracking persist `Standard#0` for every extruder. Treat all-zero counts as
-        // "no data" so we re-derive from the printer model below instead of carrying
-        // the bad values into nozzle_groups (where they collapse to an empty
-        // nozzle_list and trip the guard in ToolOrdering.cpp).
+        // H2C self-heal — two cases that need re-derivation, not the saved values:
+        //   (a) all-zero counts (older Orca builds without nozzle-inventory tracking
+        //       persisted `Standard#0` for every extruder)
+        //   (b) any extruder's total saved count is strictly below the profile's
+        //       extruder_max_nozzle_count (older builds saved `Standard#1` as a
+        //       generic default regardless of rack capacity, perpetuating the bad
+        //       value across save/load cycles even after the auto-init landed).
+        // In either case carrying the saved values forward collapses nozzle_groups,
+        // trips the ToolOrdering empty-nozzle_list guard, and (on H2C) makes the
+        // printer firmware reject the print job on a hotend-quantity mismatch.
+        // MQTT sync from a connected printer overwrites with actual rack contents
+        // when available; until then we use the printer profile's max as the
+        // best-effort default.
         bool any_nonzero = false;
         for (const auto &m : parsed) {
             for (const auto &kv : m) {
@@ -4477,10 +4485,23 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             }
             if (any_nonzero) break;
         }
+        bool below_profile_max = false;
         if (any_nonzero) {
+            auto* max_nc = this->printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+            if (max_nc && max_nc->size() == parsed.size()) {
+                for (size_t eid = 0; eid < parsed.size(); ++eid) {
+                    int total = 0;
+                    for (const auto &kv : parsed[eid]) total += kv.second;
+                    if (total < max_nc->values[eid]) { below_profile_max = true; break; }
+                }
+            }
+        }
+        if (any_nonzero && !below_profile_max) {
             this->extruder_nozzle_stat = ExtruderNozzleStat(std::move(parsed));
         } else {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": ignoring all-zero extruder_nozzle_stats from project; re-deriving from printer model";
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+                << ": ignoring stale extruder_nozzle_stats from project ("
+                << (any_nonzero ? "below printer max" : "all-zero") << "); re-deriving";
             stats_useful = false;
         }
     }
