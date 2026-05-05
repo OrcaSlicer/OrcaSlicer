@@ -696,11 +696,11 @@ void PrintConfigDef::init_common_params()
     def->set_default_value(new ConfigOptionInt(1));	
 
     def           = this->add("elefant_foot_layers_density", coPercent);
-    def->label    = L("Elefant foot layers density");
+    def->label    = L("Elephant foot layers density");
     def->category = L("Quality");
-    def->tooltip  = L("Density of internal solid infill for elefant foot layers compensation. "
-                      "The initial value for the second layer is set. "
-                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers. ");
+    def->tooltip  = L("Density of internal solid infill for Elephant foot layers compensation.\n"
+                      "The initial value for the second layer is set.\n"
+                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers.");
     def->sidetext = "%";
     def->min      = 50;
     def->max      = 100;
@@ -2191,6 +2191,7 @@ void PrintConfigDef::init_fff_params()
                      "This setting changes all extrusion flow of this filament in G-code proportionally. "
                      "The recommended value range is between 0.95 and 1.05. "
                      "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.");
+    def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
     def->nullable = true;
@@ -3639,7 +3640,7 @@ void PrintConfigDef::init_fff_params()
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");
     def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
-    def->mode=comDevelop;
+    def->mode=comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     def->readonly=false;
 
@@ -4110,6 +4111,53 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Use a fixed absolute angle for ironing.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def           = this->add("ironing_expansion", coFloat);
+    def->label    = L("Ironing expansion");
+    def->category = L("Quality");
+    def->tooltip  = L("Expand or contract the ironing area.");
+    def->sidetext = L("mm");
+    def->min      = -100;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("zaa_enabled", coBool);
+    def->label    = L("Z contouring enabled");
+    def->category = L("Quality");
+    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing).");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zaa_minimize_perimeter_height", coFloat);
+    def->label    = L("Minimize wall height angle");
+    def->category = L("Quality");
+    def->tooltip  = L("Reduce the height of top-surface perimeters to match the model edge height.\n"
+                      "Affects perimeters with a slope less than this angle (degrees).\n"
+                      "A reasonable value is 35. Set to 0 to disable.");
+    def->sidetext = L("°");
+    def->min      = 0;
+    def->max      = 90;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("zaa_dont_alternate_fill_direction", coBool);
+    def->label    = L("Don't alternate fill direction");
+    def->category = L("Quality");
+    def->tooltip  = L("Disable alternating fill direction when using Z contouring.");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zaa_min_z", coFloat);
+    def->label    = L("Minimum z height");
+    def->category = L("Quality");
+    def->tooltip  = L("Minimum Z-layer height.\n"
+                      "Also controls the slicing plane.");
+    def->sidetext = L("mm");
+    def->min      = 0;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
@@ -5192,7 +5240,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Scarf joint flow ratio");
     def->category = L("Quality");
     def->tooltip = L("This factor affects the amount of material for scarf joints.");
-    def->mode = comDevelop;
+    def->mode = comExpert;
+    def->min = 0;
     def->max = 2;
     def->set_default_value(new ConfigOptionFloat(1));
 

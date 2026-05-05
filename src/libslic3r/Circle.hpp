@@ -28,6 +28,7 @@ public:
 
     static bool try_create_circle(const Point &p1, const Point &p2, const Point &p3, const double max_radius, Circle& new_circle);
     static bool try_create_circle(const Points& points, const double max_radius, const double tolerance, Circle& new_circle);
+    static bool try_create_circle(const Points3& points, const double max_radius, const double tolerance, Circle& new_circle);
     double get_polar_radians(const Point& p1) const;
     bool is_over_deviation(const Points& points, const double tolerance);
     bool get_deviation_sum_squared(const Points& points, const double tolerance, double& sum_deviation);
@@ -111,8 +112,16 @@ public:
         double max_radius = DEFAULT_SCALED_MAX_RADIUS,
         double tolerance = DEFAULT_SCALED_RESOLUTION,
         double path_tolerance_percent = DEFAULT_ARC_LENGTH_PERCENT_TOLERANCE);
+    static bool try_create_arc(
+        const Points3 &points,
+        ArcSegment& target_arc,
+        double approximate_length,
+        double max_radius = DEFAULT_SCALED_MAX_RADIUS,
+        double tolerance = DEFAULT_SCALED_RESOLUTION,
+        double path_tolerance_percent = DEFAULT_ARC_LENGTH_PERCENT_TOLERANCE);
 
     static bool are_points_within_slice(const ArcSegment& test_arc, const Points &points);
+    static bool are_points_within_slice(const ArcSegment& test_arc, const Points3 &points);
     // BBS: this function is used to detect whether a ray cross the segment
     static bool ray_intersects_segment(const Point& rayOrigin, const Vec2d& rayDirection, const Line& segment);
     // BBS: these three functions are used to calculate related arguments of arc in unscale_field.

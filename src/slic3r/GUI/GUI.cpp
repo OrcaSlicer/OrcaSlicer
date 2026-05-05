@@ -1,5 +1,6 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
 
@@ -522,15 +523,6 @@ void about()
 {
     AboutDialog dlg;
     dlg.ShowModal();
-}
-
-void login()
-{
-	//LoginDialog dlg;
-	//dlg.ShowModal();
-
-	ZUserLogin dlg;
-    dlg.run();
 }
 
 void desktop_open_datadir_folder()
