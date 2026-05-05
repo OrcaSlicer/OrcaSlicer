@@ -5161,6 +5161,19 @@ void TabPrinter::on_preset_loaded()
             m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
         }
     }
+
+    // BBL parity (port from BambuStudio Tab.cpp:5565): re-derive extruder_nozzle_stat
+    // from the printer's extruder_max_nozzle_count whenever a printer profile is
+    // loaded. Without this, the stat carries whatever was in the saved 3MF (or the
+    // default `1`) regardless of the printer's actual rack capacity, causing the
+    // firmware to reject the print on a hotend-quantity mismatch. Skipped when
+    // a manual override is active or when MQTT sync already populated it.
+    if (auto* max_nc = m_config->option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+        max_nc && !max_nc->values.empty() &&
+        m_preset_bundle->extruder_nozzle_stat.get_nozzle_data_flag() != ExtruderNozzleStat::ndfMachine &&
+        !m_preset_bundle->extruder_nozzle_stat.is_force_kept()) {
+        m_preset_bundle->extruder_nozzle_stat.on_printer_model_change(m_preset_bundle);
+    }
 }
 
 void TabPrinter::update_pages()

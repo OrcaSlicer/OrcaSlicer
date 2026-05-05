@@ -1,5 +1,6 @@
 #include "DevExtruderSystem.h"
 
+#include "DevConfigUtil.h"
 #include "DevNozzleRack.h"
 #include "DevNozzleSystem.h"
 #include "DevUtil.h"
@@ -476,10 +477,17 @@ bool sync_machine_nozzle_inventory_to_preset(const MachineObject* obj, PresetBun
 
     Preset& selected = bundle.printers.get_edited_preset();
     const std::string preset_model_id = selected.get_current_printer_type(&bundle);
-    if (preset_model_id.empty() || preset_model_id != obj->printer_type) {
-        // User is editing a different printer than the one streaming MQTT — leave the preset alone.
-        return false;
+    if (preset_model_id.empty()) return false;
+    // Firmware may report a family ID (e.g. "O1C") while the preset uses a
+    // model_id (e.g. "O1C2"). Match directly first, then fall back through
+    // the printer's compatible_machine list; without this fallback the sync
+    // silently bails for LAN-connected devices.
+    bool match = (preset_model_id == obj->printer_type);
+    if (!match) {
+        auto compatible = DevPrinterConfigUtil::get_compatible_machine(obj->printer_type);
+        match = std::find(compatible.begin(), compatible.end(), preset_model_id) != compatible.end();
     }
+    if (!match) return false;
 
     auto* max_nc = selected.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
     if (!max_nc || max_nc->size() == 0) return false;

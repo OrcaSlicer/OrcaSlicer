@@ -226,7 +226,7 @@ static const std::unordered_map<std::string, std::string> pre_family_model_map {
 
 
 // 中间版本兼容性处理，如果是nil值，先改成default值，再进行扩展
-void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil_to_default, const DynamicPrintConfig& defaults)
+void extend_default_config_length(DynamicPrintConfig& config, const DynamicPrintConfig& inherit_config, const bool set_nil_to_default, const DynamicPrintConfig& defaults)
 {
     constexpr int default_param_length = 1;
     int filament_variant_length = default_param_length;
@@ -240,12 +240,33 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
         machine_variant_length = nozzle_diameter->values.size();
     }
 
-    if(config.has("filament_extruder_variant"))
-        filament_variant_length = config.option<ConfigOptionStrings>("filament_extruder_variant")->size();
-    if(config.has("print_extruder_variant"))
-        process_variant_length = config.option<ConfigOptionStrings>("print_extruder_variant")->size();
-    if(config.has("printer_extruder_variant"))  // Use existing variant list if specified, so BBL's multi-variant profiles still works
-        machine_variant_length = config.option<ConfigOptionStrings>("printer_extruder_variant")->size();
+    // BBL parity (port from BambuStudio Preset.cpp:156): when the leaf preset
+    // doesn't carry the variant key, inherit it from the parent. Filament JSONs
+    // typically omit `filament_extruder_variant`, so without this fallback
+    // `filament_variant_length` stayed at 1 and every filament array got
+    // resized down to a single entry on load — collapsing N×variants worth of
+    // per-filament data and tripping the H2C firmware's hotend-mismatch check.
+    auto ensure_variant_and_get_len = [&](const std::string& variant_key, const std::string& id_key = "") -> int {
+        if (!config.has(variant_key) && inherit_config.has(variant_key))
+            config.set_key_value(variant_key, inherit_config.option(variant_key)->clone());
+
+        if (!id_key.empty() && !config.has(id_key) && inherit_config.has(id_key))
+            config.set_key_value(id_key, inherit_config.option(id_key)->clone());
+
+        if (!id_key.empty() && (!config.has(variant_key) || !config.has(id_key))) {
+            config.erase(variant_key);
+            config.erase(id_key);
+        }
+
+        if (auto* opt = config.option<ConfigOptionStrings>(variant_key))
+            return (int)opt->size();
+        return default_param_length;
+    };
+
+    filament_variant_length = ensure_variant_and_get_len("filament_extruder_variant");
+    process_variant_length  = ensure_variant_and_get_len("print_extruder_variant", "print_extruder_id");
+    if (auto inherited = ensure_variant_and_get_len("printer_extruder_variant", "printer_extruder_id"); inherited > default_param_length)
+        machine_variant_length = inherited;  // prefer BBL multi-variant list over the nozzle_diameter fallback above
 
     auto replace_nil_and_resize = [&](const std::string & key, int length){
         ConfigOption* raw_ptr = config.option(key);
@@ -1648,7 +1669,7 @@ void PresetCollection::load_presets(
                     if (inherit_preset) {
                         preset.config = inherit_preset->config;
                         preset.filament_id = inherit_preset->filament_id;
-                        extend_default_config_length(config, false, {});
+                        extend_default_config_length(config, inherit_preset->config, false, {});
                         preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
                     }
                     else {
@@ -1662,7 +1683,7 @@ void PresetCollection::load_presets(
                         // Find a default preset for the config. The PrintPresetCollection provides different default preset based on the "printer_technology" field.
                         preset.config = default_preset.config;
                         preset.config.apply(std::move(config));
-                        extend_default_config_length(preset.config, true, default_preset.config);
+                        extend_default_config_length(preset.config, {}, true, default_preset.config);
                     }
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " load preset: " << name << " and filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
 
@@ -2239,7 +2260,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             new_config = default_preset.config;
         }
 
-        extend_default_config_length(cloud_config, false, {});
+        extend_default_config_length(cloud_config, inherit_preset ? inherit_preset->config : DynamicPrintConfig{}, false, {});
 
         if (inherit_preset) {
             std::string extruder_id_name, extruder_variant_name;
@@ -2250,7 +2271,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         }
         else{
             new_config.apply(std::move(cloud_config));
-            extend_default_config_length(new_config, true, default_preset.config);
+            extend_default_config_length(new_config, {}, true, default_preset.config);
         }
         Preset::normalize(new_config);
         // Report configuration fields, which are misplaced into a wrong group.

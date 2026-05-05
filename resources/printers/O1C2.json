@@ -70,6 +70,12 @@
 			"support_ams_ext_mix_print": true
 		},
 		"model_id": "O1C2",
+		"subseries": [
+			"O1C2-V2"
+		],
+		"compatible_machine": [
+			"O1C"
+		],
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_multi_extruders",
 		"support_wrapping_detection": true,
 		"printer_modes": [

@@ -1583,7 +1583,7 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             const Preset &default_preset = collection->default_preset_for(config);
             new_config                   = default_preset.config;
             new_config.apply(std::move(config));
-            extend_default_config_length(new_config, true, default_preset.config);
+            extend_default_config_length(new_config, {}, true, default_preset.config);
         }
 
         Preset &preset     = collection->load_preset(collection->path_from_name(name, inherit_preset == nullptr), preset_name, std::move(new_config), false);
@@ -5038,7 +5038,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             }
             config = *default_config;
             config.apply(config_src);
-            extend_default_config_length(config, true, *default_config);
+            extend_default_config_length(config, {}, true, *default_config);
             if (instantiation == "false" && "Template" != vendor_name) {
                 // Report configuration fields, which are misplaced into a wrong group.
                 std::string incorrect_keys = Preset::remove_invalid_keys(config, *default_config);

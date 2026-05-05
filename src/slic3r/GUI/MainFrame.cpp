@@ -23,7 +23,6 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "Widgets/MultiNozzleSync.hpp"
 
 #include "Tab.hpp"
 #include "ProgressStatusBar.hpp"
@@ -2781,28 +2780,6 @@ void MainFrame::init_menubar_as_editor()
 
         fileMenu->AppendSeparator();
 
-        // H2C Phase B1: manual nozzle inventory editor. Visible only when the
-        // active printer has at least one extruder with a multi-slot rack
-        // (i.e. any extruder_max_nozzle_count entry > 1). For the H2C this
-        // mirrors the path used when MQTT auto-fill isn't available.
-        append_menu_item(fileMenu, wxID_ANY,
-            _L("Set H2C nozzle inventory") + dots,
-            _L("Manually set the per-extruder nozzle inventory used when slicing"),
-            [](wxCommandEvent&) { Slic3r::GUI::manuallySetAllNozzleCounts(); },
-            "", nullptr,
-            []() {
-                auto* bundle = wxGetApp().preset_bundle;
-                if (!bundle) return false;
-                auto* opt = bundle->printers.get_edited_preset().config
-                                .option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
-                if (!opt) return false;
-                return std::any_of(opt->values.begin(), opt->values.end(),
-                                   [](int v) { return v > 1; });
-            },
-            this);
-
-        fileMenu->AppendSeparator();
-
 #ifndef __APPLE__
         append_menu_item(fileMenu, wxID_EXIT, _L("Quit"), wxString::Format(_L("Quit")),
             [this](wxCommandEvent&) { Close(false); }, "menu_exit", nullptr);
@@ -3275,31 +3252,6 @@ void MainFrame::init_menubar_as_editor()
             plater()->get_current_canvas3D()->force_set_focus();
         },
         "", nullptr, []() { return true; }, this);
-
-    // H2C: "Sync Nozzle Status" — pops the full MultiNozzleSyncDialog when a
-    // supported rack device is selected, otherwise falls back to the manual
-    // count dialog so offline/non-H2C printers still have a way to set counts.
-    append_menu_item(
-        m_topbar->GetTopMenu(), wxID_ANY, _L("Set Nozzle Count") + dots,
-        _L("Sync or manually set per-extruder nozzle counts (multi-nozzle printers like H2C)"),
-        [this](wxCommandEvent &) {
-            auto* dm  = wxGetApp().getDeviceManager();
-            MachineObject* obj = dm ? dm->get_selected_machine() : nullptr;
-            // tryPopUpMultiNozzleDialog checks IsRackSupported internally;
-            // returns nullopt when not applicable (offline/not H2C). Fall
-            // through to manual dialog in that case.
-            if (!tryPopUpMultiNozzleDialog(obj))
-                manuallySetAllNozzleCounts();
-        },
-        "", nullptr,
-        []() {
-            auto* bundle = wxGetApp().preset_bundle;
-            if (!bundle) return false;
-            auto* opt = bundle->printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
-            if (!opt) return false;
-            return std::any_of(opt->values.begin(), opt->values.end(), [](int v){ return v > 1; });
-        },
-        this);
     //m_topbar->AddDropDownMenuItem(preference_item);
     //m_topbar->AddDropDownMenuItem(printer_item);
     //m_topbar->AddDropDownMenuItem(language_item);

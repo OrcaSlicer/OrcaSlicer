@@ -105,7 +105,7 @@ extern int get_values_from_json(std::string file_path, std::vector<std::string>&
 
 extern ConfigFileType guess_config_file_type(const boost::property_tree::ptree &tree);
 
-extern void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil_to_default, const DynamicPrintConfig& defaults);
+extern void extend_default_config_length(DynamicPrintConfig& config, const DynamicPrintConfig& inherit_config, const bool set_nil_to_default, const DynamicPrintConfig& defaults);
 
 class VendorProfile
 {
