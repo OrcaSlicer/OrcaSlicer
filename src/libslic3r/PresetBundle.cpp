@@ -1,4 +1,5 @@
 #include <cassert>
+#include <ctime>
 
 #include "PresetBundle.hpp"
 #include "PrintConfig.hpp"
@@ -6,10 +7,10 @@
 #include "I18N.hpp"
 #include "Utils.hpp"
 #include "Model.hpp"
-#include "format.hpp"
 #include "libslic3r_version.h"
 
 #include <algorithm>
+#include <mutex>
 #include <set>
 #include <fstream>
 #include <unordered_set>
@@ -23,6 +24,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/locale.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <miniz/miniz.h>
 
 // Mark string for localization and translate.
@@ -233,6 +236,83 @@ DynamicPrintConfig PresetBundle::construct_full_config(
 
     out.option<ConfigOptionEnumGeneric>("printer_technology", true)->value = ptFFF;
     return out;
+}
+
+std::string PresetBundle::find_preset_vendor(const std::string &preset_name, Preset::Type type)
+{
+    // Get the resources preset directory (contains all bundled vendor profiles)
+    fs::path system_dir = fs::path(Slic3r::resources_dir()) / PRESET_PROFILES_DIR;
+    if (!fs::exists(system_dir) || !fs::is_directory(system_dir)) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " Resources profiles directory does not exist: " << system_dir.string();
+        return "";
+    }
+
+    // Determine which preset list key to search for based on type
+    const char* preset_list_key = nullptr;
+    if (type == Preset::Type::TYPE_PRINT)
+        preset_list_key = BBL_JSON_KEY_PROCESS_LIST;
+    else if (type == Preset::Type::TYPE_FILAMENT)
+        preset_list_key = BBL_JSON_KEY_FILAMENT_LIST;
+    else if (type == Preset::Type::TYPE_PRINTER)
+        preset_list_key = BBL_JSON_KEY_MACHINE_LIST;
+    else {
+        // Not supported for other types
+        return "";
+    }
+
+    // Iterate through vendor JSON files in the system directory
+    for (auto& dir_entry : fs::directory_iterator(system_dir)) {
+        std::string vendor_file = dir_entry.path().string();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
+        if (!Slic3r::is_json_file(vendor_file))
+            continue;
+
+        // Get vendor name (filename without .json extension)
+        std::string vendor_name = dir_entry.path().filename().string();
+        vendor_name.erase(vendor_name.size() - 5); // Remove ".json"
+
+        try {
+            // Load and parse the vendor JSON file
+            boost::nowide::ifstream ifs(vendor_file);
+            json j;
+            ifs >> j;
+
+            // Check if the preset list key exists
+            if (!j.contains(preset_list_key))
+                continue;
+
+            auto& preset_list = j[preset_list_key];
+            if (!preset_list.is_array())
+                continue;
+
+            // Search for the preset in the list
+            for (auto& preset_entry : preset_list) {
+                if (!preset_entry.is_object())
+                    continue;
+
+                // Get the preset name
+                std::string p_name;
+                if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
+                    p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
+
+                if (p_name != preset_name)
+                    continue;
+
+                // Found the preset! Get the vendor name and install the entire bundle
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << p_name
+                                            << " in vendor bundle " << vendor_name;
+                
+                return vendor_name;
+            }
+        }
+        catch (const std::exception &e) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
+            return "";
+        }
+    }
+
+    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Could not find vendor for preset " << preset_name;
+    return "";
 }
 
 PresetBundle::PresetBundle()
@@ -848,6 +928,87 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
     fs::path    folder(user_folder / user);
     if (!fs::exists(folder)) fs::create_directory(folder);
 
+    bundles.WriteLock();
+    bundles.m_bundles.clear();
+    bundles.WriteUnlock();
+
+    // Load bundle metadata from _local directory first
+    fs::path local_dir(folder / PRESET_LOCAL_DIR);
+    if (fs::exists(local_dir)) {
+        dir_user_presets_local = local_dir;
+        for (auto& entry : fs::directory_iterator(local_dir)) {
+            if (!fs::is_directory(entry.path())) continue;
+
+            std::string bundle_dir = entry.path().string();
+
+            fs::path metadata_file = entry.path() / PRESET_BUNDLE_METADATA;
+            if (!fs::exists(metadata_file)) continue;
+
+            BundleMetadata metadata;
+            if (!metadata.load_from_json(metadata_file.string())) continue;
+            metadata.print_presets.clear();
+            metadata.filament_presets.clear();
+            metadata.printer_presets.clear();
+
+            // Add the profiles
+            this->prints.load_presets(bundle_dir, PRESET_PRINT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
+                metadata.print_presets.push_back(preset.name);
+            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id));
+            this->filaments.load_presets(bundle_dir, PRESET_FILAMENT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
+                metadata.filament_presets.push_back(preset.name);
+            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id));
+            this->printers.load_presets(bundle_dir, PRESET_PRINTER_NAME, substitutions, substitution_rule, [&](Preset& preset) {
+                metadata.printer_presets.push_back(preset.name);
+            }, PresetOrigin(PresetOrigin::Kind::LocalBundle, metadata.id));
+            metadata.bundle_type = BundleType::Local;
+            metadata.path = metadata_file.string();
+
+            bundles.WriteLock();
+            bundles.m_bundles[metadata.id] = metadata;
+            bundles.WriteUnlock();
+        }
+    }
+
+    // Load bundle metadata from _subscribed directory
+    fs::path subscribed_dir(folder / PRESET_SUBSCRIBED_DIR);
+    if (fs::exists(subscribed_dir)) {
+        for (auto& entry : fs::directory_iterator(subscribed_dir)) {
+            if (!fs::is_directory(entry.path())) continue;
+
+            std::string bundle_dir = entry.path().string();
+
+            fs::path metadata_file = entry.path() / PRESET_BUNDLE_METADATA;
+            if (!fs::exists(metadata_file)) continue;
+
+            BundleMetadata metadata;
+            if (!metadata.load_from_json(metadata_file.string())) continue;
+            metadata.print_presets.clear();
+            metadata.filament_presets.clear();
+            metadata.printer_presets.clear();
+            metadata.is_subscribed = true;
+
+            // Load presets from bundle (same logic as __local__)
+            this->prints.load_presets(bundle_dir, PRESET_PRINT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
+                metadata.print_presets.push_back(preset.name);
+            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id));
+            this->filaments.load_presets(bundle_dir, PRESET_FILAMENT_NAME, substitutions, substitution_rule, [&](Preset& preset) {
+                metadata.filament_presets.push_back(preset.name);
+            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id));
+            this->printers.load_presets(bundle_dir, PRESET_PRINTER_NAME, substitutions, substitution_rule, [&](Preset& preset) {
+                metadata.printer_presets.push_back(preset.name);
+            }, PresetOrigin(PresetOrigin::Kind::SubscribedBundle, metadata.id));
+
+            metadata.bundle_type = BundleType::Subscribed;
+            metadata.path = metadata_file.string();
+            metadata.update_available = false;
+
+            bundles.WriteLock();
+            bundles.m_bundles[metadata.id] = metadata;
+            bundles.WriteUnlock();
+        }
+    }
+
+
     // BBS do not load sla_print
     // BBS: change directoties by design
     try {
@@ -917,15 +1078,15 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &          
             PresetCollection *preset_collection = nullptr;
             if (type_iter->second == PRESET_IOT_PRINT_TYPE) {
                 preset_collection = &(this->prints);
-                process_added |= preset_collection->load_user_preset(name, value_map, substitutions, substitution_rule);
+                process_added |= preset_collection->load_user_preset(name, value_map, substitutions, substitution_rule, PresetOrigin(PresetOrigin::Kind::User));
             }
             else if (type_iter->second == PRESET_IOT_FILAMENT_TYPE) {
                 preset_collection = &(this->filaments);
-                filament_added |= preset_collection->load_user_preset(name, value_map, substitutions, substitution_rule);
+                filament_added |= preset_collection->load_user_preset(name, value_map, substitutions, substitution_rule, PresetOrigin(PresetOrigin::Kind::User));
             }
             else if (type_iter->second == PRESET_IOT_PRINTER_TYPE) {
                 preset_collection = &(this->printers);
-                machine_added |= preset_collection->load_user_preset(name, value_map, substitutions, substitution_rule);
+                machine_added |= preset_collection->load_user_preset(name, value_map, substitutions, substitution_rule, PresetOrigin(PresetOrigin::Kind::User));
             }
             else {
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("invalid type %1% for setting %2%") %type_iter->second %name;
@@ -959,32 +1120,193 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &          
     return substitutions;
 }
 
+bool PresetBundle::apply_vendor_config(
+    const std::map<std::string, std::map<std::string, std::set<std::string>>>& new_vendors,
+    const std::map<std::string, std::string>& new_filaments,
+    AppConfig* app_config,
+    bool overwrite,
+    const std::string& preferred_printer_model,
+    const std::string& preferred_printer_variant,
+    const std::string& preferred_filament)
+{
+    namespace fs = boost::filesystem;
+
+    // Get current configuration from AppConfig
+    const auto old_vendors = app_config->vendors();
+    const auto old_filaments = app_config->has_section(AppConfig::SECTION_FILAMENTS)
+        ? app_config->get_section(AppConfig::SECTION_FILAMENTS)
+        : std::map<std::string, std::string>();
+
+    // Find vendors that need installation
+    const auto vendor_dir = (fs::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
+
+    std::vector<std::string> install_bundles;
+    for (const auto &it : new_vendors) {
+        if (it.second.size() > 0) {
+            auto vendor_file = vendor_dir / (it.first + ".json");
+            if (!fs::exists(vendor_file)) {
+                install_bundles.emplace_back(it.first);
+            }
+        }
+    }
+
+    // Install bundles from resources
+    if (!install_bundles.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "Installing " << install_bundles.size() << " vendor bundles from resources";
+        if (!Slic3r::install_vendor_bundles_from_resources(install_bundles)) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to install vendor bundles";
+            return false;
+        }
+    } else {
+        BOOST_LOG_TRIVIAL(info) << "No bundles need to be installed from resource directory";
+    }
+
+    // For each @System filament, check if a vendor-specific override exists
+    // in the loaded profiles. If so, replace the @System variant with the
+    // override (e.g. replace "Generic ABS @System" with BBL "Generic ABS").
+    // When printers from the default bundle are also selected, keep @System
+    // too since those printers need it.
+    static const std::string system_suffix              = " @System";
+    auto                     it_default                 = new_vendors.find(PresetBundle::ORCA_DEFAULT_BUNDLE);
+    bool                     has_default_bundle_printer = it_default != new_vendors.end() && !it_default->second.empty();
+
+    // Check if any non-default vendor has selected printers
+    bool has_vendor_printer = false;
+    for (const auto& [vendor, models] : new_vendors) {
+        if (vendor != PresetBundle::ORCA_DEFAULT_BUNDLE && !models.empty()) {
+            has_vendor_printer = true;
+            break;
+        }
+    }
+
+    std::map<std::string, std::string> supplemented_filaments;
+    for (const auto& [name, value] : new_filaments) {
+        if (name.size() > system_suffix.size() &&
+            name.compare(name.size() - system_suffix.size(), system_suffix.size(), system_suffix) == 0) {
+            std::string short_name = name.substr(0, name.size() - system_suffix.size());
+
+            if (has_vendor_printer) {
+                // Check if this filament exists in the loaded vendor profiles
+                // For @System filaments, we check if the short_name exists as a vendor-specific filament
+                bool has_vendor_filament = false;
+                for (const auto& [vendor, models] : new_vendors) {
+                    if (vendor != PresetBundle::ORCA_DEFAULT_BUNDLE) {
+                        auto vendor_it = this->vendors.find(vendor);
+                        // Check if this vendor is loaded in the preset bundle
+                        if (vendor_it != this->vendors.end()) {
+                            // Vendor is loaded, check if the filament exists
+                            for (auto f : vendor_it->second.default_filaments) {
+                                BOOST_LOG_TRIVIAL(info) << " checking if vendor filament " << f << " matches " << short_name << "(" << name << ")";
+                                if (f.find(short_name) != std::string::npos) {
+                                    BOOST_LOG_TRIVIAL(info) << name << " has filament from vendor: " << vendor;
+                                    has_vendor_filament = true;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (has_vendor_filament) {
+                    supplemented_filaments[short_name] = value;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Replacing @System filament: '" << name << "' -> '" << short_name << "'";
+                    if (has_default_bundle_printer) {
+                        supplemented_filaments[name] = value;
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Also keeping '" << name << "' for default bundle printers";
+                    }
+                    continue;
+                }
+            }
+        }
+        supplemented_filaments[name] = value;
+    }
+
+    // Update AppConfig - merge with existing values instead of overwriting depending on bool
+    if (overwrite) {
+        app_config->set_section(AppConfig::SECTION_FILAMENTS, supplemented_filaments);
+        app_config->set_vendors(new_vendors);
+    }
+    else {
+        // Merge filaments
+        std::map<std::string, std::string> merged_filaments = old_filaments;
+        for (const auto& [name, value] : supplemented_filaments) {
+            merged_filaments[name] = value;
+        }
+        app_config->set_section(AppConfig::SECTION_FILAMENTS, merged_filaments);
+
+        // Merge vendors
+        std::map<std::string, std::map<std::string, std::set<std::string>>> merged_vendors = old_vendors;
+        for (const auto& [vendor, models] : new_vendors) {
+            auto& vendor_entry = merged_vendors[vendor];
+            for (const auto& [model, variants] : models) {
+                auto& model_entry = vendor_entry[model];
+                model_entry.insert(variants.begin(), variants.end());
+            }
+        }
+        app_config->set_vendors(merged_vendors);
+    }
+
+    // Load presets with new configuration
+    this->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable,
+        {preferred_printer_model, preferred_printer_variant, preferred_filament, std::string()});
+
+    // Ensure active filament compatibility
+    // If the active filament is not in the wizard-selected filaments, switch to the first
+    // compatible wizard-selected filament. This handles the first-run case where load_presets
+    // falls back to "Generic PLA" even though the user selected a different filament.
+    if (!supplemented_filaments.empty()) {
+        bool active_filament_selected = supplemented_filaments.count(this->filament_presets.front()) > 0;
+        if (!active_filament_selected) {
+            for (const auto& [filament_name, _] : supplemented_filaments) {
+                const Preset* preset = this->filaments.find_preset(filament_name);
+                if (preset && preset->is_visible && preset->is_compatible) {
+                    this->filaments.select_preset_by_name(filament_name, true);
+                    this->filament_presets.front() = this->filaments.get_selected_preset_name();
+                    break;
+                }
+            }
+        }
+    }
+
+    // Export selections
+    this->export_selections(*app_config);
+    return true;
+}
+
+// Import presets from UI control
 PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string> &              files,
                                                         std::function<int(std::string const &)> override_confirm,
-                                                        ForwardCompatibilitySubstitutionRule    rule)
+                                                        ForwardCompatibilitySubstitutionRule    rule,
+                                                        AppConfig&                            config)
 {
+    bundles.PauseRead(); // Pause threads from reading
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry";
     PresetsConfigSubstitutions substitutions;
     int overwrite = 0;
     std::vector<std::string>   result;
+    std::string                user_id = config.get("preset_folder");
+    if (user_id.empty())
+        user_id = DEFAULT_USER_FOLDER_NAME;
+    this->update_user_presets_directory(user_id);
     for (auto &file : files) {
         if (Slic3r::is_json_file(file)) {
             import_json_presets(substitutions, file, override_confirm, rule, overwrite, result);
         }
         // Determine if it is a preset bundle
-        if (boost::iends_with(file, ".orca_printer") || boost::iends_with(file, ".orca_filament") || boost::iends_with(file, ".zip")) {
+        if (boost::iends_with(file, ".orca_printer") || boost::iends_with(file, ".orca_bundle") || boost::iends_with(file, ".orca_filament") || boost::iends_with(file, ".zip")) {
             boost::system::error_code ec;
             // create user folder
             fs::path user_folder(data_dir() + "/" + PRESET_USER_DIR);
             if (!fs::exists(user_folder)) fs::create_directory(user_folder, ec);
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " create directory failed: " << ec.message();
             // create default folder
-            fs::path default_folder(user_folder / DEFAULT_USER_FOLDER_NAME);
-            if (!fs::exists(default_folder)) fs::create_directory(default_folder, ec);
+            fs::path configs_folder(user_folder / user_id);
+            if (!fs::exists(configs_folder)) fs::create_directory(configs_folder, ec);
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " create directory failed: " << ec.message();
             //create temp folder
             //std::string user_default_temp_dir = data_dir() + "/" + PRESET_USER_DIR + "/" + DEFAULT_USER_FOLDER_NAME + "/" + "temp";
-            fs::path temp_folder(default_folder / "temp");
+            fs::path temp_folder(configs_folder / "temp");
             std::string user_default_temp_dir = temp_folder.make_preferred().string();
             if (fs::exists(temp_folder)) fs::remove_all(temp_folder);
             fs::create_directory(temp_folder, ec);
@@ -995,13 +1317,6 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
             mz_zip_zero_struct(&zip_archive);
             mz_bool status;
 
-            /*if (!open_zip_reader(&zip_archive, file)) {
-                BOOST_LOG_TRIVIAL(info) << "Failed to initialize reader ZIP archive";
-                return substitutions;
-            } else {
-                BOOST_LOG_TRIVIAL(info) << "Success to initialize reader ZIP archive";
-            }*/
-
             FILE *zipFile = boost::nowide::fopen(file.c_str(), "rb");
             status        = mz_zip_reader_init_cfile(&zip_archive, zipFile, 0, MZ_ZIP_FLAG_CASE_SENSITIVE | MZ_ZIP_FLAG_IGNORE_PATH);
             if (MZ_FALSE == status) {
@@ -1011,6 +1326,38 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Success to initialize reader ZIP archive";
             }
 
+            // First, extract bundle_structure.json to get the bundle_id
+            // Track whether bundle_structure.json exists to determine routing
+            bool has_bundle_structure = false;
+            BundleMetadata metadata;
+            fs::path metadata_path = temp_folder / BUNDLE_STRUCTURE_JSON_NAME;
+            status = mz_zip_reader_extract_file_to_file(&zip_archive, BUNDLE_STRUCTURE_JSON_NAME, encode_path(metadata_path.string().c_str()).c_str(), MZ_ZIP_FLAG_CASE_SENSITIVE);
+            if (status) {
+                if (metadata.load_from_json(metadata_path.string())) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found bundle_id: " << metadata.id << " from " << BUNDLE_STRUCTURE_JSON_NAME;
+                    has_bundle_structure = true;
+                }
+            }
+
+            if (has_bundle_structure && metadata.id.empty()) {
+                boost::uuids::uuid uuid = boost::uuids::random_generator()();
+                metadata.id = to_string(uuid);
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " bundle_id was empty, so generating a UUID: " << metadata.id;
+            }
+
+            // Build bundle directory path based on whether bundle_structure.json was present
+            fs::path bundle_base_dir;
+            if (has_bundle_structure) {
+                // Use the bundle ID from metadata when bundle_structure.json exists
+                bundle_base_dir = user_folder / user_id / PRESET_LOCAL_DIR / metadata.id;
+                if (!fs::exists(bundle_base_dir))
+                    fs::create_directories(bundle_base_dir, ec);
+                if (ec)
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to create bundle directory: " << bundle_base_dir.string() << " error: " << ec.message();
+            } else {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " No bundle_structure.json found, importing presets into the user preset directory";
+            }
+
             // Extract Files
             int num_files = mz_zip_reader_get_num_files(&zip_archive);
             for (int i = 0; i < num_files; i++) {
@@ -1018,7 +1365,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                 status = mz_zip_reader_file_stat(&zip_archive, i, &file_stat);
                 if (status) {
                     std::string file_name = file_stat.m_filename;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Form zip file: " << file << ". Read file name: " << file_stat.m_filename;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " From zip file: " << file << ". Read file name: " << file_stat.m_filename;
                     size_t index = file_name.find_last_of('/');
                     if (std::string::npos != index) {
                         file_name = file_name.substr(index + 1);
@@ -1032,16 +1379,44 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to open target file: " << target_file_path;
                     } else {
-                        bool is_success = import_json_presets(substitutions, target_file_path, override_confirm, rule, overwrite, result);
+                        bool is_success = import_json_presets(substitutions, target_file_path, override_confirm, rule, overwrite, result,
+                                                              has_bundle_structure ? bundle_base_dir.string() : std::string());
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " import target file: " << target_file_path << " import result" << is_success;
                     }
                 }
             }
+
+            // Set imported_time to current time if not already set
+            if (metadata.imported_time == 0) {
+                metadata.imported_time = std::time(nullptr);
+            }
+
+            // Only save bundle_metadata.json for bundles (when bundle_structure.json was present)
+            if (has_bundle_structure) {
+                // Save metadata to bundle_metadata.json
+                fs::path metadata_save_path = bundle_base_dir / PRESET_BUNDLE_METADATA;
+                if (metadata.save_to_json(metadata_save_path.string())) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Saved bundle metadata to: " << metadata_save_path.string();
+
+                    metadata.bundle_type = BundleType::Local;
+                    metadata.path = metadata_save_path.string();
+                    // Store the bundle metadata in m_bundles for tracking
+                    
+
+                    bundles.WriteLock();
+                    bundles.m_bundles[metadata.id] = metadata;
+                    bundles.WriteUnlock();
+                } else {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to save bundle metadata to: " << metadata_save_path.string();
+                }
+            }
+
             fclose(zipFile);
             if (fs::exists(temp_folder)) fs::remove_all(temp_folder, ec);
             if (ec) BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " remove directory failed: " << ec.message();
         }
     }
+    bundles.UnpauseRead();
     files = result;
     return substitutions;
 }
@@ -1051,7 +1426,8 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
                                        std::function<int(std::string const &)> override_confirm,
                                        ForwardCompatibilitySubstitutionRule    rule,
                                        int &                                   overwrite,
-                                       std::vector<std::string> &              result)
+                                       std::vector<std::string> &              result,
+                                       const std::string &                     bundle_dir)
 {
     try {
         DynamicPrintConfig config;
@@ -1065,27 +1441,37 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
         boost::optional<Semver>            version              = Semver::parse(version_str);
         if (!version) return false;
 
+        std::string type_subdir;    // also note the type subdir for bundles
         PresetCollection *collection = nullptr;
-        if (config.has("printer_settings_id"))
+        if (config.has("printer_settings_id")) {
             collection = &printers;
-        else if (config.has("print_settings_id"))
+            type_subdir = PRESET_PRINTER_NAME;
+        }
+        else if (config.has("print_settings_id")) {
             collection = &prints;
-        else if (config.has("filament_settings_id"))
+            type_subdir = PRESET_PRINT_NAME;
+        }
+        else if (config.has("filament_settings_id")) {
             collection = &filaments;
+            type_subdir = PRESET_FILAMENT_NAME;
+        }
         if (collection == nullptr) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset type is unknown, not loading: " << name;
             return false;
         }
+        const PresetOrigin load_origin = detect_origin_from_path(boost::filesystem::path(bundle_dir));
+        const std::string      preset_name = get_preset_canonical_name(name, load_origin);
+
         if (overwrite == 0) overwrite = 1;
-        if (auto p = collection->find_preset(name, false)) {
+        if (auto p = collection->find_preset(preset_name, false)) {
             if (p->is_default || p->is_system) {
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset already present and is system preset, not loading: " << name;
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset already present and is system preset, not loading: " << preset_name;
                 return false;
             }
-            if (overwrite != 2 && overwrite != 3) overwrite = override_confirm(name); //3: yes to all  2: no to all
+            if (overwrite != 2 && overwrite != 3) overwrite = override_confirm(preset_name); //3: yes to all  2: no to all
         }
         if (overwrite == 0 || overwrite == 2) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset already present, not loading: " << name;
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Preset already present, not loading: " << preset_name;
             return false;
         }
 
@@ -1096,7 +1482,7 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
         if (inherits_config) {
             ConfigOptionString *option_str = dynamic_cast<ConfigOptionString *>(inherits_config);
             inherits_value                 = option_str->value;
-            inherit_preset                 = collection->find_preset2(inherits_value);
+            inherit_preset                 = collection->find_preset2(inherits_value, true);
         }
         if (inherit_preset) {
             new_config = inherit_preset->config;
@@ -1116,7 +1502,8 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             extend_default_config_length(new_config, true, default_preset.config);
         }
 
-        Preset &preset     = collection->load_preset(collection->path_from_name(name, inherit_preset == nullptr), name, std::move(new_config), false);
+        Preset &preset     = collection->load_preset(collection->path_from_name(name, inherit_preset == nullptr), preset_name, std::move(new_config), false);
+        preset.bundle_id = load_origin.bundle_id;
         if (key_values.find(BBL_JSON_KEY_FILAMENT_ID) != key_values.end())
             preset.filament_id = key_values[BBL_JSON_KEY_FILAMENT_ID];
         preset.is_external = true;
@@ -1136,7 +1523,17 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
         if (!config_substitutions.empty())
             substitutions.push_back({name, collection->type(), PresetConfigSubstitutions::Source::UserFile, file, std::move(config_substitutions)});
         collection->set_custom_preset_alias(preset);
-        preset.save(inherit_preset ? &inherit_preset->config : nullptr);
+
+        // If bundle_dir is provided, use it for the save operation
+        if (!bundle_dir.empty()) {
+            if (!save_preset_to_bundle_dir(preset, collection, load_origin.bundle_id, type_subdir, bundle_dir)) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to save preset " << preset_name << " to bundle directory";
+                return false;
+            }
+        } else {
+            preset.save(inherit_preset ? &inherit_preset->config : nullptr);
+        }
+
         result.push_back(file);
     } catch (const std::ifstream::failure &err) {
         ++m_errors;
@@ -1149,7 +1546,7 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
 }
 
 //BBS save user preset to user_id preset folder
-void PresetBundle::save_user_presets(AppConfig& config, std::vector<std::string>& need_to_delete_list)
+void PresetBundle::save_user_presets(AppConfig& config, std::map<std::string, std::string>& need_to_delete_list)
 {
     std::string user_sub_folder = DEFAULT_USER_FOLDER_NAME;
     if (!config.get("preset_folder").empty())
@@ -1171,6 +1568,311 @@ void PresetBundle::save_user_presets(AppConfig& config, std::vector<std::string>
     this->filaments.save_user_presets(dir_user_presets, PRESET_FILAMENT_NAME, need_to_delete_list);
     this->printers.save_user_presets(dir_user_presets, PRESET_PRINTER_NAME, need_to_delete_list);
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished");
+}
+
+void PresetBundle::check_and_fix_user_presets_syncinfo(const std::string& user_id)
+{
+    auto process_collection = [&user_id](PresetCollection& collection) {
+        collection.lock();
+        for (auto& preset : collection) {
+            if (preset.is_user()) {
+                collection.check_and_fix_syncinfo(preset, user_id);
+            }
+        }
+        collection.unlock();
+    };
+    process_collection(this->prints);
+    process_collection(this->filaments);
+    process_collection(this->printers);
+}
+
+//Orca: Import subscribed bundle presets (load and save to disk in one operation)
+PresetsConfigSubstitutions PresetBundle::update_subscribed_presets(
+    AppConfig& config,
+    const std::map<std::string, std::map<std::string, std::string>>& bundle_presets,
+    const BundleMetadata& remote_metadata,
+    ForwardCompatibilitySubstitutionRule substitution_rule)
+{
+    PresetsConfigSubstitutions substitutions;
+    std::string errors_cumulative;
+    bool process_added = false, filament_added = false, machine_added = false;
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " enter, substitution_rule " << substitution_rule << ", bundle_id: " << remote_metadata.id << ", preset count: " << bundle_presets.size();
+
+    BundleMetadata merged_metadata;
+    auto existing_it = bundles.m_bundles.find(remote_metadata.id);
+    if (existing_it != bundles.m_bundles.end()) {
+        merged_metadata = existing_it->second;
+    } else {
+        merged_metadata.imported_time = std::time(nullptr);
+    }
+
+    merged_metadata.id = remote_metadata.id;
+    merged_metadata.name = remote_metadata.name;
+    merged_metadata.version = remote_metadata.version;
+    merged_metadata.description = remote_metadata.description;
+    merged_metadata.author = remote_metadata.author;
+    merged_metadata.updated_time = remote_metadata.updated_time;
+    merged_metadata.bundle_type = BundleType::Subscribed;
+    merged_metadata.is_subscribed = true;
+    merged_metadata.update_available = false;
+    merged_metadata.unauthorized = false;
+
+    const PresetOrigin subscribed_origin(PresetOrigin::Kind::SubscribedBundle, remote_metadata.id);
+
+    std::unordered_set<std::string> remote_prints;
+    std::unordered_set<std::string> remote_filaments;
+    std::unordered_set<std::string> remote_printers;
+
+    for (const auto& [preset_name, value_map] : bundle_presets) {
+        auto type_iter = value_map.find(BBL_JSON_KEY_TYPE);
+        if (type_iter == value_map.end()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " cannot find type for preset " << preset_name;
+            continue;
+        }
+
+        const std::string subscribed_name = get_preset_canonical_name(preset_name, subscribed_origin);
+        if (type_iter->second == PRESET_IOT_PRINT_TYPE)
+            remote_prints.insert(subscribed_name);
+        else if (type_iter->second == PRESET_IOT_FILAMENT_TYPE)
+            remote_filaments.insert(subscribed_name);
+        else if (type_iter->second == PRESET_IOT_PRINTER_TYPE)
+            remote_printers.insert(subscribed_name);
+    }
+
+    auto remove_obsolete_bundle_presets =
+        [&](PresetCollection& collection, const std::unordered_set<std::string>& remote_names, const char* type_name) -> int {
+        int removed_count = 0;
+        std::vector<std::string> to_delete;
+
+        for (const Preset& preset : collection.get_presets()) {
+            if (!preset.is_from_bundle() || preset.bundle_id != remote_metadata.id)
+                continue;
+
+            if (remote_names.find(preset.name) == remote_names.end())
+                to_delete.push_back(preset.name);
+        }
+
+        for (const std::string& preset_name : to_delete) {
+            if (collection.delete_preset(preset_name, true)) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": " << type_name << " preset '" << preset_name << "' no longer in remote bundle, deleted";
+                ++removed_count;
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to delete obsolete " << type_name << " preset '" << preset_name << "'";
+            }
+        }
+
+        return removed_count;
+    };
+
+    int total_removed = 0;
+    total_removed += remove_obsolete_bundle_presets(this->prints, remote_prints, "print");
+    total_removed += remove_obsolete_bundle_presets(this->filaments, remote_filaments, "filament");
+    total_removed += remove_obsolete_bundle_presets(this->printers, remote_printers, "printer");
+
+    if (total_removed > 0) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": deleted " << total_removed << " obsolete presets from bundle " << remote_metadata.id;
+    }
+
+    // Get current user ID for path construction
+    std::string user_id = config.get("preset_folder");
+    if (user_id.empty()) user_id = DEFAULT_USER_FOLDER_NAME;
+
+    // Create the subscribed directory base path
+    boost::filesystem::path user_folder(Slic3r::data_dir() + "/" + PRESET_USER_DIR);
+    boost::filesystem::path subscribed_base(user_folder / user_id / PRESET_SUBSCRIBED_DIR);
+
+    // Ensure subscribed directory exists
+    boost::system::error_code ec;
+    if (!boost::filesystem::exists(subscribed_base))
+        boost::filesystem::create_directories(subscribed_base, ec);
+    if (ec) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to create subscribed directory: " << subscribed_base.string() << " error: " << ec.message();
+        return substitutions;
+    }
+
+    dir_user_presets_subscribed = subscribed_base;
+
+    // Create bundle directory
+    boost::filesystem::path bundle_dir(subscribed_base / remote_metadata.id);
+    if (!boost::filesystem::exists(bundle_dir))
+        boost::filesystem::create_directories(bundle_dir, ec);
+    if (ec) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to create bundle directory: " << bundle_dir.string() << " error: " << ec.message();
+        return substitutions;
+    }
+
+    merged_metadata.print_presets.clear();
+    merged_metadata.filament_presets.clear();
+    merged_metadata.printer_presets.clear();
+
+    // Load each preset from the bundle and save to disk
+    for (const auto& preset_entry : bundle_presets) {
+        const std::string& preset_name = preset_entry.first;
+        const std::string subscribed_name = get_preset_canonical_name(preset_name, subscribed_origin);
+        std::map<std::string, std::string> value_map = preset_entry.second; // Make a copy since we might modify it
+
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " importing preset: " << preset_name << " from bundle: " << remote_metadata.id;
+
+        // Get the type first
+        auto type_iter = value_map.find(BBL_JSON_KEY_TYPE);
+        if (type_iter == value_map.end()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " cannot find type for preset " << preset_name;
+            continue;
+        }
+
+        // If this preset inherits from another preset inside the same bundle, rewrite the
+        // reference to the canonical (bundle-prefixed) name so the lookup matches the stored identity.
+        auto inherits_iter = value_map.find(BBL_JSON_KEY_INHERITS);
+        if (inherits_iter != value_map.end() && !inherits_iter->second.empty() && bundle_presets.find(inherits_iter->second) != bundle_presets.end())
+            inherits_iter->second = get_preset_canonical_name(inherits_iter->second, subscribed_origin);
+
+        try {
+            PresetCollection* preset_collection = nullptr;
+            std::string type_subdir;
+            bool preset_added = false;
+
+            if (type_iter->second == PRESET_IOT_PRINT_TYPE) {
+                preset_collection = &(this->prints);
+                type_subdir = PRESET_PRINT_NAME;
+                preset_added = preset_collection->load_user_preset(preset_name, value_map, substitutions, substitution_rule, subscribed_origin);
+                process_added |= preset_added;
+            }
+            else if (type_iter->second == PRESET_IOT_FILAMENT_TYPE) {
+                preset_collection = &(this->filaments);
+                type_subdir = PRESET_FILAMENT_NAME;
+                preset_added = preset_collection->load_user_preset(preset_name, value_map, substitutions, substitution_rule, subscribed_origin);
+                filament_added |= preset_added;
+            }
+            else if (type_iter->second == PRESET_IOT_PRINTER_TYPE) {
+                preset_collection = &(this->printers);
+                type_subdir = PRESET_PRINTER_NAME;
+                preset_added = preset_collection->load_user_preset(preset_name, value_map, substitutions, substitution_rule, subscribed_origin);
+                machine_added |= preset_added;
+            }
+            else {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " invalid type " << type_iter->second << " for preset " << preset_name;
+                continue;
+            }
+
+            // If preset was loaded/added, save it to the bundle directory.
+            // Find the preset that was just loaded using its canonical (bundle-prefixed) name.
+            Preset* preset = preset_collection->find_preset(subscribed_name, false, true);
+            if (preset) {
+                // Use helper function to save preset to bundle directory
+                if (!save_preset_to_bundle_dir(*preset, preset_collection, remote_metadata.id, type_subdir, bundle_dir.string())) {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to save preset " << preset_name << " to bundle directory";
+                    continue;
+                }
+
+                if (type_iter->second == PRESET_IOT_PRINT_TYPE)
+                    merged_metadata.print_presets.push_back(preset->name);
+                else if (type_iter->second == PRESET_IOT_FILAMENT_TYPE)
+                    merged_metadata.filament_presets.push_back(preset->name);
+                else if (type_iter->second == PRESET_IOT_PRINTER_TYPE)
+                    merged_metadata.printer_presets.push_back(preset->name);
+            }
+        }
+        catch (const std::runtime_error& err) {
+            errors_cumulative += err.what();
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " error importing preset " << preset_name << ": " << err.what();
+        }
+    }
+
+    boost::filesystem::path metadata_save_path = bundle_dir / PRESET_BUNDLE_METADATA;
+    merged_metadata.path = metadata_save_path.string();
+    bundles.m_bundles[remote_metadata.id] = merged_metadata;
+
+    if (bundles.m_bundles[remote_metadata.id].save_to_json(metadata_save_path.string())) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " saved bundle metadata to: " << metadata_save_path.string();
+    } else {                                                                                                                                                                                                                                                              
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to save bundle metadata to: " << metadata_save_path.string();
+    }
+
+    this->update_multi_material_filament_presets();
+    this->update_compatible(PresetSelectCompatibleType::Never);
+
+    set_calibrate_printer("");
+
+    if (!errors_cumulative.empty())
+        throw Slic3r::RuntimeError(errors_cumulative);
+
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " finished, process_added " << process_added << ", filament_added " << filament_added << ", machine_added " << machine_added;
+    return substitutions;
+}
+
+// Helper function: save preset to bundle directory with common logic
+// This function extracts the common code used by both import_json_presets and import_subscribed_presets
+bool PresetBundle::save_preset_to_bundle_dir(Preset& preset, PresetCollection* collection,
+                                              const std::string& bundle_id, const std::string& type_subdir,
+                                              const std::string& bundle_base_dir)
+{
+    if (bundle_base_dir.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " bundle_base_dir is empty, cannot save preset " << preset.name;
+        return false;
+    }
+
+    // Store original directory path
+    std::string original_dir_path = collection->m_dir_path;
+
+    try {
+        // Create bundle directory if it doesn't exist
+        boost::filesystem::path bundle_dir(bundle_base_dir);
+        boost::system::error_code ec;
+        if (!boost::filesystem::exists(bundle_dir))
+            boost::filesystem::create_directories(bundle_dir, ec);
+        if (ec) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to create bundle directory: " << bundle_dir.string() << " error: " << ec.message();
+            return false;
+        }
+
+        // Create bundle type directory
+        boost::filesystem::path type_dir = bundle_dir / type_subdir;
+        if (!boost::filesystem::exists(type_dir)) {
+            boost::filesystem::create_directories(type_dir, ec);
+            if (ec) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to create type directory: " << type_dir.string() << " error: " << ec.message();
+                return false;
+            }
+        }
+
+        preset.bundle_id = bundle_id;
+
+        // Bundle preset names may include the subscribed/local prefix path.
+        // Persist the file under the type directory using only the base preset name.
+        const std::string preset_filename = boost::filesystem::path(preset.name).filename().string();
+        const std::string file_name = boost::iends_with(preset_filename, ".json") ? preset_filename : (preset_filename + ".json");
+        preset.file = (type_dir / file_name).make_preferred().string();
+
+        // Save with parent config if inherits from another preset
+        std::string inherits = Preset::inherits(preset.config);
+        if (inherits.empty()) {
+            // Root preset - save full config
+            preset.save(nullptr);
+        } else {
+            Preset* parent_preset = collection->find_preset2(inherits, true);
+            if (!parent_preset) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " cannot find parent preset for " << preset.name << ", inherits " << inherits;
+            } else {
+                if (preset.base_id.empty())
+                    preset.base_id = parent_preset->setting_id;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " saved preset " << preset.name
+                                        << " filament_id: " << preset.filament_id
+                                        << " base_id: " << preset.base_id
+                                        << " bundle: " << bundle_id;
+                preset.save(&(parent_preset->config));
+            }
+        }
+
+        // Restore original directory path
+        collection->m_dir_path = original_dir_path;
+        return true;
+
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " exception saving preset " << preset.name << ": " << e.what();
+        collection->m_dir_path = original_dir_path;
+        return false;
+    }
 }
 
 //BBS: save user preset to user_id preset folder
@@ -1296,6 +1998,11 @@ int PresetBundle::validate_presets(const std::string &file_name, DynamicPrintCon
         std::string filament_preset = filament_preset_name[index];
         std::string filament_inherits = inherits_values[index+1];
 
+        // filament_preset_name is padded up to filament_count from filament_diameter. Unfilled
+        // slots have no assigned preset, so there's nothing to validate or warn about.
+        if (filament_preset.empty())
+            continue;
+
         validated = this->filaments.validate_preset(filament_preset, filament_inherits);
         if (!validated) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":file_name %1%, found the filament %2% preset not inherit from system") % file_name %(index+1);
@@ -1350,7 +2057,7 @@ void PresetBundle::remove_users_preset(AppConfig &config, std::map<std::string, 
             preset.setting_id.clear();
             return false;
         }
-        preset.remove_files();
+        preset.remove_files(true /* cloud_already_deleted */);
         return true;
     };
     std::string preset_folder_user_id = config.get("preset_folder");
@@ -1674,6 +2381,7 @@ void PresetBundle::update_system_maps()
     this->sla_prints   .update_map_alias_to_profile_name();
     this->filaments    .update_map_alias_to_profile_name();
     this->sla_materials.update_map_alias_to_profile_name();
+    this->printers     .update_map_alias_to_profile_name();
 
     this->filaments.update_library_profile_excluded_from();
 }
@@ -1698,13 +2406,13 @@ void PresetBundle::load_installed_printers(const AppConfig &config)
 
 const std::string& PresetBundle::get_preset_name_by_alias( const Preset::Type& preset_type, const std::string& alias) const
 {
-    // there are not aliases for Printers profiles
-    if (preset_type == Preset::TYPE_PRINTER || preset_type == Preset::TYPE_INVALID)
+    if (preset_type == Preset::TYPE_INVALID)
         return alias;
 
     const PresetCollection& presets = preset_type == Preset::TYPE_PRINT     ? prints :
                                       preset_type == Preset::TYPE_SLA_PRINT ? sla_prints :
                                       preset_type == Preset::TYPE_FILAMENT  ? filaments :
+                                      preset_type == Preset::TYPE_PRINTER   ? printers :
                                       sla_materials;
 
     return presets.get_preset_name_by_alias(alias);
@@ -4638,4 +5346,80 @@ bool PresetBundle::has_errors() const
     return has_errors;
 }
 
+// Orca: BundleMetadata method implementations
+bool BundleMetadata::load_from_json(const std::string& path)
+{
+    try {
+        boost::nowide::ifstream ifs(path);
+        if (!ifs.good())
+            return false;
+
+        json j;
+        ifs >> j;
+
+        if (j.contains("id")) this->id = j["id"].get<std::string>();
+
+        if (j.contains("name")) this->name = j["name"].get<std::string>();
+        else if (j.contains("bundle_id")) this->name = j["bundle_id"].get<std::string>();                 // backwards compat w bundle_structure.json
+
+        if (j.contains("version")) this->version = j["version"].get<std::string>();
+
+        if (j.contains("description")) this->description = j["description"].get<std::string>();
+        else if (j.contains("bundle_type")) this->description = j["bundle_type"].get<std::string>();    // backwards compat w bundle_structure.json
+
+        if (j.contains("author")) this->author = j["author"].get<std::string>();
+
+        if (j.contains("imported_time")) this->imported_time = j["imported_time"].get<long long>();
+
+        if (j.contains("updated_time")) this->updated_time = j["updated_time"].get<long long>();
+
+        if (j.contains("print_presets"))                                                                                                                                                                                                                                      
+            this->print_presets = j["print_presets"].get<std::vector<std::string>>();                                                                                                                                                                                         
+                                                                                                                                                                                                                                                                                
+        if (j.contains("filament_presets"))                                                                                                                                                                                                                                   
+            this->filament_presets = j["filament_presets"].get<std::vector<std::string>>();                                                                                                                                                                                   
+                                                                                                                                                                                                                                                                                
+        if (j.contains("printer_presets"))                                                                                                                                                                                                                                    
+            this->printer_presets = j["printer_presets"].get<std::vector<std::string>>();  
+
+        return true;
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to load bundle metadata from " << path << ": " << e.what();
+        return false;
+    }
+}
+
+bool BundleMetadata::save_to_json(const std::string& path) const
+{
+    auto strip_prefix = [](const std::vector<std::string>& names) {
+                json arr = json::array();
+                for (const auto& name : names)
+                {
+                    arr.push_back(boost::filesystem::path(name).filename().string());
+                    std::string test = boost::filesystem::path(name).filename().string();
+                }
+                return arr;
+            };
+    try {
+        json j;
+        j["id"] = this->id;
+        j["name"] = this->name;
+        j["version"] = this->version;
+        j["description"] = this->description;
+        j["author"] = this->author;
+        j["imported_time"] = this->imported_time;
+        j["updated_time"] = this->updated_time;
+
+        j["print_presets"] = strip_prefix(this->print_presets);                                                                                                                                                                                                                             
+        j["filament_presets"] = strip_prefix(this->filament_presets);                                                                                                                                                                                                                       
+        j["printer_presets"] = strip_prefix(this->printer_presets);
+
+        boost::nowide::ofstream ofs(path);
+        ofs << j.dump(4);
+        return ofs.good();
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to save bundle metadata to " << path << ": " << e.what();
+        return false;
+    }
+}
 } // namespace Slic3r

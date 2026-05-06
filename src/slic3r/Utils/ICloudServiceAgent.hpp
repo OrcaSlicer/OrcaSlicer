@@ -4,6 +4,7 @@
 #include "bambu_networking.hpp"
 #include "../../libslic3r/ProjectTask.hpp"
 #include <string>
+#include <string_view>
 #include <map>
 #include <vector>
 #include <functional>
@@ -35,6 +36,17 @@ namespace Slic3r {
  * access tokens for cloud-relay operations without coupling to a specific auth
  * implementation.
  */
+
+static const std::string ORCA_CLOUD_PROVIDER("orca");
+static const std::string BBL_CLOUD_PROVIDER("bbl");
+
+struct CloudEvent {
+    std::string provider;  // ORCA_CLOUD_PROVIDER or BBL_CLOUD_PROVIDER
+};
+
+using AppOnServerConnectedFn = std::function<void(CloudEvent event, int return_code, int reason_code)>;
+using AppOnHttpErrorFn = std::function<void(CloudEvent event, unsigned http_code, std::string http_body)>;
+
 class ICloudServiceAgent {
 public:
     virtual ~ICloudServiceAgent() = default;
@@ -65,6 +77,7 @@ public:
      */
     virtual int set_country_code(std::string country_code) = 0;
 
+    virtual std::string get_id() const = 0;
     /**
      * Start the agent, performing any expensive initialization.
      * Typically regenerates PKCE bundles and attempts silent sign-in.
@@ -82,7 +95,6 @@ public:
      * 2. WebView/OAuth: {"command": "user_login", "data": {...}}
      * 3. Token format: {"data": {"token": "...", "refresh_token": "...", "user": {...}}}
      *
-     * On completion, invokes the registered OnUserLoginFn callback.
      */
     virtual int change_user(std::string user_info) = 0;
 
@@ -353,6 +365,14 @@ public:
      */
     virtual int get_my_profile(std::string token, unsigned int* http_code, std::string* http_body) = 0;
 
+    /**
+     * Exchange a one-time login ticket (from a third-party OAuth callback)
+     * for token + profile JSON. Used by the localhost callback handler when
+     * the auth server redirects with ?ticket=...&redirect_url=... instead of
+     * passing tokens directly in the URL.
+     */
+    virtual int get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body) = 0;
+
     // ========================================================================
     // Analytics & Tracking
     // ========================================================================
@@ -418,16 +438,6 @@ public:
     // Extra Features
     // ========================================================================
     /**
-     * Set additional HTTP headers for all requests.
-     */
-    virtual int set_extra_http_header(std::map<std::string, std::string> extra_headers) = 0;
-
-    /**
-     * Get the studio info URL.
-     */
-    virtual std::string get_studio_info_url() = 0;
-
-    /**
      * Fetch MakerWorld user preferences.
      */
     virtual int get_mw_user_preference(std::function<void(std::string)> callback) = 0;
@@ -446,20 +456,14 @@ public:
     // Callback Registration
     // ========================================================================
     /**
-     * Register the login status callback.
-     * Called after change_user() finishes or when the session expires.
-     */
-    virtual int set_on_user_login_fn(OnUserLoginFn fn) = 0;
-
-    /**
      * Register server connection status callback.
      */
-    virtual int set_on_server_connected_fn(OnServerConnectedFn fn) = 0;
+    virtual int set_on_server_connected_fn(AppOnServerConnectedFn fn) = 0;
 
     /**
      * Register HTTP error callback.
      */
-    virtual int set_on_http_error_fn(OnHttpErrorFn fn) = 0;
+    virtual int set_on_http_error_fn(AppOnHttpErrorFn fn) = 0;
 
     /**
      * Provide country code getter callback.

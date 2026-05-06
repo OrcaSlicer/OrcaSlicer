@@ -211,8 +211,18 @@ int ComboBox::Append(const wxString &text,
 
 int ComboBox::Append(const wxString &text, const wxBitmap &bitmap, const wxString &group, void *clientData, int style)
 {
+    return Append(text, bitmap, group, group, clientData, style);
+}
+
+int ComboBox::Append(const wxString &text,
+                     const wxBitmap &bitmap,
+                     const wxString &group_key,
+                     const wxString &group_label,
+                     void *clientData,
+                     int style)
+{
     auto valid_bit_map = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
-    Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, clientData, group};
+    Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, clientData, group_key, group_label};
     item.style = style;
     items.push_back(item);
     SetClientDataType(wxClientData_Void);
@@ -288,6 +298,18 @@ void ComboBox::SetItemTooltip(unsigned int n, wxString const &value) {
     if (n >= items.size()) return;
     items[n].tip = value;
     if (n == drop.GetSelection()) drop.SetToolTip(value);
+}
+
+wxString ComboBox::GetItemAlias(unsigned int n) const
+{
+    if (n >= items.size()) return wxString();
+    return items[n].alias;
+}
+
+void ComboBox::SetItemAlias(unsigned int n, wxString const &value)
+{
+    if (n >= items.size()) return;
+    items[n].alias = value;
 }
 
 wxBitmap ComboBox::GetItemBitmap(unsigned int n) { return items[n].icon; }
