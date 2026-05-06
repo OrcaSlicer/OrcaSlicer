@@ -1,6 +1,7 @@
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "I18N.hpp"
 
 #include <algorithm>
 #include <boost/lexical_cast.hpp>
@@ -11,6 +12,10 @@
     #include "libslic3r/AppConfig.hpp"
     #include <wx/msw/registry.h>
 #endif // _WIN32
+
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif 
 
 #include <wx/toplevel.h>
 #include <wx/sizer.h>
@@ -31,6 +36,15 @@ wxDEFINE_EVENT(EVT_HID_DEVICE_DETACHED, HIDDeviceDetachedEvent);
 wxDEFINE_EVENT(EVT_VOLUME_ATTACHED, VolumeAttachedEvent);
 wxDEFINE_EVENT(EVT_VOLUME_DETACHED, VolumeDetachedEvent);
 #endif // _WIN32
+
+wxString format_nozzle_diameter(float diameter)
+{
+    if (diameter <= 0.0f) {
+        return _L("Unknown");
+    }
+
+    return wxString::Format("%smm", wxString::FromDouble(diameter));
+}
 
 CopyFileResult copy_file_gui(const std::string &from, const std::string &to, std::string& error_message, const bool with_check)
 {
@@ -148,10 +162,6 @@ void on_window_geometry(wxTopLevelWindow *tlw, std::function<void()> callback)
 #endif
 }
 
-#if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)
-wxDEFINE_EVENT(EVT_DPI_CHANGED_SLICER, DpiChangedEvent);
-#endif // !wxVERSION_EQUAL_OR_GREATER_THAN
-
 #ifdef _WIN32
 template<class F> typename F::FN winapi_get_function(const wchar_t *dll, const char *fn_name) {
     static HINSTANCE dll_handle = LoadLibraryExW(dll, nullptr, 0);
@@ -247,12 +257,7 @@ bool check_dark_mode() {
         return value <= 0;
     }
 #endif
-#if wxCHECK_VERSION(3,1,3)
     return wxSystemSettings::GetAppearance().IsDark();
-#else
-    const unsigned luma = wxGetApp().get_colour_approx_luma(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
-    return luma < 128;
-#endif
 }
 
 
@@ -494,6 +499,60 @@ void fit_in_display(wxTopLevelWindow& window, wxSize desired_size)
 
     window.SetSize(desired_size);
 }
+
+#ifdef __WXGTK__
+void RemoveButtonBorder(wxWindow* win)
+{
+    GtkWidget* widget = win->GetHandle();
+    if (!widget) return;
+
+#if GTK_CHECK_VERSION(3, 0, 0)
+    // GTK3+: use CSS provider
+    GtkCssProvider* provider = gtk_css_provider_new();
+
+    const char* css =
+        "button {"
+        "  border: none;"
+        "  outline: none;"
+        "  box-shadow: none;"
+        "  padding: 0px;"
+        "  margin: 0px;"
+        "  min-height: 0px;"
+        "  min-width: 0px;"
+        "  background: none;"
+        "}";
+
+#if GTK_CHECK_VERSION(4, 0, 0)
+    // GTK4: no GError argument
+    gtk_css_provider_load_from_data(provider, css, -1);
+#else
+    // GTK3: has GError argument
+    gtk_css_provider_load_from_data(provider, css, -1, nullptr);
+#endif
+
+    GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
+    gtk_style_context_add_provider(
+        ctx,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(provider);
+
+#else
+    // GTK2: use rc string, no CSS
+    gtk_rc_parse_string(
+        "style \"no-border\" {"
+        "  GtkButton::inner-border = { 0, 0, 0, 0 }"
+        "  GtkWidget::focus-line-width = 0"
+        "  GtkWidget::focus-padding = 0"
+        "  xthickness = 0"
+        "  ythickness = 0"
+        "}"
+        "widget \"*.GtkBitmapToggleButton\" style \"no-border\""
+    );
+#endif
+}
+#endif // __WXGTK__
 
 #ifdef __linux__
 // Detect if the application is running inside a debugger.

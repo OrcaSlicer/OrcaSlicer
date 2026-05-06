@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include "3DScene.hpp"
 #include "GLShader.hpp"
@@ -1471,7 +1471,7 @@ void GLVolumeCollection::update_colors_by_extruder(const DynamicPrintConfig *con
     using ColorItem = std::pair<std::string, ColorRGBA>;
     std::vector<ColorItem> colors;
 
-    if (static_cast<PrinterTechnology>(config->opt_int("printer_technology")) == ptSLA) {
+    if (config->has("printer_technology") && static_cast<PrinterTechnology>(config->opt_int("printer_technology")) == ptSLA) {
         const std::string& txt_color = config->opt_string("material_colour").empty() ?
                                        print_config_def.get("material_colour")->get_default_value<ConfigOptionString>()->value :
                                        config->opt_string("material_colour");
@@ -1480,6 +1480,9 @@ void GLVolumeCollection::update_colors_by_extruder(const DynamicPrintConfig *con
             colors.push_back({ txt_color, rgba });
     }
     else {
+		if (!config->has("filament_colour")) {
+            	return;
+        }
         const ConfigOptionStrings* filamemts_opt = dynamic_cast<const ConfigOptionStrings*>(config->option("filament_colour"));
         if (filamemts_opt == nullptr)
             return;
@@ -2059,7 +2062,7 @@ void _3DScene::thick_lines_to_verts(
 // Fill in the qverts and tverts with quads and triangles for the extrusion_path.
 void _3DScene::extrusionentity_to_verts(const ExtrusionPath& extrusion_path, float print_z, const Point& copy, GUI::GLModel::Geometry& geometry)
 {
-    Polyline            polyline = extrusion_path.polyline;
+    Polyline            polyline = extrusion_path.polyline.to_polyline();
     polyline.remove_duplicate_points();
     polyline.translate(copy);
     const Lines               lines = polyline.lines();
@@ -2075,7 +2078,7 @@ void _3DScene::extrusionentity_to_verts(const ExtrusionLoop& extrusion_loop, flo
     std::vector<double> widths;
     std::vector<double> heights;
     for (const ExtrusionPath& extrusion_path : extrusion_loop.paths) {
-        Polyline            polyline = extrusion_path.polyline;
+        Polyline            polyline = extrusion_path.polyline.to_polyline();
         polyline.remove_duplicate_points();
         polyline.translate(copy);
         const Lines lines_this = polyline.lines();
@@ -2093,7 +2096,7 @@ void _3DScene::extrusionentity_to_verts(const ExtrusionMultiPath& extrusion_mult
     std::vector<double> widths;
     std::vector<double> heights;
     for (const ExtrusionPath& extrusion_path : extrusion_multi_path.paths) {
-        Polyline            polyline = extrusion_path.polyline;
+        Polyline            polyline = extrusion_path.polyline.to_polyline();
         polyline.remove_duplicate_points();
         polyline.translate(copy);
         const Lines lines_this = polyline.lines();

@@ -808,8 +808,10 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
         return;
     }
 
-    // Expand the normal infills a little bit to avoid gaps between normal and narrow infills
-    normal_infill = intersection_ex(offset_ex(normal_fill_areas_ex, scaled_spacing * 0.1), fill.expolygons);
+    // Expand the normal infills to avoid gaps between normal and narrow infills.
+    // The inner_area was shrunk by scaled_spacing * 0.5, so we need to expand
+    // by at least that amount to ensure proper coverage and avoid gaps.
+    normal_infill = intersection_ex(offset_ex(normal_fill_areas_ex, scaled_spacing * 0.5), fill.expolygons);
     narrow_infill = narrow_fill_areas;
 
 #ifdef DEBUG_SURFACE_SPLIT
@@ -882,6 +884,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         if (surface.is_top()) {
                             params.pattern = region_config.top_surface_pattern.value;
                             params.density = float(region_config.top_surface_density);
+                            if (params.density <= 0.0f) continue;
                         } else { // Surface is bottom
                             params.pattern = region_config.bottom_surface_pattern.value;
                             params.density = float(region_config.bottom_surface_density);
@@ -1215,6 +1218,10 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
         f->set_bounding_box(bbox);
         f->layer_id = this->id();
+        {
+            const auto &rcfg = m_regions[surface_fill.region_id]->region().config();
+            f->dont_alternate_fill_direction = rcfg.zaa_enabled && rcfg.zaa_dont_alternate_fill_direction;
+        }
         f->z 		= this->print_z;
         f->angle 	= surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
@@ -1317,7 +1324,14 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
                 params.density = f->print_object_config->internal_bridge_density.get_abs_value(1.0);
                 params.dont_adjust = true;
             }
-			// BBS: make fill
+            // Orca: Elefant foot compensation for solid layers above bottommost by infill density manipulation.
+            float elefant_density = f->print_object_config->elefant_foot_layers_density.get_abs_value(1.0);
+            if (!is_approx(elefant_density, 1.0f) && surface_fill.surface.is_solid_infill()) {
+                size_t elefant_layers = f->print_object_config->elefant_foot_compensation_layers.value;
+                if (f->layer_id > 0 && f->layer_id <= elefant_layers)
+                    params.density = elefant_density * (elefant_layers - (f->layer_id - 1)) / elefant_layers;
+            }
+            // make fill
 			f->fill_surface_extrusion(&surface_fill.surface,
 				params,
 				m_regions[surface_fill.region_id]->fills.entities);
@@ -1408,6 +1422,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         std::unique_ptr<Fill> f = std::unique_ptr<Fill>(Fill::new_from_type(surface_fill.params.pattern));
         f->set_bounding_box(bbox);
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.
+        {
+            const auto &rcfg = m_regions[surface_fill.region_id]->region().config();
+            f->dont_alternate_fill_direction = rcfg.zaa_enabled && rcfg.zaa_dont_alternate_fill_direction;
+        }
         f->z        = this->print_z;
         f->angle    = surface_fill.params.angle;
         f->fixed_angle = surface_fill.params.fixed_angle;
@@ -1585,6 +1603,7 @@ void Layer::make_ironing()
 	for (size_t i = 0; i < by_extruder.size();) {
 		// Find span of regions equivalent to the ironing operation.
 		IroningParams &ironing_params = by_extruder[i];
+        f->dont_alternate_fill_direction = ironing_params.layerm->region().config().zaa_enabled && ironing_params.layerm->region().config().zaa_dont_alternate_fill_direction;
 		// Create the filler object.
 		if( f_pattern != ironing_params.pattern )
 		{

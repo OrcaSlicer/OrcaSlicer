@@ -1181,7 +1181,9 @@ namespace SupportMaterialInternal {
                         // This is a complete loop.
                         // Add the outer contour first.
                         Polygon poly;
-                        poly.points = ep.polyline.points;
+                        // Convert Points3 to Points
+                        for (const Point3 &p3 : ep.polyline.points)
+                            poly.points.emplace_back(p3.x(), p3.y());
                         poly.points.pop_back();
                         if (poly.area() < 0)
                             poly.reverse();
@@ -2882,8 +2884,9 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::raft_and_intermediate_supp
                 intermediate_layers.push_back(&layer_new);
             }
         } else {
-            // Insert intermediate layers.
-            size_t        n_layers_extra = size_t(ceil(dist / m_slicing_params.max_suport_layer_height)); 
+            // ORCA: Bias by EPSILON so a gap effectively equal to
+            // max_suport_layer_height is not split by floating-point noise.
+            size_t n_layers_extra = size_t(ceil((dist - EPSILON) / m_slicing_params.max_suport_layer_height));
             assert(n_layers_extra > 0);
             coordf_t      step   = dist / coordf_t(n_layers_extra);
             if (extr1 != nullptr && extr1->layer_type == SupporLayerType::TopContact &&
@@ -2898,7 +2901,9 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::raft_and_intermediate_supp
                 layer_new.height   = extr1->height;
                 intermediate_layers.push_back(&layer_new);
                 dist = extr2z - extr1z;
-                n_layers_extra = size_t(ceil(dist / m_slicing_params.max_suport_layer_height));
+                // ORCA: Recalculate with the same EPSILON bias after re-anchoring at the top
+                // contact layer so near-equal gaps do not gain an extra split here either.
+                n_layers_extra = size_t(ceil((dist - EPSILON) / m_slicing_params.max_suport_layer_height));
                 if (n_layers_extra == 0)
                     continue;
                 // Continue printing the other layers up to extr2z.

@@ -527,7 +527,16 @@ bool BuildVolume::all_paths_inside(const GCodeProcessorResult& paths, const Boun
             build_volume.max.z() = std::numeric_limits<double>::max();
         if (ignore_bottom)
             build_volume.min.z() = -std::numeric_limits<double>::max();
-        return build_volume.contains(paths_bbox);
+        // BBox-only callers may provide no moves. Validate bbox corners regardless of paths_bbox.defined.
+        if (paths.moves.empty())
+            return build_volume.contains(paths_bbox.min) && build_volume.contains(paths_bbox.max);
+        if (paths_bbox.defined && build_volume.contains(paths_bbox))
+            return true;
+
+        // Fallback: validate only relevant extrusion moves.
+        const BoundingBox3Base<Vec3f> build_volumef(build_volume.min.cast<float>(), build_volume.max.cast<float>());
+        return std::all_of(paths.moves.begin(), paths.moves.end(), [move_valid, build_volumef](const GCodeProcessorResult::MoveVertex &move)
+            { return !move_valid(move) || build_volumef.contains(move.position); });
     }
     case BuildVolume_Type::Circle:
     {

@@ -2,6 +2,10 @@
 
 #include "../wxExtensions.hpp"
 
+#ifdef __WXGTK3__
+#include "../GUI_Utils.hpp"
+#endif
+
 CheckBox::CheckBox(wxWindow *parent, int id)
     : wxBitmapToggleButton(parent, id, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     , m_on(this, "check_on", 18)
@@ -24,9 +28,12 @@ CheckBox::CheckBox(wxWindow *parent, int id)
     Bind(wxEVT_ENTER_WINDOW, &CheckBox::updateBitmap, this);
     Bind(wxEVT_LEAVE_WINDOW, &CheckBox::updateBitmap, this);
 #endif
-	SetSize(m_on.GetBmpSize());
-	SetMinSize(m_on.GetBmpSize());
-	update();
+
+#ifdef __WXGTK3__
+    Slic3r::GUI::RemoveButtonBorder(this);
+#endif
+
+    Rescale();
 }
 
 void CheckBox::SetValue(bool value)
@@ -55,7 +62,8 @@ void CheckBox::Rescale()
     m_half_focused.msw_rescale();
     m_off_focused.msw_rescale();
     SetSize(m_on.GetBmpSize());
-	update();
+    SetMinSize(m_on.GetBmpSize());
+    update();
 }
 
 void CheckBox::update()

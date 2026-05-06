@@ -94,7 +94,7 @@ void CopyrightsDialog::fill_entries()
         { "Eigen3",                                         "",      "http://eigen.tuxfamily.org" },
         { "Expat",                                          "",      "http://www.libexpat.org" },
         { "fast_float",                                     "",      "https://github.com/fastfloat/fast_float" },
-        { "GLEW (The OpenGL Extension Wrangler Library)",   "",      "http://glew.sourceforge.net" },
+        { "GLAD (Multi-Language GL Loader-Generator)",       "",      "https://github.com/Dav1dde/glad" },
         { "GLFW",                                           "",      "https://www.glfw.org" },
         { "GNU gettext",                                    "",      "https://www.gnu.org/software/gettext" },
         { "ImGUI",                                          "",      "https://github.com/ocornut/imgui" },
@@ -271,10 +271,9 @@ AboutDialog::AboutDialog()
     text_sizer_horiz->Add( 0, 0, 0, wxLEFT, FromDIP(20));
 
     std::vector<wxString> text_list;
-    text_list.push_back(_L("OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."));
-    text_list.push_back(_L("BambuStudio is originally based on PrusaSlicer by PrusaResearch."));
-    text_list.push_back(_L("PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."));
-    text_list.push_back(_L("Slic3r was created by Alessandro Ranellucci with the help of many other contributors."));
+    text_list.push_back(_L("Open-source slicing stands on a tradition of collaboration and attribution. Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio forked from PrusaSlicer, and SuperSlicer extended it with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before."));
+    text_list.push_back(_L("OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStudio, SuperSlicer, and CuraSlicer. But it has since grown far beyond its origins — introducing advanced calibration tools, precise wall and seam control and hundreds of other features."));
+    text_list.push_back(_L("Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."));
 
     text_sizer->Add( 0, 0, 0, wxTOP, FromDIP(33));
     bool is_zh = wxGetApp().app_config->get("language") == "zh_CN";
@@ -294,7 +293,8 @@ AboutDialog::AboutDialog()
                     find_txt += text_list[i][o];
                     count_txt += text_list[i][o];
                 } else {
-                    find_txt += std::string("\n") + text_list[i][o];
+                    find_txt += "\n";
+                    find_txt += text_list[i][o];
                     count_txt = text_list[i][o];
                 }
             }
@@ -316,7 +316,7 @@ AboutDialog::AboutDialog()
 
     copyright_hor_sizer->Add(copyright_ver_sizer, 0, wxLEFT, FromDIP(20));
 
-    wxStaticText *html_text = new wxStaticText(this, wxID_ANY, "Copyright(C) 2022-2025 Li Jiang All Rights Reserved", wxDefaultPosition, wxDefaultSize);
+    wxStaticText *html_text = new wxStaticText(this, wxID_ANY, "Copyright(C) 2026 OrcaSlicer Pte Ltd All Rights Reserved", wxDefaultPosition, wxDefaultSize);
     html_text->SetForegroundColour(wxColour(107, 107, 107));
 
     copyright_ver_sizer->Add(html_text, 0, wxALL , 0);
@@ -333,7 +333,7 @@ AboutDialog::AboutDialog()
               (boost::format(
               "<html>"
               "<body>"
-              "<p style=\"text-align:left\"><a style=\"color:#009789\" href=\"https://github.com/OrcaSlicer/OrcaSlicer\">https://github.com/OrcaSlicer/OrcaSlicer</ a></p>"
+              "<p style=\"text-align:left\"><a style=\"color:#009789\" href=\"https://www.orcaslicer.com\">https://www.orcaslicer.com</ a></p>"
               "</body>"
               "</html>")
             ).str());

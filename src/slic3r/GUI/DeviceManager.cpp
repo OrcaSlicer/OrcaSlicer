@@ -150,7 +150,7 @@ wxString Slic3r::get_stage_string(int stage)
     case 39:
         return _L("Nozzle offset calibration");
     case 40:
-        return _L("high temperature auto bed leveling");
+        return _L("High temperature auto bed leveling");
     case 41:
         return _L("Auto Check: Quick Release Lever");
     case 42:
@@ -2430,7 +2430,7 @@ bool MachineObject::is_connected()
     if (!is_lan_mode_printer()) {
         NetworkAgent* m_agent = Slic3r::GUI::wxGetApp().getAgent();
         if (m_agent) {
-            return m_agent->is_server_connected();
+            return m_agent->is_server_connected(Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
         }
     }
     return true;

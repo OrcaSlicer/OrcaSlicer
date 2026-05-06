@@ -3021,24 +3021,25 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     multiline_fill(fill_lines, params, spacing);
  
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
-    ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
-    
-    // if contraction results in empty polygon, use original surface
-    const ExPolygon &intersection_surface = contracted.empty() ? surface->expolygon : contracted.front();
+    const ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
+
+    // if contraction results in empty ExPolygons, use original surface
+    const ExPolygons& intersection_surface = contracted.empty() ? ExPolygons{surface->expolygon} : contracted;
 
     // Intersect polylines with perimeter
     fill_lines = intersection_pl(std::move(fill_lines), intersection_surface);
 
-    if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb ) && params.multiline >1 )
-    remove_overlapped(fill_lines, line_width);
+    if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb) && params.multiline > 1)
+        remove_overlapped(fill_lines, line_width);
 
     if (!fill_lines.empty()) {
-        if (params.dont_connect()) { 
+        if (params.dont_connect()) {
             if (fill_lines.size() > 1)
                 fill_lines = chain_polylines(std::move(fill_lines));
             append(polylines_out, std::move(fill_lines));
         } else
-             connect_infill(std::move(fill_lines), intersection_surface, polylines_out, this->spacing, params);
+            connect_infill(std::move(fill_lines), to_polygons(intersection_surface), get_extents(surface->expolygon.contour), polylines_out,
+                           this->spacing, params);
     }
 
     return true;
@@ -3081,17 +3082,19 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
     // Use extended object bounding box for consistent pattern across layers
     BoundingBox bb = this->extended_object_bounding_box();
+    const size_t infill_layer_id = (surface->thickness_layers > 0) ? this->layer_id / surface->thickness_layers : this->layer_id;
 
     switch (Pattern_type) {
     case 0: // Grid / Trapezoidal
     {
         // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
-        //      P1--P2
-        //     /      \
-        //  P0/        \P3__P4
+        //         P2--P3
+        //        /      \
+        //  P0_P1/        \P4_
         //
-        // P1x-P2x=P3x-P4x=d1
-        // P0y-P1y=P2y-P3y=d2
+        // P0xP1x=P4xP0x=d1/2
+        // P2xP3x=d1
+        // P1yP2y=P2yP3y=d2
         
         const coord_t d2 = coord_t(0.5 * period - d1);
 
@@ -3111,11 +3114,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Build complete rows from xmin to xmax
         for (coord_t x = xmin; x < xmax; x += period) {
             // Normal row
-            base_row_normal.points.emplace_back(Point(x, d1 / 2));                    // P0
-            base_row_normal.points.emplace_back(Point(x + d1, d1 / 2));               // P1
-            base_row_normal.points.emplace_back(Point(x + d1 + d2, d1 / 2 + d2));     // P2
-            base_row_normal.points.emplace_back(Point(x + 2 * d1 + d2, d1 / 2 + d2)); // P3
-            base_row_normal.points.emplace_back(Point(x + 2 * d1 + 2 * d2, d1 / 2));  // P4
+            base_row_normal.points.emplace_back(Point(x, d1 / 2));                             // P0
+            base_row_normal.points.emplace_back(Point(x + d1 / 2, d1 / 2));                    // P1
+            base_row_normal.points.emplace_back(Point(x + d1 / 2 + d2, d1 / 2 + d2));          // P2
+            base_row_normal.points.emplace_back(Point(x + d1 / 2 + d2 + d1, d1 / 2 + d2));     // P3
+            base_row_normal.points.emplace_back(Point(x + period - d1 / 2, d1 / 2));           // P4
         }
 
         // Flipped row (mirrored vertically)
@@ -3143,13 +3146,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
             flip_vertical = !flip_vertical;
         }
 
-        // transpose points for odd layers
-        if (layer_id % 2 == 1) {
+        // transpose points for odd infill layers (taking infill combination into account)
+        if (infill_layer_id % 2 == 1) {
             for (Polyline& pl : polylines) {
                 for (Point& p : pl.points) {
                     std::swap(p.x(), p.y());
-                    p.x() += d1 / 2;
-                    p.y() -= d1 / 2;
                 }
             }
         }
@@ -3163,8 +3164,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
         //     /     \
         //  P0/       \P3_P4
         //  ----------------
-        // P1x-P2x=P3x-P4x=d2
-        // P0y-P1y=P2y-P3y=h-2d1
+        // P1xP2x=P3xP4x=d2
+        // P0yP1y=P2yP3y=h-2d1
         //
         
         // Triangular pattern density adjustment:
@@ -3173,7 +3174,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
 
         //  Align bounding box to the grid
         bb.merge(align_to_grid(bb.center(), Point(period,h)));
-        const int    layer_mod = layer_id % 3;
+        const size_t layer_mod = infill_layer_id % 3;
         const double angle     = layer_mod * 2.0 * M_PI / 3.0;
 
         const Point rotation_center = bb.center();
@@ -3268,7 +3269,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
 
     // if contraction results in empty polygon, use original surface
-    const ExPolygon &intersection_surface = contracted.empty() ? expolygon : contracted.front();
+    const ExPolygons& intersection_surface = contracted.empty() ? ExPolygons{expolygon} : contracted;
 
     // Intersect polylines with offset expolygon
     polylines = intersection_pl(std::move(polylines), intersection_surface);
@@ -3284,7 +3285,14 @@ bool FillRectilinear::fill_surface_trapezoidal(
     // Connect infill lines using offset expolygon
     int infill_start_idx = polylines_out.size();
     if (!polylines.empty()) {
-        Slic3r::Fill::chain_or_connect_infill(std::move(polylines), intersection_surface, polylines_out, this->spacing, params);
+        if (params.dont_connect()) {
+            if (polylines.size() > 1)
+                polylines = chain_polylines(std::move(polylines));
+            append(polylines_out, std::move(polylines));
+        } else {
+            connect_infill(std::move(polylines), to_polygons(intersection_surface), get_extents(intersection_surface), polylines_out,
+                           this->spacing, params);
+        }
 
         // Rotate back the infill lines to original orientation
         if (std::abs(base_angle) >= EPSILON) {

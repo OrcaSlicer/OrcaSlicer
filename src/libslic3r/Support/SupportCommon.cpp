@@ -1163,7 +1163,7 @@ static void modulate_extrusion_by_overlapping_layers(
         for (ExtrusionEntity *ee : extrusions_in_out) {
             ExtrusionPath *path = dynamic_cast<ExtrusionPath*>(ee);
             assert(path != nullptr);
-            polylines.emplace_back(Polyline(std::move(path->polyline)));
+            polylines.emplace_back(path->polyline.to_polyline());
             path_ends.emplace_back(std::pair<Point, Point>(polylines.back().points.front(), polylines.back().points.back()));
             delete path;
         }
@@ -1288,9 +1288,10 @@ static void modulate_extrusion_by_overlapping_layers(
             if (! path->polyline.points.empty())
                 path->polyline.points.pop_back();
             // Consume the fragment's polyline, remove it from the input fragments, so it will be ignored the next time.
-            path->polyline.append(std::move(frag_polyline));
+            path->polyline.append(Polyline3(std::move(frag_polyline)));
             frag_polyline.points.clear();
-            pt_current = path->polyline.points.back();
+            const Point3 &pt_back3 = path->polyline.points.back();
+            pt_current = Point(pt_back3.x(), pt_back3.y());
             if (pt_current == pt_end) {
                 // End of the path.
                 break;
@@ -1745,8 +1746,10 @@ void generate_support_toolpaths(
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
                     sheath  = true;
                     no_sort = true;
-                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic) {
-                    // if the tree supports are too tall, use double wall to make it stronger
+                } else if (support_params.support_style == SupportMaterialStyle::smsTreeOrganic &&
+                           (config.support_base_pattern == smpNone || config.support_base_pattern == smpDefault)) {
+                    // Orca: A special case for the hollow Organic supports
+                    // Orca: If the tree supports are too tall, use a double wall to make it stronger
                     SupportParameters support_params2 = support_params;
                     if (support_layer.print_z > 100.0)
                         support_params2.tree_branch_diameter_double_wall_area_scaled = 0.1;

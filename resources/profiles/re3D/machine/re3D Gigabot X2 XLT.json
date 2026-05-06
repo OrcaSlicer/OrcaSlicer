@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "re3D Gigabot X2 XLT",
+	"model_id": "GBX2XLT",
+	"nozzle_diameter": "1.75",
+	"machine_tech": "FFF",
+	"family": "re3D",
+	"bed_model": "",
+	"bed_texture": "re3D Gigabot X2 XLT_buildplate_texture.svg",
+	"hotend_model": "GBX-HOTEND.stl",
+	"default_materials": "re3D rPP;re3D Greengate rPETG;"
+}
