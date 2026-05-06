@@ -558,14 +558,14 @@ list(REMOVE_DUPLICATES CMAKE_C_FLAGS_RELWITHDEBINFO)
 list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_RELWITHDEBINFO)
 
 # Find and configure boost
-if(SLIC3R_STATIC)
+#if(SLIC3R_STATIC)
     # Use static boost libraries.
     set(Boost_USE_STATIC_LIBS ON)
     # Use boost libraries linked statically to the C++ runtime.
     # set(Boost_USE_STATIC_RUNTIME ON)
-else()
-    add_definitions(-DBOOST_LOG_DYN_LINK)
-endif()
+#else()
+#    add_definitions(-DBOOST_LOG_DYN_LINK)
+#endif()
 #set(Boost_DEBUG ON)
 # set(Boost_COMPILER "-mgw81")
 # boost::process was introduced first in version 1.64.0,
@@ -751,10 +751,10 @@ endforeach()
 find_package(NLopt 1.4 REQUIRED)
 
 
-if(SLIC3R_STATIC)
+#if(SLIC3R_STATIC)
     set(OPENVDB_USE_STATIC_LIBS ON)
     set(USE_BLOSC TRUE)
-endif ()
+#endif ()
 
 find_package(OpenVDB 5.0 COMPONENTS openvdb)
 if(OpenVDB_FOUND)
