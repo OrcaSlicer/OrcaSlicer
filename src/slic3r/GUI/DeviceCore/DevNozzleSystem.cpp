@@ -496,16 +496,40 @@ bool sync_machine_nozzle_inventory_to_preset(const MachineObject* obj, PresetBun
     const auto groups = nozzle_system->GetNozzleGroups();
     if (groups.empty()) return false;
 
-    // Mirror BBL's set_extruder_nozzle_count usage: clear=true on the first
-    // write per extruder so any stale entries are wiped, then false for
-    // additional volume_type groups on the same extruder.
-    std::vector<bool> first_write(n_ext, true);
+    // Per-extruder configured nozzle diameter — slots of other diameters are
+    // counted by GetNozzleGroups but cannot physically be used for the current
+    // print, so they must be excluded here. Without this filter, multiple
+    // groups with the same volume_type but different diameter collapse into
+    // candidate[ext][flow] (the map only keys by flow type) and the last write
+    // wins — which on H2C with mixed-diameter rack inventory turns
+    // "Standard#1 + #3 + #1 + #1" into a final "Standard#1", forcing the
+    // grouper to assign every right-side filament to slot 0.
+    auto* nd_opt = selected.config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (!nd_opt || static_cast<int>(nd_opt->size()) != n_ext) return false;
+
+    // Build the candidate map without mutating the bundle, then short-circuit
+    // when nothing has actually changed since the last sync. MQTT push_status
+    // arrives at ~1 Hz; without this guard each push rewrites
+    // bundle.extruder_nozzle_stat with identical content, which triggers a
+    // downstream update_values_to_printer_extruders cascade that invalidates
+    // any in-flight slice (Preview greys out; first slice of a new project
+    // appears to fail).
+    std::vector<std::map<NozzleVolumeType, int>> candidate(n_ext);
     for (const auto& g : groups) {
         if (g.extruder_id < 0 || g.extruder_id >= n_ext) continue;
-        const bool clear = first_write[g.extruder_id];
-        bundle.extruder_nozzle_stat.set_extruder_nozzle_count(g.extruder_id, g.volume_type, g.nozzle_count, clear);
-        first_write[g.extruder_id] = false;
+        const std::string expected_diameter = format_diameter_to_str(nd_opt->values[g.extruder_id]);
+        if (g.diameter != expected_diameter) continue;
+        // += not =, so multiple matching-diameter groups (e.g. one mounted +
+        // several rack slots of the same diameter & volume type) accumulate.
+        candidate[g.extruder_id][g.volume_type] += g.nozzle_count;
     }
+
+    if (bundle.extruder_nozzle_stat.get_nozzle_data_flag() == ExtruderNozzleStat::ndfMachine &&
+        bundle.extruder_nozzle_stat.get_raw_stat() == candidate) {
+        return false;
+    }
+
+    bundle.extruder_nozzle_stat.set_raw_stat(candidate);
     bundle.extruder_nozzle_stat.set_nozzle_data_flag(ExtruderNozzleStat::ndfMachine);
     BOOST_LOG_TRIVIAL(info) << "sync_machine_nozzle_inventory: updated stats from " << obj->printer_type
                             << " (" << groups.size() << " groups)";
