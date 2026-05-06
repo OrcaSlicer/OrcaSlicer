@@ -11,6 +11,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
@@ -8530,16 +8531,37 @@ int DynamicPrintConfig::get_index_for_extruder(int extruder_or_filament_id, std:
 
     auto variant_opt = dynamic_cast<const ConfigOptionStrings*>(this->option(variant_name));
     const ConfigOptionInts* id_opt = id_name.empty()?nullptr: dynamic_cast<const ConfigOptionInts*>(this->option(id_name));
+    const ConfigOptionStrings* extruder_variant_list_opt = dynamic_cast<const ConfigOptionStrings*>(this->option("extruder_variant_list"));
+    auto generated_extruder_id = [extruder_variant_list_opt](int target_index) {
+        if (!extruder_variant_list_opt)
+            return 0;
+
+        int variant_index = 0;
+        for (int extruder_index = 0; extruder_index < int(extruder_variant_list_opt->values.size()); ++extruder_index) {
+            std::vector<std::string> variants_list;
+            boost::split(variants_list, extruder_variant_list_opt->get_at(extruder_index), boost::is_any_of(","), boost::token_compress_on);
+            for (std::string variant : variants_list) {
+                boost::trim(variant);
+                if (variant.empty())
+                    continue;
+                if (variant_index == target_index)
+                    return extruder_index + 1;
+                ++variant_index;
+            }
+        }
+        return 0;
+    };
+
     if (variant_opt != nullptr) {
         int v_size = variant_opt->values.size();
-        //int i_size = id_opt->values.size();
+        const bool has_complete_id_map = id_opt && int(id_opt->values.size()) >= v_size;
         std::string extruder_variant = get_extruder_variant_string(extruder_type, nozzle_volume_type);
         for (int index = 0; index < v_size; index++)
         {
             const std::string variant = variant_opt->get_at(index);
             if (extruder_variant == variant) {
                 if (id_opt) {
-                    const int id = id_opt->get_at(index);
+                    const int id = has_complete_id_map ? id_opt->get_at(index) : generated_extruder_id(index);
                     if (id == extruder_or_filament_id) {
                         ret = index * stride;
                         break;
