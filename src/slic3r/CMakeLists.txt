@@ -576,6 +576,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/ColorSpaceConvert.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
+    Utils/CrealityPrintAgent.cpp
+    Utils/CrealityPrintAgent.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
