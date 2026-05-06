@@ -51,7 +51,7 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 	bool was_contoured = false;
 
     if (points.size() < 2) {
-        // Safety check. The loop below does handle handle paths with less than two points correctly.
+        // Safety check. The loop below does not handle paths with less than two points correctly.
         return false;
     }
 
