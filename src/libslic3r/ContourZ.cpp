@@ -37,7 +37,6 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 	}
 	
 	Layer *layer = region->layer();
-	// coordf_t mesh_z = layer->print_z + mesh.ground_level();
 	coordf_t mesh_slice_z = layer->slice_z + mesh.ground_level();
 	coordf_t min_z = region->region().config().zaa_min_z;
 
