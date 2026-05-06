@@ -497,8 +497,12 @@ set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE ON CACHE BOOL "" FORCE)
 cmake_policy(PUSH)
 cmake_policy(SET CMP0011 NEW)
 find_package(CGAL REQUIRED)
-find_package(OpenCV REQUIRED core imgproc imgcodecs)
 cmake_policy(POP)
+find_package(OpenCV REQUIRED core imgproc imgcodecs)
+if (SLIC3R_STATIC)
+    # fix-up for a static linked version
+    set(OpenCV_LIBS opencv_world)
+endif()
 
 add_library(libslic3r_cgal STATIC 
     CutSurface.hpp CutSurface.cpp
