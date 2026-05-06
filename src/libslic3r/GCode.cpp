@@ -5483,6 +5483,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
     static const std::set<std::string_view> banned_keys( {
         "compatible_printers"sv,
         "compatible_prints"sv,
+        "filament_colour_type"sv,
         "print_host"sv,
         "print_host_webui"sv,
         "printhost_apikey"sv,
