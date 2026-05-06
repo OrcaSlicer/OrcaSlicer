@@ -79,7 +79,7 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
 //
 // Per-layer-group phase shifting works as follows:
 //   period_index  = floor(layer_id / layers_between_ripple_offset)
-//   phase_shift   = period_index * ripple_offset * 2π  [radians]
+//   phase_shift   = period_index * (ripple_offset / 100) * 2π  [radians]
 //
 // Setting layers_between_ripple_offset = 1 shifts the phase on every layer;
 // setting it to N makes N consecutive layers share the same pattern.
@@ -93,7 +93,7 @@ static double ripple_phase_shift_rad(const FuzzySkinConfig& cfg)
 
     const int    effective_layer = std::max(cfg.layer_id, 0);
     const int    period_index    = effective_layer / std::max(cfg.layers_between_ripple_offset, 1);
-    const double raw_shift       = period_index * cfg.ripple_offset * (2.0 * M_PI);
+    const double raw_shift       = period_index * (cfg.ripple_offset/100) * (2.0 * M_PI);
     return fmod(raw_shift, 2.0 * M_PI);
 }
 

@@ -3477,18 +3477,19 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(15));
 
-    def = this->add("fuzzy_skin_ripple_offset", coFloat);
+    def = this->add("fuzzy_skin_ripple_offset", coPercent);
     def->label = L("Ripple offset");
     def->category = L("Others");
-    def->tooltip = L("Shifts the ripple phase forward along the print path by the specified fraction of a wavelength each layer period.\n"
-                     "- 0 keeps every layer identical.\n"
-                     "- 0.5 shifts the pattern by half a wavelength, effectively inverting the phase.\n"
-                     "- 1 shifts the pattern by a full wavelength, returning to the original phase.\n\n"
+    def->tooltip = L("Shifts the ripple phase forward along the print path by the specified percentage of a wavelength each layer period.\n"
+                     "- 0% keeps every layer identical.\n"
+                     "- 50% shifts the pattern by half a wavelength, effectively inverting the phase.\n"
+                     "- 100% shifts the pattern by a full wavelength, returning to the original phase.\n\n"
                      "The shift is applied once every number of layers set by Layers between ripple offset, so layers within the same group are printed identically.");
     def->min = 0;
-    def->max = 1;
+    def->max = 100;
+    def->sidetext = ("%");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.5));
+    def->set_default_value(new ConfigOptionPercent(50));
 
     def = this->add("fuzzy_skin_layers_between_ripple_offset", coInt);
     def->label = L("Layers between ripple offset");
