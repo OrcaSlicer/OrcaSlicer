@@ -2399,7 +2399,7 @@ private:
         return line.distance(p);
     }
 };
-const double TriangleCursor::facet_angle_limit = cos(Geometry::deg2rad(5));
+const double TriangleCursor::facet_angle_limit = cos(Geometry::deg2rad(5.0));
 
 
 // Remap painting data from source mesh to target mesh using spatial mapping.
