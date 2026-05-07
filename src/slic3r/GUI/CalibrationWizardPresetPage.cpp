@@ -4,6 +4,7 @@
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/MaterialType.hpp"
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -1536,11 +1537,27 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         const ConfigOptionInts *opt_nozzle_temp = item_preset->config.option<ConfigOptionInts>("nozzle_temperature");
         const ConfigOptionInts *opt_range_low   = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low");
         const ConfigOptionInts *opt_range_high  = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high");
-        if (opt_nozzle_temp && opt_range_low && opt_range_high) {
-            print_temperatures.push_back(opt_nozzle_temp->get_at(0));
-            range_lows.push_back(opt_range_low->get_at(0));
-            range_highs.push_back(opt_range_high->get_at(0));
+        const int nozzle_temp = opt_nozzle_temp ? opt_nozzle_temp->get_at(0) : 0;
+        int range_low = opt_range_low ? opt_range_low->get_at(0) : 0;
+        int range_high = opt_range_high ? opt_range_high->get_at(0) : 0;
+
+        if (range_low <= 0 || range_high <= 0) {
+            std::string filament_type;
+            item_preset->get_filament_type(filament_type);
+
+            int fallback_low = 0;
+            int fallback_high = 0;
+            if (MaterialType::get_temperature_range(filament_type, fallback_low, fallback_high)) {
+                if (range_low <= 0)
+                    range_low = fallback_low;
+                if (range_high <= 0)
+                    range_high = fallback_high;
+            }
         }
+
+        print_temperatures.push_back(nozzle_temp);
+        range_lows.push_back(range_low);
+        range_highs.push_back(range_high);
 
         // check is it in the filament blacklist
         if (!is_filament_in_blacklist(item.first, item_preset, error_tips))
