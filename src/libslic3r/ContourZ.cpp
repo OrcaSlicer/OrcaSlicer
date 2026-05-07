@@ -50,7 +50,12 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 	Pointf3s contoured_points;
 	bool was_contoured = false;
 
-	for (Points3::const_iterator it = points.begin(); it != points.end()-1; ++it) {
+    if (points.size() < 2) {
+        // Safety check. The loop below does not handle paths with less than two points correctly.
+        return false;
+    }
+
+    for (Points3::const_iterator it = points.begin(); it != points.end()-1; ++it) {
 		Vec2d p1d(unscale_(it->x()), unscale_(it->y()));
 		Vec2d p2d(unscale_((it+1)->x()), unscale_((it+1)->y()));
 		Linef line(p1d, p2d);
@@ -123,7 +128,14 @@ static bool contour_extrusion_path(LayerRegion *region, const sla::IndexedMesh &
 
             Vec3d new_point = {p.x(), p.y(), d};
 
-            if (contoured_points.size() >= 2) {
+            if (contoured_points.size() >= 2 && i != 0) {
+                // Normally, if the new point is collinear with the last two points, we do not add
+                // it to the list of contoured points. Instead we update the last point to be the
+                // new point. This is to avoid creating a large number of very short segments.
+                //
+                // However, if the new point corresponds to a point in the original path (i == 0),
+                // even if it is collinear, we add it anyway. This is to avoid creating a degenerate
+                // polygon with only two points, which may cause issues in downstream code.
                 double dist = Linef3::distance_to_infinite_squared(new_point, contoured_points[contoured_points.size() - 2],
                                                                    contoured_points[contoured_points.size() - 1]);
                 if (dist < EPSILON * EPSILON) {
