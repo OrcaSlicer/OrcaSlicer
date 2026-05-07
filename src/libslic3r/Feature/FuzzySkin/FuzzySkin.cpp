@@ -66,9 +66,240 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
     }
 }
 
+// ---------------------------------------------------------------------------
+// Ripple noise — deterministic sine-wave displacement along the path arc length.
+//
+// Unlike the other noise types, the ripple pattern is driven by cumulative arc
+// length along the print path rather than world-space (x, y, z) coordinates.
+// This gives a uniform wave period regardless of the polygon's geometry.
+//
+// A consistent visual anchor is established by finding the leftmost Y=0 crossing
+// of the polygon (the point where the sine wave always peaks when phase shift is
+// zero), ensuring the pattern aligns across layers.
+//
+// Per-layer-group phase shifting works as follows:
+//   period_index  = floor(layer_id / layers_between_ripple_offset)
+//   phase_shift   = period_index * ripple_offset * 2π  [radians]
+//
+// Setting layers_between_ripple_offset = 1 shifts the phase on every layer;
+// setting it to N makes N consecutive layers share the same pattern.
+// ---------------------------------------------------------------------------
+
+// Compute the per-layer-group phase shift in radians.
+static double ripple_phase_shift_rad(const FuzzySkinConfig& cfg)
+{
+    if (cfg.ripple_offset == 0.0 || cfg.layers_between_ripple_offset <= 0)
+        return 0.0;
+
+    const int    effective_layer = std::max(cfg.layer_id, 0);
+    const int    period_index    = effective_layer / std::max(cfg.layers_between_ripple_offset, 1);
+    const double raw_shift       = period_index * cfg.ripple_offset * (2.0 * M_PI);
+    return fmod(raw_shift, 2.0 * M_PI);
+}
+
+// Find the arc-length (in mm) of the visual anchor point along the polygon perimeter.
+// The anchor is the leftmost Y=0 crossing, falling back to the vertex with the
+// smallest |y| if no crossing exists. The anchor is where sin(phase) = 1 (a peak)
+// when the phase shift is zero, giving a stable reference across layers.
+static double ripple_anchor_arc_mm(const Points& poly)
+{
+    const size_t np = poly.size();
+
+    // Find anchor world position: leftmost Y=0 crossing.
+    Vec2d anchor_world(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    bool  found_crossing = false;
+    for (size_t i = 0; i < np; ++i) {
+        const double ya = unscale_(poly[i].y());
+        const double yb = unscale_(poly[(i + 1) % np].y());
+        if ((ya <= 0.0 && yb >= 0.0) || (ya >= 0.0 && yb <= 0.0)) {
+            const double t       = (std::abs(yb - ya) < 1e-9) ? 0.0 : ya / (ya - yb);
+            const double x_cross = unscale_(poly[i].x()) +
+                                   std::max(0.0, std::min(1.0, t)) * (unscale_(poly[(i + 1) % np].x()) - unscale_(poly[i].x()));
+            if (!found_crossing || x_cross < anchor_world.x()) {
+                anchor_world   = Vec2d(x_cross, 0.0);
+                found_crossing = true;
+            }
+        }
+    }
+    if (!found_crossing) {
+        double best_abs_y = std::numeric_limits<double>::max();
+        for (const Point& p : poly) {
+            const double ay = std::abs(unscale_(p.y()));
+            if (ay < best_abs_y) {
+                best_abs_y   = ay;
+                anchor_world = Vec2d(unscale_(p.x()), unscale_(p.y()));
+            }
+        }
+    }
+
+    // Find the arc-length of the closest point on the polyline to anchor_world.
+    double anchor_arc_mm = 0.0;
+    double best_dist_sq  = std::numeric_limits<double>::max();
+    double accum_mm      = 0.0;
+    for (size_t i = 0; i < np; ++i) {
+        const Vec2d  pa_mm(unscale_(poly[i].x()), unscale_(poly[i].y()));
+        const Vec2d  pb_mm(unscale_(poly[(i + 1) % np].x()), unscale_(poly[(i + 1) % np].y()));
+        const Vec2d  seg     = pb_mm - pa_mm;
+        const double seg_len = seg.norm();
+        if (seg_len > 1e-9) {
+            const double t       = std::max(0.0, std::min(1.0, (anchor_world - pa_mm).dot(seg) / (seg_len * seg_len)));
+            const double dist_sq = (pa_mm + seg * t - anchor_world).squaredNorm();
+            if (dist_sq < best_dist_sq) {
+                best_dist_sq  = dist_sq;
+                anchor_arc_mm = accum_mm + t * seg_len;
+            }
+        }
+        accum_mm += seg_len;
+    }
+    return anchor_arc_mm;
+}
+
+// Apply a sine-wave ripple displacement to a closed polygon.
+// Points are resampled at cfg.point_distance intervals along the perimeter.
+static void fuzzy_polyline_ripple(Points& poly, const FuzzySkinConfig& cfg)
+{
+    const double amplitude    = unscale_(cfg.thickness);
+    const double N            = static_cast<double>(cfg.ripples_per_layer);
+    const double fill_step_mm = unscale_(cfg.point_distance);
+
+    if (N <= 0.0 || fill_step_mm < 1e-6)
+        return;
+
+    // Compute total perimeter length in mm.
+    const size_t np           = poly.size();
+    double       perimeter_mm = 0.0;
+    for (size_t i = 0; i < np; ++i)
+        perimeter_mm += unscale_((poly[(i + 1) % np] - poly[i]).cast<double>().norm());
+
+    if (perimeter_mm < 1e-6)
+        return;
+
+    const double anchor_arc_mm   = ripple_anchor_arc_mm(poly);
+    const double phase_shift_rad = ripple_phase_shift_rad(cfg);
+
+    // Phase function: φ(s) = N·2π·(s - anchor_arc) / perimeter + π/2 + phase_shift
+    // Adding π/2 ensures sin(φ) = 1 at the anchor when phase_shift = 0 (a peak).
+    const double phase_at_anchor = M_PI * 2.0 + phase_shift_rad;
+    auto arc_phase = [&](double arc_mm) -> double { return N * (2.0 * M_PI) * (arc_mm - anchor_arc_mm) / perimeter_mm + phase_at_anchor; };
+
+    Points out;
+    out.reserve(static_cast<size_t>(perimeter_mm / fill_step_mm) + np * 2);
+
+    double accum_mm = 0.0;
+    for (size_t i = 0; i < np; ++i) {
+        const Point& p0      = poly[i];
+        const Point& p1      = poly[(i + 1) % np];
+        const Vec2d  seg     = (p1 - p0).cast<double>();
+        const double seg_len = seg.norm();
+        if (seg_len < EPSILON)
+            continue;
+
+        const double seg_len_mm = unscale_(seg_len);
+        const Vec2d  seg_unit   = seg / seg_len;
+        const Vec2d  seg_perp   = perp(seg_unit);
+        const double seg_end_mm = accum_mm + seg_len_mm;
+        const double first_s    = std::ceil(accum_mm / fill_step_mm) * fill_step_mm;
+
+        for (double s = first_s; s < seg_end_mm; s += fill_step_mm) {
+            const double t    = (s - accum_mm) / seg_len_mm;
+            const double disp = std::sin(arc_phase(s)) * amplitude;
+            const Point  pt   = p0 + (seg * t).cast<coord_t>();
+            out.emplace_back(pt + (seg_perp * scale_(disp)).cast<coord_t>());
+        }
+
+        accum_mm = seg_end_mm;
+    }
+
+    while (out.size() < 3)
+        out.emplace_back(poly[poly.size() - 2]);
+
+    if (out.size() >= 3)
+        poly = std::move(out);
+}
+
+// Apply a sine-wave ripple displacement to an Arachne extrusion line.
+// Mirrors fuzzy_polyline_ripple but operates on ExtrusionJunction vectors so
+// that per-point line width (j.w) is preserved correctly.
+static void fuzzy_extrusion_line_ripple(Arachne::ExtrusionJunctions& ext_lines, const FuzzySkinConfig& cfg)
+{
+    const double amplitude    = unscale_(cfg.thickness);
+    const double N            = static_cast<double>(cfg.ripples_per_layer);
+    const double fill_step_mm = unscale_(cfg.point_distance);
+
+    if (N <= 0.0 || fill_step_mm < 1e-6)
+        return;
+
+    // Build a Points vector for perimeter/anchor calculations.
+    Points poly;
+    poly.reserve(ext_lines.size());
+    for (const auto& j : ext_lines)
+        poly.push_back(j.p);
+
+    // Compute total length in mm.
+    const size_t np           = poly.size();
+    double       perimeter_mm = 0.0;
+    for (size_t i = 0; i + 1 < np; ++i)
+        perimeter_mm += unscale_((poly[i + 1] - poly[i]).cast<double>().norm());
+
+    if (perimeter_mm < 1e-6)
+        return;
+
+    const double anchor_arc_mm   = ripple_anchor_arc_mm(poly);
+    const double phase_shift_rad = ripple_phase_shift_rad(cfg);
+    const double phase_at_anchor = M_PI * 2.0 + phase_shift_rad;
+
+    auto arc_phase = [&](double arc_mm) -> double { return N * (2.0 * M_PI) * (arc_mm - anchor_arc_mm) / perimeter_mm + phase_at_anchor; };
+
+    Arachne::ExtrusionJunctions out;
+    out.reserve(static_cast<size_t>(perimeter_mm / fill_step_mm) + np * 2);
+
+    double accum_mm = 0.0;
+    for (size_t i = 0; i + 1 < np; ++i) {
+        const Arachne::ExtrusionJunction& j0      = ext_lines[i];
+        const Arachne::ExtrusionJunction& j1      = ext_lines[i + 1];
+        const Vec2d                       seg     = (j1.p - j0.p).cast<double>();
+        const double                      seg_len = seg.norm();
+        if (seg_len < EPSILON)
+            continue;
+
+        const double seg_len_mm = unscale_(seg_len);
+        const Vec2d  seg_unit   = seg / seg_len;
+        const Vec2d  seg_perp   = perp(seg_unit);
+        const double seg_end_mm = accum_mm + seg_len_mm;
+        const double first_s    = std::ceil(accum_mm / fill_step_mm) * fill_step_mm;
+
+        for (double s = first_s; s < seg_end_mm; s += fill_step_mm) {
+            const double t    = (s - accum_mm) / seg_len_mm;
+            const double disp = std::sin(arc_phase(s)) * amplitude;
+            const Point  pt   = j0.p + (seg * t).cast<coord_t>();
+            out.emplace_back(pt + (seg_perp * scale_(disp)).cast<coord_t>(), j1.w, j1.perimeter_index);
+        }
+
+        accum_mm = seg_end_mm;
+    }
+
+    while (out.size() < 3) {
+        size_t point_idx = ext_lines.size() - 2;
+        out.emplace_back(ext_lines[point_idx].p, ext_lines[point_idx].w, ext_lines[point_idx].perimeter_index);
+        if (point_idx == 0)
+            break;
+        --point_idx;
+    }
+
+    if (out.size() >= 3)
+        ext_lines = std::move(out);
+}
+
 // Thanks Cura developers for this function.
 void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
+    if (cfg.noise_type == NoiseType::Ripple) {
+        if (poly.size() < 3)
+            return;
+        fuzzy_polyline_ripple(poly, cfg);
+        return;
+    }
+
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
@@ -113,6 +344,14 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
 // Thanks Cura developers for this function.
 void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg, bool closed)
 {
+
+    if (cfg.noise_type == NoiseType::Ripple) {
+        if (ext_lines.size() < 3)
+            return;
+        fuzzy_extrusion_line_ripple(ext_lines, cfg);
+        return;
+    }
+
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
@@ -190,7 +429,11 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
                                   region_config.fuzzy_skin_scale,
                                   region_config.fuzzy_skin_octaves,
                                   region_config.fuzzy_skin_persistence,
-                                  region_config.fuzzy_skin_mode};
+                                  region_config.fuzzy_skin_mode,
+                                  region_config.fuzzy_skin_ripples_per_layer,
+                                  region_config.fuzzy_skin_ripple_offset,
+                                  region_config.fuzzy_skin_layers_between_ripple_offset,
+                                  g.layer_id};
         auto&                 surfaces = regions[cfg];
         for (const auto& surface : region->slices.surfaces) {
             surfaces.push_back(&surface);
