@@ -1049,41 +1049,69 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     const std::vector<int>& nozzle_temperature_range_low,
     const std::vector<int>& nozzle_temperature_range_high)
 {
-    const size_t count = std::min(print_temperatures.size(), std::min(nozzle_temperature_range_low.size(), nozzle_temperature_range_high.size()));
+    if (print_temperatures.size() != nozzle_temperature_range_low.size() ||
+        print_temperatures.size() != nozzle_temperature_range_high.size())
+        return FilamentCompatibilityType::HighLowMixed;
+
+    const size_t count = print_temperatures.size();
     if (count < 2)
         return FilamentCompatibilityType::Compatible;
 
     bool has_too_hot_mismatch = false;
     bool has_too_cold_mismatch = false;
 
-    auto is_range_unset = [](int low, int high) {
-        return low <= 0 && high <= 0;
+    struct TempRangeConstraint {
+        bool has_low = false;
+        bool has_high = false;
+        int low = 0;
+        int high = 0;
+    };
+
+    auto make_constraint = [](int low_raw, int high_raw) {
+        TempRangeConstraint constraint;
+        const bool low_set = low_raw > 0;
+        const bool high_set = high_raw > 0;
+
+        if (low_set && high_set) {
+            constraint.has_low = true;
+            constraint.has_high = true;
+            constraint.low = std::min(low_raw, high_raw);
+            constraint.high = std::max(low_raw, high_raw);
+        } else if (low_set) {
+            constraint.has_low = true;
+            constraint.low = low_raw;
+        } else if (high_set) {
+            constraint.has_high = true;
+            constraint.high = high_raw;
+        }
+
+        return constraint;
     };
 
     for (size_t i = 0; i < count; ++i) {
         const int temp_i = print_temperatures[i];
-        const int low_i  = std::min(nozzle_temperature_range_low[i], nozzle_temperature_range_high[i]);
-        const int high_i = std::max(nozzle_temperature_range_low[i], nozzle_temperature_range_high[i]);
-        const bool range_i_unset = is_range_unset(low_i, high_i);
+        const TempRangeConstraint range_i = make_constraint(nozzle_temperature_range_low[i], nozzle_temperature_range_high[i]);
 
         for (size_t j = i + 1; j < count; ++j) {
             const int temp_j = print_temperatures[j];
-            const int low_j  = std::min(nozzle_temperature_range_low[j], nozzle_temperature_range_high[j]);
-            const int high_j = std::max(nozzle_temperature_range_low[j], nozzle_temperature_range_high[j]);
-            const bool range_j_unset = is_range_unset(low_j, high_j);
+            const TempRangeConstraint range_j = make_constraint(nozzle_temperature_range_low[j], nozzle_temperature_range_high[j]);
 
             // Each material's print temperature should fit every other selected
             // material's recommended nozzle temperature range.
-            if (!range_j_unset) {
-                if (temp_i < low_j)
+            if (range_j.has_low) {
+                if (temp_i < range_j.low)
                     has_too_cold_mismatch = true;
-                if (temp_i > high_j)
+            }
+            if (range_j.has_high) {
+                if (temp_i > range_j.high)
                     has_too_hot_mismatch = true;
             }
-            if (!range_i_unset) {
-                if (temp_j < low_i)
+            if (range_i.has_low) {
+                if (temp_j < range_i.low)
                     has_too_cold_mismatch = true;
-                if (temp_j > high_i)
+            }
+            if (range_i.has_high) {
+                if (temp_j > range_i.high)
                     has_too_hot_mismatch = true;
             }
 
@@ -1155,18 +1183,35 @@ static void collect_filament_temperature_data(
     const size_t temp_count = print_config.nozzle_temperature.size();
     const size_t low_count  = print_config.nozzle_temperature_range_low.size();
     const size_t high_count = print_config.nozzle_temperature_range_high.size();
-
-    auto has_temp_range_data = [temp_count, low_count, high_count](unsigned int extruder_id) {
-        return extruder_id < temp_count && extruder_id < low_count && extruder_id < high_count;
-    };
+    const size_t filament_type_count = print_config.filament_type.size();
 
     for (const unsigned int extruder_id : extruders) {
-        if (!has_temp_range_data(extruder_id))
-            continue;
+        int temp = 0;
+        if (extruder_id < temp_count)
+            temp = print_config.nozzle_temperature.get_at(extruder_id);
+        else if (!print_temperatures.empty())
+            temp = print_temperatures.back();
 
-        print_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_id));
-        range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_id));
-        range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_id));
+        int low = extruder_id < low_count ? print_config.nozzle_temperature_range_low.get_at(extruder_id) : 0;
+        int high = extruder_id < high_count ? print_config.nozzle_temperature_range_high.get_at(extruder_id) : 0;
+
+        if (temp <= 0 || low <= 0 || high <= 0) {
+            int fallback_low = 0;
+            int fallback_high = 0;
+            const std::string filament_type = extruder_id < filament_type_count ? print_config.filament_type.get_at(extruder_id) : std::string();
+            MaterialType::get_temperature_range(filament_type, fallback_low, fallback_high);
+
+            if (temp <= 0)
+                temp = fallback_low;
+            if (low <= 0)
+                low = fallback_low;
+            if (high <= 0)
+                high = fallback_high;
+        }
+
+        print_temperatures.push_back(temp);
+        range_lows.push_back(low);
+        range_highs.push_back(high);
     }
 }
 
