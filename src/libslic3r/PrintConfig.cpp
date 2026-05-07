@@ -8,6 +8,7 @@
 
 #include "GCode/Thumbnails.hpp"
 #include <set>
+#include <memory>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -9419,6 +9420,8 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coStrings:
                 {
                     ConfigOptionStrings * opt = this->option<ConfigOptionStrings>(key);
+                    if (!opt)
+                        break;
                     std::vector<std::string> new_values;
 
                     new_values.resize(filament_count);
@@ -9432,6 +9435,8 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coInts:
                 {
                     ConfigOptionInts * opt = this->option<ConfigOptionInts>(key);
+                    if (!opt)
+                        break;
                     std::vector<int> new_values;
 
                     new_values.resize(filament_count);
@@ -9445,32 +9450,38 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coFloats:
                 {
                     ConfigOptionFloats * opt = this->option<ConfigOptionFloats>(key);
-                    std::vector<double> new_values;
-
-                    new_values.resize(filament_count);
-                    for (int f_index = 0; f_index < filament_count; f_index++)
-                    {
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                    if (!opt)
+                        break;
+                    ConfigOptionVectorBase* opt_vec = static_cast<ConfigOptionVectorBase*>(opt);
+                    std::unique_ptr<ConfigOption> new_opt(opt_vec->clone());
+                    ConfigOptionVectorBase* new_opt_vec = static_cast<ConfigOptionVectorBase*>(new_opt.get());
+                    new_opt_vec->resize(filament_count);
+                    for (int f_index = 0; f_index < filament_count; f_index++) {
+                        new_opt_vec->set_at(opt_vec, f_index, variant_index[f_index]);
                     }
-                    opt->values = new_values;
+                    opt_vec->set(new_opt_vec);
                     break;
                 }
                 case coPercents:
                 {
                     ConfigOptionPercents * opt = this->option<ConfigOptionPercents>(key);
-                    std::vector<double> new_values;
-
-                    new_values.resize(filament_count);
-                    for (int f_index = 0; f_index < filament_count; f_index++)
-                    {
-                        new_values[f_index] = opt->get_at(variant_index[f_index]);
+                    if (!opt)
+                        break;
+                    ConfigOptionVectorBase* opt_vec = static_cast<ConfigOptionVectorBase*>(opt);
+                    std::unique_ptr<ConfigOption> new_opt(opt_vec->clone());
+                    ConfigOptionVectorBase* new_opt_vec = static_cast<ConfigOptionVectorBase*>(new_opt.get());
+                    new_opt_vec->resize(filament_count);
+                    for (int f_index = 0; f_index < filament_count; f_index++) {
+                        new_opt_vec->set_at(opt_vec, f_index, variant_index[f_index]);
                     }
-                    opt->values = new_values;
+                    opt_vec->set(new_opt_vec);
                     break;
                 }
                 case coFloatsOrPercents:
                 {
                     ConfigOptionFloatsOrPercents * opt = this->option<ConfigOptionFloatsOrPercents>(key);
+                    if (!opt)
+                        break;
                     std::vector<FloatOrPercent> new_values;
 
                     new_values.resize(filament_count);
@@ -9484,6 +9495,8 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coBools:
                 {
                     ConfigOptionBools * opt = this->option<ConfigOptionBools>(key);
+                    if (!opt)
+                        break;
                     std::vector<unsigned char> new_values;
 
                     new_values.resize(filament_count);
@@ -9497,6 +9510,8 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coEnums:
                 {
                     ConfigOptionEnumsGeneric * opt = this->option<ConfigOptionEnumsGeneric>(key);
+                    if (!opt)
+                        break;
                     std::vector<int> new_values;
 
                     new_values.resize(filament_count);
