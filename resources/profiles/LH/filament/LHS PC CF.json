@@ -1,0 +1,122 @@
+{
+	"name": "LHS PC CF",
+	"type": "filament",
+	"filament_id": "LHF_pccf",
+	"setting_id": "LHF_S_pccf",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pla",
+	"compatible_printers": [
+		"LH Stinger 0.4 nozzle",
+		"LH Stinger MMU 0.4 nozzle"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"close_fan_the_first_x_layers": [
+		"4"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"11"
+	],
+	"fan_max_speed": [
+		"5"
+	],
+	"fan_min_speed": [
+		"5"
+	],
+	"filament_cooling_final_speed": [
+		"0"
+	],
+	"filament_cooling_initial_speed": [
+		"0"
+	],
+	"filament_cooling_moves": [
+		"0"
+	],
+	"filament_density": [
+		"1.18"
+	],
+	"filament_flow_ratio": [
+		"0.945"
+	],
+	"filament_loading_speed": [
+		"0"
+	],
+	"filament_loading_speed_start": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"35"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"0"
+	],
+	"filament_multitool_ramming_flow": [
+		"0"
+	],
+	"filament_multitool_ramming_volume": [
+		"0"
+	],
+	"filament_notes": [
+		"Extrusion Override set to a higher value\nAux disabled\nZ-Offset increased to 0.025 due to nozzle expansion at 300C"
+	],
+	"filament_retraction_length": [
+		"0.4"
+	],
+	"filament_shrink": [
+		"99.8%"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n; MPC_SET HEATER=extruder FILAMENT_DENSITY=1.36 FILAMENT_HEAT_CAPACITY=2.6\nMAX_FAN LINK_AUX=0"
+	],
+	"filament_type": [
+		"PC"
+	],
+	"filament_unloading_speed": [
+		"0"
+	],
+	"filament_unloading_speed_start": [
+		"0"
+	],
+	"hot_plate_temp": [
+		"105"
+	],
+	"hot_plate_temp_initial_layer": [
+		"105"
+	],
+	"is_custom_defined": "0",
+	"nozzle_temperature": [
+		"300"
+	],
+	"nozzle_temperature_initial_layer": [
+		"300"
+	],
+	"nozzle_temperature_range_high": [
+		"300"
+	],
+	"nozzle_temperature_range_low": [
+		"270"
+	],
+	"overhang_fan_speed": [
+		"35"
+	],
+	"pressure_advance": [
+		"0.025"
+	],
+	"slow_down_layer_time": [
+		"7"
+	],
+	"slow_down_min_speed": [
+		"12"
+	],
+	"filament_vendor": [
+		"LH Stinger"
+	],
+	"temperature_vitrification": [
+		"140"
+	]
+}

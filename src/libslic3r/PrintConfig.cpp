@@ -183,7 +183,8 @@ static t_config_enum_values s_keys_map_NoiseType {
     { "perlin",         int(NoiseType::Perlin) },
     { "billow",         int(NoiseType::Billow) },
     { "ridgedmulti",    int(NoiseType::RidgedMulti) },
-    { "voronoi",        int(NoiseType::Voronoi) }
+    { "voronoi",        int(NoiseType::Voronoi) }, 
+    { "ripple",         int(NoiseType::Ripple) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
 
@@ -696,11 +697,11 @@ void PrintConfigDef::init_common_params()
     def->set_default_value(new ConfigOptionInt(1));	
 
     def           = this->add("elefant_foot_layers_density", coPercent);
-    def->label    = L("Elefant foot layers density");
+    def->label    = L("Elephant foot layers density");
     def->category = L("Quality");
-    def->tooltip  = L("Density of internal solid infill for elefant foot layers compensation. "
-                      "The initial value for the second layer is set. "
-                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers. ");
+    def->tooltip  = L("Density of internal solid infill for Elephant foot layers compensation.\n"
+                      "The initial value for the second layer is set.\n"
+                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers.");
     def->sidetext = "%";
     def->min      = 50;
     def->max      = 100;
@@ -2191,6 +2192,7 @@ void PrintConfigDef::init_fff_params()
                      "This setting changes all extrusion flow of this filament in G-code proportionally. "
                      "The recommended value range is between 0.95 and 1.05. "
                      "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.");
+    def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
     def->nullable = true;
@@ -3369,7 +3371,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The width within which to jitter. It's advised to be below outer wall line width.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
-    def->max = 1;
+    def->max = 2;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0.2));
 
@@ -3421,18 +3423,21 @@ void PrintConfigDef::init_fff_params()
                      "Perlin: Perlin noise, which gives a more consistent texture.\n"
                      "Billow: Similar to perlin noise, but clumpier.\n"
                      "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
-                     "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.");
+                     "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
+                     "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance.");
     def->enum_keys_map = &ConfigOptionEnum<NoiseType>::get_enum_values();
     def->enum_values.push_back("classic");
     def->enum_values.push_back("perlin");
     def->enum_values.push_back("billow");
     def->enum_values.push_back("ridgedmulti");
     def->enum_values.push_back("voronoi");
+    def->enum_values.push_back("ripple");
     def->enum_labels.push_back(L("Classic"));
     def->enum_labels.push_back(L("Perlin"));
     def->enum_labels.push_back(L("Billow"));
     def->enum_labels.push_back(L("Ridged Multifractal"));
     def->enum_labels.push_back(L("Voronoi"));
+    def->enum_labels.push_back(L("Ripple"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<NoiseType>(NoiseType::Classic));
 
@@ -3463,6 +3468,38 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("fuzzy_skin_ripples_per_layer", coInt);
+    def->label = L("Number of ripples per layer");
+    def->category = L("Others");
+    def->tooltip  = L("When using the Ripple noise type, this controls how many full cycles of ripples will be added per layer.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(15));
+
+    def = this->add("fuzzy_skin_ripple_offset", coFloat);
+    def->label = L("Ripple offset");
+    def->category = L("Others");
+    def->tooltip = L("When using the Ripple noise type, shifts the ripple pattern forward along the print path by this amount each "
+                     "layer-period. A value of 0 keeps every layer identical. A value equal to 0.5 shifts by a full "
+                     "half-wavelength, inverting the pattern. The shift is applied once per 'Layers between Ripple offset' layers, "
+                      "so consecutive layers within a period are printed identically on top of each other.");
+    def->min = 0;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("fuzzy_skin_layers_between_ripple_offset", coInt);
+    def->label = L("Layers between ripple offset");
+    def->category = L("Others");
+    def->tooltip = L("When using the Ripple noise type with a non-zero layer offset, this controls how "
+                       "many consecutive layers share the same ripple phase before the offset is applied. "
+                       "For example, a period of 3 means layers 0, 1 and 2 are identical, then layers 3, 4 "
+                       "and 5 are shifted by one full 'Ripple layer offset', and so on. "
+                       "Set to 1 to shift on every layer.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("filter_out_gap_fill", coFloat);
     def->label = L("Filter out tiny gaps");
@@ -5239,7 +5276,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Scarf joint flow ratio");
     def->category = L("Quality");
     def->tooltip = L("This factor affects the amount of material for scarf joints.");
-    def->mode = comDevelop;
+    def->mode = comExpert;
+    def->min = 0;
     def->max = 2;
     def->set_default_value(new ConfigOptionFloat(1));
 
