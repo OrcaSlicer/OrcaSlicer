@@ -85,14 +85,14 @@ void GizmoObjectManipulation::UpdateAndShow(const bool show)
 
 void GizmoObjectManipulation::update_ui_from_settings()
 {
-    if (m_imperial_units != (wxGetApp().app_config->get("use_inches") == "1")) {
-        m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
-
-        m_new_unit_string = m_imperial_units ? L("in") : L("mm");
-
-        update_buffered_value();
+    bool imperial = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    if (m_imperial_units != imperial) {
+        m_imperial_units  = imperial;
+        m_new_unit_string = imperial ? L("in") : L("mm");
+        update_buffered_value(); // only rebuild when pref actually changed
     }
 }
+
 void delete_negative_sign(Vec3d& value) {
     for (size_t i = 0; i < value.size(); i++) {
         if (abs(value[i]) < 0.001)
@@ -867,18 +867,22 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
 
     // position
-    Vec3d original_position = imperial_display
-    ? this->m_new_position * this->mm_to_in
-    : this->m_new_position;
-    Vec3d display_position = imperial_display
-    ? this->m_new_position * this->mm_to_in
-    : this->m_new_position;
-    static bool last_imperial_display = imperial_display;
-    if (last_imperial_display != imperial_display) {
+    // ImGui owns the buffer, only rebuild when unit or underlying data changes:
+    static bool last_imperial_move = imperial_display;
+    if (last_imperial_move != imperial_display) {
+        // Unit flipped — rebuild buffer in new unit
+        m_buffered_position = imperial_display
+            ? this->m_new_position * this->mm_to_in
+            : this->m_new_position;
         for (int i = 0; i < 3; i++)
-            ImGui::ClearInputTextInitialData(label_values[0][i], display_position[i]);
-        last_imperial_display = imperial_display;
+            ImGui::ClearInputTextInitialData(label_values[0][i], m_buffered_position[i]);
+        last_imperial_move = imperial_display;
     }
+    Vec3d display_position = m_buffered_position;  // ImGui mutates this
+    Vec3d original_position = imperial_display      // used only for change detection
+        ? this->m_new_position * this->mm_to_in
+        : this->m_new_position;
+
     // Rotation
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
     int   index      = 1;
@@ -967,12 +971,11 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             if (display_position[i] > MAX_NUM) display_position[i] = MAX_NUM;
             if (display_position[i] < -MAX_NUM) display_position[i] = -MAX_NUM;
         }
-        Vec3d display_position = imperial_display
-        ? this->m_new_position * this->mm_to_in
-            : this->m_new_position;
-        update(current_active_id, "position", original_position, m_buffered_position);
+        // Write ImGui's edited values back to the buffer BEFORE update() fires
+        m_buffered_position = display_position;
+
+        update(current_active_id, "position", original_position, display_position);
     }
-    // the init position values are not zero, won't add reset button
 
     // send focus to m_glcanvas
     bool focued_on_text = false;
@@ -1264,10 +1267,18 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     unsigned int current_active_id = ImGui::GetActiveID();
 
     Vec3d scale = m_buffered_scale;
-    Vec3d display_size = imperial_display
-        ? this->m_new_size * this->mm_to_in
-        : this->m_new_size;
-    Vec3d display_position = m_buffered_position;
+
+    //ImGui owns the buffer, only rebuild when unit flips:
+    last_imperial_scale = imperial_display;
+    if (last_imperial_scale != imperial_display) {
+        m_buffered_size = imperial_display
+            ? this->m_new_size * this->mm_to_in
+            : this->m_new_size;
+        for (int i = 0; i < 3; i++)
+            ImGui::ClearInputTextInitialData(label_scale_values[1][i], m_buffered_size[i]);
+        last_imperial_scale = imperial_display;
+    }
+    Vec3d display_size = m_buffered_size;  // ImGui mutates this directly
 
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
     int index      = 2;
@@ -1406,7 +1417,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     ImGui::PushItemWidth(uniform_scale_size);
     int size_sel{-1};
     if (!is_avoid_one_update) {
-        size_sel    = update(current_active_id, "size", original_size, m_buffered_size);
+        size_sel    = update(current_active_id, "size", original_size, display_size);
     }
     ImGui::PopStyleVar(1);
     bool uniform_scale = this->m_uniform_scale;

@@ -3691,6 +3691,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
                         m_mouse.ignore_left_up = true;
                     }
                     m_dirty = true;
+                    request_extra_frame();
 
 //                    set_cursor(Standard);
 #ifdef __WXMSW__
@@ -3769,6 +3770,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
                     {
                         Slic3r::GUI::UnitSystem::Get().TogglePermanent();
                         m_dirty = true;
+                        request_extra_frame();
                     }
                     translationProcessor.process(evt);
 
@@ -3787,6 +3789,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
 //                        set_cursor(Cross);
                     }
                     m_dirty = true;
+                    request_extra_frame();
                 }
                 else if (keyCode == WXK_CONTROL)
                     m_dirty = true;
