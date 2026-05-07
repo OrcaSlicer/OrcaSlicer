@@ -1043,7 +1043,7 @@ static std::vector<std::string> s_Preset_print_options{
     "support_ironing_flow",
     "support_ironing_spacing",
     "max_travel_detour_distance",
-    "fuzzy_skin", "fuzzy_skin_thickness", "fuzzy_skin_point_distance", "fuzzy_skin_first_layer", "fuzzy_skin_noise_type", "fuzzy_skin_mode", "fuzzy_skin_scale", "fuzzy_skin_octaves", "fuzzy_skin_persistence",
+    "fuzzy_skin", "fuzzy_skin_thickness", "fuzzy_skin_point_distance", "fuzzy_skin_first_layer", "fuzzy_skin_noise_type", "fuzzy_skin_mode", "fuzzy_skin_scale", "fuzzy_skin_octaves", "fuzzy_skin_persistence", "fuzzy_skin_ripples_per_layer", "fuzzy_skin_ripple_offset", "fuzzy_skin_layers_between_ripple_offset",
     "max_volumetric_extrusion_rate_slope", "max_volumetric_extrusion_rate_slope_segment_length","extrusion_rate_smoothing_external_perimeter_only",
     "inner_wall_speed", "outer_wall_speed", "sparse_infill_speed", "internal_solid_infill_speed",
     "top_surface_speed", "support_speed", "support_object_xy_distance", "support_object_first_layer_gap", "support_interface_speed",
