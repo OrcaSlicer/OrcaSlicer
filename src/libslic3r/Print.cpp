@@ -1174,7 +1174,7 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
     const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
-    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences.");
+    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
     if(print_config.print_sequence == PrintSequence::ByObject) {// use ByObject valid under ByObject print sequence
         std::set<FilamentCompatibilityType> Compatibility_each_obj;
         bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
