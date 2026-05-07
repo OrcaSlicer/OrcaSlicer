@@ -3,8 +3,11 @@
 #include <sstream>
 #include <cmath>
 #include <limits>
+//#include <optional>
 
 namespace Slic3r {
+
+static constexpr float SHORT_SEGMENT_MERGE_RATIO = 5.f;
 
 namespace SpiralVaseHelpers {
 /** == Smooth Spiral Helpers == */
@@ -127,7 +130,40 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
 
     float len = 0.f;
     SpiralVase::SpiralPoint last_point = previous_layer != NULL && previous_layer->size() >0? previous_layer->at(previous_layer->size()-1): SpiralVase::SpiralPoint(0,0);
-    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate]
+    struct PendingSegment {
+        GCodeReader::GCodeLine line;
+        float                  extrusion = 0.f;
+        float                  dist_xy = 0.f;
+        size_t                 layer_point_index = 0;
+    };
+    std::optional<PendingSegment> pending_prev_segment;
+    std::optional<PendingSegment> pending_last_segment;
+
+    auto erase_layer_point = [&current_layer](size_t index) {
+        if (index < current_layer->size())
+            current_layer->erase(current_layer->begin() + index);
+    };
+
+    auto merge_segment_extrusion = [&erase_layer_point](const PendingSegment &short_segment, PendingSegment &target_segment) {
+        target_segment.line.set(E, target_segment.line.e() + short_segment.extrusion, 5 /*decimal_digits*/);
+        target_segment.extrusion = target_segment.line.e();
+        if (short_segment.layer_point_index < target_segment.layer_point_index)
+            --target_segment.layer_point_index;
+        erase_layer_point(short_segment.layer_point_index);
+    };
+
+    auto flush_pending_segments = [&new_gcode](std::optional<PendingSegment> &prev, std::optional<PendingSegment> &last) {
+        if (prev.has_value()) {
+            new_gcode += prev->line.raw() + '\n';
+            prev.reset();
+        }
+        if (last.has_value()) {
+            new_gcode += last->line.raw() + '\n';
+            last.reset();
+        }
+    };
+
+    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, &pending_prev_segment, &pending_last_segment, &merge_segment_extrusion, &flush_pending_segments]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
         if (line.cmd_is("G1")) {
             // Orca: Filter out retractions at layer change
@@ -135,6 +171,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
             if (line.has_z() && !(line.has_x() || line.has_y())) {
                 // If this is the initial Z move of the layer, replace it with a
                 // (redundant) move to the last Z of previous layer.
+                flush_pending_segments(pending_prev_segment, pending_last_segment);
                 line.set(Z, z);
                 new_gcode += line.raw() + '\n';
                 return;
@@ -142,6 +179,8 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                 float dist_XY = line.dist_XY(reader);
                 if (line.has_x() || line.has_y()) { // Sometimes lines have X/Y but the move is to the last position
                     if (dist_XY > 0 && line.extruding(reader)) { // Exclude wipe and retract
+                        const size_t layer_points_before_line = current_layer->size();
+                        float emitted_dist_XY = dist_XY;
                         len += dist_XY;
                         float factor = len / total_layer_length;
                         if (transition_in){
@@ -175,13 +214,15 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                                     // Remove tiny movement
                                     // We need to figure out the distance of this new line!
                                     float modified_dist_XY = SpiralVaseHelpers::distance(last_point, target);
-                                    if (modified_dist_XY < 0.001)
+                                    if (modified_dist_XY < 0.001) {
                                         line.clear();
-                                    else {
+                                        emitted_dist_XY = 0.f;
+                                    } else {
                                         line.set(X, target.x);
                                         line.set(Y, target.y);
                                         // Scale the extrusion amount according to change in length
                                         line.set(E, line.e() * modified_dist_XY / dist_XY, 5 /*decimal_digits*/);
+                                        emitted_dist_XY = modified_dist_XY;
                                         last_point = target;
                                     }
                                 } else {
@@ -189,7 +230,36 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                                 }
                             }
                         }
-                        new_gcode += line.raw() + '\n';
+
+                        if (!line.raw().empty()) {
+                            PendingSegment current_segment{line, line.e(), emitted_dist_XY, layer_points_before_line};
+
+                            if (!pending_prev_segment.has_value()) {
+                                pending_prev_segment = current_segment;
+                            } else if (!pending_last_segment.has_value()) {
+                                if (pending_prev_segment->dist_xy > 0.f && current_segment.dist_xy > 0.f &&
+                                    pending_prev_segment->dist_xy * SHORT_SEGMENT_MERGE_RATIO < current_segment.dist_xy) {
+                                    merge_segment_extrusion(*pending_prev_segment, current_segment);
+                                    pending_prev_segment = current_segment;
+                                } else {
+                                    pending_last_segment = current_segment;
+                                }
+                            } else {
+                                if (pending_last_segment->dist_xy > 0.f && current_segment.dist_xy > 0.f &&
+                                    pending_last_segment->dist_xy * SHORT_SEGMENT_MERGE_RATIO < current_segment.dist_xy) {
+                                    merge_segment_extrusion(*pending_last_segment, current_segment);
+                                    pending_last_segment.reset();
+                                }
+
+                                new_gcode += pending_prev_segment->line.raw() + '\n';
+                                if (pending_last_segment.has_value()) {
+                                    pending_prev_segment = *pending_last_segment;
+                                    pending_last_segment = current_segment;
+                                } else {
+                                    pending_prev_segment = current_segment;
+                                }
+                            }
+                        }
                     }
                     return;
                     /*  Skip travel moves: the move to first perimeter point will
@@ -202,11 +272,27 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                 }
             }
         }
+        flush_pending_segments(pending_prev_segment, pending_last_segment);
         new_gcode += line.raw() + '\n';
         if(transition_out) {
             transition_gcode += line.raw() + '\n';
         }
     });
+
+    if (pending_prev_segment.has_value() && pending_last_segment.has_value() &&
+        pending_last_segment->dist_xy > 0.f && pending_prev_segment->dist_xy > 0.f &&
+        pending_last_segment->dist_xy * SHORT_SEGMENT_MERGE_RATIO < pending_prev_segment->dist_xy) {
+        if (pending_last_segment->line.has_x())
+            pending_prev_segment->line.set(X, pending_last_segment->line.x());
+        if (pending_last_segment->line.has_y())
+            pending_prev_segment->line.set(Y, pending_last_segment->line.y());
+        if (pending_last_segment->line.has_z())
+            pending_prev_segment->line.set(Z, pending_last_segment->line.z());
+        merge_segment_extrusion(*pending_last_segment, *pending_prev_segment);
+        pending_last_segment.reset();
+    }
+
+    flush_pending_segments(pending_prev_segment, pending_last_segment);
 
     delete m_previous_layer;
     m_previous_layer = current_layer;
