@@ -1555,11 +1555,18 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
             return false;
     }
 
-    if (Print::check_multi_filaments_compatibility(
+    auto compatibility = Print::check_multi_filaments_compatibility(
             filament_types,
             nozzle_temperatures,
             nozzle_temperature_range_lows,
-            nozzle_temperature_range_highs) == FilamentCompatibilityType::HighLowMixed) {
+            nozzle_temperature_range_highs);
+
+    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+        error_tips = _u8L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+        return false;
+    }
+
+    if (compatibility == FilamentCompatibilityType::HighLowMixed) {
         error_tips = _u8L("Selected nozzle temperatures are incompatible. For multi-material printing, each filament's nozzle temperature must be within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
         return false;
     }

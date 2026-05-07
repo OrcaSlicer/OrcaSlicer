@@ -877,8 +877,9 @@ enum FilamentTempType {
 enum FilamentCompatibilityType {
     Compatible,
     HighLowMixed,
-    HighMidMixed,
-    LowMidMixed
+    //HighLowMixed,
+    //HighMidMixed,
+    InvalidTemperatureRange
 };
 
 // The complete print tray with possibly multiple objects.
