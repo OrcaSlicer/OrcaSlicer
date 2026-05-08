@@ -116,6 +116,8 @@ if(NOT DEFINED ENV{SYS_LIBS})
 endif()
 option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'png;curl')" ${SYS_LIBS})
 
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake/modules/)
+
 if (SYS_LIBS)
     #TODO: openexr;openvdb;
     set(SYS_LIBS_ALL "zlib;png;gmp;mpfr;openssl;curl;jpeg;freetype;expat;opencv;cereal;qhull;opencsg;tbb;glew;glfw;nlopt")
