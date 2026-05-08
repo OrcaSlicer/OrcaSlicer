@@ -20,23 +20,6 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 
-option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'opencv;openvdb')" ${SYS_LIBS})
-
-if (SYS_LIBS)
-    set(SYS_LIBS_ALL "opencv;openvdb")
-    if (SYS_LIBS MATCHES "all")
-        set(SYS_LIBS ${SYS_LIBS_ALL})
-    endif()
-    FOREACH(lib ${SYS_LIBS})
-        if (NOT lib IN_LIST SYS_LIBS_ALL)
-            message(FATAL_ERROR "Unknown library specified in SYS_LIBS: ${lib}. Valid options are: ${SYS_LIBS_ALL} or 'all'.")
-        endif()
-        string(TOUPPER ${lib} lib_upper)
-        set(SYS_LIB_${lib_upper} ON CACHE BOOL "Try to use system library for ${lib}")
-        message(STATUS "System library for ${lib}: ${SYS_LIB_${lib_upper}}")
-    ENDFOREACH()
-endif()
-
 set(lisbslic3r_sources
     AABBMesh.cpp
     AABBMesh.hpp
