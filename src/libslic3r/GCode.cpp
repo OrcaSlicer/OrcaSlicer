@@ -2754,8 +2754,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
             // Nearest-neighbor TSP cycle: closed loop through all objects
             : (print.config().print_order == PrintOrder::NearestNeighborCycle ? chain_print_object_instances_nn_cycle(print)
+            // Convex hull peeling: onion-peel layers from outside in
+            : (print.config().print_order == PrintOrder::ConvexHullPeeling ? chain_print_object_instances_convex_hull_peeling(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print));
+            : sort_object_instances_by_model_order(print)));
     }
     if (initial_extruder_id == (unsigned int)-1) {
         // Nothing to print!
@@ -4958,7 +4960,9 @@ LayerResult GCode::process_layer(
             std::vector<const PrintInstance *> new_ordering = 
                 print.config().print_order == PrintOrder::NearestNeighborCycle
                     ? chain_print_object_instances_nn_cycle(print_objects, &wt_pos)
-                    : chain_print_object_instances(print_objects, &wt_pos);
+                    : (print.config().print_order == PrintOrder::ConvexHullPeeling
+                        ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
+                        : chain_print_object_instances(print_objects, &wt_pos));
             std::reverse(new_ordering.begin(), new_ordering.end());
 
             if (print.config().print_sequence == PrintSequence::ByObject) {

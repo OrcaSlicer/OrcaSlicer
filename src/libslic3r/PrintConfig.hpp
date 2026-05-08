@@ -157,6 +157,7 @@ enum class PrintOrder
     Default,
     AsObjectList,
     NearestNeighborCycle, // nearest-neighbor TSP cycle: visits all objects and returns to start
+    ConvexHullPeeling,   // onion-peeling convex hull layers, outermost first
     Count,
 };
 
