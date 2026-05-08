@@ -119,8 +119,8 @@ option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'pn
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake/modules/)
 
 if (SYS_LIBS)
-    #TODO: boost;cgal;wxwidgets
-    set(SYS_LIBS_ALL "zlib;png;gmp;mpfr;openssl;curl;jpeg;freetype;expat;opencv;cereal;qhull;opencsg;tbb;glew;glfw;nlopt;blosc;occt;openexr;openvdb")
+    #TODO: boost;cgal
+    set(SYS_LIBS_ALL "zlib;png;gmp;mpfr;openssl;curl;jpeg;freetype;expat;opencv;cereal;qhull;opencsg;tbb;glew;glfw;nlopt;blosc;occt;openexr;openvdb;wxwidgets")
     if (SYS_LIBS MATCHES "all")
         set(SYS_LIBS ${SYS_LIBS_ALL})
     endif()
@@ -536,9 +536,17 @@ endif()
 
 # flatpak builds wxwidgets separately, so it is not included in the deps target
 set(WXWIDGETS_PKG "")
-include(wxWidgets/wxWidgets.cmake)
-if (NOT FLATPAK)
+find_package(wxWidgets 3.2 QUIET)
+if(wxWidgets_FOUND AND SYS_LIB_WXWIDGETS)
+    message(STATUS "Using wxWidgets from system.")
+    add_library(dep_wxWidgets INTERFACE)
     set(WXWIDGETS_PKG "dep_wxWidgets")
+else()
+    message(STATUS "Using wxWidgets from source.")
+    include(wxWidgets/wxWidgets.cmake)
+    if (NOT FLATPAK)
+        set(WXWIDGETS_PKG "dep_wxWidgets")
+    endif()
 endif()
 
 set(FREETYPE_PKG "")

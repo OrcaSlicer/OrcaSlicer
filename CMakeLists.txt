@@ -137,7 +137,7 @@ set(IS_CROSS_COMPILE FALSE)
 option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'opencv;openvdb')" ${SYS_LIBS})
 
 if (SYS_LIBS)
-    set(SYS_LIBS_ALL "opencv;openvdb")
+    set(SYS_LIBS_ALL "opencv;openvdb;wxwidgets")
     if (SYS_LIBS MATCHES "all")
         set(SYS_LIBS ${SYS_LIBS_ALL})
     endif()
