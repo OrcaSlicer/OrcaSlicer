@@ -60,6 +60,9 @@ std::vector<const PrintInstance*> 	 chain_print_object_instances(const Print &pr
 std::vector<const PrintInstance*> chain_print_object_instances_nn_cycle(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
 std::vector<const PrintInstance*> chain_print_object_instances_nn_cycle(const Print& print);
 
+std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
+std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const Print& print);
+
 // Chain lines into polylines.
 Polylines 							 chain_lines(const std::vector<Line> &lines, const double point_distance_epsilon);
 
