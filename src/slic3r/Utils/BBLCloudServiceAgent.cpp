@@ -2,8 +2,84 @@
 #include "BBLNetworkPlugin.hpp"
 
 #include <boost/log/trivial.hpp>
+#include "Http.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 
+#include <sstream>
+#include <boost/algorithm/string/replace.hpp>
+#include <nlohmann/json.hpp>
 namespace Slic3r {
+
+
+namespace {
+
+std::string convert_studio_language_to_api(std::string lang_code)
+{
+    boost::replace_all(lang_code, "_", "-");
+    return lang_code;
+}
+
+std::string normalize_homepage_auth_command(std::string payload)
+{
+    if (payload.empty()) {
+        return payload;
+    }
+
+    try {
+        auto json = nlohmann::json::parse(payload);
+        if (json.contains("command") && json["command"].is_string()) {
+            std::string command = json["command"].get<std::string>();
+            if (command == "studio_userlogin") {
+                json["command"] = "studio_bambu_userlogin";
+            } else if (command == "studio_useroffline") {
+                json["command"] = "studio_bambu_useroffline";
+            }
+            return json.dump();
+        }
+    } catch (...) {
+        boost::replace_first(payload, "\"command\":\"studio_userlogin\"", "\"command\":\"studio_bambu_userlogin\"");
+        boost::replace_first(payload, "\"command\":\"studio_useroffline\"", "\"command\":\"studio_bambu_useroffline\"");
+    }
+
+    return payload;
+}
+
+} // namespace
+
+std::map<std::string, std::string> BBLCloudServiceAgent::get_extra_header()
+{
+    std::map<std::string, std::string> extra_headers;
+    extra_headers.emplace("X-BBL-Client-Type", "slicer");
+    extra_headers.emplace("X-BBL-Client-Name", SLIC3R_APP_NAME);
+    extra_headers.emplace("X-BBL-Client-Version", GUI::wxGetApp().get_bbl_client_version());
+#if defined(__WINDOWS__)
+#ifdef _M_X64
+    extra_headers.emplace("X-BBL-OS-Type", "windows");
+#else
+    extra_headers.emplace("X-BBL-OS-Type", "windows_arm");
+#endif
+#elif defined(__APPLE__)
+    extra_headers.emplace("X-BBL-OS-Type", "macos");
+#elif defined(__LINUX__)
+    extra_headers.emplace("X-BBL-OS-Type", "linux");
+#endif
+
+    int major = 0, minor = 0, micro = 0;
+    wxGetOsVersion(&major, &minor, &micro);
+
+    std::ostringstream os_version;
+    os_version << major << "." << minor << "." << micro;
+    extra_headers.emplace("X-BBL-OS-Version", os_version.str());
+
+    auto& app = GUI::wxGetApp();
+    if (app.app_config) {
+        extra_headers.emplace("X-BBL-Device-ID", app.app_config->get("slicer_uuid"));
+    }
+
+    extra_headers.emplace("X-BBL-Language",
+                          convert_studio_language_to_api(app.current_language_code_safe().ToStdString()));
+    return extra_headers;
+}
 
 BBLCloudServiceAgent::BBLCloudServiceAgent() = default;
 
@@ -59,6 +135,8 @@ int BBLCloudServiceAgent::set_country_code(std::string country_code)
 
 int BBLCloudServiceAgent::start()
 {
+    set_extra_http_header();
+
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_start();
@@ -159,7 +237,7 @@ std::string BBLCloudServiceAgent::build_login_cmd()
     auto agent = plugin.get_agent();
     auto func = plugin.get_build_login_cmd();
     if (func && agent) {
-        return func(agent);
+        return normalize_homepage_auth_command(func(agent));
     }
     return "";
 }
@@ -170,7 +248,7 @@ std::string BBLCloudServiceAgent::build_logout_cmd()
     auto agent = plugin.get_agent();
     auto func = plugin.get_build_logout_cmd();
     if (func && agent) {
-        return func(agent);
+        return normalize_homepage_auth_command(func(agent));
     }
     return "";
 }
@@ -181,7 +259,7 @@ std::string BBLCloudServiceAgent::build_login_info()
     auto agent = plugin.get_agent();
     auto func = plugin.get_build_login_info();
     if (func && agent) {
-        return func(agent);
+        return normalize_homepage_auth_command(func(agent));
     }
     return "";
 }
@@ -209,21 +287,6 @@ bool BBLCloudServiceAgent::ensure_token_fresh(const std::string& reason)
     // Always return true assuming the DLL manages this
     (void)reason;
     return true;
-}
-
-// ============================================================================
-// Auth Callbacks (merged from BBLAuthAgent)
-// ============================================================================
-
-int BBLCloudServiceAgent::set_on_user_login_fn(OnUserLoginFn fn)
-{
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_set_on_user_login_fn();
-    if (func && agent) {
-        return func(agent, fn);
-    }
-    return -1;
 }
 
 // ============================================================================
@@ -628,6 +691,17 @@ int BBLCloudServiceAgent::get_my_profile(std::string token, unsigned int* http_c
     return -1;
 }
 
+int BBLCloudServiceAgent::get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body)
+{
+    auto& plugin = BBLNetworkPlugin::instance();
+    auto agent = plugin.get_agent();
+    auto func = plugin.get_get_my_token();
+    if (func && agent) {
+        return func(agent, ticket, http_code, http_body);
+    }
+    return -1;
+}
+
 // ============================================================================
 // Analytics & Tracking
 // ============================================================================
@@ -756,26 +830,20 @@ int BBLCloudServiceAgent::get_model_mall_rating_result(int job_id, std::string& 
 // Extra Features
 // ============================================================================
 
-int BBLCloudServiceAgent::set_extra_http_header(std::map<std::string, std::string> extra_headers)
+int BBLCloudServiceAgent::set_extra_http_header()
 {
+    // Orca: not sure if this required to login into bbl cloud
+    // Slic3r::Http::set_extra_headers(extra_headers);
+
     auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
+    auto  agent  = plugin.get_agent();
+
     auto func = plugin.get_set_extra_http_header();
     if (func && agent) {
+        auto extra_headers = get_extra_header();
         return func(agent, extra_headers);
     }
     return -1;
-}
-
-std::string BBLCloudServiceAgent::get_studio_info_url()
-{
-    auto& plugin = BBLNetworkPlugin::instance();
-    auto agent = plugin.get_agent();
-    auto func = plugin.get_get_studio_info_url();
-    if (func && agent) {
-        return func(agent);
-    }
-    return "";
 }
 
 int BBLCloudServiceAgent::get_mw_user_preference(std::function<void(std::string)> callback)
@@ -814,24 +882,36 @@ std::string BBLCloudServiceAgent::get_version()
 // Cloud Callbacks
 // ============================================================================
 
-int BBLCloudServiceAgent::set_on_server_connected_fn(OnServerConnectedFn fn)
+int BBLCloudServiceAgent::set_on_server_connected_fn(AppOnServerConnectedFn fn)
 {
+    m_app_on_server_connected_fn = fn;
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_on_server_connected_fn();
     if (func && agent) {
-        return func(agent, fn);
+        // Register raw callback with DLL, wrap to inject CloudEvent
+        return func(agent, [this](int return_code, int reason_code) {
+            if (m_app_on_server_connected_fn) {
+                m_app_on_server_connected_fn(CloudEvent{BBL_CLOUD_PROVIDER}, return_code, reason_code);
+            }
+        });
     }
     return -1;
 }
 
-int BBLCloudServiceAgent::set_on_http_error_fn(OnHttpErrorFn fn)
+int BBLCloudServiceAgent::set_on_http_error_fn(AppOnHttpErrorFn fn)
 {
+    m_app_on_http_error_fn = fn;
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_set_on_http_error_fn();
     if (func && agent) {
-        return func(agent, fn);
+        // Register raw callback with DLL, wrap to inject CloudEvent
+        return func(agent, [this](unsigned http_code, std::string http_body) {
+            if (m_app_on_http_error_fn) {
+                m_app_on_http_error_fn(CloudEvent{BBL_CLOUD_PROVIDER}, http_code, http_body);
+            }
+        });
     }
     return -1;
 }
