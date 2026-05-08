@@ -158,6 +158,7 @@ enum class PrintOrder
     AsObjectList,
     NearestNeighborCycle, // nearest-neighbor TSP cycle: visits all objects and returns to start
     ConvexHullPeeling,   // onion-peeling convex hull layers, outermost first
+    AngleSortCycle,      // sort by angle around centroid, then 2-opt to improve
     Count,
 };
 

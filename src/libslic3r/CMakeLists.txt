@@ -248,6 +248,12 @@ set(lisbslic3r_sources
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
     GCode/ToolOrdering.hpp
+    GCode/NearestNeighborCycle.cpp
+    GCode/NearestNeighborCycle.hpp
+    GCode/ConvexHullPeeling.cpp
+    GCode/ConvexHullPeeling.hpp
+    GCode/AngleSortCycle.cpp
+    GCode/AngleSortCycle.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
