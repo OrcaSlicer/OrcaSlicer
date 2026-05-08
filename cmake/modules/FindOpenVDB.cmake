@@ -476,18 +476,15 @@ endif()
 # include paths from shared installs (including houdini) may pull in the wrong
 # headers
 
+set(_OPENVDB_VISIBLE_DEPENDENCIES Boost::iostreams)
 if (OpenEXR_VERSION VERSION_LESS "3.0.0")
-  set(_OPENVDB_VISIBLE_DEPENDENCIES
-    Boost::iostreams
-    Boost::system
-    IlmBase::Half
-  )
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES IlmBase::Half)
 else()
-  set(_OPENVDB_VISIBLE_DEPENDENCIES
-    Boost::iostreams
-    Boost::system
-    Imath::Imath
-  )
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES Imath::Imath)
+endif()
+if (NOT SYS_LIB_BOOST)
+    # Have only on static library
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES Boost::system)
 endif()
 
 set(_OPENVDB_DEFINITIONS)
