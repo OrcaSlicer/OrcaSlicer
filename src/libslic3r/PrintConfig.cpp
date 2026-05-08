@@ -302,6 +302,7 @@ static t_config_enum_values s_keys_map_PrintOrder{
     { "nn_cycle",    int(PrintOrder::NearestNeighborCycle)},
     { "convex_hull", int(PrintOrder::ConvexHullPeeling)},
     { "angle_sort",  int(PrintOrder::AngleSortCycle)},
+    { "hilbert",     int(PrintOrder::HilbertCurve)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
 
@@ -1775,6 +1776,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Convex hull peeling"));
     def->enum_values.push_back("angle_sort");
     def->enum_labels.push_back(L("Angle sort + 2-opt"));
+    def->enum_values.push_back("hilbert");
+    def->enum_labels.push_back(L("Hilbert curve"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<PrintOrder>(PrintOrder::Default));
 

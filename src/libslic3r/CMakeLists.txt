@@ -254,6 +254,8 @@ set(lisbslic3r_sources
     GCode/ConvexHullPeeling.hpp
     GCode/AngleSortCycle.cpp
     GCode/AngleSortCycle.hpp
+    GCode/HilbertCurve.cpp
+    GCode/HilbertCurve.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
