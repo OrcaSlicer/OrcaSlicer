@@ -2090,8 +2090,9 @@ std::vector<const PrintInstance*> chain_print_object_instances_nn_cycle(const st
     for (size_t step = 0; step < n; ++step)
         cycle[step] = path[(best_start + step) % n];
 
-    // 2-opt crossing removal: repeatedly find pairs of crossing edges and reverse
-    // the segment between them. Guaranteed to terminate with a non-self-intersecting cycle.
+    // 2-opt improvement: repeatedly try reversing segments to reduce total path length.
+    // Reversing a segment of a non-crossing cycle preserves the non-crossing property,
+    // so the result stays non-self-intersecting while getting shorter.
     bool improved = true;
     while (improved) {
         improved = false;
@@ -2104,11 +2105,15 @@ std::vector<const PrintInstance*> chain_print_object_instances_nn_cycle(const st
 
                 size_t j_next = (j + 1) % n;
 
-                if (Geometry::segments_intersect(
-                        instance_centers[cycle[i]], instance_centers[cycle[i_next]],
-                        instance_centers[cycle[j]], instance_centers[cycle[j_next]]))
-                {
-                    // Reverse the segment from i_next to j to remove the crossing.
+                // Current edges: (i -> i_next) and (j -> j_next)
+                // New edges after reversal: (i -> j) and (i_next -> j_next)
+                double current_dist = (instance_centers[cycle[i_next]].cast<double>() - instance_centers[cycle[i]].cast<double>()).norm()
+                                   + (instance_centers[cycle[j_next]].cast<double>() - instance_centers[cycle[j]].cast<double>()).norm();
+                double new_dist     = (instance_centers[cycle[j]].cast<double>() - instance_centers[cycle[i]].cast<double>()).norm()
+                                   + (instance_centers[cycle[j_next]].cast<double>() - instance_centers[cycle[i_next]].cast<double>()).norm();
+
+                if (new_dist < current_dist) {
+                    // Reverse the segment from i_next to j.
                     while (i_next < j) {
                         std::swap(cycle[i_next], cycle[j]);
                         ++i_next;
