@@ -5807,12 +5807,16 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
 {
     namespace fs = boost::filesystem;
 
+    BOOST_LOG_TRIVIAL(info) << "Migrate user presets to the OrcaCloud user folder if needed.";
+
     if (!m_agent || !m_agent->is_user_login())
         return false;
 
     std::string new_user_id = m_agent->get_user_id();
-    if (new_user_id.empty())
+    if (new_user_id.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Failed to get user ID, skipping migration.";
         return false;
+    }
 
     fs::path user_base = fs::path(data_dir()) / PRESET_USER_DIR;
     fs::path target_dir = user_base / new_user_id;
