@@ -156,6 +156,7 @@ enum class PrintOrder
 {
     Default,
     AsObjectList,
+    NearestNeighborCycle, // nearest-neighbor TSP cycle: visits all objects and returns to start
     Count,
 };
 
