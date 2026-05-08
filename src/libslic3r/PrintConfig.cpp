@@ -311,6 +311,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 static t_config_enum_values s_keys_map_PrintOrder{
     { "default",     int(PrintOrder::Default) },
     { "as_obj_list", int(PrintOrder::AsObjectList)},
+    { "nn_cycle",    int(PrintOrder::NearestNeighborCycle)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
 
@@ -1851,8 +1852,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<PrintOrder>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("as_obj_list");
+    def->enum_values.push_back("nn_cycle");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("As object list"));
+    def->enum_labels.push_back(L("Nearest-neighbor cycle"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<PrintOrder>(PrintOrder::Default));
 

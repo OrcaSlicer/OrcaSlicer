@@ -2790,11 +2790,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // In non-sequential print, the printing extruders may have been modified by the extruder switches stored in Model::custom_gcode_per_print_z.
         // Therefore initialize the printing extruders from there.
         this->set_extruders(tool_ordering.all_extruders());
-        print_object_instances_ordering = 
+        print_object_instances_ordering =
             // By default, order object instances using a nearest neighbor search.
             print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
+            // Nearest-neighbor TSP cycle: closed loop through all objects
+            : (print.config().print_order == PrintOrder::NearestNeighborCycle ? chain_print_object_instances_nn_cycle(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print);
+            : sort_object_instances_by_model_order(print));
     }
     if (initial_extruder_id == (unsigned int)-1) {
         // Nothing to print!
@@ -5154,7 +5156,10 @@ LayerResult GCode::process_layer(
                 print_objects.push_back(print.get_object(obj_idx));
             }
 
-            std::vector<const PrintInstance *> new_ordering = chain_print_object_instances(print_objects, &wt_pos);
+            std::vector<const PrintInstance *> new_ordering = 
+                print.config().print_order == PrintOrder::NearestNeighborCycle
+                    ? chain_print_object_instances_nn_cycle(print_objects, &wt_pos)
+                    : chain_print_object_instances(print_objects, &wt_pos);
             std::reverse(new_ordering.begin(), new_ordering.end());
 
             if (print.config().print_sequence == PrintSequence::ByObject) {
