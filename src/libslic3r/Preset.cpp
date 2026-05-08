@@ -3654,25 +3654,23 @@ void PresetCollection::update_map_alias_to_profile_name()
 
 void PresetCollection::update_library_profile_excluded_from()
 {
-    // Orca: Collect all filament presets that have empty compatible_printers.
-    // This includes both OrcaFilamentLibrary base profiles and vendor base profiles.
+    // Orca: Collect all filament presets that has empty compatible_printers and belongs to the Orca Filament Library.
     std::map<std::string, std::set<std::string>*> excluded_froms;
     for (Preset& preset : m_presets) {
-        if (preset.vendor != nullptr) {
+        if (preset.vendor != nullptr && preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY) {
             const auto* compatible_printers = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("compatible_printers"));
             if (compatible_printers == nullptr || compatible_printers->values.empty())
                 excluded_froms[preset.alias] = &preset.m_excluded_from;
         }
     }
 
-    // Check all vendor presets with non-empty compatible_printers. If a preset has
-    // the same alias as a base profile with empty compatible_printers, add its
-    // printer names to the base profile's m_excluded_from set.
+    // Check all presets that has the same alias as the filament presets with empty compatible_printers in Orca Filament Library.
     for (const Preset& preset : m_presets) {
-        if (preset.vendor == nullptr)
+        if (preset.vendor == nullptr || preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY)
             continue;
 
         const auto* compatible_printers = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("compatible_printers"));
+        // All profiles in concrete vendor profile shouldn't have empty compatible_printers, but here we check it for safety.
         if (compatible_printers == nullptr || compatible_printers->values.empty())
             continue;
         auto itr = excluded_froms.find(preset.alias);
