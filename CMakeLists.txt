@@ -768,14 +768,19 @@ endforeach()
 find_package(NLopt 1.4 REQUIRED)
 
 
-if(SLIC3R_STATIC)
+if(SLIC3R_STATIC AND NOT SYS_LIB_OPENVDB)
     set(OPENVDB_USE_STATIC_LIBS ON)
     set(USE_BLOSC TRUE)
 endif ()
 
+find_package(OpenEXR QUIET)
 find_package(OpenVDB 5.0 COMPONENTS openvdb)
 if(OpenVDB_FOUND)
-    slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+    if (OpenEXR_VERSION VERSION_LESS "3.0.0")
+        slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+    else()
+        slic3r_remap_configs(Imath RelWithDebInfo Release)
+    endif()
     slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
 else ()
     message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
