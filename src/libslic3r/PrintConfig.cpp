@@ -313,6 +313,7 @@ static t_config_enum_values s_keys_map_PrintOrder{
     { "as_obj_list", int(PrintOrder::AsObjectList)},
     { "nn_cycle",    int(PrintOrder::NearestNeighborCycle)},
     { "convex_hull", int(PrintOrder::ConvexHullPeeling)},
+    { "angle_sort",  int(PrintOrder::AngleSortCycle)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
 
@@ -1859,6 +1860,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("As object list"));
     def->enum_labels.push_back(L("Nearest-neighbor cycle"));
     def->enum_labels.push_back(L("Convex hull peeling"));
+    def->enum_values.push_back("angle_sort");
+    def->enum_labels.push_back(L("Angle sort + 2-opt"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<PrintOrder>(PrintOrder::Default));
 

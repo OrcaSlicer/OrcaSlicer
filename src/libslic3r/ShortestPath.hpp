@@ -54,15 +54,6 @@ class PrintObject;
 std::vector<const PrintInstance*> chain_print_object_instances(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
 std::vector<const PrintInstance*> 	 chain_print_object_instances(const Print &print);
 
-// Chain instances of print objects into a nearest-neighbor TSP cycle (closed loop).
-// Starts at the object closest to start_near (or first object if start_near is nullptr),
-// always visits the nearest unvisited object, and returns to the start.
-std::vector<const PrintInstance*> chain_print_object_instances_nn_cycle(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
-std::vector<const PrintInstance*> chain_print_object_instances_nn_cycle(const Print& print);
-
-std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
-std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const Print& print);
-
 // Chain lines into polylines.
 Polylines 							 chain_lines(const std::vector<Line> &lines, const double point_distance_epsilon);
 
