@@ -1325,7 +1325,10 @@ void TreeSupport::generate_toolpaths()
     const PrintObjectConfig &object_config = m_object->config();
     coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
     coordf_t nozzle_diameter = m_print_config->nozzle_diameter.get_at(object_config.support_filament - 1);
-    coordf_t layer_height = object_config.layer_height.value;
+
+    //Few edit 
+    //coordf_t layer_height = object_config.layer_height.value;
+    // end Few edit
     const size_t wall_count = object_config.tree_support_wall_count.value;
 
     // Check if set to zero, use default if so.
@@ -1919,7 +1922,10 @@ void TreeSupport::draw_circles()
     const PrintObjectConfig &config = m_object->config();
     const Print* print = m_object->print();
     bool has_brim = print->has_brim();
-    int bottom_gap_layers = round(m_slicing_params.gap_object_support / m_slicing_params.layer_height);
+    // implementation by Few, aka Francesco Scrimieri, to implement VHL with tree support.
+    //int bottom_gap_layers = round(m_slicing_params.gap_object_support / m_slicing_params.layer_height);
+
+
     const coordf_t branch_radius = config.tree_support_branch_diameter.value / 2;
     const coordf_t branch_radius_scaled = scale_(branch_radius);
     bool on_buildplate_only = m_object_config->support_on_build_plate_only.value;
@@ -1990,7 +1996,14 @@ void TreeSupport::draw_circles()
                 if (ts_layer->height < EPSILON) {
                     continue;
                 }
-
+                // Few new code
+                int      bottom_gap_layers = 0;
+                coordf_t accum_height      = 0;
+                for (int i = obj_layer_nr; i >= 0 && accum_height < m_slicing_params.gap_object_support; i--) {
+                    accum_height += m_object->get_layer(i)->height;
+                    if (accum_height < m_slicing_params.gap_object_support)
+                        bottom_gap_layers++;
+                }
                 ExPolygons& base_areas = ts_layer->base_areas;
                 ExPolygons& roof_areas = ts_layer->roof_areas;
                 ExPolygons& roof_1st_layer = ts_layer->roof_1st_layer;
@@ -2436,6 +2449,11 @@ void TreeSupport::drop_nodes()
     const PrintObjectConfig &config = m_object->config();
     // Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coordf_t support_extrusion_width = m_support_params.support_extrusion_width;
+    /*
+    * previus implementation, we are tryng to implement Variable Layer height for tree support, by Few aka Francesco Scrimieri
+    * 
+    * 
+    * 
     const coordf_t layer_height = config.layer_height.value;
     const double angle = config.tree_support_branch_angle.value * M_PI / 180.;
     const int wall_count = std::max(1, config.tree_support_wall_count.value);
@@ -2443,6 +2461,11 @@ void TreeSupport::drop_nodes()
     const coordf_t max_move_distance = (angle < M_PI / 2) ? (coordf_t)(tan_angle * layer_height)*wall_count : std::numeric_limits<coordf_t>::max();
     const double max_move_distance2 = max_move_distance * max_move_distance;
     const size_t tip_layers = base_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
+    */
+    const double angle = config.tree_support_branch_angle.value * M_PI / 180.;
+    const int wall_count = std::max(1, config.tree_support_wall_count.value);
+    double tan_angle = tan(angle); // when nodes are thick, they can move further. this is the max angle
+    // end new code
     const coordf_t radius_sample_resolution = m_ts_data->m_radius_sample_resolution;
     const bool support_on_buildplate_only = config.support_on_build_plate_only.value;
     const size_t top_interface_layers = config.support_interface_top_layers.value;
@@ -2516,7 +2539,8 @@ void TreeSupport::drop_nodes()
         auto& layer_contact_nodes = contact_nodes[layer_nr];
         if (layer_contact_nodes.empty())
             continue;
-
+        /*
+        * previus implementation, we are tryng to implement Variable Layer height for tree support, by Few aka Francesco Scrimieri
         int layer_nr_next = layer_nr - 1;
         coordf_t print_z = layer_heights[layer_nr].print_z;
         coordf_t print_z_next = layer_heights[layer_nr_next].print_z;
@@ -2525,7 +2549,22 @@ void TreeSupport::drop_nodes()
         size_t   obj_layer_nr_next = layer_heights[layer_nr_next].obj_layer_nr;
 
         std::deque<std::pair<size_t, SupportNode*>> unsupported_branch_leaves; // All nodes that are leaves on this layer that would result in unsupported ('mid-air') branches.
+        */
+        int            layer_nr_next      = layer_nr - 1;
+        coordf_t       print_z            = layer_heights[layer_nr].print_z;
+        coordf_t       print_z_next       = layer_heights[layer_nr_next].print_z;
+        coordf_t       height_next        = layer_heights[layer_nr_next].height;
+        size_t         obj_layer_nr       = layer_heights[layer_nr].obj_layer_nr;
+        size_t         obj_layer_nr_next  = layer_heights[layer_nr_next].obj_layer_nr;
+        const coordf_t max_move_distance  = (angle < M_PI / 2) ? (coordf_t) (tan_angle * height_next) * wall_count :
+                                                                 std::numeric_limits<coordf_t>::max();
+        const double   max_move_distance2 = max_move_distance * max_move_distance;
+        const size_t   tip_layers = base_radius / height_next; // The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
 
+        std::deque<std::pair<size_t, SupportNode*>> unsupported_branch_leaves;
+
+
+        // end new code
         m_object->print()->set_status(60 + int(10 * (1 - float(layer_nr) / contact_nodes.size())), _u8L("Generating support"));// (boost::format(_u8L("Support: propagate branches at layer %d")) % layer_nr).str());
 
         Polygons layer_contours = std::move(m_ts_data->get_contours_with_holes(obj_layer_nr));

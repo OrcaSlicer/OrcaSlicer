@@ -122,14 +122,15 @@ static inline void check_self_intersections(const ExPolygon &expoly, const std::
 #endif // TREE_SUPPORT_SHOW_ERRORS_WIN32
 }
 
-static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_meshes(const Print &print, const std::vector<size_t> &print_object_ids)
+static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_meshes(const Print&               print,
+                                                                                     const std::vector<size_t>& print_object_ids)
 {
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
-    //FIXME this is ugly, it does not belong here.
+    // FIXME this is ugly, it does not belong here.
     for (size_t object_id : print_object_ids) {
-        const PrintObject       &print_object  = *print.get_object(object_id);
-        const PrintObjectConfig &object_config = print_object.config();
+        const PrintObject&       print_object  = *print.get_object(object_id);
+        const PrintObjectConfig& object_config = print_object.config();
         if (object_config.support_top_z_distance < EPSILON)
             // || min_feature_size < scaled<coord_t>(0.1) that is the minimum line width
             TreeSupportSettings::soluble = true;
@@ -137,14 +138,14 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
 
     size_t largest_printed_mesh_idx = 0;
 
-    // Group all meshes that can be processed together. NOTE this is different from mesh-groups! Only one setting object is needed per group,
-    // as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
+    // Group all meshes that can be processed together. NOTE this is different from mesh-groups! Only one setting object is needed per
+    // group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
     for (size_t object_id : print_object_ids) {
-        const PrintObject       &print_object  = *print.get_object(object_id);
+        const PrintObject& print_object = *print.get_object(object_id);
 
-        bool found_existing_group = false;
-        TreeSupportSettings next_settings{ TreeSupportMeshGroupSettings{ print_object }, print_object.slicing_parameters() };
-        //FIXME for now only a single object per group is enabled.
+        bool                found_existing_group = false;
+        TreeSupportSettings next_settings{TreeSupportMeshGroupSettings{print_object}, print_object.slicing_parameters()};
+        // FIXME for now only a single object per group is enabled.
 #if 0
         for (size_t idx = 0; idx < grouped_meshes.size(); ++ idx)
             if (next_settings == grouped_meshes[idx].first) {
@@ -154,27 +155,63 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
                 grouped_meshes[idx].first.performance_interface_skip_layers = std::min(grouped_meshes[idx].first.performance_interface_skip_layers, next_settings.performance_interface_skip_layers);
             }
 #endif
-        if (! found_existing_group)
-            grouped_meshes.emplace_back(next_settings, std::vector<size_t>{ object_id });
+        if (!found_existing_group)
+            grouped_meshes.emplace_back(next_settings, std::vector<size_t>{object_id});
 
         // no need to do this per mesh group as adaptive layers and raft setting are not setable per mesh.
         if (print.get_object(largest_printed_mesh_idx)->layers().back()->print_z < print_object.layers().back()->print_z)
             largest_printed_mesh_idx = object_id;
     }
+    /*edit by few for implementig VHL with tree support
+    #if 0
+        {
+            std::vector<coord_t> known_z(storage.meshes[largest_printed_mesh_idx].layers.size());
+            for (size_t z = 0; z < storage.meshes[largest_printed_mesh_idx].layers.size(); z++)
+                known_z[z] = storage.meshes[largest_printed_mesh_idx].layers[z].printZ;
+            for (size_t idx = 0; idx < grouped_meshes.size(); ++ idx)
+                grouped_meshes[idx].first.setActualZ(known_z);
+        }
+    #endif
 
-#if 0
-    {
-        std::vector<coord_t> known_z(storage.meshes[largest_printed_mesh_idx].layers.size());
-        for (size_t z = 0; z < storage.meshes[largest_printed_mesh_idx].layers.size(); z++)
-            known_z[z] = storage.meshes[largest_printed_mesh_idx].layers[z].printZ;
-        for (size_t idx = 0; idx < grouped_meshes.size(); ++ idx)
-            grouped_meshes[idx].first.setActualZ(known_z);
+        return grouped_meshes;
     }
-#endif
+    
+    {
+        const PrintObject&    largest_object = *print.get_object(largest_printed_mesh_idx);
+        std::vector<coordf_t> known_z;
+        known_z.reserve(largest_object.layer_count());
+        for (const Layer* l : largest_object.layers())
+            known_z.push_back(l->print_z);
+        for (auto& [cfg, ids] : grouped_meshes)
+            cfg.setActualZ(known_z);
+    }
+    */
+    {
+        const PrintObject&    largest_object = *print.get_object(largest_printed_mesh_idx);
+        std::vector<coordf_t> known_z;
+        known_z.reserve(largest_object.layer_count());
+        for (const Layer* l : largest_object.layers())
+            known_z.push_back(l->print_z);
+        for (auto& [cfg, ids] : grouped_meshes) {
+            cfg.setActualZ(known_z);
+
+            if (known_z.size() > 1) {
+                coord_t avg_layer_height               = scaled<coord_t>((known_z.back() - known_z.front()) / double(known_z.size() - 1));
+                const TreeSupportMeshGroupSettings& ms = cfg.settings;
+                if (ms.support_tree_angle < M_PI / 2.)
+                    cfg.maximum_move_distance = (coord_t) (tan(ms.support_tree_angle) * avg_layer_height);
+                if (ms.support_tree_angle_slow < M_PI / 2.)
+                    cfg.maximum_move_distance_slow = (coord_t) (tan(ms.support_tree_angle_slow) * avg_layer_height);
+                cfg.branch_radius_increase_per_layer = tan(ms.support_tree_branch_diameter_angle) * avg_layer_height;
+                cfg.bp_radius_increase_per_layer     = std::min(tan(0.7) * double(avg_layer_height), 0.5 * double(cfg.support_line_width));
+                cfg.layer_start_bp_radius            = (cfg.bp_radius - cfg.branch_radius) / cfg.bp_radius_increase_per_layer;
+            }
+        }
+    }
 
     return grouped_meshes;
 }
-
+// end edit by few
 #if 0
 // todo remove as only for debugging relevant
 [[nodiscard]] static std::string getPolygonAsString(const Polygons& poly)
@@ -3161,7 +3198,8 @@ static void organic_smooth_branches_avoid_collisions(
                     // Calculate collision of multiple 2D layers against a collision sphere.
                     collision_sphere.last_collision_depth = - std::numeric_limits<double>::max();
                     for (uint32_t layer_id = collision_sphere.layer_begin; layer_id != collision_sphere.layer_end; ++ layer_id) {
-                        double dz = (layer_id - collision_sphere.element.state.layer_idx) * slicing_params.layer_height;
+                        double dz = layer_z(slicing_params, config, layer_id) -
+                                    layer_z(slicing_params, config, collision_sphere.element.state.layer_idx);
                         if (double r2 = sqr(collision_sphere.radius) - sqr(dz); r2 > 0) {
                             if (const LayerCollisionCache &layer_collision_cache_item = layer_collision_cache[layer_id]; ! layer_collision_cache_item.empty()) {
                                 size_t hit_idx_out;

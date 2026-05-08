@@ -562,13 +562,13 @@ public:
         double num_layers_widened = layer_start_bp_radius - layer_idx;
         return num_layers_widened > 0 ? branch_radius + num_layers_widened * bp_radius_increase_per_layer : 0;
     }
-
+/* edit by few for implementig VLH with tree support, I need to get in the full vector of z layer heights instead of a single value
 #if 0
     /*!
      * \brief Return on which z in microns the layer will be printed. Used only for support infill line generation.
      * \param layer_idx[in] The layer.
      * \return The radius every element should aim to achieve.
-     */
+     *
     [[nodiscard]] inline coord_t getActualZ(LayerIndex layer_idx)
     {
         return layer_idx < coord_t(known_z.size()) ? known_z[layer_idx] : (layer_idx - known_z.size()) * layer_height + known_z.size() ? known_z.back() : 0;
@@ -578,16 +578,31 @@ public:
      * \brief Set the z every Layer is printed at. Required for getActualZ to work
      * \param z[in] The z every LayerIndex is printed. Vector is used as a map<LayerIndex,coord_t> with the index of each element being the corresponding LayerIndex
      * \return The radius every element should aim to achieve.
-     */
+     *
     void setActualZ(std::vector<coord_t>& z)
     {
         known_z = z;
     }
 #endif
+ private:
+//    std::vector<coord_t> known_z;
+*/
+    [[nodiscard]] inline coordf_t getActualZ(LayerIndex layer_idx) const
+    {
+        return layer_idx < LayerIndex(known_z.size()) ? known_z[layer_idx] : known_z.back();
+    }
+    void setActualZ(const std::vector<coordf_t>& z) { known_z = z; }
+
+    bool hasActualZ() const { return !known_z.empty(); }
+
+    const std::vector<coordf_t>& getKnownZ() const { return known_z; }
 
 private:
-//    std::vector<coord_t> known_z;
+    std::vector<coordf_t> known_z;
+
+    // end few edit
 };
+
 
 static constexpr const bool polygons_strictly_simple = false;
 
@@ -607,14 +622,27 @@ inline void tree_supports_show_error(std::string_view message, bool critical)
             "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
 #endif // TREE_SUPPORT_SHOW_ERRORS_WIN32
 }
-
+//edit by few for implementif VHL eith tree support
+/*
 inline double layer_z(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const size_t layer_idx)
 {
     return layer_idx >= config.raft_layers.size() ? 
         slicing_params.object_print_z_min + slicing_params.first_object_layer_height + (layer_idx - config.raft_layers.size()) * slicing_params.layer_height :
         config.raft_layers[layer_idx];
 }
+*/
+inline double
+layer_z(const SlicingParameters& slicing_params, const TreeSupportSettings& config, const size_t layer_idx)
+{
+    if (layer_idx < config.raft_layers.size())
+        return config.raft_layers[layer_idx];
+    const size_t obj_idx = layer_idx - config.raft_layers.size();
+    if (config.hasActualZ())
+        return config.getActualZ(LayerIndex(obj_idx));
+    return slicing_params.object_print_z_min + slicing_params.first_object_layer_height + obj_idx * slicing_params.layer_height;
+}
 // Lowest collision layer
+/*edit by few for implementig VHL with tree support
 inline LayerIndex layer_idx_ceil(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
     return 
@@ -628,7 +656,34 @@ inline LayerIndex layer_idx_floor(const SlicingParameters &slicing_params, const
         LayerIndex(config.raft_layers.size()) + 
         std::max<LayerIndex>(0, floor((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
 }
+*/
+inline LayerIndex layer_idx_ceil(const SlicingParameters& slicing_params, const TreeSupportSettings& config, const double z)
+{
+    if (config.hasActualZ()) {
+        auto it = std::lower_bound(config.getKnownZ().begin(), config.getKnownZ().end(), z - EPSILON);
+        return LayerIndex(config.raft_layers.size()) + std::max<LayerIndex>(0, LayerIndex(std::distance(config.getKnownZ().begin(), it)));
+    }
+    return LayerIndex(config.raft_layers.size()) +
+           std::max<LayerIndex>(0, LayerIndex(ceil((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) /
+                                                   slicing_params.layer_height)));
+}
 
+inline LayerIndex layer_idx_floor(const SlicingParameters& slicing_params, const TreeSupportSettings& config, const double z)
+{
+    if (config.hasActualZ()) {
+        auto it = std::upper_bound(config.getKnownZ().begin(), config.getKnownZ().end(), z + EPSILON);
+        if (it != config.getKnownZ().begin())
+            --it;
+        return LayerIndex(config.raft_layers.size()) + std::max<LayerIndex>(0, LayerIndex(std::distance(config.getKnownZ().begin(), it)));
+    }
+    return LayerIndex(config.raft_layers.size()) +
+           std::max<LayerIndex>(0, LayerIndex(floor((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) /
+                                                    slicing_params.layer_height)));
+                                             
+}
+
+
+// end edit by few 
 inline SupportGeneratorLayer& layer_initialize(
     SupportGeneratorLayer     &layer_new,
     const SlicingParameters   &slicing_params,
