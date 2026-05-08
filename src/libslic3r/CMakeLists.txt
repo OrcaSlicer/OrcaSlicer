@@ -566,12 +566,21 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(draco REQUIRED)
 
-set(OCCT_LIBS
-    TKXDESTEP
-    TKSTEP
-    TKSTEP209
-    TKSTEPAttr
-    TKSTEPBase
+if (OpenCASCADE_VERSION VERSION_LESS 7.8.0)
+    set(OCCT_LIBS
+        TKXDESTEP
+        TKSTEP
+        TKSTEP209
+        TKSTEPAttr
+        TKSTEPBase)
+else()
+    # OCCT 7.8.0 and later use another set of libraries
+    set(OCCT_LIBS
+        TKXSDRAWSTEP
+        TKDESTEP)
+endif()
+
+list(APPEND OCCT_LIBS
     TKXCAF
     TKXSBase
     TKVCAF
