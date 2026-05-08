@@ -14,17 +14,8 @@ namespace Slic3r {
 
 using namespace Geometry;
 
-// Saved painting data for remapping after mesh change.
-struct SavedPainting {
-    indexed_triangle_set                    its;  // Original mesh
-    TriangleSelector::TriangleSplittingData supported;
-    TriangleSelector::TriangleSplittingData seam;
-    TriangleSelector::TriangleSplittingData mmu;
-    TriangleSelector::TriangleSplittingData fuzzy;
-};
-
 // Remap painting data from saved source to a cut result mesh, and set on a volume.
-static void remap_and_set_painting(ModelVolume* vol, const SavedPainting* saved)
+static void remap_and_set_painting(ModelVolume* vol, const std::optional<TriangleSelector::SavedPainting>& saved)
 {
     if (!saved) {
         return;
@@ -34,7 +25,7 @@ static void remap_and_set_painting(ModelVolume* vol, const SavedPainting* saved)
                          FacetsAnnotation& target_facets) {
         if (src_data.bitstream.empty())
             return;
-        auto result = TriangleSelector::remap_painting(saved->its, src_data, vol->mesh().its, translation_transform(vol->mesh().get_init_shift()));
+        auto result = TriangleSelector::remap_painting(saved->mesh.its, src_data, vol->mesh().its, translation_transform(vol->mesh().get_init_shift()));
         if (!result.bitstream.empty())
             target_facets.set_data(result);
     };
@@ -211,7 +202,7 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
 
 static void process_solid_part_cut(ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
                             ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower,
-                            const SavedPainting* saved_painting = nullptr)
+                            const std::optional<TriangleSelector::SavedPainting>& saved_painting)
 {
     // Perform cut
     TriangleMesh upper_mesh, lower_mesh;
@@ -362,20 +353,14 @@ const ModelObjectPtrs& Cut::perform_with_plane()
 
     for (ModelVolume* volume : mo->volumes) {
         // Save painting data before reset_extra_facets() discards it.
-        // Only for model parts that will be cut (not modifiers/connectors).
-        std::optional<SavedPainting> saved_painting;
-        if (m_attributes.has(ModelObjectCutAttribute::KeepPaint) && volume->is_any_painted() && volume->is_model_part() && !volume->mesh().empty()) {
-            // Get mesh in cut space (same transform as process_volume_cut applies)
-            TriangleMesh mesh(volume->mesh());
-            const auto volume_matrix = volume->get_matrix();
-            mesh.transform(instance_matrix * volume_matrix, true);
-            SavedPainting sp;
-            sp.its = std::move(mesh.its);
-            sp.supported = volume->supported_facets.get_data();
-            sp.seam      = volume->seam_facets.get_data();
-            sp.mmu       = volume->mmu_segmentation_facets.get_data();
-            sp.fuzzy     = volume->fuzzy_skin_facets.get_data();
-            saved_painting = std::move(sp);
+        std::optional<TriangleSelector::SavedPainting> saved_painting;
+        if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
+            saved_painting = volume->save_painting();
+            if (saved_painting) {
+                // Transform mesh to cut space (same transform as process_volume_cut applies)
+                const auto volume_matrix = volume->get_matrix();
+                saved_painting->mesh.transform(instance_matrix * volume_matrix, true);
+            }
         }
 
         volume->reset_extra_facets();
@@ -387,8 +372,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
                 process_connector_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, dowels);
         }
         else if (!volume->mesh().empty())
-            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower,
-                                   saved_painting ? &*saved_painting : nullptr);
+            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, saved_painting);
     }
 
     // Post-process cut parts

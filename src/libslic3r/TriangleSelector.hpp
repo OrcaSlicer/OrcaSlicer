@@ -372,6 +372,15 @@ public:
     // The operation may merge split triangles if they are being assigned the same color.
     void seed_fill_apply_on_triangles(EnforcerBlockerType new_state);
 
+    // Saved painting data for remapping after mesh change.
+    struct SavedPainting {
+        TriangleMesh          mesh;  // Original mesh
+        TriangleSplittingData supported;
+        TriangleSplittingData seam;
+        TriangleSplittingData mmu;
+        TriangleSplittingData fuzzy;
+    };
+
     // Remap painting data from source mesh to target mesh using spatial mapping.
     // `target_transform` should transform the target mesh into source's coordinate space.
     static TriangleSplittingData remap_painting(
