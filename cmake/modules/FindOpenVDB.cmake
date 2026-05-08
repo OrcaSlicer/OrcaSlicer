@@ -348,6 +348,9 @@ macro(just_fail msg)
   return()
 endmacro()
 
+if (OpenEXR_VERSION VERSION_LESS "3.0.0")
+# only older version of library have this library.
+# for new library - need to detect another librarys (see changelog on OpenEXR)
 find_package(IlmBase QUIET)
 if(NOT IlmBase_FOUND)
   pkg_check_modules(IlmBase QUIET IlmBase)
@@ -366,6 +369,10 @@ if (IlmBase_FOUND AND NOT TARGET IlmBase::Half)
     INTERFACE_INCLUDE_DIRECTORIES "${IlmBase_INCLUDE_DIRS}")
 elseif(NOT IlmBase_FOUND)
   just_fail("IlmBase::Half can not be found!")
+endif()
+else()
+  #for OpenEXR 3.0.0 and later, IlmBase is no longer a dependency, but the IlmThread, Iex and Imath libraries are still required
+  find_package(Imath REQUIRED)
 endif()
 find_package(TBB ${_quiet} ${_required} COMPONENTS tbb)
 find_package(ZLIB ${_quiet} ${_required})
@@ -469,11 +476,16 @@ endif()
 # include paths from shared installs (including houdini) may pull in the wrong
 # headers
 
-set(_OPENVDB_VISIBLE_DEPENDENCIES
-  Boost::iostreams
-  Boost::system
-  IlmBase::Half
-)
+set(_OPENVDB_VISIBLE_DEPENDENCIES Boost::iostreams)
+if (OpenEXR_VERSION VERSION_LESS "3.0.0")
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES IlmBase::Half)
+else()
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES Imath::Imath)
+endif()
+if (NOT SYS_LIB_BOOST)
+    # Have only on static library
+    list(APPEND _OPENVDB_VISIBLE_DEPENDENCIES Boost::system)
+endif()
 
 set(_OPENVDB_DEFINITIONS)
 if(OpenVDB_ABI)

@@ -796,7 +796,7 @@ if (UNIX AND NOT APPLE)
     find_package(GTK${SLIC3R_GTK} REQUIRED)
     pkg_check_modules(LIBSECRET REQUIRED libsecret-1)
     pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
-    if (FLATPAK)
+    if (FLATPAK OR SYS_LIB_WXWIDGETS)
         # I don't know why this is needed, but for whatever reason slic3r isn't
         # linking to X11 and webkit2gtk. force it.
         find_package(X11 REQUIRED)

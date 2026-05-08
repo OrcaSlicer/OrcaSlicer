@@ -489,7 +489,7 @@ add_library(libslic3r STATIC ${lisbslic3r_sources}
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
-if (SLIC3R_STATIC)
+if (SLIC3R_STATIC AND NOT SYS_LIB_CGAL)
     set(CGAL_Boost_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)
 endif ()
 set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE ON CACHE BOOL "" FORCE)
@@ -499,7 +499,7 @@ cmake_policy(SET CMP0011 NEW)
 find_package(CGAL REQUIRED)
 cmake_policy(POP)
 find_package(OpenCV REQUIRED core imgproc imgcodecs)
-if (SLIC3R_STATIC)
+if (SLIC3R_STATIC AND NOT SYS_LIB_OPENCV)
     # fix-up for a static linked version
     set(OpenCV_LIBS opencv_world)
 endif()
@@ -549,12 +549,21 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(draco REQUIRED)
 
-set(OCCT_LIBS
-    TKXDESTEP
-    TKSTEP
-    TKSTEP209
-    TKSTEPAttr
-    TKSTEPBase
+if (OpenCASCADE_VERSION VERSION_LESS 7.8.0)
+    set(OCCT_LIBS
+        TKXDESTEP
+        TKSTEP
+        TKSTEP209
+        TKSTEPAttr
+        TKSTEPBase)
+else()
+    # OCCT 7.8.0 and later use another set of libraries
+    set(OCCT_LIBS
+        TKXSDRAWSTEP
+        TKDESTEP)
+endif()
+
+list(APPEND OCCT_LIBS
     TKXCAF
     TKXSBase
     TKVCAF
