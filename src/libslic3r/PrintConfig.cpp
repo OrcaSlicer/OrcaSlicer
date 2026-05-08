@@ -3472,31 +3472,32 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_ripples_per_layer", coInt);
     def->label = L("Number of ripples per layer");
     def->category = L("Others");
-    def->tooltip  = L("When using the Ripple noise type, this controls how many full cycles of ripples will be added per layer.");
+    def->tooltip  = L("Controls how many full cycles of ripples will be added per layer.");
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(15));
 
-    def = this->add("fuzzy_skin_ripple_offset", coFloat);
+    def = this->add("fuzzy_skin_ripple_offset", coPercent);
     def->label = L("Ripple offset");
     def->category = L("Others");
-    def->tooltip = L("When using the Ripple noise type, shifts the ripple pattern forward along the print path by this amount each "
-                     "layer-period. A value of 0 keeps every layer identical. A value equal to 0.5 shifts by a full "
-                     "half-wavelength, inverting the pattern. The shift is applied once per 'Layers between Ripple offset' layers, "
-                      "so consecutive layers within a period are printed identically on top of each other.");
+    def->tooltip = L("Shifts the ripple phase forward along the print path by the specified percentage of a wavelength each layer period.\n"
+                     "- 0% keeps every layer identical.\n"
+                     "- 50% shifts the pattern by half a wavelength, effectively inverting the phase.\n"
+                     "- 100% shifts the pattern by a full wavelength, returning to the original phase.\n\n"
+                     "The shift is applied once every number of layers set by Layers between ripple offset, so layers within the same group are printed identically.");
     def->min = 0;
-    def->max = 1;
+    def->max = 100;
+    def->sidetext = ("%");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.5));
+    def->set_default_value(new ConfigOptionPercent(50));
 
     def = this->add("fuzzy_skin_layers_between_ripple_offset", coInt);
     def->label = L("Layers between ripple offset");
     def->category = L("Others");
-    def->tooltip = L("When using the Ripple noise type with a non-zero layer offset, this controls how "
-                       "many consecutive layers share the same ripple phase before the offset is applied. "
-                       "For example, a period of 3 means layers 0, 1 and 2 are identical, then layers 3, 4 "
-                       "and 5 are shifted by one full 'Ripple layer offset', and so on. "
-                       "Set to 1 to shift on every layer.");
+    def->tooltip = L("Specifies how many consecutive layers share the same ripple phase before the offset is applied.\n"
+                     "For example:\n"
+                     "- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is shifted by the configured offset, then layer 3 returns to the base pattern, and so on.\n"
+                     "- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 to 6 are shifted by the configured offset, then layers 7 to 9 return to the base pattern, etc.");
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(1));
