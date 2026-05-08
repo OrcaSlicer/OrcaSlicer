@@ -160,6 +160,7 @@ enum class PrintOrder
     ConvexHullPeeling,   // onion-peeling convex hull layers, outermost first
     AngleSortCycle,      // sort by angle around centroid, then 2-opt to improve
     HilbertCurve,        // sort by Hilbert space-filling curve index, then 2-opt
+    Boustrophedon,       // snake-like row traversal (back-and-forth) + 2-opt
     Count,
 };
 

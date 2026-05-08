@@ -256,6 +256,8 @@ set(lisbslic3r_sources
     GCode/AngleSortCycle.hpp
     GCode/HilbertCurve.cpp
     GCode/HilbertCurve.hpp
+    GCode/Boustrophedon.cpp
+    GCode/Boustrophedon.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
