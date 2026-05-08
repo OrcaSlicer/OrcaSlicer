@@ -15357,6 +15357,9 @@ msgstr "Nur lackiert"
 msgid "Contour"
 msgstr "Kontur"
 
+msgid "Hole"
+msgstr "Loch"
+
 msgid "Contour and hole"
 msgstr "Kontur und Loch"
 

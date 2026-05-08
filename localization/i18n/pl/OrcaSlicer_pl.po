@@ -14539,6 +14539,9 @@ msgstr "Tylko malowane"
 msgid "Contour"
 msgstr "Kontur"
 
+msgid "Hole"
+msgstr "Otwory"
+
 msgid "Contour and hole"
 msgstr "Kontur i otwory"
 

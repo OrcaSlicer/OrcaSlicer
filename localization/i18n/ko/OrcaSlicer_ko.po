@@ -14240,6 +14240,9 @@ msgstr "도색만"
 msgid "Contour"
 msgstr "윤곽"
 
+msgid "Hole"
+msgstr "구멍"
+
 msgid "Contour and hole"
 msgstr "윤곽 및 구멍"
 

@@ -13894,6 +13894,9 @@ msgstr "仅涂漆"
 msgid "Contour"
 msgstr "轮廓"
 
+msgid "Hole"
+msgstr "孔"
+
 msgid "Contour and hole"
 msgstr "轮廓和孔"
 

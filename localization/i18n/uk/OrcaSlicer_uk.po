@@ -14536,6 +14536,9 @@ msgstr "Тільки пофарбовані"
 msgid "Contour"
 msgstr "Контур"
 
+msgid "Hole"
+msgstr "Отвір"
+
 msgid "Contour and hole"
 msgstr "Контур та отвір"
 

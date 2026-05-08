@@ -103,7 +103,8 @@ public:
 
     bool                                            has_fuzzy_skin = false;
     bool                                            has_fuzzy_hole = false;
-    std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
+    // Preserve construction order so overlap precedence remains deterministic.
+    std::vector<std::pair<FuzzySkinConfig, ExPolygons>> regions_by_fuzzify;
     
     PerimeterGenerator(
         // Input:

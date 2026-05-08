@@ -15433,6 +15433,9 @@ msgstr "Peint uniquement"
 msgid "Contour"
 msgstr "Contour"
 
+msgid "Hole"
+msgstr "Trou"
+
 msgid "Contour and hole"
 msgstr "Contour et trou"
 

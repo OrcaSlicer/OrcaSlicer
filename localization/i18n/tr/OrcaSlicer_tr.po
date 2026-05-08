@@ -13339,6 +13339,9 @@ msgstr "Sadece boyalı"
 msgid "Contour"
 msgstr "Kontur"
 
+msgid "Hole"
+msgstr "Delik"
+
 msgid "Contour and hole"
 msgstr "Kontur ve delik"
 
