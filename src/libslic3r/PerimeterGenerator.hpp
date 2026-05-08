@@ -21,6 +21,10 @@ struct FuzzySkinConfig
     int           noise_octaves;
     double        noise_persistence;
     FuzzySkinMode mode;
+    int           ripples_per_layer;
+    double        ripple_offset;
+    int           layers_between_ripple_offset;
+    int           layer_id;
 
     bool operator==(const FuzzySkinConfig& r) const
     {
@@ -32,7 +36,10 @@ struct FuzzySkinConfig
             && noise_scale == r.noise_scale
             && noise_octaves == r.noise_octaves
             && noise_persistence == r.noise_persistence
-            && mode == r.mode;
+            && mode == r.mode
+            && ripples_per_layer == r.ripples_per_layer
+            && ripple_offset == r.ripple_offset
+            && layers_between_ripple_offset == r.layers_between_ripple_offset;
     }
 
     bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
@@ -52,6 +59,10 @@ template<> struct hash<Slic3r::FuzzySkinConfig>
         boost::hash_combine(seed, std::hash<double>{}(c.noise_scale));
         boost::hash_combine(seed, std::hash<int>{}(c.noise_octaves));
         boost::hash_combine(seed, std::hash<double>{}(c.noise_persistence));
+        boost::hash_combine(seed, std::hash<Slic3r::FuzzySkinMode>{}(c.mode));
+        boost::hash_combine(seed, std::hash<int>{}(c.ripples_per_layer));
+        boost::hash_combine(seed, std::hash<double>{}(c.ripple_offset));
+        boost::hash_combine(seed, std::hash<int>{}(c.layers_between_ripple_offset));
         return seed;
     }
 };
