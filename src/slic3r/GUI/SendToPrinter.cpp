@@ -1,6 +1,8 @@
 #include "SendToPrinter.hpp"
 #include "I18N.hpp"
 
+#include "libslic3r/Print.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
@@ -21,7 +23,10 @@
 #include <wx/dcgraph.h>
 #include <miniz.h>
 #include <algorithm>
+#include <numeric>
 #include "BitmapCache.hpp"
+#include "PlateChangerPlateStatsTable.hpp"
+#include "PartPlate.hpp"
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
@@ -249,22 +254,52 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_panel_image->SetSizer(sizer_thumbnail);
     m_panel_image->Layout();
 
-    wxBoxSizer *m_sizer_basic        = new wxBoxSizer(wxHORIZONTAL);
-    wxBoxSizer *m_sizer_basic_weight = new wxBoxSizer(wxHORIZONTAL);
-    wxBoxSizer *m_sizer_basic_time   = new wxBoxSizer(wxHORIZONTAL);
+    m_stats_switch = new wxPanel(m_scrollable_region, wxID_ANY);
+    m_stats_switch->SetBackgroundColour(m_colour_def_color);
+    auto *sizer_stats_outer = new wxBoxSizer(wxVERTICAL);
 
-    auto timeimg = new wxStaticBitmap(m_scrollable_region, wxID_ANY, create_scaled_bitmap("print-time", this, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
-    m_sizer_basic_weight->Add(timeimg, 1, wxEXPAND | wxALL, FromDIP(5));
-    m_stext_time = new wxStaticText(m_scrollable_region, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT);
-    m_sizer_basic_weight->Add(m_stext_time, 0, wxALL, FromDIP(5));
-    m_sizer_basic->Add(m_sizer_basic_weight, 0, wxALIGN_CENTER, 0);
-    m_sizer_basic->Add(0, 0, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+    m_stats_single_line_panel = new wxPanel(m_stats_switch, wxID_ANY);
+    m_stats_single_line_panel->SetBackgroundColour(m_colour_def_color);
+    wxBoxSizer *sizer_basic        = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *sizer_basic_weight = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *sizer_basic_time   = new wxBoxSizer(wxHORIZONTAL);
 
-    auto weightimg = new wxStaticBitmap(m_scrollable_region, wxID_ANY, create_scaled_bitmap("print-weight", this, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
-    m_sizer_basic_time->Add(weightimg, 1, wxEXPAND | wxALL, FromDIP(5));
-    m_stext_weight = new wxStaticText(m_scrollable_region, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    m_sizer_basic_time->Add(m_stext_weight, 0, wxALL, FromDIP(5));
-    m_sizer_basic->Add(m_sizer_basic_time, 0, wxALIGN_CENTER, 0);
+    auto timeimg = new wxStaticBitmap(m_stats_single_line_panel, wxID_ANY, create_scaled_bitmap("print-time", this, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
+    sizer_basic_weight->Add(timeimg, 1, wxEXPAND | wxALL, FromDIP(5));
+    m_stext_time = new wxStaticText(m_stats_single_line_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT);
+    sizer_basic_weight->Add(m_stext_time, 0, wxALL, FromDIP(5));
+    sizer_basic->Add(sizer_basic_weight, 0, wxALIGN_CENTER, 0);
+    sizer_basic->Add(0, 0, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+
+    auto weightimg = new wxStaticBitmap(m_stats_single_line_panel, wxID_ANY, create_scaled_bitmap("print-weight", this, 18), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
+    sizer_basic_time->Add(weightimg, 1, wxEXPAND | wxALL, FromDIP(5));
+    m_stext_weight = new wxStaticText(m_stats_single_line_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    sizer_basic_time->Add(m_stext_weight, 0, wxALL, FromDIP(5));
+    sizer_basic->Add(sizer_basic_time, 0, wxALIGN_CENTER, 0);
+    m_stats_single_line_panel->SetSizer(sizer_basic);
+
+    m_stats_table_panel = new wxPanel(m_stats_switch, wxID_ANY);
+    m_stats_table_panel->SetBackgroundColour(m_colour_def_color);
+    m_stats_table_panel->SetMinSize(wxSize(FromDIP(480), -1));
+    wxBoxSizer *table_hsizer = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *left_col_sizer = new wxBoxSizer(wxVERTICAL);
+    m_stext_project_name_in_table = new wxStaticText(m_stats_table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    m_stext_project_name_in_table->SetFont(::Label::Head_14);
+    m_stext_project_name_in_table->SetForegroundColour(m_colour_bold_color);
+    left_col_sizer->Add(m_stext_project_name_in_table, 0, wxBOTTOM, FromDIP(4));
+    m_stext_plate_count = new wxStaticText(m_stats_table_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
+    m_stext_plate_count->SetFont(::Label::Body_13);
+    left_col_sizer->Add(m_stext_plate_count, 0);
+    table_hsizer->Add(left_col_sizer, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(20));
+
+    m_plate_table_grid_sizer = new wxFlexGridSizer(0, 4, FromDIP(1), FromDIP(1));
+    table_hsizer->Add(m_plate_table_grid_sizer, 1, wxEXPAND);
+    m_stats_table_panel->SetSizer(table_hsizer);
+
+    sizer_stats_outer->Add(m_stats_single_line_panel, 0, wxEXPAND, 0);
+    sizer_stats_outer->Add(m_stats_table_panel, 0, wxEXPAND, 0);
+    m_stats_table_panel->Hide();
+    m_stats_switch->SetSizer(sizer_stats_outer);
 
     m_line_materia = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line_materia->SetForegroundColour(wxColour(238, 238, 238));
@@ -328,7 +363,10 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     // line schedule
     m_line_schedule = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
     m_line_schedule->SetBackgroundColour(wxColour(238, 238, 238));
-    m_simplebook   = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_DIALOG_SIMBOOK_SIZE, 0);
+    // Plate-swap / Send dialog: do not use SELECT_MACHINE_DIALOG_SIMBOOK_SIZE (FromDIP(370)xFromDIP(64)) for this
+    // wxSimplebook. That size was for a short "Send" strip only; plate-changer rows on m_panel_prepare need more
+    // height and width, and a fixed small client rect clipped the toggles and Send button. Size from content instead.
+    m_simplebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
 
     // perpare mode
     m_panel_prepare = new wxPanel(m_simplebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -337,7 +375,36 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     wxBoxSizer *m_sizer_prepare = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *m_sizer_pcont   = new wxBoxSizer(wxHORIZONTAL);
 
+    // Plate changer options: separator + "Start with new plate?" / "End with new plate?" (shown only when printer has plate_change_gcode)
+    m_line_plate_changer = new wxPanel(m_panel_prepare, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
+    m_line_plate_changer->SetBackgroundColour(wxColour(0xEE, 0xEE, 0xEE));
+    m_line_plate_changer->SetMinSize(wxSize(-1, FromDIP(1)));
+    m_line_plate_changer->SetMaxSize(wxSize(-1, FromDIP(1)));
+    m_panel_plate_changer_opts = new wxPanel(m_panel_prepare, wxID_ANY);
+    m_panel_plate_changer_opts->SetBackgroundColour(m_colour_def_color);
+    wxGridSizer* sizer_plate_changer = new wxGridSizer(0, 2, FromDIP(5), FromDIP(10));
+    std::vector<POItem> ops_on_off;
+    ops_on_off.push_back(POItem{"on", _L("On")});
+    ops_on_off.push_back(POItem{"off", _L("Off")});
+    m_opt_start_with_new_plate = new PrintOption(m_panel_plate_changer_opts, _L("Start with new plate?"),
+        _L("When enabled, the plate change G-code runs before the first plate so the printer ejects the current plate and loads a fresh one before the print starts."),
+        ops_on_off, "start_with_new_plate");
+    m_opt_start_with_new_plate->setValue("off");
+    m_opt_end_with_new_plate = new PrintOption(m_panel_plate_changer_opts, _L("End with new plate?"),
+        _L("When enabled, the plate change G-code runs after the last plate so the printer ejects the final plate and loads a fresh one when the job finishes."),
+        ops_on_off, "end_with_new_plate");
+    m_opt_end_with_new_plate->setValue("off");
+    sizer_plate_changer->Add(m_opt_start_with_new_plate, 0, wxEXPAND);
+    sizer_plate_changer->Add(m_opt_end_with_new_plate, 0, wxEXPAND);
+    m_opt_start_with_new_plate->Bind(EVT_SWITCH_PRINT_OPTION, [this](wxCommandEvent&) { persist_plate_changer_prefs_to_appconfig(); });
+    m_opt_end_with_new_plate->Bind(EVT_SWITCH_PRINT_OPTION, [this](wxCommandEvent&) { persist_plate_changer_prefs_to_appconfig(); });
+    m_panel_plate_changer_opts->SetSizer(sizer_plate_changer);
+    m_line_plate_changer->Hide();
+    m_panel_plate_changer_opts->Hide();
+
     m_sizer_prepare->Add(0, 0, 1, wxTOP, FromDIP(22));
+    m_sizer_prepare->Add(m_line_plate_changer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
+    m_sizer_prepare->Add(m_panel_plate_changer_opts, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, FromDIP(10));
     m_sizer_pcont->Add(0, 0, 1, wxEXPAND, 0);
     m_button_ensure = new Button(m_panel_prepare, _L("Send"));
     m_button_ensure->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
@@ -469,7 +536,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
 
     m_sizer_scrollable_region->Add(m_panel_image, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_sizer_scrollable_region->Add(0, 0, 0, wxTOP, FromDIP(10));
-    m_sizer_scrollable_region->Add(m_sizer_basic, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+    m_sizer_scrollable_region->Add(m_stats_switch, 0, wxALIGN_CENTER_HORIZONTAL, 0);
 	m_scrollable_region->SetSizer(m_sizer_scrollable_region);
 	m_scrollable_region->Layout();
 
@@ -731,9 +798,49 @@ void SendToPrinterDialog::sending_mode()
     }
 }
 
-void SendToPrinterDialog::prepare(int print_plate_idx)
+void SendToPrinterDialog::prepare(int print_plate_idx, bool use_plate_changer_all)
 {
     m_print_plate_idx = print_plate_idx;
+    m_use_plate_changer_all = use_plate_changer_all;
+    if (use_plate_changer_all && print_plate_idx == PLATE_ALL_IDX && m_plater) {
+        m_plate_changer_plate_included.assign(static_cast<size_t>(m_plater->get_partplate_list().get_plate_count()), true);
+    } else {
+        m_plate_changer_plate_included.clear();
+    }
+    bool show_plate_changer_opts = wxGetApp().preset_bundle &&
+        !wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("plate_change_gcode").empty();
+    if (m_line_plate_changer) m_line_plate_changer->Show(show_plate_changer_opts);
+    if (m_panel_plate_changer_opts) m_panel_plate_changer_opts->Show(show_plate_changer_opts);
+    if (m_panel_prepare) m_panel_prepare->Layout();
+    sync_plate_changer_prefs_from_appconfig();
+}
+
+// AppConfig keys are shared with PlateChangerExportOptionsDialog (Export all plate changer) so export and send stay aligned.
+void SendToPrinterDialog::sync_plate_changer_prefs_from_appconfig()
+{
+    if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
+        return;
+    bool start = false, end = false;
+    Plater::plate_changer_prefs_load_from_appconfig(start, end);
+    m_opt_start_with_new_plate->setValue(start ? "on" : "off");
+    m_opt_end_with_new_plate->setValue(end ? "on" : "off");
+}
+
+// Persists to the same keys as PlateChangerExportOptionsDialog (plate-swap export path).
+void SendToPrinterDialog::persist_plate_changer_prefs_to_appconfig()
+{
+    if (!m_opt_start_with_new_plate || !m_opt_end_with_new_plate)
+        return;
+    Plater::plate_changer_prefs_save_to_appconfig(m_opt_start_with_new_plate->getValue() == "on", m_opt_end_with_new_plate->getValue() == "on");
+}
+
+const std::vector<bool>* SendToPrinterDialog::plate_changer_included_mask_for_export() const
+{
+    if (!(m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) || !m_plater)
+        return nullptr;
+    if (m_plate_changer_plate_included.size() != static_cast<size_t>(m_plater->get_partplate_list().get_plate_count()))
+        return nullptr;
+    return &m_plate_changer_plate_included;
 }
 
 void SendToPrinterDialog::update_priner_status_msg(wxString msg, bool is_warning)
@@ -865,18 +972,22 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     // enter sending mode
     sending_mode();
 
+    persist_plate_changer_prefs_to_appconfig();
+
     if (wxGetApp().plater()->using_exported_file()) {
         m_plater->set_print_job_plate_idx(m_print_plate_idx);
         result = 0;
     }
      else {
+         bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
+         bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
          result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool &cancel) {
              if (this->m_is_canceled) return;
              bool     cancelled = false;
              wxString msg       = _L("Preparing print job");
              m_status_bar->update_status(msg, cancelled, 10, true);
              m_export_3mf_cancel = cancel = cancelled;
-         });
+         }, m_use_plate_changer_all, start_plate, end_plate, plate_changer_included_mask_for_export());
      }
 
     if (m_is_canceled || m_export_3mf_cancel) {
@@ -895,7 +1006,10 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 
     // export config 3mf if needed
     if(!wxGetApp().plater()->using_exported_file() && !obj_->is_lan_mode_printer()) {
-            result = m_plater->export_config_3mf(m_print_plate_idx);
+            bool start_plate = m_opt_start_with_new_plate && m_opt_start_with_new_plate->getValue() == "on";
+            bool end_plate   = m_opt_end_with_new_plate && m_opt_end_with_new_plate->getValue() == "on";
+            result = m_plater->export_config_3mf(m_print_plate_idx, nullptr, m_use_plate_changer_all, start_plate, end_plate,
+                                                 plate_changer_included_mask_for_export());
             if (result < 0) {
                 BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
                 return;
@@ -923,7 +1037,15 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
         PrintPrepareData print_data;
 
         m_plater->get_print_job_data(&print_data);
-        std::string project_name = m_current_project_name.utf8_string() + ".gcode.3mf";
+        // For plate changer "all plates" jobs, include the plate count in the project
+        // name so it's visible on the printer (e.g. "model_3_plates_.gcode.3mf").
+        std::string plate_suffix;
+        if (m_use_plate_changer_all && print_data.plate_idx == PLATE_ALL_IDX) {
+            const int plate_count = m_plater->get_partplate_list().get_plate_count();
+            if (plate_count > 1)
+                plate_suffix = "_" + std::to_string(plate_count) + "_plates_";
+        }
+        std::string project_name = m_current_project_name.utf8_string() + plate_suffix + ".gcode.3mf";
 
         std::string _3mf_path;
         if (wxGetApp().plater()->using_exported_file())
@@ -1571,24 +1693,42 @@ void SendToPrinterDialog::set_default()
         }
     }
 
-    // thumbmail
+    // thumbmail (plate-changer all: first included plate in job order, not UI selection)
     //wxBitmap bitmap;
-    ThumbnailData &data   = m_plater->get_partplate_list().get_curr_plate()->thumbnail_data;
-    if (data.is_valid()) {
-        wxImage image(data.width, data.height);
-        image.InitAlpha();
-        for (unsigned int r = 0; r < data.height; ++r) {
-            unsigned int rr = (data.height - 1 - r) * data.width;
-            for (unsigned int c = 0; c < data.width; ++c) {
-                unsigned char *px = (unsigned char *) data.pixels.data() + 4 * (rr + c);
-                image.SetRGB((int) c, (int) r, px[0], px[1], px[2]);
-                image.SetAlpha((int) c, (int) r, px[3]);
+    PartPlate *thumb_plate = nullptr;
+    if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
+        const int n = m_plater->get_partplate_list().get_plate_count();
+        if (m_plate_changer_plate_included.size() == static_cast<size_t>(n)) {
+            for (int i = 0; i < n; ++i) {
+                if (m_plate_changer_plate_included[static_cast<size_t>(i)]) {
+                    thumb_plate = m_plater->get_partplate_list().get_plate(i);
+                    break;
+                }
             }
         }
-        image  = image.Rescale(FromDIP(256), FromDIP(256));
-        m_thumbnailPanel->set_thumbnail(image);
+        if (!thumb_plate)
+            thumb_plate = m_plater->get_partplate_list().get_plate(0);
     } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " : thumbnail_data invalid." << "current plater: " << m_plater->get_partplate_list().get_curr_plate_index();
+        thumb_plate = m_plater->get_partplate_list().get_curr_plate();
+    }
+    if (thumb_plate) {
+        ThumbnailData &data = thumb_plate->thumbnail_data;
+        if (data.is_valid()) {
+            wxImage image(data.width, data.height);
+            image.InitAlpha();
+            for (unsigned int r = 0; r < data.height; ++r) {
+                unsigned int rr = (data.height - 1 - r) * data.width;
+                for (unsigned int c = 0; c < data.width; ++c) {
+                    unsigned char *px = (unsigned char *) data.pixels.data() + 4 * (rr + c);
+                    image.SetRGB((int) c, (int) r, px[0], px[1], px[2]);
+                    image.SetAlpha((int) c, (int) r, px[3]);
+                }
+            }
+            image = image.Rescale(FromDIP(256), FromDIP(256));
+            m_thumbnailPanel->set_thumbnail(image);
+        } else {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " : thumbnail_data invalid." << "current plater: " << m_plater->get_partplate_list().get_curr_plate_index();
+        }
     }
 
     std::vector<std::string> materials;
@@ -1618,22 +1758,7 @@ void SendToPrinterDialog::set_default()
 
 
     // basic info
-    auto       aprint_stats = m_plater->get_partplate_list().get_current_fff_print().print_statistics();
-    wxString   time;
-    PartPlate *plate = m_plater->get_partplate_list().get_curr_plate();
-    if (plate) {
-        if (plate->get_slice_result()) { time = wxString::Format("%s", short_time(get_time_dhms(plate->get_slice_result()->print_statistics.modes[0].time))); }
-    }
-
-    char weight[64];
-    if (wxGetApp().app_config->get("use_inches") == "1") {
-        ::sprintf(weight, "%.2f oz", aprint_stats.total_weight*0.035274); // ORCA remove spacing before text
-    }else{
-        ::sprintf(weight, "%.2f g", aprint_stats.total_weight); // ORCA remove spacing before text
-    }
-
-    m_stext_time->SetLabel(time);
-    m_stext_weight->SetLabel(weight);
+    update_time_and_weight_labels();
 }
 
 bool SendToPrinterDialog::Show(bool show)
@@ -1657,6 +1782,54 @@ bool SendToPrinterDialog::Show(bool show)
     if (show) { CenterOnParent(); }
 
     return DPIDialog::Show(show);
+}
+ 
+void SendToPrinterDialog::update_time_and_weight_labels()
+{
+    auto &partplate_list = m_plater->get_partplate_list();
+    const auto &aprint_stats = partplate_list.get_current_fff_print().print_statistics();
+
+    const bool use_inches = wxGetApp().app_config->get("use_inches") == "1";
+
+    // Only show plate count + table when using plate changer (all plates). Otherwise show single-line time/weight only.
+    // Plate/time/weight grid is shared with SelectMachineDialog and PlateChangerExportOptionsDialog.
+    if (m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX) {
+        m_stats_single_line_panel->Hide();
+        m_stats_table_panel->Show();
+
+        const int n_plates = partplate_list.get_plate_count();
+        if (m_plate_changer_plate_included.size() != static_cast<size_t>(n_plates))
+            m_plate_changer_plate_included.assign(static_cast<size_t>(n_plates), true);
+        const int n_included = static_cast<int>(std::count(m_plate_changer_plate_included.begin(), m_plate_changer_plate_included.end(), true));
+        m_stext_project_name_in_table->SetLabel(m_current_project_name);
+        m_stext_plate_count->SetLabel(wxString::Format(_L("Printing %d of %d plates."), n_included, n_plates));
+
+        populate_plate_changer_time_weight_grid(m_plate_table_grid_sizer, m_stats_table_panel, this, partplate_list, m_plate_changer_plate_included,
+                                                [this]() { update_time_and_weight_labels(); });
+        m_stats_switch->Layout();
+    } else {
+        m_stats_table_panel->Hide();
+        m_stats_single_line_panel->Show();
+        m_stats_switch->Layout();
+
+        wxString time;
+        char     weight[64];
+
+        PartPlate *plate = partplate_list.get_curr_plate();
+        if (plate && plate->get_slice_result()) {
+            time = wxString::Format("%s",
+                                    short_time(get_time_dhms(plate->get_slice_result()->print_statistics.modes[static_cast<size_t>(Slic3r::PrintEstimatedStatistics::ETimeMode::Normal)].time)));
+        }
+
+        if (use_inches) {
+            ::sprintf(weight, "%.2f oz", aprint_stats.total_weight * 0.035274);
+        } else {
+            ::sprintf(weight, "%.2f g", aprint_stats.total_weight);
+        }
+
+        m_stext_time->SetLabel(time);
+        m_stext_weight->SetLabel(weight);
+    }
 }
 
 extern wxString hide_passwd(wxString url, std::vector<wxString> const &passwords);

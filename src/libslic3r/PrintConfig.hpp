@@ -1315,6 +1315,8 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))
+    ((ConfigOptionString,              plate_change_gcode))
+    ((ConfigOptionString,              additional_initial_plate_change_gcode))
     ((ConfigOptionString,              time_lapse_gcode))
     ((ConfigOptionString,              wrapping_detection_gcode))
 

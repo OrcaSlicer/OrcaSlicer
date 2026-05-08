@@ -25,6 +25,7 @@
 #include <wx/srchctrl.h>
 
 #include <unordered_map>
+#include <vector>
 
 #include "boost/bimap/bimap.hpp"
 #include "AmsMappingPopup.hpp"
@@ -289,6 +290,11 @@ class SelectMachineDialog : public DPIDialog
 private:
     int                                 m_current_filament_id{0};
     int                                 m_print_plate_idx{0};
+    bool                                m_use_plate_changer_all{ false };
+    // Per-plate inclusion for plate-changer \"all plates\" (same length as get_plate_count() when active).
+    std::vector<bool>                   m_plate_changer_plate_included;
+    bool                                m_start_with_new_plate{ false };
+    bool                                m_end_with_new_plate{ false };
     int                                 m_print_plate_total{0};
     int                                 m_timeout_count{0};
     int                                 m_print_error_code{0};
@@ -378,10 +384,22 @@ protected:
     wxStaticText*                       m_rename_text{nullptr};
     Label*                              m_stext_time{ nullptr };
     Label*                              m_stext_weight{ nullptr };
+    // Holds single-line stats vs plate table; wxSimplebook was avoided so the hidden page does not reserve height.
+    wxPanel*                            m_stats_switch{ nullptr };
+    wxPanel*                            m_stats_single_line_panel{ nullptr };
+    wxPanel*                            m_stats_table_panel{ nullptr };
+    Label*                              m_stext_plate_count{ nullptr };
+    wxFlexGridSizer*                    m_plate_table_grid_sizer{ nullptr };
     PrinterMsgPanel *                   m_statictext_ams_msg{nullptr};
     Label*                              m_txt_change_filament_times{ nullptr };
     CheckBox*                           m_check_ext_change_assist{ nullptr };
     Label*                              m_label_ext_change_assist{ nullptr };
+    wxPanel*                            m_line_plate_changer{ nullptr };
+    wxPanel*                            m_panel_plate_changer_opts{ nullptr };
+    // Fills the last cell when an odd number of print options are visible (2-col grid).
+    wxPanel*                            m_options_grid_pad{ nullptr };
+    PrintOption*                        m_opt_start_with_new_plate{ nullptr };
+    PrintOption*                        m_opt_end_with_new_plate{ nullptr };
 
     PrinterInfoBox*                     m_printer_box { nullptr};
     PrinterMsgPanel *                   m_text_printer_msg{nullptr};
@@ -423,6 +441,12 @@ protected:
 
     PrePrintChecker                     m_pre_print_checker;
 
+    // First included plate's metadata for cloud AMS JSON when printing merged plate-changer G-code (must match job order, not UI selection).
+    PartPlate* reference_plate_for_merged_cloud_job() const;
+    const std::vector<bool>* plate_changer_included_mask_for_export() const;
+
+    void update_time_and_weight_labels();
+
 public:
     static std::vector<wxString> MACHINE_BED_TYPE_STRING;
     static void                  init_machine_bed_types();
@@ -442,7 +466,12 @@ public:
     void sending_mode();
     void finish_mode();
 	void sync_ams_mapping_result(std::vector<FilamentInfo>& result);
-    void prepare(int print_plate_idx);
+    void prepare(int print_plate_idx, bool use_plate_changer_all = false);
+    // Merged G-code for all plates (plate changer): UI-selected plate must not affect AMS JSON / validation.
+    bool is_merged_plate_changer_print_job() const
+    {
+        return m_print_type == PrintFromType::FROM_NORMAL && m_use_plate_changer_all && m_print_plate_idx == PLATE_ALL_IDX;
+    }
     void show_status(PrintDialogStatus status, std::vector<wxString> params = std::vector<wxString>(), wxString wiki_url = wxEmptyString);
     void sys_color_changed();
     void reset_timeout();
@@ -525,6 +554,9 @@ private:
     void load_option_vals(MachineObject* obj);
     void save_option_vals();
     void save_option_vals(MachineObject *obj);
+
+    void sync_plate_changer_prefs_from_appconfig();
+    void persist_plate_changer_prefs_to_appconfig();
 
     // enbale or disable external change assist
     bool is_enable_external_change_assist(std::vector<FilamentInfo>& ams_mapping_result);

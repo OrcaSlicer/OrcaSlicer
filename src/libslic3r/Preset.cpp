@@ -483,6 +483,20 @@ void Preset::normalize(DynamicPrintConfig &config)
         }
     }
 
+    // Backfill new printer Machine G-code key for older presets (avoids missing opt in edited config).
+    // Also, if the user has configured Plate change G-code but left the additional-initial block empty,
+    // seed it with the default boilerplate to reduce surprise.
+    if (config.def() && config.def()->get("additional_initial_plate_change_gcode") != nullptr) {
+        const std::string& default_initial = FullPrintConfig::defaults().additional_initial_plate_change_gcode.value;
+        if (!config.has("additional_initial_plate_change_gcode")) {
+            config.option<ConfigOptionString>("additional_initial_plate_change_gcode", true)->value = default_initial;
+        } else if (!default_initial.empty()) {
+            auto* initial_opt = dynamic_cast<ConfigOptionString*>(config.optptr("additional_initial_plate_change_gcode"));
+            if (initial_opt != nullptr && initial_opt->value.empty())
+                initial_opt->value = default_initial;
+        }
+    }
+
     handle_legacy_sla(config);
 }
 
@@ -1324,7 +1338,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
     "printable_area", "extruder_printable_area", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "gcode_flavor",
     "fan_kickstart", "fan_speedup_time", "fan_speedup_overhangs",
-    "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
+    "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "plate_change_gcode", "additional_initial_plate_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
     "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
     "nozzle_height", "master_extruder_id",

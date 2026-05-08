@@ -239,6 +239,9 @@ struct StoreParams
     std::vector<PlateBBoxData*> id_bboxes;
     BBLProject* project = nullptr;
     BBLProfile* profile = nullptr;
+    bool use_plate_changer_all = false;
+    bool start_with_new_plate   = false;
+    bool end_with_new_plate     = false;
 
     StoreParams() {}
 };

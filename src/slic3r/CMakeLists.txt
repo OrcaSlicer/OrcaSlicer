@@ -420,6 +420,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/PartSkipCommon.hpp
     GUI/PartSkipDialog.cpp
     GUI/PartSkipDialog.hpp
+    GUI/PlateChangerExportOptionsDialog.cpp
+    GUI/PlateChangerExportOptionsDialog.hpp
+    GUI/PlateChangerPlateStatsTable.cpp
+    GUI/PlateChangerPlateStatsTable.hpp
     GUI/SkipPartCanvas.cpp
     GUI/SkipPartCanvas.hpp
     GUI/Search.cpp

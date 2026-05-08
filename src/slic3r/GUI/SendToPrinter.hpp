@@ -36,6 +36,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include <vector>
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
 #include "Widgets/AnimaController.hpp"
@@ -55,6 +56,10 @@ private:
     void init_timer();
 
     int                                 m_print_plate_idx;
+    bool                                m_use_plate_changer_all{ false };
+    std::vector<bool>                   m_plate_changer_plate_included;
+    bool                                m_start_with_new_plate{ false };
+    bool                                m_end_with_new_plate{ false };
     int                                 m_current_filament_id;
     int                                 m_print_error_code = 0;
     int                                 timeout_count = 0;
@@ -87,6 +92,10 @@ private:
     Button*                             m_button_ensure{ nullptr };
     wxPanel*                            m_scrollable_region;
     wxPanel*                            m_line_schedule{ nullptr };
+    wxPanel*                            m_line_plate_changer{ nullptr };
+    wxPanel*                            m_panel_plate_changer_opts{ nullptr };
+    PrintOption*                        m_opt_start_with_new_plate{ nullptr };
+    PrintOption*                        m_opt_end_with_new_plate{ nullptr };
     wxPanel*                            m_panel_sending{ nullptr };
     wxPanel*                            m_panel_prepare{ nullptr };
     wxPanel*                            m_panel_finish{ nullptr };
@@ -107,6 +116,12 @@ private:
     wxStaticText*                       m_rename_text{ nullptr };
     wxStaticText*                       m_stext_time{ nullptr };
     wxStaticText*                       m_stext_weight{ nullptr };
+    wxPanel*                            m_stats_switch{ nullptr };
+    wxPanel*                            m_stats_single_line_panel{ nullptr };
+    wxPanel*                            m_stats_table_panel{ nullptr };
+    wxStaticText*                       m_stext_project_name_in_table{ nullptr };
+    wxStaticText*                       m_stext_plate_count{ nullptr };
+    wxFlexGridSizer*                    m_plate_table_grid_sizer{ nullptr };
     Label*                              m_st_txt_error_code{ nullptr };
     Label*                              m_st_txt_error_desc{ nullptr };
     Label*                              m_st_txt_extra_info{ nullptr };
@@ -191,7 +206,7 @@ public:
     void update_user_printer();
     void update_show_status();
     bool is_blocking_printing(MachineObject* obj_);
-    void prepare(int print_plate_idx);
+    void prepare(int print_plate_idx, bool use_plate_changer_all = false);
     void check_focus(wxWindow* window);
     void check_fcous_state(wxWindow* window);
     void update_priner_status_msg(wxString msg, bool is_warning = false);
@@ -221,6 +236,11 @@ public:
     void GetConnection();
 
 private:
+    void sync_plate_changer_prefs_from_appconfig();
+    void persist_plate_changer_prefs_to_appconfig();
+    const std::vector<bool>* plate_changer_included_mask_for_export() const;
+
+    void update_time_and_weight_labels();
     void ResetConnectMethod();
     void ResetTunnelAndJob();
     void OnConnection(bool is_success, int error_code, std::string error_msg);

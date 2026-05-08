@@ -398,6 +398,12 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
                 break;
             }
         }
+        // Edit-only row (undo rects not drawn): rects_edit_icon still populated by draw_edit_bmp.
+        if (tooltip.IsEmpty() && option_set.size() == 1 && !line.rects_edit_icon.empty() &&
+            is_point_in_rect(pos, line.rects_edit_icon.back()))
+            if (Field* field = opt_group->get_field(option_set[0].opt_id); field && field->has_edit_ui())
+                tooltip = *field->edit_tooltip();
+
         if (!tooltip.IsEmpty())
             break;
     }
@@ -467,6 +473,13 @@ void OG_CustomCtrl::OnLeftDown(wxMouseEvent& event)
                 return;
             }
         }
+        if (option_set.size() == 1 && !line.rects_edit_icon.empty() &&
+            is_point_in_rect(pos, line.rects_edit_icon.back()))
+            if (Field* field = opt_group->get_field(option_set[0].opt_id)) {
+                field->on_edit_value();
+                event.Skip();
+                return;
+            }
     }
 
     SetFocusIgnoringChildren();
@@ -772,12 +785,13 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
 
     bool suppress_hyperlinks = false;
     if (draw_just_act_buttons) {
-        //BBS: GUI refactor
-        if (field && field->undo_bitmap()) {
-            // if (field)
-            //  BBS: new layout
-            const wxPoint pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(),
-                                              field->undo_bitmap()->bmp(), field->blink());
+        //BBS: GUI refactor — draw edit even if undo bitmaps are not decorated yet; draw undo when available.
+        if (field) {
+            wxPoint pos(h_pos, v_pos);
+            if (field->undo_bitmap()) {
+                pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(),
+                                    field->undo_bitmap()->bmp(), field->blink());
+            }
             if (field->has_edit_ui())
                 draw_edit_bmp(dc, pos, *field->edit_bitmap());
         }

@@ -124,6 +124,10 @@ public:
 
     std::function<void(const t_config_option_key& opt_key)> edit_custom_gcode { nullptr };
 
+    /// When true, the whole group is wrapped in wxCollapsiblePane (collapsed by default).
+    bool wrap_in_collapsible_pane{ false };
+    wxString collapsible_pane_label;
+
     wxFont			sidetext_font {wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT) };
     wxFont			label_font {wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT) };
 	int				sidetext_width{ -1 };

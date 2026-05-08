@@ -104,6 +104,9 @@ namespace Slic3r
 
     int DevMappingUtil::ams_filament_mapping(const MachineObject* obj, const std::vector<FilamentInfo>& filaments, std::vector<FilamentInfo>& result, std::vector<bool> map_opt, std::vector<int> exclude_id, bool nozzle_has_ams_then_ignore_ext)
     {
+        // Always replace result; callers reuse m_ams_mapping_result. Without clear, a smaller
+        // filament set (e.g. plate-changer subset) would leave stale rows and fail validation / UI sync.
+        result.clear();
         if (filaments.empty())
             return -1;
 

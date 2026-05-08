@@ -281,6 +281,7 @@ private:
 private:
     SyncInfo   m_input_info;
     SyncResult m_result;
+    bool       m_use_plate_changer_all{ false };
     Button *   m_button_ok     = nullptr;
     Button *   m_button_cancel = nullptr;
 

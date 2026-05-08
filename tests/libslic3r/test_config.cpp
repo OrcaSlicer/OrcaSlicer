@@ -120,6 +120,13 @@ SCENARIO("Config accessor functions perform as expected.", "[Config]") {
                 REQUIRE(config.opt<ConfigOptionString>("machine_end_gcode")->value == float_to_string_decimal_point(100.5));
             }
         }
+        WHEN("Plate change G-code is set through the string interface") {
+            config.set("plate_change_gcode", "M400\nM118 PLATE_CHANGE\n");
+            THEN("The underlying value is set correctly and accessible via opt_string.") {
+                REQUIRE(config.opt<ConfigOptionString>("plate_change_gcode")->value == "M400\nM118 PLATE_CHANGE\n");
+                REQUIRE(config.opt_string("plate_change_gcode") == "M400\nM118 PLATE_CHANGE\n");
+            }
+        }
         WHEN("A float or percent is set as a percent through the string interface.") {
             config.set_deserialize_strict("initial_layer_line_width", "100%");
             THEN("Value and percent flag are 100/true") {
