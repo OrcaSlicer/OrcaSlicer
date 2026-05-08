@@ -1840,14 +1840,18 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 {
     auto po = dynamic_cast<PrintObjectBase const *>(error.object);
     auto mo = po ? po->model_object() : dynamic_cast<ModelObject const *>(error.object);
+    //ORCA: Update to handle ModelInstance selection for validation errors with fallback
+    /*
 	std::function<bool(wxEvtHandler*)> callback;
 	if (mo || !error.opt_key.empty()) {
 		callback =
 			[id = mo ? mo->id() : 0, opt = error.opt_key](wxEvtHandler*) {
 			auto& objects = wxGetApp().model().objects;
 			auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
-			if (iter != objects.end())
+			if (iter != objects.end()) {
 				wxGetApp().obj_list()->select_items({ {*iter, nullptr} });
+                wxGetApp().obj_list()->update_selections_on_canvas();
+            }
 			if (!opt.empty()) {
 				if (iter != objects.end())
 					wxGetApp().params_panel()->switch_to_object();
@@ -1861,6 +1865,71 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 	}
     auto link = (mo || !error.opt_key.empty()) ? _u8L("Jump to") : "";
     if (mo) link += std::string(" [") + mo->name + "]";
+    */
+    auto mi = dynamic_cast<ModelInstance const *>(error.object);
+	std::function<bool(wxEvtHandler*)> callback;
+	if (mo || mi || !error.opt_key.empty()) {
+		callback =
+			[id = mo ? mo->id() : (mi ? mi->id() : 0),
+             parent_id = mi ? mi->get_object()->id() : 0,
+             is_inst = (mi != nullptr),
+             opt = error.opt_key](wxEvtHandler*) {
+			auto& objects = wxGetApp().model().objects;
+
+            if (is_inst) {
+                 bool selected = false;
+                 auto iter = std::find_if(objects.begin(), objects.end(), [parent_id](auto o) { return o->id() == parent_id; });
+                 if (iter != objects.end()) {
+                      ModelObject* obj = *iter;
+                      int inst_idx = -1;
+                      for(size_t i=0; i<obj->instances.size(); ++i) {
+                          if (obj->instances[i]->id() == id) {
+                              inst_idx = i;
+                              break;
+                          }
+                      }
+                      if (inst_idx != -1) {
+                         auto* model = wxGetApp().obj_list()->GetModel();
+                         wxDataViewItem item;
+                         wxDataViewItem objItem = model->GetObjectItem(obj);
+                         if (objItem.IsOk()) {
+                             int vm_obj_idx = model->GetIdByItem(objItem);
+                             if (vm_obj_idx != -1) {
+                                 item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
+                             }
+                         }
+                         if (item.IsOk()) {
+                             wxDataViewItemArray sel_items;
+                             sel_items.Add(item);
+                             wxGetApp().obj_list()->select_items(sel_items);
+                             selected = true;
+                         }
+                      }
+                      
+                      if (!selected) {
+                           wxGetApp().obj_list()->select_items({ {obj, nullptr} });
+                      }
+                 }
+            } else {
+			    auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
+			    if (iter != objects.end())
+				    wxGetApp().obj_list()->select_items({ {*iter, nullptr} });
+            }
+
+			if (!opt.empty()) {
+				if ((!is_inst && id.id) || (is_inst && parent_id.id)) // if object found
+					wxGetApp().params_panel()->switch_to_object();
+				wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
+			}
+			else {
+				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+			}
+			return false;
+		};
+	}
+    auto link = (mo || mi || !error.opt_key.empty()) ? _u8L("Jump to") : "";
+    if (mo) link += std::string(" [") + mo->name + "]";
+    if (mi) link += std::string(" [") + mi->get_object()->name + "]";
     if (!error.opt_key.empty()) link += std::string(" (") + error.opt_key + ")";
     push_notification_data({NotificationType::ValidateError, NotificationLevel::ErrorNotificationLevel, 0, _u8L("Error:") + "\n" + error.string, link, callback}, 0);
 	set_slicing_progress_hidden();
@@ -2162,6 +2231,138 @@ void NotificationManager::push_import_finished_notification(const std::string& p
     set_slicing_progress_hidden();
 }
 
+// SharedProfilesNotification implementation
+
+void NotificationManager::SharedProfilesNotification::init()
+{
+	PopNotification::init();
+	// Add one extra line for the hyperlink row ("Browse shared profiles" + "Don't show again")
+	m_lines_count++;
+}
+
+void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	float x_offset = m_left_indentation;
+	float shift_y = m_line_height;
+	float starting_y = m_line_height / 2;
+
+	// Render main text line(s)
+	int last_end = 0;
+	std::string line;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(x_offset);
+			ImGui::SetCursorPosY(starting_y + i * shift_y);
+			imgui.text(line.c_str());
+		}
+	}
+
+	// Render "Browse shared profiles" hyperlink on the next line
+	float hyper_y = starting_y + m_endlines.size() * shift_y;
+	render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
+
+	// Render "Don't show again" hyperlink after the browse link
+	{
+		float dont_show_x = x_offset + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).x;
+		std::string dont_show_text = _u8L("Don't show again");
+		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
+
+		// Invisible button
+		ImGui::SetCursorPosX(dont_show_x - 4);
+		ImGui::SetCursorPosY(hyper_y - 5);
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+		if (imgui.button("##dont_show_btn", part_size.x + 6, part_size.y + 10)) {
+			wxGetApp().app_config->set_bool("show_shared_profiles_notification", false);
+			wxGetApp().app_config->save();
+			close();
+		}
+		ImGui::PopStyleColor(3);
+
+		// Hover color
+		ImVec4 color = m_HyperTextColor;
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
+			color.y += 0.1f;
+
+		// Text
+		push_style_color(ImGuiCol_Text, color, m_state == EState::FadingOut, m_current_fade_opacity);
+		ImGui::SetCursorPosX(dont_show_x);
+		ImGui::SetCursorPosY(hyper_y);
+		imgui.text(dont_show_text.c_str());
+		ImGui::PopStyleColor();
+
+		// Underline
+		ImVec2 lineEnd = ImGui::GetItemRectMax();
+		lineEnd.y -= 2;
+		ImVec2 lineStart = lineEnd;
+		lineStart.x = ImGui::GetItemRectMin().x;
+		ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
+			IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
+				(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+	}
+}
+
+bool NotificationManager::SharedProfilesNotification::on_text_click()
+{
+	wxLaunchDefaultBrowser(m_explore_url);
+	return false;
+}
+
+void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrapper& imgui,
+	const float text_x, const float text_y, const std::string text, bool more)
+{
+	// Invisible button
+	ImVec2 part_size = ImGui::CalcTextSize(text.c_str());
+	ImGui::SetCursorPosX(text_x - 4);
+	ImGui::SetCursorPosY(text_y - 5);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+	if (imgui.button("##browse_btn", part_size.x + 6, part_size.y + 10)) {
+		if (on_text_click()) {
+			close();
+		}
+	}
+	ImGui::PopStyleColor(3);
+
+	// Hover color
+	ImVec4 HyperColor = m_HyperTextColor;
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
+		HyperColor.y += 0.1f;
+
+	// Text
+	push_style_color(ImGuiCol_Text, HyperColor, m_state == EState::FadingOut, m_current_fade_opacity);
+	ImGui::SetCursorPosX(text_x);
+	ImGui::SetCursorPosY(text_y);
+	imgui.text(text.c_str());
+	ImGui::PopStyleColor();
+
+	// Underline
+	ImVec2 lineEnd = ImGui::GetItemRectMax();
+	lineEnd.y -= 2;
+	ImVec2 lineStart = lineEnd;
+	lineStart.x = ImGui::GetItemRectMin().x;
+	ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
+		IM_COL32((int)(HyperColor.x * 255), (int)(HyperColor.y * 255), (int)(HyperColor.z * 255),
+			(int)(HyperColor.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+}
+
+void NotificationManager::push_shared_profiles_notification(const std::string& explore_url)
+{
+	close_notification_of_type(NotificationType::OrcaSharedProfilesAvailable);
+	NotificationData data{ NotificationType::OrcaSharedProfilesAvailable, NotificationLevel::RegularNotificationLevel, 0,
+		_u8L("Shared profiles may be available for this printer."),
+		_u8L("Browse shared profiles") };
+	push_notification_data(std::make_unique<NotificationManager::SharedProfilesNotification>(data, m_id_provider, m_evt_handler, explore_url), 0);
+}
+
 void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)
 {
     // If already exists
@@ -2290,7 +2491,7 @@ void NotificationManager::upload_job_notification_show_error(int id, const std::
 	}
 }
 
-void NotificationManager::push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelObject const *> objs) 
+void NotificationManager::push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelObject const *> objs)
 {
     std::vector<ObjectID> ids;
     for (auto optr : objs) {
@@ -2308,19 +2509,113 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
 			if (!ovs.empty()) {
 				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
 				wxGetApp().obj_list()->select_items(ovs);
+				wxGetApp().obj_list()->update_selections_on_canvas();
 			}
 			return false;
 		};
 	}
     auto link     = callback ? _u8L("Jump to") : "";
-    if (!objs.empty()) {
-        link += " [";
-        for (auto obj : objs) {
-            if (obj) link += obj->name + ", ";
+    std::vector<std::string> names;
+    for (auto optr : objs) {
+        if (optr) {
+            names.push_back(optr->name);
         }
-        if (!objs.empty()) {
-            link.pop_back();
-            link.pop_back();
+    }
+    if (!names.empty()) {
+        link += " [";
+        for (size_t i = 0; i < names.size(); ++i) {
+            if (i > 0) link += ", ";
+            link += names[i];
+        }
+        link += "] ";
+    }
+    set_all_slicing_warnings_gray(false);
+    push_notification_data({NotificationType::SlicingSeriousWarning, NotificationLevel::SeriousWarningNotificationLevel, 0, _u8L("Serious warning:") + "\n" + text, link,
+                            callback},
+                           0);
+    set_slicing_progress_hidden();
+}
+
+void NotificationManager::push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelInstance const *> insts)
+{
+    std::vector<std::pair<ObjectID, ObjectID>> ids;
+    for (auto iptr : insts) {
+        if (iptr && iptr->get_object()) {
+            ids.push_back({iptr->get_object()->id(), iptr->id()});
+        }
+    }
+    std::function<bool(wxEvtHandler*)> callback;
+    if (!insts.empty()) {
+        callback = [ids](wxEvtHandler*) {
+            auto& objects = wxGetApp().model().objects;
+            wxDataViewItemArray sel_items;
+            std::vector<ObjectVolumeID> fallback_ovs;
+            auto* obj_list = wxGetApp().obj_list();
+            if (!obj_list) return false;
+            auto* model = obj_list->GetModel();
+            if (!model) return false;
+
+            for (const auto& pair : ids) {
+                ObjectID obj_id = pair.first;
+                ObjectID inst_id = pair.second;
+                
+                auto iter = std::find_if(objects.begin(), objects.end(), [obj_id](auto o) { return o->id() == obj_id; });
+                if (iter != objects.end()) {
+                    ModelObject* obj = *iter;
+                    int inst_idx = -1;
+                    for (int i=0; i<obj->instances.size(); ++i) {
+                        if (obj->instances[i]->id() == inst_id) {
+                            inst_idx = i;
+                            break;
+                        }
+                    }
+                    
+                    if (inst_idx != -1) {
+                        wxDataViewItem item;
+                        wxDataViewItem objItem = model->GetObjectItem(obj);
+                        if (objItem.IsOk()) {
+                             int vm_obj_idx = model->GetIdByItem(objItem);
+                             if (vm_obj_idx != -1) {
+                                 item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
+                             }
+                        }
+
+                        if (item.IsOk()) {
+                            sel_items.Add(item);
+                        } else {
+                            fallback_ovs.push_back({obj, nullptr});
+                        }
+                    } else {
+                         fallback_ovs.push_back({obj, nullptr});
+                    }
+                }
+            }
+            
+            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+            
+            if (!sel_items.empty()) {
+                obj_list->select_items(sel_items);
+                obj_list->update_selections_on_canvas();
+            } else if (!fallback_ovs.empty()) {
+                obj_list->select_items(fallback_ovs);
+                obj_list->update_selections_on_canvas();
+            }
+            
+            return false;
+        };
+    }
+    auto link     = callback ? _u8L("Jump to") : "";
+    std::vector<std::string> names;
+    for (auto iptr : insts) {
+        if (iptr && iptr->get_object()) {
+            names.push_back(iptr->get_object()->name);
+        }
+    }
+    if (!names.empty()) {
+        link += " [";
+        for (size_t i = 0; i < names.size(); ++i) {
+            if (i > 0) link += ", ";
+            link += names[i];
         }
         link += "] ";
     }

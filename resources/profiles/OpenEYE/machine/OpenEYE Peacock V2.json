@@ -4,7 +4,7 @@
 	"nozzle_diameter": "0.4;0.2;0.6;0.8",
 	"url": "http://www.openeye.tech",
 	"bed_model": "Plate.stl",
-	"bed_texture": "pei.png",
+	"bed_texture": "",
 	"default_bed_type": "Textured PEI Plate",
 	"family": "OpenEYE",
 	"machine_tech": "FFF",

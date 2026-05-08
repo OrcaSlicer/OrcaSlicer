@@ -13403,6 +13403,9 @@ msgstr ""
 msgid "Contour"
 msgstr ""
 
+msgid "Hole"
+msgstr ""
+
 msgid "Contour and hole"
 msgstr ""
 

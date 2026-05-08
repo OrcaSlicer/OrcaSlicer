@@ -315,7 +315,7 @@ static void convert_lines_to_vertices(const Slic3r::Lines& lines, const std::vec
 static void convert_to_vertices(const Slic3r::ExtrusionPath& extrusion_path, float print_z, size_t layer_id, size_t extruder_id, size_t color_id,
     EGCodeExtrusionRole extrusion_role, const Slic3r::Point& shift, std::vector<PathVertex>& vertices)
 {
-    Slic3r::Polyline polyline = extrusion_path.polyline;
+    Slic3r::Polyline polyline = extrusion_path.polyline.to_polyline();
     polyline.remove_duplicate_points();
     polyline.translate(shift);
     const Slic3r::Lines lines = polyline.lines();
@@ -331,7 +331,7 @@ static void convert_to_vertices(const Slic3r::ExtrusionMultiPath& extrusion_mult
     std::vector<float> widths;
     std::vector<float> heights;
     for (const Slic3r::ExtrusionPath& extrusion_path : extrusion_multi_path.paths) {
-        Slic3r::Polyline polyline = extrusion_path.polyline;
+        Slic3r::Polyline polyline = extrusion_path.polyline.to_polyline();
         polyline.remove_duplicate_points();
         polyline.translate(shift);
         const Slic3r::Lines lines_this = polyline.lines();
@@ -349,7 +349,7 @@ static void convert_to_vertices(const Slic3r::ExtrusionLoop& extrusion_loop, flo
     std::vector<float> widths;
     std::vector<float> heights;
     for (const Slic3r::ExtrusionPath& extrusion_path : extrusion_loop.paths) {
-        Slic3r::Polyline polyline = extrusion_path.polyline;
+        Slic3r::Polyline polyline = extrusion_path.polyline.to_polyline();
         polyline.remove_duplicate_points();
         polyline.translate(shift);
         const Slic3r::Lines lines_this = polyline.lines();
