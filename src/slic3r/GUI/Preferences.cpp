@@ -113,7 +113,8 @@ wxBoxSizer *PreferencesDialog::create_item_combobox(wxString title, wxString too
     if (!current_setting.empty()) {
         auto compare  = [current_setting](string possible_setting) { return current_setting == possible_setting; };
         auto iterator = find_if(config_name_index.begin(), config_name_index.end(), compare);
-        current_index = iterator - config_name_index.begin();
+        if (iterator != config_name_index.end())
+            current_index = static_cast<unsigned int>(iterator - config_name_index.begin());
     }
 
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
@@ -1500,6 +1501,15 @@ void PreferencesDialog::create_items()
 
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
+
+    auto item_antialiasing = create_item_combobox(
+        _L("Antialiasing"),
+        _L("Set the multisample antialiasing level for the 3D viewport. Higher values smooth edges but use more GPU resources. Requires application restart."),
+        SETTING_OPENGL_AA_SAMPLES,
+        {_L("Disabled"), "2x", "4x", "8x", "16x"},
+        {"0", "2", "4", "8", "16"}
+    );
+    g_sizer->Add(item_antialiasing);
 
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);

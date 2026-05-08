@@ -230,6 +230,9 @@ void AppConfig::set_defaults()
     if (get("camera_orbit_mult").empty())
         set("camera_orbit_mult", "1.0");
 
+    if (get(SETTING_OPENGL_AA_SAMPLES).empty())
+        set(SETTING_OPENGL_AA_SAMPLES, "4");
+
     if (get("export_sources_full_pathnames").empty())
         set_bool("export_sources_full_pathnames", false);
 
