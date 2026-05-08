@@ -368,8 +368,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
             // Get mesh in cut space (same transform as process_volume_cut applies)
             TriangleMesh mesh(volume->mesh());
             const auto volume_matrix = volume->get_matrix();
-            mesh.transform(inverse_cut_matrix * instance_matrix * volume_matrix, true);
-            mesh.transform(m_cut_matrix);
+            mesh.transform(instance_matrix * volume_matrix, true);
             SavedPainting sp;
             sp.its = std::move(mesh.its);
             sp.supported = volume->supported_facets.get_data();
