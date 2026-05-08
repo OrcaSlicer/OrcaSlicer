@@ -7881,7 +7881,7 @@ void GUI_App::preset_deleted_from_cloud(std::string setting_id)
 
     // Delete the .info file after cloud deletion is confirmed
     if (!preset_file_path.empty() && fs::exists(fs::path(preset_file_path))) {
-        boost::nowide::remove(preset_file_path.c_str());
+        boost::filesystem::remove(preset_file_path.c_str());
         BOOST_LOG_TRIVIAL(info) << "Deleted .info file after cloud confirmation: " << preset_file_path;
     }
 
