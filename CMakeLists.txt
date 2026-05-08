@@ -574,7 +574,7 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 set(Boost_NO_SYSTEM_PATHS TRUE)
-find_package(Boost 1.91.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
+find_package(Boost 1.91.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide process)
 
 add_library(boost_libs INTERFACE)
 add_library(boost_headeronly INTERFACE)
