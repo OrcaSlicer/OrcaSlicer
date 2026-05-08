@@ -10,8 +10,6 @@
 #include "libslic3r_version.h"
 
 #include <algorithm>
-#include <limits>
-#include <mutex>
 #include <set>
 #include <fstream>
 #include <unordered_set>
@@ -3541,7 +3539,6 @@ void PresetBundle::set_calibrate_printer(std::string name)
         calibrate_printer = printers.find_preset(name);
     const Preset &                printer_preset = calibrate_printer ? *calibrate_printer : printers.get_edited_preset();
     const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(printer_preset);
-    const std::vector<std::string> active_printer_names = printers.get_preset_collection_names(printer_preset);
     DynamicPrintConfig            config;
     config.set_key_value("printer_preset", new ConfigOptionString(active_printer.preset.name));
     const ConfigOption *opt = active_printer.preset.config.option("nozzle_diameter");
@@ -3550,7 +3547,7 @@ void PresetBundle::set_calibrate_printer(std::string name)
     for (size_t i = filaments.num_default_presets(); i < filaments.size(); ++i) {
         const Preset &                preset                          = filaments.m_presets[i];
         const PresetWithVendorProfile this_preset_with_vendor_profile = filaments.get_preset_with_vendor_profile(preset);
-        bool                          is_compatible                   = is_compatible_with_printer(this_preset_with_vendor_profile, active_printer, &config, &active_printer_names);
+        bool                          is_compatible                   = is_compatible_with_printer(this_preset_with_vendor_profile, active_printer, &config);
         if (is_compatible) calibrate_filaments.insert(&preset);
     }
 }
@@ -5098,7 +5095,6 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
 {
     const Preset					&printer_preset					    = this->printers.get_edited_preset();
 	const PresetWithVendorProfile    printer_preset_with_vendor_profile = this->printers.get_preset_with_vendor_profile(printer_preset);
-    const std::vector<std::string>   active_printer_names               = this->printers.get_preset_collection_names(printer_preset);
 
     class PreferedProfileMatch
     {
@@ -5217,8 +5213,7 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
 		assert(printer_preset.config.has("default_filament_profile"));
         const std::vector<std::string> &prefered_filament_profiles = printer_preset.config.option<ConfigOptionStrings>("default_filament_profile")->values;
         this->prints.update_compatible(printer_preset_with_vendor_profile, nullptr, select_other_print_if_incompatible,
-            PreferedPrintProfileMatch(this->prints.get_selected_idx() == size_t(-1) ? nullptr : &this->prints.get_edited_preset(), printer_preset.config.opt_string("default_print_profile")),
-            &active_printer_names);
+            PreferedPrintProfileMatch(this->prints.get_selected_idx() == size_t(-1) ? nullptr : &this->prints.get_edited_preset(), printer_preset.config.opt_string("default_print_profile")));
         const PresetWithVendorProfile   print_preset_with_vendor_profile = this->prints.get_edited_preset_with_vendor_profile();
         // Remember whether the filament profiles were compatible before updating the filament compatibility.
         std::vector<char> 				filament_preset_was_compatible(this->filament_presets.size(), false);
@@ -5236,8 +5231,7 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
             BOOST_LOG_TRIVIAL(info) << boost::format("prefered filament： %1%") % prefered_filament_profiles[idx];
         }
         this->filaments.update_compatible(printer_preset_with_vendor_profile, &print_preset_with_vendor_profile, select_other_filament_if_incompatible,
-            PreferedFilamentsProfileMatch(this->filaments.get_selected_idx() == size_t(-1) ? nullptr : &this->filaments.get_edited_preset(), prefered_filament_profiles),
-            &active_printer_names);
+            PreferedFilamentsProfileMatch(this->filaments.get_selected_idx() == size_t(-1) ? nullptr : &this->filaments.get_edited_preset(), prefered_filament_profiles));
         if (select_other_filament_if_incompatible != PresetSelectCompatibleType::Never) {
             // Verify validity of the current filament presets.
             const std::string prefered_filament_profile = prefered_filament_profiles.empty() ? std::string() : prefered_filament_profiles.front();
@@ -5264,12 +5258,10 @@ void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_pri
 		assert(printer_preset.config.has("default_sla_print_profile"));
 		assert(printer_preset.config.has("default_sla_material_profile"));
 		this->sla_prints.update_compatible(printer_preset_with_vendor_profile, nullptr, select_other_print_if_incompatible,
-            PreferedPrintProfileMatch(this->sla_prints.get_selected_idx() == size_t(-1) ? nullptr : &this->sla_prints.get_edited_preset(), printer_preset.config.opt_string("default_sla_print_profile")),
-            &active_printer_names);
+            PreferedPrintProfileMatch(this->sla_prints.get_selected_idx() == size_t(-1) ? nullptr : &this->sla_prints.get_edited_preset(), printer_preset.config.opt_string("default_sla_print_profile")));
         const PresetWithVendorProfile sla_print_preset_with_vendor_profile = this->sla_prints.get_edited_preset_with_vendor_profile();
 		this->sla_materials.update_compatible(printer_preset_with_vendor_profile, &sla_print_preset_with_vendor_profile, select_other_filament_if_incompatible,
-			PreferedProfileMatch(this->sla_materials.get_selected_idx() == size_t(-1) ? std::string() : this->sla_materials.get_edited_preset().alias, printer_preset.config.opt_string("default_sla_material_profile")),
-            &active_printer_names);
+            PreferedProfileMatch(this->sla_materials.get_selected_idx() == size_t(-1) ? std::string() : this->sla_materials.get_edited_preset().alias, printer_preset.config.opt_string("default_sla_material_profile")));
 		break;
 	}
     default: break;

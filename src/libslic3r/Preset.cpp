@@ -1,5 +1,4 @@
 #include <cassert>
-#include <string>
 
 #include "Config.hpp"
 #include "Exception.hpp"
@@ -770,57 +769,17 @@ bool is_compatible_with_print(const PresetWithVendorProfile &preset, const Prese
 // user printer preset which is inherited from this system printer preset.
 // Because printer_model and nozzle_diameter in BBL system machine preset
 // can't be changed by user.
-static bool active_printer_name_matches(const std::vector<std::string> &printer_names, const PresetWithVendorProfile &active_printer, const std::vector<std::string> *active_printer_names)
-{
-    if (std::find(printer_names.begin(), printer_names.end(), active_printer.preset.name) != printer_names.end())
-        return true;
-
-    if (active_printer.preset.is_system)
-        return false;
-
-    if (active_printer_names != nullptr) {
-        for (size_t idx = 1; idx < active_printer_names->size(); ++idx)
-            if (std::find(printer_names.begin(), printer_names.end(), (*active_printer_names)[idx]) != printer_names.end())
-                return true;
-        return false;
-    }
-
-    return !active_printer.preset.inherits().empty() &&
-           std::find(printer_names.begin(), printer_names.end(), active_printer.preset.inherits()) != printer_names.end();
-}
-
-static bool active_printer_name_matches(const std::set<std::string> &printer_names, const PresetWithVendorProfile &active_printer, const std::vector<std::string> *active_printer_names)
-{
-    if (printer_names.find(active_printer.preset.name) != printer_names.end())
-        return true;
-
-    if (active_printer.preset.is_system)
-        return false;
-
-    if (active_printer_names != nullptr) {
-        for (size_t idx = 1; idx < active_printer_names->size(); ++idx)
-            if (printer_names.find((*active_printer_names)[idx]) != printer_names.end())
-                return true;
-        return false;
-    }
-
-    return !active_printer.preset.inherits().empty() &&
-           printer_names.find(active_printer.preset.inherits()) != printer_names.end();
-}
-
-bool is_compatible_with_parent_printer(const PresetWithVendorProfile& preset, const PresetWithVendorProfile& active_printer, const std::vector<std::string> *active_printer_names)
+bool is_compatible_with_parent_printer(const PresetWithVendorProfile& preset, const PresetWithVendorProfile& active_printer)
 {
     auto *compatible_printers     = dynamic_cast<const ConfigOptionStrings*>(preset.preset.config.option("compatible_printers"));
     bool  has_compatible_printers = compatible_printers != nullptr && ! compatible_printers->values.empty();
-    return has_compatible_printers && active_printer_name_matches(compatible_printers->values, active_printer, active_printer_names);
+    //BBS: FIXME only check the parent now, but should check grand-parent as well.
+    return has_compatible_printers &&
+           std::find(compatible_printers->values.begin(), compatible_printers->values.end(), active_printer.preset.inherits()) !=
+               compatible_printers->values.end();
 }
 
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config)
-{
-    return is_compatible_with_printer(preset, active_printer, extra_config, nullptr);
-}
-
-bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config, const std::vector<std::string> *active_printer_names)
 {
     // Orca: we allow cross vendor compatibility
 	// if (preset.vendor != nullptr && preset.vendor != active_printer.vendor)
@@ -830,8 +789,8 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
     // Orca: check excluded printers
     if (preset.vendor != nullptr && preset.preset.type == Preset::TYPE_FILAMENT) {
         const auto& excluded_printers = preset.preset.m_excluded_from;
-        bool excluded = preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY &&
-                        active_printer_name_matches(excluded_printers, active_printer, active_printer_names);
+        const auto  excluded         = preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY &&
+                              excluded_printers.find(active_printer.preset.name) != excluded_printers.end();
         if (excluded)
             return false;
     }
@@ -850,7 +809,7 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
     return preset.preset.is_default || active_printer.preset.name.empty() || !has_compatible_printers ||
            std::find(compatible_printers->values.begin(), compatible_printers->values.end(), active_printer.preset.name) !=
                compatible_printers->values.end() ||
-           (!active_printer.preset.is_system && is_compatible_with_parent_printer(preset, active_printer, active_printer_names));
+           (!active_printer.preset.is_system && is_compatible_with_parent_printer(preset, active_printer));
 }
 
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer)
@@ -3040,27 +2999,6 @@ const Preset* PresetCollection::get_selected_preset_parent() const
     //return (preset == nullptr/* || preset->is_default*/ || preset->is_external) ? nullptr : preset;
 }
 
-std::vector<std::string> PresetCollection::get_preset_collection_names(const Preset& preset) const
-{
-    std::vector<std::string> names;
-    std::set<std::string> seen;
-
-    const Preset *current = &preset;
-    while (current != nullptr) {
-        if (!seen.insert(current->name).second)
-            break; // cycle protection
-
-        names.push_back(current->name);
-
-        if (current->inherits().empty())
-            break;
-
-        current = this->get_preset_parent(*current);
-    }
-
-    return names;
-}
-
 const Preset* PresetCollection::get_preset_parent(const Preset& child) const
 {
     const std::string &inherits = child.inherits();
@@ -3288,7 +3226,7 @@ void PresetCollection::set_default_suppressed(bool default_suppressed)
     }
 }
 
-size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType unselect_if_incompatible, const std::vector<std::string> *active_printer_names)
+size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType unselect_if_incompatible)
 {
     DynamicPrintConfig config;
     config.set_key_value("printer_preset", new ConfigOptionString(active_printer.preset.name));
@@ -3308,7 +3246,7 @@ size_t PresetCollection::update_compatible_internal(const PresetWithVendorProfil
 
         const PresetWithVendorProfile this_preset_with_vendor_profile = this->get_preset_with_vendor_profile(preset_edited);
         bool    was_compatible  = preset_edited.is_compatible;
-        preset_edited.is_compatible = is_compatible_with_printer(this_preset_with_vendor_profile, active_printer, &config, active_printer_names);
+        preset_edited.is_compatible = is_compatible_with_printer(this_preset_with_vendor_profile, active_printer, &config);
         if (preset_edited.is_compatible)
             some_compatible++;
 	    if (active_print != nullptr)
@@ -3658,6 +3596,7 @@ void PresetCollection::update_library_profile_excluded_from()
     std::map<std::string, std::set<std::string>*> excluded_froms;
     for (Preset& preset : m_presets) {
         if (preset.vendor != nullptr && preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY) {
+            // check if the preset has empty compatible_printers
             const auto* compatible_printers = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("compatible_printers"));
             if (compatible_printers == nullptr || compatible_printers->values.empty())
                 excluded_froms[preset.alias] = &preset.m_excluded_from;
