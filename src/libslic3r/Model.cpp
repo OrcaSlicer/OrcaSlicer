@@ -2078,10 +2078,16 @@ void ModelObject::split(ModelObjectPtrs* new_objects)
             ModelVolume* new_vol = new_object->add_volume(*volume, std::move(mesh));
 
             if (is_multi_volume_object) {
-                // BBS: volume geometry not changed, so we can keep the color paint facets
-                if (new_vol->mmu_segmentation_facets.timestamp() == volume->mmu_segmentation_facets.timestamp())
-                    new_vol->mmu_segmentation_facets.reset(); // BBS: let next assign take effect
-                new_vol->mmu_segmentation_facets.assign(volume->mmu_segmentation_facets);
+                // BBS: volume geometry not changed, so we can keep the paint facets
+#define COPY_FACETS(f) \
+                if (new_vol->f.timestamp() == volume->f.timestamp()) \
+                    new_vol->f.reset(); /* BBS: let next assign take effect */ \
+                new_vol->f.assign(volume->f)
+
+                COPY_FACETS(supported_facets);
+                COPY_FACETS(seam_facets);
+                COPY_FACETS(mmu_segmentation_facets);
+                COPY_FACETS(fuzzy_skin_facets);
             }
 
             // BBS: clear volume's config, as we already set them into object
