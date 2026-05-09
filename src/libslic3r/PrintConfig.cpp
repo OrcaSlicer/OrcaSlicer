@@ -316,7 +316,8 @@ static t_config_enum_values s_keys_map_PrintOrder{
     { "angle_sort",  int(PrintOrder::AngleSortCycle)},
     { "hilbert",     int(PrintOrder::HilbertCurve)},
     { "boustrophedon", int(PrintOrder::Boustrophedon)},
-    { "best_of",     int(PrintOrder::BestOfStrategies)},
+    { "spiral",        int(PrintOrder::SpiralOrdering)},
+    { "best_of",       int(PrintOrder::BestOfStrategies)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
 
@@ -1869,6 +1870,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert curve"));
     def->enum_values.push_back("boustrophedon");
     def->enum_labels.push_back(L("Boustrophedon (snake)"));
+    def->enum_values.push_back("spiral");
+    def->enum_labels.push_back(L("Spiral"));
     def->enum_values.push_back("best_of");
     def->enum_labels.push_back(L("Best of all"));
     def->mode = comAdvanced;
