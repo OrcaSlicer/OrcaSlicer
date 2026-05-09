@@ -305,6 +305,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
 
         if (supports_multi_color_print()) {
             // Build colorMatch list from the mapping provided by the dialog
+            bool use_spool_holder = false;
             json color_list = json::array();
             for (int i = 0; ; i++) {
                 auto it = extended_info.find("colorMatch_" + std::to_string(i));
@@ -318,43 +319,58 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
                 while (std::getline(iss, part, '\t'))
                     parts.push_back(part);
                 if (parts.size() >= 5) {
+                    int box_id = std::stoi(parts[3]);
+                    if (box_id == 0)
+                        use_spool_holder = true;
                     color_list.push_back({
                         {"id", parts[0]},
                         {"type", parts[1]},
                         {"color", parts[2]},
-                        {"boxId", std::stoi(parts[3])},
+                        {"boxId", box_id},
                         {"materialId", std::stoi(parts[4])}
                     });
                 }
             }
 
-            json color_match = {
-                {"method", "set"},
-                {"params", {
-                    {"colorMatch", {
-                        {"path", gcode_path},
-                        {"list", color_list}
-                    }}
-                }}
-            };
-            ws.write(net::buffer(to_string(color_match)));
-
-            // Read enableSelfTest from extended_info, default to 0 (calibration off)
             int enable_self_test = 0;
-            auto it = extended_info.find("enableSelfTest");
-            if (it != extended_info.end())
-                enable_self_test = std::stoi(it->second);
+            {
+                auto it = extended_info.find("enableSelfTest");
+                if (it != extended_info.end())
+                    enable_self_test = std::stoi(it->second);
+            }
 
-            json multi_color_print = {
-                {"method", "set"},
-                {"params", {
-                    {"multiColorPrint", {
-                        {"gcode", gcode_path},
+            if (use_spool_holder) {
+                json cmd = {
+                    {"method", "set"},
+                    {"params", {
+                        {"opGcodeFile", "printprt:" + gcode_path},
                         {"enableSelfTest", enable_self_test}
                     }}
-                }}
-            };
-            ws.write(net::buffer(to_string(multi_color_print)));
+                };
+                ws.write(net::buffer(to_string(cmd)));
+            } else {
+                json color_match = {
+                    {"method", "set"},
+                    {"params", {
+                        {"colorMatch", {
+                            {"path", gcode_path},
+                            {"list", color_list}
+                        }}
+                    }}
+                };
+                ws.write(net::buffer(to_string(color_match)));
+
+                json multi_color_print = {
+                    {"method", "set"},
+                    {"params", {
+                        {"multiColorPrint", {
+                            {"gcode", gcode_path},
+                            {"enableSelfTest", enable_self_test}
+                        }}
+                    }}
+                };
+                ws.write(net::buffer(to_string(multi_color_print)));
+            }
         } else {
             json cmd = {
                 {"method", "set"},
