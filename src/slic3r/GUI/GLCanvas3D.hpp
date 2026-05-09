@@ -724,6 +724,8 @@ public:
     CameraTarget m_camera_target;
 #endif // ENABLE_SHOW_CAMERA_TARGET
     GLModel m_background;
+    unsigned int m_fxaa_texture_id{ 0 };
+    std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -1231,6 +1233,8 @@ private:
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
+    bool _is_fxaa_enabled() const;
+    void _render_fxaa_pass(unsigned int width, unsigned int height);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
     //BBS: add part plate related logic

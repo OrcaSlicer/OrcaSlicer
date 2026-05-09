@@ -1511,6 +1511,13 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_antialiasing);
 
+    auto item_fxaa = create_item_checkbox(
+        _L("Use FXAA post-processing"),
+        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass. Useful when multisample antialiasing is disabled or too expensive. Takes effect immediately."),
+        SETTING_OPENGL_FXAA_ENABLED
+    );
+    g_sizer->Add(item_fxaa);
+
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
 

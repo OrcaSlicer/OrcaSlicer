@@ -233,6 +233,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_AA_SAMPLES).empty())
         set(SETTING_OPENGL_AA_SAMPLES, "4");
 
+    if (get(SETTING_OPENGL_FXAA_ENABLED).empty())
+        set_bool(SETTING_OPENGL_FXAA_ENABLED, false);
+
     if (get("export_sources_full_pathnames").empty())
         set_bool("export_sources_full_pathnames", false);
 
