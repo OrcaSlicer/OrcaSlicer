@@ -10183,6 +10183,9 @@ msgstr ""
 msgid "Switch between Prepare/Preview"
 msgstr ""
 
+msgid "Toggle printable for object/part"
+msgstr ""
+
 msgid "Plater"
 msgstr ""
 
@@ -13116,6 +13119,9 @@ msgid "Painted only"
 msgstr ""
 
 msgid "Contour"
+msgstr ""
+
+msgid "Hole"
 msgstr ""
 
 msgid "Contour and hole"
