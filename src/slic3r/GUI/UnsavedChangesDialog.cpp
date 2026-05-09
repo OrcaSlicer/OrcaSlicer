@@ -25,6 +25,7 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/HyperLink.hpp"
 
 using boost::optional;
 
@@ -958,6 +959,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
     m_sizer_button->Add(checkbox_sizer, 0, wxLEFT, FromDIP(22));
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
+
+    if (dependent_presets != nullptr) {
+        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
+        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+    }
 
     m_sizer_button->Add(0, 0, 1, 0, 0);
 

@@ -9641,6 +9641,13 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     //nothing to do, keep the original one
                 }
                 else {
+                    // Guard: set_with_restore is parent-shaped and would truncate the child's
+                    // vector when the child has more extruders than the parent (e.g. an IDEX
+                    // preset inheriting from a single-nozzle base). The child's saved value is
+                    // authoritative for its own extruder count, so skip the merge for this key.
+                    if (cur_variant_count > target_variant_count)
+                        continue;
+
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
                         stride = 2;

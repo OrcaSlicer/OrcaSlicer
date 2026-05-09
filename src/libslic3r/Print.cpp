@@ -1044,29 +1044,61 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     return {};
 }
 
-FilamentCompatibilityType Print::check_multi_filaments_compatibility(const std::vector<std::string>& filament_types)
+FilamentCompatibilityType Print::check_multi_filaments_compatibility(
+    const std::vector<std::string>& filament_types,
+    const std::vector<int>& nozzle_temperatures,
+    const std::vector<int>& nozzle_temperature_range_lows,
+    const std::vector<int>& nozzle_temperature_range_highs)
 {
-    bool has_high_temperature_filament = false;
-    bool has_low_temperature_filament = false;
-    bool has_mid_temperature_filament = false;
+    const size_t filament_count = filament_types.size();
+    if (filament_count < 2)
+        return FilamentCompatibilityType::Compatible;
 
-    for (const auto& type : filament_types) {
-        if (get_filament_temp_type(type) ==FilamentTempType::HighTemp)
-            has_high_temperature_filament = true;
-        else if (get_filament_temp_type(type) == FilamentTempType::LowTemp)
-            has_low_temperature_filament = true;
-        else if (get_filament_temp_type(type) == FilamentTempType::HighLowCompatible)
-            has_mid_temperature_filament = true;
+    std::vector<int> resolved_temperatures(filament_count, 0);
+    std::vector<int> resolved_range_lows(filament_count, 0);
+    std::vector<int> resolved_range_highs(filament_count, 0);
+    for (size_t i = 0; i < filament_count; ++i) {
+        int range_low = (i < nozzle_temperature_range_lows.size()) ? nozzle_temperature_range_lows[i] : 0;
+        int range_high = (i < nozzle_temperature_range_highs.size()) ? nozzle_temperature_range_highs[i] : 0;
+
+        if (range_low == 0 || range_high == 0) {
+            int default_low = range_low;
+            int default_high = range_high;
+            MaterialType::get_temperature_range(filament_types[i], default_low, default_high);
+            if (range_low == 0)
+                range_low = default_low;
+            if (range_high == 0)
+                range_high = default_high;
+        }
+
+        if (range_low >= range_high)
+            return FilamentCompatibilityType::InvalidTemperatureRange;
+
+        int print_temperature = (i < nozzle_temperatures.size()) ? nozzle_temperatures[i] : 0;
+
+        resolved_temperatures[i] = print_temperature;
+        resolved_range_lows[i] = range_low;
+        resolved_range_highs[i] = range_high;
     }
 
-    if (has_high_temperature_filament && has_low_temperature_filament)
-        return FilamentCompatibilityType::HighLowMixed;
-    else if (has_high_temperature_filament && has_mid_temperature_filament)
-        return FilamentCompatibilityType::HighMidMixed;
-    else if (has_low_temperature_filament && has_mid_temperature_filament)
-        return FilamentCompatibilityType::LowMidMixed;
-    else
-        return FilamentCompatibilityType::Compatible;
+    for (size_t i = 0; i < filament_count; ++i) {
+        for (size_t j = i + 1; j < filament_count; ++j) {
+            const bool i_temp_is_compatible_with_j =
+                resolved_temperatures[i] >= resolved_range_lows[j] &&
+                resolved_temperatures[i] <= resolved_range_highs[j];
+            const bool j_temp_is_compatible_with_i =
+                resolved_temperatures[j] >= resolved_range_lows[i] &&
+                resolved_temperatures[j] <= resolved_range_highs[i];
+
+            if (i_temp_is_compatible_with_j && j_temp_is_compatible_with_i)
+                continue;
+
+            // Range-only rule: any pair outside mutual recommended ranges is incompatible.
+            return FilamentCompatibilityType::HighLowMixed;
+        }
+    }
+
+    return FilamentCompatibilityType::Compatible;
 }
 
 bool Print::is_filaments_compatible(const std::vector<int>& filament_types)
@@ -1111,18 +1143,21 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
+    const std::string incompatible_temp_msg = L("Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
+    const std::string invalid_temp_range_msg = L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+    const std::string incompatible_temp_msg_preferences_enable = L("If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction.");
     if(print_config.print_sequence == PrintSequence::ByObject) {// use ByObject valid under ByObject print sequence
-        std::set<FilamentCompatibilityType> Compatibility_each_obj;
+        bool has_incompatible_object = false;
         bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
+        StringObjectException ret;
 
         for (const auto &objectID_t : print.print_object_ids()) {
             std::set<int> obj_used_extruder_ids;
             auto                     print_object = print.get_object(objectID_t);// current object
             if (print_object){
                 auto object_extruders_t = print_object->object_extruders(); // object used extruder
-                for (int extruder : object_extruders_t) {
-                    assert(extruder > 0);
-                    obj_used_extruder_ids.insert(extruder);
+                for (unsigned int extruder : object_extruders_t) {
+                    obj_used_extruder_ids.insert(static_cast<int>(extruder));
                 }
             }
 
@@ -1136,56 +1171,82 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
             }
             std::vector<std::string> filament_types;
+            std::vector<int> nozzle_temperatures;
+            std::vector<int> nozzle_temperature_range_lows;
+            std::vector<int> nozzle_temperature_range_highs;
             filament_types.reserve(obj_used_extruder_ids.size());
-            for (const auto &extruder_idx : obj_used_extruder_ids) filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
+            nozzle_temperatures.reserve(obj_used_extruder_ids.size());
+            nozzle_temperature_range_lows.reserve(obj_used_extruder_ids.size());
+            nozzle_temperature_range_highs.reserve(obj_used_extruder_ids.size());
 
-            auto                  compatibility       = check_multi_filaments_compatibility(filament_types);// check for each object
-            Compatibility_each_obj.insert(compatibility);
+            for (const auto &extruder_idx : obj_used_extruder_ids) {
+                filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
+                nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
+                nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
+                nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
+            }
+
+            auto compatibility = check_multi_filaments_compatibility(
+                filament_types,
+                nozzle_temperatures,
+                nozzle_temperature_range_lows,
+                nozzle_temperature_range_highs); // check for each object
+            if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+                ret.string = invalid_temp_range_msg;
+                return ret;
+            }
+            if (compatibility != FilamentCompatibilityType::Compatible) {
+                has_incompatible_object = true;
+                break;
+            }
         }
-        StringObjectException ret;
-        std::string           hypertext = "filament_mix_print";
-        if (Compatibility_each_obj.count(FilamentCompatibilityType::HighLowMixed)){// at least one object has HighLowMixed
+        if (has_incompatible_object){
             if (enable_mix_printing) {
-                ret.string     = L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
+                ret.string     = incompatible_temp_msg;
                 ret.is_warning = true;
-                // ret.hypetext   = hypertext;
             } else
-                ret.string = L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage. If you still want to print, you can enable the option in Preferences.");
-        }else if (Compatibility_each_obj.count(FilamentCompatibilityType::LowMidMixed) || Compatibility_each_obj.count(FilamentCompatibilityType::HighMidMixed)){// at least one object has other Mixed
-            ret.is_warning = true;
-            // ret.hypetext   = hypertext;
-            ret.string     = L("Printing different-temp filaments together may cause nozzle clogging or printer damage.");
+                ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
         }
         return ret;
     }
     std::vector<unsigned int> extruders = print.extruders();
     std::vector<std::string> filament_types;
+    std::vector<int> nozzle_temperatures;
+    std::vector<int> nozzle_temperature_range_lows;
+    std::vector<int> nozzle_temperature_range_highs;
     filament_types.reserve(extruders.size());
-    for (const auto& extruder_idx : extruders)
+    nozzle_temperatures.reserve(extruders.size());
+    nozzle_temperature_range_lows.reserve(extruders.size());
+    nozzle_temperature_range_highs.reserve(extruders.size());
+    for (const auto& extruder_idx : extruders) {
         filament_types.push_back(print_config.filament_type.get_at(extruder_idx));
+        nozzle_temperatures.push_back(print_config.nozzle_temperature.get_at(extruder_idx));
+        nozzle_temperature_range_lows.push_back(print_config.nozzle_temperature_range_low.get_at(extruder_idx));
+        nozzle_temperature_range_highs.push_back(print_config.nozzle_temperature_range_high.get_at(extruder_idx));
+    }
 
-    auto compatibility = check_multi_filaments_compatibility(filament_types);
+    auto compatibility = check_multi_filaments_compatibility(
+        filament_types,
+        nozzle_temperatures,
+        nozzle_temperature_range_lows,
+        nozzle_temperature_range_highs);
     bool enable_mix_printing = !print.need_check_multi_filaments_compatibility();
 
     StringObjectException ret;
 
-    if(compatibility == FilamentCompatibilityType::HighLowMixed){
+    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+        ret.string = invalid_temp_range_msg;
+        return ret;
+    }
+
+    if(compatibility != FilamentCompatibilityType::Compatible){
         if(enable_mix_printing){
-            ret.string =L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
+            ret.string = incompatible_temp_msg;
             ret.is_warning = true;
         }
         else{
-            ret.string =L("Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage. If you still want to print, you can enable the option in Preferences.");
+            ret.string = incompatible_temp_msg + " " + incompatible_temp_msg_preferences_enable;
         }
-    }
-    else if (compatibility == FilamentCompatibilityType::HighMidMixed) {
-        ret.is_warning = true;
-        ret.string =L("Printing high-temp and mid-temp filaments together may cause nozzle clogging or printer damage.");
-
-    }
-    else if (compatibility == FilamentCompatibilityType::LowMidMixed) {
-        ret.is_warning = true;
-        ret.string = L("Printing mid-temp and low-temp filaments together may cause nozzle clogging or printer damage.");
     }
 
     return ret;
@@ -2798,43 +2859,7 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
-    const static std::string HighTempFilamentStr = "high_temp_filament";
-    const static std::string LowTempFilamentStr = "low_temp_filament";
-    const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";
-    static std::unordered_map<std::string, std::unordered_set<std::string>>filament_temp_type_map;
-
-    if (filament_temp_type_map.empty()) {
-        fs::path file_path = fs::path(resources_dir()) / "info" / "filament_info.json";
-        std::ifstream in(file_path.string());
-        json j;
-        try{
-            j = json::parse(in);
-            in.close();
-            auto&&high_temp_filament_arr =j[HighTempFilamentStr].get < std::vector<std::string>>();
-            filament_temp_type_map[HighTempFilamentStr] = std::unordered_set<std::string>(high_temp_filament_arr.begin(), high_temp_filament_arr.end());
-            auto&& low_temp_filament_arr = j[LowTempFilamentStr].get < std::vector<std::string>>();
-            filament_temp_type_map[LowTempFilamentStr] = std::unordered_set<std::string>(low_temp_filament_arr.begin(), low_temp_filament_arr.end());
-            auto&& high_low_compatible_filament_arr = j[HighLowCompatibleFilamentStr].get < std::vector<std::string>>();
-            filament_temp_type_map[HighLowCompatibleFilamentStr] = std::unordered_set<std::string>(high_low_compatible_filament_arr.begin(), high_low_compatible_filament_arr.end());
-        }
-        catch (const json::parse_error& err){
-            in.close();
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << file_path.string() << " got a nlohmann::detail::parse_error, reason = " << err.what();
-            filament_temp_type_map[HighTempFilamentStr] = {"ABS","ASA","PC","PA","PA-CF","PA-GF","PA6-CF","PET-CF", "PETG-GF","PPS","PPS-CF","PPA-GF","PPA-CF","ABS-Aero","ABS-GF"};
-            filament_temp_type_map[LowTempFilamentStr] = {"PLA","TPU","PLA-CF","PLA-AERO","PVA","BVOH","SBS"};
-            filament_temp_type_map[HighLowCompatibleFilamentStr] = { "HIPS","PETG","PCTG","PE","PP","EVA","PE-CF","PP-CF","PP-GF","PHA"};
-        }
-    }
-
-    if (filament_temp_type_map[HighLowCompatibleFilamentStr].find(filament_type) != filament_temp_type_map[HighLowCompatibleFilamentStr].end())
-        return HighLowCompatible;
-    if (filament_temp_type_map[HighTempFilamentStr].find(filament_type) != filament_temp_type_map[HighTempFilamentStr].end())
-        return HighTemp;
-    if (filament_temp_type_map[LowTempFilamentStr].find(filament_type) != filament_temp_type_map[LowTempFilamentStr].end())
-        return LowTemp;
-
-    // Orca: prefer explicit definition from JSON, if the filament type is not defined in json, fallback to temperature-based logic to determine the filament temp type.
-    // FilamentTempType Temperature-based logic
+    // Range-based classification only: do not use filament_info.json.
     int min_temp, max_temp;
     if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
         if (max_temp <= 250)

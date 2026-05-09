@@ -450,7 +450,7 @@ public:
     bool                empty() const override { return m_objects.empty(); }
     // List of existing PrintObject IDs, to remove notifications for non-existent IDs.
     std::vector<ObjectID> print_object_ids() const override;
-    ApplyStatus         apply(const Model &model, DynamicPrintConfig config) override;
+    ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
     void                set_task(const TaskParams &params) override;
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
     void                finalize() override;
