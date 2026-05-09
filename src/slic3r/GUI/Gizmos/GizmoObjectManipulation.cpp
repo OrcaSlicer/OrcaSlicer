@@ -1243,7 +1243,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (display_size.x() > 0 && display_size.y() > 0 && display_size.z() > 0) {
         m_buffered_size = display_size;
     }
-    ImGui::Separator();
+
     ImGui::AlignTextToFramePadding();
     bool is_avoid_one_update{false};
     if (combox_changed) {

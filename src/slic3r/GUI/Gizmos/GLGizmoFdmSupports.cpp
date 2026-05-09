@@ -82,7 +82,7 @@ bool GLGizmoFdmSupports::on_init()
 
     m_desc["perform"]            = _L("Perform");
     m_desc["on_overhangs_only"]  = _L("On highlighted overhangs only");
-    m_desc["remove_all"]         = _L("Erase all painting");
+    m_desc["remove_all"]         = _L("Erase all");
     m_desc["highlight_by_angle"] = _L("Highlight overhang areas");
     m_desc["tool_type"]          = _L("Tool type");
     m_desc["gap_fill"]           = _L("Gap fill");
@@ -222,11 +222,10 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     const float highlight_slider_left   = m_imgui->calc_text_size(m_desc.at("highlight_by_angle")).x + m_imgui->scaled(1.5f);
     const float reset_button_slider_left = m_imgui->calc_text_size(m_desc.at("reset_direction")).x + m_imgui->scaled(1.5f) + ImGui::GetStyle().FramePadding.x * 2;
     const float on_overhangs_only_width  = m_imgui->calc_text_size(m_desc["on_overhangs_only"]).x + m_imgui->scaled(1.5f);
-    const float remove_btn_width        = m_imgui->calc_text_size(m_desc.at("remove_all")).x + m_imgui->scaled(1.5f);
     const float filter_btn_width        = m_imgui->calc_text_size(m_desc.at("perform")).x + m_imgui->scaled(1.5f);
     const float gap_area_txt_width = m_imgui->calc_text_size(m_desc.at("gap_area")).x + m_imgui->scaled(1.5f);
     const float smart_fill_angle_txt_width = m_imgui->calc_text_size(m_desc.at("smart_fill_angle")).x + m_imgui->scaled(1.5f);
-    const float buttons_width           = remove_btn_width + filter_btn_width + m_imgui->scaled(1.5f);
+    const float buttons_width           = filter_btn_width + m_imgui->scaled(1.5f);
     const float empty_button_width      = m_imgui->calc_button_size("").x;
 
     const float tips_width           = m_imgui->calc_text_size(_L("Auto support threshold angle: ") + " 90 ").x + m_imgui->scaled(1.5f);
@@ -451,7 +450,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     ImGui::SameLine();
     m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_fdm_support_painted() == false);
-    if (m_imgui->button(_L("Reset"), m_desc.at("remove_all"))) {
+    if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject *        mo  = m_c->selection_info()->model_object();
         int                  idx = -1;

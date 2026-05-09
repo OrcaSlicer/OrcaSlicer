@@ -2240,7 +2240,10 @@ void GLGizmoCut3D::apply_selected_connectors(std::function<void(size_t idx)> app
 void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, float x, float y, float bottom_limit)
 {
     // Connectors section
-
+        
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+    
     ImGui::Separator();
 
     // WIP : Auto : Need to implement

@@ -41,7 +41,7 @@ bool GLGizmoSeam::on_init()
     m_desc["enforce"]          = _L("Enforce seam");
     m_desc["block"]            = _L("Block seam");
     m_desc["remove"]           = _L("Erase");
-    m_desc["remove_all"]       = _L("Erase all painting");
+    m_desc["remove_all"]       = _L("Erase all");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");
 
@@ -260,7 +260,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 
     ImGui::SameLine();
     m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_seam_painted() == false);
-    if (m_imgui->button(_L("Reset"), m_desc.at("remove_all"))) {
+    if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject         *mo  = m_c->selection_info()->model_object();
         int                  idx = -1;

@@ -51,9 +51,11 @@ bool GLGizmoBrimEars::on_init()
     m_desc["head_diameter"]    = _L("Head diameter");
     m_desc["max_angle"]        = _L("Max angle");
     m_desc["detection_radius"] = _L("Detection radius");
-    m_desc["remove_selected"]  = _L("Remove selected points");
-    m_desc["remove_all"]       = _L("Remove all");
-    m_desc["auto_generate"]    = _L("Auto-generate points");
+    m_desc["remove"]           = _L("Remove");
+    m_desc["remove_selected"]  = _L("Selected");
+    m_desc["remove_all"]       = _L("All");
+    m_desc["create"]           = _L("Create");
+    m_desc["auto_generate"]    = _L("Auto-generate");
     m_desc["section_view"]     = _L("Section view");
 
     m_shortcuts = {
@@ -643,21 +645,21 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     y                 = std::min(y, bottom_limit - win_h);
     GizmoImguiSetNextWIndowPos(x, y, ImGuiCond_Always, 0.0f, 0.0f);
 
-    const float currt_scale = m_parent.get_scale();
-    ImGuiWrapper::push_toolbar_style(currt_scale);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0 * currt_scale, 5.0 * currt_scale));
-    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 4.0f * currt_scale);
+    const float f_scale = m_parent.get_scale();
+    ImGuiWrapper::push_toolbar_style(f_scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
     GizmoImguiBegin(get_name(),
                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     float                 space_size      = m_imgui->get_style_scaling() * 8;
-    std::vector<wxString> text_list       = {m_desc["head_diameter"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"]};
+    std::vector<wxString> text_list       = {m_desc["head_diameter"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"],
+                                             m_desc["create"], m_desc["remove"]};
     float                 widest_text     = m_imgui->find_widest_text(text_list);
     float                 caption_size    = widest_text + space_size + ImGui::GetStyle().WindowPadding.x;
     float                 input_text_size = m_imgui->scaled(10.0f);
     float                 button_size     = ImGui::GetFrameHeight();
 
-    float list_width      = input_text_size + ImGui::GetStyle().ScrollbarSize + 2 * currt_scale;
+    float list_width      = input_text_size + ImGui::GetStyle().ScrollbarSize + 2 * f_scale;
 
     const float slider_icon_width = m_imgui->get_slider_icon_size().x;
     const float slider_width      = list_width - space_size;
@@ -671,12 +673,12 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         if (last_y != y) last_y = y;
     }
 
-    ImGui::AlignTextToFramePadding();
 
     // Following is a nasty way to:
     //  - save the initial value of the slider before one starts messing with it
     //  - keep updating the head radius during sliding so it is continuosly refreshed in 3D scene
     //  - take correct undo/redo snapshot after the user is done with moving the slider
+    ImGui::AlignTextToFramePadding();
     float initial_value = m_new_point_head_diameter;
     m_imgui->text(m_desc["head_diameter"]);
     ImGui::SameLine(caption_size);
@@ -693,8 +695,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##head_diameter_input", &m_new_point_head_diameter, 0.05f, 0.0f, 0.0f, "%.1f");
-    ImGui::AlignTextToFramePadding();
 
+    ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["max_angle"]);
     ImGui::SameLine(caption_size);
     ImGui::PushItemWidth(slider_width);
@@ -702,8 +704,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##max_angle_input", &m_max_angle, 0.05f, 0.0f, 180.0f, "%.1f");
-    ImGui::AlignTextToFramePadding();
 
+    ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["detection_radius"]);
     ImGui::SameLine(caption_size);
     ImGui::PushItemWidth(slider_width);
@@ -713,6 +715,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::BBLDragFloat("##detection_radius_input", &m_detection_radius, 0.05f, 0.0f, static_cast<float>(m_detection_radius_max), "%.1f");
     ImGui::Separator();
 
+    ImGui::AlignTextToFramePadding();
     float clp_dist = float(m_c->object_clipper()->get_position());
     m_imgui->text(m_desc["section_view"]);
     ImGui::SameLine(caption_size);
@@ -724,15 +727,27 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true); }
     ImGui::Separator();
 
-    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(m_desc["create"]);
+    ImGui::SameLine(caption_size);
     if (m_imgui->button(m_desc["auto_generate"])) { auto_generate(); }
 
-    ImGui::Separator();
 
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(m_desc["remove"]);
+    ImGui::SameLine(caption_size);
     m_imgui->disabled_begin(has_selected_points() == false);
     if (m_imgui->button(m_desc["remove_selected"])) {
         delete_selected_points();
+    }
+    m_imgui->disabled_end();
+    ImGui::SameLine();
+    m_imgui->disabled_begin(m_editing_cache.empty());
+    if (m_imgui->button(m_desc["remove_all"])) {
+        if (m_editing_cache.size() > 0) {
+            select_point(AllPoints);
+            delete_selected_points();
+        }
     }
     m_imgui->disabled_end();
 
@@ -741,22 +756,10 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
 
     ImGui::SameLine();
-    m_imgui->disabled_begin(m_editing_cache.empty());
-    if (m_imgui->button(_L("Reset"), m_desc["remove_all"])) {
-        if (m_editing_cache.size() > 0) {
-            select_point(AllPoints);
-            delete_selected_points();
-        }
-    }
-    m_imgui->disabled_end();
-
-    ImGui::SameLine();
     GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
-
-    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 
     bool brim_not_painted = (obj_cfg.option("brim_type")) ? (obj_cfg.opt_enum<BrimType>("brim_type") != btPainted) :
                                                             (glb_cfg.opt_enum<BrimType>("brim_type") != btPainted);
@@ -809,7 +812,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     }
 
     GizmoImguiEnd();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     ImGuiWrapper::pop_toolbar_style();
 }
 

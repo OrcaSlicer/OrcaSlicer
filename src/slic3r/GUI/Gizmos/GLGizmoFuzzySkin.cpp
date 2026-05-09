@@ -37,7 +37,7 @@ bool GLGizmoFuzzySkin::on_init()
     const wxString shift = GUI::shortkey_shift_prefix();
 
     m_desc["reset_direction"]   = _L("Reset direction");
-    m_desc["remove_all"]        = _L("Erase all painting");
+    m_desc["remove_all"]        = _L("Erase all");
     m_desc["circle"]            = _L("Circle");
     m_desc["sphere"]            = _L("Sphere");
     m_desc["pointer"]           = _L("Triangles");
@@ -147,7 +147,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     const float cursor_type_radio_sphere  = m_imgui->calc_text_size(m_desc["sphere"]).x + m_imgui->scaled(2.5f);
     const float cursor_type_radio_pointer = m_imgui->calc_text_size(m_desc["pointer"]).x + m_imgui->scaled(2.5f);
 
-    const float button_width         = m_imgui->calc_text_size(m_desc.at("remove_all")).x + m_imgui->scaled(1.f);
     const float buttons_width        = m_imgui->scaled(0.5f);
     const float minimal_slider_width = m_imgui->scaled(4.f);
 
@@ -172,7 +171,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     const float empty_button_width = m_imgui->calc_button_size("").x;
 
     window_width                   = std::max(window_width, total_text_max);
-    window_width                   = std::max(window_width, button_width);
     window_width                   = std::max(window_width, cursor_type_radio_circle + cursor_type_radio_sphere + cursor_type_radio_pointer);
     window_width                   = std::max(window_width, tool_type_radio_left + tool_type_radio_brush + tool_type_radio_smart_fill);
     window_width                   = std::max(window_width, 2.f * buttons_width + m_imgui->scaled(1.f));
@@ -304,7 +302,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
     ImGui::SameLine();
     m_imgui->disabled_begin(mo->is_fuzzy_skin_painted() == false);
-    if (m_imgui->button(_L("Reset"), m_desc.at("remove_all"))) {
+    if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset selection"), UndoRedo::SnapshotType::GizmoAction);
         int                  idx = -1;
         for (ModelVolume *mv : mo->volumes)
