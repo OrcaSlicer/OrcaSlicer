@@ -4450,7 +4450,7 @@ int CLI::run(int argc, char **argv)
                 size_t num_objects = model.objects.size();
                 for (size_t i = 0; i < num_objects; ++ i) {
                     ModelObjectPtrs new_objects;
-                    model.objects.front()->split(&new_objects);
+                    model.objects.front()->split(&new_objects, false); // TODO: add cli option to enable this?
                     model.delete_object(size_t(0));
                 }
             }
