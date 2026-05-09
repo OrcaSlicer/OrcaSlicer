@@ -1,13 +1,11 @@
 {
     "type": "filament",
+    "name": "Anycubic PVA @Anycubic Kobra X 0.4 nozzle",
+    "inherits": "fdm_filament_pva",
     "from": "system",
     "setting_id": "GFSA04",
     "filament_id": "GFPVA",
-    "is_custom_defined": "0",
     "instantiation": "true",
-    "version": "1.3.2512.05",
-    "inherits": "fdm_filament_pva",
-    "name": "Anycubic PVA @Anycubic Kobra X 0.4 nozzle",
     "filament_settings_id": [
         "Anycubic PVA @Anycubic Kobra X 0.4 nozzle"
     ],

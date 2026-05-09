@@ -1,13 +1,11 @@
 {
     "type": "filament",
+    "name": "Anycubic PLA High Speed @Anycubic Kobra X 0.4 nozzle",
+    "inherits": "fdm_filament_pla",
     "from": "system",
     "setting_id": "GFSA04",
     "filament_id": "GFPLA High Speed",
-    "is_custom_defined": "0",
     "instantiation": "true",
-    "version": "1.3.2512.05",
-    "inherits": "fdm_filament_pla",
-    "name": "Anycubic PLA High Speed @Anycubic Kobra X 0.4 nozzle",
     "filament_settings_id": [
         "Anycubic PLA High Speed @Anycubic Kobra X 0.4 nozzle"
     ],
