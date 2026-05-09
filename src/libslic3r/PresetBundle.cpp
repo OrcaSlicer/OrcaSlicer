@@ -4549,6 +4549,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 std::string version_str = it.value();
                 auto config_version = Semver::parse(version_str);
                 if (! config_version) {
+                    ++m_errors;
                     throw ConfigurationError((boost::format("vendor %1%'s config version: %2% invalid\nSuggest cleaning the directory %3% firstly")
                         % vendor_name % version_str % path).str());
                 } else {

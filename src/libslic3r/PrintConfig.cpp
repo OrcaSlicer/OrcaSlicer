@@ -173,6 +173,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
+    { "hole",           int(FuzzySkinType::Hole) },
     { "all",            int(FuzzySkinType::All) },
     { "allwalls",       int(FuzzySkinType::AllWalls)},
     { "disabled_fuzzy", int(FuzzySkinType::Disabled_fuzzy)}
@@ -184,7 +185,8 @@ static t_config_enum_values s_keys_map_NoiseType {
     { "perlin",         int(NoiseType::Perlin) },
     { "billow",         int(NoiseType::Billow) },
     { "ridgedmulti",    int(NoiseType::RidgedMulti) },
-    { "voronoi",        int(NoiseType::Voronoi) }
+    { "voronoi",        int(NoiseType::Voronoi) }, 
+    { "ripple",         int(NoiseType::Ripple) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
 
@@ -3362,11 +3364,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinType>::get_enum_values();
     def->enum_values.push_back("none");
     def->enum_values.push_back("external");
+    def->enum_values.push_back("hole");
     def->enum_values.push_back("all");
     def->enum_values.push_back("allwalls");
     def->enum_values.push_back("disabled_fuzzy");
     def->enum_labels.push_back(L("Painted only"));
     def->enum_labels.push_back(L("Contour"));
+    def->enum_labels.push_back(L("Hole"));
     def->enum_labels.push_back(L("Contour and hole"));
     def->enum_labels.push_back(L("All walls"));
     def->enum_labels.push_back(L("Disabled"));
@@ -3379,7 +3383,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The width within which to jitter. It's advised to be below outer wall line width.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
-    def->max = 1;
+    def->max = 2;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0.2));
 
@@ -3431,18 +3435,21 @@ void PrintConfigDef::init_fff_params()
                      "Perlin: Perlin noise, which gives a more consistent texture.\n"
                      "Billow: Similar to perlin noise, but clumpier.\n"
                      "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
-                     "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.");
+                     "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
+                     "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance.");
     def->enum_keys_map = &ConfigOptionEnum<NoiseType>::get_enum_values();
     def->enum_values.push_back("classic");
     def->enum_values.push_back("perlin");
     def->enum_values.push_back("billow");
     def->enum_values.push_back("ridgedmulti");
     def->enum_values.push_back("voronoi");
+    def->enum_values.push_back("ripple");
     def->enum_labels.push_back(L("Classic"));
     def->enum_labels.push_back(L("Perlin"));
     def->enum_labels.push_back(L("Billow"));
     def->enum_labels.push_back(L("Ridged Multifractal"));
     def->enum_labels.push_back(L("Voronoi"));
+    def->enum_labels.push_back(L("Ripple"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<NoiseType>(NoiseType::Classic));
 
@@ -3473,6 +3480,39 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("fuzzy_skin_ripples_per_layer", coInt);
+    def->label = L("Number of ripples per layer");
+    def->category = L("Others");
+    def->tooltip  = L("Controls how many full cycles of ripples will be added per layer.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(15));
+
+    def = this->add("fuzzy_skin_ripple_offset", coPercent);
+    def->label = L("Ripple offset");
+    def->category = L("Others");
+    def->tooltip = L("Shifts the ripple phase forward along the print path by the specified percentage of a wavelength each layer period.\n"
+                     "- 0% keeps every layer identical.\n"
+                     "- 50% shifts the pattern by half a wavelength, effectively inverting the phase.\n"
+                     "- 100% shifts the pattern by a full wavelength, returning to the original phase.\n\n"
+                     "The shift is applied once every number of layers set by Layers between ripple offset, so layers within the same group are printed identically.");
+    def->min = 0;
+    def->max = 100;
+    def->sidetext = ("%");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(50));
+
+    def = this->add("fuzzy_skin_layers_between_ripple_offset", coInt);
+    def->label = L("Layers between ripple offset");
+    def->category = L("Others");
+    def->tooltip = L("Specifies how many consecutive layers share the same ripple phase before the offset is applied.\n"
+                     "For example:\n"
+                     "- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is shifted by the configured offset, then layer 3 returns to the base pattern, and so on.\n"
+                     "- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 to 6 are shifted by the configured offset, then layers 7 to 9 return to the base pattern, etc.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("filter_out_gap_fill", coFloat);
     def->label = L("Filter out tiny gaps");
@@ -9661,6 +9701,13 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     //nothing to do, keep the original one
                 }
                 else {
+                    // Guard: set_with_restore is parent-shaped and would truncate the child's
+                    // vector when the child has more extruders than the parent (e.g. an IDEX
+                    // preset inheriting from a single-nozzle base). The child's saved value is
+                    // authoritative for its own extruder count, so skip the merge for this key.
+                    if (cur_variant_count > target_variant_count)
+                        continue;
+
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
                         stride = 2;

@@ -14730,6 +14730,9 @@ msgstr "Chỉ được sơn"
 msgid "Contour"
 msgstr "Đường viền"
 
+msgid "Hole"
+msgstr "Lỗ"
+
 msgid "Contour and hole"
 msgstr "Đường viền và lỗ"
 

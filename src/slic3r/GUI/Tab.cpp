@@ -1258,6 +1258,8 @@ void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
+    if (m_type == Preset::TYPE_PRINT && m_config != nullptr)
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
 }
 
 void Tab::update_mode()
@@ -1765,8 +1767,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         
         auto new_value = boost::any_cast<std::string>(value);
         is_safe_to_rotate = is_safe_to_rotate || new_value.empty();
+        const bool had_previous_value = !m_last_sparse_infill_rotate_template_value.empty();
 
-        if (!is_safe_to_rotate) {
+        if (!is_safe_to_rotate && !had_previous_value) {
             wxString msg_text = _(
                 L("Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their "
                   "intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. "
@@ -1783,6 +1786,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 wxGetApp().plater()->update();
             }
         }
+
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
     }
 
     if(opt_key=="layer_height"){
@@ -2698,6 +2703,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("fuzzy_skin_scale", "others_settings_fuzzy_skin#skin-feature-size");
         optgroup->append_single_option_line("fuzzy_skin_octaves", "others_settings_fuzzy_skin#skin-noise-octaves");
         optgroup->append_single_option_line("fuzzy_skin_persistence", "others_settings_fuzzy_skin#skin-noise-persistence");
+        optgroup->append_single_option_line("fuzzy_skin_ripples_per_layer", "others_settings_fuzzy_skin#ripples-per-layer");
+        optgroup->append_single_option_line("fuzzy_skin_ripple_offset", "others_settings_fuzzy_skin#ripple-offset");
+        optgroup->append_single_option_line("fuzzy_skin_layers_between_ripple_offset", "others_settings_fuzzy_skin#layers-between-ripple-offset");
         optgroup->append_single_option_line("fuzzy_skin_first_layer", "others_settings_fuzzy_skin#apply-fuzzy-skin-to-first-layer");
 
         optgroup = page->new_optgroup(L("G-code output"), L"param_gcode");
