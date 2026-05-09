@@ -112,7 +112,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                 // Orca: Split splittable volumes into parts for individual processing.
                 size_t parts_count = 1;
                 if (volume->is_splittable()) {
-                    parts_count = volume->split(1);
+                    parts_count = volume->split(1, false); // TODO: fix this
                     if (parts_count > 1) {
                         const std::string msg = Slic3r::format(L("Split into %1% parts"), parts_count);
                         on_progress(msg.c_str(), 10);

@@ -2849,7 +2849,7 @@ void ObjectList::split()
 
     take_snapshot("Split to parts");
 
-    volume->split(filament_cnt);
+    volume->split(filament_cnt, wxGetApp().app_config->get_bool("keep_painting"));
 
     wxBusyCursor wait;
 

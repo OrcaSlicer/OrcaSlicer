@@ -2731,7 +2731,7 @@ std::string ModelVolume::type_to_string(const ModelVolumeType t)
 // Split this volume, append the result to the object owning this volume.
 // Return the number of volumes created from this one.
 // This is useful to assign different materials to different volumes of an object.
-size_t ModelVolume::split(unsigned int max_extruders)
+size_t ModelVolume::split(unsigned int max_extruders, bool remap_paint)
 {
     std::vector<TriangleMesh> meshes = this->mesh().split();
     if (meshes.size() <= 1)
@@ -2740,6 +2740,9 @@ size_t ModelVolume::split(unsigned int max_extruders)
     // splited volume should not be text object
     if (text_configuration.has_value())
         text_configuration.reset();
+
+    std::optional<TriangleSelector::SavedPainting> saved_painting = remap_paint ? save_painting() :
+                                                                                  std::optional<TriangleSelector::SavedPainting>{};
 
     size_t idx = 0;
     size_t ivolume = std::find(this->object->volumes.begin(), this->object->volumes.end(), this) - this->object->volumes.begin();
@@ -2776,6 +2779,8 @@ size_t ModelVolume::split(unsigned int max_extruders)
         this->object->volumes[ivolume]->config.set("extruder", this->extruder_id());
         //this->object->volumes[ivolume]->config.set("extruder", auto_extruder_id(max_extruders, extruder_counter));
         this->object->volumes[ivolume]->m_is_splittable = 0;
+        this->object->volumes[ivolume]->restore_painting(saved_painting);
+
         ++ idx;
     }
 
