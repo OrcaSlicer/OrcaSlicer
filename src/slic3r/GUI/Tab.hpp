@@ -45,6 +45,7 @@
 class TabCtrl;
 class ModeSwitchButton;
 class SwitchButton;
+class MultiSwitchButton;
 
 namespace Slic3r {
 
@@ -305,6 +306,7 @@ public:
 
 	ModeSwitchButton *m_mode_view = nullptr;
     SwitchButton *m_extruder_switch = nullptr;
+    MultiSwitchButton *m_variant_combo = nullptr;
 
 public:
 	// BBS
@@ -426,6 +428,7 @@ public:
 
     void        update_extruder_variants(int extruder_id = -1);
     void        switch_excluder(int extruder_id = -1);
+    std::vector<wxString> generate_extruder_options();
 
 protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
