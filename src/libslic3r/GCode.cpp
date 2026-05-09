@@ -19,6 +19,7 @@
 #include "GCode/AngleSortCycle.hpp"
 #include "GCode/HilbertCurve.hpp"
 #include "GCode/Boustrophedon.hpp"
+#include "GCode/SpiralOrdering.hpp"
 #include "GCode/BestOfStrategies.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
@@ -2768,10 +2769,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             : (print.config().print_order == PrintOrder::HilbertCurve ? chain_print_object_instances_hilbert(print)
             // Boustrophedon: snake-like row traversal + 2-opt
             : (print.config().print_order == PrintOrder::Boustrophedon ? chain_print_object_instances_boustrophedon(print)
+            // Spiral: sort by distance from centroid, then angle + 2-opt
+            : (print.config().print_order == PrintOrder::SpiralOrdering ? chain_print_object_instances_spiral(print)
             // Best of all: run every strategy, pick the shortest
             : (print.config().print_order == PrintOrder::BestOfStrategies ? chain_print_object_instances_best_of(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print))))))));
+            : sort_object_instances_by_model_order(print)))))))));
     }
     if (initial_extruder_id == (unsigned int)-1) {
         // Nothing to print!
@@ -4982,9 +4985,11 @@ LayerResult GCode::process_layer(
                                 ? chain_print_object_instances_hilbert(print_objects, &wt_pos)
                                 : (print.config().print_order == PrintOrder::Boustrophedon
                                     ? chain_print_object_instances_boustrophedon(print_objects, &wt_pos)
-                                    : (print.config().print_order == PrintOrder::BestOfStrategies
-                                        ? chain_print_object_instances_best_of(print_objects, &wt_pos)
-                                        : chain_print_object_instances(print_objects, &wt_pos))))));
+                                    : (print.config().print_order == PrintOrder::SpiralOrdering
+                                        ? chain_print_object_instances_spiral(print_objects, &wt_pos)
+                                        : (print.config().print_order == PrintOrder::BestOfStrategies
+                                            ? chain_print_object_instances_best_of(print_objects, &wt_pos)
+                                            : chain_print_object_instances(print_objects, &wt_pos)))))));
             std::reverse(new_ordering.begin(), new_ordering.end());
 
             if (print.config().print_sequence == PrintSequence::ByObject) {

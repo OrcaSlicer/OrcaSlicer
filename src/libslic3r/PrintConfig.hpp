@@ -161,6 +161,7 @@ enum class PrintOrder
     AngleSortCycle,      // sort by angle around centroid, then 2-opt to improve
     HilbertCurve,        // sort by Hilbert space-filling curve index, then 2-opt
     Boustrophedon,       // snake-like row traversal (back-and-forth) + 2-opt
+    SpiralOrdering,       // sort by distance from centroid, then angle + 2-opt
     BestOfStrategies,    // run all custom strategies, pick the shortest
     Count,
 };
