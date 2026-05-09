@@ -32,7 +32,7 @@ void set_gstreamer_feature_rank(const char* feature, guint rank)
     gst_object_unref(factory);
 }
 
-void configure_gstreamer_liveview_path()
+void configure_wayland_gstreamer_liveview_path()
 {
     static bool configured = false;
     if (configured)
@@ -62,21 +62,11 @@ void configure_gstreamer_liveview_path()
     set_gstreamer_feature_rank("vah264dec", GST_RANK_MARGINAL);
     set_gstreamer_feature_rank("v4l2h264dec", GST_RANK_MARGINAL);
 
-    if (Slic3r::GUI::is_running_on_wayland()) {
-        // Native Wayland uses an explicit gtksink pipeline below. Keep
-        // waylandsink available only as a fallback for the wxMediaCtrl path.
-        set_gstreamer_feature_rank("gtkwaylandsink", GST_RANK_NONE);
-        set_gstreamer_feature_rank("ximagesink", GST_RANK_NONE);
-        set_gstreamer_feature_rank("xvimagesink", GST_RANK_NONE);
-        return;
-    }
-
-    if (Slic3r::GUI::is_running_on_x11()) {
-        set_gstreamer_feature_rank("ximagesink", GST_RANK_PRIMARY + 300);
-        set_gstreamer_feature_rank("xvimagesink", GST_RANK_PRIMARY + 200);
-        set_gstreamer_feature_rank("waylandsink", GST_RANK_NONE);
-        set_gstreamer_feature_rank("gtkwaylandsink", GST_RANK_NONE);
-    }
+    // Native Wayland uses an explicit gtksink pipeline below. Demote overlay
+    // sinks that can select X11/XWayland or non-embeddable Wayland paths.
+    set_gstreamer_feature_rank("gtkwaylandsink", GST_RANK_NONE);
+    set_gstreamer_feature_rank("ximagesink", GST_RANK_NONE);
+    set_gstreamer_feature_rank("xvimagesink", GST_RANK_NONE);
 }
 }
 
@@ -98,7 +88,9 @@ wxDEFINE_EVENT(EVT_MEDIA_CTRL_STAT, wxCommandEvent);
 wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
 {
 #if defined(__LINUX__) && defined(__WXGTK__)
-    configure_gstreamer_liveview_path();
+    const bool native_wayland = Slic3r::GUI::is_running_on_wayland();
+    if (native_wayland)
+        configure_wayland_gstreamer_liveview_path();
 #endif
 #ifdef __WIN32__
     auto hModExe = GetModuleHandle(NULL);
@@ -114,14 +106,19 @@ wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
         *AmdPowerXpressRequestHighPerformance = 0;
     }
 #endif
-    wxMediaCtrl::Create(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxMEDIACTRLPLAYERCONTROLS_NONE);
+#if defined(__LINUX__) && defined(__WXGTK__)
+    if (native_wayland)
+        wxControl::Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    else
+#endif
+        wxMediaCtrl::Create(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxMEDIACTRLPLAYERCONTROLS_NONE);
 #ifdef __LINUX__
     gstbambusrc_register();
 #ifdef __WXGTK__
-    if (Slic3r::GUI::is_running_on_wayland())
+    if (native_wayland)
         m_use_gtk_sink = CreateGtkSinkPlayer();
 #endif
-    if (m_imp) {
+    if (!m_use_gtk_sink && m_imp) {
         auto playbin = reinterpret_cast<wxGStreamerMediaBackend *>(m_imp)->m_playbin;
         g_object_set(G_OBJECT(playbin),
                      "audio-sink", nullptr,
@@ -478,13 +475,6 @@ void wxMediaCtrl2::Load(wxURI url)
     }
 #endif
     wxMediaCtrl::Load(url);
-
-#ifdef __WXGTK3__
-        wxMediaEvent event(wxEVT_MEDIA_STATECHANGED);
-        event.SetId(GetId());
-        event.SetEventObject(this);
-        wxPostEvent(this, event);
-#endif
 }
 
 void wxMediaCtrl2::Play()
