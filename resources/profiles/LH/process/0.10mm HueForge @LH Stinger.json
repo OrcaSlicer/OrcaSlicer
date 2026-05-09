@@ -1,0 +1,42 @@
+{
+	"type": "process",
+	"name": "0.10mm HueForge @LH Stinger",
+	"inherits": "fdm_process_lh_common",
+	"from": "system",
+	"setting_id": "LHS_P_hueforge",
+	"instantiation": "true",
+	"compatible_printers": [
+		"LH Stinger 0.4 nozzle",
+		"LH Stinger MMU 0.4 nozzle"
+	],
+	"bottom_shell_layers": "999",
+	"bottom_solid_infill_flow_ratio": "0.98",
+	"detect_narrow_internal_solid_infill": "0",
+	"ensure_vertical_shell_thickness": "none",
+	"initial_layer_acceleration": "1000",
+	"initial_layer_infill_speed": "150",
+	"initial_layer_print_height": "0.16",
+	"initial_layer_speed": "80",
+	"layer_height": "0.1",
+	"max_travel_detour_distance": "60",
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"reduce_crossing_wall": "1",
+	"skirt_loops": "1",
+	"slice_closing_radius": "0.042",
+	"sparse_infill_density": "0%",
+	"top_bottom_infill_wall_overlap": "15%",
+	"top_shell_layers": "0",
+	"top_solid_infill_flow_ratio": "0.98",
+	"brim_type": "no_brim",
+	"wall_generator": "arachne",
+	"wall_sequence": "inner wall/outer wall",
+	"reduce_infill_retraction": "1",
+	"gap_fill_target": "nowhere",
+	"filter_out_gap_fill": "0.5",
+	"wall_loops": "1"
+}
