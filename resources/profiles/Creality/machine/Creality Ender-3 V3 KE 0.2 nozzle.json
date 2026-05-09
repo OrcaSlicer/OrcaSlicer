@@ -5,6 +5,7 @@
 	"from": "system",
 	"setting_id": "GM001",
 	"instantiation": "true",
+	"printer_variant": "0.2",
 	"printer_settings_id": "Creality",
 	"printer_model": "Creality Ender-3 V3 KE",
 	"gcode_flavor": "klipper",
