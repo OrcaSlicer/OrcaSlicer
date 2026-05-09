@@ -1503,8 +1503,12 @@ void PreferencesDialog::create_items()
     g_sizer->Add(reverse_mouse_zoom);
 
     auto item_antialiasing = create_item_combobox(
-        _L("Antialiasing"),
-        _L("Set the multisample antialiasing level for the 3D viewport. Higher values smooth edges but use more GPU resources. Requires application restart."),
+        _L("MSAA Multiplier"),
+        _L("Set the Multi-Sample Anti-Aliasing level.\n"
+            "Higher values result in smoother edges, but the impact on performance is exponential.\n"
+            "Lower values improve performance, at the cost of jagged edges.\n"
+            "If disabled, its recommended to enable FXAA to reduce jagged edges with minimal performance impact.\n\n"
+            "Requires application restart."),
         SETTING_OPENGL_AA_SAMPLES,
         {_L("Disabled"), "2x", "4x", "8x", "16x"},
         {"0", "2", "4", "8", "16"}
@@ -1512,8 +1516,10 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_antialiasing);
 
     auto item_fxaa = create_item_checkbox(
-        _L("Use FXAA post-processing"),
-        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass. Useful when multisample antialiasing is disabled or too expensive. Takes effect immediately."),
+        _L("FXAA post-processing"),
+        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+            "Useful for disabling or reducing the MSAA setting to improve performance.\n\n"
+            "Takes effect immediately."),
         SETTING_OPENGL_FXAA_ENABLED
     );
     g_sizer->Add(item_fxaa);
