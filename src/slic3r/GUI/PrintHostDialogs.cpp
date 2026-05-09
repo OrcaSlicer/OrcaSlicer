@@ -1034,8 +1034,10 @@ void CrealityPrintHostSendDialog::init()
                 if (resp.contains("boxsInfo") && resp["boxsInfo"].contains("materialBoxs")) {
                     for (auto& box : resp["boxsInfo"]["materialBoxs"]) {
                         int box_id = box["id"].get<int>();
-                        // Skip boxes with state != 1 (inactive/empty spool holder)
-                        if (box.value("state", 0) != 1)
+                        int box_type = box.value("type", 0);
+                        // Skip inactive CFS boxes (type 0 with state != 1)
+                        // Spool holder (type 1) is always available
+                        if (box_type == 0 && box.value("state", 0) != 1)
                             continue;
                         for (auto& mat : box["materials"]) {
                             int slot_id = mat["id"].get<int>();
@@ -1099,16 +1101,34 @@ void CrealityPrintHostSendDialog::init()
             auto* combo = new BitmapComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
             for (auto& slot : m_printer_slots) {
                 wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
-                wxString label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
+                wxString label_str;
+                if (slot.box_id == 0)
+                    label_str = wxString::Format("Ext - %s", slot.type.c_str());
+                else
+                    label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
                 combo->Append(label_str, bmp ? *bmp : wxNullBitmap);
             }
-            // Find best default: exact color+type match, else positional
+            // Find best default: CFS exact color+type, CFS type-only,
+            // Ext exact, Ext type-only, else positional
             int default_sel = (i < (int)m_printer_slots.size()) ? i : 0;
-            for (int s = 0; s < (int)m_printer_slots.size(); s++) {
-                if (m_printer_slots[s].type == gc_type &&
-                    wxColour(m_printer_slots[s].color) == wxColour(gc_color)) {
-                    default_sel = s;
-                    break;
+            bool matched = false;
+            for (int pass = 0; pass < 4 && !matched; pass++) {
+                for (int s = 0; s < (int)m_printer_slots.size(); s++) {
+                    bool is_ext = (m_printer_slots[s].box_id == 0);
+                    bool type_match = (m_printer_slots[s].type == gc_type);
+                    bool color_match = (wxColour(m_printer_slots[s].color) == wxColour(gc_color));
+                    bool hit = false;
+                    switch (pass) {
+                    case 0: hit = !is_ext && type_match && color_match; break;
+                    case 1: hit = !is_ext && type_match; break;
+                    case 2: hit = is_ext && type_match && color_match; break;
+                    case 3: hit = is_ext && type_match; break;
+                    }
+                    if (hit) {
+                        default_sel = s;
+                        matched = true;
+                        break;
+                    }
                 }
             }
             combo->SetSelection(default_sel);
@@ -1117,6 +1137,44 @@ void CrealityPrintHostSendDialog::init()
             group_sizer->Add(row_sizer);
             group_sizer->AddSpacer(4);
             m_slot_combos.push_back(combo);
+        }
+
+        int ext_slot_idx = -1;
+        for (int s = 0; s < (int)m_printer_slots.size(); s++) {
+            if (m_printer_slots[s].box_id == 0) {
+                ext_slot_idx = s;
+                break;
+            }
+        }
+        if (ext_slot_idx >= 0) {
+            for (int ci = 0; ci < (int)m_slot_combos.size(); ci++) {
+                int sel = m_slot_combos[ci]->GetSelection();
+                if (sel >= 0 && sel < (int)m_printer_slots.size() &&
+                    m_printer_slots[sel].box_id == 0) {
+                    for (int cj = 0; cj < (int)m_slot_combos.size(); cj++) {
+                        if (cj != ci)
+                            m_slot_combos[cj]->Enable(false);
+                    }
+                    break;
+                }
+            }
+
+            for (auto* c : m_slot_combos) {
+                c->Bind(wxEVT_COMBOBOX, [this, ext_slot_idx](wxCommandEvent& e) {
+                    int sel = e.GetSelection();
+                    if (sel >= 0 && sel < (int)m_printer_slots.size() &&
+                        m_printer_slots[sel].box_id == 0) {
+                        for (auto* c2 : m_slot_combos) {
+                            if (c2 != e.GetEventObject())
+                                c2->Enable(false);
+                        }
+                    } else {
+                        for (auto* c2 : m_slot_combos)
+                            c2->Enable(true);
+                    }
+                    e.Skip();
+                });
+            }
         }
     }
 
