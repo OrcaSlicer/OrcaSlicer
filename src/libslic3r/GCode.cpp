@@ -94,6 +94,16 @@ static const float g_purge_volume_one_time = 135.f;
 static const int g_max_flush_count = 4;
 static const size_t g_max_label_object = 64;
 
+static bool is_bambu_x2d_printer(const FullPrintConfig &config)
+{
+    return config.printer_model.value == "Bambu Lab X2D";
+}
+
+static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int hotend_id)
+{
+    return is_bambu_x2d_printer(config) ? -1 : hotend_id;
+}
+
 Vec2d travel_point_1;
 Vec2d travel_point_2;
 Vec2d travel_point_3;
@@ -835,6 +845,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
             config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
             config.set_key_value("next_extruder", new ConfigOptionInt(new_filament_id));
+            config.set_key_value("current_hotend", new ConfigOptionInt(old_extruder_id >= 0 ?
+                hotend_id_for_gcode_placeholder(gcodegen.m_config, old_extruder_id) : -1));
+            config.set_key_value("next_hotend",
+                new ConfigOptionInt(hotend_id_for_gcode_placeholder(gcodegen.m_config, (int) gcodegen.get_extruder_id(new_filament_id))));
             config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
             config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
             config.set_key_value("toolchange_z", new ConfigOptionFloat(z));
@@ -916,6 +930,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
                 auto flush_v_speed = m_print_config->filament_flush_volumetric_speed.values;
                 auto flush_temps = m_print_config->filament_flush_temp.values;
+                auto filament_cooling_before_tower = m_print_config->filament_cooling_before_tower.values;
                 for (size_t idx = 0; idx < flush_v_speed.size(); ++idx) {
                     if (flush_v_speed[idx] == 0)
                         flush_v_speed[idx] = m_print_config->filament_max_volumetric_speed.get_at(idx);
@@ -924,8 +939,13 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     if (flush_temps[idx] == 0)
                         flush_temps[idx] = m_print_config->nozzle_temperature_range_high.get_at(idx);
                 }
+                if (filament_cooling_before_tower.size() < m_print_config->filament_type.values.size())
+                    filament_cooling_before_tower.resize(m_print_config->filament_type.values.size(), m_print_config->filament_cooling_before_tower.get_at(0));
+                if (tcr.is_contact || gcodegen.m_layer_index == 0)
+                    std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
                 config.set_key_value("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
                 config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));
+                config.set_key_value("filament_cooling_before_tower", new ConfigOptionFloats(filament_cooling_before_tower));
                 config.set_key_value("flush_length", new ConfigOptionFloat(purge_length));
                 config.set_key_value("wipe_avoid_perimeter", new ConfigOptionBool(is_used_travel_avoid_perimeter));
                 config.set_key_value("wipe_avoid_pos_x", new ConfigOptionFloat(wipe_avoid_pos_x));
@@ -2791,7 +2811,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_non_support_filaments", new ConfigOptionInts(first_non_support_filaments));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
+    this->placeholder_parser().set("initial_no_support_hotend",
+        hotend_id_for_gcode_placeholder(m_config, (int) get_extruder_id(initial_non_support_extruder_id)));
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
+    this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, extruder_id));
     //Orca: set the key for compatibilty
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
@@ -2806,7 +2829,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("long_retractions_when_ec",new ConfigOptionBoolsNullable(m_config.long_retractions_when_ec));
 
     this->placeholder_parser().set("max_additional_fan", max_additional_fan);
-    this->placeholder_parser().set("first_x_layer_fan_speed", 0); // TODO: Orca hack to support BBL profiles
+    this->placeholder_parser().set("first_x_layer_fan_speed", new ConfigOptionFloats(m_config.first_x_layer_fan_speed));
+    this->placeholder_parser().set("close_additional_fan_first_x_layers", new ConfigOptionInts(m_config.close_additional_fan_first_x_layers));
+    this->placeholder_parser().set("additional_fan_full_speed_layer", new ConfigOptionInts(m_config.additional_fan_full_speed_layer));
 
     auto flush_v_speed = m_config.filament_flush_volumetric_speed.values;
     auto flush_temps = m_config.filament_flush_temp.values;
@@ -2820,6 +2845,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
     this->placeholder_parser().set("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
     this->placeholder_parser().set("flush_temperatures", new ConfigOptionInts(flush_temps));
+    this->placeholder_parser().set("filament_cooling_before_tower", new ConfigOptionFloatsNullable(m_config.filament_cooling_before_tower));
     //Set variable for total layer count so it can be used in custom gcode.
     this->placeholder_parser().set("total_layer_count", m_layer_count);
     // Useful for sequential prints.
@@ -3520,6 +3546,30 @@ void GCode::export_layer_filaments(GCodeProcessorResult* result)
                 iter->second.emplace_back(idx, idx);
         }
     }
+
+    result->filament_change_sequence.clear();
+    result->nozzle_change_sequence.clear();
+
+    int prev_sequence_filament = -1;
+    int prev_sequence_nozzle = -1;
+    for (size_t layer_idx = 0; layer_idx < m_sorted_layer_filaments.size(); ++layer_idx) {
+        for (unsigned int filament_id : m_sorted_layer_filaments[layer_idx]) {
+            int nozzle_id = 0;
+            if (filament_id < filament_map.size() && filament_map[filament_id] > 0)
+                nozzle_id = filament_map[filament_id] - 1;
+            if (prev_sequence_nozzle != nozzle_id || prev_sequence_filament != static_cast<int>(filament_id)) {
+                result->nozzle_change_sequence.emplace_back(static_cast<unsigned int>(nozzle_id));
+                result->filament_change_sequence.emplace_back(filament_id);
+                prev_sequence_nozzle = nozzle_id;
+                prev_sequence_filament = static_cast<int>(filament_id);
+            }
+        }
+    }
+
+    result->optimal_assignment.clear();
+    result->optimal_assignment.reserve(filament_map.size());
+    for (int nozzle_id : filament_map)
+        result->optimal_assignment.emplace_back(nozzle_id > 0 ? nozzle_id - 1 : 0);
 }
 
 //BBS
@@ -6320,7 +6370,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 
     // calculate effective extrusion length per distance unit (e_per_mm)
-    double filament_flow_ratio = m_config.option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0);
+    double filament_flow_ratio = FILAMENT_CONFIG(filament_flow_ratio);
     // We set _mm3_per_mm to effectove flow = Geometric volume * print flow ratio * filament flow ratio * role-based-flow-ratios
     auto _mm3_per_mm = path.mm3_per_mm * this->config().print_flow_ratio;
     _mm3_per_mm *= filament_flow_ratio;
@@ -6516,7 +6566,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             if (ref_speed == 0)
                 ref_speed = FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm;
 
-            if (EXTRUDER_CONFIG(filament_max_volumetric_speed) > 0) {
+            if (FILAMENT_CONFIG(filament_max_volumetric_speed) > 0) {
                 ref_speed = std::min(ref_speed, FILAMENT_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
             }
             if (sloped) {
@@ -7660,6 +7710,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     float filament_area = float((M_PI / 4.f) * pow(m_config.filament_diameter.get_at(new_filament_id), 2));
     //BBS: add handling for filament change in start gcode
     int old_filament_id = -1;
+    int old_extruder_id = -1;
     if (m_writer.filament() != nullptr || m_start_gcode_filament != -1) {
         std::vector<float> flush_matrix(cast<float>(get_flush_volumes_matrix(m_config.flush_volumes_matrix.values, new_extruder_id, m_config.nozzle_diameter.values.size())));
         const unsigned int number_of_extruders = (unsigned int) (m_config.filament_colour.values.size()); // if is multi_extruder only use the fist extruder matrix
@@ -7669,7 +7720,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             assert(m_start_gcode_filament < number_of_extruders);
 
         old_filament_id = m_writer.filament() != nullptr ? m_writer.filament()->id() : m_start_gcode_filament;
-        int old_extruder_id = m_writer.filament() != nullptr ? m_writer.filament()->extruder_id() : get_extruder_id(m_start_gcode_filament);
+        old_extruder_id = m_writer.filament() != nullptr ? m_writer.filament()->extruder_id() : get_extruder_id(m_start_gcode_filament);
 
         old_retract_length = m_config.retraction_length.get_at(old_filament_id);
         old_retract_length_toolchange = m_config.retract_length_toolchange.get_at(old_filament_id);
@@ -7715,6 +7766,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
     dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
+    dyn_config.set_key_value("current_hotend",
+        new ConfigOptionInt(old_filament_id >= 0 ? hotend_id_for_gcode_placeholder(m_config, old_extruder_id) : -1));
+    dyn_config.set_key_value("next_hotend", new ConfigOptionInt(hotend_id_for_gcode_placeholder(m_config, new_extruder_id)));
     dyn_config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
     dyn_config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
     dyn_config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
@@ -7767,7 +7821,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
 
     auto flush_v_speed = m_print->config().filament_flush_volumetric_speed.values;
-    auto flush_temps =m_print->config().filament_flush_temp.values;
+    auto flush_temps = m_print->config().filament_flush_temp.values;
+    auto filament_cooling_before_tower = m_print->config().filament_cooling_before_tower.values;
     for (size_t idx = 0; idx < flush_v_speed.size(); ++idx) {
         if (flush_v_speed[idx] == 0)
             flush_v_speed[idx] = m_print->config().filament_max_volumetric_speed.get_at(idx);
@@ -7776,8 +7831,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         if (flush_temps[idx] == 0)
             flush_temps[idx] = m_print->config().nozzle_temperature_range_high.get_at(idx);
     }
+    if (filament_cooling_before_tower.size() < m_print->config().filament_type.values.size())
+        filament_cooling_before_tower.resize(m_print->config().filament_type.values.size(), m_print->config().filament_cooling_before_tower.get_at(0));
+    std::fill(filament_cooling_before_tower.begin(), filament_cooling_before_tower.end(), 0);
     dyn_config.set_key_value("flush_volumetric_speeds", new ConfigOptionFloats(flush_v_speed));
     dyn_config.set_key_value("flush_temperatures", new ConfigOptionInts(flush_temps));
+    dyn_config.set_key_value("filament_cooling_before_tower", new ConfigOptionFloats(filament_cooling_before_tower));
     dyn_config.set_key_value("flush_length", new ConfigOptionFloat(wipe_length));
 
     int flush_count = std::min(g_max_flush_count, (int)std::round(wipe_volume / g_purge_volume_one_time));
@@ -7850,6 +7909,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
 
     this->placeholder_parser().set("current_extruder", new_filament_id);
+    this->placeholder_parser().set("current_hotend", hotend_id_for_gcode_placeholder(m_config, new_extruder_id));
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(new_filament_id));
     this->placeholder_parser().set("retraction_distance_when_ec", m_config.retraction_distances_when_ec.get_at(new_filament_id));

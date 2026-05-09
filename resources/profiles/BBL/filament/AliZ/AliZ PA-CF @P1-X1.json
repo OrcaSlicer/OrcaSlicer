@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "AliZPX1FSA04",
 	"name": "AliZ PA-CF @P1-X1",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "AliZ PA-CF @base",
+	"from": "system",
+	"setting_id": "AliZPX1FSA04",
+	"instantiation": "true",
 	"enable_pressure_advance": [
 		"1"
 	],

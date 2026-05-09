@@ -49,6 +49,11 @@ struct FilamentInfo
     int         ctype = 0;
     std::vector<std::string> colors = std::vector<std::string>();
     int         mapping_result = 0;
+    bool        used_for_support{false};
+    bool        used_for_object{false};
+    std::vector<int> group_id;
+    double      nozzle_diameter{0.0};
+    std::string nozzle_volume_type;
 
     /*for new ams mapping*/
     std::string ams_id;

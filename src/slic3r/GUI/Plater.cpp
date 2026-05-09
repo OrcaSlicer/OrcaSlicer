@@ -169,6 +169,8 @@
 
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevConfigUtil.h"
+#include "DeviceCore/DevDefs.h"
 
 using boost::optional;
 namespace fs = boost::filesystem;
@@ -443,6 +445,7 @@ struct ExtruderGroup : StaticGroup
     }
 
     void update_ams();
+    void SetTitle(const wxString& title);
 
     void sync_ams(MachineObject const *obj, std::vector<DevAms *> const &ams4, std::vector<DevAms *> const &ams1);
 
@@ -1263,6 +1266,16 @@ void ExtruderGroup::sync_ams(MachineObject const *obj, std::vector<DevAms *> con
         update_ams();
 }
 
+void ExtruderGroup::SetTitle(const wxString& title)
+{
+    m_label = title;
+    int tW, tH, descent, externalLeading;
+    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &tW, &tH, &descent, &externalLeading, &m_font);
+    m_label_height = tH - externalLeading;
+    m_label_width  = tW;
+    Refresh();
+}
+
 bool Sidebar::priv::switch_diameter(bool single)
 {
     wxString diameter;
@@ -1272,13 +1285,16 @@ bool Sidebar::priv::switch_diameter(bool single)
         auto diameter_left = left_extruder->combo_diameter->GetValue();
         auto diameter_right = right_extruder->combo_diameter->GetValue();
         if (diameter_left != diameter_right) {
+            std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+            auto left_name  = _L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase));
+            auto right_name = _L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase));
             MessageDialog dlg(this->plater,
                               _L("The software does not support using different diameter of nozzles for one print. "
                                  "If the left and right nozzles are inconsistent, we can only proceed with single-head printing. "
                                  "Please confirm which nozzle you would like to use for this project."),
                               _L("Switch diameter"), wxYES_NO | wxNO_DEFAULT);
-            dlg.SetButtonLabel(wxID_YES, wxString::Format(_L("Left nozzle: %smm"), diameter_left));
-            dlg.SetButtonLabel(wxID_NO, wxString::Format(_L("Right nozzle: %smm"), diameter_right));
+            dlg.SetButtonLabel(wxID_YES, wxString::Format("%s: %smm", left_name, diameter_left));
+            dlg.SetButtonLabel(wxID_NO, wxString::Format("%s: %smm", right_name, diameter_right));
             int result = dlg.ShowModal();
             if (result == wxID_YES)
                 diameter = diameter_left;
@@ -2661,6 +2677,9 @@ void Sidebar::update_presets(Preset::Type preset_type)
         };
         auto image_path = get_cur_select_bed_image();
         if (is_dual_extruder) {
+            std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
+            p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
+            p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             AMSCountPopupWindow::UpdateAMSCount(0, p->left_extruder);
             AMSCountPopupWindow::UpdateAMSCount(1, p->right_extruder);
             //if (!p->is_switching_diameter) {
