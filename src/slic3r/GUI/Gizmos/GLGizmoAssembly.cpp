@@ -121,7 +121,7 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
         m_parent.reset_all_gizmos();
     }
 
-    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
+    render_input_window_warning(m_same_model_object);
 
     if (last_feature != m_curr_feature || last_mode != m_mode || last_selected_features != m_selected_features) {
         // the dialog may have changed its size, ask for an extra frame to render it properly
@@ -131,8 +131,10 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
         m_imgui->set_requires_extra_frame();
     }
     m_last_active_item_imgui = m_current_active_imgui_id;
+    
     GizmoImguiEnd();
     // Orca
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     ImGuiWrapper::pop_toolbar_style();
 }
 

@@ -51,7 +51,7 @@ bool GLGizmoBrimEars::on_init()
     m_desc["head_diameter"]    = _L("Head diameter");
     m_desc["max_angle"]        = _L("Max angle");
     m_desc["detection_radius"] = _L("Detection radius");
-    m_desc["remove"]           = _L("Remove");
+    m_desc["remove"]           = _L("Delete");
     m_desc["remove_selected"]  = _L("Selected");
     m_desc["remove_all"]       = _L("All");
     m_desc["create"]           = _L("Create");
@@ -713,18 +713,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##detection_radius_input", &m_detection_radius, 0.05f, 0.0f, static_cast<float>(m_detection_radius_max), "%.1f");
-    ImGui::Separator();
-
-    ImGui::AlignTextToFramePadding();
-    float clp_dist = float(m_c->object_clipper()->get_position());
-    m_imgui->text(m_desc["section_view"]);
-    ImGui::SameLine(caption_size);
-    ImGui::PushItemWidth(slider_width);
-    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##section_view", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width);
-    ImGui::PushItemWidth(1.5 * slider_icon_width);
-    bool b_clp_dist_input = ImGui::BBLDragFloat("##section_view_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true); }
+        
     ImGui::Separator();
 
     ImGui::AlignTextToFramePadding();
@@ -750,6 +739,21 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
     }
     m_imgui->disabled_end();
+        
+    ImGui::Separator();
+
+    ImGui::AlignTextToFramePadding();
+    float clp_dist = float(m_c->object_clipper()->get_position());
+    m_imgui->text(m_desc["section_view"]);
+    ImGui::SameLine(caption_size);
+    ImGui::PushItemWidth(slider_width);
+    bool slider_clp_dist = m_imgui->bbl_slider_float_style("##section_view", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
+    ImGui::SameLine(drag_left_width);
+    ImGui::PushItemWidth(1.5 * slider_icon_width);
+    bool b_clp_dist_input = ImGui::BBLDragFloat("##section_view_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
+    if (slider_clp_dist || b_clp_dist_input) {
+        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true);
+    }
 
     ImGui::Separator();
 

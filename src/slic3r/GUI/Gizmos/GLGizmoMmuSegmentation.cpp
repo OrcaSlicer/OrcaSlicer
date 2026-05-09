@@ -568,8 +568,6 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::BUCKET_FILL;
 
-        m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
-
         if (m_detect_geometry_edge) {
             ImGui::AlignTextToFramePadding();
             m_imgui->text(m_desc["smart_fill_angle"]);
@@ -589,6 +587,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             // set to negative value to disable edge detection
             m_smart_fill_angle = -1.f;
         }
+                
+        m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
     } 
     else if (m_current_tool == ImGui::HeightRangeIcon) {
         m_tool_type   = ToolType::BRUSH;
