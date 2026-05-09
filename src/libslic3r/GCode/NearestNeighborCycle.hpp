@@ -14,6 +14,10 @@ class Print;
 class PrintObject;
 struct PrintInstance;
 
+// Core algorithm: nearest-neighbor TSP cycle on a raw point set.
+// Returns permutation indices into `centers` forming a closed loop.
+std::vector<size_t> nn_cycle_core(const Points& centers);
+
 // Chain instances of print objects into a nearest-neighbor TSP cycle (closed loop).
 // Starts at the object closest to start_near (or first object if start_near is nullptr),
 // always visits the nearest unvisited object, applies 2-opt to shorten the path,

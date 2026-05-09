@@ -15,6 +15,9 @@ class Print;
 class PrintObject;
 struct PrintInstance;
 
+// Core algorithm: boustrophedon (snake) ordering on a raw point set.
+std::vector<size_t> boustrophedon_core(const Points& centers);
+
 // Chain instances using a boustrophedon (snake) pattern:
 // sort into rows by Y, traverse each row alternating direction,
 // then apply 2-opt and path rotation.

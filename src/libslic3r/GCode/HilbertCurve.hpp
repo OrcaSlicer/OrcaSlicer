@@ -16,6 +16,9 @@ class Print;
 class PrintObject;
 struct PrintInstance;
 
+// Core algorithm: Hilbert curve ordering on a raw point set.
+std::vector<size_t> hilbert_curve_core(const Points& centers);
+
 // Chain instances of print objects by sorting on the Hilbert space-filling curve.
 // Maps 2D coordinates to 1D Hilbert index, sorts, applies 2-opt, and rotates.
 std::vector<const PrintInstance*> chain_print_object_instances_hilbert(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
