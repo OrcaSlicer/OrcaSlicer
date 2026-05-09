@@ -75,9 +75,6 @@ void configure_wayland_gstreamer_liveview_path()
     // installations instead of passing preflight and then blocking autoplug.
     set_gstreamer_feature_rank("avdec_h264", GST_RANK_PRIMARY + 300);
     set_gstreamer_feature_rank("openh264dec", GST_RANK_PRIMARY + 100);
-    set_gstreamer_feature_rank("glimagesink", GST_RANK_NONE);
-    set_gstreamer_feature_rank("glimagesinkelement", GST_RANK_NONE);
-    set_gstreamer_feature_rank("gtkglsink", GST_RANK_NONE);
     set_gstreamer_feature_rank("nvh264dec", GST_RANK_MARGINAL);
     set_gstreamer_feature_rank("vaapih264dec", GST_RANK_MARGINAL);
     set_gstreamer_feature_rank("vah264dec", GST_RANK_MARGINAL);
@@ -293,6 +290,14 @@ void wxMediaCtrl2::DestroyGtkSinkPlayer()
 
     if (m_gtk_playbin) {
         gst_element_set_state(m_gtk_playbin, GST_STATE_NULL);
+    }
+
+    if (m_gtk_video_window) {
+        m_gtk_video_window->Destroy();
+        m_gtk_video_window = nullptr;
+    }
+
+    if (m_gtk_playbin) {
         gst_object_unref(m_gtk_playbin);
         m_gtk_playbin = nullptr;
     }
@@ -302,10 +307,6 @@ void wxMediaCtrl2::DestroyGtkSinkPlayer()
         m_gtk_sink = nullptr;
     }
 
-    if (m_gtk_video_window) {
-        m_gtk_video_window->Destroy();
-        m_gtk_video_window = nullptr;
-    }
 }
 
 void wxMediaCtrl2::PostGtkSinkStateEvent(int id)
