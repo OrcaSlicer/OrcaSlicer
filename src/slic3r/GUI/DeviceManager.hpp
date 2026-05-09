@@ -291,7 +291,6 @@ public:
 
     bool is_target_slot_unload() const;
     bool can_unload_filament();
-    bool is_support_amx_ext_mix_mapping() const { return true;}
 
     void get_ams_colors(std::vector<wxColour>& ams_colors);
 
