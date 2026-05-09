@@ -258,6 +258,8 @@ set(lisbslic3r_sources
     GCode/HilbertCurve.hpp
     GCode/Boustrophedon.cpp
     GCode/Boustrophedon.hpp
+    GCode/BestOfStrategies.cpp
+    GCode/BestOfStrategies.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp
