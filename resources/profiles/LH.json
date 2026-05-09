@@ -1,0 +1,159 @@
+{
+	"name": "LH",
+	"url": "https://github.com/lhndo/LH-Stinger",
+	"version": "01.00.00.00",
+	"force_update": "0",
+	"description": "LH 3D Printer Configuration",
+	"machine_model_list": [
+		{
+			"name": "LH Stinger",
+			"sub_path": "machine/LH Stinger.json"
+		},
+		{
+			"name": "LH Stinger MMU",
+			"sub_path": "machine/LH Stinger MMU.json"
+		}
+	],
+	"process_list": [
+		{
+			"name": "fdm_process_common",
+			"sub_path": "process/fdm_process_common.json"
+		},
+		{
+			"name": "fdm_process_lh_common",
+			"sub_path": "process/fdm_process_lh_common.json"
+		},
+		{
+			"name": "0.20mm Daily @LH Stinger",
+			"sub_path": "process/0.20mm Daily @LH Stinger.json"
+		},
+		{
+			"name": "0.25mm Vase Mode @LH Stinger",
+			"sub_path": "process/0.25mm Vase Mode @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm TPU @LH Stinger",
+			"sub_path": "process/0.20mm TPU @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm Strength @LH Stinger",
+			"sub_path": "process/0.20mm Strength @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm Speed @LH Stinger",
+			"sub_path": "process/0.20mm Speed @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm Solid @LH Stinger",
+			"sub_path": "process/0.20mm Solid @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm Quiet @LH Stinger",
+			"sub_path": "process/0.20mm Quiet @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm PETG @LH Stinger",
+			"sub_path": "process/0.20mm PETG @LH Stinger.json"
+		},
+		{
+			"name": "0.20mm MMU @LH Stinger",
+			"sub_path": "process/0.20mm MMU @LH Stinger.json"
+		},
+		{
+			"name": "0.10mm HueForge @LH Stinger",
+			"sub_path": "process/0.10mm HueForge @LH Stinger.json"
+		},
+		{
+			"name": "0.14mm Detail Strength @LH Stinger",
+			"sub_path": "process/0.14mm Detail Strength @LH Stinger.json"
+		},
+		{
+			"name": "0.14mm Detail @LH Stinger",
+			"sub_path": "process/0.14mm Detail @LH Stinger.json"
+		}
+	],
+	"filament_list": [
+		{
+			"name": "fdm_filament_common",
+			"sub_path": "filament/fdm_filament_common.json"
+		},
+		{
+			"name": "fdm_filament_abs",
+			"sub_path": "filament/fdm_filament_abs.json"
+		},
+		{
+			"name": "fdm_filament_asa",
+			"sub_path": "filament/fdm_filament_asa.json"
+		},
+		{
+			"name": "fdm_filament_pc",
+			"sub_path": "filament/fdm_filament_pc.json"
+		},
+		{
+			"name": "fdm_filament_pet",
+			"sub_path": "filament/fdm_filament_pet.json"
+		},
+		{
+			"name": "fdm_filament_pla",
+			"sub_path": "filament/fdm_filament_pla.json"
+		},
+		{
+			"name": "fdm_filament_tpu",
+			"sub_path": "filament/fdm_filament_tpu.json"
+		},
+		{
+			"name": "LHS ASA",
+			"sub_path": "filament/LHS ASA.json"
+		},
+		{
+			"name": "LHS ABS",
+			"sub_path": "filament/LHS ABS.json"
+		},
+		{
+			"name": "LHS TPU",
+			"sub_path": "filament/LHS TPU.json"
+		},
+		{
+			"name": "LHS PLA",
+			"sub_path": "filament/LHS PLA.json"
+		},
+		{
+			"name": "LHS TPU Foamy 78A",
+			"sub_path": "filament/LHS TPU Foamy 78A.json"
+		},
+		{
+			"name": "LHS PETG",
+			"sub_path": "filament/LHS PETG.json"
+		},
+		{
+			"name": "LHS PCTG",
+			"sub_path": "filament/LHS PCTG.json"
+		},
+		{
+			"name": "LHS PC CF",
+			"sub_path": "filament/LHS PC CF.json"
+		}
+	],
+	"machine_list": [
+		{
+			"name": "fdm_machine_common",
+			"sub_path": "machine/fdm_machine_common.json"
+		},
+		{
+			"name": "fdm_lh_common",
+			"sub_path": "machine/fdm_lh_common.json"
+		},
+		{
+			"name": "fdm_lh_mmu_common",
+			"sub_path": "machine/fdm_lh_mmu_common.json"
+		},
+		{
+			"name": "LH Stinger 0.4 nozzle",
+			"sub_path": "machine/LH Stinger 0.4 nozzle.json"
+		},
+		{
+			"name": "LH Stinger MMU 0.4 nozzle",
+			"sub_path": "machine/LH Stinger MMU 0.4 nozzle.json"
+		}
+	]
+}

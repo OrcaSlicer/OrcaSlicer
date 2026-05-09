@@ -161,6 +161,7 @@ enum class NotificationType
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
+    OrcaSharedProfilesAvailable,
     NotificationTypeCount
 
 };
@@ -270,6 +271,9 @@ public:
 	// Exporting finished, show this information with path, button to open containing folder and if ejectable - eject button
 	void push_exporting_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
 	void push_import_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
+
+	// Shared profiles available for selected printer
+	void push_shared_profiles_notification(const std::string& explore_url);
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -858,6 +862,30 @@ private:
 	};
 
 	// in SlicingProgressNotification.hpp
+
+	class SharedProfilesNotification : public PopNotification
+	{
+	public:
+		SharedProfilesNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			const std::string& explore_url)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_explore_url(explore_url)
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		bool on_text_click() override;
+		void render_hypertext(ImGuiWrapper& imgui,
+			const float text_x, const float text_y,
+			const std::string text, bool more = false) override;
+
+		std::string m_explore_url;
+		bool m_dont_show_clicked{ false };
+	};
 	class SlicingProgressNotification;
 
 	// in HintNotification.hpp
