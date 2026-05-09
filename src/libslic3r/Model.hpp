@@ -881,20 +881,10 @@ public:
     // Save painting data before reset_extra_facets() discards it.
     // Used for replacing mesh without losing painting data.
     // Only for model parts (not modifiers/connectors).
-    std::optional<TriangleSelector::SavedPainting> save_painting() const
-    {
-        if (is_any_painted() && is_model_part() && !mesh().empty()) {
-            TriangleSelector::SavedPainting sp;
-            sp.mesh      = mesh();
-            sp.supported = supported_facets.get_data();
-            sp.seam      = seam_facets.get_data();
-            sp.mmu       = mmu_segmentation_facets.get_data();
-            sp.fuzzy     = fuzzy_skin_facets.get_data();
-            return sp;
-        }
-
-        return {};
-    }
+    std::optional<TriangleSelector::SavedPainting> save_painting() const;
+    
+    // Remap painting data from previous saved source to this mesh
+    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved);
 
     // BBS: quick access for volume extruders, 1 based
     mutable std::vector<int> mmuseg_extruders;

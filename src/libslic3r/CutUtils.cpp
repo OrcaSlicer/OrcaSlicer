@@ -14,27 +14,6 @@ namespace Slic3r {
 
 using namespace Geometry;
 
-// Remap painting data from saved source to a cut result mesh, and set on a volume.
-static void remap_and_set_painting(ModelVolume* vol, const std::optional<TriangleSelector::SavedPainting>& saved)
-{
-    if (!saved) {
-        return;
-    }
-
-    auto remap_one = [&](const TriangleSelector::TriangleSplittingData& src_data,
-                         FacetsAnnotation& target_facets) {
-        if (src_data.bitstream.empty())
-            return;
-        auto result = TriangleSelector::remap_painting(saved->mesh.its, src_data, vol->mesh().its, translation_transform(vol->mesh().get_init_shift()));
-        if (!result.bitstream.empty())
-            target_facets.set_data(result);
-    };
-    remap_one(saved->supported, vol->supported_facets);
-    remap_one(saved->seam,      vol->seam_facets);
-    remap_one(saved->mmu,       vol->mmu_segmentation_facets);
-    remap_one(saved->fuzzy,     vol->fuzzy_skin_facets);
-}
-
 static void apply_tolerance(ModelVolume* vol)
 {
     ModelVolume::CutInfo& cut_info = vol->cut_info;
@@ -213,24 +192,24 @@ static void process_solid_part_cut(ModelVolume* volume, const Transform3d& insta
     if (attributes.has(ModelObjectCutAttribute::KeepAsParts)) {
         if (!upper_mesh.empty()) {
             add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
-            remap_and_set_painting(upper->volumes.back(), saved_painting);
+            upper->volumes.back()->restore_painting(saved_painting);
         }
         if (!lower_mesh.empty()) {
             add_cut_volume(lower_mesh, upper, volume, cut_matrix, "_B");
             upper->volumes.back()->cut_info.is_from_upper = false;
-            remap_and_set_painting(upper->volumes.back(), saved_painting);
+            upper->volumes.back()->restore_painting(saved_painting);
         }
         return;
     }
 
     if (attributes.has(ModelObjectCutAttribute::KeepUpper) && !upper_mesh.empty()) {
         add_cut_volume(upper_mesh, upper, volume, cut_matrix);
-        remap_and_set_painting(upper->volumes.back(), saved_painting);
+        upper->volumes.back()->restore_painting(saved_painting);
     }
 
     if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty()) {
         add_cut_volume(lower_mesh, lower, volume, cut_matrix);
-        remap_and_set_painting(lower->volumes.back(), saved_painting);
+        lower->volumes.back()->restore_painting(saved_painting);
     }
 }
 
