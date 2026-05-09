@@ -445,6 +445,7 @@ protected:
     void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;
+    std::string m_last_sparse_infill_rotate_template_value;
     ConfigManipulation get_config_manipulation();
     friend class EditGCodeDialog;
 };

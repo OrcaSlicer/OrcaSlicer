@@ -1241,6 +1241,8 @@ void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
+    if (m_type == Preset::TYPE_PRINT && m_config != nullptr)
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
 }
 
 void Tab::update_mode()
@@ -1744,8 +1746,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         
         auto new_value = boost::any_cast<std::string>(value);
         is_safe_to_rotate = is_safe_to_rotate || new_value.empty();
+        const bool had_previous_value = !m_last_sparse_infill_rotate_template_value.empty();
 
-        if (!is_safe_to_rotate) {
+        if (!is_safe_to_rotate && !had_previous_value) {
             wxString msg_text = _(
                 L("Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their "
                   "intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. "
@@ -1762,6 +1765,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 wxGetApp().plater()->update();
             }
         }
+
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
     }
 
     if(opt_key=="layer_height"){
