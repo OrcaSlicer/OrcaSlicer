@@ -383,11 +383,13 @@ public:
 
     // Remap painting data from source mesh to target mesh using spatial mapping.
     // `target_transform` should transform the target mesh into source's coordinate space.
+    // If `existing_painting` is present, the result will be a combine of `existing_painting` and remapped `source_painting`.
     static TriangleSplittingData remap_painting(
         const indexed_triangle_set& source_its,
         const TriangleSplittingData& source_painting,
         const indexed_triangle_set& target_its,
-        const Transform3d& target_transform);
+        const Transform3d& target_transform,
+        const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting);
 
 protected:
     // Triangle and info about how it's split.

@@ -2407,7 +2407,8 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
     const indexed_triangle_set& source_its,
     const TriangleSplittingData& source_painting,
     const indexed_triangle_set& target_its,
-    const Transform3d& target_transform)
+    const Transform3d& target_transform,
+    const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting)
 {
     TriangleSelector::TriangleSplittingData result;
     if (source_painting.bitstream.empty())
@@ -2477,6 +2478,10 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
 
     // 4. For each painted face, we find the nearest target face, and apply the TriangleCursor to paint it
     TriangleSelector target_selector(target_mesh);
+    if (existing_painting) {
+        // Restore existing painting first, if given
+        target_selector.deserialize(existing_painting->get(), false);
+    }
     for (auto tri_ref : painted_triangles) {
         const Triangle& tri = tri_ref.get();
         const Vec3f& pv0    = source_selector.m_vertices[tri.verts_idxs[0]].v;

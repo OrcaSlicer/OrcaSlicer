@@ -731,7 +731,7 @@ public:
     void assign(const FacetsAnnotation &rhs) { if (! this->timestamp_matches(rhs)) { m_data = rhs.m_data; this->copy_timestamp(rhs); } }
     void assign(FacetsAnnotation &&rhs) { if (! this->timestamp_matches(rhs)) { m_data = std::move(rhs.m_data); this->copy_timestamp(rhs); } }
     const TriangleSelector::TriangleSplittingData &get_data() const noexcept { return m_data; }
-    void set_data(const TriangleSelector::TriangleSplittingData &data) { m_data = data; this->touch(); }
+    void set_data(TriangleSelector::TriangleSplittingData &&data) { m_data = std::move(data); this->touch(); }
     bool set(const TriangleSelector& selector);
     indexed_triangle_set get_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     // BBS
@@ -884,7 +884,7 @@ public:
     std::optional<TriangleSelector::SavedPainting> save_painting() const;
     
     // Remap painting data from previous saved source to this mesh
-    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved);
+    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, bool keep_existing_paint = false);
 
     // BBS: quick access for volume extruders, 1 based
     mutable std::vector<int> mmuseg_extruders;

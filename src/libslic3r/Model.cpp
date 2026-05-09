@@ -1995,7 +1995,7 @@ std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() cons
     return {};
 }
 
-void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved)
+void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, const bool keep_existing_paint)
 {
     if (!saved) {
         return;
@@ -2005,9 +2005,13 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
                          FacetsAnnotation& target_facets) {
         if (src_data.bitstream.empty())
             return;
-        auto result = TriangleSelector::remap_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()));
+        auto result =
+            TriangleSelector::remap_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()),
+                                             keep_existing_paint ?
+                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{std::ref(target_facets.get_data())} :
+                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{});
         if (!result.bitstream.empty())
-            target_facets.set_data(result);
+            target_facets.set_data(std::move(result));
     };
     remap_one(saved->supported, supported_facets);
     remap_one(saved->seam,      seam_facets);
