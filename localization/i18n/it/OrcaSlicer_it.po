@@ -172,8 +172,8 @@ msgstr "Tipo di strumento"
 msgid "Smart fill angle"
 msgstr "Angolo di riempimento intelligente"
 
-msgid "On overhangs only"
-msgstr "Solo sulle sporgenze"
+msgid "On highlighted overhangs only"
+msgstr "Solo sulle sporgenze evidenziate"
 
 msgid "Auto support threshold angle: "
 msgstr "Angolo di soglia per supporto automatico: "
@@ -15318,6 +15318,9 @@ msgstr "Solo verniciato"
 
 msgid "Contour"
 msgstr "Contorno"
+
+msgid "Hole"
+msgstr "Foro"
 
 msgid "Contour and hole"
 msgstr "Contorno e foro"

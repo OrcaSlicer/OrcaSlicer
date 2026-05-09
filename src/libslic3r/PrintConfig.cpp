@@ -172,6 +172,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
+    { "hole",           int(FuzzySkinType::Hole) },
     { "all",            int(FuzzySkinType::All) },
     { "allwalls",       int(FuzzySkinType::AllWalls)},
     { "disabled_fuzzy", int(FuzzySkinType::Disabled_fuzzy)}
@@ -183,7 +184,8 @@ static t_config_enum_values s_keys_map_NoiseType {
     { "perlin",         int(NoiseType::Perlin) },
     { "billow",         int(NoiseType::Billow) },
     { "ridgedmulti",    int(NoiseType::RidgedMulti) },
-    { "voronoi",        int(NoiseType::Voronoi) }
+    { "voronoi",        int(NoiseType::Voronoi) }, 
+    { "ripple",         int(NoiseType::Ripple) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
 
@@ -694,6 +696,18 @@ void PrintConfigDef::init_common_params()
     def->min      = 1;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionInt(1));	
+
+    def           = this->add("elefant_foot_layers_density", coPercent);
+    def->label    = L("Elephant foot layers density");
+    def->category = L("Quality");
+    def->tooltip  = L("Density of internal solid infill for Elephant foot layers compensation.\n"
+                      "The initial value for the second layer is set.\n"
+                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers.");
+    def->sidetext = "%";
+    def->min      = 50;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionPercent(100));
 
     def = this->add("layer_height", coFloat);
     def->label = L("Layer height");
@@ -1583,6 +1597,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("brim_flow_ratio", coFloat);
+    def->label = L("Brim flow ratio");
+    def->category = L("Support");
+    def->tooltip = L("This factor affects the amount of material for brims.\n\n"
+                     "The actual brim flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio.\n\n"
+                     "Note: The resulting value will not be affected by the first-layer flow ratio.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
+
     def = this->add("brim_use_efc_outline", coBool);
     def->label = L("Brim follows compensated outline");
     def->category = L("Support");
@@ -1740,6 +1765,19 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Activate for better air filtration. G-code command: M106 P3 S(0-255)");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBools{false});
+    
+
+    def = this->add("activate_air_filtration_during_print", coBools);
+    def->full_label = L("During print");
+    def->tooltip=L("Enable this to override the fan speed set in custom G-code during print.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBools{true});
+
+    def = this->add("activate_air_filtration_on_completion", coBools);
+    def->full_label = L("On completion");
+    def->tooltip=L("Enable this to override the fan speed set in custom G-code after print completion.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBools{true});
 
     def = this->add("during_print_exhaust_fan_speed", coInts);
     def->label   = L("Fan speed");
@@ -2155,6 +2193,7 @@ void PrintConfigDef::init_fff_params()
                      "This setting changes all extrusion flow of this filament in G-code proportionally. "
                      "The recommended value range is between 0.95 and 1.05. "
                      "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.");
+    def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
     def->nullable = true;
@@ -2559,7 +2598,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Number of cooling moves");
     def->tooltip = L("Filament is cooled by being moved back and forth in the "
                    "cooling tubes. Specify desired number of these moves.");
-    def->max = 0;
+    def->min = 0;
     def->max = 20;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { 4 });
@@ -3031,6 +3070,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(300));
 
+    def = this->add("initial_layer_travel_acceleration", coFloatOrPercent);
+    def->label = L("First layer travel");
+    def->tooltip = L("Travel acceleration of first layer.\nThe percentage value is relative to Travel Acceleration.");
+    def->sidetext = L("mm/s² or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->ratio_over = "travel_acceleration";
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+
     def = this->add("accel_to_decel_enable", coBool);
     def->label = L("Enable accel_to_decel");
     def->category = L("Speed");
@@ -3120,6 +3168,15 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(12));
+
+    def = this->add("initial_layer_travel_jerk", coFloatOrPercent);
+    def->label = L("First layer travel");
+    def->tooltip = L("Travel jerk of first layer.\nThe percentage value is relative to Travel Jerk.");
+    def->sidetext = L("mm/s or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->ratio_over = "travel_jerk";
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
     def = this->add("initial_layer_line_width", coFloatOrPercent);
     def->label = L("First layer");
@@ -3298,11 +3355,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinType>::get_enum_values();
     def->enum_values.push_back("none");
     def->enum_values.push_back("external");
+    def->enum_values.push_back("hole");
     def->enum_values.push_back("all");
     def->enum_values.push_back("allwalls");
     def->enum_values.push_back("disabled_fuzzy");
     def->enum_labels.push_back(L("Painted only"));
     def->enum_labels.push_back(L("Contour"));
+    def->enum_labels.push_back(L("Hole"));
     def->enum_labels.push_back(L("Contour and hole"));
     def->enum_labels.push_back(L("All walls"));
     def->enum_labels.push_back(L("Disabled"));
@@ -3315,7 +3374,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The width within which to jitter. It's advised to be below outer wall line width.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
-    def->max = 1;
+    def->max = 2;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0.2));
 
@@ -3367,18 +3426,21 @@ void PrintConfigDef::init_fff_params()
                      "Perlin: Perlin noise, which gives a more consistent texture.\n"
                      "Billow: Similar to perlin noise, but clumpier.\n"
                      "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
-                     "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.");
+                     "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
+                     "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance.");
     def->enum_keys_map = &ConfigOptionEnum<NoiseType>::get_enum_values();
     def->enum_values.push_back("classic");
     def->enum_values.push_back("perlin");
     def->enum_values.push_back("billow");
     def->enum_values.push_back("ridgedmulti");
     def->enum_values.push_back("voronoi");
+    def->enum_values.push_back("ripple");
     def->enum_labels.push_back(L("Classic"));
     def->enum_labels.push_back(L("Perlin"));
     def->enum_labels.push_back(L("Billow"));
     def->enum_labels.push_back(L("Ridged Multifractal"));
     def->enum_labels.push_back(L("Voronoi"));
+    def->enum_labels.push_back(L("Ripple"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<NoiseType>(NoiseType::Classic));
 
@@ -3409,6 +3471,39 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("fuzzy_skin_ripples_per_layer", coInt);
+    def->label = L("Number of ripples per layer");
+    def->category = L("Others");
+    def->tooltip  = L("Controls how many full cycles of ripples will be added per layer.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(15));
+
+    def = this->add("fuzzy_skin_ripple_offset", coPercent);
+    def->label = L("Ripple offset");
+    def->category = L("Others");
+    def->tooltip = L("Shifts the ripple phase forward along the print path by the specified percentage of a wavelength each layer period.\n"
+                     "- 0% keeps every layer identical.\n"
+                     "- 50% shifts the pattern by half a wavelength, effectively inverting the phase.\n"
+                     "- 100% shifts the pattern by a full wavelength, returning to the original phase.\n\n"
+                     "The shift is applied once every number of layers set by Layers between ripple offset, so layers within the same group are printed identically.");
+    def->min = 0;
+    def->max = 100;
+    def->sidetext = ("%");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(50));
+
+    def = this->add("fuzzy_skin_layers_between_ripple_offset", coInt);
+    def->label = L("Layers between ripple offset");
+    def->category = L("Others");
+    def->tooltip = L("Specifies how many consecutive layers share the same ripple phase before the offset is applied.\n"
+                     "For example:\n"
+                     "- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is shifted by the configured offset, then layer 3 returns to the base pattern, and so on.\n"
+                     "- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 to 6 are shifted by the configured offset, then layers 7 to 9 return to the base pattern, etc.");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("filter_out_gap_fill", coFloat);
     def->label = L("Filter out tiny gaps");
@@ -3585,7 +3680,7 @@ void PrintConfigDef::init_fff_params()
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");
     def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
-    def->mode=comDevelop;
+    def->mode=comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     def->readonly=false;
 
@@ -4056,6 +4151,53 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Use a fixed absolute angle for ironing.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def           = this->add("ironing_expansion", coFloat);
+    def->label    = L("Ironing expansion");
+    def->category = L("Quality");
+    def->tooltip  = L("Expand or contract the ironing area.");
+    def->sidetext = L("mm");
+    def->min      = -100;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("zaa_enabled", coBool);
+    def->label    = L("Z contouring enabled");
+    def->category = L("Quality");
+    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing).");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zaa_minimize_perimeter_height", coFloat);
+    def->label    = L("Minimize wall height angle");
+    def->category = L("Quality");
+    def->tooltip  = L("Reduce the height of top-surface perimeters to match the model edge height.\n"
+                      "Affects perimeters with a slope less than this angle (degrees).\n"
+                      "A reasonable value is 35. Set to 0 to disable.");
+    def->sidetext = L("°");
+    def->min      = 0;
+    def->max      = 90;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("zaa_dont_alternate_fill_direction", coBool);
+    def->label    = L("Don't alternate fill direction");
+    def->category = L("Quality");
+    def->tooltip  = L("Disable alternating fill direction when using Z contouring.");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zaa_min_z", coFloat);
+    def->label    = L("Minimum z height");
+    def->category = L("Quality");
+    def->tooltip  = L("Minimum Z-layer height.\n"
+                      "Also controls the slicing plane.");
+    def->sidetext = L("mm");
+    def->min      = 0;
+    def->max      = 100;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.05));
 
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
@@ -4632,6 +4774,15 @@ void PrintConfigDef::init_fff_params()
     def->height = 6;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
+
+    def = this->add("process_change_extrusion_role_gcode", coString);
+    def->label = L("Change extrusion role G-code (process)");
+    def->tooltip = L("This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
     
     def = this->add("printer_model", coString);
     def->label = L("Printer type");
@@ -5129,7 +5280,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Scarf joint flow ratio");
     def->category = L("Quality");
     def->tooltip = L("This factor affects the amount of material for scarf joints.");
-    def->mode = comDevelop;
+    def->mode = comExpert;
+    def->min = 0;
     def->max = 2;
     def->set_default_value(new ConfigOptionFloat(1));
 
@@ -6192,6 +6344,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("filament_change_extrusion_role_gcode", coStrings);
+    def->label = L("Change extrusion role G-code (filament)");
+    def->tooltip = L("This G-code is inserted when the extrusion role is changed for the active filament.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{ "" });
+
     def = this->add("top_surface_line_width", coFloatOrPercent);
     def->label = L("Top surface");
     def->category = L("Quality");
@@ -6724,6 +6885,29 @@ void PrintConfigDef::init_fff_params()
     def->min = 0.0;
     def->max = 25.0;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def = this->add("wall_maximum_resolution", coFloat);
+    def->label = L("Maximum wall resolution");
+    def->category = L("Quality");
+    def->tooltip  = L("This value determines the smallest wall line segment length in mm. "
+        "The smaller you set this value, the more accurate and precise the walls will be.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->min = 0.005;
+    def->max = 0.5f;
+    def->set_default_value(new ConfigOptionFloat(0.5f));
+
+    def = this->add("wall_maximum_deviation", coFloat);
+    def->label = L("Maximum wall deviation");
+    def->category = L("Quality");
+    def->tooltip = L("The maximum deviation allowed when reducing the resolution for the 'Maximum wall resolution' setting. If you increase this, "
+        "the print will be less accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits 'Maximum wall resolution', "
+        "so if the two conflict, 'Maximum wall deviation' takes precedence.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->min = 0.005f;
+    def->max = 0.05f;
+    def->set_default_value(new ConfigOptionFloat(0.025f));
 
     def = this->add("initial_layer_min_bead_width", coPercent);
     def->label = L("First layer minimum wall width");
@@ -7844,7 +8028,12 @@ std::set<std::string> filament_options_with_variant = {
     "filament_ironing_flow",
     "filament_ironing_spacing",
     "filament_ironing_inset",
-    "filament_ironing_speed"
+    "filament_ironing_speed",
+    "activate_air_filtration",
+    "activate_air_filtration_during_print",
+    "activate_air_filtration_on_completion",
+    "during_print_exhaust_fan_speed",
+    "complete_print_exhaust_fan_speed"
 };
 
 // Parameters that are the same as the number of extruders
@@ -9452,6 +9641,13 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     //nothing to do, keep the original one
                 }
                 else {
+                    // Guard: set_with_restore is parent-shaped and would truncate the child's
+                    // vector when the child has more extruders than the parent (e.g. an IDEX
+                    // preset inheriting from a single-nozzle base). The child's saved value is
+                    // authoritative for its own extruder count, so skip the merge for this key.
+                    if (cur_variant_count > target_variant_count)
+                        continue;
+
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
                         stride = 2;
@@ -10660,6 +10856,8 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
                                "travel_point_1_x", "travel_point_1_y", "travel_point_2_x", "travel_point_2_y", "travel_point_3_x",
                                "travel_point_3_y", "x_after_toolchange", "y_after_toolchange", "z_after_toolchange"}},
     {"change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"filament_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"process_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"printing_by_object_gcode",    {}},
     {"machine_pause_gcode",         {}},
     {"template_custom_gcode",       {}},
@@ -10847,8 +11045,32 @@ bool has_skirt(const DynamicPrintConfig& cfg)
         || (opt_draft_shield && opt_draft_shield->getInt() != dsDisabled);
 }
 float get_real_skirt_dist(const DynamicPrintConfig& cfg) {
-    return has_skirt(cfg) ? cfg.opt_float("skirt_distance") : 0;
+    if (!has_skirt(cfg)) return 0.f;
+
+    float dist = cfg.opt_float("skirt_distance");
+
+    int loops = cfg.opt_int("skirt_loops");
+    auto opt_draft_shield = cfg.option("draft_shield");
+    if (opt_draft_shield && opt_draft_shield->getInt() != dsDisabled && loops == 0) {
+        loops = 1;
+    }
+
+    float width = cfg.opt_float("initial_layer_line_width");
+    if (width <= 0.f) {
+        width = cfg.opt_float("line_width");
+    }
+    if (width <= 0.f) {
+        auto* nd = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
+        if (nd && !nd->values.empty()) {
+            width = *std::max_element(nd->values.begin(), nd->values.end());
+        } else {
+            width = 0.4f;
+        }
+    }
+
+    return dist + loops * width;
 }
+
 static bool is_XL_printer(const std::string& printer_notes)
 {
     return boost::algorithm::contains(printer_notes, "PRINTER_VENDOR_PRUSA3D")

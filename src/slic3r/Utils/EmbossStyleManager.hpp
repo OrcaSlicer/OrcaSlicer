@@ -309,7 +309,7 @@ private:
         // place to store result in main thread in Finalize
         std::shared_ptr<StyleImages> result;
                 
-        // pixel per milimeter (scaled DPI)
+        // pixel per millimeter (scaled DPI)
         double ppm;
     };
     std::shared_ptr<StyleImagesData::StyleImages> m_temp_style_images = nullptr;

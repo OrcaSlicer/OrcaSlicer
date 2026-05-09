@@ -1,6 +1,5 @@
 #include "OrcaCloudServiceAgent.hpp"
 #include "Http.hpp"
-#include "slic3r/Utils/InstanceID.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -9,12 +8,11 @@
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <iostream>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
@@ -28,6 +26,7 @@
 #include <random>
 #include <sstream>
 
+#include <string>
 #include <wx/filename.h>
 #include <wx/filefn.h>
 #include <wx/secretstore.h>
@@ -39,44 +38,57 @@
 #endif
 
 #if defined(__APPLE__)
-#include <sys/sysctl.h>
+#include <unistd.h>
+#include <uuid/uuid.h>
 #endif
 
-namespace pt = boost::property_tree;
+using json = nlohmann::json;
 
 namespace Slic3r {
 
 namespace {
-constexpr const char* ORCA_DEFAULT_API_URL = "https://xxx.orcaslicer.com";
-constexpr const char* ORCA_DEFAULT_AUTH_URL = "https://xxx.orcaslicer.com";
-constexpr const char* ORCA_DEFAULT_PUB_KEY = "xxxxxxxxxxxxx";
+constexpr const char* ORCA_DEFAULT_API_URL = "api.orcaslicer.com";
+constexpr const char* ORCA_DEFAULT_AUTH_URL = "https://auth.orcaslicer.com";
+constexpr const char* ORCA_DEFAULT_CLOUD_URL = "https://cloud.orcaslicer.com";
+// Orca: This is a public key with no secret, used to identify the client application to the backend.
+constexpr const char* ORCA_DEFAULT_PUB_KEY = "sb_publishable_lvVe_whOi80SU9BPSxM1kA_tbt9AbR_";
+
 constexpr const char* ORCA_HEALTH_PATH = "/api/v1/health";
 constexpr const char* ORCA_SYNC_PULL_PATH = "/api/v1/sync/pull";
 constexpr const char* ORCA_SYNC_PUSH_PATH = "/api/v1/sync/push";
-constexpr const char* ORCA_PROFILES_PATH = "/api/v1/profiles";
+constexpr const char* ORCA_SYNC_DELETE_PATH = "/api/v1/sync/delete";
+constexpr const char* ORCA_PROFILES_PATH = "/api/v1/sync/profiles";
+constexpr const char* ORCA_SUBSCRIPTIONS_PATH = "/api/v1/subscriptions";
 constexpr const char* ORCA_SYNC_STATE_FILE = "sync_state";
+constexpr const char* ORCA_SYNC_PROFILE_TABLE = "profiles";
+constexpr size_t ORCA_SYNC_MAX_PAYLOAD_SIZE = 1048576; // 1MB size limit
+
+constexpr const char* ORCA_CLOUD_LOGIN_PATH = "/orcaslicer-login";
 
 constexpr const char* CONFIG_ORCA_API_URL = "orca_api_url";
 constexpr const char* CONFIG_ORCA_AUTH_URL = "orca_auth_url";
+constexpr const char* CONFIG_ORCA_CLOUD_URL = "orca_cloud_url";
 constexpr const char* CONFIG_ORCA_PUB_KEY = "orca_pub_key";
 
 constexpr const char* SECRET_STORE_SERVICE = "OrcaSlicer/Auth";
 constexpr const char* SECRET_STORE_USER    = "orca_refresh_token";
 constexpr std::chrono::seconds TOKEN_REFRESH_SKEW{900}; // 15 minutes
 
-std::string generate_uuid(const std::string& name = "")
+std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "")
 {
     if (name.empty()) {
         return "";
     }
 
-    // Use a fixed namespace UUID for OrcaSlicer profiles
-    // This ensures the same name always generates the same UUID
+    // Mix user_id into the hashed input so two different users generating a setting_id
+    // for an identically-named preset get distinct UUIDs. Without this, the cloud's ID
+    // space collides across accounts and the second user's create gets HTTP 409 with
+    // server_profile=null on every sync (the foreign owner's record is not exposed).
     static const boost::uuids::uuid orca_namespace =
         boost::uuids::string_generator()("f47ac10b-58cc-4372-a567-0e02b2c3d479");
 
     boost::uuids::name_generator_sha1 gen(orca_namespace);
-    boost::uuids::uuid id = gen(name);
+    boost::uuids::uuid id = user_id.empty() ? gen(name) : gen(user_id + "/" + name);
     return boost::uuids::to_string(id);
 }
 
@@ -144,13 +156,11 @@ std::string sha256_base64url(const std::string& input)
     return base64url_encode(hash_vec);
 }
 
-std::string machine_identifier()
+std::string os_machine_id()
 {
-    if (auto* cfg = Slic3r::GUI::wxGetApp().app_config) {
-        const auto iid = Slic3r::instance_id::ensure(*cfg);
-        if (!iid.empty()) return iid;
-    }
-
+    // Orca: OS-level identifiers that live outside data_dir, so a copied data_dir
+    // on another machine yields a different key and the stored refresh
+    // token silently fails to decrypt (forcing a normal sign-in).
 #if defined(__linux__)
     std::ifstream f("/etc/machine-id");
     std::string id;
@@ -159,19 +169,52 @@ std::string machine_identifier()
     }
     if (!id.empty()) return id;
 #elif defined(_WIN32)
-    char buffer[MAX_COMPUTERNAME_LENGTH + 1] = {0};
-    DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
-    if (GetComputerNameA(buffer, &size)) {
-        return std::string(buffer, size);
+    // HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid is a per-install
+    // identifier that isn't copied along with the user's data_dir.
+    HKEY hkey = nullptr;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+                      L"SOFTWARE\\Microsoft\\Cryptography",
+                      0,
+                      KEY_READ | KEY_WOW64_64KEY,
+                      &hkey) == ERROR_SUCCESS) {
+        wchar_t buffer[128] = {0};
+        DWORD buffer_bytes = sizeof(buffer);
+        DWORD type = 0;
+        LONG status = RegQueryValueExW(hkey, L"MachineGuid", nullptr, &type,
+                                       reinterpret_cast<LPBYTE>(buffer), &buffer_bytes);
+        RegCloseKey(hkey);
+        if (status == ERROR_SUCCESS && type == REG_SZ && buffer_bytes > sizeof(wchar_t)) {
+            const size_t wlen = (buffer_bytes / sizeof(wchar_t)) - 1; // strip trailing NUL
+            return wxString(buffer, wlen).ToStdString();
+        }
     }
 #elif defined(__APPLE__)
-    char uuid_str[128] = {0};
-    size_t len = sizeof(uuid_str);
-    if (sysctlbyname("kern.uuid", uuid_str, &len, nullptr, 0) == 0 && len > 0) {
-        return std::string(uuid_str, len - 1);
+    // gethostuuid() returns the hardware-tied host UUID (same value as
+    // "Hardware UUID" in System Information). It persists across OS
+    // reinstalls and kernel updates. Do NOT use sysctl kern.uuid — that
+    // is the running kernel image's build UUID (from kernel_uuid_string
+    // in XNU), which rotates on every macOS/kernel update and would
+    // sign users out on every OS update.
+    uuid_t host_id;
+    struct timespec wait = {0, 0};
+    if (gethostuuid(host_id, &wait) == 0) {
+        uuid_string_t str;
+        uuid_unparse(host_id, str);
+        return std::string(str);
     }
 #endif
-    return wxGetUserId().ToStdString() + "@" + wxGetHostName().ToStdString();
+
+    // Last resort: OS hostname.
+    return wxGetHostName().ToStdString();
+}
+
+std::string get_encryption_key()
+{
+    // Bind the encryption key to both the machine and the OS user. A data_dir
+    // copied to another machine changes the machine half; a data_dir shared
+    // between OS users on the same machine changes the user half. Either
+    // difference makes the stored token fail to decrypt and forces a sign-in.
+    return os_machine_id() + ":" + wxGetUserId().ToStdString();
 }
 
 std::vector<unsigned char> sha256_bytes(const std::string& input)
@@ -326,6 +369,7 @@ OrcaCloudServiceAgent::OrcaCloudServiceAgent(std::string log_dir)
     : log_dir(std::move(log_dir))
     , api_base_url(ORCA_DEFAULT_API_URL)
     , auth_base_url(ORCA_DEFAULT_AUTH_URL)
+    , cloud_base_url(ORCA_DEFAULT_CLOUD_URL)
 {
     auth_headers["apikey"] = ORCA_DEFAULT_PUB_KEY;
     pkce_bundle.loopback_port = choose_loopback_port();
@@ -358,6 +402,11 @@ void OrcaCloudServiceAgent::configure_urls(AppConfig* app_config)
         auth_base_url = auth_url;
     }
 
+    std::string cloud_url = app_config->get(CONFIG_ORCA_CLOUD_URL);
+    if (!cloud_url.empty()) {
+        cloud_base_url = cloud_url;
+    }
+
     std::string pub_key = app_config->get(CONFIG_ORCA_PUB_KEY);
     if (!pub_key.empty()) {
         auth_headers["apikey"] = pub_key;
@@ -372,6 +421,11 @@ void OrcaCloudServiceAgent::set_api_base_url(const std::string& url)
 void OrcaCloudServiceAgent::set_auth_base_url(const std::string& url)
 {
     auth_base_url = url;
+}
+
+void OrcaCloudServiceAgent::set_cloud_base_url(const std::string& url)
+{
+    cloud_base_url = url;
 }
 
 void OrcaCloudServiceAgent::set_use_encrypted_token_file(bool use)
@@ -435,80 +489,37 @@ int OrcaCloudServiceAgent::start()
 
 bool OrcaCloudServiceAgent::exchange_auth_code(const std::string& auth_code, const std::string& state, std::string& session_payload)
 {
-    // Validate PKCE state
     const auto expected_state = pkce_bundle.state;
-    if (!expected_state.empty() && state != expected_state) {
+    if (expected_state.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "[auth] event=code_exchange result=failure reason=no_expected_state";
+        return false;
+    }
+    if (state != expected_state) {
         BOOST_LOG_TRIVIAL(warning) << "[auth] event=code_exchange result=failure reason=state_mismatch";
         return false;
     }
 
-    std::string url = auth_base_url + auth_constants::TOKEN_PATH;
-
-    std::string redirect_uri;
     std::string code_verifier;
-    std::map<std::string, std::string> headers_copy;
-    {
-        std::lock_guard<std::mutex> lock(headers_mutex);
-        headers_copy = extra_headers;
-    }
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
-        redirect_uri = pkce_bundle.redirect;
         code_verifier = pkce_bundle.verifier;
-        for (const auto& pair : auth_headers) {
-            headers_copy[pair.first] = pair.second;
-        }
     }
 
-    bool has_apikey = false;
-    for (const auto& pair : headers_copy) {
-        if (pair.first == "apikey") {
-            has_apikey = true;
-            break;
-        }
-    }
-    if (!has_apikey) {
-        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: exchange_auth_code - apikey header MISSING! Token request may fail.";
-    }
+    // Exchange the Supabase PKCE code with the token endpoint.
+    // With redirect_to, GoTrue handles Google OAuth internally and redirects to localhost
+    // with a Supabase-generated auth_code (not a raw Google code). The grant_type goes
+    // in the URL query string (same pattern as the refresh_token flow).
+    const std::string token_url = auth_base_url + auth_constants::TOKEN_PATH + "?grant_type=pkce";
+    json body_j;
+    body_j["auth_code"] = auth_code;
+    body_j["code_verifier"] = code_verifier;
 
     std::string response;
     unsigned int http_code = 0;
-    bool success = false;
-
-    try {
-        auto http = Http::post(url);
-
-        for (const auto& pair : headers_copy) {
-            http.header(pair.first, pair.second);
-        }
-
-        http.remove_header("Authorization");
-        http.remove_header("Content-Type");
-        http.form_add("grant_type", "authorization_code");
-        http.form_add("code", auth_code);
-        http.form_add("redirect_uri", redirect_uri);
-        http.form_add("code_verifier", code_verifier);
-
-        http.on_complete([&](std::string body, unsigned resp_status) {
-                success = true;
-                http_code = resp_status;
-                response = body;
-            })
-            .on_error([&](std::string body, std::string error, unsigned resp_status) {
-                success = false;
-                http_code = resp_status;
-                response = body;
-                BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
-            })
-            .timeout_max(30)
-            .perform_sync();
-
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: exchange_auth_code exception - " << e.what();
-    }
+    const bool success = http_post_token(body_j.dump(), &response, &http_code, token_url);
 
     if (!success || http_code >= 400) {
-        BOOST_LOG_TRIVIAL(error) << "[auth] event=code_exchange result=failure http_code=" << http_code;
+        BOOST_LOG_TRIVIAL(error) << "[auth] event=code_exchange result=failure http_code=" << http_code << " body=" << response;
         return false;
     }
 
@@ -520,139 +531,76 @@ bool OrcaCloudServiceAgent::exchange_auth_code(const std::string& auth_code, con
 int OrcaCloudServiceAgent::change_user(std::string user_info)
 {
     try {
-        std::stringstream ss(user_info);
-        pt::ptree tree;
-        pt::read_json(ss, tree);
+        auto tree = json::parse(user_info);
 
-        auto read_str = [](const pt::ptree& node, const std::string& path) {
-            return node.get<std::string>(path, "");
+        auto safe_str = [](const json& j, const std::string& key) -> std::string {
+            if (j.contains(key) && j[key].is_string()) return j[key].get<std::string>();
+            return "";
         };
 
         // Check if this is a WebView login message (PKCE flow completion)
-        std::string command = tree.get<std::string>("command", "");
+        std::string command = safe_str(tree, "command");
         if (command == "user_login") {
-
-            auto data_opt = tree.get_child_optional("data");
-            if (!data_opt) {
+            if (!tree.contains("data") || !tree["data"].is_object()) {
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: WebView login payload missing data field";
-                invoke_user_login_callback(0, false);
                 return BAMBU_NETWORK_ERR_INVALID_HANDLE;
             }
-
-            pt::ptree data = *data_opt;
-            std::string state = read_str(data, "state");
+            const auto& data = tree["data"];
+            std::string state = safe_str(data, "state");
 
             // Check for auth code (PKCE authorization code flow)
-            std::string auth_code = read_str(data, "code");
+            std::string auth_code = safe_str(data, "code");
             if (!auth_code.empty()) {
                 std::string session_payload;
                 if (!exchange_auth_code(auth_code, state, session_payload)) {
-                    invoke_user_login_callback(0, false);
                     return BAMBU_NETWORK_ERR_INVALID_HANDLE;
                 }
                 // Recursively process the session payload (contains access_token, user, etc.)
                 return change_user(session_payload);
             }
 
-            // Direct token flow (tokens already obtained by WebView)
-            std::string token = read_str(data, "token");
-            std::string user_id = read_str(data, "user_id");
-            std::string username = read_str(data, "username");
-            std::string name = read_str(data, "name");
-            std::string nickname = read_str(data, "nickname");
-            std::string avatar = read_str(data, "avatar");
-            std::string refresh_token = read_str(data, "refresh_token");
-
             // Validate PKCE state
             const auto expected_state = pkce_bundle.state;
             if (!expected_state.empty() && state != expected_state) {
                 BOOST_LOG_TRIVIAL(warning) << "[auth] event=login result=failure reason=state_mismatch";
-                invoke_user_login_callback(0, false);
                 return BAMBU_NETWORK_ERR_INVALID_HANDLE;
             }
 
-            if (token.empty() || user_id.empty()) {
-                BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: WebView login - token or user_id empty";
-                invoke_user_login_callback(0, false);
-                return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-            }
-
-            bool success = set_user_session(token, user_id, username, name, nickname, avatar, refresh_token);
-            if (success) {
-                invoke_user_login_callback(1, true);
-                if (on_login_complete_handler) {
-                    on_login_complete_handler(true, user_id);
-                }
-            } else {
-                invoke_user_login_callback(0, false);
-            }
+            // Direct token flow (tokens already obtained by WebView)
+            bool success = set_user_session(data);
             BOOST_LOG_TRIVIAL(info) << "[auth] event=login result=" << (success ? "success" : "failure")
-                                    << " source=webview user_id=" << user_id;
+                                    << " source=webview";
             return success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_INVALID_HANDLE;
         }
 
         // Orca cloud session payload (default flow)
-        const pt::ptree* session_node = nullptr;
-        auto data_opt = tree.get_child_optional("data");
-        if (data_opt) {
-            if (data_opt->get_child_optional("session")) {
-                session_node = &data_opt->get_child("session");
-            } else if (data_opt->get_optional<std::string>("access_token") ||
-                       data_opt->get_optional<std::string>("token")) {
-                session_node = &*data_opt;
+        const json* session_node = nullptr;
+        if (tree.contains("data") && tree["data"].is_object()) {
+            const auto& data = tree["data"];
+            if (data.contains("session") && data["session"].is_object()) {
+                session_node = &data["session"];
+            } else if (data.contains("access_token") || data.contains("token")) {
+                session_node = &data;
             }
         }
         if (!session_node) {
-            if (tree.get_child_optional("session")) {
-                session_node = &tree.get_child("session");
-            } else if (tree.get_optional<std::string>("access_token") ||
-                       tree.get_optional<std::string>("token")) {
+            if (tree.contains("session") && tree["session"].is_object()) {
+                session_node = &tree["session"];
+            } else if (tree.contains("access_token") || tree.contains("token")) {
                 session_node = &tree;
             }
         }
 
         if (session_node) {
-            std::string access_token = read_str(*session_node, "access_token");
-            if (access_token.empty()) {
-                access_token = read_str(*session_node, "token");
-            }
-            std::string refresh_token = read_str(*session_node, "refresh_token");
-            std::string user_id = read_str(*session_node, "user.id");
-            std::string email = read_str(*session_node, "user.email");
-            std::string full_name = read_str(*session_node, "user.user_metadata.full_name");
-            std::string preferred_username = read_str(*session_node, "user.user_metadata.preferred_username");
-            std::string avatar = read_str(*session_node, "user.user_metadata.avatar_url");
-            std::string username = !preferred_username.empty() ? preferred_username : email;
-            std::string name = !full_name.empty() ? full_name : (!preferred_username.empty() ? preferred_username : email);
-            std::string nickname = !preferred_username.empty() ? preferred_username : username;
-            if (nickname.empty()) nickname = name;
-            if (nickname.empty()) nickname = email;
-
-            if (access_token.empty() || user_id.empty()) {
-                BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: Orca cloud login payload missing access_token or user.id";
-                invoke_user_login_callback(0, false);
-                return BAMBU_NETWORK_ERR_INVALID_HANDLE;
-            }
-
-            bool success = set_user_session(access_token, user_id, username, name, nickname, avatar, refresh_token);
-            if (success) {
-                invoke_user_login_callback(1, true);
-                if (on_login_complete_handler) {
-                    on_login_complete_handler(true, user_id);
-                }
-            } else {
-                invoke_user_login_callback(0, false);
-            }
-            return success ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_INVALID_HANDLE;
+            return set_user_session(*session_node)
+                ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_INVALID_HANDLE;
         }
 
         BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: Username/password login is disabled. Use the Orca cloud PKCE flow.";
-        invoke_user_login_callback(0, false);
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
 
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: change_user exception - " << e.what();
-        invoke_user_login_callback(0, false);
         return BAMBU_NETWORK_ERR_INVALID_RESULT;
     }
 }
@@ -679,18 +627,12 @@ int OrcaCloudServiceAgent::user_logout(bool request)
         if (!token.empty()) {
             std::string response;
             unsigned int http_code = 0;
-            pt::ptree logout_req;
+            json logout_req = json::object();
             if (!refresh_copy.empty()) {
-                logout_req.put("refresh_token", refresh_copy);
-            }
-            std::stringstream body_ss;
-            if (!logout_req.empty()) {
-                pt::write_json(body_ss, logout_req);
-            } else {
-                body_ss << "{}";
+                logout_req["refresh_token"] = refresh_copy;
             }
 
-            int result = http_post_auth(auth_constants::LOGOUT_PATH, body_ss.str(), &response, &http_code) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_INVALID_HANDLE;
+            int result = http_post_auth(auth_constants::LOGOUT_PATH, logout_req.dump(), &response, &http_code) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_INVALID_HANDLE;
             if (result != BAMBU_NETWORK_SUCCESS || http_code >= 400) {
                 BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: Orca cloud logout request failed - http_code=" << http_code;
             }
@@ -698,7 +640,6 @@ int OrcaCloudServiceAgent::user_logout(bool request)
     }
 
     clear_session();
-    invoke_user_login_callback(0, false);
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -735,85 +676,67 @@ std::string OrcaCloudServiceAgent::build_login_cmd()
     // When already signed in, emit the homepage payload so the web UI
     // can flip to the logged-in state without re-opening the login flow.
     if (is_user_login()) {
-        pt::ptree cmd;
-        cmd.put("command", "studio_userlogin");
-
-        pt::ptree data;
         std::string display_name = get_user_nickname();
         if (display_name.empty()) {
-            display_name = get_user_name();
+            display_name = "unknown name";
         }
-        data.put("name", display_name);
-        data.put("avatar", get_user_avatar());
-        cmd.add_child("data", data);
-
-        std::stringstream ss;
-        pt::write_json(ss, cmd, false);
-        return ss.str();
+        json cmd;
+        cmd["command"] = "orca_userlogin";
+        cmd["data"]["name"] = display_name;
+        cmd["data"]["avatar"] = get_user_avatar();
+        return cmd.dump();
     }
 
     update_redirect_uri();
     regenerate_pkce();
     const auto bundle = pkce();
 
-    pt::ptree tree;
-    tree.put("action", "login_config");
-    tree.put("backend_url", auth_base_url);
+    json tree;
+    tree["action"] = "login_config";
+    tree["backend_url"] = auth_base_url;
 
     // Include API key for direct Supabase calls from JavaScript
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
         auto it = auth_headers.find("apikey");
         if (it != auth_headers.end()) {
-            tree.put("apikey", it->second);
+            tree["apikey"] = it->second;
         }
     }
 
-    pt::ptree pkce_node;
-    pkce_node.put("code_challenge", bundle.challenge);
-    pkce_node.put("code_challenge_method", "S256");
-    pkce_node.put("state", bundle.state);
-    pkce_node.put("redirect_uri", bundle.redirect);
-    pkce_node.put("code_verifier", bundle.verifier);
-    pkce_node.put("loopback_port", bundle.loopback_port);
-    tree.add_child("pkce", pkce_node);
+    tree["pkce"]["code_challenge"] = bundle.challenge;
+    tree["pkce"]["code_challenge_method"] = "S256";
+    tree["pkce"]["state"] = bundle.state;
+    tree["pkce"]["redirect_uri"] = bundle.redirect;
+    tree["pkce"]["code_verifier"] = bundle.verifier;
+    tree["pkce"]["loopback_port"] = bundle.loopback_port;
 
-    std::stringstream ss;
-    pt::write_json(ss, tree, false);
-    return ss.str();
+    return tree.dump();
 }
 
 std::string OrcaCloudServiceAgent::build_logout_cmd()
 {
-    pt::ptree tree;
-    tree.put("action", "logout");
-    tree.put("provider", "orca");
-
-    std::stringstream ss;
-    pt::write_json(ss, tree);
-    return ss.str();
+    return json{{"command", "orca_useroffline"}}.dump();
 }
 
 std::string OrcaCloudServiceAgent::build_login_info()
 {
-    pt::ptree tree;
+    json tree;
     {
         std::lock_guard<std::mutex> lock(session_mutex);
-        tree.put("user_id", session.user_id);
-        tree.put("user_name", session.user_name);
-        tree.put("nickname", session.user_nickname);
-        tree.put("avatar", session.user_avatar);
-        tree.put("logged_in", session.logged_in);
+        tree["user_id"] = session.user_id;
+        tree["user_name"] = session.user_name;
+        tree["nickname"] = session.user_nickname;
+        tree["avatar"] = session.user_avatar;
+        tree["logged_in"] = session.logged_in;
     }
     // Do not expose tokens to the WebView
-    tree.put("access_token", "");
-    tree.put("refresh_token", "");
-    tree.put("backend_url", api_base_url);
-    tree.put("auth_url", auth_base_url);
+    tree["access_token"] = "";
+    tree["refresh_token"] = "";
+    tree["backend_url"] = api_base_url;
+    tree["auth_url"] = auth_base_url;
 
-    std::stringstream ss;
-    pt::write_json(ss, tree);
-    return ss.str();
+    return tree.dump();
 }
 
 // ============================================================================
@@ -923,16 +846,38 @@ int OrcaCloudServiceAgent::get_user_presets(std::map<std::string, std::map<std::
     }
 
     auto on_success = [&](const SyncPullResponse& resp) {
+        // Get current user_id for all presets (required by load_user_preset)
+        std::string current_user_id = get_user_id();
+
         for (const auto& upsert : resp.upserts) {
-            std::string preset_type = IOT_PRINT_TYPE_STRING;
-            if (upsert.content.contains("type") && upsert.content["type"].is_string()) {
-                preset_type = upsert.content["type"].get<std::string>();
+            // Parse JSON content into key-value pairs using helper
+            std::map<std::string, std::string> value_map;
+            json_to_map(upsert.content.dump(), value_map);
+
+            // Add metadata from top-level sync response if not already in content
+            // These are required by PresetCollection::load_user_preset
+            if (value_map.find(BBL_JSON_KEY_SETTING_ID) == value_map.end()) {
+                value_map[BBL_JSON_KEY_SETTING_ID] = upsert.id;
+            }
+            if (value_map.find(BBL_JSON_KEY_USER_ID) == value_map.end()) {
+                value_map[BBL_JSON_KEY_USER_ID] = current_user_id;
+            }
+            if (value_map.find(ORCA_JSON_KEY_UPDATE_TIME) == value_map.end()) {
+                value_map[ORCA_JSON_KEY_UPDATE_TIME] = std::to_string(upsert.updated_time);
             }
 
-            (*user_presets)[preset_type][upsert.id] = upsert.content.dump();
+            // Use preset name from content or fallback to upsert.name or upsert.id
+            std::string preset_name = upsert.content.value(BBL_JSON_KEY_NAME, "");
+            if (preset_name.empty()) {
+                preset_name = upsert.name.empty() ? upsert.id : upsert.name;
+            }
+
+            // Store as: user_presets[preset_name][key] = value
+            // This matches the format expected by PresetBundle::load_user_presets
+            (*user_presets)[preset_name] = value_map;
         }
 
-        if (!resp.next_cursor.empty()) {
+        if (resp.next_cursor != 0) {
             std::lock_guard<std::recursive_mutex> lock(state_mutex);
             sync_state.last_sync_timestamp = resp.next_cursor;
             save_sync_state();
@@ -961,7 +906,7 @@ int OrcaCloudServiceAgent::get_user_presets(std::map<std::string, std::map<std::
 
 std::string OrcaCloudServiceAgent::request_setting_id(std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code)
 {
-    std::string new_id = generate_uuid(name);
+    std::string new_id = generate_uuid_for_setting_id(name, get_user_id());
     if (new_id.empty()) {
         BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: request_setting_id failed - name is empty";
         return "";
@@ -979,31 +924,30 @@ std::string OrcaCloudServiceAgent::request_setting_id(std::string name, std::map
         }
     }
 
-    // Use sync_push to create the profile (no original_updated_at for new profiles per spec)
+    // Use sync_push to create the profile (no original_updated_time for new profiles per spec)
     auto result = sync_push(new_id, name, content, "");
     if (http_code) *http_code = result.http_code;
 
     if (result.success) {
-        if (values_map && !result.new_updated_at.empty()) {
-            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = result.new_updated_at;
+        if (values_map && result.new_updated_time != 0) {
+            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(result.new_updated_time);
         }
         return new_id;
     }
 
-    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: request_setting_id failed - " << result.error_message;
+    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: request_setting_id failed - " << result.error_message << " - http code: " << result.http_code;
     return "";
 }
 
 int OrcaCloudServiceAgent::put_setting(std::string setting_id, std::string name, std::map<std::string, std::string>* values_map, unsigned int* http_code)
 {
-    // Extract original_updated_at for Optimistic Concurrency Control
+    // Extract original_updated_time for Optimistic Concurrency Control
     // If present, server will verify version before update. If absent, treated as insert.
-    // If present, server will verify version before update. If absent, treated as insert.
-    std::string original_updated_at;
+    std::string original_updated_time;
     if (values_map) {
         auto it = values_map->find(IOT_JSON_KEY_UPDATED_TIME);
         if (it != values_map->end()) {
-            original_updated_at = it->second;
+            original_updated_time = it->second;
         }
     }
 
@@ -1019,23 +963,23 @@ int OrcaCloudServiceAgent::put_setting(std::string setting_id, std::string name,
         }
     }
 
-    auto result = sync_push(setting_id, name, content, original_updated_at);
+    auto result = sync_push(setting_id, name, content, original_updated_time);
     if (http_code) *http_code = result.http_code;
 
     if (result.success) {
-        if (values_map && !result.new_updated_at.empty()) {
-            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = result.new_updated_at;
+        if (values_map && result.new_updated_time != 0) {
+            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(result.new_updated_time);
         }
         return BAMBU_NETWORK_SUCCESS;
     }
 
     if (result.http_code == 409) {
         // Conflict - update values_map with server version
-        if (values_map && !result.server_version.updated_at.empty()) {
-            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = result.server_version.updated_at;
+        if (values_map && result.server_version.updated_time != 0) {
+            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(result.server_version.updated_time);
         }
-        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: put_setting conflict - server_updated_at="
-                                   << result.server_version.updated_at;
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: put_setting conflict - server_updated_time="
+                                   << result.server_version.updated_time;
     }
 
     BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: put_setting failed - " << result.error_message;
@@ -1067,7 +1011,7 @@ int OrcaCloudServiceAgent::get_setting_list2(std::string bundle_version, CheckFn
             if (chk_fn) {
                 std::map<std::string, std::string> info;
                 info[IOT_JSON_KEY_SETTING_ID] = upsert.id;
-                info[IOT_JSON_KEY_UPDATED_TIME] = upsert.updated_at;
+                info[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(upsert.updated_time);
 
                 if (upsert.content.is_object()) {
                     for (auto& [key, value] : upsert.content.items()) {
@@ -1120,7 +1064,7 @@ int OrcaCloudServiceAgent::get_setting_list2(std::string bundle_version, CheckFn
             }
         }
 
-        if (!cancelled && !resp.next_cursor.empty()) {
+        if (!cancelled && resp.next_cursor != 0) {
             std::lock_guard<std::recursive_mutex> lock(state_mutex);
             sync_state.last_sync_timestamp = resp.next_cursor;
             save_sync_state();
@@ -1145,11 +1089,17 @@ int OrcaCloudServiceAgent::get_setting_list2(std::string bundle_version, CheckFn
 
 int OrcaCloudServiceAgent::delete_setting(std::string setting_id)
 {
-    std::string path = std::string(ORCA_PROFILES_PATH) + "/" + setting_id;
+    std::string path = std::string(ORCA_SYNC_DELETE_PATH) + "?resource=" + ORCA_SYNC_PROFILE_TABLE + "&id=" + setting_id;
     std::string response;
     unsigned int http_code = 0;
 
     int result = http_delete(path, &response, &http_code);
+
+    // Treat 204 as success: the setting is already gone from cloud, which is our goal.
+    if (http_code == 204) {
+        return BAMBU_NETWORK_SUCCESS;
+    }
+
     if (result != BAMBU_NETWORK_SUCCESS || http_code >= 400) {
         return BAMBU_NETWORK_ERR_DEL_SETTING_FAILED;
     }
@@ -1166,8 +1116,8 @@ int OrcaCloudServiceAgent::sync_pull(
     std::function<void(int http_code, const std::string& error)> on_error)
 {
     std::string path = ORCA_SYNC_PULL_PATH;
-    if (!sync_state.last_sync_timestamp.empty()) {
-        path += "?cursor=" + sync_state.last_sync_timestamp;
+    if (sync_state.last_sync_timestamp != 0) {
+        path += "?cursor=" + std::to_string(sync_state.last_sync_timestamp);
     }
 
     std::string response;
@@ -1184,7 +1134,7 @@ int OrcaCloudServiceAgent::sync_pull(
     }
 
     if (result != BAMBU_NETWORK_SUCCESS || (http_code != 200 && http_code != 304)) {
-        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: sync_pull failed - http_code=" << http_code;
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: sync_pull failed - http_code=" << http_code << " - path=" << path;
         if (on_error) on_error(http_code, response);
         return BAMBU_NETWORK_ERR_GET_SETTING_LIST_FAILED;
     }
@@ -1200,15 +1150,15 @@ int OrcaCloudServiceAgent::sync_pull(
     try {
         auto json = nlohmann::json::parse(response);
         SyncPullResponse resp;
-        resp.next_cursor = json.value("next_cursor", "");
+        resp.next_cursor = json.value("next_cursor", 0);
 
         if (json.contains("upserts") && json["upserts"].is_array()) {
             for (const auto& item : json["upserts"]) {
                 ProfileUpsert upsert;
                 upsert.id = item.value("id", "");
                 upsert.name = item.value("name", "");
-                upsert.updated_at = item.value(ORCA_JSON_KEY_UPDATE_TIME, "");
-                upsert.created_at = item.value(ORCA_JSON_KEY_CREATED_TIME, "");
+                upsert.updated_time = item.value(ORCA_JSON_KEY_UPDATE_TIME, 0);
+                upsert.created_time = item.value(ORCA_JSON_KEY_CREATED_TIME, 0);
                 if (item.contains("content")) {
                     upsert.content = item["content"];
                 }
@@ -1236,7 +1186,7 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(
     const std::string& profile_id,
     const std::string& name,
     const nlohmann::json& content,
-    const std::string& original_updated_at)
+    const std::string& original_updated_time)
 {
     SyncPushResult result;
     result.success = false;
@@ -1247,20 +1197,29 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(
     body["id"] = profile_id;
     body["name"] = name;
     body["content"] = content;
-    if (!original_updated_at.empty()) {
-        body["original_updated_at"] = original_updated_at;
+    if (!original_updated_time.empty()) {
+        body["original_updated_time"] = original_updated_time;
+    }
+
+    // Validate payload size before upload
+    std::string body_str = body.dump();
+    if (body_str.size() > ORCA_SYNC_MAX_PAYLOAD_SIZE) {
+        result.http_code = 413; // HTTP 413 Payload Too Large
+        result.success = false;
+        result.error_message = "Preset content exceeds 1MB size limit (actual: " +
+                              std::to_string(body_str.size()) + " bytes)";
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: sync_push payload too large - "
+                                 << "size=" << body_str.size() << " bytes, "
+                                 << "limit=" << ORCA_SYNC_MAX_PAYLOAD_SIZE << " bytes, "
+                                 << "profile_id=" << profile_id;
+        return result;
     }
 
     std::string response;
     unsigned int http_code = 0;
-    int http_result = http_post(ORCA_SYNC_PUSH_PATH, body.dump(), &response, &http_code);
+    int http_result = http_post(ORCA_SYNC_PUSH_PATH, body_str, &response, &http_code);
 
     result.http_code = http_code;
-
-    if (http_result != BAMBU_NETWORK_SUCCESS) {
-        result.error_message = "HTTP request failed";
-        return result;
-    }
 
     if (http_code == 409) {
         // Conflict - parse server version
@@ -1269,9 +1228,10 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(
             if (json.is_null()) {
                 result.server_deleted = true;
             } else {
-                result.server_version.id = json.value("id", "");
-                result.server_version.name = json.value("name", "");
-                result.server_version.updated_at = json.value(ORCA_JSON_KEY_UPDATE_TIME, "");
+                auto& profile_data = json["server_profile"];
+                result.server_version.id = profile_data.value("id", "");
+                result.server_version.name = profile_data.value("name", "");
+                result.server_version.updated_time = profile_data.value(ORCA_JSON_KEY_UPDATE_TIME, 0);
             }
         } catch (...) {}
         result.error_message = response;
@@ -1286,11 +1246,11 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(
     // Success
     try {
         auto json = nlohmann::json::parse(response);
-        result.new_updated_at = json.value(ORCA_JSON_KEY_UPDATE_TIME, "");
-        if (!result.new_updated_at.empty()) {
+        result.new_updated_time = json.value(ORCA_JSON_KEY_UPDATE_TIME, 0);
+        if (result.new_updated_time != 0) {
             result.success = true;
         } else {
-            result.error_message = "Server response missing required updated_at timestamp";
+            result.error_message = "Server response missing required updated_time timestamp";
         }
     } catch (const std::exception& e) {
         result.error_message = e.what();
@@ -1314,10 +1274,12 @@ void OrcaCloudServiceAgent::load_sync_state()
         if (ifs.good()) {
             std::string line;
             if (std::getline(ifs, line)) {
-                sync_state.last_sync_timestamp = line;
+                sync_state.last_sync_timestamp = std::stoll(line);
             }
         }
-    } catch (...) {}
+    } catch (...) {
+        sync_state.last_sync_timestamp = 0;
+    }
 }
 
 void OrcaCloudServiceAgent::save_sync_state()
@@ -1330,7 +1292,7 @@ void OrcaCloudServiceAgent::save_sync_state()
         std::string tmp_path = sync_state_path + ".tmp";
         std::ofstream ofs(tmp_path, std::ios::out | std::ios::trunc);
         if (ofs.good()) {
-            ofs << sync_state.last_sync_timestamp;
+            ofs << std::to_string(sync_state.last_sync_timestamp);
             ofs.close();
             boost::filesystem::rename(tmp_path, sync_state_path);
         }
@@ -1400,7 +1362,7 @@ void OrcaCloudServiceAgent::persist_refresh_token(const std::string& token)
 
     if (m_use_encrypted_token_file) {
         // Use encrypted file only
-        auto key = sha256_bytes(machine_identifier());
+        auto key = sha256_bytes(get_encryption_key());
         if (key.empty()) {
             BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: cannot derive key for refresh-token file storage";
             return;
@@ -1468,7 +1430,7 @@ bool OrcaCloudServiceAgent::load_refresh_token(std::string& out_token)
         if (wxFileExists(wxString::FromUTF8(refresh_fallback_path.c_str()))) {
             std::ifstream ifs(refresh_fallback_path, std::ios::binary);
             std::string payload((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            auto key = sha256_bytes(machine_identifier());
+            auto key = sha256_bytes(get_encryption_key());
             std::string plain;
             if (!key.empty()) {
                 std::string encoded_payload = payload;
@@ -1561,12 +1523,11 @@ bool OrcaCloudServiceAgent::decode_jwt_expiry(const std::string& token, std::chr
 
     std::string payload_str(payload_bytes.begin(), payload_bytes.end());
     try {
-        pt::ptree payload;
-        std::stringstream ss(payload_str);
-        pt::read_json(ss, payload);
-        auto exp_opt = payload.get_optional<long long>("exp");
-        if (exp_opt) {
-            out_tp = std::chrono::system_clock::time_point{std::chrono::seconds(*exp_opt)};
+        auto payload = json::parse(payload_str);
+        if (payload.contains("exp") && payload["exp"].is_number()) {
+            out_tp = std::chrono::system_clock::time_point{
+                std::chrono::seconds(payload["exp"].get<long long>())
+            };
             return true;
         }
     } catch (const std::exception& e) {
@@ -1653,52 +1614,9 @@ bool OrcaCloudServiceAgent::refresh_session_with_token(const std::string& refres
     // No session handler set - parse the token response directly and establish session
     // This makes OrcaCloudServiceAgent self-contained without requiring external setup
     try {
-        std::stringstream ss(response);
-        pt::ptree tree;
-        pt::read_json(ss, tree);
-
-        auto read_str = [](const pt::ptree& node, const std::string& path) {
-            return node.get<std::string>(path, "");
-        };
-
-        // Token refresh response has the same structure as login response
-        std::string access_token = read_str(tree, "access_token");
-        if (access_token.empty()) {
-            access_token = read_str(tree, "token");
-        }
-        std::string new_refresh_token = read_str(tree, "refresh_token");
-        std::string user_id = read_str(tree, "user.id");
-        std::string email = read_str(tree, "user.email");
-        std::string full_name = read_str(tree, "user.user_metadata.full_name");
-        std::string preferred_username = read_str(tree, "user.user_metadata.preferred_username");
-        std::string avatar = read_str(tree, "user.user_metadata.avatar_url");
-
-        std::string username = !preferred_username.empty() ? preferred_username : email;
-        std::string name = !full_name.empty() ? full_name : (!preferred_username.empty() ? preferred_username : email);
-        std::string nickname = !preferred_username.empty() ? preferred_username : username;
-        if (nickname.empty()) nickname = name;
-        if (nickname.empty()) nickname = email;
-
-        if (access_token.empty() || user_id.empty()) {
-            BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: token refresh response missing access_token or user.id";
-            invoke_user_login_callback(0, false);
-            return false;
-        }
-
-        bool success = set_user_session(access_token, user_id, username, name, nickname, avatar, new_refresh_token);
-        if (success) {
-            invoke_user_login_callback(0, true);
-            if (on_login_complete_handler) {
-                on_login_complete_handler(true, user_id);
-            }
-        } else {
-            invoke_user_login_callback(0, false);
-        }
-        return success;
-
+        return set_user_session(json::parse(response));
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: token refresh parse exception - " << e.what();
-        invoke_user_login_callback(0, false);
         return false;
     }
 }
@@ -1710,7 +1628,6 @@ bool OrcaCloudServiceAgent::refresh_session_with_token(const std::string& refres
 bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
                                      const std::string& user_id,
                                      const std::string& username,
-                                     const std::string& name,
                                      const std::string& nickname,
                                      const std::string& avatar,
                                      const std::string& refresh_token)
@@ -1723,8 +1640,8 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
         session.access_token = token;
         session.refresh_token = refresh_token;
         session.user_id = user_id;
-        session.user_name = name.empty() ? username : name;
-        session.user_nickname = nickname.empty() ? (!username.empty() ? username : name) : nickname;
+        session.user_name = username;
+        session.user_nickname = nickname;
         session.user_avatar = avatar;
         session.expires_at = exp_tp;
         session.logged_in = true;
@@ -1746,6 +1663,63 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
 
     BOOST_LOG_TRIVIAL(info) << "OrcaCloudServiceAgent: set_user_session - user_id=" << user_id << ", username=" << username;
     return true;
+}
+
+bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool notify_login)
+{
+    auto safe_str = [](const json& j, const std::string& key) -> std::string {
+        if (j.contains(key) && j[key].is_string()) return j[key].get<std::string>();
+        return "";
+    };
+
+    std::string access_token = safe_str(session_json, "access_token");
+    if (access_token.empty()) {
+        access_token = safe_str(session_json, "token");
+    }
+    std::string refresh_token = safe_str(session_json, "refresh_token");
+
+    std::string user_id, username, nickname, avatar;
+    if (session_json.contains("user") && session_json["user"].is_object()) {
+        // Nested format (Orca cloud / GoTrue response)
+        const auto& user = session_json["user"];
+        user_id = safe_str(user, "id");
+        if (user.contains("user_metadata") && user["user_metadata"].is_object()) {
+
+            const auto& meta = user["user_metadata"];
+            username = safe_str(meta, "username"); // Orca Cloud's unique username 
+
+            nickname = safe_str(meta, "display_name"); // Orca Cloud's primary display name field
+            // Fallback to different name from different providers if display_name is not set
+            if (nickname.empty())
+                nickname = safe_str(meta, "full_name");
+            if (nickname.empty())
+                nickname = safe_str(meta, "name");
+            if (nickname.empty())
+                nickname = username;
+
+            avatar = safe_str(meta, "avatar_url");
+        }
+    } else {
+        // Flat format (WebView direct token flow)
+        user_id = safe_str(session_json, "user_id");
+        username = safe_str(session_json, "username");
+        nickname = safe_str(session_json, "display_name");
+        if(nickname.empty())
+            nickname = safe_str(session_json, "nickname");
+            
+        avatar = safe_str(session_json, "avatar");
+    }
+
+    if (access_token.empty() || user_id.empty()) {
+        BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: session payload missing access_token or user id";
+        return false;
+    }
+
+    bool success = set_user_session(access_token, user_id, username, nickname, avatar, refresh_token);
+    if (success && notify_login && on_login_complete_handler) {
+        on_login_complete_handler(true, user_id);
+    }
+    return success;
 }
 
 void OrcaCloudServiceAgent::clear_session()
@@ -1799,6 +1773,7 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
         HttpResult result;
         try {
             auto http = Http::get(url);
+            http.tls_verify(true);
 
             std::string token = get_access_token();
 
@@ -1864,6 +1839,7 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
         HttpResult result;
         try {
             auto http = Http::post(url);
+            http.tls_verify(true);
 
             std::string token = get_access_token();
 
@@ -1932,6 +1908,7 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
         HttpResult result;
         try {
             auto http = Http::put(url);
+            http.tls_verify(true);
 
             std::string token = get_access_token();
 
@@ -2000,6 +1977,7 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
         HttpResult result;
         try {
             auto http = Http::del(url);
+            http.tls_verify(true);
 
             std::string token = get_access_token();
 
@@ -2079,6 +2057,7 @@ bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string
 
     try {
         auto http = Http::post(url);
+        http.tls_verify(true);
 
         for (const auto& pair : headers_copy) {
             http.header(pair.first, pair.second);
@@ -2123,7 +2102,7 @@ bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string
 
 bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::string& body, std::string* response_body, unsigned int* http_code)
 {
-    std::string url = auth_base_url + path;
+    std::string url = auth_base_url + path + "?scope=local";
     std::string token;
     std::map<std::string, std::string> headers_copy;
     {
@@ -2145,6 +2124,7 @@ bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::s
 
     try {
         auto http = Http::post(url);
+        http.tls_verify(true);
 
         for (const auto& pair : headers_copy) {
             http.header(pair.first, pair.second);
@@ -2229,31 +2209,9 @@ void OrcaCloudServiceAgent::json_to_map(const std::string& json, std::map<std::s
 // Callback Invocation
 // ============================================================================
 
-void OrcaCloudServiceAgent::invoke_user_login_callback(int online_login, bool login)
-{
-    OnUserLoginFn callback;
-    QueueOnMainFn queue_fn;
-
-    {
-        std::lock_guard<std::mutex> lock(callback_mutex);
-        callback = on_user_login_fn;
-        queue_fn = queue_on_main_fn;
-    }
-
-    if (callback) {
-        if (queue_fn) {
-            queue_fn([callback, online_login, login]() {
-                callback(online_login, login);
-            });
-        } else {
-            callback(online_login, login);
-        }
-    }
-}
-
 void OrcaCloudServiceAgent::invoke_server_connected_callback(int return_code, int reason_code)
 {
-    OnServerConnectedFn callback;
+    AppOnServerConnectedFn callback;
     QueueOnMainFn queue_fn;
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
@@ -2262,19 +2220,20 @@ void OrcaCloudServiceAgent::invoke_server_connected_callback(int return_code, in
     }
 
     if (callback) {
+        CloudEvent event{ORCA_CLOUD_PROVIDER};
         if (queue_fn) {
-            queue_fn([callback, return_code, reason_code]() {
-                callback(return_code, reason_code);
+            queue_fn([callback, event, return_code, reason_code]() {
+                callback(event, return_code, reason_code);
             });
         } else {
-            callback(return_code, reason_code);
+            callback(event, return_code, reason_code);
         }
     }
 }
 
 void OrcaCloudServiceAgent::invoke_http_error_callback(unsigned http_code, const std::string& http_body)
 {
-    OnHttpErrorFn callback;
+    AppOnHttpErrorFn callback;
     QueueOnMainFn queue_fn;
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
@@ -2283,12 +2242,13 @@ void OrcaCloudServiceAgent::invoke_http_error_callback(unsigned http_code, const
     }
 
     if (callback) {
+        CloudEvent event{ORCA_CLOUD_PROVIDER};
         if (queue_fn) {
-            queue_fn([callback, http_code, http_body]() {
-                callback(http_code, http_body);
+            queue_fn([callback, event, http_code, http_body]() {
+                callback(event, http_code, http_body);
             });
         } else {
-            callback(http_code, http_body);
+            callback(event, http_code, http_body);
         }
     }
 }
@@ -2297,21 +2257,14 @@ void OrcaCloudServiceAgent::invoke_http_error_callback(unsigned http_code, const
 // Callback Registration
 // ============================================================================
 
-int OrcaCloudServiceAgent::set_on_user_login_fn(OnUserLoginFn fn)
-{
-    std::lock_guard<std::mutex> lock(callback_mutex);
-    on_user_login_fn = fn;
-    return BAMBU_NETWORK_SUCCESS;
-}
-
-int OrcaCloudServiceAgent::set_on_server_connected_fn(OnServerConnectedFn fn)
+int OrcaCloudServiceAgent::set_on_server_connected_fn(AppOnServerConnectedFn fn)
 {
     std::lock_guard<std::recursive_mutex> lock(state_mutex);
     on_server_connected_fn = fn;
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaCloudServiceAgent::set_on_http_error_fn(OnHttpErrorFn fn)
+int OrcaCloudServiceAgent::set_on_http_error_fn(AppOnHttpErrorFn fn)
 {
     std::lock_guard<std::recursive_mutex> lock(state_mutex);
     on_http_error_fn = fn;
@@ -2474,6 +2427,14 @@ int OrcaCloudServiceAgent::get_my_profile(std::string token, unsigned int* http_
     return BAMBU_NETWORK_SUCCESS;
 }
 
+int OrcaCloudServiceAgent::get_my_token(std::string ticket, unsigned int* http_code, std::string* http_body)
+{
+    BOOST_LOG_TRIVIAL(debug) << "OrcaCloudServiceAgent: get_my_token (stub) - Orca cloud uses code-based OAuth, not tickets";
+    if (http_code) *http_code = 0;
+    if (http_body) *http_body = "";
+    return -1;
+}
+
 int OrcaCloudServiceAgent::track_enable(bool enable)
 {
     std::lock_guard<std::recursive_mutex> lock(state_mutex);
@@ -2548,13 +2509,6 @@ int OrcaCloudServiceAgent::get_model_mall_rating_result(int job_id, std::string&
     return BAMBU_NETWORK_SUCCESS;
 }
 
-int OrcaCloudServiceAgent::set_extra_http_header(std::map<std::string, std::string> headers)
-{
-    std::lock_guard<std::mutex> lock(headers_mutex);
-    extra_headers = headers;
-    return BAMBU_NETWORK_SUCCESS;
-}
-
 std::string OrcaCloudServiceAgent::get_cloud_service_host()
 {
     return api_base_url;
@@ -2562,14 +2516,11 @@ std::string OrcaCloudServiceAgent::get_cloud_service_host()
 
 std::string OrcaCloudServiceAgent::get_cloud_login_url(const std::string& language)
 {
-    // Orca uses a local HTML file for the login flow
-    boost::filesystem::path login_path = boost::filesystem::path(resources_dir()) / "web" / "login" / "orca_login.html";
-    return "file://" + login_path.make_preferred().string();
-}
-
-std::string OrcaCloudServiceAgent::get_studio_info_url()
-{
-    return api_base_url + "/studio/info";
+    std::string url = cloud_base_url + ORCA_CLOUD_LOGIN_PATH;
+    if (!language.empty()) {
+        url += "?lang=" + language;
+    }
+    return url;
 }
 
 int OrcaCloudServiceAgent::get_mw_user_preference(std::function<void(std::string)> callback)
@@ -2589,6 +2540,176 @@ int OrcaCloudServiceAgent::get_mw_user_4ulist(int seed, int limit, std::function
 std::string OrcaCloudServiceAgent::get_version()
 {
     return "OrcaCloudServiceAgent 1.0.0";
+}
+
+// ============================================================================
+// Bundle Subscription Implementation
+// ============================================================================
+
+bool OrcaCloudServiceAgent::unsubscribe_bundle(const std::string& bundle_id)
+{
+    std::string path = std::string(ORCA_SUBSCRIPTIONS_PATH) + "/" + bundle_id;
+    std::string response;
+    unsigned int http_code = 0;
+
+    int result = http_delete(path, &response, &http_code);
+    if (http_code >= 400) {
+        return false;
+    }
+
+    return true;
+}
+
+std::string OrcaCloudServiceAgent::get_bundle_url(const std::string& bundle_id) const
+{
+    return cloud_base_url + "/app/bundles/subscribed-bundles/" + bundle_id;
+}
+
+int OrcaCloudServiceAgent::get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized)
+{
+    if (!bundles) return -1;
+
+    std::string response_body;
+    unsigned int http_code = 0;
+
+    // GET /api/v1/bundles
+    int result = http_get("/api/v1/subscriptions", &response_body, &http_code);
+
+    if (result != 0 || http_code != 200) {
+        BOOST_LOG_TRIVIAL(error) << "get_subscribed_bundles failed: http_code=" << http_code
+                                 << ", response=" << response_body;
+        return result != 0 ? result : http_code;
+    }
+
+    // Parse JSON response
+    try {
+        auto json = nlohmann::json::parse(response_body);
+
+        if (!json.contains("data") || !json["data"].is_array()) {
+            BOOST_LOG_TRIVIAL(error) << "get_subscribed_bundles: invalid response format";
+            return -1;
+        }
+        if(json.contains("not_found") )
+        {
+            //not found warning
+            for(const auto& not_found : json["not_found"])
+            {
+                notfound.push_back(not_found);
+            }
+        }
+        if(json.contains("unauthorised") )
+        {
+            // populate something to be iterated to show warning notifications
+            for(const auto& u : json["unauthorised"])
+            {
+                unauthorized.push_back(u);
+            }
+        }
+        // if(json.contains("privated") && json["privated"].is_array() && !json["privated"].empty())
+        // {
+        //     // populate something to be iterated to show warning notifications
+        //     for(const auto& not_found : json["privated"])
+        //     {
+                
+        //     }
+        // }
+
+        for (const auto& bundle_json : json["data"]) {
+            bundles->push_back(std::make_pair(bundle_json["id"].get<std::string>(), bundle_json["version"].get<std::string>()));
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "get_subscribed_bundles: loaded " << bundles->size() << " bundles";
+        return 0;
+
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "get_subscribed_bundles: JSON parse error: " << e.what();
+        return -1;
+    }
+}
+
+int OrcaCloudServiceAgent::get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata)
+{
+    if (!presets) return -1;
+
+    std::string response_body;
+    unsigned int http_code = 0;
+
+    // GET /api/v1/bundles/{id}
+    std::string path = "/api/v1/bundles/" + bundle_id;
+    int result = http_get(path, &response_body, &http_code);
+
+    if (result != 0 || http_code != 200) {
+        BOOST_LOG_TRIVIAL(error) << "get_shared_bundle failed: bundle_id=" << bundle_id
+                                 << ", http_code=" << http_code;
+        return result != 0 ? result : http_code;
+    }
+
+    // Parse JSON response
+    try {
+        auto json = nlohmann::json::parse(response_body);
+
+        BOOST_LOG_TRIVIAL(info) << "get_shared_bundle: response: " << response_body;
+        BOOST_LOG_TRIVIAL(info) << "get_shared_bundle: shared_profile: " << json["shared_profiles"];
+
+        // Parse the bundle metadata
+        if (json.contains("id")) bundle_metadata->id = json["id"].get<std::string>();
+        if (json.contains("name")) bundle_metadata->name = json["name"].get<std::string>();
+        if (json.contains("version")) bundle_metadata->version = json["version"].get<std::string>();
+        if (json.contains("description")) bundle_metadata->description = json["description"].get<std::string>();
+        if (json.contains("author")) bundle_metadata->author = json["author"].get<std::string>();
+        if (json.contains("updated_time")) bundle_metadata->updated_time = json["updated_time"].get<long long>();
+
+        if (!json.contains("shared_profiles") || !json["shared_profiles"].is_array()) {
+            BOOST_LOG_TRIVIAL(error) << "get_shared_bundle: invalid response format";
+            return -1;
+        }
+
+        for (auto& preset_object : json["shared_profiles"]) {
+            BOOST_LOG_TRIVIAL(info) << "shared profile object: " << preset_object;
+
+            // Extract preset name and content
+            std::string preset_name = preset_object.value("name", "");
+            if (preset_name.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "get_shared_bundle: preset has no name, skipping";
+                continue;
+            }
+
+            // Parse content JSON into key-value pairs using helper (same as get_user_presets)
+            std::map<std::string, std::string> value_map;
+            if (preset_object.contains("content") && preset_object["content"].is_object()) {
+                json_to_map(preset_object["content"].dump(), value_map);
+            }
+
+            // Add metadata fields to match get_user_presets format
+            // These are required by PresetCollection::load_user_preset
+            if (preset_object.contains("id") && value_map.find(BBL_JSON_KEY_SETTING_ID) == value_map.end()) {
+                value_map[BBL_JSON_KEY_SETTING_ID] = preset_object["id"];
+            }
+            if (value_map.find(BBL_JSON_KEY_USER_ID) == value_map.end()) {
+                // Bundle presets don't have a user_id in the traditional sense
+                // Use bundle_id as a placeholder to indicate source
+                value_map[BBL_JSON_KEY_USER_ID] = "bundle:" + bundle_id;
+            }
+            if (preset_object.contains("updated_time") && value_map.find(ORCA_JSON_KEY_UPDATE_TIME) == value_map.end()) {
+                value_map[ORCA_JSON_KEY_UPDATE_TIME] = preset_object["updated_time"].dump();
+            }
+            if (value_map.find(BBL_JSON_KEY_NAME) == value_map.end()) {
+                value_map[BBL_JSON_KEY_NAME] = preset_name;
+            }
+
+            // Store as: presets[preset_name][key] = value
+            // This matches the format expected by PresetBundle::load_user_presets
+            (*presets)[preset_name] = value_map;
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "get_shared_bundle: loaded " << presets->size()
+                                << " presets for bundle_id=" << bundle_id;
+        return 0;
+
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "get_shared_bundle: JSON parse error: " << e.what();
+        return -1;
+    }
 }
 
 } // namespace Slic3r

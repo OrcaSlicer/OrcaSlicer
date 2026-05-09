@@ -172,8 +172,8 @@ msgstr "Įrankio tipas"
 msgid "Smart fill angle"
 msgstr "Išmanaus užpildymo kampas"
 
-msgid "On overhangs only"
-msgstr "Tik kabantiems"
+msgid "On highlighted overhangs only"
+msgstr "Tik paryškintiems kabantiems"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatinių atramų generavimo kampas: "
@@ -11223,6 +11223,9 @@ msgstr "Nutolinti"
 msgid "Switch between Prepare/Preview"
 msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
 
+msgid "Toggle printable for object/part"
+msgstr "Perjungti objekto / dalies spausdinimą"
+
 msgid "Plater"
 msgstr "Plokštė"
 
@@ -15039,6 +15042,9 @@ msgstr "Tik dažytas"
 
 msgid "Contour"
 msgstr "Kontūras"
+
+msgid "Hole"
+msgstr "Skylė"
 
 msgid "Contour and hole"
 msgstr "Kontūras ir skylė"
