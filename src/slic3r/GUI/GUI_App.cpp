@@ -7540,9 +7540,7 @@ void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::strin
 
 void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
 {
-    static constexpr const char* opengl_msaa_setting_key = "opengl_antialiasing_samples";
     static constexpr const char* opengl_fxaa_setting_key = "opengl_fxaa_enabled";
-    const std::string previous_opengl_msaa = app_config->get(opengl_msaa_setting_key);
     const std::string previous_opengl_fxaa = app_config->get(opengl_fxaa_setting_key);
 
     bool need_recreate_gui = false;
@@ -7583,27 +7581,10 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
         }
     }
 
-    const bool opengl_msaa_changed = app_config->get(opengl_msaa_setting_key) != previous_opengl_msaa;
     const bool opengl_fxaa_changed = app_config->get(opengl_fxaa_setting_key) != previous_opengl_fxaa;
     if (opengl_fxaa_changed && !need_recreate_gui && this->plater_ != nullptr) {
         this->plater_->set_current_canvas_as_dirty();
         this->plater_->get_current_canvas3D()->force_set_focus();
-    }
-
-    if (opengl_msaa_changed && !need_recreate_gui) {
-        MessageDialog restart_dialog(
-            mainframe,
-            _L("Changing the MSAA settings requires restarting the application to take effect.\n\n"
-               "Restart now?\n\n"
-               "Warning: the current project will be closed without saving.\n"
-               "If you need to save your work, please do so now and restart the application manually later."),
-            wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Restart Required"),
-            wxICON_WARNING | wxYES_NO | wxNO_DEFAULT | wxCENTRE);
-
-        if (restart_dialog.ShowModal() == wxID_YES) {
-            recreate_GUI(_L("Applying MSAA changes"));
-            return;
-        }
     }
 
     if (!pending_language.empty()) {
