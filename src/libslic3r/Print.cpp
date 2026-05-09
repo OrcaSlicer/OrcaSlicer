@@ -17,6 +17,7 @@
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
+#include "FilamentMixer.hpp"
 #include "Model.hpp"
 #include "format.hpp"
 #include <float.h>
@@ -1139,6 +1140,19 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
     else if (has_low_temperature_filament)
         return LowTemp;
     return HighLowCompatible;
+}
+
+bool Print::is_dynamic_group_reorder() const
+{
+    if (!config().enable_filament_dynamic_map || config().filament_map_mode != FilamentMapMode::fmmAutoForFlush || config().nozzle_diameter.size() <= 1)
+        return false;
+
+    const auto &is_mixed = config().filament_is_mixed.values;
+    for (unsigned int filament_id : extruders()) {
+        if (filament_id < is_mixed.size() && is_mixed[filament_id])
+            return false;
+    }
+    return true;
 }
 
 //BBS: this function is used to check whether multi filament can be printed

@@ -996,6 +996,7 @@ public:
     // 1 based group ids
     std::vector<int> get_filament_maps() const;
     FilamentMapMode  get_filament_map_mode() const;
+    bool             is_dynamic_group_reorder() const;
     // get the group label of filament
     size_t get_extruder_id(unsigned int filament_id) const;
 
