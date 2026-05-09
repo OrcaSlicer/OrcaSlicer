@@ -1749,7 +1749,8 @@ msgstr "구성 파일 로드 중"
 msgid "Click to download new version in default browser: %s"
 msgstr "기본 브라우저에서 새 버전을 다운로드하려면 클릭: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer 업그레이드가 필요합니다"
 
 msgid "This is the newest version."
@@ -2217,10 +2218,10 @@ msgstr "미터에서 변환"
 msgid "Restore to meters"
 msgstr "미터로 복원"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "선택한 객체를 여러 부품이 있는 객체로 조립"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "선택한 객체를 단일 부품이 있는 객체로 조립"
 
 msgid "Mesh boolean"
@@ -5561,7 +5562,7 @@ msgstr "여러 장치로 보내기"
 msgid "Keyboard Shortcuts"
 msgstr "키보드 단축키"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "키보드 단축키 목록 표시"
 
 msgid "Setup Wizard"
@@ -8485,7 +8486,8 @@ msgstr "OrcaSlicer에 웹 링크 연결"
 msgid "Developer"
 msgstr ""
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "개발자 모드"
 
 msgid "Skip AMS blacklist check"
@@ -18548,7 +18550,7 @@ msgstr "이름은 40자를 초과할 수 없습니다."
 msgid "Please find the best line on your plate"
 msgstr "당신의 플레이트에서 가장 좋은 선을 찾아보세요"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "완벽한 돌출 정도를 가진 코너를 찾아주세요."
 
 msgid "Input Value"
@@ -19274,7 +19276,8 @@ msgstr "생성"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "공급업체가 선택되지 않았습니다. 공급업체를 다시 선택하세요."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 "사용자 정의 공급업체가 입력되지 않았습니다. 사용자 정의 공급업체를 입력해 주"
 "세요."
@@ -19312,8 +19315,8 @@ msgstr "아직 프린터나 사전 설정을 선택하지 않았습니다. 하�
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "생성한 필라멘트 이름 %s이(가) 이미 존재합니다.\n"
 "계속 생성하면 생성된 사전 설정이 전체 이름과 함께 표시됩니다. 계속하시겠습니"
@@ -21131,7 +21134,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "서포트/객체/채우기에 내보내기\n"
