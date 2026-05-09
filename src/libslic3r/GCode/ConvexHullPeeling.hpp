@@ -17,6 +17,9 @@ class Print;
 class PrintObject;
 struct PrintInstance;
 
+// Core algorithm: convex hull peeling on a raw point set.
+std::vector<size_t> convex_hull_peeling_core(const Points& centers);
+
 // Chain instances of print objects using convex hull peeling (onion peeling).
 // Repeatedly extracts a concave hull of remaining points, visits each layer in perimeter order,
 // applies per-layer and global 2-opt, and rotates to minimize the closing edge.

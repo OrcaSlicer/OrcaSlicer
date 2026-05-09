@@ -15,6 +15,9 @@ class Print;
 class PrintObject;
 struct PrintInstance;
 
+// Core algorithm: spiral ordering on a raw point set.
+std::vector<size_t> spiral_order_core(const Points& centers);
+
 // Chain instances using a spiral pattern: sort by distance from centroid, then angle.
 std::vector<const PrintInstance*> chain_print_object_instances_spiral(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
 std::vector<const PrintInstance*> chain_print_object_instances_spiral(const Print& print);
