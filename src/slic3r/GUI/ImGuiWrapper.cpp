@@ -872,8 +872,8 @@ bool ImGuiWrapper::button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::Button(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -885,8 +885,8 @@ bool ImGuiWrapper::bbl_button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::BBLButton(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
