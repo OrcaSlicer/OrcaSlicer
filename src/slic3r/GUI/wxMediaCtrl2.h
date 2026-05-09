@@ -96,7 +96,10 @@ private:
     void DestroyGtkSinkPlayer();
     void PostGtkSinkStateEvent(int id = 0);
 
+    bool m_native_wayland = false;
     bool m_use_gtk_sink = false;
+    wxString m_gtk_sink_error;
+    bool m_gtk_sink_error_notified = false;
     GstElement *m_gtk_playbin = nullptr;
     GstElement *m_gtk_sink = nullptr;
     unsigned int m_gtk_bus_watch_id = 0;

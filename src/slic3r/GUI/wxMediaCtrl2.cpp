@@ -22,6 +22,33 @@
 #include <wx/nativewin.h>
 
 namespace {
+bool ensure_gstreamer_initialized_for_liveview()
+{
+    GError* error = nullptr;
+    if (!gst_init_check(nullptr, nullptr, &error)) {
+        BOOST_LOG_TRIVIAL(error) << "wxMediaCtrl2: gst_init_check failed before native Wayland liveview setup"
+            << (error ? std::string(": ") + error->message : std::string());
+        if (error)
+            g_error_free(error);
+        return false;
+    }
+
+    return true;
+}
+
+bool is_gstreamer_feature_available(const char* feature)
+{
+    if (!ensure_gstreamer_initialized_for_liveview())
+        return false;
+
+    GstElementFactory* factory = gst_element_factory_find(feature);
+    if (!factory)
+        return false;
+
+    gst_object_unref(factory);
+    return true;
+}
+
 void set_gstreamer_feature_rank(const char* feature, guint rank)
 {
     GstElementFactory* factory = gst_element_factory_find(feature);
@@ -39,14 +66,8 @@ void configure_wayland_gstreamer_liveview_path()
         return;
     configured = true;
 
-    GError* error = nullptr;
-    if (!gst_init_check(nullptr, nullptr, &error)) {
-        BOOST_LOG_TRIVIAL(error) << "wxMediaCtrl2: gst_init_check failed before rank setup"
-            << (error ? std::string(": ") + error->message : std::string());
-        if (error)
-            g_error_free(error);
+    if (!ensure_gstreamer_initialized_for_liveview())
         return;
-    }
 
     // Prefer software decode for Bambu liveview on Wayland/NVIDIA, where
     // zero-copy GL/DMABUF display paths can be fragile. Keep hardware
@@ -61,12 +82,6 @@ void configure_wayland_gstreamer_liveview_path()
     set_gstreamer_feature_rank("vaapih264dec", GST_RANK_MARGINAL);
     set_gstreamer_feature_rank("vah264dec", GST_RANK_MARGINAL);
     set_gstreamer_feature_rank("v4l2h264dec", GST_RANK_MARGINAL);
-
-    // Native Wayland uses an explicit gtksink pipeline below. Demote overlay
-    // sinks that can select X11/XWayland or non-embeddable Wayland paths.
-    set_gstreamer_feature_rank("gtkwaylandsink", GST_RANK_NONE);
-    set_gstreamer_feature_rank("ximagesink", GST_RANK_NONE);
-    set_gstreamer_feature_rank("xvimagesink", GST_RANK_NONE);
 }
 }
 
@@ -88,9 +103,13 @@ wxDEFINE_EVENT(EVT_MEDIA_CTRL_STAT, wxCommandEvent);
 wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
 {
 #if defined(__LINUX__) && defined(__WXGTK__)
-    const bool native_wayland = Slic3r::GUI::is_running_on_wayland();
-    if (native_wayland)
+    m_native_wayland = Slic3r::GUI::is_running_on_wayland();
+    if (m_native_wayland && is_gstreamer_feature_available("gtksink"))
         configure_wayland_gstreamer_liveview_path();
+    else if (m_native_wayland) {
+        m_gtk_sink_error = _L("Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer.");
+        BOOST_LOG_TRIVIAL(warning) << "wxMediaCtrl2: native Wayland liveview disabled because GStreamer gtksink is unavailable";
+    }
 #endif
 #ifdef __WIN32__
     auto hModExe = GetModuleHandle(NULL);
@@ -107,7 +126,7 @@ wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
     }
 #endif
 #if defined(__LINUX__) && defined(__WXGTK__)
-    if (native_wayland)
+    if (m_native_wayland)
         wxControl::Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     else
 #endif
@@ -115,8 +134,10 @@ wxMediaCtrl2::wxMediaCtrl2(wxWindow *parent)
 #ifdef __LINUX__
     gstbambusrc_register();
 #ifdef __WXGTK__
-    if (native_wayland)
+    if (m_native_wayland && m_gtk_sink_error.empty())
         m_use_gtk_sink = CreateGtkSinkPlayer();
+    if (m_native_wayland && !m_use_gtk_sink && m_gtk_sink_error.empty())
+        m_gtk_sink_error = _L("Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation.");
 #endif
     if (!m_use_gtk_sink && m_imp) {
         auto playbin = reinterpret_cast<wxGStreamerMediaBackend *>(m_imp)->m_playbin;
@@ -465,8 +486,15 @@ void wxMediaCtrl2::Load(wxURI url)
         return;
     }
     if (!m_imp) {
-        m_error = 100;
+        m_error = m_native_wayland && !m_gtk_sink_error.empty() ? 104 : 100;
         m_loaded = false;
+        if (m_native_wayland && !m_gtk_sink_error.empty() && !m_gtk_sink_error_notified) {
+            m_gtk_sink_error_notified = true;
+            const wxString message = m_gtk_sink_error;
+            CallAfter([message] {
+                wxMessageBox(message, _L("Error"), wxOK);
+            });
+        }
         wxMediaEvent event(wxEVT_MEDIA_STATECHANGED);
         event.SetId(GetId());
         event.SetEventObject(this);
@@ -490,7 +518,14 @@ void wxMediaCtrl2::Play()
         return;
     }
     if (!m_imp) {
-        m_error = 100;
+        m_error = m_native_wayland && !m_gtk_sink_error.empty() ? 104 : 100;
+        if (m_native_wayland && !m_gtk_sink_error.empty() && !m_gtk_sink_error_notified) {
+            m_gtk_sink_error_notified = true;
+            const wxString message = m_gtk_sink_error;
+            CallAfter([message] {
+                wxMessageBox(message, _L("Error"), wxOK);
+            });
+        }
         PostGtkSinkStateEvent(GetId());
         return;
     }

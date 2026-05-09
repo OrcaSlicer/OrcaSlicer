@@ -32,7 +32,8 @@ static std::map<int, std::string> error_messages = {
     {100, L("The player is not loaded, please click \"play\" button to retry.")},
     {101, L("The player is not loaded, please click \"play\" button to retry.")},
     {102, L("The player is not loaded, please click \"play\" button to retry.")},
-    {103, L("The player is not loaded, please click \"play\" button to retry.")}
+    {103, L("The player is not loaded, please click \"play\" button to retry.")},
+    {104, L("The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize.")}
 };
 
 namespace Slic3r {
