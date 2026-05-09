@@ -3041,7 +3041,6 @@ void ObjectList::merge(bool to_multipart_object)
                     auto opt = object->config.option("extruder");
                     if (opt) { new_volume->config.set_key_value("extruder", new ConfigOptionInt(opt->getInt())); }
                 }
-                new_volume->mmu_segmentation_facets.assign(std::move(volume->mmu_segmentation_facets));
             }
             new_object->sort_volumes(true);
 
