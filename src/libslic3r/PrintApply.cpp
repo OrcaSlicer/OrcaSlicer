@@ -1104,7 +1104,7 @@ static PrintObjectRegions* generate_print_object_regions(
     return out.release();
 }
 
-Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config)
+Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
 #ifdef _DEBUG
     check_model_ids_validity(model);
@@ -1156,13 +1156,25 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     }
 
     //apply extruder related values
-    new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_1, "printer_extruder_id", "printer_extruder_variant");
-    new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_2, "printer_extruder_id", "printer_extruder_variant", 2);
-    //update print config related with variants
-    new_full_config.update_values_to_printer_extruders(new_full_config, print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+    if (!extruder_applied) {
+        new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_1, "printer_extruder_id", "printer_extruder_variant");
+        new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_2, "printer_extruder_id", "printer_extruder_variant", 2);
+        //update print config related with variants
+        new_full_config.update_values_to_printer_extruders(new_full_config, print_options_with_variant, "print_extruder_id", "print_extruder_variant");
 
-    m_ori_full_print_config = new_full_config;
-    new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
+        m_ori_full_print_config = new_full_config;
+        new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
+    }
+    // else {
+    //     int extruder_count;
+    //     bool different_extruder = new_full_config.support_different_extruders(extruder_count);
+    //     print_variant_index.resize(extruder_count);
+    //     for (int e_index = 0; e_index < extruder_count; e_index++)
+    //     {
+    //         print_variant_index[e_index] = e_index;
+    //     }
+    // }
+
     auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
     std::vector<int> filament_maps = opt_filament_map ? opt_filament_map->values : std::vector<int>();
 

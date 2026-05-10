@@ -61,6 +61,8 @@
 #endif // WIN32
 
 #include <algorithm>
+#include <cstdlib>
+#include <unordered_set>
 
 namespace Slic3r {
 
@@ -498,6 +500,22 @@ void Tab::create_preset_tab()
         m_main_sizer->Add(m_extruder_switch, 0, wxALIGN_CENTER | wxTOP, m_em_unit);
     }
 #endif
+
+    if (dynamic_cast<TabFilament *>(this)) {
+        m_variant_combo = new MultiSwitchButton(panel);
+        m_variant_combo->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](auto &evt) {
+            evt.Skip();
+            switch_excluder(evt.GetInt());
+            reload_config();
+            update_changed_ui();
+            toggle_options();
+            if (m_active_page)
+                m_active_page->update_visibility(m_mode, true);
+            m_page_view->GetParent()->Layout();
+        });
+        m_variant_combo->Hide();
+        m_main_sizer->Add(m_variant_combo, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, m_em_unit);
+    }
 
     this->SetSizer(m_main_sizer);
     //this->Layout();
@@ -1241,6 +1259,8 @@ void Tab::reload_config()
 {
     if (m_active_page)
         m_active_page->reload_config();
+    if (m_type == Preset::TYPE_PRINT && m_config != nullptr)
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
 }
 
 void Tab::update_mode()
@@ -1293,6 +1313,8 @@ void Tab::msw_rescale()
     {
         m_mode_view->Rescale();
     }
+    if (m_variant_combo)
+        m_variant_combo->Rescale();
 
     if (m_detach_preset_btn)
         m_detach_preset_btn->msw_rescale();
@@ -1358,6 +1380,8 @@ void Tab::sys_color_changed()
         m_active_page->sys_color_changed();
     if (m_extruder_switch)
         m_extruder_switch->Rescale();
+    if (m_variant_combo)
+        m_variant_combo->Rescale();
 
     //BBS: GUI refactor
     //Layout();
@@ -1744,8 +1768,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         
         auto new_value = boost::any_cast<std::string>(value);
         is_safe_to_rotate = is_safe_to_rotate || new_value.empty();
+        const bool had_previous_value = !m_last_sparse_infill_rotate_template_value.empty();
 
-        if (!is_safe_to_rotate) {
+        if (!is_safe_to_rotate && !had_previous_value) {
             wxString msg_text = _(
                 L("Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their "
                   "intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. "
@@ -1762,6 +1787,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 wxGetApp().plater()->update();
             }
         }
+
+        m_last_sparse_infill_rotate_template_value = m_config->opt_string("sparse_infill_rotate_template");
     }
 
     if(opt_key=="layer_height"){
@@ -3742,7 +3769,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
                                             // "filament_seam_gap"
                                         };
 
-    const int selection = 0; //m_variant_combo->GetSelection(); // TODO: Orca hack
+    const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
     auto opt = dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retraction_length"));
     const int extruder_idx = selection < 0 || selection >= static_cast<int>(opt->size()) ? 0 : selection;
 
@@ -4272,9 +4299,11 @@ void TabFilament::toggle_options()
 
         toggle_line("activate_chamber_temp_control", printer_cfg.opt_bool("support_chamber_temp_control"));
 
-        std::string volumetric_speed_cos = m_config->opt_string("volumetric_speed_coefficients", 0u);
+        const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
+        const unsigned int variant_idx = (unsigned int) std::max(selection, 0);
+        std::string volumetric_speed_cos = m_config->opt_string("volumetric_speed_coefficients", variant_idx);
         bool enable_fit = volumetric_speed_cos != "0 0 0 0 0 0";
-        toggle_option("filament_adaptive_volumetric_speed", enable_fit, 256 + 0u);
+        toggle_option("filament_adaptive_volumetric_speed", enable_fit, 256 + variant_idx);
     }
 
     if (m_active_page->title() == L("Setting Overrides"))
@@ -4292,7 +4321,8 @@ void TabFilament::toggle_options()
         toggle_option("filament_multitool_ramming_flow", multitool_ramming);
 
         bool is_BBL_multi_extruder = is_BBL_printer && printer_cfg.option<ConfigOptionFloats>("nozzle_diameter")->size() > 1;
-        const int extruder_idx = 0; // m_variant_combo->GetSelection(); // TODO: Orca hack
+        const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
+        const int extruder_idx = std::max(selection, 0);
         toggle_line("long_retractions_when_ec", is_BBL_multi_extruder, 256 + extruder_idx);
         toggle_line("retraction_distances_when_ec", is_BBL_multi_extruder && m_config->opt_bool("long_retractions_when_ec", extruder_idx), 256 + extruder_idx);
     }
@@ -6301,6 +6331,9 @@ bool Tab::tree_sel_change_delayed(wxCommandEvent& event)
     if (m_extruder_switch) {
         m_main_sizer->Show(m_extruder_switch, !m_active_page->m_opt_id_map.empty());
         GetParent()->Layout();
+    } else if (m_variant_combo) {
+        m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && !m_active_page->m_opt_id_map.empty());
+        GetParent()->Layout();
     }
 
     auto throw_if_canceled = std::function<void()>([this](){
@@ -6398,6 +6431,10 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 //BBS: add project embedded preset relate logic
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
+    // ORCA: Validate before opening any save-name UI for filament presets.
+    if (!validate_filament_temperature_pairs())
+        return;
+
     // since buttons(and choices too) don't get focus on Mac, we set focus manually
     // to the treectrl so that the EVT_* events are fired for the input field having
     // focus currently.is there anything better than this ?
@@ -6952,6 +6989,104 @@ bool Tab::validate_custom_gcodes()
     return valid;
 }
 
+// ORCA: Session-only suppression keys for temperature-pair safety warnings.
+static std::unordered_set<std::string> s_filament_temp_pair_warning_suppressed_for_session;
+
+// ORCA: Validate that first-layer and other-layer temperature pairs are within safety limits, and warn the user if not.
+bool Tab::validate_filament_temperature_pairs()
+{
+    if (m_type != Preset::TYPE_FILAMENT || m_presets == nullptr)
+        return true;
+
+    // Warn only for newly edited state, not for unchanged presets.
+    if (!m_presets->current_is_dirty())
+        return true;
+
+    Preset& edited_preset = m_presets->get_edited_preset();
+    DynamicPrintConfig& config = edited_preset.config;
+    const std::string suppress_key = edited_preset.name;
+    // User opted out for this preset during current app session.
+    if (!suppress_key.empty() && s_filament_temp_pair_warning_suppressed_for_session.count(suppress_key) > 0)
+        return true;
+
+    struct TempPairRule
+    {
+        wxString    label;
+        std::string first_layer_key;
+        std::string other_layer_key;
+        int         max_delta;
+    };
+
+    std::vector<TempPairRule> temp_pair_rules;
+    temp_pair_rules.push_back({_L("Nozzle"), "nozzle_temperature_initial_layer", "nozzle_temperature", 30});
+
+    // Derive bed labels/keys from curr_bed_type metadata (BedType order excludes btDefault).
+    if (const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
+        bed_type_def != nullptr) {
+        for (int bt = static_cast<int>(btPC); bt < static_cast<int>(btCount); ++bt) {
+            const BedType     bed_type  = static_cast<BedType>(bt);
+            const size_t      label_idx = static_cast<size_t>(bt - static_cast<int>(btPC));
+            const std::string first_key = get_bed_temp_1st_layer_key(bed_type);
+            const std::string other_key = get_bed_temp_key(bed_type);
+            if (first_key.empty() || other_key.empty())
+                continue;
+
+            wxString label = _(bed_type_def->enum_labels[label_idx]);
+            temp_pair_rules.push_back({label, first_key, other_key, 15});
+        }
+    }
+
+    wxString invalid_pairs;
+    int      invalid_count = 0;
+
+    for (const TempPairRule& rule : temp_pair_rules) {
+        if (!config.has(rule.first_layer_key) || !config.has(rule.other_layer_key))
+            continue;
+
+        const ConfigOptionInts* first_opt = config.option<ConfigOptionInts>(rule.first_layer_key);
+        const ConfigOptionInts* other_opt = config.option<ConfigOptionInts>(rule.other_layer_key);
+        if (first_opt == nullptr || other_opt == nullptr || first_opt->values.empty() || other_opt->values.empty())
+            continue;
+
+        const int first_temp = first_opt->get_at(0);
+        const int other_temp = other_opt->get_at(0);
+
+        // Keep existing semantics: 0 means unsupported/off for these temperatures.
+        if (first_temp <= 0 || other_temp <= 0)
+            continue;
+
+        const int delta = std::abs(first_temp - other_temp);
+        if (delta <= rule.max_delta)
+            continue;
+
+        const wxString deg_c   = wxString::FromUTF8("°C");
+        const wxString bullet  = wxString::FromUTF8("•");
+        invalid_pairs += wxString::Format(_L(" - %s:\n    %s first layer %d %s, other layers %d %s\n    %s max delta %d %s, current delta %d %s\n"),
+                                          rule.label, bullet, first_temp, deg_c, other_temp, deg_c, bullet, rule.max_delta, deg_c, delta, deg_c);
+        ++invalid_count;
+    }
+
+    if (invalid_count == 0)
+        return true;
+
+    wxString msg_text = _L("Some first-layer and other-layer temperature pairs exceed safety limits.\n");
+    msg_text += _L("\nInvalid pairs:\n");
+    msg_text += invalid_pairs;
+    msg_text += _L("\nYou can go back to edit values, or continue if this is intentional.");
+    msg_text += _L("\n\nContinue anyway?");
+
+    RichMessageDialog dialog(parent(), msg_text, _L("Temperature Safety Check"), wxYES | wxNO | wxICON_WARNING);
+    dialog.SetButtonLabel(wxID_YES, _L("Continue"), true);
+    dialog.SetButtonLabel(wxID_NO, _L("Back"));
+    dialog.ShowCheckBox(_L("Don't warn again for this preset"));
+    const int answer = dialog.ShowModal();
+    // Session-only suppression (does not modify/save filament preset data).
+    if (dialog.IsCheckBoxChecked() && !suppress_key.empty())
+        s_filament_temp_pair_warning_suppressed_for_session.insert(suppress_key);
+
+    return answer == wxID_YES;
+}
+
 void Tab::set_just_edit(bool just_edit)
 {
     m_just_edit = just_edit;
@@ -6970,6 +7105,41 @@ void Tab::set_just_edit(bool just_edit)
 ///         2: on_preset_loaded (extruder_id = -1)
 /// </summary>
 /// <param name="extruder_id"></param>
+
+std::vector<wxString> Tab::generate_extruder_options()
+{
+    std::vector<wxString> options;
+    if (m_type != Preset::TYPE_FILAMENT)
+        return options;
+
+    auto *variants = m_config->option<ConfigOptionStrings>("filament_extruder_variant");
+    if (!variants)
+        return options;
+
+    const std::vector<std::string> known_nozzle_types = {
+        get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow),
+        get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard),
+    };
+
+    for (const std::string &variant : variants->values) {
+        std::string drive;
+        std::string nozzle;
+
+        for (const std::string &nozzle_type : known_nozzle_types) {
+            if (variant.size() > nozzle_type.size() &&
+                variant.substr(variant.size() - nozzle_type.size()) == nozzle_type &&
+                variant[variant.size() - nozzle_type.size() - 1] == ' ') {
+                drive  = variant.substr(0, variant.size() - nozzle_type.size() - 1);
+                nozzle = nozzle_type;
+                break;
+            }
+        }
+
+        options.push_back(nozzle.empty() ? from_u8(variant) : wxString::Format(wxT("%s: %s"), from_u8(drive), from_u8(nozzle)));
+    }
+
+    return options;
+}
 
 void Tab::update_extruder_variants(int extruder_id)
 {
@@ -6995,10 +7165,25 @@ void Tab::update_extruder_variants(int extruder_id)
             GetParent()->Layout();
             return;
         }
+    } else if (m_variant_combo) {
+        if (extruder_id >= 0)
+            return;
+
+        const int selection = m_variant_combo->GetSelection();
+        auto      options   = generate_extruder_options();
+        m_variant_combo->SetOptions(options);
+
+        if (!options.empty())
+            m_variant_combo->SetSelection(selection < 0 || selection >= (int) options.size() ? 0 : selection);
+
+        m_variant_combo->Enable(options.size() > 1);
     }
     switch_excluder(extruder_id);
     if (m_extruder_switch) {
         m_main_sizer->Show(m_extruder_switch, m_active_page && !m_active_page->m_opt_id_map.empty());
+        GetParent()->Layout();
+    } else if (m_variant_combo) {
+        m_main_sizer->Show(m_variant_combo, m_variant_combo->IsEnabled() && m_active_page && !m_active_page->m_opt_id_map.empty());
         GetParent()->Layout();
     }
 }
@@ -7013,7 +7198,7 @@ void Tab::switch_excluder(int extruder_id)
         {}, {"", "filament_extruder_variant"},                   // Preset::TYPE_FILAMENT filament don't use id anymore
         {}, {"printer_extruder_id", "printer_extruder_variant"}, // Preset::TYPE_PRINTER
     };
-    if (extruder_id >= nozzle_volumes->size() || extruder_id >= extruders->size())
+    if (!m_variant_combo && (extruder_id >= nozzle_volumes->size() || extruder_id >= extruders->size()))
         extruder_id = 0;
     if (m_extruder_switch && m_type != Preset::TYPE_PRINTER) {
         int current_extruder = m_extruder_switch->GetValue() ? 1 : 0;
@@ -7021,15 +7206,25 @@ void Tab::switch_excluder(int extruder_id)
             extruder_id = current_extruder;
         else if (extruder_id != current_extruder)
             return;
+    } else if (m_variant_combo) {
+        int current_variant = m_variant_combo->GetSelection();
+        if (current_variant < 0)
+            current_variant = 0;
+        if (extruder_id == -1)
+            extruder_id = current_variant;
+        else if (extruder_id != current_variant)
+            return;
     }
     auto get_index_for_extruder =
             [this, &extruders, &nozzle_volumes, variant_keys = variant_keys[m_type >= Preset::TYPE_COUNT ? Preset::TYPE_PRINT : m_type]](int extruder_id, int stride = 1) {
         return m_config->get_index_for_extruder(extruder_id + 1, variant_keys.first,
             ExtruderType(extruders->values[extruder_id]), NozzleVolumeType(nozzle_volumes->values[extruder_id]), variant_keys.second, stride);
     };
-    auto index = get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
+    auto index = m_variant_combo ? extruder_id : get_index_for_extruder(extruder_id == -1 ? 0 : extruder_id);
     if (index < 0)
         return;
+    if (m_variant_combo)
+        m_variant_combo->SetClientData(reinterpret_cast<void *>(static_cast<std::uintptr_t>(index)));
     for (auto page : m_pages) {
         bool is_extruder = false;
         if (m_type == Preset::TYPE_PRINTER) {

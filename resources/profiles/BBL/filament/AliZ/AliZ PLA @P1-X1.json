@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "AliZPX1FSA04",
 	"name": "AliZ PLA @P1-X1",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "AliZ PLA @base",
+	"from": "system",
+	"setting_id": "AliZPX1FSA04",
+	"instantiation": "true",
 	"enable_pressure_advance": [
 		"1"
 	],

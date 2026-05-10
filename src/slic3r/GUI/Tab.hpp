@@ -45,6 +45,7 @@
 class TabCtrl;
 class ModeSwitchButton;
 class SwitchButton;
+class MultiSwitchButton;
 
 namespace Slic3r {
 
@@ -305,6 +306,7 @@ public:
 
 	ModeSwitchButton *m_mode_view = nullptr;
     SwitchButton *m_extruder_switch = nullptr;
+    MultiSwitchButton *m_variant_combo = nullptr;
 
 public:
 	// BBS
@@ -417,6 +419,7 @@ public:
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();
+	bool        validate_filament_temperature_pairs();
     bool        validate_custom_gcodes_was_shown{ false };
     void        set_just_edit(bool just_edit);
 
@@ -426,6 +429,7 @@ public:
 
     void        update_extruder_variants(int extruder_id = -1);
     void        switch_excluder(int extruder_id = -1);
+    std::vector<wxString> generate_extruder_options();
 
 protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
@@ -445,6 +449,7 @@ protected:
     void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;
+    std::string m_last_sparse_infill_rotate_template_value;
     ConfigManipulation get_config_manipulation();
     friend class EditGCodeDialog;
 };

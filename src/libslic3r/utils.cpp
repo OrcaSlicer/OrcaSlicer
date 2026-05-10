@@ -114,6 +114,14 @@ void set_logging_level(unsigned int level)
 {
     logSeverity = level_to_boost(level);
 
+    // Force at debug level logging for pre-release builds.
+    const std::string version = SoftFever_VERSION;
+    if (boost::algorithm::icontains(version, "dev") ||
+        boost::algorithm::icontains(version, "alpha") ||
+        boost::algorithm::icontains(version, "beta")) {
+        logSeverity = boost::log::trivial::debug;
+    }
+
     boost::log::core::get()->set_filter
     (
         boost::log::trivial::severity >= logSeverity

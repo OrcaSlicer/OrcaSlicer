@@ -39,6 +39,7 @@ enum GCodeFlavor : unsigned char {
 enum class FuzzySkinType {
     None,
     External,
+    Hole,
     All,
     AllWalls,
     Disabled_fuzzy,
@@ -1086,7 +1087,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                  fuzzy_skin_octaves))
     ((ConfigOptionFloat,                fuzzy_skin_persistence))
     ((ConfigOptionInt,                  fuzzy_skin_ripples_per_layer))
-    ((ConfigOptionFloat,                fuzzy_skin_ripple_offset))
+    ((ConfigOptionPercent,              fuzzy_skin_ripple_offset))
     ((ConfigOptionInt,                  fuzzy_skin_layers_between_ripple_offset))
     ((ConfigOptionFloat,                gap_infill_speed))
     ((ConfigOptionInt,                  sparse_infill_filament))
@@ -1399,6 +1400,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_cooling_moves))
     ((ConfigOptionFloats,              filament_cooling_initial_speed))
     ((ConfigOptionFloats,              filament_minimal_purge_on_wipe_tower))
+    ((ConfigOptionFloatsNullable,      filament_cooling_before_tower))
     ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_dist))
     ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_length))
     ((ConfigOptionFloats,              filament_tower_ironing_area))
@@ -1429,6 +1431,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
 
     //BBS
     ((ConfigOptionInts,               additional_cooling_fan_speed))
+    ((ConfigOptionInts,               close_additional_fan_first_x_layers))
+    ((ConfigOptionInts,               additional_fan_full_speed_layer))
+    ((ConfigOptionFloats,             first_x_layer_fan_speed))
     ((ConfigOptionBool,               reduce_crossing_wall))
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))

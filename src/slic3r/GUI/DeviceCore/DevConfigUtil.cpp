@@ -1,5 +1,8 @@
 #include "DevConfigUtil.h"
 
+#include <algorithm>
+#include <cctype>
+
 #include <wx/dir.h>
 #include <boost/filesystem.hpp>
 
@@ -244,6 +247,51 @@ std::map<std::string, std::vector<std::string>> DevPrinterConfigUtil::get_all_su
     }
 
     return subseries;
+}
+
+std::string DevPrinterConfigUtil::get_toolhead_display_name(
+    const std::string& type_str,
+    int ext_id,
+    ToolHeadComponent component,
+    ToolHeadNameCase name_case,
+    bool short_name)
+{
+    static const std::map<ToolHeadComponent, std::string> comp_keys = {
+        { ToolHeadComponent::Extruder, "extruder" },
+        { ToolHeadComponent::Nozzle,   "nozzle" },
+        { ToolHeadComponent::Hotend,   "hotend" }
+    };
+
+    const int case_index = static_cast<int>(name_case);
+    const std::string role_key = std::to_string(ext_id);
+    const std::string& comp_key = comp_keys.at(component);
+
+    std::string result;
+    auto names_json = get_value_from_config<json>(type_str, "tool_head_display_names");
+    if (!names_json.is_null() && names_json.contains(role_key) && names_json[role_key].contains(comp_key)) {
+        auto& arr = names_json[role_key][comp_key];
+        if (arr.is_array() && case_index < static_cast<int>(arr.size()))
+            result = arr[case_index].get<std::string>();
+    }
+
+    if (result.empty()) {
+        const std::string side = ext_id == DEPUTY_EXTRUDER_ID ? "Left" : "Right";
+        const std::string component_name = component == ToolHeadComponent::Extruder ? "Extruder" :
+                                           component == ToolHeadComponent::Hotend ? "Hotend" : "Nozzle";
+        result = side + " " + component_name;
+        if (name_case == ToolHeadNameCase::SentenceCase && result.size() > side.size() + 1)
+            result[side.size() + 1] = static_cast<char>(std::tolower(static_cast<unsigned char>(result[side.size() + 1])));
+        else if (name_case == ToolHeadNameCase::LowerCase)
+            std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    }
+
+    if (short_name) {
+        auto sp = result.find(' ');
+        if (sp != std::string::npos)
+            result = result.substr(0, sp);
+    }
+
+    return result;
 }
 
 };

@@ -530,6 +530,7 @@ public:
     void            sync_preset(Preset* preset);
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
+    void            on_stealth_mode_enter();
 
     // Bundle subscription sync
     void            check_bundle_updates();

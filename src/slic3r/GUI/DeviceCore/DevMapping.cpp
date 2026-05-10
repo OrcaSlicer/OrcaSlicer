@@ -354,6 +354,27 @@ namespace Slic3r
             }
         }
 
+        // Orca: special cases that no AMS available, we select ext slot automatically because we don't have other choice anyway
+        if (tray_filaments.size() == 1 && devPrinterUtil::IsVirtualSlot(tray_filaments.begin()->first)) {
+            auto ext_tray = tray_filaments.begin();
+            for (auto & r : result) {
+                if (r.tray_id < 0) {
+                    r.tray_id = ext_tray->first;
+
+                    r.color = ext_tray->second.color;
+                    r.type = ext_tray->second.type;
+                    r.distance = ext_tray->second.distance;
+                    r.filament_id = ext_tray->second.filament_id;
+                    r.ctype = ext_tray->second.ctype;
+                    r.colors = ext_tray->second.colors;
+
+                    /*for new ams mapping*/
+                    r.ams_id = ext_tray->second.ams_id;
+                    r.slot_id = ext_tray->second.slot_id;
+                }
+            }
+        }
+
         //check ams mapping result
         if (DevMappingUtil::is_valid_mapping_result(obj, result, true))
         {

@@ -3050,7 +3050,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     FillParams                                params,
     const std::initializer_list<SweepParams>& sweep_params,
     Polylines&                                polylines_out,
-    int                                       Pattern_type) // 0=grid, 1=triangular
+    int                                       Pattern_type) // 0=grid, 1=triangular, 2=stars
 {
     assert(params.multiline > 1);
 
@@ -3069,9 +3069,9 @@ bool FillRectilinear::fill_surface_trapezoidal(
         period     = coord_t((2.0 * d1 / params.density) * std::sqrt(2.0));
         base_angle = rotate_vector.first + M_PI_4; // 45
     } else {
-        // Triangular pattern parameters
-        period     = coord_t(( 2.0 * d1 / params.density) * std::sqrt(3.0));
-        base_angle = rotate_vector.first + M_PI_2; //90
+        // Triangular-family pattern parameters (triangles / stars)
+        period     = coord_t((2.0 * d1 / params.density) * std::sqrt(3.0));
+        base_angle = rotate_vector.first + M_PI_2; // 90
     }
 
     // Obtain the expolygon and rotate to align with pattern base angle
@@ -3257,6 +3257,85 @@ bool FillRectilinear::fill_surface_trapezoidal(
         break;
     }
 
+    case 2: // Tri-hexagon / FillStars
+    {
+        // Pattern parameters
+        const coord_t hex_height     = coord_t(0.5 * std::sqrt(3.0) * period);
+        const coord_t tri_height     = hex_height / 2;
+        const coord_t d1_half        = d1 / 2;
+        const coord_t chamfer_height = std::sqrt(3.0) * d1_half;
+        const coord_t d1_half_base   = d1_half / std::sqrt(3.0);
+        const coord_t half_period    = period / 2;
+        const coord_t quarter_period = period / 4;
+
+        bb.merge(align_to_grid(bb.center(), Point(period, tri_height)));
+        const size_t layer_mod = infill_layer_id % 3;
+        const double angle     = layer_mod * 2.0 * M_PI / 3.0;
+
+        const coord_t half_w = bb.size().x() / 2;
+        const coord_t half_h = bb.size().y() / 2;
+
+        const coord_t num_periods_x = coord_t(std::ceil(half_w / double(period)));
+        coord_t num_periods_y       = coord_t(std::ceil(half_h / double(hex_height)));
+        if ((num_periods_y % 2) != 0)
+            ++num_periods_y;
+
+        const coord_t x_alignment_shift = half_period;
+        const coord_t y_alignment_shift = (2 * tri_height) / 3;
+        const coord_t x_min_aligned     = -num_periods_x * period - x_alignment_shift;
+        const coord_t x_max_aligned     = num_periods_x * period - x_alignment_shift;
+        const coord_t y_min_aligned     = -num_periods_y * hex_height - y_alignment_shift;
+        const coord_t y_max_aligned     = num_periods_y * hex_height - y_alignment_shift;
+
+        const size_t estimated_rows      = (y_max_aligned - y_min_aligned) / hex_height + 2;
+        const size_t estimated_polylines = (estimated_rows + 1) * 2;
+        polylines.reserve(estimated_polylines);
+
+        Polyline star_row_normal;
+        star_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
+        Polyline star_row_mirrored;
+        star_row_mirrored.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 7);
+
+        for (coord_t x = x_min_aligned; x < x_max_aligned; x += period) {
+            star_row_normal.points.emplace_back(Point(x, hex_height));                                               // P0
+            star_row_normal.points.emplace_back(Point(x + quarter_period - d1, hex_height));                         // P1
+            star_row_normal.points.emplace_back(Point(x + quarter_period + d1_half, hex_height - chamfer_height));   // P2
+            star_row_normal.points.emplace_back(Point(x + half_period - d1_half_base, tri_height + d1_half));        // P3
+            star_row_normal.points.emplace_back(Point(x + half_period + d1_half_base, tri_height + d1_half));        // P4
+            star_row_normal.points.emplace_back(Point(x + (period * 3) / 4 - d1_half, hex_height - chamfer_height)); // P5
+            star_row_normal.points.emplace_back(Point(x + (period * 3) / 4 + d1, hex_height));                       // P6
+        }
+
+        star_row_mirrored.points = star_row_normal.points;
+        for (auto& p : star_row_mirrored.points)
+            p.y() = hex_height - p.y();
+
+        size_t pair_idx              = 0;
+        const coord_t global_x_shift = half_period;
+        const coord_t global_y_shift = tri_height;
+        auto append_row_with_shift   = [&polylines](const Polyline& row_template, coord_t x_shift, coord_t y_shift) {
+            Polyline row = row_template;
+            for (Point& p : row.points) {
+                p.x() += x_shift;
+                p.y() += y_shift;
+            }
+            if (!row.points.empty())
+                polylines.emplace_back(std::move(row));
+        };
+
+        for (coord_t y = y_min_aligned; y < y_max_aligned; y += hex_height, ++pair_idx) {
+            const coord_t x_shift = (pair_idx % 2 == 0) ? 0 : half_period;
+            append_row_with_shift(star_row_normal, x_shift + global_x_shift, y + global_y_shift);
+            append_row_with_shift(star_row_mirrored, x_shift + global_x_shift, y + global_y_shift);
+        }
+
+        if (layer_mod)
+            for (auto& pl : polylines)
+                pl.rotate(angle, Point(0, 0));
+
+        break;
+    }
+
     default:
         // Handle unknown pattern type
         break;
@@ -3408,11 +3487,19 @@ Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &
 Polylines FillStars::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
-    if (! this->fill_surface_by_multilines(
-            surface, params,
-            { { 0.f, 0.f }, { float(M_PI / 3.), 0.f }, { float(2. * M_PI / 3.), float((3./2.) * this->spacing * params.multiline / params.density) } },
-            polylines_out))
-        BOOST_LOG_TRIVIAL(error) << "FillStars::fill_surface() failed to fill a region.";
+    if (params.multiline > 1) {
+        if (!this->fill_surface_trapezoidal(
+                 surface, params,
+                 {{0.f, 0.f}, {float(M_PI / 3.), 0.f}, {float(2. * M_PI / 3.), float((3. / 2.) * this->spacing * params.multiline / params.density)}},
+                 polylines_out, 2))
+            BOOST_LOG_TRIVIAL(error) << "FillStars::fill_surface_trapezoidal() failed.";
+    } else {
+        if (! this->fill_surface_by_multilines(
+                surface, params,
+                { { 0.f, 0.f }, { float(M_PI / 3.), 0.f }, { float(2. * M_PI / 3.), float((3./2.) * this->spacing * params.multiline / params.density) } },
+                polylines_out))
+            BOOST_LOG_TRIVIAL(error) << "FillStars::fill_surface() failed to fill a region.";
+    }
     return polylines_out;
 }
 

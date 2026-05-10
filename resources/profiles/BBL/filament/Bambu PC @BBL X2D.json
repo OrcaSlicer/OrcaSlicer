@@ -1,0 +1,296 @@
+{
+	"type": "filament",
+	"name": "Bambu PC @BBL X2D",
+	"inherits": "Bambu PC @base",
+	"from": "system",
+	"setting_id": "GFSC00_31",
+	"instantiation": "true",
+	"filament_adaptive_volumetric_speed": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_cooling_before_tower": [
+		"10",
+		"10",
+		"10",
+		"10"
+	],
+	"filament_deretraction_speed": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_enable_overhang_speed": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Bowden Standard",
+		"Bowden High Flow"
+	],
+	"filament_flush_temp": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_flush_volumetric_speed": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_long_retractions_when_cut": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_overhang_1_4_speed": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_overhang_2_4_speed": [
+		"50",
+		"50",
+		"50",
+		"50"
+	],
+	"filament_overhang_3_4_speed": [
+		"30",
+		"30",
+		"30",
+		"30"
+	],
+	"filament_overhang_4_4_speed": [
+		"10",
+		"10",
+		"10",
+		"10"
+	],
+	"filament_overhang_totally_speed": [
+		"10",
+		"10",
+		"10",
+		"10"
+	],
+	"filament_bridge_speed": [
+		"25",
+		"25",
+		"25",
+		"25"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_ramming_travel_time_nc": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_retract_length_nc": [
+		"14",
+		"14",
+		"14",
+		"14"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1",
+		"-1",
+		"-1"
+	],
+	"filament_ramming_volumetric_speed_nc": [
+		"-1",
+		"-1",
+		"-1",
+		"-1"
+	],
+	"filament_retract_before_wipe": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_retraction_distances_when_cut": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_retraction_length": [
+		"0.4",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_wipe": [
+		"1",
+		"nil",
+		"1",
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"1",
+		"nil",
+		"1",
+		"nil"
+	],
+	"filament_z_hop": [
+		"nil",
+		"nil",
+		"nil",
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"Spiral Lift",
+		"nil",
+		"Spiral Lift",
+		"nil"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"override_process_overhang_speed": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retraction_distances_when_ec": [
+		"3",
+		"3",
+		"4",
+		"4"
+	],
+	"slow_down_min_speed": [
+		"20",
+		"20",
+		"20",
+		"20"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0",
+		"0 0 0 0 0 0",
+		"0 0 0 0 0 0",
+		"0 0 0 0 0 0"
+	],
+	"chamber_temperatures": [
+		"60"
+	],
+	"counter_coef_2": [
+		"0.0081"
+	],
+	"counter_coef_3": [
+		"0.0183"
+	],
+	"counter_limit_max": [
+		"0.2208"
+	],
+	"counter_limit_min": [
+		"0.0183"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"filament_flow_ratio": [
+		"0.94",
+		"0.94",
+		"0.94",
+		"0.94"
+	],
+	"filament_max_volumetric_speed": [
+		"18",
+		"35",
+		"18",
+		"18"
+	],
+	"filament_ramming_travel_time": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"filament_tower_interface_print_temp": [
+		"260"
+	],
+	"hole_coef_2": [
+		"0.0009"
+	],
+	"hole_coef_3": [
+		"0.0725"
+	],
+	"hole_limit_max": [
+		"0.095"
+	],
+	"hole_limit_min": [
+		"0.0725"
+	],
+	"nozzle_temperature": [
+		"260",
+		"260",
+		"260",
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270",
+		"270",
+		"270",
+		"270"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"compatible_printers": [
+		"Bambu Lab X2D 0.6 nozzle"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	]
+}
