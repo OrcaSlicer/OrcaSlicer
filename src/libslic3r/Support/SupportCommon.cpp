@@ -13,6 +13,7 @@
 #include <boost/container/static_vector.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <algorithm>
 #include <tbb/parallel_for.h>
 
 #include "SupportCommon.hpp"
@@ -69,22 +70,30 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
         if (support_params.has_base_interfaces())
             base_interface_layers.assign(intermediate_layers.size(), nullptr);
         const auto smoothing_distance    = support_params.support_material_interface_flow.scaled_spacing() * 1.5;
-        const auto minimum_island_radius = support_params.support_material_interface_flow.scaled_spacing() / support_params.interface_density;
+        // ORCA: use top/bottom interface densities for smoothing.
+        const auto minimum_island_radius_top = support_params.support_material_interface_flow.scaled_spacing() / support_params.top_interface_density;
+        const auto minimum_island_radius_bottom = support_params.support_material_interface_flow.scaled_spacing() / support_params.bottom_interface_density;
         const auto closing_distance      = smoothing_distance; // scaled<float>(config.support_material_closing_radius.value);
         // Insert a new layer into base_interface_layers, if intersection with base exists.
-        auto insert_layer = [&layer_storage, smooth_supports, closing_distance, smoothing_distance, minimum_island_radius](
+        // ORCA: regularize top and bottom interfaces with separate minimum island radii.
+        auto insert_layer = [&layer_storage, smooth_supports, closing_distance, smoothing_distance, minimum_island_radius_top, minimum_island_radius_bottom](
                 SupportGeneratorLayer &intermediate_layer, Polygons &bottom, Polygons &&top, SupportGeneratorLayer *top_interface_layer,
                 const Polygons *subtract, SupporLayerType type) -> SupportGeneratorLayer* {
             bool has_top_interface = top_interface_layer && ! top_interface_layer->polygons.empty();
             assert(! bottom.empty() || ! top.empty() || has_top_interface);
-            // Merge top into bottom, unite them with a safety offset.
-            append(bottom, std::move(top));
-            // Merge top / bottom interfaces. For snug supports, merge using closing distance and regularize (close concave corners).
-            bottom = intersection(
-                smooth_supports ?
-                    smooth_outward(closing(std::move(bottom), closing_distance + minimum_island_radius, closing_distance, SUPPORT_SURFACES_OFFSET_PARAMETERS), smoothing_distance) :
-                    union_safety_offset(std::move(bottom)),
-                intermediate_layer.polygons);
+            // ORCA: regularize interfaces using the top/bottom radii.
+            auto regularize = [&](Polygons polys, coordf_t minimum_island_radius) -> Polygons {
+                if (polys.empty())
+                    return polys;
+                return smooth_supports ?
+                    smooth_outward(closing(std::move(polys), closing_distance + minimum_island_radius, closing_distance, SUPPORT_SURFACES_OFFSET_PARAMETERS), smoothing_distance) :
+                    union_safety_offset(std::move(polys));
+            };
+            // ORCA: apply independent smoothing to bottom vs top.
+            Polygons bottom_polys = regularize(std::move(bottom), minimum_island_radius_bottom);
+            Polygons top_polys = regularize(std::move(top), minimum_island_radius_top);
+            append(bottom_polys, std::move(top_polys));
+            bottom = intersection(std::move(bottom_polys), intermediate_layer.polygons);
             if (has_top_interface) {
                 // Don't trim the precomputed Organic supports top interface with base layer
                 // as the precomputed top interface likely expands over multiple tree tips.
@@ -1365,7 +1374,8 @@ SupportGeneratorLayersPtr generate_support_layers(
             SupportGeneratorLayer &layer = *layers_sorted[u];
             if (! layer.polygons.empty()) {
                 empty             = false;
-                num_interfaces   += one_of(layer.layer_type, support_types_interface);
+                const bool is_base_interface = std::find(base_interface_layers.begin(), base_interface_layers.end(), &layer) != base_interface_layers.end();
+                num_interfaces += one_of(layer.layer_type, support_types_interface) || is_base_interface;
                 if (layer.layer_type == SupporLayerType::TopContact) {
                     ++ num_top_contacts;
                     assert(num_top_contacts <= 1);
@@ -1562,7 +1572,7 @@ void generate_support_toolpaths(
         auto filler_raft_contact     = filler_raft_contact_ptr ? filler_raft_contact_ptr.get() : filler_interface.get();
         // Filler for the base interface (to be used for soluble interface / non soluble base, to produce non soluble interface layer below soluble interface layer).
         auto filler_base_interface  = std::unique_ptr<Fill>(base_interface_layers.empty() ? nullptr :
-            Fill::new_from_type(support_params.interface_density > 0.95 || support_params.with_sheath ? ipRectilinear : ipSupportBase));
+            Fill::new_from_type(support_params.top_interface_density > 0.95 || support_params.with_sheath ? ipRectilinear : ipSupportBase));
         auto filler_support         = std::unique_ptr<Fill>(Fill::new_from_type(support_params.base_fill_pattern));
         filler_interface->set_bounding_box(bbox_object);
         if (filler_first_layer_ptr)
@@ -1610,6 +1620,8 @@ void generate_support_toolpaths(
 
             // This layer is a raft contact layer. Any contact polygons at this layer are raft contacts.
             bool raft_layer = slicing_params.interface_raft_layers && top_contact_layer.layer && is_approx(top_contact_layer.layer->print_z, slicing_params.raft_contact_top_z);
+            // ORCA: Organic tree uses projected contacts to build the interface stack; avoid extra bottom-contact extrusion.
+            const bool organic_tree = support_params.support_style == SupportMaterialStyle::smsTreeOrganic;
             if (config.support_interface_top_layers == 0) {
                 // If no top interface layers were requested, we treat the contact layer exactly as a generic base layer.
                 // Don't merge the raft contact layer though.
@@ -1638,10 +1650,34 @@ void generate_support_toolpaths(
                     base_layer.merge(std::move(bottom_contact_layer));
                 else if (base_layer.empty() && ! bottom_contact_layer.empty() && ! bottom_contact_layer.layer->bridging)
                     base_layer = std::move(bottom_contact_layer);
-            } else if (bottom_contact_layer.could_merge(top_contact_layer) && ! raft_layer)
+            } else if (bottom_contact_layer.could_merge(top_contact_layer) && ! raft_layer) {
                 top_contact_layer.merge(std::move(bottom_contact_layer));
-            else if (bottom_contact_layer.could_merge(interface_layer))
+            } else if (bottom_contact_layer.could_merge(interface_layer) && ! organic_tree) {
                 bottom_contact_layer.merge(std::move(interface_layer));
+            }
+
+            // Orca: For organic trees the support-material regions are generated from
+            // expanded wall polygons. With zero top Z gap and separate interface material,
+            // that expansion can overlap same-layer interface-material regions, so trim
+            // the support-material regions from those interface footprints here.
+            if (organic_tree && support_params.zero_gap_interface_top && !support_params.can_merge_support_regions &&
+                (!base_layer.empty() || !base_interface_layer.empty())) {
+                Polygons interface_polygons;
+                if (!top_contact_layer.empty())
+                    polygons_append(interface_polygons, top_contact_layer.polygons_to_extrude());
+                if (!interface_layer.empty())
+                    polygons_append(interface_polygons, interface_layer.polygons_to_extrude());
+                if (!interface_polygons.empty()) {
+                    const coord_t trim_margin = std::max(
+                        support_params.support_material_flow.scaled_width(),
+                        support_params.support_material_interface_flow.scaled_width());
+                    Polygons interface_keepout = offset(interface_polygons, trim_margin);
+                    if (!base_layer.empty())
+                        base_layer.set_polygons_to_extrude(diff(base_layer.polygons_to_extrude(), interface_keepout));
+                    if (!base_interface_layer.empty())
+                        base_interface_layer.set_polygons_to_extrude(diff(base_interface_layer.polygons_to_extrude(), interface_keepout));
+                }
+            }
 
 #if 0
             if ( ! interface_layer.empty() && ! base_layer.empty()) {
@@ -1661,6 +1697,9 @@ void generate_support_toolpaths(
                 if (! layer_ex.empty() && ! layer_ex.polygons_to_extrude().empty()) {
                     bool interface_as_base = interface_layer_type == InterfaceLayerType::InterfaceAsBase;
                     bool raft_contact      = interface_layer_type == InterfaceLayerType::RaftContact;
+                    // ORCA: detect bottom interface layers for density selection.
+                    bool bottom_interface  = interface_layer_type == InterfaceLayerType::BottomContact ||
+                        (interface_layer_type == InterfaceLayerType::Interface && layer_ex.layer->layer_type == SupporLayerType::BottomInterface);
                     //FIXME Bottom interfaces are extruded with the briding flow. Some bridging layers have its height slightly reduced, therefore
                     // the bridging flow does not quite apply. Reduce the flow to area of an ellipse? (A = pi * a * b)
                     auto *filler = raft_contact ? filler_raft_contact : filler_interface.get();
@@ -1676,7 +1715,10 @@ void generate_support_toolpaths(
                             raft_contact ?
                                 support_params.raft_interface_angle(support_layer.interface_id()) :
                                 support_interface_angle;
-                    double density = raft_contact ? support_params.raft_interface_density : interface_as_base ? support_params.support_density : support_params.interface_density;
+                    // ORCA: pick density based on interface type.
+                    double density = raft_contact ? support_params.raft_interface_density :
+                        interface_as_base ? support_params.support_density :
+                        bottom_interface ? support_params.bottom_interface_density : support_params.top_interface_density;
                     filler->spacing = raft_contact ? support_params.raft_interface_flow.spacing() :
                         interface_as_base ? support_params.support_material_flow.spacing() : support_params.support_material_interface_flow.spacing();
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
@@ -1694,9 +1736,9 @@ void generate_support_toolpaths(
             const bool top_interfaces = config.support_interface_top_layers.value != 0;
             const bool bottom_interfaces = top_interfaces && config.support_interface_bottom_layers != 0;
             extrude_interface(top_contact_layer,    raft_layer ? InterfaceLayerType::RaftContact : top_interfaces ? InterfaceLayerType::TopContact : InterfaceLayerType::InterfaceAsBase);
-            extrude_interface(bottom_contact_layer, bottom_interfaces ? InterfaceLayerType::BottomContact : InterfaceLayerType::InterfaceAsBase);
+            if (!organic_tree)
+                extrude_interface(bottom_contact_layer, bottom_interfaces ? InterfaceLayerType::BottomContact : InterfaceLayerType::InterfaceAsBase);
             extrude_interface(interface_layer,      top_interfaces ? InterfaceLayerType::Interface : InterfaceLayerType::InterfaceAsBase);
-
             // Base interface layers under soluble interfaces
             if ( ! base_interface_layer.empty() && ! base_interface_layer.polygons_to_extrude().empty()) {
                 Fill *filler = filler_base_interface.get();
@@ -1706,7 +1748,7 @@ void generate_support_toolpaths(
                 Flow interface_flow = support_params.support_material_flow.with_height(float(base_interface_layer.layer->height));
                 filler->angle   = support_interface_angle;
                 filler->spacing = support_params.support_material_interface_flow.spacing();
-                filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / support_params.interface_density));
+                    filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / support_params.top_interface_density));
                 fill_expolygons_generate_paths(
                     // Destination
                     base_interface_layer.extrusions,
@@ -1714,7 +1756,7 @@ void generate_support_toolpaths(
                     // Regions to fill
                     union_safety_offset_ex(base_interface_layer.polygons_to_extrude()),
                     // Filler and its parameters
-                    filler, float(support_params.interface_density),
+                    filler, float(support_params.top_interface_density),
                     // Extrusion parameters
                     ExtrusionRole::erSupportMaterial, interface_flow);
             }
