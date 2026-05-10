@@ -3,11 +3,9 @@
 
 #include "MinMaxEdge.hpp"
 #include "../Print.hpp"
-#include "NearestNeighborCycle.hpp"
 #include "ConvexHullPeeling.hpp"
 #include "AngleSortCycle.hpp"
 #include "Boustrophedon.hpp"
-#include "BottleneckMST.hpp"
 
 #include <cmath>
 #include <limits>
@@ -49,11 +47,9 @@ std::vector<size_t> min_max_edge_core(const Points& centers)
     // Run all individual strategies.
     struct Candidate { std::string name; std::vector<size_t> path; };
     std::vector<Candidate> candidates;
-    candidates.push_back({"NN Cycle", nn_cycle_core(centers)});
     candidates.push_back({"Convex Hull Peeling", convex_hull_peeling_core(centers)});
     candidates.push_back({"Angle Sort", angle_sort_core(centers)});
     candidates.push_back({"Boustrophedon", boustrophedon_core(centers)});
-    candidates.push_back({"Bottleneck MST", bottleneck_mst_core(centers)});
 
     // Pick the one with smallest maximum edge, breaking ties by shortest total length.
     size_t best = 0;
@@ -91,11 +87,9 @@ std::vector<const PrintInstance*> chain_print_object_instances_min_max_edge(cons
     // Run all strategies.
     struct Candidate { std::string name; std::vector<const PrintInstance*> path; };
     std::vector<Candidate> candidates;
-    candidates.push_back({"NN Cycle", chain_print_object_instances_nn_cycle(print_objects, start_near)});
     candidates.push_back({"Convex Hull Peeling", chain_print_object_instances_convex_hull_peeling(print_objects, start_near)});
     candidates.push_back({"Angle Sort", chain_print_object_instances_angle_sort(print_objects, start_near)});
     candidates.push_back({"Boustrophedon", chain_print_object_instances_boustrophedon(print_objects, start_near)});
-    candidates.push_back({"Bottleneck MST", chain_print_object_instances_bottleneck_mst(print_objects, start_near)});
 
     // Pick the one with smallest maximum edge, breaking ties by shortest total length.
     size_t best = 0;
