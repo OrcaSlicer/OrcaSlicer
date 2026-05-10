@@ -156,11 +156,9 @@ enum class PrintOrder
 {
     Default,
     AsObjectList,
-    NearestNeighborCycle, // nearest-neighbor TSP cycle: visits all objects and returns to start
     ConvexHullPeeling,   // onion-peeling convex hull layers, outermost first
     AngleSortCycle,      // sort by angle around centroid, then 2-opt to improve
     Boustrophedon,       // snake-like row traversal (back-and-forth) + 2-opt
-    BottleneckMST,       // minimize maximum edge length between consecutive objects
     BestOfStrategies,    // run all custom strategies, pick the shortest total path
     MinMaxEdge,          // run all custom strategies, pick smallest max edge (tiebreak: shortest)
     Count,

@@ -250,8 +250,6 @@ set(lisbslic3r_sources
     GCode/ToolOrdering.hpp
     GCode/TSPPostProcessing.cpp
     GCode/TSPPostProcessing.hpp
-    GCode/NearestNeighborCycle.cpp
-    GCode/NearestNeighborCycle.hpp
     GCode/ConvexHullPeeling.cpp
     GCode/ConvexHullPeeling.hpp
     GCode/AngleSortCycle.cpp
@@ -260,8 +258,6 @@ set(lisbslic3r_sources
     GCode/Boustrophedon.hpp
     GCode/GridCrossingRemoval.cpp
     GCode/GridCrossingRemoval.hpp
-    GCode/BottleneckMST.cpp
-    GCode/BottleneckMST.hpp
     GCode/MinMaxEdge.cpp
     GCode/MinMaxEdge.hpp
     GCode/BestOfStrategies.cpp
