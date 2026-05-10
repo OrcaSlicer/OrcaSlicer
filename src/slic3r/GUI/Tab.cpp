@@ -61,7 +61,8 @@
 #endif // WIN32
 
 #include <algorithm>
-#include <cstdint>
+#include <cstdlib>
+#include <unordered_set>
 
 namespace Slic3r {
 
@@ -6430,6 +6431,10 @@ void Tab::transfer_options(const std::string &name_from, const std::string &name
 //BBS: add project embedded preset relate logic
 void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_project, bool from_input, std::string input_name )
 {
+    // ORCA: Validate before opening any save-name UI for filament presets.
+    if (!validate_filament_temperature_pairs())
+        return;
+
     // since buttons(and choices too) don't get focus on Mac, we set focus manually
     // to the treectrl so that the EVT_* events are fired for the input field having
     // focus currently.is there anything better than this ?
@@ -6982,6 +6987,104 @@ bool Tab::validate_custom_gcodes()
             break;
     }
     return valid;
+}
+
+// ORCA: Session-only suppression keys for temperature-pair safety warnings.
+static std::unordered_set<std::string> s_filament_temp_pair_warning_suppressed_for_session;
+
+// ORCA: Validate that first-layer and other-layer temperature pairs are within safety limits, and warn the user if not.
+bool Tab::validate_filament_temperature_pairs()
+{
+    if (m_type != Preset::TYPE_FILAMENT || m_presets == nullptr)
+        return true;
+
+    // Warn only for newly edited state, not for unchanged presets.
+    if (!m_presets->current_is_dirty())
+        return true;
+
+    Preset& edited_preset = m_presets->get_edited_preset();
+    DynamicPrintConfig& config = edited_preset.config;
+    const std::string suppress_key = edited_preset.name;
+    // User opted out for this preset during current app session.
+    if (!suppress_key.empty() && s_filament_temp_pair_warning_suppressed_for_session.count(suppress_key) > 0)
+        return true;
+
+    struct TempPairRule
+    {
+        wxString    label;
+        std::string first_layer_key;
+        std::string other_layer_key;
+        int         max_delta;
+    };
+
+    std::vector<TempPairRule> temp_pair_rules;
+    temp_pair_rules.push_back({_L("Nozzle"), "nozzle_temperature_initial_layer", "nozzle_temperature", 30});
+
+    // Derive bed labels/keys from curr_bed_type metadata (BedType order excludes btDefault).
+    if (const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
+        bed_type_def != nullptr) {
+        for (int bt = static_cast<int>(btPC); bt < static_cast<int>(btCount); ++bt) {
+            const BedType     bed_type  = static_cast<BedType>(bt);
+            const size_t      label_idx = static_cast<size_t>(bt - static_cast<int>(btPC));
+            const std::string first_key = get_bed_temp_1st_layer_key(bed_type);
+            const std::string other_key = get_bed_temp_key(bed_type);
+            if (first_key.empty() || other_key.empty())
+                continue;
+
+            wxString label = _(bed_type_def->enum_labels[label_idx]);
+            temp_pair_rules.push_back({label, first_key, other_key, 15});
+        }
+    }
+
+    wxString invalid_pairs;
+    int      invalid_count = 0;
+
+    for (const TempPairRule& rule : temp_pair_rules) {
+        if (!config.has(rule.first_layer_key) || !config.has(rule.other_layer_key))
+            continue;
+
+        const ConfigOptionInts* first_opt = config.option<ConfigOptionInts>(rule.first_layer_key);
+        const ConfigOptionInts* other_opt = config.option<ConfigOptionInts>(rule.other_layer_key);
+        if (first_opt == nullptr || other_opt == nullptr || first_opt->values.empty() || other_opt->values.empty())
+            continue;
+
+        const int first_temp = first_opt->get_at(0);
+        const int other_temp = other_opt->get_at(0);
+
+        // Keep existing semantics: 0 means unsupported/off for these temperatures.
+        if (first_temp <= 0 || other_temp <= 0)
+            continue;
+
+        const int delta = std::abs(first_temp - other_temp);
+        if (delta <= rule.max_delta)
+            continue;
+
+        const wxString deg_c   = wxString::FromUTF8("°C");
+        const wxString bullet  = wxString::FromUTF8("•");
+        invalid_pairs += wxString::Format(_L(" - %s:\n    %s first layer %d %s, other layers %d %s\n    %s max delta %d %s, current delta %d %s\n"),
+                                          rule.label, bullet, first_temp, deg_c, other_temp, deg_c, bullet, rule.max_delta, deg_c, delta, deg_c);
+        ++invalid_count;
+    }
+
+    if (invalid_count == 0)
+        return true;
+
+    wxString msg_text = _L("Some first-layer and other-layer temperature pairs exceed safety limits.\n");
+    msg_text += _L("\nInvalid pairs:\n");
+    msg_text += invalid_pairs;
+    msg_text += _L("\nYou can go back to edit values, or continue if this is intentional.");
+    msg_text += _L("\n\nContinue anyway?");
+
+    RichMessageDialog dialog(parent(), msg_text, _L("Temperature Safety Check"), wxYES | wxNO | wxICON_WARNING);
+    dialog.SetButtonLabel(wxID_YES, _L("Continue"), true);
+    dialog.SetButtonLabel(wxID_NO, _L("Back"));
+    dialog.ShowCheckBox(_L("Don't warn again for this preset"));
+    const int answer = dialog.ShowModal();
+    // Session-only suppression (does not modify/save filament preset data).
+    if (dialog.IsCheckBoxChecked() && !suppress_key.empty())
+        s_filament_temp_pair_warning_suppressed_for_session.insert(suppress_key);
+
+    return answer == wxID_YES;
 }
 
 void Tab::set_just_edit(bool just_edit)

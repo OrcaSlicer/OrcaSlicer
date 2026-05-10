@@ -419,6 +419,7 @@ public:
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();
+	bool        validate_filament_temperature_pairs();
     bool        validate_custom_gcodes_was_shown{ false };
     void        set_just_edit(bool just_edit);
 
