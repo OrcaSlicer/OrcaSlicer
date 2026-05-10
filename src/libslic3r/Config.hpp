@@ -199,6 +199,7 @@ enum ConfigOptionType {
 enum ConfigOptionMode {
     comSimple = 0,
     comAdvanced,
+    comExpert,
     comDevelop,
 };
 

@@ -37,6 +37,12 @@ public:
     int Append(const wxString &item, const wxBitmap &bitmap = wxNullBitmap, int item_style = 0);
     int Append(const wxString &item, const wxBitmap &bitmap, void *clientData, int item_style = 0);
     int Append(const wxString &item, const wxBitmap &bitmap, const wxString &group, void *clientData = nullptr, int item_style = 0);
+    int Append(const wxString& item,
+               const wxBitmap& bitmap,
+               const wxString& group_key,
+               const wxString& group_label,
+               void* clientData = nullptr,
+               int item_style   = 0);
 
     int SetItems(const std::vector<DropDown::Item>& the_items);
 
