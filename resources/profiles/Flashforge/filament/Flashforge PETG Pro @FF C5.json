@@ -1,0 +1,88 @@
+{
+	"compatible_printers": [
+		"Flashforge Creator 5 0.4 nozzle",
+		"Flashforge Creator 5 0.6 nozzle",
+		"Flashforge Creator 5 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"85"
+	],
+	"eng_plate_temp_initial_layer": [
+		"85"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"fan_max_speed": [
+		"70"
+	],
+	"fan_min_speed": [
+		"40"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_settings_id": [
+		"Flashforge PETG Pro @FF C5"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"from": "system",
+	"hot_plate_temp": [
+		"85"
+	],
+	"hot_plate_temp_initial_layer": [
+		"85"
+	],
+	"inherits": "Generic PETG @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Flashforge PETG Pro @FF C5",
+	"overhang_fan_speed": [
+		"90"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"pressure_advance": [
+		"0.0325"
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"supertack_plate_temp": [
+		"0"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_plate_temp": [
+		"85"
+	],
+	"textured_plate_temp_initial_layer": [
+		"85"
+	],
+	"version": "2.3.0.3"
+}

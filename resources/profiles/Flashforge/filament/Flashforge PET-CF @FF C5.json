@@ -1,0 +1,106 @@
+{
+	"compatible_printers": [
+		"Flashforge Creator 5 0.4 nozzle",
+		"Flashforge Creator 5 0.6 nozzle",
+		"Flashforge Creator 5 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"100"
+	],
+	"eng_plate_temp_initial_layer": [
+		"100"
+	],
+	"fan_cooling_layer_time": [
+		"5"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"filament_density": [
+		"1.29"
+	],
+	"filament_max_volumetric_speed": [
+		"7"
+	],
+	"filament_settings_id": [
+		"Flashforge PET-CF @FF C5"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"filament_type": [
+		"PET-CF"
+	],
+	"from": "system",
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"inherits": "Generic PETG-CF @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Flashforge PET-CF @FF C5",
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"overhang_fan_threshold": [
+		"0%"
+	],
+	"pressure_advance": [
+		"0.0325"
+	],
+	"slow_down_layer_time": [
+		"2"
+	],
+	"supertack_plate_temp": [
+		"80"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"version": "2.3.0.3"
+}
