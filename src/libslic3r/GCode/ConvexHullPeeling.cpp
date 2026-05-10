@@ -4,8 +4,9 @@
 // Rotate the final path so the closing edge (last → first) is short.
 
 #include "ConvexHullPeeling.hpp"
+#include "TSPPostProcessing.hpp"
 #include "../Print.hpp"
-#include "../Geometry.hpp"
+#include "../KDTreeIndirect.hpp"
 #include "../Geometry/ConvexHull.hpp"
 
 #include <cmath>
@@ -25,18 +26,28 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
 
     const double match_eps2 = 100.0; // 10 microns tolerance
 
+    // Median nearest-neighbor distance via KD-tree (O(n log n)).
     auto compute_median_nnd = [&](const Points& pts) -> double {
         if (pts.size() < 2) return 1000.0;
+
+        auto coord_fn = [&](size_t idx, size_t dim) -> double {
+            const Point& p = pts[idx];
+            return (dim == 0) ? static_cast<double>(p.x()) : static_cast<double>(p.y());
+        };
+        KDTreeIndirect<2, double, decltype(coord_fn)> kdtree(coord_fn, pts.size());
+
         std::vector<double> dists;
         dists.reserve(pts.size());
         for (size_t i = 0; i < pts.size(); ++i) {
-            double min_d2 = std::numeric_limits<double>::max();
-            for (size_t j = 0; j < pts.size(); ++j) {
-                if (i == j) continue;
-                double d2 = (pts[i].cast<double>() - pts[j].cast<double>()).squaredNorm();
-                if (d2 < min_d2) min_d2 = d2;
+            auto closest = find_closest_points<1>(kdtree,
+                Vec2d(static_cast<double>(pts[i].x()), static_cast<double>(pts[i].y())),
+                [i](size_t idx) { return idx != i; });
+
+            if (closest[0] != KDTreeIndirect<2, double, decltype(coord_fn)>::npos) {
+                Vec2d pi(pts[i].cast<double>());
+                Vec2d pj(pts[closest[0]].cast<double>());
+                dists.push_back((pi - pj).norm());
             }
-            dists.push_back(std::sqrt(min_d2));
         }
         std::sort(dists.begin(), dists.end());
         return dists[dists.size() / 2];
@@ -143,33 +154,8 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
 
     // Per-layer 2-opt.
     for (auto& layer : layers) {
-        size_t ln = layer.size();
-        if (ln < 4) continue;
-
-        bool improved = true;
-        while (improved) {
-            improved = false;
-            for (size_t i = 0; i < ln; ++i) {
-                size_t i_next = (i + 1) % ln;
-                for (size_t j = i + 2; j < ln; ++j) {
-                    if (j == i_next) continue;
-                    if (j == (ln - 1) && i == 0) continue;
-
-                    size_t j_next = (j + 1) % ln;
-                    double current_dist = (centers[layer[i_next]].cast<double>() - centers[layer[i]].cast<double>()).norm()
-                                       + (centers[layer[j_next]].cast<double>() - centers[layer[j]].cast<double>()).norm();
-                    double new_dist     = (centers[layer[j]].cast<double>() - centers[layer[i]].cast<double>()).norm()
-                                       + (centers[layer[j_next]].cast<double>() - centers[layer[i_next]].cast<double>()).norm();
-
-                    if (new_dist < current_dist) {
-                        while (i_next < j) { std::swap(layer[i_next], layer[j]); ++i_next; --j; }
-                        improved = true;
-                        break;
-                    }
-                }
-                if (improved) break;
-            }
-        }
+        if (layer.size() >= 4)
+            tsp_2opt_improve(layer, centers);
     }
 
     // Build path by traversing layers.
@@ -232,7 +218,9 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
         size_t pn = path.size();
 
         bool improved = true;
+        int max_passes = 5;
         while (improved) {
+            if (--max_passes == 0) break;
             improved = false;
             for (size_t i = 0; i < pn; ++i) {
                 size_t i_next = (i + 1) % pn;
@@ -262,42 +250,9 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
         }
     }
 
-    // Crossing removal pass.
-    {
-        size_t pn = path.size();
-        int max_iters = static_cast<int>(pn * pn);
-        bool had_crossing = true;
-        while (had_crossing && max_iters-- > 0) {
-            had_crossing = false;
-            for (size_t i = 0; i < pn && !had_crossing; ++i) {
-                size_t i_next = (i + 1) % pn;
-                for (size_t j = i + 2; j < pn && !had_crossing; ++j) {
-                    if (j == i_next) continue;
-                    if (j == (pn - 1) && i == 0) continue;
-                    size_t j_next = (j + 1) % pn;
-                    if (Geometry::segments_intersect(
-                            centers[path[i]], centers[path[i_next]],
-                            centers[path[j]], centers[path[j_next]])) {
-                        while (i_next < j) { std::swap(path[i_next], path[j]); ++i_next; --j; }
-                        had_crossing = true;
-                    }
-                }
-            }
-        }
-    }
-
-    // Rotate to minimize the closing edge.
-    {
-        size_t pn = path.size();
-        size_t best_start = 0;
-        double best_closing2 = std::numeric_limits<double>::max();
-        for (size_t start = 0; start < pn; ++start) {
-            size_t last = (start + pn - 1) % pn;
-            double d2 = (centers[path[start]].cast<double>() - centers[path[last]].cast<double>()).squaredNorm();
-            if (d2 < best_closing2) { best_closing2 = d2; best_start = start; }
-        }
-        std::rotate(path.begin(), path.begin() + best_start, path.end());
-    }
+    // Post-processing: crossing removal, rotation.
+    tsp_remove_crossings(path, centers);
+    tsp_rotate_minimize_closing(path, centers);
 
     return path;
 }
@@ -305,38 +260,7 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
 // Production wrapper.
 std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const std::vector<const PrintObject*>& print_objects, const Point* start_near)
 {
-    Points instance_centers;
-    std::vector<std::pair<size_t, size_t>> instances;
-    for (size_t i = 0; i < print_objects.size(); ++i) {
-        const PrintObject& object = *print_objects[i];
-        for (size_t j = 0; j < object.instances().size(); ++j) {
-            instance_centers.emplace_back(object.instances()[j].shift);
-            instances.emplace_back(i, j);
-        }
-    }
-
-    if (instance_centers.empty()) return {};
-
-    // If start_near is provided, pre-rotate so closest point is first.
-    if (start_near != nullptr) {
-        size_t best_start = 0;
-        double best_d2 = std::numeric_limits<double>::max();
-        for (size_t k = 0; k < instance_centers.size(); ++k) {
-            double d2 = (instance_centers[k].cast<double>() - start_near->cast<double>()).squaredNorm();
-            if (d2 < best_d2) { best_d2 = d2; best_start = k; }
-        }
-        std::rotate(instance_centers.begin(), instance_centers.begin() + best_start, instance_centers.end());
-        std::rotate(instances.begin(), instances.begin() + best_start, instances.end());
-    }
-
-    auto path = convex_hull_peeling_core(instance_centers);
-
-    std::vector<const PrintInstance*> out;
-    out.reserve(path.size());
-    for (size_t step : path) {
-        out.emplace_back(&print_objects[instances[step].first]->instances()[instances[step].second]);
-    }
-    return out;
+    return chain_instances_with_core(print_objects, start_near, convex_hull_peeling_core);
 }
 
 std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const Print& print)
