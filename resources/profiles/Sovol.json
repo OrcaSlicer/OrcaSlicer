@@ -1,7 +1,7 @@
 {
 	"name": "Sovol",
 	"url": "",
-	"version": "02.03.02.60",
+	"version": "02.03.02.70",
 	"force_update": "0",
 	"description": "Sovol configurations",
 	"machine_model_list": [

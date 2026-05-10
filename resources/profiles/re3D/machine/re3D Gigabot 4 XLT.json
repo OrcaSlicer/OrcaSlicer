@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "re3D",
 	"bed_model": "",
-	"bed_texture": "Gigabot 4_buildplate_texture.png",
+	"bed_texture": "re3D Gigabot 4 XLT_buildplate_texture.svg",
 	"hotend_model": "GB-HOTEND.stl",
 	"default_materials": "re3D PLA;re3D PETG;re3D PC;"
 }

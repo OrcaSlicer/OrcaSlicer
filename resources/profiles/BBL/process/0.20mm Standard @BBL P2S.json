@@ -11,6 +11,7 @@
 		"50",
 		"50"
 	],
+	"enable_arc_fitting": "0",
 	"default_acceleration": [
 		"10000",
 		"10000"

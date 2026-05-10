@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Flashforge",
 	"bed_model": "flashforge_adventurer3_series_buildplate_model.stl",
-	"bed_texture": "flashforge_adventurer3_buildplate_texture.png",
+	"bed_texture": "flashforge_adventurer3_buildplate_texture.svg",
 	"default_bed_type": "Textured PEI Plate",
 	"hotend_model": "",
 	"default_materials": "Flashforge ABS;Flashforge PETG;Flashforge PLA"

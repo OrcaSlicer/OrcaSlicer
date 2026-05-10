@@ -21,8 +21,13 @@ namespace Slic3r {
 class BoundingBox;
 class BoundingBoxf;
 class Line;
+class Line3;
 class MultiPoint;
+class MultiPoint3;
 class Point;
+class Point3;
+class Polyline;
+class Polyline3;
 using Vector = Point;
 
 // Base template for eigen derived vectors
@@ -57,7 +62,7 @@ using PointsAllocator = tbb::scalable_allocator<BaseType>;
 using Points         = std::vector<Point, PointsAllocator<Point>>;
 using PointPtrs      = std::vector<Point*>;
 using PointConstPtrs = std::vector<const Point*>;
-using Points3        = std::vector<Vec3crd>;
+using Points3         = std::vector<Point3, PointsAllocator<Point3>>;
 using Pointfs        = std::vector<Vec2d>;
 using Vec2ds         = std::vector<Vec2d>;
 using Pointf3s       = std::vector<Vec3d>;
@@ -78,6 +83,12 @@ using Transform2f    = Eigen::Transform<float,  2, Eigen::Affine, Eigen::DontAli
 using Transform2d    = Eigen::Transform<double, 2, Eigen::Affine, Eigen::DontAlign>;
 using Transform3f    = Eigen::Transform<float,  3, Eigen::Affine, Eigen::DontAlign>;
 using Transform3d    = Eigen::Transform<double, 3, Eigen::Affine, Eigen::DontAlign>;
+
+// Utility functions for Point/Polyline conversion
+Polyline to_polyline(const Points &points);
+Polyline3 to_polyline(const Points3 &points);
+Points to_points(const Points3 &points);
+Points3   to_points3(const Points& points);
 
 // using ColorRGBA      = std::array<float, 4>;
 // I don't know why Eigen::Transform::Identity() return a const object...
@@ -258,6 +269,118 @@ inline Point operator* (const Point& l, const double& r)
     return { coord_t(l.x() * r), coord_t(l.y() * r) };
 }
 
+// Point3 class - 3D point with Z coordinate for non-planar printing (ZAA)
+class Point3 : public Vec3crd {
+public:
+    using coord_type = coord_t;
+
+    Point3() : Vec3crd(0, 0, 0) {}
+    Point3(int32_t x, int32_t y, int32_t z = 0) : Vec3crd(coord_t(x), coord_t(y), coord_t(z)) {}
+    Point3(int64_t x, int64_t y, int64_t z = 0) : Vec3crd(coord_t(x), coord_t(y), coord_t(z)) {}
+    Point3(double x, double y, double z = 0.0) : Vec3crd(coord_t(std::round(x)), coord_t(std::round(y)), coord_t(std::round(z))) {}
+    Point3(const Point3 &rhs) { *this = rhs; }
+    explicit Point3(const Vec2crd& vec2crd, coord_t z = 0) : Vec3crd(vec2crd.x(), vec2crd.y(), z) {}
+    explicit Point3(const Vec3crd &vec3crd) : Vec3crd(vec3crd) {}
+    // This constructor allows you to construct Point from Eigen expressions
+    template<typename OtherDerived>
+    explicit Point3(const Eigen::MatrixBase<OtherDerived> &other) : Vec3crd(other) {}
+
+    static Point3 new_scale(coordf_t x, coordf_t y, coordf_t z) {
+        return Point3(coord_t(scale_(x)), coord_t(scale_(y)), coord_t(scale_(z)));
+    }
+    static Point3 new_scale(const Vec3d &v) {
+        return Point3(coord_t(scale_(v.x())), coord_t(scale_(v.y())), coord_t(scale_(v.z())));
+    }
+    static Point3 new_scale(const Vec3f &v) {
+        return Point3(coord_t(scale_(v.x())), coord_t(scale_(v.y())), coord_t(scale_(v.z())));
+    }
+
+    // Assignment operator for Eigen expressions
+    template<typename OtherDerived>
+    Point3& operator=(const Eigen::MatrixBase<OtherDerived> &other)
+    {
+        this->Vec3crd::operator=(other);
+        return *this;
+    }
+
+    Point3& operator+=(const Point3& rhs) { this->x() += rhs.x(); this->y() += rhs.y(); this->z() += rhs.z(); return *this; }
+    Point3& operator-=(const Point3& rhs) { this->x() -= rhs.x(); this->y() -= rhs.y(); this->z() -= rhs.z(); return *this; }
+    Point3& operator*=(const double &rhs) {
+        this->x() = coord_t(this->x() * rhs);
+        this->y() = coord_t(this->y() * rhs);
+        this->z() = coord_t(this->z() * rhs);
+        return *this;
+    }
+    Point3 operator*(const double &rhs) const { return Point3(this->x() * rhs, this->y() * rhs, this->z() * rhs); }
+
+    bool both_comp(const Point3 &rhs, const std::string& op) {
+        if (op == ">")
+            return this->x() > rhs.x() && this->y() > rhs.y();
+        else if (op == "<")
+            return this->x() < rhs.x() && this->y() < rhs.y();
+        return false;
+    }
+    bool any_comp(const Point3 &rhs, const std::string &op)
+    {
+        if (op == ">")
+            return this->x() > rhs.x() || this->y() > rhs.y();
+        else if (op == "<")
+            return this->x() < rhs.x() || this->y() < rhs.y();
+        return false;
+    }
+    bool any_comp(const coord_t val, const std::string &op)
+    {
+        if (op == ">")
+            return this->x() > val || this->y() > val;
+        else if (op == "<")
+            return this->x() < val || this->y() < val;
+        return false;
+    }
+
+    void rotate(double angle) { this->rotate(std::cos(angle), std::sin(angle)); }
+    void rotate(double cos_a, double sin_a) {
+        double cur_x = (double)this->x();
+        double cur_y = (double)this->y();
+        this->x() = (coord_t)round(cos_a * cur_x - sin_a * cur_y);
+        this->y() = (coord_t)round(cos_a * cur_y + sin_a * cur_x);
+    }
+    void rotate(double angle, const Point3 &center);
+
+    Point3 rotated(double angle) const { Point3 res(*this); res.rotate(angle); return res; }
+    Point3 rotated(double cos_a, double sin_a) const { Point3 res(*this); res.rotate(cos_a, sin_a); return res; }
+    Point3 rotated(double angle, const Point3 &center) const { Point3 res(*this); res.rotate(angle, center); return res; }
+    Point3 rotate_90_degree_ccw() const { return Point3(-this->y(), this->x(), this->z()); }
+
+    int nearest_point_index(const Points &points) const;
+    bool nearest_point(const Points &points, Point3* point) const;
+    double ccw(const Point3 &p1, const Point3 &p2) const;
+    double ccw(const Line3 &line) const;
+    double ccw_angle(const Point3 &p1, const Point3 &p2) const;
+    Point3 projection_onto(const MultiPoint3 &poly) const;
+    Point3 projection_onto(const Line3 &line) const;
+
+    // Convert to 2D Point by dropping Z coordinate
+    Point to_point() const {
+        return Point(this->x(), this->y());
+    }
+
+    double distance_to(const Point3 &point) const { return (point - *this).cast<double>().norm(); }
+};
+
+// Utility function to convert Points3 to Points
+inline void append_points(Points &dst, const Points3 &src) {
+    std::transform(src.begin(), src.end(),
+        std::back_inserter(dst),
+        [](const Point3 &pt) {
+            return pt.to_point();
+        });
+}
+
+inline Point3 operator* (const Point3& l, const double& r)
+{
+    return { coord_t(l.x() * r), coord_t(l.y() * r), coord_t(l.z() * r) };
+}
+
 inline std::ostream &operator<<(std::ostream &os, const Point &pt)
 {
     os << unscale_(pt.x()) << "," << unscale_(pt.y());
@@ -298,6 +421,12 @@ inline Point lerp(const Point &a, const Point &b, double t)
 {
     assert((t >= -EPSILON) && (t <= 1. + EPSILON));
     return ((1. - t) * a.cast<double>() + t * b.cast<double>()).cast<coord_t>();
+}
+
+inline Point3 lerp(const Point3& a, const Point3& b, double t)
+{
+    assert((t >= -EPSILON) && (t <= 1. + EPSILON));
+    return Point3(((1. - t) * a.cast<double>() + t * b.cast<double>()).cast<coord_t>());
 }
 
 // if IncludeBoundary, then a bounding box is defined even for a single point.

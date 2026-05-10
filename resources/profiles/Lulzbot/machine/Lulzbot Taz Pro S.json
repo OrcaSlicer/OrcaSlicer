@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Lulzbot",
 	"bed_model": "taz_pro_dual_build_plate.stl",
-	"bed_texture": "lulzbot_logo.png",
+	"bed_texture": "lulzbot_logo.svg",
 	"hotend_model": "",
 	"extruder_clearance_radius": "62",
 	"extruder_clearance_height_to_rod": "36",

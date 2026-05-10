@@ -18,6 +18,28 @@ namespace Slic3r
 {
 class MachineObject;
 
+/**
+ * DevAmsTray - Represents a single filament tray/slot in an AMS unit or virtual tray.
+ *
+ * Data Population:
+ * ================
+ * This class is used in two contexts with different population paths:
+ *
+ * 1. AMS Trays (within DevFilaSystem):
+ *    NetworkAgent → MachineObject::parse_json() → DevFilaSystemParser::ParseV1_0()
+ *
+ * 2. Virtual Trays (MachineObject::vt_slot for external/manual filament):
+ *    NetworkAgent → MachineObject::parse_json() → MachineObject::parse_vt_tray()
+ *
+ * Key Fields Used by build_filament_ams_list():
+ * - setting_id: Filament preset identifier (tray_info_idx from printer)
+ * - tag_uid: RFID tag unique ID for identifying filament spools
+ * - m_fila_type: Filament material type (e.g., "PLA", "ABS", "PETG")
+ * - color: Hex color string without '#' prefix (e.g., "FF0000")
+ * - cols: Multi-color component list for gradient/multi-color filaments
+ * - ctype: Color type indicator
+ * - is_exists: Whether filament is currently loaded in the tray
+ */
 class DevAmsTray
 {
 public:
@@ -83,6 +105,27 @@ public:
     static wxColour decode_color(const std::string& color);
 };
 
+/**
+ * DevAms - Represents a single AMS (Automatic Material System) unit.
+ *
+ * An AMS unit is a physical hardware component that holds multiple filament trays.
+ * Different printer models support different AMS variants with varying slot counts
+ * and capabilities.
+ *
+ * Data Population:
+ * ================
+ * Populated by DevFilaSystemParser from printer JSON messages received via NetworkAgent.
+ *
+ * Key Properties:
+ * - m_ams_id: Unique identifier for this AMS unit (string, typically "0", "1", etc.)
+ * - m_ext_id: Which extruder this AMS is connected to (for multi-extruder setups)
+ * - m_trays: Map of tray IDs to DevAmsTray pointers containing filament data
+ *
+ * AMS Type Variants:
+ * - AMS (type 1): Standard 4-slot AMS with humidity control
+ * - AMS_LITE (type 2): Simplified version
+ * - N3F/N3S (types 3,4): Newer variants with different humidity/drying support
+ */
 class DevAms
 {
     friend class DevFilaSystemParser;
@@ -146,6 +189,36 @@ private:
     int    m_left_dry_time = 0;
 };
 
+/**
+ * DevFilaSystem - Central manager for all AMS-related data on a printer.
+ *
+ * This class owns and manages the hierarchy of AMS units (DevAms) and their trays (DevAmsTray).
+ * It provides the primary interface for querying filament/AMS state used by the GUI.
+ *
+ * Data Flow Architecture:
+ * =======================
+ *   Printer Device (sends status via MQTT/LAN)
+ *       ↓
+ *   NetworkAgent (receives JSON, invokes registered callbacks)
+ *       ↓
+ *   MachineObject::parse_json() (delegates to DevFilaSystemParser)
+ *       ↓
+ *   DevFilaSystemParser::ParseV1_0() (populates this DevFilaSystem instance)
+ *       ↓
+ *   GUI functions like build_filament_ams_list() read from here
+ *
+ * Key Methods:
+ * - GetAmsList(): Returns map of all AMS units (ams_id -> DevAms*)
+ * - GetAmsTray(): Retrieves specific tray by AMS ID and tray ID
+ * - HasAms(): Checks if any AMS units are connected
+ *
+ * Ownership:
+ * - Owned by MachineObject (m_fila_system member)
+ * - Owns all DevAms instances which in turn own DevAmsTray instances
+ *
+ * Note: This class does NOT directly communicate with NetworkAgent.
+ * It is a passive data store populated by the parsing layer.
+ */
 class DevFilaSystem
 {
     friend class DevFilaSystemParser;
@@ -200,6 +273,18 @@ private:
 };// class DevFilaSystem
 
 
+/**
+ * DevFilaSystemParser - Parses printer JSON messages to populate DevFilaSystem.
+ *
+ * This is the bridge between NetworkAgent's raw JSON data and the structured
+ * DevFilaSystem/DevAms/DevAmsTray hierarchy.
+ *
+ * Called from MachineObject::parse_json() when AMS-related fields are present
+ * in printer status messages received via MQTT or LAN communication.
+ *
+ * @see MachineObject::parse_json() - Entry point for JSON parsing
+ * @see DevFilaSystem - Target data structure
+ */
 class DevFilaSystemParser
 {
 public:

@@ -51,6 +51,12 @@ public:
     std::string get_user_selected_machine() override;
     int set_user_selected_machine(std::string dev_id) override;
 
+    // Subscriptions
+    int start_subscribe(std::string module) override;
+    int stop_subscribe(std::string module) override;
+    int add_subscribe(std::vector<std::string> dev_list) override;
+    int del_subscribe(std::vector<std::string> dev_list) override;
+
     /**
      * Get agent information.
      *

@@ -1092,23 +1092,13 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
 
     //single nozzle
     else {
-        if (obj_->is_support_amx_ext_mix_mapping()){
-            map_opt = { false, true, false, false }; //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-            if (!use_ams) {
-                map_opt[1] = false;
-                map_opt[3] = true;
-            }
-            filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt);
-            //auto_supply_with_ext(obj_->vt_slot);
+        map_opt = { false, true, false, false }; //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+        if (!use_ams) {
+            map_opt[1] = false;
+            map_opt[3] = true;
         }
-        else {
-            map_opt = { false, true, false, false };
-            if (!use_ams) {
-                map_opt[1] = false;
-                map_opt[3] = true;
-            }
-            filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt);
-        }
+        filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt);
+        //auto_supply_with_ext(obj_->vt_slot);
     }
 
     if (filament_result == 0) {
@@ -1147,7 +1137,7 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
     return true;
 }
 
-bool SelectMachineDialog::get_ams_mapping_result(std::string &mapping_array_str, std::string& mapping_array_str2, std::string &ams_mapping_info)
+bool SelectMachineDialog::get_ams_mapping_result(std::string &mapping_array_str, std::string& mapping_array_str2, std::string &ams_mapping_info) const
 {
     if (m_ams_mapping_result.empty())
         return false;
@@ -1438,7 +1428,7 @@ bool SelectMachineDialog::is_nozzle_type_match(DevExtderSystem data, wxString& e
     return true;
 }
 
-int SelectMachineDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id)
+int SelectMachineDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id) const
 {
     if (nozzle_id == (int)FilamentMapNozzleId::NOZZLE_LEFT) {
         return (int)CloudTaskNozzleId::NOZZLE_LEFT;
@@ -1689,6 +1679,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
     } else if (status == PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempSoft || status == PrintDialogStatus::PrintStatusFilamentWarningUnknownHighChamberTempSoft) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(true);
+    } else if (status == PrintStatusWarningExtFilamentNotMatch) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
     }
@@ -2601,12 +2594,13 @@ void SelectMachineDialog::clear_ip_address_config(wxCommandEvent& e)
 void SelectMachineDialog::update_user_machine_list()
 {
     NetworkAgent* m_agent = wxGetApp().getAgent();
-    if (m_agent && m_agent->is_user_login()) {
-        boost::thread get_print_info_thread = Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token)] {
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
+    if (m_agent && m_agent->is_user_login(provider)) {
+        boost::thread get_print_info_thread = Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token), provider] {
             NetworkAgent* agent = wxGetApp().getAgent();
             unsigned int http_code;
             std::string body;
-            int result = agent->get_user_print_info(&http_code, &body);
+            int result = agent->get_user_print_info(&http_code, &body, provider);
             CallAfter([token, this, result, body] {
                 if (token.expired()) {return;}
                 if (result == 0) {
@@ -3233,7 +3227,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
     /** error check **/
     /* check cloud machine connections */
-    if (!obj_->is_lan_mode_printer() && !agent->is_server_connected()) {
+    if (!obj_->is_lan_mode_printer() && !agent->is_server_connected(wxGetApp().get_printer_cloud_provider())) {
         show_status(PrintDialogStatus::PrintStatusConnectingServer);
         reset_timeout();
         return;
@@ -3457,7 +3451,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         std::string filament_type = boost::to_upper_copy(m_ams_mapping_result[i].type);
         std::string filament_brand;
 
-        for (auto fs : m_filaments) {
+        for (auto& fs : m_filaments) {
             if (fs.id == m_ams_mapping_result[i].id) { filament_brand = m_filaments[i].brand; }
         }
 
@@ -3518,6 +3512,19 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             }
         }
     }
+
+    // Orca: show warning if external filament does not match
+    for (auto& m : m_ams_mapping_result) {
+        if (devPrinterUtil::IsVirtualSlot(m.ams_id)) {
+            for (auto& fs : m_filaments) {
+                if (fs.id == m.id && m.type != fs.type) {
+                    show_status(PrintDialogStatus::PrintStatusWarningExtFilamentNotMatch);
+                    goto ext_mismatch;
+                }
+            }
+        }
+    }
+    ext_mismatch:
 
     /*STUDIO-10970 check the k value and flow cali option*/
     if (m_checkbox_list["flow_cali"]->IsShown() && m_checkbox_list["flow_cali"]->getValue() == "auto") {
@@ -3770,7 +3777,7 @@ void SelectMachineDialog::set_default()
 
     NetworkAgent* agent = wxGetApp().getAgent();
     if (agent) {
-        if (agent->is_user_login()) {
+        if (agent->is_user_login(wxGetApp().get_printer_cloud_provider())) {
             show_status(PrintDialogStatus::PrintStatusInit);
         }
     }
@@ -5146,7 +5153,7 @@ void PrinterInfoBox::UpdatePlate(const std::string& plate_name)
             name = _L("Textured PEI Plate");
             m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 40));
         }
-        else if (plate_name == "SuperTack Plate") {
+        else if (plate_name == "Supertack Plate" || plate_name == "SuperTack Plate") {
             name = _L("Cool Plate (SuperTack)");
             m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 40));
         }
