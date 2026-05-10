@@ -1,0 +1,41 @@
+{
+	"type": "filament",
+	"name": "FILL3D PLA Basic @base",
+	"from": "system",
+	"filament_id": "FILL3D002",
+	"instantiation": "false",
+	"inherits": "fdm_filament_pla",
+	"filament_vendor": [
+		"FILL3D"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_max_volumetric_speed": [
+		"54"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_retraction_length": [
+		"0.2"
+	],
+	"nozzle_temperature": [
+		"235"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"pressure_advance": [
+		"0.021"
+	],
+	"slow_down_layer_time": [
+		"0"
+	]
+}

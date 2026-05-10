@@ -1,0 +1,65 @@
+{
+	"type": "filament",
+	"name": "FILL3D PPCF @base",
+	"from": "system",
+	"filament_id": "FILL3D005",
+	"instantiation": "false",
+	"inherits": "fdm_filament_pp",
+	"filament_vendor": [
+		"FILL3D"
+	],
+	"filament_type": [
+		"PP"
+	],
+	"filament_density": [
+		"0.97"
+	],
+	"filament_max_volumetric_speed": [
+		"17"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"close_fan_the_first_x_layers": [
+		"5"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"filament_flow_ratio": [
+		"1.015"
+	],
+	"filament_retraction_length": [
+		"0.2"
+	],
+	"hot_plate_temp": [
+		"80"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"300"
+	],
+	"nozzle_temperature_initial_layer": [
+		"295"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"pressure_advance": [
+		"0.044"
+	],
+	"slow_down_layer_time": [
+		"10"
+	]
+}
