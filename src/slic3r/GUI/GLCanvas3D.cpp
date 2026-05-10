@@ -2188,7 +2188,6 @@ void GLCanvas3D::render(bool only_init)
     // occluded. Skip the swap to avoid stalling the render loop.
     if (m_canvas->IsShownOnScreen()) {
         m_canvas->SwapBuffers();
-        m_last_swap_buffers_time = std::chrono::steady_clock::now();
         m_render_stats.increment_fps_counter();
     }
 }
@@ -3212,13 +3211,16 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     if (fps_cap > 0) {
         const auto now = std::chrono::steady_clock::now();
         const auto min_frame_time = std::chrono::duration<double>(1.0 / static_cast<double>(fps_cap));
-        const auto elapsed = now - m_last_swap_buffers_time;
+        const auto elapsed = now - m_last_frame_start_time;
         if (elapsed < min_frame_time) {
             const int wait_ms = std::max(1, static_cast<int>(std::ceil(std::chrono::duration<double, std::milli>(min_frame_time - elapsed).count())));
             schedule_extra_frame(wait_ms);
             evt.RequestMore();
             return;
         }
+
+        // Pace by frame-start interval so rendering time is part of the target budget.
+        m_last_frame_start_time = now;
     }
 
     _refresh_if_shown_on_screen();
@@ -7454,11 +7456,6 @@ bool GLCanvas3D::_is_fxaa_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_FXAA_ENABLED);
 }
 
-bool GLCanvas3D::_is_vsync_enabled() const
-{
-    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_VSYNC_ENABLED);
-}
-
 int GLCanvas3D::_get_effective_fps_cap() const
 {
     if (wxGetApp().app_config == nullptr)
@@ -7473,11 +7470,6 @@ int GLCanvas3D::_get_effective_fps_cap() const
     }
 
     fps_cap = std::max(0, std::min(fps_cap, 240));
-
-    if (_is_vsync_enabled()) {
-        // True swap-interval control is backend-dependent; use a stable pacing cap by default.
-        return (fps_cap > 0) ? std::min(fps_cap, 60) : 60;
-    }
 
     return fps_cap;
 }

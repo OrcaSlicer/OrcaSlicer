@@ -236,9 +236,6 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_FXAA_ENABLED).empty())
         set_bool(SETTING_OPENGL_FXAA_ENABLED, false);
 
-    if (get(SETTING_OPENGL_VSYNC_ENABLED).empty())
-        set_bool(SETTING_OPENGL_VSYNC_ENABLED, false);
-
     if (get(SETTING_OPENGL_FPS_CAP).empty())
         set(SETTING_OPENGL_FPS_CAP, "0");
     else {

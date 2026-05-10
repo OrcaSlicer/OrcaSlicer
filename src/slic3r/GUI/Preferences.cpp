@@ -1559,15 +1559,6 @@ void PreferencesDialog::create_items()
     //// GRAPHICS > Frame pacing
     g_sizer->Add(create_item_title(_L("Frame pacing")), 1, wxEXPAND);
 
-    auto item_vsync = create_item_checkbox(
-        _L("VSync"),
-        _L("Reduces tearing by pacing viewport updates around display refresh.\n"
-           "When enabled, OrcaSlicer applies a software frame pacing limit (typically around 60 FPS).\n\n"
-           "Takes effect immediately."),
-        SETTING_OPENGL_VSYNC_ENABLED
-    );
-    g_sizer->Add(item_vsync);
-
     auto item_fps_cap = create_item_spinctrl(
         _L("FPS cap"),
         _L("(0 = unlimited)"),
