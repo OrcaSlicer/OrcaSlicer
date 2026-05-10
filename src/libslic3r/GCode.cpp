@@ -17,10 +17,10 @@
 #include "GCode/NearestNeighborCycle.hpp"
 #include "GCode/ConvexHullPeeling.hpp"
 #include "GCode/AngleSortCycle.hpp"
-#include "GCode/HilbertCurve.hpp"
 #include "GCode/Boustrophedon.hpp"
-#include "GCode/SpiralOrdering.hpp"
+#include "GCode/BottleneckMST.hpp"
 #include "GCode/BestOfStrategies.hpp"
+#include "GCode/MinMaxEdge.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
 #include "ClipperUtils.hpp"
@@ -2765,14 +2765,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             : (print.config().print_order == PrintOrder::ConvexHullPeeling ? chain_print_object_instances_convex_hull_peeling(print)
             // Angle sort + 2-opt: simple polygon via angular sort, then 2-opt
             : (print.config().print_order == PrintOrder::AngleSortCycle ? chain_print_object_instances_angle_sort(print)
-            // Hilbert curve: space-filling curve ordering for cluster locality
-            : (print.config().print_order == PrintOrder::HilbertCurve ? chain_print_object_instances_hilbert(print)
             // Boustrophedon: snake-like row traversal + 2-opt
             : (print.config().print_order == PrintOrder::Boustrophedon ? chain_print_object_instances_boustrophedon(print)
-            // Spiral: sort by distance from centroid, then angle + 2-opt
-            : (print.config().print_order == PrintOrder::SpiralOrdering ? chain_print_object_instances_spiral(print)
-            // Best of all: run every strategy, pick the shortest
+            // Bottleneck MST: minimize maximum edge length
+            : (print.config().print_order == PrintOrder::BottleneckMST ? chain_print_object_instances_bottleneck_mst(print)
+            // Best of all: run every strategy, pick the shortest total path
             : (print.config().print_order == PrintOrder::BestOfStrategies ? chain_print_object_instances_best_of(print)
+            // Min-max edge: run every strategy, pick smallest max edge (tiebreak: shortest)
+            : (print.config().print_order == PrintOrder::MinMaxEdge ? chain_print_object_instances_min_max_edge(print)
             // Otherwise same order as the object list
             : sort_object_instances_by_model_order(print)))))))));
     }
@@ -4981,15 +4981,15 @@ LayerResult GCode::process_layer(
                         ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
                         : (print.config().print_order == PrintOrder::AngleSortCycle
                             ? chain_print_object_instances_angle_sort(print_objects, &wt_pos)
-                            : (print.config().print_order == PrintOrder::HilbertCurve
-                                ? chain_print_object_instances_hilbert(print_objects, &wt_pos)
-                                : (print.config().print_order == PrintOrder::Boustrophedon
+                            : (print.config().print_order == PrintOrder::Boustrophedon
                                     ? chain_print_object_instances_boustrophedon(print_objects, &wt_pos)
-                                    : (print.config().print_order == PrintOrder::SpiralOrdering
-                                        ? chain_print_object_instances_spiral(print_objects, &wt_pos)
-                                        : (print.config().print_order == PrintOrder::BestOfStrategies
-                                            ? chain_print_object_instances_best_of(print_objects, &wt_pos)
-                                            : chain_print_object_instances(print_objects, &wt_pos)))))));
+                                    : (print.config().print_order == PrintOrder::BottleneckMST
+                                                    ? chain_print_object_instances_bottleneck_mst(print_objects, &wt_pos)
+                                                    : (print.config().print_order == PrintOrder::BestOfStrategies
+                                                        ? chain_print_object_instances_best_of(print_objects, &wt_pos)
+                                                        : (print.config().print_order == PrintOrder::MinMaxEdge
+                                                            ? chain_print_object_instances_min_max_edge(print_objects, &wt_pos)
+                                                            : chain_print_object_instances(print_objects, &wt_pos)))))));
             std::reverse(new_ordering.begin(), new_ordering.end());
 
             if (print.config().print_sequence == PrintSequence::ByObject) {
