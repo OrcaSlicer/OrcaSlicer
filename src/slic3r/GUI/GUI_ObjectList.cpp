@@ -6086,10 +6086,13 @@ void ObjectList::fix_through_cgal()
             msg += "\n";
         }
 
-        plater->clear_before_change_mesh(obj_idx);
+        const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
+        if (!keep_painting) {
+            plater->clear_before_change_mesh(obj_idx);
+        }
         const size_t volumes_before = object(obj_idx)->volumes.size();
         std::string res;
-        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
+        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res, keep_painting))
             return false;
         //wxGetApp().plater()->changed_mesh(obj_idx);
         object(obj_idx)->ensure_on_bed();

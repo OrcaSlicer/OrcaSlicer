@@ -3321,6 +3321,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
 
         wxBusyCursor wait;
 
+        const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
         ModelObjectCutAttributes attributes = only_if(has_connectors ? true : m_keep_upper, ModelObjectCutAttribute::KeepUpper) |
                                               only_if(has_connectors ? true : m_keep_lower, ModelObjectCutAttribute::KeepLower) |
                                               only_if(has_connectors ? false : m_keep_as_parts, ModelObjectCutAttribute::KeepAsParts) |
@@ -3330,7 +3331,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                                               only_if(m_rotate_lower, ModelObjectCutAttribute::FlipLower) |
                                               only_if(dowels_count > 0, ModelObjectCutAttribute::CreateDowels) |
                                               only_if(!has_connectors && !cut_with_groove && cut_mo->cut_id.id().invalid(), ModelObjectCutAttribute::InvalidateCutInfo) |
-                                              only_if(wxGetApp().app_config->get_bool("keep_painting"),ModelObjectCutAttribute::KeepPaint);
+                                              only_if(keep_painting, ModelObjectCutAttribute::KeepPaint);
 
         // update cut_id for the cut object in respect to the attributes
         update_object_cut_id(cut_mo->cut_id, attributes, dowels_count);
@@ -3363,12 +3364,12 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [this, plater](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [this, plater, keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
                             std::string res;
-                            if (!fix_model_with_cgal_gui(*model_object, vol_idx, progress_dlg, msg, res)) return false;
+                            if (!fix_model_with_cgal_gui(*model_object, vol_idx, progress_dlg, msg, res, keep_painting)) return false;
                             return true;
                         };
                         ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater), wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
