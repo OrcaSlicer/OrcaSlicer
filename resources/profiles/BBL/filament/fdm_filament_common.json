@@ -15,6 +15,9 @@
 	"close_fan_the_first_x_layers": [
 		"3"
 	],
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
 	"complete_print_exhaust_fan_speed": [
 		"70"
 	],
@@ -172,6 +175,9 @@
 		"nil"
 	],
 	"full_fan_speed_layer": [
+		"0"
+	],
+	"additional_fan_full_speed_layer": [
 		"0"
 	],
 	"filament_extruder_variant": [

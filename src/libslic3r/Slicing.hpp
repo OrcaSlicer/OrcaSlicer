@@ -84,9 +84,10 @@ struct SlicingParameters
     // If the object is printed over a non-soluble raft, the first layer may be printed with a briding flow.
     bool 		first_object_layer_bridging { false };
 
-    // Soluble interface? (PLA soluble in water, HIPS soluble in lemonen)
-    // otherwise the interface must be broken off.
-    bool        soluble_interface { false };
+    // Zero-gap interface flags for top / bottom / raft contact.
+    bool        zero_gap_interface_top { false };
+    bool        zero_gap_interface_bottom { false };
+    bool        zero_gap_interface_raft { false };
     // Gap when placing object over raft.
     coordf_t    gap_raft_object { 0 };
     // Gap when placing support over object.
@@ -100,7 +101,7 @@ struct SlicingParameters
     coordf_t    raft_base_top_z { 0 };
     coordf_t    raft_interface_top_z { 0 };
     coordf_t    raft_contact_top_z { 0 };
-    // In case of a soluble interface, object_print_z_min == raft_contact_top_z, otherwise there is a gap between the raft and the 1st object layer.
+    // In case of a zero-gap raft interface, object_print_z_min == raft_contact_top_z, otherwise there is a gap between the raft and the 1st object layer.
     coordf_t 	object_print_z_min { 0 };
     // This value of maximum print Z is scaled by shrinkage compensation in the Z-axis.
     coordf_t 	object_print_z_max { 0 };
@@ -133,7 +134,9 @@ inline bool equal_layering(const SlicingParameters &sp1, const SlicingParameters
             // BBS: following  are not required for equal layer height.
             // Since the z-gap diff may be multiple of layer height.
 #if 0
-            sp1.soluble_interface                   == sp2.soluble_interface                    &&
+            sp1.zero_gap_interface_top              == sp2.zero_gap_interface_top               &&
+            sp1.zero_gap_interface_bottom           == sp2.zero_gap_interface_bottom            &&
+            sp1.zero_gap_interface_raft             == sp2.zero_gap_interface_raft              &&
             sp1.gap_raft_object                     == sp2.gap_raft_object                      &&
             sp1.gap_object_support                  == sp2.gap_object_support                   &&
             sp1.gap_support_object                  == sp2.gap_support_object                   &&
