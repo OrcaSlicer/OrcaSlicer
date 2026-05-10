@@ -1451,6 +1451,14 @@
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
+		},
+		{
+			"name": "GreenGate3D PETG @base",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
+		},
+		{
+			"name": "GreenGate3D PETG @System",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		}
 	],
 	"process_list": [],
