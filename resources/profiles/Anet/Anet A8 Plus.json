@@ -1,0 +1,26 @@
+{
+  "bundle_id": "offline_Anet A8 Plus 0.4 nozzle_20260315224240",
+  "bundle_type": "printer config bundle",
+  "filament_config": [
+    "filament/Anycubic Generic ABS @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic ASA @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PA @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PA-CF @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PC @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PETG @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PLA @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PLA-CF @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic PVA @Anet A8 Plus 0.4 nozzle.json",
+    "filament/Anycubic Generic TPU @Anet A8 Plus 0.4 nozzle.json"
+  ],
+  "printer_config": [
+    "printer/Anet A8 Plus 0.4 nozzle.json"
+  ],
+  "printer_preset_name": "Anet A8 Plus 0.4 nozzle",
+  "process_config": [
+    "process/0.15mm Optimal @Anet A8 Plus 0.4 nozzle.json",
+    "process/0.20mm Standard @Anet A8 Plus 0.4 nozzle.json",
+    "process/0.30mm Draft @Anet A8 Plus 0.4 nozzle.json"
+  ],
+  "version": ""
+}
