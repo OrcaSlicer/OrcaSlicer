@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "LH Stinger",
+	"model_id": "LHS_M_base",
+	"nozzle_diameter": "0.4",
+	"machine_tech": "FFF",
+	"family": "LH",
+	"bed_model": "LH_Stinger_buildplate_model.STL",
+	"bed_texture": "LH_Stinger_buildplate_texture.png",
+	"hotend_model": "",
+	"default_materials": "LHS PLA;LHS PETG;LHS PCTG;LHS ASA;LHS ABS;LHS PC CF;LHS TPU Foamy 78A;LHS TPU;"
+}

@@ -250,6 +250,23 @@ void Layer::make_perimeters()
                         //BBS: Separate fill_no_overlap
                         (*l)->fill_no_overlap_expolygons = intersection_ex((*l)->slices.surfaces, fill_no_overlap);
 	                }
+
+	                // When counterbore hole bridging (chbFilled) is active, process_no_bridge may
+	                // create fill surfaces that extend beyond all region slices (e.g. by clearing
+	                // holes in the bridge expolygon). These "extra" fills are lost during the
+	                // intersection-based splitting above. Recover them and assign to the first
+	                // merged region so the sacrificial bridge layer is not broken.
+	                if (layerm_config->region().config().counterbore_hole_bridging.value != chbNone) {
+	                    Polygons all_region_slices_p;
+	                    for (LayerRegion *l : layerms)
+	                        polygons_append(all_region_slices_p, to_polygons(l->slices.surfaces));
+	                    ExPolygons extra_fill = diff_ex(fill_surfaces.surfaces, all_region_slices_p, ApplySafetyOffset::Yes);
+	                    if (!extra_fill.empty()) {
+	                        append(layerms.front()->fill_expolygons, extra_fill);
+	                        layerms.front()->fill_expolygons = union_ex(layerms.front()->fill_expolygons);
+	                        layerms.front()->fill_surfaces.append(std::move(extra_fill), fill_surfaces.surfaces.front());
+	                    }
+	                }
 	            }
 	        }
 	    }

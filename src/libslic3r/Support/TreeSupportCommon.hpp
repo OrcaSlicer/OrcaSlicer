@@ -306,7 +306,7 @@ public:
     
         layer_start_bp_radius = (bp_radius - branch_radius) / bp_radius_increase_per_layer;
     
-        if (TreeSupportSettings::soluble) {
+        if (TreeSupportSettings::zero_top_z_gap) {
             // safeOffsetInc can only work in steps of the size xy_min_distance in the worst case => xy_min_distance has to be a bit larger than 0 in this worst case and should be large enough for performance to not suffer extremely
             // When for all meshes the z bottom and top distance is more than one layer though the worst case is xy_min_distance + min_feature_size
             // This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.
@@ -356,7 +356,7 @@ public:
 
     // some static variables dependent on other meshes that are not currently processed.
     // Has to be static because TreeSupportConfig will be used in TreeModelVolumes as this reduces redundancy.
-    inline static bool soluble = false;
+    inline static bool zero_top_z_gap = false;
     /*!
      * \brief Width of a single line of support.
      */
@@ -718,9 +718,15 @@ public:
     {
         assert(support_parameters.has_top_contacts);
         assert(dtt_roof <= support_parameters.num_top_interface_layers);
+        // ORCA: Reserve one top interface layer but only when top base-interface layers exist.
+        // This prevents all interface layers from being classified as base-interface layers
+        // and preserves correct top contact and interface behavior.
+        size_t interface_threshold = support_parameters.num_top_interface_layers_only();
+        if (interface_threshold > 0 && support_parameters.num_top_base_interface_layers > 0)
+            --interface_threshold;
         SupportGeneratorLayersPtr &layers =
             dtt_roof == 0 ? this->top_contacts :
-            dtt_roof <= support_parameters.num_top_interface_layers_only() ? this->top_interfaces : this->top_base_interfaces;
+            dtt_roof <= interface_threshold ? this->top_interfaces : this->top_base_interfaces;
         SupportGeneratorLayer*& l = layers[insert_layer_idx];
         if (l == nullptr)
             l = &layer_allocate_unguarded(layer_storage, dtt_roof == 0 ? SupporLayerType::TopContact : SupporLayerType::TopInterface, 

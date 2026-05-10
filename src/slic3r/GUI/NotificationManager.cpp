@@ -9,6 +9,7 @@
 #include "GUI_ObjectList.hpp"
 #include "ParamsPanel.hpp"
 #include "MainFrame.hpp"
+#include "Tab.hpp"
 #include "libslic3r/Config.hpp"
 #include "format.hpp"
 
@@ -110,6 +111,21 @@ namespace {
 			::wxExecute(argv, wxEXEC_ASYNC, nullptr, nullptr);
 		}
 #endif
+	}
+
+	// Orca: Resolve the type of a validation option based on its key
+	Preset::Type resolve_validation_option_type(const std::string& opt_key)
+	{
+		if (opt_key.empty())
+			return Preset::TYPE_PRINT;
+
+		if (wxGetApp().get_tab(Preset::TYPE_PRINTER)->get_config()->def()->has(opt_key))
+			return Preset::TYPE_PRINTER;
+
+		if (wxGetApp().get_tab(Preset::TYPE_FILAMENT)->get_config()->def()->has(opt_key))
+			return Preset::TYPE_FILAMENT;
+
+		return Preset::TYPE_PRINT;
 	}
 }
 
@@ -1917,9 +1933,12 @@ void NotificationManager::push_validate_error_notification(StringObjectException
             }
 
 			if (!opt.empty()) {
-				if ((!is_inst && id.id) || (is_inst && parent_id.id)) // if object found
+				const Preset::Type opt_type = resolve_validation_option_type(opt);
+
+				if (opt_type == Preset::TYPE_PRINT && ((!is_inst && id.id) || (is_inst && parent_id.id))) // if object found and it's a print preset option, switch to object first
 					wxGetApp().params_panel()->switch_to_object();
-				wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
+
+				wxGetApp().sidebar().jump_to_option(opt, opt_type, L"");
 			}
 			else {
 				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
