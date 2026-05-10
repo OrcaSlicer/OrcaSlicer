@@ -48,21 +48,22 @@ bool GLGizmoBrimEars::on_init()
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
     const wxString alt  = GUI::shortkey_alt_prefix();
 
-    m_desc["head_diameter"]    = _L("Head diameter");
-    m_desc["max_angle"]        = _L("Max angle");
-    m_desc["detection_radius"] = _L("Detection radius");
-    m_desc["remove"]           = _L("Delete");
-    m_desc["remove_selected"]  = _L("Selected");
-    m_desc["remove_all"]       = _L("All");
-    m_desc["create"]           = _L("Create");
-    m_desc["auto_generate"]    = _L("Auto-generate");
-    m_desc["section_view"]     = _L("Section view");
+    m_desc["head_diameter"]         = _L("Head diameter");
+    m_desc["max_angle"]             = _L("Max angle");
+    m_desc["detection_radius"]      = _L("Detection radius");
+    m_desc["remove"]                = _L("Remove");
+    m_desc["remove_selected"]       = _L("Selected");
+    m_desc["remove_all"]            = _L("All");
+    m_desc["create"]                = _L("Create");
+    m_desc["auto_generate"]         = _L("Auto-generate");
+    m_desc["auto-generate-tooltip"] = _L("Generate brim ears using Max angle and Detection radius");
+    m_desc["section_view"]          = _L("Section view");
 
     m_shortcuts = {
-        {_L("Left mouse button"),   _L("Add a brim ear")},
-        {_L("Right mouse button"),  _L("Delete a brim ear")},
-        {ctrl + _L("Mouse wheel"),  _L("Adjust head diameter")},
-        {alt + _L("Mouse wheel"),   _L("Adjust section view")},
+        {_L("Left mouse button"),   _L("Add or Select")},
+        {_L("Right mouse button"),  _L("Remove")},
+        {ctrl + _L("Mouse wheel"),  m_desc["head_diameter"]},
+        {alt + _L("Mouse wheel"),   m_desc["section_view"]},
     };
 
     return true;
@@ -696,6 +697,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##head_diameter_input", &m_new_point_head_diameter, 0.05f, 0.0f, 0.0f, "%.1f");
 
+    ImGui::Separator();
+
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["max_angle"]);
     ImGui::SameLine(caption_size);
@@ -719,8 +722,9 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["create"]);
     ImGui::SameLine(caption_size);
-    if (m_imgui->button(m_desc["auto_generate"])) { auto_generate(); }
-
+    if (m_imgui->button(m_desc["auto_generate"], m_desc["auto-generate-tooltip"])) {
+        auto_generate();
+    }
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["remove"]);
