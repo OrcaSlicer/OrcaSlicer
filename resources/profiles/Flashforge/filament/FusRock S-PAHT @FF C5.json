@@ -1,0 +1,79 @@
+{
+	"compatible_printers": [
+		"Flashforge Creator 5 0.4 nozzle",
+		"Flashforge Creator 5 0.6 nozzle",
+		"Flashforge Creator 5 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"fan_cooling_layer_time": [
+		"5"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_is_support": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"filament_settings_id": [
+		"FusRock S-PAHT @FF C5"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"filament_type": [
+		"S-PAHT"
+	],
+	"from": "system",
+	"hot_plate_temp": [
+		"80"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"inherits": "Generic PA-CF @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "FusRock S-PAHT @FF C5",
+	"nozzle_temperature_range_high": [
+		"280"
+	],
+	"nozzle_temperature_range_low": [
+		"270"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"version": "2.3.0.3"
+}

@@ -1,0 +1,73 @@
+{
+	"additional_cooling_fan_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Flashforge Creator 5 0.4 nozzle",
+		"Flashforge Creator 5 0.6 nozzle",
+		"Flashforge Creator 5 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_max_speed": [
+		"70"
+	],
+	"fan_min_speed": [
+		"70"
+	],
+	"filament_max_volumetric_speed": [
+		"3.5"
+	],
+	"filament_settings_id": [
+		"Generic BVOH @FF C5"
+	],
+	"filament_soluble": [
+		"1"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"from": "system",
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"inherits": "Generic BVOH @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Generic BVOH @FF C5",
+	"pressure_advance": [
+		"0.0225"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"40"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"40"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"version": "2.3.0.3"
+}

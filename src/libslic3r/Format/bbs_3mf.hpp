@@ -98,6 +98,9 @@ struct PlateData
     std::vector<int>          filament_maps;   // 1 base
     using LayerFilaments = std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>, GCodeProcessorResult::FilamentSequenceHash>;
     LayerFilaments layer_filaments;
+    std::vector<unsigned int> filament_change_sequence;
+    std::vector<unsigned int> nozzle_change_sequence;
+    std::vector<int> optimal_assignment;
 
     // Hexadecimal number,
     // the 0th digit corresponds to extruder 1

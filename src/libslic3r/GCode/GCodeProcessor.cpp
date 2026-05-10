@@ -1582,6 +1582,9 @@ void GCodeProcessorResult::reset() {
     custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
     spiral_vase_mode = false;
     layer_filaments.clear();
+    filament_change_sequence.clear();
+    nozzle_change_sequence.clear();
+    optimal_assignment.clear();
     filament_change_count_map.clear();
     warnings.clear();
 
