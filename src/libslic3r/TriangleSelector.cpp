@@ -280,7 +280,7 @@ int TriangleSelector::select_unsplit_triangle(const Vec3f &hit, int facet_idx) c
     return this->select_unsplit_triangle(hit, facet_idx, neighbors);
 }
 
-void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&cursor, EnforcerBlockerType new_state, const Transform3d& trafo_no_translate, bool triangle_splitting, float highlight_by_angle_deg)
+void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&cursor, EnforcerBlockerType new_state, const Transform3d& trafo_no_translate, bool triangle_splitting, float highlight_by_angle_deg, const bool select_partially)
 {
     assert(facet_start < m_orig_size_indices);
 
@@ -343,7 +343,7 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
             Matrix3f     normal_matrix = static_cast<Matrix3f>(trafo_no_translate.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
             float        world_normal_z = (normal_matrix* facet_normal).normalized().z();
             if (!visited[facet] && (highlight_by_angle_deg == 0.f || world_normal_z < highlight_angle_limit)) {
-                if (select_triangle(facet, new_state, triangle_splitting)) {
+                if (select_triangle(facet, new_state, triangle_splitting, select_partially)) {
                     // add neighboring facets to list to be processed later
                     for (int neighbor_idx : m_neighbors[facet])
                         if (neighbor_idx >= 0 && m_cursor->is_facet_visible(neighbor_idx, m_face_normals))
@@ -599,7 +599,7 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
 // This is done by an actual recursive call. Returns false if the triangle is
 // outside the cursor.
 // Called by select_patch() and by itself.
-bool TriangleSelector::select_triangle(int facet_idx, EnforcerBlockerType type, bool triangle_splitting)
+bool TriangleSelector::select_triangle(int facet_idx, EnforcerBlockerType type, bool triangle_splitting, bool select_partially)
 {
     assert(facet_idx < int(m_triangles.size()));
 
@@ -609,7 +609,7 @@ bool TriangleSelector::select_triangle(int facet_idx, EnforcerBlockerType type, 
     Vec3i32 neighbors = m_neighbors[facet_idx];
     assert(this->verify_triangle_neighbors(m_triangles[facet_idx], neighbors));
 
-    if (! select_triangle_recursive(facet_idx, neighbors, type, triangle_splitting))
+    if (! select_triangle_recursive(facet_idx, neighbors, type, triangle_splitting, select_partially))
         return false;
 
     // In case that all children are leafs and have the same state now,
@@ -949,7 +949,7 @@ Vec3i32 TriangleSelector::child_neighbors_propagated(const Triangle &tr, const V
     return out;
 }
 
-bool TriangleSelector::select_triangle_recursive(int facet_idx, const Vec3i32 &neighbors, EnforcerBlockerType type, bool triangle_splitting)
+bool TriangleSelector::select_triangle_recursive(int facet_idx, const Vec3i32 &neighbors, EnforcerBlockerType type, bool triangle_splitting, bool select_partially)
 {
     assert(facet_idx < int(m_triangles.size()));
 
@@ -982,8 +982,10 @@ bool TriangleSelector::select_triangle_recursive(int facet_idx, const Vec3i32 &n
 
         if (triangle_splitting)
             split_triangle(facet_idx, neighbors);
-        if (!m_triangles[facet_idx].is_split())
+        if ((!triangle_splitting || select_partially) && !m_triangles[facet_idx].is_split()) {
             m_triangles[facet_idx].set_state(type);
+            return true;
+        }
         tr = &m_triangles[facet_idx]; // might have been invalidated by split_triangle().
 
         int num_of_children = tr->number_of_split_sides() + 1;
@@ -993,7 +995,7 @@ bool TriangleSelector::select_triangle_recursive(int facet_idx, const Vec3i32 &n
                 assert(tr->children[i] < int(m_triangles.size()));
                 // Recursion, deep first search over the children of this triangle.
                 // All children of this triangle were created by splitting a single source triangle of the original mesh.
-                select_triangle_recursive(tr->children[i], this->child_neighbors(*tr, neighbors, i), type, triangle_splitting);
+                select_triangle_recursive(tr->children[i], this->child_neighbors(*tr, neighbors, i), type, triangle_splitting, select_partially);
                 tr = &m_triangles[facet_idx]; // might have been invalidated
             }
         }
@@ -2513,7 +2515,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
             if (TriangleCursor::check_normal(norm_b, -norm_a) && check_overlap(pv0, pv1, pv2, ta, tb, tc)) {
                 // Paint this face
                 target_selector.select_patch(face_idx, TriangleCursor::build_cursor(source_selector, tri), tri.get_state(),
-                                             Transform3d::Identity(), true);
+                                             Transform3d::Identity(), true, 0.f, true);
             }
             return true; // continue traversal
         });
