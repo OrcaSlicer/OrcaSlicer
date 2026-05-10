@@ -19,7 +19,7 @@
 #include "libslic3r/TextConfiguration.hpp"
 
 #include <imgui/imgui.h>
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 class wxFont;
 namespace Slic3r{
@@ -112,7 +112,7 @@ private:
     // create volume from text - main functionality
     bool process(bool make_snapshot = true);
     void close();
-    void draw_window();
+    void draw_window(float x, float y);
     void draw_text_input();
     void draw_model_type();
     void draw_style_list();
@@ -229,6 +229,9 @@ private:
 
     // only temporary solution
     static const std::string M_ICON_FILENAME;
+
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts;
 };
 
 } // namespace Slic3r::GUI

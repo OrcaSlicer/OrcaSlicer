@@ -458,8 +458,14 @@ static void read_model_from_file(const std::string& input_file, Model& model)
         &is_bbl_3mf, &file_version, nullptr, nullptr, nullptr, plate_to_slice);
 
     model.add_default_instances();
-    for (auto object : model.objects)
-        object->ensure_on_bed();
+
+    const std::string extension      = fs::path(input_file).extension().string();
+    const bool        is_project_file = extension == ".3mf" || extension == ".3MF" || extension == ".amf" || extension == ".AMF";
+    for (auto object : model.objects) {
+        if (!is_project_file)
+            object->center_around_origin(false);
+        object->ensure_on_bed(is_project_file);
+    }
 }
 
 std::array<Vec3d, 4> get_cut_plane_points(const BoundingBoxf3 &bbox, const double &cut_height)
@@ -1004,7 +1010,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
         }
         js["filament_id"]     = filament_ids;
         js["printer_type"]    = obj_->printer_type;
-        NetworkAgent *agent   = GUI::wxGetApp().getAgent();
+        NetworkAgent* agent   = GUI::wxGetApp().getAgent();
         if (agent)
             agent->track_event("cali", js.dump());
     } catch (...) {}

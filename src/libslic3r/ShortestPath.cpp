@@ -1000,7 +1000,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy2(SegmentEndPointFunc 
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
-	auto segment_end_point = [&entities](size_t idx, bool first_point) -> const Point& { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
+	auto segment_end_point = [&entities](size_t idx, bool first_point) -> Point { return first_point ? entities[idx]->first_point() : entities[idx]->last_point(); };
 	auto could_reverse = [&entities](size_t idx) { const ExtrusionEntity *ee = entities[idx]; return ee->is_loop() || ee->can_reverse(); };
 	std::vector<std::pair<size_t, bool>> out = chain_segments_greedy_constrained_reversals<Point, decltype(segment_end_point), decltype(could_reverse)>(segment_end_point, could_reverse, entities.size(), start_near);
 	for (std::pair<size_t, bool> &segment : out) {
@@ -1028,6 +1028,11 @@ void reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const s
     entities.swap(out);
 }
 
+void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point &start_near)
+{
+	chain_and_reorder_extrusion_entities(entities, &start_near);
+}
+
 void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
     // this function crashes if there are empty elements in entities
@@ -1038,7 +1043,7 @@ void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entitie
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near)
 {
-	auto segment_end_point = [&extrusion_paths](size_t idx, bool first_point) -> const Point& { return first_point ? extrusion_paths[idx].first_point() : extrusion_paths[idx].last_point(); };
+	auto segment_end_point = [&extrusion_paths](size_t idx, bool first_point) -> Point { return first_point ? extrusion_paths[idx].first_point() : extrusion_paths[idx].last_point(); };
 	return chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, extrusion_paths.size(), start_near);
 }
 

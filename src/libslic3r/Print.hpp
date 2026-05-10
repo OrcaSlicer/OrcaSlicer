@@ -92,7 +92,7 @@ enum PrintStep {
 
 enum PrintObjectStep {
     posSlice, posPerimeters,posEstimateCurledExtrusions, posPrepareInfill,
-    posInfill, posIroning, posSupportMaterial, posSimplifyPath, posSimplifySupportPath,
+    posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifySupportPath,
     // BBS
     posDetectOverhangsForLift,
     posSimplifyWall, posSimplifyInfill,
@@ -496,6 +496,8 @@ private:
     void prepare_infill();
     void infill();
     void ironing();
+    bool need_z_contouring() const;
+    void contour_z();
     void generate_support_material();
     void estimate_curled_extrusions();
     void simplify_extrusion_path();
@@ -642,14 +644,14 @@ struct FakeWipeTower
         std::vector<ExtrusionPaths> paths;
         for (float h = 0.f; h < height; h += layer_height) {
             ExtrusionPath path(ExtrusionRole::erWipeTower, 0.0, 0.0, layer_height);
-            path.polyline = {minCorner, {maxCorner.x(), minCorner.y()}, maxCorner, {minCorner.x(), maxCorner.y()}, minCorner};
+            path.polyline = Polyline3(Polyline{{minCorner, {maxCorner.x(), minCorner.y()}, maxCorner, {minCorner.x(), maxCorner.y()}, minCorner}});
             paths.push_back({path});
 
             if (h == 0.f) { // add brim
                 ExtrusionPath fakeBrim(ExtrusionRole::erBrim, 0.0, 0.0, layer_height);
                 Point         wtbminCorner = {minCorner - Point{bd, bd}};
                 Point         wtbmaxCorner = {maxCorner + Point{bd, bd}};
-                fakeBrim.polyline          = {wtbminCorner, {wtbmaxCorner.x(), wtbminCorner.y()}, wtbmaxCorner, {wtbminCorner.x(), wtbmaxCorner.y()}, wtbminCorner};
+                fakeBrim.polyline          = Polyline3(Polyline{{wtbminCorner, {wtbmaxCorner.x(), wtbminCorner.y()}, wtbmaxCorner, {wtbminCorner.x(), wtbmaxCorner.y()}, wtbminCorner}});
                 paths.back().push_back(fakeBrim);
             }
         }
@@ -686,13 +688,13 @@ struct FakeWipeTower
 
 
             ExtrusionPath path(ExtrusionRole::erWipeTower, 0.0, 0.0, lh);
-            path.polyline = { minCorner, {maxCorner.x(), minCorner.y()}, maxCorner, {minCorner.x(), maxCorner.y()}, minCorner };
+            path.polyline = Polyline3(Polyline{{ minCorner, {maxCorner.x(), minCorner.y()}, maxCorner, {minCorner.x(), maxCorner.y()}, minCorner }});
             paths.push_back({ path });
 
             // We added the border, now add several parallel lines so we can detect an object that is fully inside the tower.
             // For now, simply use fixed spacing of 3mm.
             for (coord_t y=minCorner.y()+scale_(3.); y<maxCorner.y(); y+=scale_(3.)) {
-                path.polyline = { {minCorner.x(), y}, {maxCorner.x(), y} };
+                path.polyline = Polyline3(Polyline{{ {minCorner.x(), y}, {maxCorner.x(), y} }});
                 paths.back().emplace_back(path);
             }
 
@@ -875,8 +877,9 @@ enum FilamentTempType {
 enum FilamentCompatibilityType {
     Compatible,
     HighLowMixed,
-    HighMidMixed,
-    LowMidMixed
+    //HighLowMixed,
+    //HighMidMixed,
+    InvalidTemperatureRange
 };
 
 // The complete print tray with possibly multiple objects.
@@ -903,7 +906,7 @@ public:
     // List of existing PrintObject IDs, to remove notifications for non-existent IDs.
     std::vector<ObjectID> print_object_ids() const override;
 
-    ApplyStatus         apply(const Model &model, DynamicPrintConfig config) override;
+    ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
 
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
     // Exports G-code into a file name based on the path_template, returns the file path of the generated G-code file.
@@ -1085,7 +1088,11 @@ public:
     static FilamentTempType get_filament_temp_type(const std::string& filament_type);
     static int get_hrc_by_nozzle_type(const NozzleType& type);
     static std::vector<std::string> get_incompatible_filaments_by_nozzle(const float nozzle_diameter, const std::optional<NozzleVolumeType> nozzle_volume_type = std::nullopt);
-    static FilamentCompatibilityType check_multi_filaments_compatibility(const std::vector<std::string>& filament_types);
+    static FilamentCompatibilityType check_multi_filaments_compatibility(
+        const std::vector<std::string>& filament_types,
+        const std::vector<int>& nozzle_temperatures,
+        const std::vector<int>& nozzle_temperature_range_lows,
+        const std::vector<int>& nozzle_temperature_range_highs);
     // similar to check_multi_filaments_compatibility, but the input is int, and may be negative (means unset)
     static bool is_filaments_compatible(const std::vector<int>& types);
     // get the compatible filament type of a multi-material object

@@ -195,6 +195,7 @@ wxDECLARE_EVENT(EVT_CUSTOMEVT_TICKSCHANGED, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDECLARE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
+wxDECLARE_EVENT(EVT_GLCANVAS_PRINTABLE, SimpleEvent);
 
 class GLCanvas3D
 {
@@ -289,7 +290,6 @@ class GLCanvas3D
         bool is_enabled() const { return m_enabled; }
         void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
-        void show_tooltip_information(const GLCanvas3D& canvas, std::map<wxString, wxString> captions_texts, float x, float y);
         void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
         void render_overlay(const GLCanvas3D& canvas);
         void render_volumes(const GLCanvas3D& canvas, const GLVolumeCollection& volumes);
@@ -521,7 +521,8 @@ private:
     wxGLContext* m_context;
     SceneRaycaster m_scene_raycaster;
     Bed3D &m_bed;
-    std::map<std::string, wxString> m_assembly_view_desc;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_assembly_view;
 #if ENABLE_RETINA_GL
     std::unique_ptr<RetinaHelper> m_retina_helper;
 #endif
@@ -954,7 +955,7 @@ public:
                                              Camera::ViewAngleType              camera_view_angle_type = Camera::ViewAngleType::Iso,
                                              bool                               for_picking  = false,
                                              bool                               ban_light    = false);
-    // render thumbnail using an off-screen framebuffer when GLEW_EXT_framebuffer_object is supported
+    // render thumbnail using an off-screen framebuffer when GL_EXT_framebuffer_object is supported
     static void render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
         PartPlateList& partplate_list, ModelObjectPtrs& model_objects, const GLVolumeCollection& volumes, std::vector<ColorRGBA>& extruder_colors,
                                                  GLShaderProgram *                  shader,
@@ -1114,7 +1115,7 @@ public:
 
     void request_extra_frame() { m_extra_frame_requested = true; }
 
-    void schedule_extra_frame(int miliseconds);
+    void schedule_extra_frame(int milliseconds);
 
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
@@ -1262,7 +1263,7 @@ private:
     // BBS
     //void _render_view_toolbar() const;
     void _render_paint_toolbar() const;
-    float _show_assembly_tooltip_information(float caption_max, float x, float y) const;
+    float _render_assembly_tooltip_button(ImGuiWrapper* imgui_wrapper) const;
     void _render_assemble_control();
     void _render_assemble_info() const;
 #if ENABLE_SHOW_CAMERA_TARGET

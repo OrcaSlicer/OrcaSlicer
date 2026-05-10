@@ -1,4 +1,6 @@
 #include "Exception.hpp"
+#include "Model.hpp"
+#include "Point.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
@@ -8,6 +10,7 @@
 #include "Layer.hpp"
 #include "MutablePolygon.hpp"
 #include "PrintConfig.hpp"
+#include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
@@ -22,7 +25,11 @@
 #include "format.hpp"
 #include "AABBTreeLines.hpp"
 
+#include <cstddef>
 #include <float.h>
+#include <iterator>
+#include <mutex>
+#include <string>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/concurrent_vector.h>
 #include <oneapi/tbb/parallel_for.h>
@@ -709,6 +716,65 @@ void PrintObject::ironing()
     }
 }
 
+bool PrintObject::need_z_contouring() const
+{
+    size_t num_regions = this->num_printing_regions();
+    for (size_t region_id = 0; region_id < num_regions; region_id++) {
+        if (this->printing_region(region_id).config().zaa_enabled)
+            return true;
+    }
+
+    return false;
+}
+
+void PrintObject::contour_z()
+{
+    if (!this->set_started(posContouring)) {
+        return;
+    }
+
+    m_print->set_status(40, L("Z contouring"));
+    BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - start";
+
+    TriangleMesh mesh = this->m_model_object->raw_mesh();
+    if (m_model_object->instances.size() != 1) {
+        throw RuntimeError("ContourZ: unexpected number of instances");
+    }
+
+    ModelInstance *inst = m_model_object->instances.front();
+    Point                    center_offset = this->center_offset();
+    Geometry::Transformation trans = inst->get_transformation();
+
+    double z = this->m_model_object->min_z();
+    trans.set_offset(Vec3d(-unscale<double>(center_offset.x()), -unscale<double>(center_offset.y()), 0));
+    mesh.transform(trans.get_matrix());
+
+    sla::IndexedMesh imesh(mesh);
+    imesh.ground_level_offset(-z);
+
+    std::mutex mtx;
+    size_t completed = 0;
+    tbb::parallel_for(
+        // Contouring starting with layer second layer to avoid build plate collision
+        tbb::blocked_range<size_t>(1, m_layers.size()),
+        [&, this](const tbb::blocked_range<size_t>& range) {
+            for (size_t layer_idx = range.begin(); layer_idx < range.end(); layer_idx++) {
+                m_print->throw_if_canceled();
+                m_layers[layer_idx]->make_contour_z(imesh);
+
+                std::scoped_lock lock(mtx);
+                completed++;
+                std::string msg = (boost::format("Z contoured layer %d/%d (%d%%)") % (completed) % m_layers.size() % int(double(completed) / m_layers.size() * 100)).str();
+                m_print->set_status(40, msg);
+            }
+        }
+    );
+    m_print->throw_if_canceled();
+    BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - end";
+
+    this->set_done(posContouring);
+}
+
 // BBS
 void PrintObject::clear_overhangs_for_lift()
 {
@@ -1092,6 +1158,7 @@ bool PrintObject::invalidate_state_by_config_options(
 		} else if (
                opt_key == "elefant_foot_compensation"
             || opt_key == "elefant_foot_compensation_layers"
+            || opt_key == "elefant_foot_layers_density"
             || opt_key == "support_top_z_distance"
             || opt_key == "support_bottom_z_distance"
             || opt_key == "xy_hole_compensation"
@@ -1289,6 +1356,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "wall_transition_filter_deviation"
             || opt_key == "wall_transition_angle"
             || opt_key == "wall_distribution_count"
+            || opt_key == "wall_maximum_resolution"
+            || opt_key == "wall_maximum_deviation"
             || opt_key == "min_feature_size"
             || opt_key == "min_length_factor"
             || opt_key == "min_bead_width") {
@@ -1300,7 +1369,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "scarf_angle_threshold"
             || opt_key == "scarf_overhang_threshold"
             || opt_key == "scarf_joint_speed"
-            || opt_key == "scarf_joint_flow_ratio"
             || opt_key == "seam_slope_start_height"
             || opt_key == "seam_slope_entire_loop"
             || opt_key == "seam_slope_min_length"
@@ -1324,7 +1392,24 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "bed_mesh_min"
             || opt_key == "bed_mesh_max"
             || opt_key == "adaptive_bed_mesh_margin"
-            || opt_key == "bed_mesh_probe_distance") {
+            || opt_key == "bed_mesh_probe_distance"
+            || opt_key == "print_flow_ratio"
+            || opt_key == "first_layer_flow_ratio"
+            || opt_key == "top_solid_infill_flow_ratio"
+            || opt_key == "bottom_solid_infill_flow_ratio"
+            || opt_key == "outer_wall_flow_ratio"
+            || opt_key == "inner_wall_flow_ratio"
+            || opt_key == "overhang_flow_ratio"
+            || opt_key == "sparse_infill_flow_ratio"
+            || opt_key == "internal_solid_infill_flow_ratio"
+            || opt_key == "gap_fill_flow_ratio"
+            || opt_key == "support_flow_ratio"
+            || opt_key == "support_interface_flow_ratio"
+            || opt_key == "brim_flow_ratio"
+            || opt_key == "filament_flow_ratio"
+            || opt_key == "scarf_joint_flow_ratio"
+            || opt_key == "spiral_starting_flow_ratio"
+            || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else if (
                opt_key == "flush_into_infill"
@@ -1351,15 +1436,15 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 
     // propagate to dependent steps
     if (step == posPerimeters) {
-		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posSimplifyPath, posSimplifyInfill });
+		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posPrepareInfill) {
-        invalidated |= this->invalidate_steps({ posInfill, posIroning, posSimplifyPath, posSimplifyInfill });
+        invalidated |= this->invalidate_steps({ posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
     } else if (step == posInfill) {
-        invalidated |= this->invalidate_steps({ posIroning, posSimplifyInfill });
+        invalidated |= this->invalidate_steps({ posIroning, posContouring, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
     } else if (step == posSlice) {
-		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
+		invalidated |= this->invalidate_steps({ posPerimeters, posPrepareInfill, posInfill, posIroning, posContouring, posSupportMaterial, posSimplifyPath, posSimplifyInfill });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         m_slicing_params.valid = false;
     } else if (step == posSupportMaterial) {

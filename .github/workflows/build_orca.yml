@@ -155,7 +155,7 @@ jobs:
 
       - name: Delete intermediate per-arch artifacts
         if: runner.os == 'macOS' && inputs.macos-combine-only
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: |
             OrcaSlicer_Mac_bundle_arm64_${{ github.sha }}
@@ -275,7 +275,7 @@ jobs:
 # Windows
       - name: setup MSVC
         if: runner.os == 'Windows'
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Install nsis
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -286,9 +286,10 @@ jobs:
       - name: Build slicer Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
-        env:
-          WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
-          WindowsSDKVersion: '10.0.26100.0\'
+        # Orca: Removed Netfabb STL fixing service support in favor of CGAL.
+        # env:
+        #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
+        #   WindowsSDKVersion: '10.0.26100.0\'
         run: .\build_release_vs.bat slicer
 
       - name: Create installer Win
@@ -382,6 +383,7 @@ jobs:
         shell: bash
         run: |
           ./build_linux.sh -istrlL
+          ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-slicer
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           chmod +x ./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}_${{ env.ver }}.AppImage
           tar -cvpf build_tests.tar build/tests
@@ -397,6 +399,16 @@ jobs:
           path: build_tests.tar
           retention-days: 5
           if-no-files-found: error
+
+      - name: Run external slicer regression tests
+        if: runner.os == 'Linux'
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          test_repo_dir="${{ runner.temp }}/orca-test-repo"
+          rm -rf "$test_repo_dir"
+          git clone --depth 1 https://github.com/OrcaSlicer/orca-test-repo.git "$test_repo_dir"
+          python3 "$test_repo_dir/run_test.py" "${{ github.workspace }}/build/package/bin/orca-slicer"
 
       - name: Build orca_custom_preset_tests
         if: github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED
