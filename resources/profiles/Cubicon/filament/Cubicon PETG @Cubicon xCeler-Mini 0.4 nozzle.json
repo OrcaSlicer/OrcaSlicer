@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Cubicon PETG @Cubicon xCeler-Mini 0.4 nozzle",
+	"inherits": "Cubicon PETG @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Mini 0.4 nozzle"
+	]
+}

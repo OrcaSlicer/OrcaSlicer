@@ -1,0 +1,43 @@
+{
+	"activate_chamber_temp_control": [
+		"1"
+	],
+	"chamber_temperature": [
+		"60"
+	],
+	"compatible_printers": [
+		"Flashforge Creator 5 Pro 0.4 nozzle",
+		"Flashforge Creator 5 Pro 0.6 nozzle",
+		"Flashforge Creator 5 Pro 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_settings_id": [
+		"Flashforge PPA-CF @FF C5P"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"filament_type": [
+		"PPA-CF"
+	],
+	"from": "system",
+	"inherits": "Generic PPA-GF @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Flashforge PPA-CF @FF C5P",
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"version": "2.3.0.3"
+}

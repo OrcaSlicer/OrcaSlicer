@@ -1253,9 +1253,19 @@ PageFirmware::PageFirmware(ConfigWizard *parent)
 void PageFirmware::apply_custom_config(DynamicPrintConfig &config)
 {
     auto sel = gcode_picker->GetSelection();
-    if (sel >= 0 && (size_t)sel < gcode_opt.enum_labels.size()) {
-        auto *opt = new ConfigOptionEnum<GCodeFlavor>(static_cast<GCodeFlavor>(sel));
-        config.set_key_value("gcode_flavor", opt);
+
+    // Safety check: ensure selection index is within bounds
+    if (sel >= 0 && (size_t) sel < gcode_opt.enum_values.size()) {
+        std::string selected_flavor_str = gcode_opt.enum_values[sel];
+        // Ensure the default value exists to prevent null pointer crashes
+        if (gcode_opt.default_value) {
+            //Clone the fully initialized option (preserves the dictionary map)
+            ConfigOption* opt = gcode_opt.default_value->clone();
+            // Deserialize the string safely
+            opt->deserialize(selected_flavor_str);
+            // Save it to the printer configuration
+            config.set_key_value("gcode_flavor", opt);
+        }
     }
 }
 

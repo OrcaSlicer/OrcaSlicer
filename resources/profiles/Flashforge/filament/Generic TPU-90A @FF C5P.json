@@ -1,0 +1,94 @@
+{
+	"activate_air_filtration": [
+		"1"
+	],
+	"additional_cooling_fan_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Flashforge Creator 5 Pro 0.4 nozzle",
+		"Flashforge Creator 5 Pro 0.6 nozzle",
+		"Flashforge Creator 5 Pro 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"cool_plate_temp": [
+		"35"
+	],
+	"cool_plate_temp_initial_layer": [
+		"35"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"35"
+	],
+	"eng_plate_temp_initial_layer": [
+		"35"
+	],
+	"fan_max_speed": [
+		"70"
+	],
+	"fan_min_speed": [
+		"70"
+	],
+	"filament_flow_ratio": [
+		"1.02"
+	],
+	"filament_max_volumetric_speed": [
+		"2.8"
+	],
+	"filament_retraction_length": [
+		"1.2"
+	],
+	"filament_settings_id": [
+		"Generic TPU-90A @FF C5P"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"from": "system",
+	"filament_type": [
+		"TPU-90A"
+	],
+	"inherits": "Generic TPU @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Generic TPU-90A @FF C5P",
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"pressure_advance": [
+		"0.0225"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"35"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"35"
+	],
+	"textured_cool_plate_temp": [
+		"35"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"35"
+	],
+	"version": "2.3.0.3"
+}

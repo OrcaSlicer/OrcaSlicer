@@ -1,0 +1,73 @@
+{
+	"activate_air_filtration": [
+		"1"
+	],
+	"additional_cooling_fan_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Flashforge Creator 5 Pro 0.4 nozzle",
+		"Flashforge Creator 5 Pro 0.6 nozzle",
+		"Flashforge Creator 5 Pro 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"cool_plate_temp": [
+		"40"
+	],
+	"cool_plate_temp_initial_layer": [
+		"40"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"fan_max_speed": [
+		"70"
+	],
+	"fan_min_speed": [
+		"70"
+	],
+	"filament_max_volumetric_speed": [
+		"21"
+	],
+	"filament_settings_id": [
+		"Flashforge HS PLA @FF C5P"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"from": "system",
+	"inherits": "Generic PLA @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Flashforge HS PLA @FF C5P",
+	"nozzle_temperature": [
+		"210"
+	],
+	"pressure_advance": [
+		"0.025"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"40"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"40"
+	],
+	"version": "2.3.0.3"
+}
