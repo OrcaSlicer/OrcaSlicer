@@ -1556,28 +1556,24 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fxaa);
 
-    //// GRAPHICS > Frame pacing
-    g_sizer->Add(create_item_title(_L("Frame pacing")), 1, wxEXPAND);
+    //// GRAPHICS > FPS
+    g_sizer->Add(create_item_title(_L("FPS")), 1, wxEXPAND);
 
     auto item_fps_cap = create_item_spinctrl(
         _L("FPS cap"),
         _L("(0 = unlimited)"),
         _L("FPS"),
         _L("Limits viewport frame rate to reduce GPU load and power usage.\n"
-           "Set to 0 for unlimited frame rate.\n\n"
-           "Takes effect immediately."),
+           "Set to 0 for unlimited frame rate."),
         SETTING_OPENGL_FPS_CAP,
         0,
         240
     );
     g_sizer->Add(item_fps_cap);
 
-    //// GRAPHICS > Overlay
-    g_sizer->Add(create_item_title(_L("Overlay")), 1, wxEXPAND);
-
     auto item_fps_overlay = create_item_checkbox(
         _L("Show FPS overlay"),
-        _L("Displays current viewport FPS in the top-left corner. Takes effect immediately."),
+        _L("Displays current viewport FPS in the top-right corner."),
         SETTING_OPENGL_SHOW_FPS_OVERLAY
     );
     g_sizer->Add(item_fps_overlay);

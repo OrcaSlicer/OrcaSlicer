@@ -7486,7 +7486,8 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     const float margin = 10.0f * get_scale();
-    ImGui::SetNextWindowPos(ImVec2(margin, margin), ImGuiCond_Always);
+    const ImVec2 display_size = ImGui::GetIO().DisplaySize;
+    ImGui::SetNextWindowPos(ImVec2(display_size.x - margin, margin), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowBgAlpha(0.35f);
     imgui.begin(
         std::string("###fps_overlay"),
