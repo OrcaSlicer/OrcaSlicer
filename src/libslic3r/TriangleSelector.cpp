@@ -2335,18 +2335,18 @@ public:
             // If both ends at the same side and farther than tolerance, skip
             const float dist_a = pts_dist[idx_a];
             const float dist_b = pts_dist[idx_b];
-            if ((dist_a > tolerance_ && dist_b > tolerance_) || (dist_a < -tolerance_ && dist_b < -tolerance_)) {
+            if ((dist_a > tolerance && dist_b > tolerance) || (dist_a < -tolerance && dist_b < -tolerance)) {
                 continue;
             }
 
             // Find the projected line segment which has distance to the plane within the tolerance
             Vec3f pt_a = pts_proj[idx_a];
             Vec3f pt_b = pts_proj[idx_b];
-            if (std::abs(dist_a) > tolerance_) {
-                pt_a = (tolerance_ - dist_b) / (dist_a - dist_b) * (pts_proj[idx_a] - pts_proj[idx_b]) + pts_proj[idx_b];
+            if (std::abs(dist_a) > tolerance) {
+                pt_a = (tolerance - dist_b) / (dist_a - dist_b) * (pts_proj[idx_a] - pts_proj[idx_b]) + pts_proj[idx_b];
             }
-            if (std::abs(dist_b) > tolerance_) {
-                pt_b = (tolerance_ - dist_a) / (dist_b - dist_a) * (pts_proj[idx_b] - pts_proj[idx_a]) + pts_proj[idx_a];
+            if (std::abs(dist_b) > tolerance) {
+                pt_b = (tolerance - dist_a) / (dist_b - dist_a) * (pts_proj[idx_b] - pts_proj[idx_a]) + pts_proj[idx_a];
             }
 
             // If any projected end is inside the triangle, then is in
@@ -2387,10 +2387,10 @@ public:
         return std::clamp(a, 0.f, 1.f) >= facet_angle_limit;
     }
 
+    static constexpr float tolerance = 0.01f;
+
 private:
     const Barycentric barycentric_;
-    const float tolerance_     = EPSILON;
-    const float tolerance_sqr_ = tolerance_ * tolerance_;
     static const double facet_angle_limit;
 
     static float point_to_line_dist(const Vec3f& p, const Vec3f& a, const Vec3f& b)
@@ -2494,6 +2494,8 @@ TriangleSelector::TriangleSplittingData TriangleSelector::remap_painting(
         pt_bbox.extend(pv0);
         pt_bbox.extend(pv1);
         pt_bbox.extend(pv2);
+        pt_bbox.min() -= Eigen::Vector3f::Constant(TriangleCursor::tolerance);
+        pt_bbox.max() += Eigen::Vector3f::Constant(TriangleCursor::tolerance);
 
         AABBTreeIndirect::traverse(target_tree, AABBTreeIndirect::intersecting(pt_bbox), [&](const AABBTreeIndirect::Tree3f::Node& node) -> bool {
             size_t face_idx = node.idx;
