@@ -32,6 +32,9 @@ using namespace nlohmann;
 #define SETTING_CLOUD_PROVIDERS "cloud_providers"
 #define SETTING_OPENGL_AA_SAMPLES "opengl_antialiasing_samples"
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
+#define SETTING_OPENGL_VSYNC_ENABLED "opengl_vsync_enabled"
+#define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
+#define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"

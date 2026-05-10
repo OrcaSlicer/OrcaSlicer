@@ -1502,28 +1502,6 @@ void PreferencesDialog::create_items()
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
 
-    auto item_antialiasing = create_item_combobox(
-        _L("MSAA Multiplier"),
-        _L("Set the Multi-Sample Anti-Aliasing level.\n"
-            "Higher values result in smoother edges, but the impact on performance is exponential.\n"
-            "Lower values improve performance, at the cost of jagged edges.\n"
-            "If disabled, its recommended to enable FXAA to reduce jagged edges with minimal performance impact.\n\n"
-            "Requires application restart."),
-        SETTING_OPENGL_AA_SAMPLES,
-        {_L("Disabled"), "2x", "4x", "8x", "16x"},
-        {"0", "2", "4", "8", "16"}
-    );
-    g_sizer->Add(item_antialiasing);
-
-    auto item_fxaa = create_item_checkbox(
-        _L("FXAA post-processing"),
-        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
-            "Useful for disabling or reducing the MSAA setting to improve performance.\n\n"
-            "Takes effect immediately."),
-        SETTING_OPENGL_FXAA_ENABLED
-    );
-    g_sizer->Add(item_fxaa);
-
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
 
@@ -1541,6 +1519,77 @@ void PreferencesDialog::create_items()
         wxGetApp().app_config->erase("app", "sync_after_load_file_show_flag");
     });
     g_sizer->Add(item_restore_hide_pop_ups);
+
+    g_sizer->AddSpacer(FromDIP(10));
+    sizer_page->Add(g_sizer, 0, wxEXPAND);
+
+    //////////////////////////
+    //// GRAPHICS TAB
+    /////////////////////////////////////
+    m_pref_tabs->AppendItem(_L("Graphics"));
+    f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
+    g_sizer = f_sizers.back();
+    g_sizer->AddGrowableCol(0, 1);
+
+    //// GRAPHICS > Anti-aliasing
+    g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
+
+    auto item_antialiasing = create_item_combobox(
+        _L("MSAA Multiplier"),
+        _L("Set the Multi-Sample Anti-Aliasing level.\n"
+           "Higher values result in smoother edges, but the impact on performance is exponential.\n"
+           "Lower values improve performance, at the cost of jagged edges.\n"
+           "If disabled, its recommended to enable FXAA to reduce jagged edges with minimal performance impact.\n\n"
+           "Requires application restart."),
+        SETTING_OPENGL_AA_SAMPLES,
+        {_L("Disabled"), "2x", "4x", "8x", "16x"},
+        {"0", "2", "4", "8", "16"}
+    );
+    g_sizer->Add(item_antialiasing);
+
+    auto item_fxaa = create_item_checkbox(
+        _L("FXAA post-processing"),
+        _L("Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+           "Useful for disabling or reducing the MSAA setting to improve performance.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_FXAA_ENABLED
+    );
+    g_sizer->Add(item_fxaa);
+
+    //// GRAPHICS > Frame pacing
+    g_sizer->Add(create_item_title(_L("Frame pacing")), 1, wxEXPAND);
+
+    auto item_vsync = create_item_checkbox(
+        _L("VSync"),
+        _L("Reduces tearing by pacing viewport updates around display refresh.\n"
+           "When enabled, OrcaSlicer applies a software frame pacing limit (typically around 60 FPS).\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_VSYNC_ENABLED
+    );
+    g_sizer->Add(item_vsync);
+
+    auto item_fps_cap = create_item_spinctrl(
+        _L("FPS cap"),
+        _L("(0 = unlimited)"),
+        _L("FPS"),
+        _L("Limits viewport frame rate to reduce GPU load and power usage.\n"
+           "Set to 0 for unlimited frame rate.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_FPS_CAP,
+        0,
+        240
+    );
+    g_sizer->Add(item_fps_cap);
+
+    //// GRAPHICS > Overlay
+    g_sizer->Add(create_item_title(_L("Overlay")), 1, wxEXPAND);
+
+    auto item_fps_overlay = create_item_checkbox(
+        _L("Show FPS overlay"),
+        _L("Displays current viewport FPS in the top-left corner. Takes effect immediately."),
+        SETTING_OPENGL_SHOW_FPS_OVERLAY
+    );
+    g_sizer->Add(item_fps_overlay);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
