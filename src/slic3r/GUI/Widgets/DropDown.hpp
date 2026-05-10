@@ -110,6 +110,8 @@ protected:
 
     void OnDismiss() override;
 
+    bool ShouldDismissOnTopWindowDeactivate() override;
+
 private:
     void paintEvent(wxPaintEvent& evt);
     void paintNow();
