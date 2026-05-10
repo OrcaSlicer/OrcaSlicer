@@ -1,19 +1,33 @@
 #Content
 {
 	overflow-y:auto;
-	padding: 32px; /* ORCA Specify & Reduce horizontal paddings to fit 4 items per row */
+	padding: 0 10px 0 20px; /* ORCA Specify & Reduce horizontal paddings to fit 4 items per row */
+	height: 100%;
+}
+
+.OneVendorBlock {
+	position: relative;
+	margin-bottom: 7px;
+}
+
+.OneVendorBlock:last-of-type {
+	margin-bottom: 36px;
 }
 
 .BlockBanner
 {
+	position: sticky;
+	top: 0;
+	left: 0;
 	padding: 0px;
-	border-bottom:#009688 1px solid;
+	border-bottom: 2px solid var(--main-color);
 	width: 100%;
 	display: flex;
-	justify-content:space-between;
 	align-items: center;
+	z-index: 100;
+	background-color: var(--bg-color-secondary);
+	box-sizing: border-box;
 }
-
 
 .BannerBtns
 {
@@ -22,53 +36,137 @@
 	justify-content: space-around;
 	align-items: center;
 	text-align: center;
-	margin-right: 0px; /* ORCA align buttons with end of horizontal separator/line */
+	margin-right: 5px; /* ORCA align buttons with end of horizontal separator/line */
+	margin-left: auto;
 }
 
 .BlockBanner  a
 {
-	display: inline-block;
-	background-color:#009688;
-	line-height: 40px;
-	height: 40px;
-	padding: 0px 24px;
-	color: #fff;
+	line-height: 30px;
+	height: 30px;
+	font-size: 17px;
+	font-weight: 600;
+	padding: 0px 10px;
+	color: var(--fg-color-text);
+}
+
+.BlockBanner .modelCount {
+	margin: 0 15px 0 auto;
+	font-size: 14px;
+	line-height: 14px;
+	height: 15px;
+	color: var(--fg-color-label);
+}
+
+.VendorCheckbox {
+	transform: scale(1.3);
 }
 
 .PrinterArea
 {
-	padding: 10px 0px; /* ORCA Reduce horizontal paddings to fit 4 items per row */
-	display: flex;
-	flex-wrap: wrap;
+	padding: 7px 0px; /* ORCA Reduce horizontal paddings to fit 4 items per row */
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 7px;
 }
 
 .PrinterBlock
 {
-	width: 160px;
+	display: flex;
+	align-items: center;
 	text-align: center;
-	padding: 10px;
+	flex-direction: column;
+	gap:10px;
+	padding: 15px 10px 10px 10px;
+	background-color: var(--bg-color-secondary);
+	position: relative;
+	border: 1px solid transparent
 }
 
-.PImg
-{
+.PrinterBlock:hover {
+	background-color: var(--focus-bg-item);
+	border-color:var(--main-color);
+}
+
+.PImg {
 	width:120px;      /* ORCA use covers as 120x120px but use source file as 240x240 for better quality on hidpi */
 	height:120px;	  /* ORCA fit image to fill frame */
-	padding:10px 20px /* ORCA use less vertical padding */
+}
+
+.PrinterInfo,
+.PrinterInfoMark {
+	position: absolute;
+	right: 4px;
+	top: 4px;
+	opacity: 0;
+	border-radius: 11px;
+	line-height: 19px;
+	font-size: 14px;
+}
+
+.PrinterInfo {
+	--card-animation-delay: .8s; /* open info with delay on list / compact view to prevent them appear while mouse movements */
+	--card-info-height: fit-content;
+	left: 4px;
+	width: auto;
+	z-index: 9998;
+	height: var(--card-info-height);
+	border-color: var(--border-color);
+	background: var(--bg-color);
+	padding: 10px;
+	text-align: left;
+	color: var(--fg-color-text);
+	pointer-events: none;
+}
+
+#Content[layout="2"] .PrinterInfo {
+	--card-animation-delay: .3s;
+	--card-info-height: 116px;
+}
+
+.PrinterInfo .title {font-weight: 700}
+.PrinterInfo .value {font-weight: 400}
+
+.PrinterInfoMark:hover + .PrinterInfo {
+	animation: infoCard 0s forwards var(--card-animation-delay);
+}
+
+@keyframes infoCard {100% {
+	opacity: 1;
+	box-shadow: 0 5px 10px rgba(0,0,0,.2);
+}}
+
+.PrinterInfoMark {
+	width: 20px;
+	height: 20px;
+	background: var(--main-color);
+	border: 1px solid var(--main-color);
+	z-index: 9999;
+	color: #FFF;
+	text-align: center;
+}
+
+.PrinterBlock:hover .PrinterInfoMark {
+	opacity: 1;
+}
+
+.PrinterBlock:hover .PrinterInfoMark:hover {
+	background: var(--main-color-hover);
 }
 
 .ModelCheckBox
 {
-	flex: 0 0 18px;			/* ORCA match checkbox style and size */
-	margin: 10px 5px 0 0;
-	width: 18px;
-	height: 18px;
-	background-image: url("../img/emptycheck.svg");
-	background-size: cover;
+	position: absolute;
+	height: 6px;
+	bottom: 0;
+	left: 10%;
+	width: 80%;
+	background: var(--button-bg-hover)
 }
 
 .ModelCheckBox.ModelCheckBoxSelected
 {
-	background-image: url("../img/greencheck.svg");
+	background: var(--main-color-fixed)
 }
 
 img.ModelThumbnail
@@ -79,8 +177,11 @@ img.ModelThumbnail
 
 .PName
 {
-	font-weight: 700;
-	text-align:left;
+	font-weight: 600;
+	line-height: 20px; /* ORCA */
+	text-align: center;
+	width: 100%;
+	color: var(--fg-color-text);
 }
 
 .pNozzel
@@ -98,6 +199,79 @@ img.ModelThumbnail
 	margin-right: 5px;
 }
 
+.LayoutSelector {
+	position: absolute;
+	right:21px;
+	top:14px;
+}
+
+.LayoutSelector .TabGroup {
+	display: flex;
+	padding: 2px;
+	gap: 2px;
+	border-radius: 6px;
+	background-color: var(--bg-color-alt);
+}
+
+.LayoutSelector .icon16 {
+	opacity: .8;
+}
+
+.LayoutSelector .TabButton {
+	padding: 7px;
+	border-radius: 4px;
+}
+
+.LayoutSelector .TabButton.selected         {background: var(--main-color)}
+.LayoutSelector .TabButton.selected:hover   {background: var(--main-color-hover)}
+.LayoutSelector .TabButton.selected .icon16 {background: #FFF}
+
+.LayoutSelector .TabButton:nth-of-type(1) .icon16 {--icon-url: var(--icon-layout-list)}
+.LayoutSelector .TabButton:nth-of-type(2) .icon16 {--icon-url: var(--icon-layout-compact)}
+.LayoutSelector .TabButton:nth-of-type(3) .icon16 {--icon-url: var(--icon-layout-cover)}
+
+/* LAYOUT */
+#Content[layout="compact-list"] .PrinterArea {
+	grid-template-columns: repeat(4, 1fr);
+}
+
+#Content[layout="compact-list"] .PImg {
+	display: none;
+}
+
+#Content[layout="compact-list"] .OneVendorBlock {
+	margin-bottom: 15px;
+}
+
+#Content[layout="compact-cover"] .PrinterArea {
+	grid-template-columns: repeat(3, 1fr);
+}
+
+#Content[layout="compact-cover"] .PImg {
+	width: 60px;
+	min-width: 60px;
+	height: 60px;
+}
+
+#Content[layout|="compact"] .PName {
+	text-align: left;
+}
+
+#Content[layout|="compact"] .PrinterBlock {
+	flex-direction: row;
+	padding: 5px 5px 5px 18px;
+}
+
+#Content[layout|="compact"] .ModelCheckBox {
+	width: 6px;
+	height: 80%;
+	left:0;
+	top:10%
+}
+
+#Content[layout|="compact"] .OneVendorBlock:last-of-type {
+	margin-bottom: 0px;
+}
 
 /*-----Notice-----*/
 #NoticeMask
@@ -148,51 +322,149 @@ img.ModelThumbnail
 	justify-content:flex-end;
 }
 
+
 .search {
-	width: 100%;
-	position: relative;
-	display: flex;
+	position: absolute;
+	left:66px;
+	top: 14px;
+	width: 34px;
+	height: 34px;
+	z-index: 99;
+	overflow: hidden;
 }
-  
+
+.search:focus-within,
+.search[hasvalue="1"] {
+	width: calc(100% - 194px);
+}
+
 .searchTerm {
 	width: 100%;
-	border: 1px solid #DBDBDB; /* ORCA Searchbox > match border style */
-	/*border-right: none;*/
-	padding: 5px;
-	padding-left:32px;
-	height: 20px;      /* ORCA match height */
-	line-height: 20px; /* ORCA center text vertically */
-	border-radius: 5px 5px 5px 5px;
+	height: 100%;
+	padding: 4px 5px;
+	border-radius: 6px;
 	outline: none;
-	color: #9DBFAF;
-}
-@media (prefers-color-scheme: dark) {  /* ORCA Searchbox > add dark mode support */
-	.searchTerm {border: 1px solid #4A4A51;}
-}
-
-.searchTerm:focus{
-	color: #363636;       /* ORCA Searchbox > use normal text color */
-	border-color:#009688; /* ORCA Searchbox > highlight border color when focused. like on normal UI */
-}
-@media (prefers-color-scheme: dark) {  /* ORCA Searchbox > add dark mode support */
-	.searchTerm:focus{color: #FFFFFF}
+	box-sizing: border-box;
+	background: var(--button-bg-normal);
+	border: 1px solid var(--button-bg-normal);
 }
 
-#search-icon{ /* ORCA */
-	position:absolute;
-    top: 50%;
-    transform: translateY(-50%);
-	left:8px;
-	margin:0px auto;
-	fill:#7C8282
-}
-@media (prefers-color-scheme: dark) { /* ORCA Searchbox > add dark mode support */
-	#search-icon{fill:#949494}
+@media (prefers-reduced-motion: no-preference) {
+	.searchTerm {
+		transition: background-color .2s
+	}
 }
 
-/*Resize the wrap to see the search bar change!*/
-.wrap{
-	width: 30%;
-	padding-bottom: 5px;
-	padding-left: 32px; /* ORCA Align with content */
+.searchTerm,
+.search-placeholder {
+	line-height: 24px; /* ORCA center text vertically */
+	font-size: 14px;
+}
+
+.search:focus-within .searchTerm,
+.search[hasvalue="1"] .searchTerm {
+	padding-left:33px;
+	background: var(--bg-color);
+	border-color: var(--main-color);
+}
+
+.search[hasvalue="1"]:not(:focus-within, :hover) .searchTerm {
+	border-color: var(--border-color);
+}
+
+.search:not(:focus-within, [hasvalue="1"]) .searchTerm {
+	cursor: default;
+}
+
+.search:not(:focus-within, [hasvalue="1"]) .searchTerm:hover {
+	background: var(--button-bg-hover);
+}
+
+.search-placeholder {
+	color: var(--fg-color-disabled);
+	left: 33px;
+}
+
+.searchTerm:not(:placeholder-shown) + .search-placeholder {
+	opacity: 0;
+}
+
+.search-icon,
+.search-placeholder {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	pointer-events: none;
+}
+
+.search-icon {
+	left: 9px;
+	--icon-url: var(--icon-search);
+}
+
+.SidebarBtn {
+	position: absolute;
+	left: 20px;
+	top: 14px;
+	padding: 9px;
+	border-radius: 6px;
+}
+
+.SidebarBtn .icon16 {
+	--icon-url: var(--icon-sidebar);
+}
+
+#SidebarContainer {
+	position: absolute;
+	top: 0;
+	left: -240px;
+	right: 0;
+	height: 100%;
+	z-index: 999999;
+	display: flex;
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#SidebarContainer {
+		transition: background-color .2s, left .2s
+	}
+}
+
+#SidebarContainer[open="1"] {
+	left: 0px;
+	pointer-events: all;
+	background: rgba(0,0,0,.3);
+}
+
+#Sidebar {
+	flex: 0 0 220px;
+	background: var(--bg-color);
+	box-shadow: 5px 0 20px rgba(0,0,0,.2);
+	padding: 15px 0;
+	overflow-y: auto;
+}
+
+#Sidebar .title {
+	font-size: 17px;
+	line-height: 17px;
+	font-weight: 600;
+	padding: 0 0 5px 20px;
+}
+
+#Sidebar .SidebarItem {
+	width: 100%;
+	padding: 2px 10px 2px 20px;
+	color:var(--fg-color-text);
+	font-size: 14px;
+	border: 1px solid transparent;
+	box-sizing: border-box;
+}
+
+#Sidebar .SidebarItem:hover {
+	border-color: var(--main-color);
+}
+
+#SidebarContainer .back {
+	flex: 1;
 }

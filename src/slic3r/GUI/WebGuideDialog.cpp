@@ -526,6 +526,11 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
             if (InstallNetplugin)
                 GUI::wxGetApp().CallAfter([] { GUI::wxGetApp().ShowDownNetPluginDlg(); });
         }
+        else if (strCmd == "user_guide_create_printer") {
+            this->EndModal(wxID_CANCEL);
+            this->Close();
+            GUI::wxGetApp().CallAfter([this] {GUI::wxGetApp().sidebar().create_printer_preset();});
+        }
         else if (strCmd == "user_guide_cancel") {
             this->EndModal(wxID_CANCEL);
             this->Close();
