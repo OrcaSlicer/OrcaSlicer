@@ -825,6 +825,7 @@ public:
         CutConnectorType    connector_type{ CutConnectorType::Plug };
         float               radius_tolerance{ 0.f };// [0.f : 1.f]
         float               height_tolerance{ 0.f };// [0.f : 1.f]
+        ObjectID            source_volume; // id of the volume from input model that this one is cut from
 
         CutInfo() = default;
         CutInfo(CutConnectorType type, float rad_tolerance, float h_tolerance, bool processed = false) :
