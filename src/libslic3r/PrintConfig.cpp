@@ -4495,7 +4495,7 @@ void PrintConfigDef::init_fff_params()
     def          = this->add("input_shaping_emit", coBool);
     def->label   = L("Emit input shaping");
     def->tooltip = L("Override firmware input shaping settings.\nIf disabled, firmware settings are used.");
-    def->mode    = comAdvanced;
+    def->mode    = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
     def               = this->add("input_shaping_type", coEnum);
@@ -4504,7 +4504,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
     def->enum_values  = {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI", "EI2", "2HUMP_EI", "EI3", "3HUMP_EI", "DAA", "Disable"};
     def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HUMP_EI"), L("EI3"), L("3HUMP_EI"), L("DAA"), L("Disable")};
-    def->mode         = comAdvanced;
+    def->mode         = comExpert;
     def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
 
     def           = this->add("input_shaping_freq_x", coFloat);
@@ -4513,7 +4513,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "Hz";
     def->min      = 0;
     def->max      = 1000;
-    def->mode     = comAdvanced;
+    def->mode     = comExpert;
     def->set_default_value(new ConfigOptionFloat(0));
 
     def           = this->add("input_shaping_freq_y", coFloat);
@@ -4522,7 +4522,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "Hz";
     def->min      = 0;
     def->max      = 1000;
-    def->mode     = comAdvanced;
+    def->mode     = comExpert;
     def->set_default_value(new ConfigOptionFloat(0));
 
     def          = this->add("input_shaping_damp_x", coFloat);
@@ -4530,7 +4530,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->min     = 0;
     def->max     = 1;
-    def->mode    = comAdvanced;
+    def->mode    = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.1));
 
     def          = this->add("input_shaping_damp_y", coFloat);
@@ -4538,7 +4538,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.");
     def->min     = 0;
     def->max     = 1;
-    def->mode    = comAdvanced;
+    def->mode    = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.1));
 
     def = this->add("fan_max_speed", coFloats);
