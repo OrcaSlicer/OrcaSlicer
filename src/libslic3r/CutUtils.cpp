@@ -8,7 +8,6 @@
 #include "ObjectID.hpp"
 
 #include <boost/log/trivial.hpp>
-#include <optional>
 
 namespace Slic3r {
 
@@ -64,7 +63,7 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->cut_info = src_volume->cut_info;
 }
 
-static void process_volume_cut( ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
+static void process_volume_cut( const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
                                 ModelObjectCutAttributes attributes, TriangleMesh& upper_mesh, TriangleMesh& lower_mesh)
 {
     const auto volume_matrix = volume->get_matrix();
@@ -179,9 +178,8 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
         lower->add_volume(*volume);
 }
 
-static void process_solid_part_cut(ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
-                            ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower,
-                            const std::optional<TriangleSelector::SavedPainting>& saved_painting)
+static void process_solid_part_cut(const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
+                            ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower)
 {
     // Perform cut
     TriangleMesh upper_mesh, lower_mesh;
@@ -190,27 +188,19 @@ static void process_solid_part_cut(ModelVolume* volume, const Transform3d& insta
     // Add required cut parts to the objects
 
     if (attributes.has(ModelObjectCutAttribute::KeepAsParts)) {
-        if (!upper_mesh.empty()) {
-            add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
-            upper->volumes.back()->restore_painting(saved_painting);
-        }
+        add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
         if (!lower_mesh.empty()) {
             add_cut_volume(lower_mesh, upper, volume, cut_matrix, "_B");
             upper->volumes.back()->cut_info.is_from_upper = false;
-            upper->volumes.back()->restore_painting(saved_painting);
         }
         return;
     }
 
-    if (attributes.has(ModelObjectCutAttribute::KeepUpper) && !upper_mesh.empty()) {
+    if (attributes.has(ModelObjectCutAttribute::KeepUpper))
         add_cut_volume(upper_mesh, upper, volume, cut_matrix);
-        upper->volumes.back()->restore_painting(saved_painting);
-    }
 
-    if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty()) {
+    if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty())
         add_cut_volume(lower_mesh, lower, volume, cut_matrix);
-        lower->volumes.back()->restore_painting(saved_painting);
-    }
 }
 
 static void reset_instance_transformation(ModelObject* object, size_t src_instance_idx, 
@@ -289,9 +279,22 @@ void Cut::post_process(ModelObject* upper, ModelObject* lower, ModelObjectPtrs& 
 }
 
 
-void Cut::finalize(const ModelObjectPtrs& objects)
+void Cut::finalize(const ModelObjectPtrs& objects, const std::vector<std::optional<TriangleSelector::SavedPainting>>& saved_paintings)
 {
-    //clear model from temporarry objects
+    // Paint volumes
+    for (const auto& saved_painting : saved_paintings) {
+        if (saved_painting) {
+            for (const auto object : objects) {
+                for (const auto volume : object->volumes) {
+                    if (volume->is_model_part() && !volume->is_cut_connector()) {
+                    volume->restore_painting(saved_painting, true);
+                    }
+                }
+            }
+        }
+    }
+
+    //clear model from temporary objects
     m_model.clear_objects();
 
     // add to model result objects
@@ -330,15 +333,14 @@ const ModelObjectPtrs& Cut::perform_with_plane()
     const Transformation    cut_transformation = Transformation(m_cut_matrix);
     const Transform3d       inverse_cut_matrix = cut_transformation.get_rotation_matrix().inverse() * translation_transform(-1. * cut_transformation.get_offset());
 
+    std::vector<std::optional<TriangleSelector::SavedPainting>> saved_paintings;
     for (ModelVolume* volume : mo->volumes) {
         // Save painting data before reset_extra_facets() discards it.
-        std::optional<TriangleSelector::SavedPainting> saved_painting;
         if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
-            saved_painting = volume->save_painting();
-            if (saved_painting) {
+            saved_paintings.emplace_back(volume->save_painting());
+            if (saved_paintings.back()) {
                 // Transform mesh to cut space (same transform as process_volume_cut applies)
-                const auto volume_matrix = volume->get_matrix();
-                saved_painting->mesh.transform(instance_matrix * volume_matrix, true);
+                saved_paintings.back()->mesh.transform(instance_matrix * volume->get_matrix(), true);
             }
         }
 
@@ -351,7 +353,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
                 process_connector_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, dowels);
         }
         else if (!volume->mesh().empty())
-            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, saved_painting);
+            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower);
     }
 
     // Post-process cut parts
@@ -397,9 +399,9 @@ const ModelObjectPtrs& Cut::perform_with_plane()
         }
     }
 
-    BOOST_LOG_TRIVIAL(trace) << "ModelObject::cut - end";
+    finalize(cut_object_ptrs, saved_paintings);
 
-    finalize(cut_object_ptrs);
+    BOOST_LOG_TRIVIAL(trace) << "ModelObject::cut - end";
 
     return m_model.objects;
 }
@@ -496,7 +498,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
         merge_solid_parts_inside_object(cut_object_ptrs);
 
         // replace initial objects in model with cut object 
-        finalize(cut_object_ptrs);
+        finalize(cut_object_ptrs, {});
     }
     else if (volumes.size() > cut_parts_cnt) {
         // Means that object is cut with connectors
@@ -527,7 +529,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
         merge_solid_parts_inside_object(cut_object_ptrs);
 
         // replace initial objects in model with cut object
-        finalize(cut_object_ptrs);
+        finalize(cut_object_ptrs, {});
 
         // Add Dowel-connectors as separate objects to model
         if (cut_connectors_obj.size() >= 3)
@@ -679,7 +681,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         merge_solid_parts_inside_object(cut_object_ptrs);
     }
 
-    finalize(cut_object_ptrs);
+    finalize(cut_object_ptrs, {});
 
     return m_model.objects;
 }
