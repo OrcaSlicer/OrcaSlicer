@@ -4469,6 +4469,21 @@ std::string GUI_App::handle_web_request(std::string cmd)
         boost::optional<std::string> command = root.get_optional<std::string>("command");
         if (command.has_value()) {
             std::string command_str = command.value();
+            static const std::unordered_set<std::string> stealth_blocked_commands = {
+                "get_login_info",
+                "get_orca_login_info",
+                "get_bambu_login_info",
+                "homepage_login_or_register",
+                "homepage_orca_login_or_register",
+                "homepage_bambu_login_or_register",
+            };
+            if (app_config->get_stealth_mode() && stealth_blocked_commands.count(command_str)) {
+                CallAfter([this] {
+                    if (mainframe && mainframe->m_webview)
+                        mainframe->m_webview->SendCloudProvidersInfo();
+                });
+                return "";
+            }
             if (command_str.compare("request_project_download") == 0) {
                 if (root.get_child_optional("data") != boost::none) {
                     pt::ptree data_node = root.get_child("data");
@@ -5792,12 +5807,16 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
 {
     namespace fs = boost::filesystem;
 
+    BOOST_LOG_TRIVIAL(info) << "Migrate user presets to the OrcaCloud user folder if needed.";
+
     if (!m_agent || !m_agent->is_user_login())
         return false;
 
     std::string new_user_id = m_agent->get_user_id();
-    if (new_user_id.empty())
+    if (new_user_id.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Failed to get user ID, skipping migration.";
         return false;
+    }
 
     fs::path user_base = fs::path(data_dir()) / PRESET_USER_DIR;
     fs::path target_dir = user_base / new_user_id;
@@ -6728,6 +6747,16 @@ void GUI_App::stop_sync_user_preset()
             m_sync_update_thread.join();
         else
             m_sync_update_thread.detach();
+    }
+}
+
+void GUI_App::on_stealth_mode_enter()
+{
+    stop_sync_user_preset();
+    request_user_logout(ORCA_CLOUD_PROVIDER);
+    request_user_logout(BBL_CLOUD_PROVIDER);
+    if (mainframe && mainframe->m_webview) {
+        mainframe->m_webview->SendCloudProvidersInfo();
     }
 }
 

@@ -12,6 +12,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
@@ -91,6 +92,25 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+
+// Orca: input shaping values types by flavor
+std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
+{
+    switch (flavor) {
+    case GCodeFlavor::gcfKlipper:
+        return {"Default", "MZV", "ZV", "ZVD", "EI", "2HUMP_EI", "3HUMP_EI"};
+    case GCodeFlavor::gcfRepRapFirmware:
+        return {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI2", "EI3", "DAA"};
+    case GCodeFlavor::gcfMarlinFirmware:
+        return {"ZV"};
+    case GCodeFlavor::gcfMarlinLegacy:
+        return {};
+    default:
+        break;
+    }
+    return {"Default"};
+}
+
 static t_config_enum_names enum_names_from_keys_map(const t_config_enum_values &enum_keys_map)
 {
     t_config_enum_names names;
@@ -141,14 +161,14 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AuthorizationType)
 
 static t_config_enum_values s_keys_map_GCodeFlavor {
     { "marlin",         gcfMarlinLegacy },
-    { "reprap",         gcfRepRapSprinter },
+    { "klipper",        gcfKlipper },
     { "reprapfirmware", gcfRepRapFirmware },
     { "repetier",       gcfRepetier },
+    { "marlin2",        gcfMarlinFirmware },
+    { "reprap",         gcfRepRapSprinter },
     { "teacup",         gcfTeacup },
     { "makerware",      gcfMakerWare },
-    { "marlin2",        gcfMarlinFirmware },
     { "sailfish",       gcfSailfish },
-    { "klipper",        gcfKlipper },
     { "smoothie",       gcfSmoothie },
     { "mach3",          gcfMach3 },
     { "machinekit",     gcfMachinekit },
@@ -173,6 +193,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
+    { "hole",           int(FuzzySkinType::Hole) },
     { "all",            int(FuzzySkinType::All) },
     { "allwalls",       int(FuzzySkinType::AllWalls)},
     { "disabled_fuzzy", int(FuzzySkinType::Disabled_fuzzy)}
@@ -446,7 +467,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(OverhangFanThreshold)
 // BBS
 static const t_config_enum_values s_keys_map_BedType = {
     { "Default Plate",      btDefault },
-    { "SuperTack Plate",    btSuperTack },
+    { "Supertack Plate",    btSuperTack },
     { "Cool Plate",         btPC },
     { "Engineering Plate",  btEP  },
     { "High Temp Plate",    btPEI  },
@@ -479,6 +500,23 @@ static t_config_enum_values s_keys_map_PrinterStructure {
     {"delta",           int(PrinterStructure::psDelta)}
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrinterStructure)
+
+static t_config_enum_values s_keys_map_InputShaperType {
+    {"Default", int(InputShaperType::Default)},
+    {"MZV",     int(InputShaperType::MZV)},
+    {"ZV",      int(InputShaperType::ZV)},
+    {"ZVD",     int(InputShaperType::ZVD)},
+    {"ZVDD",    int(InputShaperType::ZVDD)},
+    {"ZVDDD",   int(InputShaperType::ZVDDD)},
+    {"EI",     int(InputShaperType::EI)},
+    {"EI2",     int(InputShaperType::EI2)},
+    {"2HUMP_EI",int(InputShaperType::TwoHumpEI)},
+    {"EI3",     int(InputShaperType::EI3)},
+    {"3HUMP_EI",int(InputShaperType::ThreeHumpEI)},
+    {"DAA",     int(InputShaperType::DAA)},
+    {"Disable", int(InputShaperType::Disable)}
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InputShaperType)
 
 static t_config_enum_values s_keys_map_PerimeterGeneratorType{
     { "classic", int(PerimeterGeneratorType::Classic) },
@@ -1014,7 +1052,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("High Temp Plate");
     def->enum_values.emplace_back("Textured PEI Plate");
     def->enum_values.emplace_back("Textured Cool Plate");
-    def->enum_values.emplace_back("SuperTack Plate");
+    def->enum_values.emplace_back("Supertack Plate");
     def->enum_labels.emplace_back(L("Smooth Cool Plate"));
     def->enum_labels.emplace_back(L("Engineering Plate"));
     def->enum_labels.emplace_back(L("Smooth High Temp Plate"));
@@ -2637,6 +2675,14 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 15. });
 
+    def = this->add("filament_cooling_before_tower", coFloats);
+    def->label = L("Wipe tower cooling");
+    def->tooltip = L("Temperature drop before entering filament tower");
+    def->sidetext = L(u8"\u2103" /* °C */); // degrees Celsius, CIS languages need translation
+    def->mode = comDevelop;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable { 10. });
+
     def = this->add("filament_tower_interface_pre_extrusion_dist", coFloats);
     def->label = L("Interface layer pre-extrusion distance");
     def->tooltip = L("Pre-extrusion distance for prime tower interface layer (where different materials meet).");
@@ -3355,11 +3401,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinType>::get_enum_values();
     def->enum_values.push_back("none");
     def->enum_values.push_back("external");
+    def->enum_values.push_back("hole");
     def->enum_values.push_back("all");
     def->enum_values.push_back("allwalls");
     def->enum_values.push_back("disabled_fuzzy");
     def->enum_labels.push_back(L("Painted only"));
     def->enum_labels.push_back(L("Contour"));
+    def->enum_labels.push_back(L("Hole"));
     def->enum_labels.push_back(L("Contour and hole"));
     def->enum_labels.push_back(L("All walls"));
     def->enum_labels.push_back(L("Disabled"));
@@ -3473,31 +3521,32 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_ripples_per_layer", coInt);
     def->label = L("Number of ripples per layer");
     def->category = L("Others");
-    def->tooltip  = L("When using the Ripple noise type, this controls how many full cycles of ripples will be added per layer.");
+    def->tooltip  = L("Controls how many full cycles of ripples will be added per layer.");
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(15));
 
-    def = this->add("fuzzy_skin_ripple_offset", coFloat);
+    def = this->add("fuzzy_skin_ripple_offset", coPercent);
     def->label = L("Ripple offset");
     def->category = L("Others");
-    def->tooltip = L("When using the Ripple noise type, shifts the ripple pattern forward along the print path by this amount each "
-                     "layer-period. A value of 0 keeps every layer identical. A value equal to 0.5 shifts by a full "
-                     "half-wavelength, inverting the pattern. The shift is applied once per 'Layers between Ripple offset' layers, "
-                      "so consecutive layers within a period are printed identically on top of each other.");
+    def->tooltip = L("Shifts the ripple phase forward along the print path by the specified percentage of a wavelength each layer period.\n"
+                     "- 0% keeps every layer identical.\n"
+                     "- 50% shifts the pattern by half a wavelength, effectively inverting the phase.\n"
+                     "- 100% shifts the pattern by a full wavelength, returning to the original phase.\n\n"
+                     "The shift is applied once every number of layers set by Layers between ripple offset, so layers within the same group are printed identically.");
     def->min = 0;
-    def->max = 1;
+    def->max = 100;
+    def->sidetext = ("%");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.5));
+    def->set_default_value(new ConfigOptionPercent(50));
 
     def = this->add("fuzzy_skin_layers_between_ripple_offset", coInt);
     def->label = L("Layers between ripple offset");
     def->category = L("Others");
-    def->tooltip = L("When using the Ripple noise type with a non-zero layer offset, this controls how "
-                       "many consecutive layers share the same ripple phase before the offset is applied. "
-                       "For example, a period of 3 means layers 0, 1 and 2 are identical, then layers 3, 4 "
-                       "and 5 are shifted by one full 'Ripple layer offset', and so on. "
-                       "Set to 1 to shift on every layer.");
+    def->tooltip = L("Specifies how many consecutive layers share the same ripple phase before the offset is applied.\n"
+                     "For example:\n"
+                     "- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is shifted by the configured offset, then layer 3 returns to the base pattern, and so on.\n"
+                     "- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 to 6 are shifted by the configured offset, then layers 7 to 9 return to the base pattern, etc.");
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(1));
@@ -3694,10 +3743,11 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("marlin");
     def->enum_values.push_back("klipper");
     def->enum_values.push_back("reprapfirmware");
-    //def->enum_values.push_back("repetier");
+    def->enum_values.push_back("repetier");
+    def->enum_values.push_back("marlin2");
+    //def->enum_values.push_back("reprap");
     //def->enum_values.push_back("teacup");
     //def->enum_values.push_back("makerware");
-    def->enum_values.push_back("marlin2");
     //def->enum_values.push_back("sailfish");
     //def->enum_values.push_back("mach3");
     //def->enum_values.push_back("machinekit");
@@ -3706,11 +3756,11 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("Marlin(legacy)");
     def->enum_labels.push_back(L("Klipper"));
     def->enum_labels.push_back("RepRapFirmware");
+    def->enum_labels.push_back("Repetier");
+    def->enum_labels.push_back("Marlin 2");
     //def->enum_labels.push_back("RepRap/Sprinter");
-    //def->enum_labels.push_back("Repetier");
     //def->enum_labels.push_back("Teacup");
     //def->enum_labels.push_back("MakerWare (MakerBot)");
-    def->enum_labels.push_back("Marlin 2");
     //def->enum_labels.push_back("Sailfish (MakerBot)");
     //def->enum_labels.push_back("Mach3/LinuxCNC");
     //def->enum_labels.push_back("Machinekit");
@@ -4230,8 +4280,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("emit_machine_limits_to_gcode", coBool);
     def->label = L("Emit limits to G-code");
     def->category = L("Machine limits");
-    def->tooltip  = L("If enabled, the machine limits will be emitted to G-code file.\nThis option will be ignored if the G-code flavor is "
-                       "set to Klipper.");
+    def->tooltip = L("If enabled, the machine limits will be emitted to G-code file.\nThis option will be ignored if the G-code flavor is "
+        "set to Klipper.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -4442,6 +4492,56 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
 
+    // Orca: Input Shaping support
+    def          = this->add("input_shaping_emit", coBool);
+    def->label   = L("Emit input shaping");
+    def->tooltip = L("Override firmware input shaping settings.\nIf disabled, firmware settings are used.");
+    def->mode    = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def               = this->add("input_shaping_type", coEnum);
+    def->label        = L("Input shaper type");
+    def->tooltip      = L("Choose the input shaper algorithm.\nDefault uses the firmware default settings.\nDisable turns off input shaping in the firmware.");
+    def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
+    def->enum_values  = {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI", "EI2", "2HUMP_EI", "EI3", "3HUMP_EI", "DAA", "Disable"};
+    def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HUMP_EI"), L("EI3"), L("3HUMP_EI"), L("DAA"), L("Disable")};
+    def->mode         = comExpert;
+    def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
+
+    def           = this->add("input_shaping_freq_x", coFloat);
+    def->label    = L("X");
+    def->tooltip  = L("Resonant frequency for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
+    def->sidetext = "Hz";
+    def->min      = 0;
+    def->max      = 1000;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def           = this->add("input_shaping_freq_y", coFloat);
+    def->label    = L("Y");
+    def->tooltip  = L("Resonant frequency for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
+    def->sidetext = "Hz";
+    def->min      = 0;
+    def->max      = 1000;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def          = this->add("input_shaping_damp_x", coFloat);
+    def->label   = L("X");
+    def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
+    def->min     = 0;
+    def->max     = 1;
+    def->mode    = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def          = this->add("input_shaping_damp_y", coFloat);
+    def->label   = L("Y");
+    def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.");
+    def->min     = 0;
+    def->max     = 1;
+    def->mode    = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
     def = this->add("fan_max_speed", coFloats);
     def->label = L("Fan speed");
     def->tooltip = L("Part cooling fan speed may be increased when auto cooling is enabled. "
@@ -4520,6 +4620,33 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts { 0 });
+
+    def = this->add("close_additional_fan_first_x_layers", coInts);
+    def->label = L("For the first");
+    def->tooltip = L("Set special auxiliary cooling fan for the first certain layers.");
+    def->sidetext = L("layers");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInts { 1 });
+
+    def = this->add("additional_fan_full_speed_layer", coInts);
+    def->label = L("Full fan speed at layer");
+    def->tooltip = L("Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\". "
+                     "\"Full fan speed at layer\" will be ignored if lower than \"For the first\", in which case the fan will run at maximum allowed speed at layer \"For the first\" + 1.");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInts { 0 });
+
+    def = this->add("first_x_layer_fan_speed", coFloats);
+    def->label = L("Fan speed");
+    def->tooltip = L("Special auxiliary cooling fan speed, effective only for the first x layers.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloats { 0 });
 
     def = this->add("min_layer_height", coFloats);
     def->label = L("Min");
@@ -4815,7 +4942,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_contact_distance", coFloat);
     def->label = L("Raft contact Z distance");
     def->category = L("Support");
-    def->tooltip = L("Z gap between object and raft. Ignored for soluble interface.");
+    def->tooltip = L("Z gap between raft and object. "
+                    "If Support Top Z Distance is 0, this value is ignored and "
+                    "the object is printed in direct contact with the raft (no gap).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -5800,7 +5929,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top Z distance");
     def->min = 0;
     def->category = L("Support");
-    def->tooltip = L("The Z gap between the top support interface and object.");
+    def->tooltip = L("Z gap between the support's top and object.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
 //    def->min = 0;
 #if 0
@@ -5817,7 +5946,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_bottom_z_distance", coFloat);
     def->label = L("Bottom Z distance");
     def->category = L("Support");
-    def->tooltip = L("The Z gap between the bottom support interface and object.");
+    def->tooltip = L("Z gap between the object and the support bottom. "
+                    "If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+                    "is ignored and the support is printed in direct contact with the object (no gap).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -7677,7 +7808,9 @@ void PrintConfigDef::init_sla_params()
 void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &value)
 {
     //BBS: handle legacy options
-    if (opt_key == "enable_wipe_tower") {
+    if (opt_key == "curr_bed_type" && value == "SuperTack Plate") {
+        value = "Supertack Plate";
+    } else if (opt_key == "enable_wipe_tower") {
         opt_key = "enable_prime_tower";
     } else if (opt_key == "wipe_tower_width") {
         opt_key = "prime_tower_width";
@@ -8020,6 +8153,7 @@ std::set<std::string> filament_options_with_variant = {
     "nozzle_temperature",
     "filament_flush_volumetric_speed",
     "filament_flush_temp",
+    "filament_cooling_before_tower",
     "volumetric_speed_coefficients",
     "filament_adaptive_volumetric_speed",
     "filament_ironing_flow",
@@ -8578,16 +8712,37 @@ int DynamicPrintConfig::get_index_for_extruder(int extruder_or_filament_id, std:
 
     auto variant_opt = dynamic_cast<const ConfigOptionStrings*>(this->option(variant_name));
     const ConfigOptionInts* id_opt = id_name.empty()?nullptr: dynamic_cast<const ConfigOptionInts*>(this->option(id_name));
+    const ConfigOptionStrings* extruder_variant_list_opt = dynamic_cast<const ConfigOptionStrings*>(this->option("extruder_variant_list"));
+    auto generated_extruder_id = [extruder_variant_list_opt](int target_index) {
+        if (!extruder_variant_list_opt)
+            return 0;
+
+        int variant_index = 0;
+        for (int extruder_index = 0; extruder_index < int(extruder_variant_list_opt->values.size()); ++extruder_index) {
+            std::vector<std::string> variants_list;
+            boost::split(variants_list, extruder_variant_list_opt->get_at(extruder_index), boost::is_any_of(","), boost::token_compress_on);
+            for (std::string variant : variants_list) {
+                boost::trim(variant);
+                if (variant.empty())
+                    continue;
+                if (variant_index == target_index)
+                    return extruder_index + 1;
+                ++variant_index;
+            }
+        }
+        return 0;
+    };
+
     if (variant_opt != nullptr) {
         int v_size = variant_opt->values.size();
-        //int i_size = id_opt->values.size();
+        const bool has_complete_id_map = id_opt && int(id_opt->values.size()) >= v_size;
         std::string extruder_variant = get_extruder_variant_string(extruder_type, nozzle_volume_type);
         for (int index = 0; index < v_size; index++)
         {
             const std::string variant = variant_opt->get_at(index);
             if (extruder_variant == variant) {
                 if (id_opt) {
-                    const int id = id_opt->get_at(index);
+                    const int id = has_complete_id_map ? id_opt->get_at(index) : generated_extruder_id(index);
                     if (id == extruder_or_filament_id) {
                         ret = index * stride;
                         break;
@@ -9652,6 +9807,13 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     //nothing to do, keep the original one
                 }
                 else {
+                    // Guard: set_with_restore is parent-shaped and would truncate the child's
+                    // vector when the child has more extruders than the parent (e.g. an IDEX
+                    // preset inheriting from a single-nozzle base). The child's saved value is
+                    // authoritative for its own extruder count, so skip the merge for this key.
+                    if (cur_variant_count > target_variant_count)
+                        continue;
+
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
                         stride = 2;
