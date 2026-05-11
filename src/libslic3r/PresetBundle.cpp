@@ -5039,19 +5039,22 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
     if (printers.get_edited_preset().printer_technology() != ptFFF)
         return;
 
-    // BBS
-#if 0
+    // Orca: when the number of existing filament presets is less than the number of extruders, we will append new filament presets with the
+    // same value as the last existing one.
+    //
     // Verify and select the filament presets.
-    auto   *nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
-    size_t  num_extruders   = nozzle_diameter->values.size();
-    // Verify validity of the current filament presets.
-    for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++ i)
-        this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
-    // Append the rest of filament presets.
-    this->filament_presets.resize(num_extruders, this->filament_presets.empty() ? this->filaments.first_visible().name : this->filament_presets.back());
-#else
     size_t num_filaments = this->filament_presets.size();
-#endif
+
+    auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
+    size_t num_extruders  = nozzle_diameter->values.size();
+    if (num_extruders > num_filaments) { // Verify validity of the current filament presets.
+        for (size_t i = 0; i < std::min(this->filament_presets.size(), num_extruders); ++i)
+            this->filament_presets[i] = this->filaments.find_preset(this->filament_presets[i], true)->name;
+        // Append the rest of filament presets.
+        this->filament_presets.resize(num_extruders, this->filament_presets.empty() ? this->filaments.first_visible().name :
+                                                                                      this->filament_presets.back());
+        num_filaments = this->filament_presets.size();
+    }
     if (to_delete_filament_id == -1)
         to_delete_filament_id = num_filaments;
 
@@ -5086,7 +5089,14 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
                     unsigned int old_i = i >= to_delete_filament_id ? i + 1 : i;
                     unsigned int old_j = j >= to_delete_filament_id ? j + 1 : j;
                     for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
-                        new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id];
+                        // Orca: only copy from old_matrix when the old layout actually has data
+                        // for this nozzle slot; otherwise initialize from the per-filament
+                        // flush volumes the same way the (i,j) out-of-range branch does.
+                        if (nozzle_id < old_nozzle_nums) {
+                            new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id];
+                        } else {
+                            new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id] = (i == j ? 0. : filaments[2 * i] + filaments[2 * j + 1]);
+                        }
                     }
                 } else {
                     for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
