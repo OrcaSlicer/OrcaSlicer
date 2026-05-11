@@ -13,7 +13,6 @@
 #include <boost/property_tree/ptree_fwd.hpp>
 
 #include "PrintConfig.hpp"
-#include "libslic3r_version.h"
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
 
