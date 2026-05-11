@@ -1,0 +1,62 @@
+{
+	"type": "filament",
+	"name": "FILL3D PETG CF @base",
+	"from": "system",
+	"filament_id": "FILL3D007",
+	"instantiation": "false",
+	"inherits": "fdm_filament_pet",
+	"filament_vendor": [
+		"FILL3D"
+	],
+	"filament_type": [
+		"PETG-CF"
+	],
+	"filament_density": [
+		"1.30"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"additional_cooling_fan_speed": [
+		"30"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"fan_min_speed": [
+		"20"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_retraction_length": [
+		"0.2"
+	],
+	"hot_plate_temp": [
+		"75"
+	],
+	"hot_plate_temp_initial_layer": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"265"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"slow_down_layer_time": [
+		"6"
+	]
+}

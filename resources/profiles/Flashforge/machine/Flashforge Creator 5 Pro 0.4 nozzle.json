@@ -1,0 +1,311 @@
+{
+	"adaptive_bed_mesh_margin": "0",
+	"auxiliary_fan": "1",
+	"bbl_use_printhost": "0",
+	"bed_custom_model": "",
+	"bed_custom_texture": "",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"bed_mesh_max": "99999,99999",
+	"bed_mesh_min": "-99999,-99999",
+	"bed_mesh_probe_distance": "50,50",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]",
+	"best_object_pos": "0.5,0.5",
+	"change_extrusion_role_gcode": "",
+	"change_filament_gcode": "",
+	"cooling_tube_length": "0",
+	"cooling_tube_retraction": "0",
+	"default_bed_type": "",
+	"default_filament_profile": [
+		"Flashforge Generic PLA"
+	],
+	"default_print_profile": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
+	"deretraction_speed": [
+		"30",
+		"30",
+		"30",
+		"30"
+	],
+	"disable_m73": "1",
+	"emit_machine_limits_to_gcode": "1",
+	"enable_filament_ramming": "0",
+	"enable_long_retraction_when_cut": "0",
+	"extra_loading_move": "0",
+	"extruder_clearance_height_to_lid": "360",
+	"extruder_clearance_height_to_rod": "60",
+	"extruder_clearance_radius": "92",
+	"extruder_colour": [
+		"#FCE94F",
+		"#FCE94F",
+		"#FCE94F",
+		"#FCE94F"
+	],
+	"extruder_offset": [
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0"
+	],
+	"fan_kickstart": "0",
+	"fan_speedup_overhangs": "1",
+	"fan_speedup_time": "0",
+	"from": "system",
+	"gcode_flavor": "klipper",
+	"head_wrap_detect_zone": [],
+	"high_current_on_filament_swap": "0",
+	"host_type": "octoprint",
+	"inherits": "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+	"long_retractions_when_cut": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"machine_end_gcode": ";end_gcode\nG1 X150 Y150 E-1.2 F12000",
+	"machine_load_filament_time": "0",
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"30000",
+		"20000"
+	],
+	"machine_max_acceleration_retracting": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"20000",
+		"20000"
+	],
+	"machine_max_acceleration_x": [
+		"30000",
+		"20000"
+	],
+	"machine_max_acceleration_y": [
+		"30000",
+		"20000"
+	],
+	"machine_max_acceleration_z": [
+		"300",
+		"500"
+	],
+	"machine_max_jerk_e": [
+		"2.5",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"9",
+		"9"
+	],
+	"machine_max_jerk_y": [
+		"9",
+		"9"
+	],
+	"machine_max_jerk_z": [
+		"3",
+		"3"
+	],
+	"machine_max_junction_deviation": [
+		"0",
+		"0"
+	],
+	"machine_max_speed_e": [
+		"30",
+		"30"
+	],
+	"machine_max_speed_x": [
+		"600",
+		"600"
+	],
+	"machine_max_speed_y": [
+		"600",
+		"600"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"machine_min_extruding_rate": [
+		"0",
+		"0"
+	],
+	"machine_min_travel_rate": [
+		"0",
+		"0"
+	],
+	"machine_pause_gcode": "M25",
+	"machine_start_gcode": ";start_gcode\nM140 S[bed_temperature_initial_layer_single]\nM106 P101 S0 ; L+R_PLA_Turbo_Fan_0-255\nM106 P2 S0 ; Center_Fresch_Air_Input_Fan_for_PLA30%_(80_0-255) \nM191 S0 ; Chamber temp. max65C\nM106 S0 ; Model_Fan_(Heat_Break_Cooler_80-255)100%=255\nM106 P3 S0 ; Filter_Unit_Fan_0-255(ABS=255)\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F2400\nT[initial_extruder]\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nG1 X256 Y0 Z0.2 F6000\nG1 E5 F{filament_max_volumetric_speed[initial_no_support_extruder]/2.4053*60}\nG1 X216 E10 F{filament_max_volumetric_speed[initial_no_support_extruder]/2.4053*60}\n;start_gcode end",
+	"machine_tool_change_time": "7",
+	"machine_unload_filament_time": "0",
+	"manual_filament_change": "0",
+	"max_layer_height": [
+		"0.28",
+		"0.28",
+		"0.28",
+		"0.28"
+	],
+	"max_resonance_avoidance_speed": "120",
+	"min_layer_height": [
+		"0.08",
+		"0.08",
+		"0.08",
+		"0.08"
+	],
+	"min_resonance_avoidance_speed": "70",
+	"name": "Flashforge Creator 5 Pro 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4"
+	],
+	"nozzle_height": "4",
+	"nozzle_hrc": "0",
+	"nozzle_type": "hardened_steel",
+	"nozzle_volume": "0",
+	"parking_pos_retraction": "0",
+	"pellet_modded_printer": "0",
+	"preferred_orientation": "0",
+	"printable_area": [
+		"0x0",
+		"256x0",
+		"256x256",
+		"0x256"
+	],
+	"printable_height": "256",
+	"printer_model": "Flashforge Creator 5 Pro",
+	"printer_notes": "",
+	"printer_settings_id": "Flashforge Creator 5 Pro 0.4 nozzle",
+	"printer_structure": "corexy",
+	"printer_technology": "FFF",
+	"printer_variant": "0.4",
+	"printhost_authorization_type": "key",
+	"printhost_ssl_ignore_revoke": "0",
+	"printing_by_object_gcode": "",
+	"purge_in_prime_tower": "0",
+	"resonance_avoidance": "0",
+	"retract_before_wipe": [
+		"100%",
+		"100%",
+		"100%",
+		"100%"
+	],
+	"retract_length_toolchange": [
+		"3",
+		"3",
+		"3",
+		"3"
+	],
+	"retract_lift_above": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_lift_below": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_lift_enforce": [
+		"All Surfaces",
+		"All Surfaces",
+		"All Surfaces",
+		"All Surfaces"
+	],
+	"retract_restart_extra": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"-0.8",
+		"-0.8",
+		"-0.8",
+		"-0.8"
+	],
+	"retract_when_changing_layer": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_distances_when_cut": [
+		"18",
+		"18",
+		"18",
+		"18"
+	],
+	"retraction_length": [
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8"
+	],
+	"retraction_minimum_travel": [
+		"2",
+		"2",
+		"2",
+		"2"
+	],
+	"retraction_speed": [
+		"30",
+		"30",
+		"30",
+		"30"
+	],
+	"scan_first_layer": "0",
+	"silent_mode": "0",
+	"single_extruder_multi_material": "0",
+	"support_air_filtration": "1",
+	"support_chamber_temp_control": "1",
+	"support_multi_bed_types": "1",
+	"template_custom_gcode": "",
+	"thumbnails": "140x110/PNG",
+	"thumbnails_format": "PNG",
+	"time_cost": "0",
+	"time_lapse_gcode": "",
+	"travel_slope": [
+		"3",
+		"3",
+		"3",
+		"3"
+	],
+	"upward_compatible_machine": [],
+	"use_firmware_retraction": "0",
+	"use_relative_e_distances": "1",
+	"version": "2.1.1.0",
+	"wipe": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"wipe_distance": [
+		"2",
+		"2",
+		"2",
+		"2"
+	],
+	"z_hop": [
+		"0.4",
+		"0.4",
+		"0.4",
+		"0.4"
+	],
+	"z_hop_types": [
+		"Auto Lift",
+		"Auto Lift",
+		"Auto Lift",
+		"Auto Lift"
+	],
+	"z_offset": "0"
+}

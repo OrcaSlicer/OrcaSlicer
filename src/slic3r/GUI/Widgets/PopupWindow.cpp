@@ -86,7 +86,8 @@ void PopupWindow::OnMouseEvent2(wxMouseEvent &evt)
 void PopupWindow::topWindowActiavate(wxActivateEvent &event)
 {
     event.Skip();
-    if (!event.GetActive() && IsShown()) DismissAndNotify();
+    if (!event.GetActive() && IsShown() && ShouldDismissOnTopWindowDeactivate())
+        DismissAndNotify();
 }
 #endif
 
