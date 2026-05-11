@@ -451,23 +451,15 @@ static void merge_solid_parts_inside_object(ModelObjectPtrs& objects)
     for (ModelObject* mo : objects) {
         TriangleMesh mesh;
         // Merge all SolidPart but not Connectors
-        std::vector<std::optional<TriangleSelector::SavedPainting>> saved_paintings;
         for (const ModelVolume* mv : mo->volumes) {
             if (mv->is_model_part() && !mv->is_cut_connector()) {
                 TriangleMesh m = mv->mesh();
                 m.transform(mv->get_matrix());
                 mesh.merge(m);
-                saved_paintings.emplace_back(mv->save_painting());
-                if (saved_paintings.back()) {
-                    saved_paintings.back()->mesh = std::move(m);
-                }
             }
         }
         if (!mesh.empty()) {
-            ModelVolume* new_volume = mo->add_volume(std::move(mesh));
-            for (const auto& saved_painting : saved_paintings) {
-                new_volume->restore_painting(saved_painting, true);
-            }
+            ModelVolume* new_volume = mo->add_volume(mesh);
             new_volume->name = mo->name;
             // Delete all merged SolidPart but not Connectors
             for (int i = int(mo->volumes.size()) - 2; i >= 0; --i) {
@@ -591,11 +583,6 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
     tmp_model.add_object(*cut_mo);
     ModelObject* tmp_object = tmp_model.objects.front();
 
-    // Store source volume id so we could track them back after the cut
-    for (int i = 0; i < cut_mo->volumes.size(); i++) {
-        tmp_object->volumes[i]->cut_info.source_volume = cut_mo->volumes[i]->id();
-    }
-
     auto add_volumes_from_cut = [](ModelObject* object, const ModelObjectCutAttribute attribute, const Model& tmp_model_for_cut) {
         const auto& volumes = tmp_model_for_cut.objects.front()->volumes;
         for (const ModelVolume* volume : volumes)
@@ -615,20 +602,6 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         tmp_model_for_cut = Model();
         tmp_model_for_cut.add_object(*cut.perform_with_plane().front());
         assert(!tmp_model_for_cut.objects.empty());
-
-        // Track back the volume id
-        for (const auto v : tmp_model_for_cut.objects.front()->volumes) {
-            auto& src_id = v->cut_info.source_volume;
-            if (src_id.valid()) {
-                // Find the src volume
-                for (const auto volume : object->volumes) {
-                    if (src_id == volume->id()) {
-                        src_id = volume->cut_info.source_volume;
-                        break;
-                    }
-                }
-            }
-        }
 
         object->clear_volumes();
         add_volumes_from_cut(object, add_volumes_attribute, tmp_model_for_cut);
@@ -689,48 +662,6 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
 
     // this part can be added to the upper object now
     add_volumes_from_cut(upper, ModelObjectCutAttribute::KeepLower, tmp_model_for_cut);
-
-    // Paint volumes
-    if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
-        const auto instance_matrix = cut_mo->instances[m_instance]->get_transformation().get_matrix_no_offset();
-        std::map<ObjectID, std::optional<TriangleSelector::SavedPainting>> saved_paintings;
-        auto get_painting = [&saved_paintings, &cut_mo, &instance_matrix](const ObjectID& volume_id) -> std::optional<TriangleSelector::SavedPainting>& {
-            const auto it = saved_paintings.find(volume_id);
-            if (it != saved_paintings.end()) {
-                return it->second;
-            }
-
-            // Export paintings from volume
-            const auto volume = std::find_if(cut_mo->volumes.begin(), cut_mo->volumes.end(),
-                                             [&volume_id](const ModelVolume* v) { return volume_id == v->id(); });
-
-            std::optional<TriangleSelector::SavedPainting> saved_painting = (*volume)->save_painting();
-            if (saved_painting) {
-                // Transform mesh to cut space (same transform as process_volume_cut applies)
-                const auto volume_matrix = (*volume)->get_matrix();
-                saved_painting->mesh.transform(instance_matrix * volume_matrix, true);
-            }
-
-            saved_paintings.emplace(volume_id, std::move(saved_painting));
-
-            return saved_paintings[volume_id];
-        };
-
-        auto paint_volumes = [&get_painting](const ModelObject* object) {
-            for (const auto volume : object->volumes) {
-                if (volume->cut_info.source_volume.valid()) {
-                    volume->restore_painting(get_painting(volume->cut_info.source_volume));
-                }
-            }
-        };
-
-        if (m_attributes.has(ModelObjectCutAttribute::KeepUpper)) {
-            paint_volumes(upper);
-        }
-        if (m_attributes.has(ModelObjectCutAttribute::KeepLower)) {
-            paint_volumes(lower);
-        }
-    }
 
     ModelObjectPtrs cut_object_ptrs;
 
