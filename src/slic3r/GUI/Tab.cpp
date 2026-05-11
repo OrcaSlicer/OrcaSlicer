@@ -4812,8 +4812,8 @@ PageShp TabPrinter::build_kinematics_page()
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
     }
-    optgroup->append_single_option_line("input_shaping_emit", "input-shaping-calib");
-    optgroup->append_single_option_line("input_shaping_type", "input-shaping-calib");
+    optgroup->append_single_option_line("input_shaping_emit", "input_shaping_calib");
+    optgroup->append_single_option_line("input_shaping_type", "input_shaping_calib");
     {
         Line freq_line = {L("Frequency"), L("The frequency of the anti-vibration signal will correspond to the natural frequency of the frame.")};
         freq_line.append_option(optgroup->get_option("input_shaping_freq_x"));
