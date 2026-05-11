@@ -6,7 +6,9 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <functional>
+#include <limits>
 #include <mutex>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
@@ -404,6 +406,7 @@ protected:
 
 bool is_compatible_with_print  (const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config);
+bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config, const std::vector<std::string> *active_printer_names);
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer);
 
 // Where a preset is being loaded from. `Auto` lets load_presets() infer from the directory path.
@@ -620,11 +623,12 @@ public:
 	// where the "inherits" profile name is searched for in both m_presets and m_map_system_profile_renamed.
 	const Preset*	get_preset_parent(const Preset& child) const;
 	const Preset*	get_preset_base(const Preset& child) const;
-	// Return the selected preset including the user modifications.
+    // Return the selected preset including the user modifications.
     Preset&         get_edited_preset()         { return m_edited_preset; }
     const Preset&   get_edited_preset() const   { return m_edited_preset; }
 
     const Preset& get_selected_preset_base() const { return *get_preset_base(m_presets[m_idx_selected]); }
+    std::vector<std::string> get_preset_collection_names(const Preset& preset) const;
 
     // Return the last saved preset.
 //  const Preset&   get_saved_preset() const { return m_saved_preset; }
@@ -728,16 +732,16 @@ public:
 
     // For Print / Filament presets, disable those, which are not compatible with the printer.
     template<typename PreferedCondition>
-    void            update_compatible(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType select_other_if_incompatible, PreferedCondition prefered_condition)
+    void            update_compatible(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType select_other_if_incompatible, PreferedCondition prefered_condition, const std::vector<std::string> *active_printer_names = nullptr)
     {
-        if (this->update_compatible_internal(active_printer, active_print, select_other_if_incompatible) == (size_t)-1) {
+        if (this->update_compatible_internal(active_printer, active_print, select_other_if_incompatible, active_printer_names) == (size_t)-1) {
             // Find some other compatible preset, or the "-- default --" preset.
             size_t index = this->first_compatible_idx(prefered_condition);
             this->select_preset(index);
         }
     }
-    void            update_compatible(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType select_other_if_incompatible)
-        { this->update_compatible(active_printer, active_print, select_other_if_incompatible, [](const Preset&) -> int { return 0; }); }
+    void            update_compatible(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType select_other_if_incompatible, const std::vector<std::string> *active_printer_names = nullptr)
+        { this->update_compatible(active_printer, active_print, select_other_if_incompatible, [](const Preset&) -> int { return 0; }, active_printer_names); }
 
     size_t          num_visible() const { return std::count_if(m_presets.begin(), m_presets.end(), [](const Preset &preset){return preset.is_visible;}); }
 
@@ -869,7 +873,7 @@ private:
     std::deque<Preset>::const_iterator find_preset_renamed(const std::string &name) const
         { return const_cast<PresetCollection*>(this)->find_preset_renamed(name); }
 
-    size_t update_compatible_internal(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType unselect_if_incompatible);
+    size_t update_compatible_internal(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType unselect_if_incompatible, const std::vector<std::string> *active_printer_names = nullptr);
 public:
     static bool                     is_dirty(const Preset *edited, const Preset *reference);
     static std::vector<std::string> dirty_options(const Preset *edited, const Preset *reference, const bool deep_compare = false);
