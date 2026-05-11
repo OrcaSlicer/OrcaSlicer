@@ -2,6 +2,7 @@
 // Avoids diagonal moves by using Manhattan distance for all decisions.
 
 #include "GridPath.hpp"
+#include "TSPPostProcessing.hpp"
 #include "../Print.hpp"
 #include "../Geometry.hpp"
 
@@ -23,18 +24,6 @@ static double manhattan_dist(const Point& a, const Point& b)
 {
     return std::abs(static_cast<double>(a.x() - b.x())) +
            std::abs(static_cast<double>(a.y() - b.y()));
-}
-
-// Total path length using Manhattan distance (including closing edge).
-static double manhattan_path_length(const std::vector<size_t>& path, const Points& centers)
-{
-    if (path.size() < 2) return 0.0;
-    double total = 0.0;
-    for (size_t i = 0; i < path.size(); ++i) {
-        size_t next = (i + 1) % path.size();
-        total += manhattan_dist(centers[path[i]], centers[path[next]]);
-    }
-    return total;
 }
 
 // L1-aware 2-opt: only accept swaps that improve Manhattan distance.
@@ -217,38 +206,7 @@ std::vector<size_t> grid_path_core(const Points& centers)
 // Production wrapper.
 std::vector<const PrintInstance*> chain_print_object_instances_grid_path(const std::vector<const PrintObject*>& print_objects, const Point* start_near)
 {
-    Points instance_centers;
-    std::vector<std::pair<size_t, size_t>> instances;
-    for (size_t i = 0; i < print_objects.size(); ++i) {
-        const PrintObject& object = *print_objects[i];
-        for (size_t j = 0; j < object.instances().size(); ++j) {
-            instance_centers.emplace_back(object.instances()[j].shift);
-            instances.emplace_back(i, j);
-        }
-    }
-
-    if (instance_centers.empty()) return {};
-
-    // If start_near is provided, pre-rotate so closest point is first.
-    if (start_near != nullptr) {
-        size_t best_start = 0;
-        double best_d2 = std::numeric_limits<double>::max();
-        for (size_t k = 0; k < instance_centers.size(); ++k) {
-            double d2 = (instance_centers[k].cast<double>() - start_near->cast<double>()).squaredNorm();
-            if (d2 < best_d2) { best_d2 = d2; best_start = k; }
-        }
-        std::rotate(instance_centers.begin(), instance_centers.begin() + best_start, instance_centers.end());
-        std::rotate(instances.begin(), instances.begin() + best_start, instances.end());
-    }
-
-    auto path = grid_path_core(instance_centers);
-
-    std::vector<const PrintInstance*> out;
-    out.reserve(path.size());
-    for (size_t step : path) {
-        out.emplace_back(&print_objects[instances[step].first]->instances()[instances[step].second]);
-    }
-    return out;
+    return chain_instances_with_core(print_objects, start_near, grid_path_core);
 }
 
 std::vector<const PrintInstance*> chain_print_object_instances_grid_path(const Print& print)

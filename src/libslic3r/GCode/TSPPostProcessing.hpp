@@ -31,6 +31,33 @@ void tsp_remove_crossings(std::vector<size_t>& path, const Points& centers);
 // Rotate the cycle so the closing edge (last → first) is minimized.
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers);
 
+// --- Path metrics (operate on index vectors into `centers`) ---
+
+// Total Euclidean path length of a cycle (including closing edge).
+inline double tsp_cycle_path_length(const std::vector<size_t>& path, const Points& centers)
+{
+    if (path.size() < 2) return 0.0;
+    double total = 0.0;
+    for (size_t i = 0; i < path.size(); ++i) {
+        size_t next = (i + 1) % path.size();
+        total += (centers[path[i]].cast<double>() - centers[path[next]].cast<double>()).norm();
+    }
+    return total;
+}
+
+// Maximum edge length of a cycle (including closing edge).
+inline double tsp_max_edge_length(const std::vector<size_t>& path, const Points& centers)
+{
+    if (path.size() < 2) return 0.0;
+    double mx = 0.0;
+    for (size_t i = 0; i < path.size(); ++i) {
+        size_t next = (i + 1) % path.size();
+        double d = (centers[path[i]].cast<double>() - centers[path[next]].cast<double>()).norm();
+        if (d > mx) mx = d;
+    }
+    return mx;
+}
+
 #ifndef SLIC3R_TEST_HARNESS
 
 // --- Wrapper boilerplate ---
