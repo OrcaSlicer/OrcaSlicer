@@ -156,7 +156,7 @@ void SavePresetDialog::Item::update()
     }
 
     if (m_valid_type == Valid &&
-        (m_preset_name == "Default Setting" || m_preset_name == "Default Filament" || m_preset_name == "Default Printer")) {
+        (m_preset_name == "Default Setting" || m_preset_name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || m_preset_name == "Default Printer")) {
         info_line    = _L("Name is unavailable.");
         m_valid_type = NoValid;
     }
