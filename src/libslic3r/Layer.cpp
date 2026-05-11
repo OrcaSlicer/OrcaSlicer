@@ -208,6 +208,8 @@ void Layer::make_perimeters()
 	            if (! (*it)->slices.empty()) {
 		            LayerRegion* other_layerm = *it;
 		            const PrintRegion &other_region = other_layerm->region();
+		            if ((*layerm)->region().gradient_volume_id() != other_layerm->region().gradient_volume_id())
+		                continue;
                     if (is_perimeter_compatible(this_region, other_region))
 		            {
 			 			other_layerm->perimeters.clear();

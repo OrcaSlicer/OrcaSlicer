@@ -2847,6 +2847,14 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comDevelop;
     def->set_default_value(new ConfigOptionStrings{""});
 
+    def          = this->add("filament_mixed_gradient_per_part", coBools);
+    def->label   = L("Mixed filament per-part gradient");
+    def->tooltip = L("When gradient mode is enabled, apply the gradient to each part of an "
+                     "assembly independently rather than treating the whole assembly as one "
+                     "Z range.");
+    def->mode    = comDevelop;
+    def->set_default_value(new ConfigOptionBools{false});
+
     // defined in bits
     // 0 means cannot support, 1 means support
     // 0 bit: can support in left extruder

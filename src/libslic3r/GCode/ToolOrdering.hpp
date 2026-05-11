@@ -5,6 +5,7 @@
 
 #include "../libslic3r.h"
 
+#include <functional>
 #include <map>
 #include <utility>
 
@@ -12,6 +13,7 @@
 #include "../FilamentGroup.hpp"
 #include "../ExtrusionEntity.hpp"
 #include "../PrintConfig.hpp"
+#include "../ObjectID.hpp"
 
 namespace Slic3r {
 
@@ -191,6 +193,26 @@ public:
             double gradient_end;
         };
         std::map<const PrintObject*, ObjectGradient> per_object_gradient;
+
+        // Per-volume gradient: same metadata layout as ObjectGradient but keyed by
+        // (PrintObject*, ModelVolume id). Populated only when filament_mixed_gradient_per_part is
+        // enabled for this slot AND the corresponding ModelObject contains >=2 model-part volumes
+        // using this slot. When non-empty for a given (PrintObject*), GCode emission takes the
+        // per-volume path for tagged regions; untagged regions (modifier/painted/fuzzy_skin) still
+        // use per_object_gradient. Both maps are populated in parallel to keep run states correct.
+        struct VolumeKey {
+            const PrintObject* obj;
+            ObjectID           volume_id;
+            bool operator<(const VolumeKey &o) const {
+                if (obj != o.obj) return std::less<const PrintObject*>{}(obj, o.obj);
+                return volume_id < o.volume_id;
+            }
+            bool operator==(const VolumeKey &o) const {
+                return obj == o.obj && volume_id == o.volume_id;
+            }
+        };
+        using VolumeGradient = ObjectGradient;
+        std::map<VolumeKey, VolumeGradient> per_volume_gradient;
     };
     std::vector<MixedSubLayerGroup> mixed_sub_layer_groups;
 
@@ -320,6 +342,14 @@ private:
     // Per-object gradient tracking: slot(0-based) -> PrintObject* -> list of layer indices
     // where that object uses the slot. Populated by collect_extruders, consumed by resolve_mixed_filaments.
     std::map<unsigned int, std::map<const PrintObject*, std::vector<size_t>>> m_gradient_object_layers;
+
+    // Per-volume gradient tracking: slot(0-based) -> (PrintObject*, ModelVolume id) -> list of
+    // layer indices where the given volume contributes to the slot. Populated by collect_extruders
+    // alongside m_gradient_object_layers when per_part gradient is enabled for the slot AND the
+    // ModelObject has >=2 model-part volumes using the slot. Empty for all other configurations,
+    // which keeps every legacy per-object code path bit-identical (loops over an empty map are
+    // no-ops; downstream emission falls through to the per-object branch).
+    std::map<unsigned int, std::map<LayerTools::MixedSubLayerGroup::VolumeKey, std::vector<size_t>>> m_gradient_volume_layers;
     const PrintObject*         m_print_object_ptr = nullptr;
     Print*                     m_print;
     bool                       m_sorted = false;

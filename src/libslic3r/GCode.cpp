@@ -5485,41 +5485,19 @@ LayerResult GCode::process_layer(
             std::string set_ext_gcode = this->set_extruder(extruder_id, default_sub_z);
             gcode += set_ext_gcode;
 
-            std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache_sub;
             for (InstanceToPrint &instance_to_print : mixed_instances_it->second) {
-                double obj_sub_h = default_sub_h;
-                double obj_sub_z = default_sub_z;
+                const bool use_per_volume = grp.is_gradient
+                    && !grp.per_volume_gradient.empty()
+                    && std::any_of(grp.per_volume_gradient.begin(), grp.per_volume_gradient.end(),
+                                   [&](const auto &kv) { return kv.first.obj == &instance_to_print.print_object; });
 
-                if (grp.is_gradient) {
-                    auto og_it = grp.per_object_gradient.find(&instance_to_print.print_object);
-                    if (og_it != grp.per_object_gradient.end()) {
-                        const auto &og = og_it->second;
-                        double t  = (og.total_layers > 0) ? (2.0 * og.current_idx + 1.0) / (2.0 * og.total_layers) : 0.5;
-                        double r1 = og.gradient_start + (og.gradient_end - og.gradient_start) * t;
-                        double r2 = 1.0 - r1;
-                        std::vector<double> obj_sub_heights(grp.components_0based.size());
-                        for (size_t ci = 0; ci < grp.components_0based.size(); ++ci)
-                            obj_sub_heights[ci] = (static_cast<int>(ci) == grp.gradient_first_sorted_idx) ? r1 * lh : r2 * lh;
-                        double obj_cum = 0.0;
-                        for (int ci = 0; ci < sub_idx; ++ci)
-                            obj_cum += obj_sub_heights[ci];
-                        obj_sub_h = obj_sub_heights[sub_idx];
-                        obj_sub_z = print_z - lh + obj_cum + obj_sub_h;
-                    }
-                }
-
-                m_sub_layer_flow_ratio = obj_sub_h / lh;
-                m_sub_layer_height     = obj_sub_h;
-                m_nominal_z            = obj_sub_z;
-
-                gcode += m_writer.travel_to_z(obj_sub_z, "move to sublayer Z");
+                // --- Shared instance preamble ---
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
                 m_config.apply(print.default_region_config());
                 m_config.apply(instance_to_print.print_object.config(), true);
                 m_layer = layer_to_print.layer();
 
-                // Mixed sublayer: object label start (cf. normal path L4828-4851)
-                const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
+                const auto &inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
                 gcode += "; OBJECT_ID: " + std::to_string(instance_to_print.label_object_id) + "\n";
                 if (m_enable_label_object) {
                     std::string start_str = std::string("; start printing object, unique label id: ")
@@ -5545,50 +5523,197 @@ LayerResult GCode::process_layer(
                 const Point &offset = inst.shift;
                 this->set_origin(unscale(offset));
 
-                for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
-                    const auto &by_region_specific = island.by_region;
-                    bool is_infill_first = print.config().is_infill_first;
+                // --- Build emission plan ---
+                // Each entry represents one travel_to_z + extrude pass. Per-object mode produces
+                // exactly 1 entry (all regions, single sub_z); per-volume mode produces N entries
+                // for tagged volumes plus an optional entry for untagged residue.
+                struct SubLayerEmitEntry {
+                    double sub_h;
+                    double sub_z;
+                    std::function<bool(size_t region_idx)> region_filter;
+                    bool skip = false;
+                };
+                std::vector<SubLayerEmitEntry> emit_plan;
 
-                    auto has_infill = [](const std::vector<ObjectByExtruder::Island::Region> &by_region) {
-                        for (auto region : by_region) {
-                            if (!region.infills.empty())
-                                return true;
-                        }
-                        return false;
-                    };
+                auto compute_sub_zh = [&](double r1, double r2, double &out_sub_h, double &out_sub_z) {
+                    std::vector<double> sub_heights_local(grp.components_0based.size());
+                    for (size_t ci = 0; ci < grp.components_0based.size(); ++ci)
+                        sub_heights_local[ci] = (static_cast<int>(ci) == grp.gradient_first_sorted_idx) ? r1 * lh : r2 * lh;
+                    double cum = 0.0;
+                    for (int ci = 0; ci < sub_idx; ++ci)
+                        cum += sub_heights_local[ci];
+                    out_sub_h = sub_heights_local[sub_idx];
+                    out_sub_z = print_z - lh + cum + out_sub_h;
+                };
 
-                    if (is_infill_first && !first_layer) {
-                        if (!has_wipe_tower && need_insert_timelapse_gcode_for_traditional
-                            && printer_structure == PrinterStructure::psI3
-                            && !has_insert_timelapse_gcode && has_infill(by_region_specific)) {
-                            gcode += this->retract(false, false, auto_lift_type, true);
-                            gcode += insert_timelapse_gcode();
-                            has_insert_timelapse_gcode = true;
+                auto gradient_ratios = [](const auto &g) -> std::pair<double, double> {
+                    double t  = (g.total_layers > 0) ? (2.0 * g.current_idx + 1.0) / (2.0 * g.total_layers) : 0.5;
+                    double r1 = g.gradient_start + (g.gradient_end - g.gradient_start) * t;
+                    return {r1, 1.0 - r1};
+                };
+
+                double obj_sub_z = default_sub_z;
+
+                if (use_per_volume) {
+                    const PrintObject *po = &instance_to_print.print_object;
+                    const unsigned int slot_1b = grp.mixed_slot_0based + 1;
+
+                    // Discover tagged volumes and untagged presence for this instance.
+                    std::set<ObjectID> tagged_volumes_present;
+                    bool has_untagged_for_slot = false;
+                    for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
+                        for (size_t r = 0; r < island.by_region.size(); ++r) {
+                            const auto &region = island.by_region[r];
+                            if (region.perimeters.empty() && region.infills.empty())
+                                continue;
+                            const PrintRegion &pr = print.get_print_region(r);
+                            const auto &rcfg = pr.config();
+                            if ((unsigned int)rcfg.wall_filament.value         != slot_1b &&
+                                (unsigned int)rcfg.sparse_infill_filament.value != slot_1b &&
+                                (unsigned int)rcfg.solid_infill_filament.value  != slot_1b)
+                                continue;
+                            ObjectID vid = pr.gradient_volume_id();
+                            if (vid.valid())
+                                tagged_volumes_present.insert(vid);
+                            else
+                                has_untagged_for_slot = true;
                         }
-                        gcode += this->extrude_infill(print, by_region_specific, false);
-                        gcode += this->extrude_perimeters(print, by_region_specific);
-                    } else {
-                        gcode += this->extrude_perimeters(print, by_region_specific);
-                        if (!has_wipe_tower && need_insert_timelapse_gcode_for_traditional
-                            && printer_structure == PrinterStructure::psI3
-                            && !has_insert_timelapse_gcode && has_infill(by_region_specific)) {
-                            gcode += this->retract(false, false, auto_lift_type, true);
-                            gcode += insert_timelapse_gcode();
-                            has_insert_timelapse_gcode = true;
-                        }
-                        gcode += this->extrude_infill(print, by_region_specific, false);
                     }
-                    gcode += this->extrude_infill(print, by_region_specific, true);
+
+                    // One entry per tagged volume.
+                    for (const ObjectID &target_vid : tagged_volumes_present) {
+                        auto vg_it = grp.per_volume_gradient.find({po, target_vid});
+                        if (vg_it == grp.per_volume_gradient.end())
+                            continue;
+                        const auto &vg = vg_it->second;
+                        auto [r1, r2] = gradient_ratios(vg);
+
+                        bool vol_no_split = false;
+                        bool skip_entry   = false;
+                        const size_t n = grp.components_0based.size();
+                        if (n == 2 && vg.current_idx + 1 == vg.total_layers) {
+                            const size_t dom_idx = (r1 >= r2) ? 0 : 1;
+                            const unsigned int first_sorted_comp = grp.components_0based[grp.gradient_first_sorted_idx];
+                            const unsigned int other_comp = grp.components_0based[1 - grp.gradient_first_sorted_idx];
+                            const unsigned int dom_0b = (dom_idx == 0) ? first_sorted_comp : other_comp;
+                            const unsigned int oth_0b = (dom_idx == 0) ? other_comp : first_sorted_comp;
+                            if (dom_0b < oth_0b) {
+                                vol_no_split = true;
+                                if (extruder_id != dom_0b)
+                                    skip_entry = true;
+                            }
+                        }
+
+                        double vol_sub_h = default_sub_h;
+                        double vol_sub_z = default_sub_z;
+                        if (vol_no_split) {
+                            vol_sub_h = lh;
+                            vol_sub_z = print_z;
+                        } else {
+                            compute_sub_zh(r1, r2, vol_sub_h, vol_sub_z);
+                        }
+
+                        emit_plan.push_back({vol_sub_h, vol_sub_z,
+                            [target_vid, &print](size_t r) {
+                                return print.get_print_region(r).gradient_volume_id() == target_vid;
+                            },
+                            skip_entry});
+                    }
+
+                    // Optional entry for untagged regions (modifier / painted / fuzzy_skin).
+                    if (has_untagged_for_slot) {
+                        double obj_sub_h = default_sub_h;
+                        auto og_it = grp.per_object_gradient.find(po);
+                        if (og_it != grp.per_object_gradient.end()) {
+                            auto [r1, r2] = gradient_ratios(og_it->second);
+                            compute_sub_zh(r1, r2, obj_sub_h, obj_sub_z);
+                        }
+                        emit_plan.push_back({obj_sub_h, obj_sub_z,
+                            [&print](size_t r) {
+                                return !print.get_print_region(r).gradient_volume_id().valid();
+                            },
+                            false});
+                    }
+                } else {
+                    // Legacy per-object path: single entry, no region filter.
+                    double legacy_sub_h = default_sub_h;
+                    obj_sub_z = default_sub_z;
+                    if (grp.is_gradient) {
+                        auto og_it = grp.per_object_gradient.find(&instance_to_print.print_object);
+                        if (og_it != grp.per_object_gradient.end()) {
+                            auto [r1, r2] = gradient_ratios(og_it->second);
+                            compute_sub_zh(r1, r2, legacy_sub_h, obj_sub_z);
+                        }
+                    }
+                    emit_plan.push_back({legacy_sub_h, obj_sub_z, nullptr, false});
                 }
 
+                // --- Unified emission loop ---
+                const bool is_infill_first = print.config().is_infill_first;
+                auto has_infill = [](const std::vector<ObjectByExtruder::Island::Region> &by_region) {
+                    for (const auto &r : by_region)
+                        if (!r.infills.empty())
+                            return true;
+                    return false;
+                };
+
+                for (auto &entry : emit_plan) {
+                    if (entry.skip)
+                        continue;
+                    m_sub_layer_flow_ratio = entry.sub_h / lh;
+                    m_sub_layer_height     = entry.sub_h;
+                    m_nominal_z            = entry.sub_z;
+                    gcode += m_writer.travel_to_z(entry.sub_z, "move to sublayer Z");
+
+                    for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
+                        const auto &src = island.by_region;
+                        std::vector<ObjectByExtruder::Island::Region> subset_storage;
+                        if (entry.region_filter) {
+                            subset_storage.resize(src.size());
+                            for (size_t r = 0; r < src.size(); ++r)
+                                if (entry.region_filter(r))
+                                    subset_storage[r] = src[r];
+                        }
+                        const auto &by_region_specific = entry.region_filter ? subset_storage : src;
+
+                        if (is_infill_first && !first_layer) {
+                            if (!has_wipe_tower && need_insert_timelapse_gcode_for_traditional
+                                && printer_structure == PrinterStructure::psI3
+                                && !has_insert_timelapse_gcode && has_infill(by_region_specific)) {
+                                gcode += this->retract(false, false, auto_lift_type, true);
+                                gcode += insert_timelapse_gcode();
+                                has_insert_timelapse_gcode = true;
+                            }
+                            gcode += this->extrude_infill(print, by_region_specific, false);
+                            gcode += this->extrude_perimeters(print, by_region_specific);
+                        } else {
+                            gcode += this->extrude_perimeters(print, by_region_specific);
+                            if (!has_wipe_tower && need_insert_timelapse_gcode_for_traditional
+                                && printer_structure == PrinterStructure::psI3
+                                && !has_insert_timelapse_gcode && has_infill(by_region_specific)) {
+                                gcode += this->retract(false, false, auto_lift_type, true);
+                                gcode += insert_timelapse_gcode();
+                                has_insert_timelapse_gcode = true;
+                            }
+                            gcode += this->extrude_infill(print, by_region_specific, false);
+                        }
+                        gcode += this->extrude_infill(print, by_region_specific, true);
+                    }
+                }
+
+                // --- Shared support ---
                 if (instance_to_print.object_by_extruder.support && !instance_to_print.object_by_extruder.support->empty()) {
+                    if (use_per_volume) {
+                        m_nominal_z = obj_sub_z;
+                        gcode += m_writer.travel_to_z(obj_sub_z, "restore Z for support");
+                    }
                     ExtrusionRole support_role = instance_to_print.object_by_extruder.support_extrusion_role;
                     gcode += this->extrude_support(instance_to_print.object_by_extruder.support->chained_path_from(m_last_pos, support_role));
                     if (support_role == erSupportMaterialInterface)
                         gcode += this->extrude_support(instance_to_print.object_by_extruder.support->chained_path_from(m_last_pos, erSupportIroning));
                 }
 
-                // Mixed sublayer: object label end (cf. normal path L4990-5006)
+                // --- Shared instance footer ---
                 if (!m_writer.empty_object_start_str()) {
                     m_writer.set_object_start_str("");
                 } else if (m_enable_label_object) {

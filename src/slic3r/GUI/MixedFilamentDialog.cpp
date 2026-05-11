@@ -667,7 +667,27 @@ wxBoxSizer* MixedFilamentDialog::create_gradient_section()
 
     m_gradient_sizer->Add(m_combo_gradient_dir, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
 
-    return m_gradient_sizer;
+    auto* outer = new wxBoxSizer(wxVERTICAL);
+    outer->Add(m_gradient_sizer, 0, wxEXPAND);
+
+    m_per_part_gradient_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    m_chk_per_part_gradient = new ::CheckBox(this);
+    m_chk_per_part_gradient->SetValue(m_result.per_part_gradient);
+    m_chk_per_part_gradient->Bind(wxEVT_TOGGLEBUTTON,
+        [this](wxCommandEvent& e) { e.Skip(); on_per_part_gradient_toggled(); });
+    m_per_part_gradient_sizer->Add(m_chk_per_part_gradient, 0,
+        wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(4));
+
+    m_label_per_part_gradient = new wxStaticText(this, wxID_ANY, _L("Enable per-part gradient effect"));
+    m_label_per_part_gradient->SetFont(::Label::Body_13);
+    m_per_part_gradient_sizer->Add(m_label_per_part_gradient, 0,
+        wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+
+    outer->Add(m_per_part_gradient_sizer, 0, wxEXPAND | wxTOP, FromDIP(2));
+    m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
+
+    return outer;
 }
 
 wxBoxSizer* MixedFilamentDialog::create_recommendation_grid()
@@ -861,6 +881,12 @@ void MixedFilamentDialog::on_gradient_toggled()
         m_ratio_sizer->ShowItems(!m_result.gradient_enabled);
     if (m_combo_gradient_dir)
         m_combo_gradient_dir->Show(m_result.gradient_enabled);
+    if (m_per_part_gradient_sizer)
+        m_per_part_gradient_sizer->ShowItems(m_result.gradient_enabled);
+    if (!m_result.gradient_enabled) {
+        m_result.per_part_gradient = false;
+        if (m_chk_per_part_gradient) m_chk_per_part_gradient->SetValue(false);
+    }
 
     Layout();
     Refresh();
@@ -870,6 +896,12 @@ void MixedFilamentDialog::on_gradient_direction_changed()
 {
     if (m_combo_gradient_dir)
         m_result.gradient_direction = m_combo_gradient_dir->GetSelection();
+}
+
+void MixedFilamentDialog::on_per_part_gradient_toggled()
+{
+    if (m_chk_per_part_gradient)
+        m_result.per_part_gradient = m_chk_per_part_gradient->GetValue();
 }
 
 void MixedFilamentDialog::on_add_material()
@@ -1128,10 +1160,14 @@ void MixedFilamentDialog::update_component_count_ui()
         m_chk_gradient->Show(show_gradient);
         if (m_label_gradient) m_label_gradient->Show(show_gradient);
         m_combo_gradient_dir->Show(show_gradient && m_result.gradient_enabled);
+        if (m_per_part_gradient_sizer)
+            m_per_part_gradient_sizer->ShowItems(show_gradient && m_result.gradient_enabled);
     }
     if (is_three) {
         m_result.gradient_enabled = false;
         if (m_chk_gradient) m_chk_gradient->SetValue(false);
+        m_result.per_part_gradient = false;
+        if (m_chk_per_part_gradient) m_chk_per_part_gradient->SetValue(false);
     }
 
     if (m_btn_add_material) {

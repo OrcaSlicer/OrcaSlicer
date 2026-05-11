@@ -1330,6 +1330,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             filament_mixed_sublayer_ratios))
     ((ConfigOptionBools,               filament_mixed_gradient))
     ((ConfigOptionStrings,             filament_mixed_gradient_range))
+    ((ConfigOptionBools,               filament_mixed_gradient_per_part))
     ((ConfigOptionInts,                filament_printable))
     ((ConfigOptionFloats,              filament_change_length))
     ((ConfigOptionFloats,              filament_cost))

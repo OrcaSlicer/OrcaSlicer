@@ -106,9 +106,9 @@ class PrintRegion
 public:
     PrintRegion() = default;
     PrintRegion(const PrintRegionConfig &config);
-    PrintRegion(const PrintRegionConfig &config, const size_t config_hash, int print_object_region_id = -1) : m_config(config), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
+    PrintRegion(const PrintRegionConfig &config, const size_t config_hash, int print_object_region_id = -1, ObjectID gradient_volume_id = ObjectID()) : m_config(config), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id), m_gradient_volume_id(gradient_volume_id) {}
     PrintRegion(PrintRegionConfig &&config);
-    PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
+    PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1, ObjectID gradient_volume_id = ObjectID()) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id), m_gradient_volume_id(gradient_volume_id) {}
     ~PrintRegion() = default;
 
 // Methods NOT modifying the PrintRegion's state:
@@ -118,6 +118,10 @@ public:
     // Identifier of this PrintRegion in the list of Print::m_print_regions.
     int                         print_region_id() const throw() { return m_print_region_id; }
     int                         print_object_region_id() const throw() { return m_print_object_region_id; }
+    // Volume identity used to differentiate same-config regions when per-part gradient is enabled.
+    // Default-constructed (invalid) means this region is not tied to a specific volume — preserves
+    // existing behavior for all paths not using per_part_gradient.
+    ObjectID                    gradient_volume_id() const throw() { return m_gradient_volume_id; }
 	// 1-based extruder identifier for this region and role.
 	unsigned int 				extruder(FlowRole role) const;
     Flow                        flow(const PrintObject &object, FlowRole role, double layer_height, bool first_layer = false) const;
@@ -147,6 +151,10 @@ private:
     int                m_print_region_id { -1 };
     int                m_print_object_region_id { -1 };
     int                m_ref_cnt { 0 };
+    // Per-part gradient: when non-invalid, this region belongs exclusively to one ModelVolume,
+    // letting same-color volumes within a combined ModelObject be tracked separately for gradient
+    // emission. Default invalid -> region keying behaves exactly as before.
+    ObjectID           m_gradient_volume_id;
 };
 
 inline bool operator==(const PrintRegion &lhs, const PrintRegion &rhs) { return lhs.config_hash() == rhs.config_hash() && lhs.config() == rhs.config(); }
@@ -294,6 +302,11 @@ public:
     // This transformation is used to calculate VolumeExtents.
     Transform3d                                 trafo_bboxes;
     std::vector<ObjectID>                       cached_volume_ids;
+    // Snapshot of slot_per_part_enabled used to generate the current regions.
+    // Compared against the freshly-computed vector on each Print::apply to detect
+    // when per-part toggling requires region regeneration even though
+    // PrintRegionConfig itself did not change.
+    std::vector<bool>                           last_slot_per_part_enabled;
 
     void ref_cnt_inc() { ++ m_ref_cnt; }
     void ref_cnt_dec() { if (-- m_ref_cnt == 0) delete this; }
@@ -301,6 +314,7 @@ public:
         all_regions.clear();
         layer_ranges.clear();
         cached_volume_ids.clear();
+        last_slot_per_part_enabled.clear();
     }
 
 private:
