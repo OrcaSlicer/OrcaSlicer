@@ -6,6 +6,7 @@
 #include "ConvexHullPeeling.hpp"
 #include "AngleSortCycle.hpp"
 #include "Boustrophedon.hpp"
+#include "GridPath.hpp"
 
 #include <cmath>
 #include <limits>
@@ -50,6 +51,7 @@ std::vector<size_t> min_max_edge_core(const Points& centers)
     candidates.push_back({"Convex Hull Peeling", convex_hull_peeling_core(centers)});
     candidates.push_back({"Angle Sort", angle_sort_core(centers)});
     candidates.push_back({"Boustrophedon", boustrophedon_core(centers)});
+    candidates.push_back({"Grid Path", grid_path_core(centers)});
 
     // Pick the one with smallest maximum edge, breaking ties by shortest total length.
     size_t best = 0;
@@ -90,6 +92,7 @@ std::vector<const PrintInstance*> chain_print_object_instances_min_max_edge(cons
     candidates.push_back({"Convex Hull Peeling", chain_print_object_instances_convex_hull_peeling(print_objects, start_near)});
     candidates.push_back({"Angle Sort", chain_print_object_instances_angle_sort(print_objects, start_near)});
     candidates.push_back({"Boustrophedon", chain_print_object_instances_boustrophedon(print_objects, start_near)});
+    candidates.push_back({"Grid Path", chain_print_object_instances_grid_path(print_objects, start_near)});
 
     // Pick the one with smallest maximum edge, breaking ties by shortest total length.
     size_t best = 0;
