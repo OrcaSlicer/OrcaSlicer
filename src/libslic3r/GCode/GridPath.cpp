@@ -3,6 +3,7 @@
 
 #include "GridPath.hpp"
 #include "../Print.hpp"
+#include "../Geometry.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -77,53 +78,14 @@ static void tsp_2opt_l1_improve(std::vector<size_t>& path, const Points& centers
 }
 
 // Check if two line segments intersect (proper crossing, not touching at endpoints).
+// Uses Geometry::segments_intersect() with shared-endpoint exclusion.
 static bool segments_cross(const Point& a, const Point& b, const Point& c, const Point& d)
 {
-    // Reject shared endpoints.
+    // Reject shared endpoints — adjacent edges always share one vertex.
     if (a == c || a == d || b == c || b == d) return false;
 
-    // Cross product of vectors.
-    auto cross = [](const Point& p1, const Point& p2) {
-        return static_cast<long long>(p1.x()) * static_cast<long long>(p2.y())
-             - static_cast<long long>(p1.y()) * static_cast<long long>(p2.x());
-    };
-
-    auto ab = Point(b.x() - a.x(), b.y() - a.y());
-    auto cd = Point(d.x() - c.x(), d.y() - c.y());
-    auto ac = Point(c.x() - a.x(), c.y() - a.y());
-    auto ad = Point(d.x() - a.x(), d.y() - a.y());
-    auto ca = Point(a.x() - c.x(), a.y() - c.y());
-    auto cb = Point(b.x() - c.x(), b.y() - c.y());
-
-    long long cp1 = cross(ab, ac);
-    long long cp2 = cross(ab, ad);
-    long long cp3 = cross(cd, ca);
-    long long cp4 = cross(cd, cb);
-
-    // Proper crossing: endpoints of each segment lie on opposite sides of the other.
-    if (((cp1 > 0 && cp2 < 0) || (cp1 < 0 && cp2 > 0)) &&
-        ((cp3 > 0 && cp4 < 0) || (cp3 < 0 && cp4 > 0))) {
-        return true;
-    }
-
-    // Collinear cases: only flag as crossing if segments are on different lines.
-    // If all four points are collinear, overlapping edges are unavoidable and not a real crossing.
-    bool ab_collinear_with_cd = (cp1 == 0 && cp2 == 0);
-    bool cd_collinear_with_ab = (cp3 == 0 && cp4 == 0);
-    if (ab_collinear_with_cd || cd_collinear_with_ab) return false;
-
-    // Collinear cases: check if a point lies on the segment.
-    auto on_segment = [](const Point& p, const Point& q, const Point& r) {
-        return q.x() <= std::max(p.x(), r.x()) && q.x() >= std::min(p.x(), r.x())
-            && q.y() <= std::max(p.y(), r.y()) && q.y() >= std::min(p.y(), r.y());
-    };
-
-    if (cp1 == 0 && on_segment(a, c, b)) return true;
-    if (cp2 == 0 && on_segment(a, d, b)) return true;
-    if (cp3 == 0 && on_segment(c, a, d)) return true;
-    if (cp4 == 0 && on_segment(c, b, d)) return true;
-
-    return false;
+    // Reuse the project's segment intersection test.
+    return Geometry::segments_intersect(a, b, c, d);
 }
 
 // Crossing removal: reverse any segment pair whose edges geometrically cross.
