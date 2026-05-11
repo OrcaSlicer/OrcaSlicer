@@ -1908,7 +1908,7 @@ GLGizmoCut3D::PartSelection::PartSelection(const ModelObject* mo, const Transfor
     // split to parts
     for (int id = int(volumes.size())-1; id >= 0; id--)
         if (volumes[id]->is_splittable())
-            volumes[id]->split(1, false); // TODO: fix this
+            volumes[id]->split(1, false); // No need to remap paint here, we do it later in perform_by_contour
 
     m_parts.clear();
     for (const ModelVolume* volume : volumes) {
@@ -3337,7 +3337,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
         update_object_cut_id(cut_mo->cut_id, attributes, dowels_count);
 
         Cut cut(cut_mo, instance_idx, get_cut_matrix(selection), attributes);
-        const ModelObjectPtrs& new_objects = cut_by_contour    ? cut.perform_by_contour(m_part_selection.get_cut_parts(), dowels_count):
+        const ModelObjectPtrs& new_objects = cut_by_contour    ? cut.perform_by_contour(mo, m_part_selection.get_cut_parts(), dowels_count):
                                              cut_with_groove   ? cut.perform_with_groove(m_groove, m_rotation_m) :
                                                                  cut.perform_with_plane();
 

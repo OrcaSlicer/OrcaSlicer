@@ -454,7 +454,7 @@ static void merge_solid_parts_inside_object(ModelObjectPtrs& objects)
 }
 
 
-const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowels_count)
+const ModelObjectPtrs& Cut::perform_by_contour(const ModelObject* src_object, std::vector<Part> parts, int dowels_count)
 {
     ModelObject* cut_mo = m_model.objects.front();
 
@@ -467,6 +467,19 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
     if (upper && lower) {
         upper->name = upper->name + "_A";
         lower->name = lower->name + "_B";
+    }
+
+    // Save painting data so we later can remap it.
+    std::vector<std::optional<TriangleSelector::SavedPainting>> saved_paintings;
+    if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
+        const auto instance_matrix = src_object->instances[m_instance]->get_transformation().get_matrix_no_offset();
+        for (const auto volume : src_object->volumes) {
+            saved_paintings.emplace_back(volume->save_painting());
+            if (saved_paintings.back()) {
+                // Transform mesh to cut space (same transform as process_volume_cut applies)
+                saved_paintings.back()->mesh.transform(instance_matrix * volume->get_matrix(), true);
+            }
+        }
     }
 
     const size_t cut_parts_cnt = parts.size();
@@ -498,7 +511,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
         merge_solid_parts_inside_object(cut_object_ptrs);
 
         // replace initial objects in model with cut object 
-        finalize(cut_object_ptrs, {});
+        finalize(cut_object_ptrs, saved_paintings);
     }
     else if (volumes.size() > cut_parts_cnt) {
         // Means that object is cut with connectors
@@ -529,7 +542,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
         merge_solid_parts_inside_object(cut_object_ptrs);
 
         // replace initial objects in model with cut object
-        finalize(cut_object_ptrs, {});
+        finalize(cut_object_ptrs, saved_paintings);
 
         // Add Dowel-connectors as separate objects to model
         if (cut_connectors_obj.size() >= 3)

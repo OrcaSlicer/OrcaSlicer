@@ -56,7 +56,7 @@ public:
     };
 
     const ModelObjectPtrs& perform_with_plane();
-    const ModelObjectPtrs& perform_by_contour(std::vector<Part> parts, int dowels_count);
+    const ModelObjectPtrs& perform_by_contour(const ModelObject* src_object, std::vector<Part> parts, int dowels_count);
     const ModelObjectPtrs& perform_with_groove(const Groove& groove, const Transform3d& rotation_m, bool keep_as_parts = false);
 
 }; // namespace Cut
