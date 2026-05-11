@@ -555,6 +555,20 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         upper->name = upper->name + "_A";
         lower->name = lower->name + "_B";
     }
+
+    // Save painting data so we later can remap it.
+    std::vector<std::optional<TriangleSelector::SavedPainting>> saved_paintings;
+    if (m_attributes.has(ModelObjectCutAttribute::KeepPaint)) {
+        const auto instance_matrix = cut_mo->instances[m_instance]->get_transformation().get_matrix_no_offset();
+        for (const auto volume : cut_mo->volumes) {
+            saved_paintings.emplace_back(volume->save_painting());
+            if (saved_paintings.back()) {
+                // Transform mesh to cut space (same transform as process_volume_cut applies)
+                saved_paintings.back()->mesh.transform(instance_matrix * volume->get_matrix(), true);
+            }
+        }
+    }
+
     const double groove_half_depth = 0.5 * double(groove.depth);
 
     Model tmp_model_for_cut = Model();
@@ -681,7 +695,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         merge_solid_parts_inside_object(cut_object_ptrs);
     }
 
-    finalize(cut_object_ptrs, {});
+    finalize(cut_object_ptrs, saved_paintings);
 
     return m_model.objects;
 }
