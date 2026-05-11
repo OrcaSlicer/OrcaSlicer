@@ -7,8 +7,6 @@
 
 #include <cmath>
 #include <algorithm>
-#include <limits>
-#include <utility>
 #include <vector>
 
 namespace Slic3r {

@@ -7,7 +7,6 @@
 #include "Boustrophedon.hpp"
 #include "GridPath.hpp"
 
-#include <cmath>
 #include <limits>
 
 namespace Slic3r {
