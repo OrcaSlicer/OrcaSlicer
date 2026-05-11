@@ -10,6 +10,8 @@
 #include "../Print.hpp"
 #endif
 
+#include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 namespace Slic3r {
@@ -53,6 +55,71 @@ inline double tsp_max_edge_length(const std::vector<size_t>& path, const Points&
         if (d > mx) mx = d;
     }
     return mx;
+}
+
+// --- Row grouping + serpentine traversal (shared by Boustrophedon & GridPath) ---
+
+// Group points into rows by Y coordinate and traverse them in alternating direction.
+// Returns the initial path before any post-processing.
+inline std::vector<size_t> row_serpentine_path(const Points& centers, double fraction_of_y_range = 0.1, double min_threshold_um = 1e4)
+{
+    if (centers.empty()) return {};
+
+    size_t n = centers.size();
+
+    // Compute Y range to determine row grouping threshold.
+    double y_min = std::numeric_limits<double>::max();
+    double y_max = -std::numeric_limits<double>::max();
+    for (const auto& p : centers) {
+        double y = static_cast<double>(p.y());
+        if (y < y_min) y_min = y;
+        if (y > y_max) y_max = y;
+    }
+
+    // Row threshold: fraction of Y range, with a minimum floor.
+    double row_threshold = (y_max - y_min) * fraction_of_y_range;
+    if (row_threshold < min_threshold_um) row_threshold = min_threshold_um;
+
+    // Group into rows using hash-map binning by Y coordinate.
+    std::unordered_map<int, std::vector<size_t>> row_map;
+    for (size_t i = 0; i < n; ++i) {
+        int y_key = static_cast<int>(centers[i].y() / row_threshold);
+        row_map[y_key].push_back(i);
+    }
+
+    // Convert to vector of rows with precomputed average Y.
+    struct Row { double avg_y; std::vector<size_t> indices; };
+    std::vector<Row> rows;
+    rows.reserve(row_map.size());
+    for (auto& [key, indices] : row_map) {
+        double sum = 0;
+        for (size_t idx : indices) sum += static_cast<double>(centers[idx].y());
+        rows.push_back({sum / static_cast<double>(indices.size()), std::move(indices)});
+    }
+
+    // Sort rows by average Y.
+    std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
+        return a.avg_y < b.avg_y;
+    });
+
+    // Sort each row by X coordinate, then traverse alternating direction (serpentine).
+    std::vector<size_t> path;
+    path.reserve(n);
+    bool reverse = false;
+
+    for (auto& [avg_y, row] : rows) {
+        std::sort(row.begin(), row.end(),
+            [&](size_t a, size_t b) { return centers[a].x() < centers[b].x(); });
+
+        if (reverse) {
+            path.insert(path.end(), row.rbegin(), row.rend());
+        } else {
+            path.insert(path.end(), row.begin(), row.end());
+        }
+        reverse = !reverse;
+    }
+
+    return path;
 }
 
 #ifndef SLIC3R_TEST_HARNESS
