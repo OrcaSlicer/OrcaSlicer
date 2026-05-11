@@ -649,13 +649,3 @@ endif()
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
     add_precompiled_header(libslic3r pchheader.hpp FORCEINCLUDE)
 endif ()
-
-# Standalone ordering strategy test harness
-add_executable(test_ordering_strategies ${CMAKE_SOURCE_DIR}/test_ordering_strategies.cpp)
-target_include_directories(test_ordering_strategies PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(test_ordering_strategies PRIVATE libslic3r)
-
-# Standalone ordering strategy benchmark (timing + scaling analysis)
-add_executable(benchmark_ordering_strategies ${CMAKE_SOURCE_DIR}/benchmark_ordering_strategies.cpp)
-target_include_directories(benchmark_ordering_strategies PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(benchmark_ordering_strategies PRIVATE libslic3r)

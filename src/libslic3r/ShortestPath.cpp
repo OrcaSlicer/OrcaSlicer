@@ -9,12 +9,9 @@
 #include "KDTreeIndirect.hpp"
 #include "MutablePriorityQueue.hpp"
 #include "Print.hpp"
-#include "Geometry.hpp"
-#include "Geometry/ConvexHull.hpp"
 
 #include <cmath>
 #include <cassert>
-#include <algorithm>
 
 namespace Slic3r {
 
@@ -2015,6 +2012,61 @@ std::vector<const PrintInstance*> chain_print_object_instances(const std::vector
 std::vector<const PrintInstance*> chain_print_object_instances(const Print &print)
 {
 	return chain_print_object_instances(print.objects().vector(), nullptr);
+}
+
+Polylines chain_lines(const std::vector<Line> &lines, const double point_distance_epsilon)
+{
+    // Create line end point lookup.
+    struct LineEnd {
+        LineEnd(const Line *line, bool start) : line(line), start(start) {}
+        const Line      *line;
+        // Is it the start or end point?
+        bool             start;
+        const Point&     point() const { return start ? line->a : line->b; }
+        const Point&     other_point() const { return start ? line->b : line->a; }
+        LineEnd          other_end() const { return LineEnd(line, ! start); }
+        bool operator==(const LineEnd &rhs) const { return this->line == rhs.line && this->start == rhs.start; }
+    };
+    struct LineEndAccessor {
+        const Point* operator()(const LineEnd &pt) const { return &pt.point(); }
+    };
+    typedef ClosestPointInRadiusLookup<LineEnd, LineEndAccessor> ClosestPointLookupType;
+    ClosestPointLookupType closest_end_point_lookup(point_distance_epsilon);
+    for (const Line &line : lines) {
+        closest_end_point_lookup.insert(LineEnd(&line, true));
+        closest_end_point_lookup.insert(LineEnd(&line, false));
+    }
+
+    // Chain the lines.
+    std::vector<char> line_consumed(lines.size(), false);
+    static const double point_distance_epsilon2 = point_distance_epsilon * point_distance_epsilon;
+    Polylines out;
+    for (const Line &seed : lines)
+        if (! line_consumed[&seed - lines.data()]) {
+            line_consumed[&seed - lines.data()] = true;
+            closest_end_point_lookup.erase(LineEnd(&seed, false));
+            closest_end_point_lookup.erase(LineEnd(&seed, true));
+            Polyline pl { seed.a, seed.b };
+            for (size_t round = 0; round < 2; ++ round) {
+                for (;;) {
+                    auto [line_end, dist2] = closest_end_point_lookup.find(pl.last_point());
+                    if (line_end == nullptr || dist2 >= point_distance_epsilon2)
+                        // Cannot extent in this direction.
+                        break;
+                    // Average the last point.
+                    pl.points.back() = (0.5 * (pl.points.back().cast<double>() + line_end->point().cast<double>())).cast<coord_t>();
+                    // and extend with the new line segment.
+                    pl.points.emplace_back(line_end->other_point());
+                    closest_end_point_lookup.erase(*line_end);
+                    closest_end_point_lookup.erase(line_end->other_end());
+                    line_consumed[line_end->line - lines.data()] = true;
+                }
+                // reverse and try the oter direction.
+                pl.reverse();
+            }
+            out.emplace_back(std::move(pl));
+        }
+    return out;
 }
 
 } // namespace Slic3r
