@@ -1753,7 +1753,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             std::string warning_key;
 
             const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
-            const bool ignore_jerk_validation = max_junction_deviation > 0;
+            const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
 
             // check jerk
             if (!ignore_jerk_validation) {
