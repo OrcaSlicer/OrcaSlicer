@@ -256,8 +256,8 @@ set(lisbslic3r_sources
     GCode/AngleSortCycle.hpp
     GCode/Boustrophedon.cpp
     GCode/Boustrophedon.hpp
-    GCode/GridCrossingRemoval.cpp
-    GCode/GridCrossingRemoval.hpp
+    GCode/GridPath.cpp
+    GCode/GridPath.hpp
     GCode/MinMaxEdge.cpp
     GCode/MinMaxEdge.hpp
     GCode/BestOfStrategies.cpp

@@ -5,6 +5,7 @@
 #include "ConvexHullPeeling.hpp"
 #include "AngleSortCycle.hpp"
 #include "Boustrophedon.hpp"
+#include "GridPath.hpp"
 
 #include <cmath>
 #include <limits>
@@ -33,6 +34,7 @@ std::vector<const PrintInstance*> chain_print_object_instances_best_of(const std
     candidates.push_back(chain_print_object_instances_convex_hull_peeling(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_angle_sort(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_boustrophedon(print_objects, start_near));
+    candidates.push_back(chain_print_object_instances_grid_path(print_objects, start_near));
 
     // Pick the shortest.
     size_t best = 0;
