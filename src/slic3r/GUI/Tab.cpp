@@ -4807,21 +4807,23 @@ PageShp TabPrinter::build_kinematics_page()
     // Resonance‑avoidance speed inputs
     {
         Line resonance_line = {L("Resonance Avoidance Speed"), L""};
-        resonance_line.label_path = "printer_motion_ability#resonance-avoidance-speed";
+        resonance_line.label_path = "printer_motion_ability#resonance-avoidance";
         resonance_line.append_option(optgroup->get_option("min_resonance_avoidance_speed"));
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
     }
-    optgroup->append_single_option_line("input_shaping_emit", "input_shaping_calib");
-    optgroup->append_single_option_line("input_shaping_type", "input_shaping_calib");
+    optgroup->append_single_option_line("input_shaping_emit", "printer_motion_ability#input-shaping");
+    optgroup->append_single_option_line("input_shaping_type", "printer_motion_ability#input-shaping-type");
     {
         Line freq_line = {L("Frequency"), L("The frequency of the anti-vibration signal will correspond to the natural frequency of the frame.")};
+        freq_line.label_path = "printer_motion_ability#input-shaping";
         freq_line.append_option(optgroup->get_option("input_shaping_freq_x"));
         freq_line.append_option(optgroup->get_option("input_shaping_freq_y"));
         optgroup->append_line(freq_line);
     }
     {
         Line damping_line = {L("Damping"), L("Damping ratio for the input shaping filter.")};
+        damping_line.label_path = "printer_motion_ability#input-shaping";
         damping_line.append_option(optgroup->get_option("input_shaping_damp_x"));
         damping_line.append_option(optgroup->get_option("input_shaping_damp_y"));
         optgroup->append_line(damping_line);
