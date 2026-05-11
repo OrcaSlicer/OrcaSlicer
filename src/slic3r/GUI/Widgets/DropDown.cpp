@@ -563,6 +563,34 @@ void DropDown::messureSize()
         subDropDown->text_off          = text_off;
         subDropDown->use_content_width = true;
         subDropDown->Create(GetParent());
+#ifdef __WXGTK__
+        // Orca:  Keep the wx parent as the combobox so wxPopupTransientWindow installs
+        // its capture handlers on the main dropdown, but make the native GTK
+        // popup transient for the currently open popup to satisfy Wayland's
+        // xdg-shell rule that a popup's parent must be the topmost mapped popup.
+        gtk_window_set_transient_for(GTK_WINDOW(subDropDown->GetHandle()), GTK_WINDOW(GetHandle()));
+        // Orca: On Wayland, while the sub holds an xdg_popup grab, motion events for
+        // the cursor over main may not be delivered (Mutter drops motion
+        // outside the grabbing surface). Poll on idle and synthesize a
+        // mouseMove on main so its hover highlight tracks and it can dismiss
+        // the sub when the cursor leaves the parent (group) item.
+        DropDown* sub = subDropDown;
+        sub->Bind(wxEVT_IDLE, [sub](wxIdleEvent& e) {
+            e.Skip();
+            if (!sub->IsShown() || !sub->mainDropDown->IsShown())
+                return;
+            wxPoint screen_pt = wxGetMousePosition();
+            if (sub->GetScreenRect().Contains(screen_pt) || !sub->mainDropDown->GetScreenRect().Contains(screen_pt))
+                return;
+            wxPoint main_pt = sub->mainDropDown->ScreenToClient(screen_pt);
+            wxMouseEvent ev(wxEVT_MOTION);
+            ev.SetEventObject(sub->mainDropDown);
+            ev.m_x = main_pt.x;
+            ev.m_y = main_pt.y;
+            sub->mainDropDown->mouseMove(ev);
+            e.RequestMore();
+        });
+#endif
         subDropDown->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
             e.SetEventObject(this);
             e.SetId(GetId());
@@ -757,6 +785,15 @@ void DropDown::Dismiss()
     if (subDropDown && subDropDown->IsShown())
         return;
     PopupWindow::Dismiss();
+}
+
+bool DropDown::ShouldDismissOnTopWindowDeactivate()
+{
+    // On Wayland, mapping a chained xdg_popup with grab makes the parent
+    // toplevel inactive, which would otherwise cascade-dismiss the whole
+    // chain. Skip when our chain peer is shown.
+    return !((mainDropDown && mainDropDown->IsShown()) ||
+             (subDropDown  && subDropDown->IsShown()));
 }
 
 void DropDown::OnDismiss()
