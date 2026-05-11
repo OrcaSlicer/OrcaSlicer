@@ -1,0 +1,11 @@
+{
+  "type": "machine_model",
+  "name": "SeeMeCNC BOSSdelta 500 0505",
+  "bed_model": "SeeMeCNC_Buildplate_Model_500.STL",
+  "bed_texture": "SeeMeCNC_Buildplate_texture.png",
+  "default_materials": "SeeMeCNC PLA (0.4mm)",
+  "nozzle_diameter": "0.4;0.5;0.7;1.0",
+  "machine_tech": "FFF",
+  "version": "2.3.2.60",
+  "family": "SeeMeCNC BOSSdelta 500 0505"
+}
