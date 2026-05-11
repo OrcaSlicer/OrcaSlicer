@@ -1,5 +1,6 @@
 // #include "libslic3r/GCodeSender.hpp"
 #include "ConfigManipulation.hpp"
+#include <cctype>
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "format.hpp"
@@ -594,10 +595,76 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         auto answer = dialog.ShowModal();
         if (answer == wxID_YES)
             new_conf.set_key_value("wall_generator", new ConfigOptionEnum<PerimeterGeneratorType>(PerimeterGeneratorType::Arachne));
-        else 
+        else
             new_conf.set_key_value("fuzzy_skin_mode", new ConfigOptionEnum<FuzzySkinMode>(FuzzySkinMode::Displacement));
         apply(config, &new_conf);
         is_msg_dlg_already_exist = false;
+    }
+
+    // Orca: clamp outer_wall_count to a sensible range relative to wall_loops, and warn when
+    // surface_wall_override_filament is combined with the inner-outer-inner wall sequence.
+    const int wall_loops_v        = config->opt_int("wall_loops");
+    const int wall_filament_v     = config->opt_int("wall_filament");
+    const int surface_wall_override_filament = config->opt_int("surface_wall_override_filament");
+    const int outer_wall_count    = config->opt_int("outer_wall_count");
+    if (surface_wall_override_filament > 0 && wall_loops_v > 0) {
+        const int max_outer = std::max(1, wall_loops_v - 1);
+        if (outer_wall_count < 1 || outer_wall_count > max_outer) {
+            DynamicPrintConfig new_conf = *config;
+            new_conf.set_key_value("outer_wall_count",
+                                   new ConfigOptionInt(std::clamp(outer_wall_count, 1, max_outer)));
+            apply(config, &new_conf);
+        }
+        if (!is_msg_dlg_already_exist
+            && config->opt_enum<WallSequence>("wall_sequence") == WallSequence::InnerOuterInner) {
+            wxString msg_text = _L("The 'Inner-Outer-Inner' wall sequence interleaves outer and inner walls within "
+                                   "each island. When the outer-wall filament differs from the wall filament, this "
+                                   "produces one tool change per island per layer instead of per layer, which "
+                                   "significantly increases wipe-tower volume.");
+            MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+            is_msg_dlg_already_exist = true;
+            dialog.ShowModal();
+            is_msg_dlg_already_exist = false;
+        }
+        // Orca: warn when outer-wall and inner-wall filaments are different polymer families
+        // (cross-material delamination risk). Fiber/glass-reinforced variants of the same base
+        // polymer (e.g. PETG vs PETG-CF) share a polymer backbone and are not flagged.
+        if (!is_msg_dlg_already_exist
+            && surface_wall_override_filament != wall_filament_v
+            && wall_filament_v > 0) {
+            const auto *types = config->option<ConfigOptionStrings>("filament_type");
+            if (types
+                && (size_t)surface_wall_override_filament <= types->values.size()
+                && (size_t)wall_filament_v    <= types->values.size()) {
+                auto family = [](std::string s) {
+                    // Strip reinforcement / variant suffixes that share a base polymer.
+                    for (const char *suf : { "-CF", "-GF", "-HF", "+" }) {
+                        const size_t n = std::strlen(suf);
+                        if (s.size() >= n && s.compare(s.size() - n, n, suf) == 0) {
+                            s.erase(s.size() - n);
+                            break;
+                        }
+                    }
+                    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::toupper(c); });
+                    return s;
+                };
+                const std::string outer_t = types->values[surface_wall_override_filament - 1];
+                const std::string inner_t = types->values[wall_filament_v    - 1];
+                if (!outer_t.empty() && !inner_t.empty() && family(outer_t) != family(inner_t)) {
+                    wxString msg_text = wxString::Format(
+                        _L("Surface / outer wall override (%s) and inner wall filament (%s) are different polymer "
+                           "families. They may not bond reliably at layer interfaces and can delaminate "
+                           "during or after the print.\n\n"
+                           "Fiber-reinforced variants of the same polymer (e.g. PETG vs PETG-CF) are not "
+                           "flagged — only true cross-family pairings."),
+                        wxString::FromUTF8(outer_t), wxString::FromUTF8(inner_t));
+                    MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+                    is_msg_dlg_already_exist = true;
+                    dialog.ShowModal();
+                    is_msg_dlg_already_exist = false;
+                }
+            }
+        }
     }
 }
 
@@ -813,6 +880,18 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Wall filament selectors use the same logic as in Print::extruders().
     toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
     toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
+    // Orca: outer-wall-filament feature.
+    toggle_field("surface_wall_override_filament", have_perimeters);
+    toggle_field("outer_wall_count",
+                 have_perimeters
+                 && config->opt_int("surface_wall_override_filament") > 0
+                 && config->opt_int("wall_loops") > 1);
+    // Orca: 'Apply to' picks Walls / Surfaces / Both for surface_wall_override_filament. Only
+    // meaningful once surface_wall_override_filament is set, and only useful when there is at
+    // least one solid shell to apply it to (otherwise Surfaces/Both are no-ops).
+    toggle_field("surface_wall_override_filament_target",
+                 config->opt_int("surface_wall_override_filament") > 0
+                 && (config->opt_int("top_shell_layers") > 0 || config->opt_int("bottom_shell_layers") > 0));
 
     const BrimType brim_type = config->opt_enum<BrimType>("brim_type");
     const bool have_auto_brim_ear = brim_type == btEar;
@@ -945,6 +1024,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && config->opt_bool("enable_tower_interface_features"));
 
+    for (auto el : {"surface_wall_override_filament", "outer_wall_count", "surface_wall_override_filament_target"})
+        toggle_line(el, true);
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 
     for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
