@@ -1015,21 +1015,21 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
         if (m_discard_btn) {
             m_discard_btn->SetToolTip(format_wxstr(
-                _L("Switch to \"%1%\", discarding any changes made in \"%2%\"."),
+                _L("Switch to\n\"%1%\"\ndiscarding any changes made in\n\"%2%\"."),
                 new_profile,
                 previous_profile));
         }
 
         if (m_transfer_btn) {
             m_transfer_btn->SetToolTip(format_wxstr(
-                _L("All \"New Value\" settings modified in \"%1%\" will be transferred to \"%2%\"."),
+                _L("All \"New Value\" settings modified in\n\"%1%\"\nwill be transferred to\n\"%2%\"."),
                 previous_profile,
                 new_profile));
         }
 
         if (m_save_btn) {
             m_save_btn->SetToolTip(format_wxstr(
-                _L("All \"New Value\" settings are saved in \"%1%\", and \"%2%\" will open without any changes."),
+                _L("All \"New Value\" settings are saved in\n\"%1%\"\nand \"%2%\" will open without any changes."),
                 previous_profile,
                 new_profile));
         }
