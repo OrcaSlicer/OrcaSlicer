@@ -311,12 +311,12 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintSequence)
 static t_config_enum_values s_keys_map_PrintOrder{
     { "default",     int(PrintOrder::Default) },
     { "as_obj_list", int(PrintOrder::AsObjectList)},
+    { "best_of",       int(PrintOrder::BestOfStrategies)},
+    { "min_max_edge",  int(PrintOrder::MinMaxEdge)},
     { "convex_hull", int(PrintOrder::ConvexHullPeeling)},
     { "angle_sort",  int(PrintOrder::AngleSortCycle)},
     { "boustrophedon", int(PrintOrder::Boustrophedon)},
     { "grid_path",     int(PrintOrder::GridPath)},
-    { "best_of",       int(PrintOrder::BestOfStrategies)},
-    { "min_max_edge",  int(PrintOrder::MinMaxEdge)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
 
@@ -1857,20 +1857,20 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<PrintOrder>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("as_obj_list");
+    def->enum_values.push_back("best_of");
+    def->enum_values.push_back("min_max_edge");
     def->enum_values.push_back("convex_hull");
     def->enum_values.push_back("angle_sort");
     def->enum_values.push_back("boustrophedon");
     def->enum_values.push_back("grid_path");
-    def->enum_values.push_back("best_of");
-    def->enum_values.push_back("min_max_edge");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("As object list"));
+    def->enum_labels.push_back(L("Best of all (shortest path)"));
+    def->enum_labels.push_back(L("Min-max edge (smallest longest travel)"));
     def->enum_labels.push_back(L("Convex hull peeling"));
     def->enum_labels.push_back(L("Angle sort + 2-opt"));
     def->enum_labels.push_back(L("Boustrophedon (snake)"));
     def->enum_labels.push_back(L("Grid path (serpentine, no diagonals)"));
-    def->enum_labels.push_back(L("Best of all (shortest path)"));
-    def->enum_labels.push_back(L("Min-max edge (smallest longest travel)"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<PrintOrder>(PrintOrder::Default));
 
