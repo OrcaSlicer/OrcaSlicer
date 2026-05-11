@@ -1997,6 +1997,10 @@ std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() cons
 
 void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, const bool keep_existing_paint)
 {
+    if (!keep_existing_paint) {
+        reset_extra_facets();
+    }
+
     if (!saved) {
         return;
     }
