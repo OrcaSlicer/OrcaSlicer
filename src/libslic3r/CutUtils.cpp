@@ -8,6 +8,7 @@
 #include "ObjectID.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <optional>
 
 namespace Slic3r {
 
@@ -61,10 +62,9 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     assert(vol->config.id() != src_volume->config.id());
     vol->set_material(src_volume->material_id(), *src_volume->material());
     vol->cut_info = src_volume->cut_info;
-    vol->cut_info.source_volume = src_volume->id();
 }
 
-static void process_volume_cut( const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
+static void process_volume_cut( ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
                                 ModelObjectCutAttributes attributes, TriangleMesh& upper_mesh, TriangleMesh& lower_mesh)
 {
     const auto volume_matrix = volume->get_matrix();
@@ -179,8 +179,9 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
         lower->add_volume(*volume);
 }
 
-static void process_solid_part_cut(const ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
-                            ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower)
+static void process_solid_part_cut(ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
+                            ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower,
+                            const std::optional<TriangleSelector::SavedPainting>& saved_painting)
 {
     // Perform cut
     TriangleMesh upper_mesh, lower_mesh;
@@ -189,19 +190,27 @@ static void process_solid_part_cut(const ModelVolume* volume, const Transform3d&
     // Add required cut parts to the objects
 
     if (attributes.has(ModelObjectCutAttribute::KeepAsParts)) {
-        add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
+        if (!upper_mesh.empty()) {
+            add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
+            upper->volumes.back()->restore_painting(saved_painting);
+        }
         if (!lower_mesh.empty()) {
             add_cut_volume(lower_mesh, upper, volume, cut_matrix, "_B");
             upper->volumes.back()->cut_info.is_from_upper = false;
+            upper->volumes.back()->restore_painting(saved_painting);
         }
         return;
     }
 
-    if (attributes.has(ModelObjectCutAttribute::KeepUpper))
+    if (attributes.has(ModelObjectCutAttribute::KeepUpper) && !upper_mesh.empty()) {
         add_cut_volume(upper_mesh, upper, volume, cut_matrix);
+        upper->volumes.back()->restore_painting(saved_painting);
+    }
 
-    if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty())
+    if (attributes.has(ModelObjectCutAttribute::KeepLower) && !lower_mesh.empty()) {
         add_cut_volume(lower_mesh, lower, volume, cut_matrix);
+        lower->volumes.back()->restore_painting(saved_painting);
+    }
 }
 
 static void reset_instance_transformation(ModelObject* object, size_t src_instance_idx, 
@@ -250,12 +259,8 @@ Cut::Cut(const ModelObject* object, int instance, const Transform3d& cut_matrix,
     : m_instance(instance), m_cut_matrix(cut_matrix), m_attributes(attributes)
 {
     m_model = Model();
-    if (object) {
-        const auto obj = m_model.add_object(*object);
-        for (int i = 0; i < obj->volumes.size(); i++) {
-            obj->volumes[i]->cut_info.source_volume = object->volumes[i]->id();
-        }
-    }
+    if (object)
+        m_model.add_object(*object);
 }
 
 void Cut::post_process(ModelObject* object, ModelObjectPtrs& cut_object_ptrs, bool keep, bool place_on_cut, bool flip)
@@ -286,20 +291,7 @@ void Cut::post_process(ModelObject* upper, ModelObject* lower, ModelObjectPtrs& 
 
 void Cut::finalize(const ModelObjectPtrs& objects)
 {
-    for (const auto obj : objects) {
-        for (const auto v : obj->volumes) {
-            if (v->cut_info.source_volume.valid()) {
-                for (const auto src : m_model.objects.front()->volumes) {
-                    if (src->id() == v->cut_info.source_volume) {
-                        v->cut_info.source_volume = src->cut_info.source_volume;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    //clear model from temporary objects
+    //clear model from temporarry objects
     m_model.clear_objects();
 
     // add to model result objects
@@ -358,22 +350,8 @@ const ModelObjectPtrs& Cut::perform_with_plane()
             else
                 process_connector_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, dowels);
         }
-        else if (!volume->mesh().empty()) {
-            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower);
-
-            // Apply paint to volumes cut from current volume
-            if (saved_painting) {
-                auto apply_paint = [&saved_painting, &volume](const ModelObject* obj) {
-                    for (const auto v : obj->volumes) {
-                        if (v->cut_info.source_volume == volume->id()) {
-                            v->restore_painting(saved_painting);
-                        }
-                    }
-                };
-                apply_paint(upper);
-                apply_paint(lower);
-            }
-        }
+        else if (!volume->mesh().empty())
+            process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower, saved_painting);
     }
 
     // Post-process cut parts
