@@ -221,6 +221,8 @@ void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& too
     for (int i = 1; i < m_layer_tools.size(); i++) {
         LayerTools& lt = m_layer_tools[i];
 
+        // Extruders in lt.extruders are already sorted.
+
         if (lt.extruders.empty())
             continue;
         if (lt.extruders.size() == 1 && lt.extruders.front() == 0)
@@ -229,14 +231,23 @@ void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& too
             if (lt.extruders.front() == 0)
                 // Pop the "don't care" extruder, the "don't care" region will be merged with the next one.
                 lt.extruders.erase(lt.extruders.begin());
-            // Reorder the extruders to start with the last one.
-            for (size_t i = 1; i < lt.extruders.size(); ++i)
-                if (lt.extruders[i] == last_extruder_id) {
-                    // Move the last extruder to the front.
-                    memmove(lt.extruders.data() + 1, lt.extruders.data(), i * sizeof(unsigned int));
-                    lt.extruders.front() = last_extruder_id;
-                    break;
+
+            if (m_print_config_ptr == nullptr
+                || m_print_config_ptr->toolchange_ordering == ToolChangeOrderingType::Optimized)
+            {
+                // Reorder the extruders to start with the last one.
+                for (size_t i = 1; i < lt.extruders.size(); ++i) {
+                    if (lt.extruders[i] == last_extruder_id) {
+                        // Move the last extruder to the front.
+                        std::rotate(
+                            lt.extruders.begin(),
+                            lt.extruders.begin() + i,
+                            lt.extruders.begin() + i + 1
+                        );
+                        break;
+                    }
                 }
+            }
         }
         last_extruder_id = lt.extruders.back();
     }
@@ -275,6 +286,8 @@ void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
     }
 
     for (LayerTools &lt : m_layer_tools) {
+        // Extruders in lt.extruders are already sorted.
+
         if (lt.extruders.empty())
             continue;
         if (lt.extruders.size() == 1 && lt.extruders.front() == 0)
@@ -283,14 +296,23 @@ void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
             if (lt.extruders.front() == 0)
                 // Pop the "don't care" extruder, the "don't care" region will be merged with the next one.
                 lt.extruders.erase(lt.extruders.begin());
-            // Reorder the extruders to start with the last one.
-            for (size_t i = 1; i < lt.extruders.size(); ++ i)
-                if (lt.extruders[i] == last_extruder_id) {
-                    // Move the last extruder to the front.
-                    memmove(lt.extruders.data() + 1, lt.extruders.data(), i * sizeof(unsigned int));
-                    lt.extruders.front() = last_extruder_id;
-                    break;
+
+            if (m_print_config_ptr == nullptr
+                || m_print_config_ptr->toolchange_ordering == ToolChangeOrderingType::Optimized)
+            {
+                // Reorder the extruders to start with the last one.
+                for (size_t i = 1; i < lt.extruders.size(); ++i) {
+                    if (lt.extruders[i] == last_extruder_id) {
+                        // Move the last extruder to the front.
+                        std::rotate(
+                            lt.extruders.begin(),
+                            lt.extruders.begin() + i,
+                            lt.extruders.begin() + i + 1
+                        );
+                        break;
+                    }
                 }
+            }
 
             if (lt == m_layer_tools[0]) {
                 // On first layer with wipe tower, prefer a soluble extruder

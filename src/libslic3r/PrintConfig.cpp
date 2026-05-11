@@ -522,6 +522,12 @@ static t_config_enum_values s_keys_map_PerimeterGeneratorType{
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PerimeterGeneratorType)
 
+static t_config_enum_values s_keys_map_ToolChangeOrderingType {
+    { "optimized", int(ToolChangeOrderingType::Optimized) },
+    { "cyclic",    int(ToolChangeOrderingType::Cyclic) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ToolChangeOrderingType)
+
 static const t_config_enum_values s_keys_map_ZHopType = {
     { "Auto Lift",          zhtAuto },
     { "Normal Lift",        zhtNormal },
@@ -6075,6 +6081,22 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("toolchange_ordering", coEnum);
+    def->label = L("Toolchange ordering");
+    def->category = L("Advanced");
+    def->tooltip = L(
+        "Determines the order of tool changes on each layer.\n"
+        "Optimized - Starts with the last used extruder to minimize tool changes.\n"
+        "Cyclic - Uses extruders in a fixed sequential order (1, 2, 3, ...) on every layer."
+    );
+    def->mode = comAdvanced;
+    def->enum_keys_map = &ConfigOptionEnum<ToolChangeOrderingType>::get_enum_values();
+    def->enum_values.emplace_back("optimized");
+    def->enum_values.emplace_back("cyclic");
+    def->enum_labels.emplace_back(L("Optimized"));
+    def->enum_labels.emplace_back(L("Cyclic"));
+    def->set_default_value(new ConfigOptionEnum<ToolChangeOrderingType>(ToolChangeOrderingType::Optimized));
 
     def = this->add("slice_closing_radius", coFloat);
     def->label = L("Slice gap closing radius");
