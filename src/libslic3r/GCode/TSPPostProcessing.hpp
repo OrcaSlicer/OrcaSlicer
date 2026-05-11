@@ -1,6 +1,4 @@
 // Shared TSP post-processing utilities for print-object ordering strategies.
-// Extracted from duplicated code in Boustrophedon, NearestNeighborCycle,
-// ConvexHullPeeling, AngleSortCycle, HilbertCurve, and SpiralOrdering.
 
 #ifndef slic3r_TSPPostProcessing_hpp_
 #define slic3r_TSPPostProcessing_hpp_
@@ -13,7 +11,6 @@
 #endif
 
 #include <vector>
-#include <functional>
 
 namespace Slic3r {
 
