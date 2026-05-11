@@ -2,6 +2,7 @@
 // the smallest maximum edge length (bottleneck criterion), not shortest total path.
 
 #include "MinMaxEdge.hpp"
+#include "TSPPostProcessing.hpp"
 #include "../Print.hpp"
 #include "ConvexHullPeeling.hpp"
 #include "AngleSortCycle.hpp"
@@ -55,25 +56,19 @@ std::vector<size_t> min_max_edge_core(const Points& centers)
 
     // Pick the one with smallest maximum edge, breaking ties by shortest total length.
     size_t best = 0;
-    double best_max2 = std::numeric_limits<double>::max();
-    double best_total = std::numeric_limits<double>::max();
+    double best_max = tsp_max_edge_length(candidates[0].path, centers);
+    double best_total = tsp_cycle_path_length(candidates[0].path, centers);
 
-    for (size_t i = 0; i < candidates.size(); ++i) {
+    for (size_t i = 1; i < candidates.size(); ++i) {
         const auto& path = candidates[i].path;
         if (path.empty()) continue;
 
-        double mx2 = 0.0, total = 0.0;
-        for (size_t j = 0; j < path.size(); ++j) {
-            size_t k = (j + 1) % path.size();
-            double d = (centers[path[j]].cast<double>() - centers[path[k]].cast<double>()).norm();
-            total += d;
-            double d2 = d * d;
-            if (d2 > mx2) mx2 = d2;
-        }
+        double mx = tsp_max_edge_length(path, centers);
+        double total = tsp_cycle_path_length(path, centers);
 
         // Primary: smaller max edge wins.  Secondary: shorter total length.
-        if (mx2 < best_max2 || (mx2 == best_max2 && total < best_total)) {
-            best_max2 = mx2; best_total = total; best = i;
+        if (mx < best_max || (mx == best_max && total < best_total)) {
+            best_max = mx; best_total = total; best = i;
         }
     }
 
