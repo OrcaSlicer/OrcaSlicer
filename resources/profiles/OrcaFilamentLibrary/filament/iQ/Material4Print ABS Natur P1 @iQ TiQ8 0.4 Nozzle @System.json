@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle",
+	"name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @System",
 	"inherits": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @base",
 	"from": "system",
 	"setting_id": "IQS2",
 	"filament_id": "IQM2",
 	"instantiation": "true",
-	"compatible_printers": [
-		"iQ TiQ8 0.4 Nozzle"
-	],
-	"compatible_printers_condition": ""
+	"compatible_printers": []
 }

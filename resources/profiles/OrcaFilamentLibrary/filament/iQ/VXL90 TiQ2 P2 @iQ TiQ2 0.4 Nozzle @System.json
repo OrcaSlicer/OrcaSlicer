@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle",
+	"name": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle @System",
 	"inherits": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle @base",
 	"from": "system",
 	"setting_id": "IQS1011",
 	"filament_id": "IQM1011",
 	"instantiation": "true",
-	"compatible_printers": [
-		"iQ TiQ2 0.4 Nozzle"
-	]
+	"compatible_printers": []
 }

@@ -1507,6 +1507,54 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle @base",
+			"sub_path": "filament/iQ/Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle @base.json"
+		},
+		{
+			"name": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle @System",
+			"sub_path": "filament/iQ/Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle @System.json"
+		},
+		{
+			"name": "Fiberthree PACF Pro P2 @iQ TiQ2 0.4 Nozzle @base",
+			"sub_path": "filament/iQ/Fiberthree PACF Pro P2 @iQ TiQ2 0.4 Nozzle @base.json"
+		},
+		{
+			"name": "Fiberthree PACF Pro P2 @iQ TiQ2 0.4 Nozzle @System",
+			"sub_path": "filament/iQ/Fiberthree PACF Pro P2 @iQ TiQ2 0.4 Nozzle @System.json"
+		},
+		{
+			"name": "Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle @base",
+			"sub_path": "filament/iQ/Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle @base.json"
+		},
+		{
+			"name": "Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle @System",
+			"sub_path": "filament/iQ/Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle @System.json"
+		},
+		{
+			"name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @base",
+			"sub_path": "filament/iQ/Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @base.json"
+		},
+		{
+			"name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @System",
+			"sub_path": "filament/iQ/Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @System.json"
+		},
+		{
+			"name": "Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle @base",
+			"sub_path": "filament/iQ/Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle @base.json"
+		},
+		{
+			"name": "Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle @System",
+			"sub_path": "filament/iQ/Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle @System.json"
+		},
+		{
+			"name": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle @base",
+			"sub_path": "filament/iQ/VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle @base.json"
+		},
+		{
+			"name": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle @System",
+			"sub_path": "filament/iQ/VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle @System.json"
 		}
 	],
 	"process_list": [],

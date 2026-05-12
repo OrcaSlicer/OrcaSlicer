@@ -1,52 +1,53 @@
 {
 	"type": "filament",
-	"name": "fdm_filament_common",
+	"name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle @base",
+	"inherits": "fdm_filament_common",
 	"from": "system",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"0"
 	],
 	"activate_chamber_temp_control": [
-		"0"
+		"1"
 	],
 	"additional_cooling_fan_speed": [
-		"70"
-	],
-	"chamber_temperature": [
 		"0"
 	],
+	"chamber_temperature": [
+		"75"
+	],
 	"close_fan_the_first_x_layers": [
-		"1"
+		"1000"
 	],
 	"complete_print_exhaust_fan_speed": [
 		"70"
 	],
 	"cool_plate_temp": [
-		"35"
+		"105"
 	],
 	"cool_plate_temp_initial_layer": [
-		"35"
+		"105"
 	],
 	"default_filament_colour": [
-		""
+		"#FFFFFF"
 	],
 	"during_print_exhaust_fan_speed": [
-		"70"
+		"60"
 	],
 	"enable_overhang_bridge_fan": [
-		"1"
+		"0"
 	],
 	"enable_pressure_advance": [
-		"1"
+		"0"
 	],
 	"eng_plate_temp": [
-		"0"
+		"105"
 	],
 	"eng_plate_temp_initial_layer": [
-		"0"
+		"105"
 	],
 	"fan_cooling_layer_time": [
-		"60"
+		"30"
 	],
 	"fan_max_speed": [
 		"0"
@@ -55,58 +56,58 @@
 		"0"
 	],
 	"filament_cooling_final_speed": [
-		"3.4"
+		"3.5"
 	],
 	"filament_cooling_initial_speed": [
-		"2.2"
+		"10"
 	],
 	"filament_cooling_moves": [
-		"4"
+		"2"
 	],
 	"filament_cost": [
-		"5"
+		"20"
 	],
 	"filament_density": [
-		"1.24"
+		"1.04"
 	],
 	"filament_deretraction_speed": [
-		"nil"
+		"30"
 	],
 	"filament_diameter": [
-		"2.8"
+		"1.75"
 	],
 	"filament_end_gcode": [
-		"; filament end gcode \nM106 P3 S0\n"
+		"; filament end gcode"
 	],
 	"filament_flow_ratio": [
-		"1"
+		"0.926"
 	],
 	"filament_is_support": [
 		"0"
 	],
 	"filament_loading_speed": [
-		"28"
+		"10"
 	],
 	"filament_loading_speed_start": [
-		"3"
+		"50"
 	],
 	"filament_max_volumetric_speed": [
-		"300"
+		"14"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
 	"filament_multitool_ramming": [
-		"0"
+		"1"
 	],
 	"filament_multitool_ramming_flow": [
-		"10"
+		"40"
 	],
 	"filament_multitool_ramming_volume": [
 		"10"
 	],
 	"filament_notes": [
-		""
+		"Filament file version 1.0 20250620"
 	],
 	"filament_ramming_parameters": [
 		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
@@ -130,34 +131,35 @@
 		"nil"
 	],
 	"filament_retraction_length": [
-		"nil"
+		"0.4"
 	],
 	"filament_retraction_minimum_travel": [
 		"nil"
 	],
 	"filament_retraction_speed": [
-		"nil"
+		"30"
 	],
 	"filament_shrink": [
-		"100%"
+		"99.2%"
 	],
 	"filament_soluble": [
 		"0"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n{if  (bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S255\n{elsif(bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+		"M109 S{nozzle_temperature_initial_layer[current_extruder]}\nG1 x-12 Y-13 Z44 F4000\nG4 P400\nG1 X-55\nG1 X-13 Y-4\nG1 X-51 Y-26\nG1 X-12 Y-13\nG1 X-55\nG1 X-13 Y-4\nG1 X-51 Y-26\nG1 X-12 Y-13\nG1 x-12 Y-13 F4000; Filament gcode\n{if layer_z==0}G1 Z{first_layer_height + 2.0}{endif}\n{if layer_z==0}G1 X[first_layer_print_min_0] Y[first_layer_print_min_1]{endif}\n{if layer_z==0}G1 Z{layer_z}{endif}\n",
+		"; Filament gcode\n"
 	],
 	"filament_toolchange_delay": [
 		"0"
 	],
 	"filament_unloading_speed": [
-		"90"
+		"100"
 	],
 	"filament_unloading_speed_start": [
 		"100"
 	],
 	"filament_vendor": [
-		"Generic"
+		"iQ Materials"
 	],
 	"filament_wipe": [
 		"nil"
@@ -175,57 +177,118 @@
 		"0"
 	],
 	"hot_plate_temp": [
-		"1"
+		"105"
 	],
 	"hot_plate_temp_initial_layer": [
-		"60"
+		"105"
 	],
 	"nozzle_temperature": [
-		"220"
-	],
-	"nozzle_temperature_initial_layer": [
-		"220"
-	],
-	"nozzle_temperature_range_high": [
 		"240"
 	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"280"
+	],
 	"nozzle_temperature_range_low": [
-		"190"
+		"240"
 	],
 	"overhang_fan_speed": [
-		"100"
+		"80"
 	],
 	"overhang_fan_threshold": [
-		"50%"
+		"25%"
 	],
 	"pressure_advance": [
-		"0.4"
+		"0.02"
 	],
 	"reduce_fan_stop_start_freq": [
 		"0"
 	],
 	"required_nozzle_HRC": [
-		"3"
+		"0"
 	],
 	"slow_down_for_layer_cooling": [
-		"1"
+		"0"
 	],
 	"slow_down_layer_time": [
-		"30"
+		"0"
 	],
 	"slow_down_min_speed": [
-		"20"
+		"10"
 	],
 	"support_material_interface_fan_speed": [
 		"-1"
 	],
 	"temperature_vitrification": [
-		"55"
+		"110"
 	],
 	"textured_plate_temp": [
-		"55"
+		"105"
 	],
 	"textured_plate_temp_initial_layer": [
-		"55"
+		"105"
+	],
+	"adaptive_pressure_advance": [
+		"0"
+	],
+	"adaptive_pressure_advance_bridges": [
+		"0"
+	],
+	"adaptive_pressure_advance_model": [
+		"0,0,0\n0,0,0"
+	],
+	"adaptive_pressure_advance_overhangs": [
+		"0"
+	],
+	"compatible_prints": [
+		"0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)"
+	],
+	"compatible_prints_condition": "",
+	"dont_slow_down_outer_wall": [
+		"0"
+	],
+	"filament_long_retractions_when_cut": [
+		"nil"
+	],
+	"filament_retraction_distances_when_cut": [
+		"nil"
+	],
+	"filament_settings_id": [
+		"Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle"
+	],
+	"filament_shrinkage_compensation_z": [
+		"99.18%"
+	],
+	"filament_stamping_distance": [
+		"45"
+	],
+	"filament_stamping_loading_speed": [
+		"29"
+	],
+	"filament_type": [
+		"ABS Material4Print Natur"
+	],
+	"idle_temperature": [
+		"0"
+	],
+	"internal_bridge_fan_speed": [
+		"-1"
+	],
+	"pellet_flow_coefficient": [
+		"0.4157"
+	],
+	"supertack_plate_temp": [
+		"0"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_cool_plate_temp": [
+		"40"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"40"
 	]
 }
