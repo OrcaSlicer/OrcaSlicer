@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "SecKit Generic PA-CF",
+	"name": "SecKit Generic PA-CF @System",
 	"inherits": "SecKit Generic PA-CF @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFN98",
 	"instantiation": "true",
-	"compatible_printers": [
-		"SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

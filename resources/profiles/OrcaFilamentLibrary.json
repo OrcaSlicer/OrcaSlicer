@@ -1507,6 +1507,86 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "SecKit Generic ABS @base",
+			"sub_path": "filament/SecKit/SecKit Generic ABS @base.json"
+		},
+		{
+			"name": "SecKit Generic ABS @System",
+			"sub_path": "filament/SecKit/SecKit Generic ABS @System.json"
+		},
+		{
+			"name": "SecKit Generic ASA @base",
+			"sub_path": "filament/SecKit/SecKit Generic ASA @base.json"
+		},
+		{
+			"name": "SecKit Generic ASA @System",
+			"sub_path": "filament/SecKit/SecKit Generic ASA @System.json"
+		},
+		{
+			"name": "SecKit Generic PA-CF @base",
+			"sub_path": "filament/SecKit/SecKit Generic PA-CF @base.json"
+		},
+		{
+			"name": "SecKit Generic PA-CF @System",
+			"sub_path": "filament/SecKit/SecKit Generic PA-CF @System.json"
+		},
+		{
+			"name": "SecKit Generic PA @base",
+			"sub_path": "filament/SecKit/SecKit Generic PA @base.json"
+		},
+		{
+			"name": "SecKit Generic PA @System",
+			"sub_path": "filament/SecKit/SecKit Generic PA @System.json"
+		},
+		{
+			"name": "SecKit Generic PC @base",
+			"sub_path": "filament/SecKit/SecKit Generic PC @base.json"
+		},
+		{
+			"name": "SecKit Generic PC @System",
+			"sub_path": "filament/SecKit/SecKit Generic PC @System.json"
+		},
+		{
+			"name": "SecKit Generic PETG @base",
+			"sub_path": "filament/SecKit/SecKit Generic PETG @base.json"
+		},
+		{
+			"name": "SecKit Generic PETG @System",
+			"sub_path": "filament/SecKit/SecKit Generic PETG @System.json"
+		},
+		{
+			"name": "SecKit Generic PLA-CF @base",
+			"sub_path": "filament/SecKit/SecKit Generic PLA-CF @base.json"
+		},
+		{
+			"name": "SecKit Generic PLA-CF @System",
+			"sub_path": "filament/SecKit/SecKit Generic PLA-CF @System.json"
+		},
+		{
+			"name": "SecKit Generic PLA @base",
+			"sub_path": "filament/SecKit/SecKit Generic PLA @base.json"
+		},
+		{
+			"name": "SecKit Generic PLA @System",
+			"sub_path": "filament/SecKit/SecKit Generic PLA @System.json"
+		},
+		{
+			"name": "SecKit Generic PVA @base",
+			"sub_path": "filament/SecKit/SecKit Generic PVA @base.json"
+		},
+		{
+			"name": "SecKit Generic PVA @System",
+			"sub_path": "filament/SecKit/SecKit Generic PVA @System.json"
+		},
+		{
+			"name": "SecKit Generic TPU @base",
+			"sub_path": "filament/SecKit/SecKit Generic TPU @base.json"
+		},
+		{
+			"name": "SecKit Generic TPU @System",
+			"sub_path": "filament/SecKit/SecKit Generic TPU @System.json"
 		}
 	],
 	"process_list": [],

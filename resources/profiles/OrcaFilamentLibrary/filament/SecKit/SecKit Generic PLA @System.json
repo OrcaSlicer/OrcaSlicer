@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "SecKit Generic PLA",
+	"name": "SecKit Generic PLA @System",
 	"inherits": "SecKit Generic PLA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "SecKit Generic PETG",
+	"name": "SecKit Generic PETG @System",
 	"inherits": "SecKit Generic PETG @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFG99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

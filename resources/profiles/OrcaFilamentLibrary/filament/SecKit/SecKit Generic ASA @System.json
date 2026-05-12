@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "SecKit Generic ASA",
+	"name": "SecKit Generic ASA @System",
 	"inherits": "SecKit Generic ASA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFB98",
 	"instantiation": "true",
-	"compatible_printers": [
-		"SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
-	]
+	"compatible_printers": []
 }
