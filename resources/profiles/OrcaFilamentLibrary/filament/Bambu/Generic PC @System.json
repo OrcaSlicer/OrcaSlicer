@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PC @System",
-	"inherits": "Generic PC @base",
-	"from": "system",
-	"setting_id": "GFC99_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

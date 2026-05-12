@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic EVA @System",
-	"inherits": "Generic EVA @base",
-	"from": "system",
-	"setting_id": "GFR99_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PPA-CF @System",
-	"inherits": "Generic PPA-CF @base",
-	"from": "system",
-	"setting_id": "GFN97_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

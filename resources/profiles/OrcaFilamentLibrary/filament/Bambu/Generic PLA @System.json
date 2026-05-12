@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PLA @System",
-	"inherits": "Generic PLA @base",
-	"from": "system",
-	"setting_id": "GFL99_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

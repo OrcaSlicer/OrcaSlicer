@@ -1513,120 +1513,60 @@
 			"sub_path": "filament/Bambu/Generic ABS @base.json"
 		},
 		{
-			"name": "Generic ABS @System",
-			"sub_path": "filament/Bambu/Generic ABS @System.json"
-		},
-		{
 			"name": "Generic ASA @base",
 			"sub_path": "filament/Bambu/Generic ASA @base.json"
-		},
-		{
-			"name": "Generic ASA @System",
-			"sub_path": "filament/Bambu/Generic ASA @System.json"
 		},
 		{
 			"name": "Generic BVOH @base",
 			"sub_path": "filament/Bambu/Generic BVOH @base.json"
 		},
 		{
-			"name": "Generic BVOH @System",
-			"sub_path": "filament/Bambu/Generic BVOH @System.json"
-		},
-		{
 			"name": "Generic EVA @base",
 			"sub_path": "filament/Bambu/Generic EVA @base.json"
-		},
-		{
-			"name": "Generic EVA @System",
-			"sub_path": "filament/Bambu/Generic EVA @System.json"
 		},
 		{
 			"name": "Generic HIPS @base",
 			"sub_path": "filament/Bambu/Generic HIPS @base.json"
 		},
 		{
-			"name": "Generic HIPS @System",
-			"sub_path": "filament/Bambu/Generic HIPS @System.json"
-		},
-		{
 			"name": "Generic PA @base",
 			"sub_path": "filament/Bambu/Generic PA @base.json"
-		},
-		{
-			"name": "Generic PA @System",
-			"sub_path": "filament/Bambu/Generic PA @System.json"
 		},
 		{
 			"name": "Generic PA-CF @base",
 			"sub_path": "filament/Bambu/Generic PA-CF @base.json"
 		},
 		{
-			"name": "Generic PA-CF @System",
-			"sub_path": "filament/Bambu/Generic PA-CF @System.json"
-		},
-		{
 			"name": "Generic PC @base",
 			"sub_path": "filament/Bambu/Generic PC @base.json"
-		},
-		{
-			"name": "Generic PC @System",
-			"sub_path": "filament/Bambu/Generic PC @System.json"
 		},
 		{
 			"name": "Generic PCTG @base",
 			"sub_path": "filament/Bambu/Generic PCTG @base.json"
 		},
 		{
-			"name": "Generic PCTG @System",
-			"sub_path": "filament/Bambu/Generic PCTG @System.json"
-		},
-		{
 			"name": "Generic PE @base",
 			"sub_path": "filament/Bambu/Generic PE @base.json"
-		},
-		{
-			"name": "Generic PE @System",
-			"sub_path": "filament/Bambu/Generic PE @System.json"
 		},
 		{
 			"name": "Generic PE-CF @base",
 			"sub_path": "filament/Bambu/Generic PE-CF @base.json"
 		},
 		{
-			"name": "Generic PE-CF @System",
-			"sub_path": "filament/Bambu/Generic PE-CF @System.json"
-		},
-		{
 			"name": "Generic PETG @base",
 			"sub_path": "filament/Bambu/Generic PETG @base.json"
-		},
-		{
-			"name": "Generic PETG @System",
-			"sub_path": "filament/Bambu/Generic PETG @System.json"
 		},
 		{
 			"name": "Generic PETG HF @base",
 			"sub_path": "filament/Bambu/Generic PETG HF @base.json"
 		},
 		{
-			"name": "Generic PETG HF @System",
-			"sub_path": "filament/Bambu/Generic PETG HF @System.json"
-		},
-		{
 			"name": "Generic PETG-CF @base",
 			"sub_path": "filament/Bambu/Generic PETG-CF @base.json"
 		},
 		{
-			"name": "Generic PETG-CF @System",
-			"sub_path": "filament/Bambu/Generic PETG-CF @System.json"
-		},
-		{
 			"name": "Generic PHA @base",
 			"sub_path": "filament/Bambu/Generic PHA @base.json"
-		},
-		{
-			"name": "Generic PHA @System",
-			"sub_path": "filament/Bambu/Generic PHA @System.json"
 		},
 		{
 			"name": "Bambu PLA Lite @base",
@@ -1657,72 +1597,36 @@
 			"sub_path": "filament/Bambu/Generic PLA @base.json"
 		},
 		{
-			"name": "Generic PLA @System",
-			"sub_path": "filament/Bambu/Generic PLA @System.json"
-		},
-		{
 			"name": "Generic PLA High Speed @base",
 			"sub_path": "filament/Bambu/Generic PLA High Speed @base.json"
-		},
-		{
-			"name": "Generic PLA High Speed @System",
-			"sub_path": "filament/Bambu/Generic PLA High Speed @System.json"
 		},
 		{
 			"name": "Generic PLA Silk @base",
 			"sub_path": "filament/Bambu/Generic PLA Silk @base.json"
 		},
 		{
-			"name": "Generic PLA Silk @System",
-			"sub_path": "filament/Bambu/Generic PLA Silk @System.json"
-		},
-		{
 			"name": "Generic PLA-CF @base",
 			"sub_path": "filament/Bambu/Generic PLA-CF @base.json"
-		},
-		{
-			"name": "Generic PLA-CF @System",
-			"sub_path": "filament/Bambu/Generic PLA-CF @System.json"
 		},
 		{
 			"name": "Generic PP @base",
 			"sub_path": "filament/Bambu/Generic PP @base.json"
 		},
 		{
-			"name": "Generic PP @System",
-			"sub_path": "filament/Bambu/Generic PP @System.json"
-		},
-		{
 			"name": "Generic PP-CF @base",
 			"sub_path": "filament/Bambu/Generic PP-CF @base.json"
-		},
-		{
-			"name": "Generic PP-CF @System",
-			"sub_path": "filament/Bambu/Generic PP-CF @System.json"
 		},
 		{
 			"name": "Generic PP-GF @base",
 			"sub_path": "filament/Bambu/Generic PP-GF @base.json"
 		},
 		{
-			"name": "Generic PP-GF @System",
-			"sub_path": "filament/Bambu/Generic PP-GF @System.json"
-		},
-		{
 			"name": "Generic PPA-CF @base",
 			"sub_path": "filament/Bambu/Generic PPA-CF @base.json"
 		},
 		{
-			"name": "Generic PPA-CF @System",
-			"sub_path": "filament/Bambu/Generic PPA-CF @System.json"
-		},
-		{
 			"name": "Generic PPA-GF @base",
 			"sub_path": "filament/Bambu/Generic PPA-GF @base.json"
-		},
-		{
-			"name": "Generic PPA-GF @System",
-			"sub_path": "filament/Bambu/Generic PPA-GF @System.json"
 		},
 		{
 			"name": "Generic PPS @base",
@@ -1745,16 +1649,8 @@
 			"sub_path": "filament/Bambu/Generic PVA @base.json"
 		},
 		{
-			"name": "Generic PVA @System",
-			"sub_path": "filament/Bambu/Generic PVA @System.json"
-		},
-		{
 			"name": "Generic SBS @base",
 			"sub_path": "filament/Bambu/Generic SBS @base.json"
-		},
-		{
-			"name": "Generic SBS @System",
-			"sub_path": "filament/Bambu/Generic SBS @System.json"
 		},
 		{
 			"name": "Bambu TPU 85A @base",
@@ -1783,10 +1679,6 @@
 		{
 			"name": "Generic TPU @base",
 			"sub_path": "filament/Bambu/Generic TPU @base.json"
-		},
-		{
-			"name": "Generic TPU @System",
-			"sub_path": "filament/Bambu/Generic TPU @System.json"
 		},
 		{
 			"name": "Generic TPU for AMS @base",

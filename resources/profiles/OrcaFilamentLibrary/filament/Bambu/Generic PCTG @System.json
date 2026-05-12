@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PCTG @System",
-	"inherits": "Generic PCTG @base",
-	"from": "system",
-	"setting_id": "GFG97_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

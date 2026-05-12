@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic ASA @System",
-	"inherits": "Generic ASA @base",
-	"from": "system",
-	"setting_id": "GFB98_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

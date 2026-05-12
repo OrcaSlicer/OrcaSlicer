@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PLA High Speed @System",
-	"inherits": "Generic PLA High Speed @base",
-	"from": "system",
-	"setting_id": "GFL95_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

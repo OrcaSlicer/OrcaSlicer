@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic ABS @System",
-	"inherits": "Generic ABS @base",
-	"from": "system",
-	"setting_id": "GFB99_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

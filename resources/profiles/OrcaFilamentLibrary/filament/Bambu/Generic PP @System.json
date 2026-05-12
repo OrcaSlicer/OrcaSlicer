@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PP @System",
-	"inherits": "Generic PP @base",
-	"from": "system",
-	"setting_id": "GFP97_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

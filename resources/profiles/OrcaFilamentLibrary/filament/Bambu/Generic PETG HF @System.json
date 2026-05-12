@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PETG HF @System",
-	"inherits": "Generic PETG HF @base",
-	"from": "system",
-	"setting_id": "GFG96_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

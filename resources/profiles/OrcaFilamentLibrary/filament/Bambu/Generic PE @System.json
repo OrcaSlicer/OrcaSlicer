@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PE @System",
-	"inherits": "Generic PE @base",
-	"from": "system",
-	"setting_id": "GFP99_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

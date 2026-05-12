@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic PLA Silk @System",
-	"inherits": "Generic PLA Silk @base",
-	"from": "system",
-	"setting_id": "GFL96_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}

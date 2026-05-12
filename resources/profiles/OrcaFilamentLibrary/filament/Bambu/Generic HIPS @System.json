@@ -1,9 +1,0 @@
-{
-	"type": "filament",
-	"name": "Generic HIPS @System",
-	"inherits": "Generic HIPS @base",
-	"from": "system",
-	"setting_id": "GFS98_00",
-	"instantiation": "true",
-	"compatible_printers": []
-}
