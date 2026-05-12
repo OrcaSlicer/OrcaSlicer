@@ -1,17 +1,11 @@
 {
 	"type": "filament",
 	"name": "CoPrint Generic PLA",
-	"inherits": "fdm_filament_pla",
+	"inherits": "CoPrint Generic PLA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"filament_load_time": [
-		"9.75"
-	],
-	"filament_unload_time": [
-		"9.75"
-	],
 	"compatible_printers": [
 		"Co Print ChromaSet 0.4 nozzle",
 		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3",

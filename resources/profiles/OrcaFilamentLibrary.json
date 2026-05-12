@@ -1507,6 +1507,38 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "CoPrint Generic ABS @base",
+			"sub_path": "filament/Co Print/CoPrint Generic ABS @base.json"
+		},
+		{
+			"name": "CoPrint Generic ABS @System",
+			"sub_path": "filament/Co Print/CoPrint Generic ABS @System.json"
+		},
+		{
+			"name": "CoPrint Generic PETG @base",
+			"sub_path": "filament/Co Print/CoPrint Generic PETG @base.json"
+		},
+		{
+			"name": "CoPrint Generic PETG @System",
+			"sub_path": "filament/Co Print/CoPrint Generic PETG @System.json"
+		},
+		{
+			"name": "CoPrint Generic PLA @base",
+			"sub_path": "filament/Co Print/CoPrint Generic PLA @base.json"
+		},
+		{
+			"name": "CoPrint Generic PLA @System",
+			"sub_path": "filament/Co Print/CoPrint Generic PLA @System.json"
+		},
+		{
+			"name": "CoPrint Generic TPU @base",
+			"sub_path": "filament/Co Print/CoPrint Generic TPU @base.json"
+		},
+		{
+			"name": "CoPrint Generic TPU @System",
+			"sub_path": "filament/Co Print/CoPrint Generic TPU @System.json"
 		}
 	],
 	"process_list": [],
