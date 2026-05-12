@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "RatRig Generic PCTG @System",
+	"inherits": "RatRig Generic PCTG @base",
+	"from": "system",
+	"setting_id": "GFCA04",
+	"filament_id": "GFC99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

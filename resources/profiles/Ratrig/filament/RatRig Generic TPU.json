@@ -1,29 +1,11 @@
 {
 	"type": "filament",
 	"name": "RatRig Generic TPU",
-	"inherits": "fdm_filament_tpu",
+	"inherits": "RatRig Generic TPU @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFU99",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"5"
-	],
-	"filament_z_hop": [
-		"0"
-	],
-	"enable_pressure_advance": [
-		"1"
-	],
-	"pressure_advance": [
-		"0.1"
-	],
-	"nozzle_temperature": [
-		"220"
-	],
-	"nozzle_temperature_initial_layer": [
-		"220"
-	],
 	"compatible_printers": [
 		"RatRig V-Core 3 200 0.4 nozzle",
 		"RatRig V-Core 3 300 0.4 nozzle",

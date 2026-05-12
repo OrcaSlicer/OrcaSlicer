@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "RatRig BigNozzle PCTG @System",
+	"inherits": "RatRig BigNozzle PCTG @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFC99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

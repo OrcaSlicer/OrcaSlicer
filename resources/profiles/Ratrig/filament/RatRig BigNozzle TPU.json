@@ -1,35 +1,11 @@
 {
 	"type": "filament",
 	"name": "RatRig BigNozzle TPU",
-	"inherits": "fdm_filament_tpu",
+	"inherits": "RatRig BigNozzle TPU @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"5"
-	],
-	"filament_z_hop": [
-		"0"
-	],
-	"enable_pressure_advance": [
-		"1"
-	],
-	"pressure_advance": [
-		"0.1"
-	],
-	"nozzle_temperature_initial_layer": [
-		"240"
-	],
-	"nozzle_temperature": [
-		"245"
-	],
-	"nozzle_temperature_range_high": [
-		"270"
-	],
-	"nozzle_temperature_range_low": [
-		"220"
-	],
 	"compatible_printers": [
 		"RatRig V-Core 3 200 0.4 nozzle",
 		"RatRig V-Core 3 300 0.4 nozzle",

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "RatRig Generic PA-CF @System",
+	"inherits": "RatRig Generic PA-CF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

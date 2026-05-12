@@ -1507,6 +1507,166 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "RatRig BigNozzle ABS @base",
+			"sub_path": "filament/RatRig/RatRig BigNozzle ABS @base.json"
+		},
+		{
+			"name": "RatRig BigNozzle ABS @System",
+			"sub_path": "filament/RatRig/RatRig BigNozzle ABS @System.json"
+		},
+		{
+			"name": "RatRig BigNozzle ASA @base",
+			"sub_path": "filament/RatRig/RatRig BigNozzle ASA @base.json"
+		},
+		{
+			"name": "RatRig BigNozzle ASA @System",
+			"sub_path": "filament/RatRig/RatRig BigNozzle ASA @System.json"
+		},
+		{
+			"name": "RatRig BigNozzle PCTG @base",
+			"sub_path": "filament/RatRig/RatRig BigNozzle PCTG @base.json"
+		},
+		{
+			"name": "RatRig BigNozzle PCTG @System",
+			"sub_path": "filament/RatRig/RatRig BigNozzle PCTG @System.json"
+		},
+		{
+			"name": "RatRig BigNozzle PETG @base",
+			"sub_path": "filament/RatRig/RatRig BigNozzle PETG @base.json"
+		},
+		{
+			"name": "RatRig BigNozzle PETG @System",
+			"sub_path": "filament/RatRig/RatRig BigNozzle PETG @System.json"
+		},
+		{
+			"name": "RatRig BigNozzle PLA @base",
+			"sub_path": "filament/RatRig/RatRig BigNozzle PLA @base.json"
+		},
+		{
+			"name": "RatRig BigNozzle PLA @System",
+			"sub_path": "filament/RatRig/RatRig BigNozzle PLA @System.json"
+		},
+		{
+			"name": "RatRig BigNozzle TPU @base",
+			"sub_path": "filament/RatRig/RatRig BigNozzle TPU @base.json"
+		},
+		{
+			"name": "RatRig BigNozzle TPU @System",
+			"sub_path": "filament/RatRig/RatRig BigNozzle TPU @System.json"
+		},
+		{
+			"name": "RatRig Generic ABS @base",
+			"sub_path": "filament/RatRig/RatRig Generic ABS @base.json"
+		},
+		{
+			"name": "RatRig Generic ABS @System",
+			"sub_path": "filament/RatRig/RatRig Generic ABS @System.json"
+		},
+		{
+			"name": "RatRig Generic ASA @base",
+			"sub_path": "filament/RatRig/RatRig Generic ASA @base.json"
+		},
+		{
+			"name": "RatRig Generic ASA @System",
+			"sub_path": "filament/RatRig/RatRig Generic ASA @System.json"
+		},
+		{
+			"name": "RatRig Generic PA-CF @base",
+			"sub_path": "filament/RatRig/RatRig Generic PA-CF @base.json"
+		},
+		{
+			"name": "RatRig Generic PA-CF @System",
+			"sub_path": "filament/RatRig/RatRig Generic PA-CF @System.json"
+		},
+		{
+			"name": "RatRig Generic PA @base",
+			"sub_path": "filament/RatRig/RatRig Generic PA @base.json"
+		},
+		{
+			"name": "RatRig Generic PA @System",
+			"sub_path": "filament/RatRig/RatRig Generic PA @System.json"
+		},
+		{
+			"name": "RatRig Generic PC @base",
+			"sub_path": "filament/RatRig/RatRig Generic PC @base.json"
+		},
+		{
+			"name": "RatRig Generic PC @System",
+			"sub_path": "filament/RatRig/RatRig Generic PC @System.json"
+		},
+		{
+			"name": "RatRig Generic PCTG @base",
+			"sub_path": "filament/RatRig/RatRig Generic PCTG @base.json"
+		},
+		{
+			"name": "RatRig Generic PCTG @System",
+			"sub_path": "filament/RatRig/RatRig Generic PCTG @System.json"
+		},
+		{
+			"name": "RatRig Generic PETG @base",
+			"sub_path": "filament/RatRig/RatRig Generic PETG @base.json"
+		},
+		{
+			"name": "RatRig Generic PETG @System",
+			"sub_path": "filament/RatRig/RatRig Generic PETG @System.json"
+		},
+		{
+			"name": "RatRig Generic PLA-CF @base",
+			"sub_path": "filament/RatRig/RatRig Generic PLA-CF @base.json"
+		},
+		{
+			"name": "RatRig Generic PLA-CF @System",
+			"sub_path": "filament/RatRig/RatRig Generic PLA-CF @System.json"
+		},
+		{
+			"name": "RatRig Generic PLA @base",
+			"sub_path": "filament/RatRig/RatRig Generic PLA @base.json"
+		},
+		{
+			"name": "RatRig Generic PLA @System",
+			"sub_path": "filament/RatRig/RatRig Generic PLA @System.json"
+		},
+		{
+			"name": "RatRig Generic PVA @base",
+			"sub_path": "filament/RatRig/RatRig Generic PVA @base.json"
+		},
+		{
+			"name": "RatRig Generic PVA @System",
+			"sub_path": "filament/RatRig/RatRig Generic PVA @System.json"
+		},
+		{
+			"name": "RatRig Generic TPU @base",
+			"sub_path": "filament/RatRig/RatRig Generic TPU @base.json"
+		},
+		{
+			"name": "RatRig Generic TPU @System",
+			"sub_path": "filament/RatRig/RatRig Generic TPU @System.json"
+		},
+		{
+			"name": "RatRig PunkFil ABS @base",
+			"sub_path": "filament/RatRig/RatRig PunkFil ABS @base.json"
+		},
+		{
+			"name": "RatRig PunkFil ABS @System",
+			"sub_path": "filament/RatRig/RatRig PunkFil ABS @System.json"
+		},
+		{
+			"name": "RatRig PunkFil PETG CF @base",
+			"sub_path": "filament/RatRig/RatRig PunkFil PETG CF @base.json"
+		},
+		{
+			"name": "RatRig PunkFil PETG CF @System",
+			"sub_path": "filament/RatRig/RatRig PunkFil PETG CF @System.json"
+		},
+		{
+			"name": "RatRig PunkFil PETG @base",
+			"sub_path": "filament/RatRig/RatRig PunkFil PETG @base.json"
+		},
+		{
+			"name": "RatRig PunkFil PETG @System",
+			"sub_path": "filament/RatRig/RatRig PunkFil PETG @System.json"
 		}
 	],
 	"process_list": [],

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "RatRig Generic PVA @System",
+	"inherits": "RatRig Generic PVA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFS99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
