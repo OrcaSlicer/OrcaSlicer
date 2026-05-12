@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PET @System",
+	"inherits": "Snapmaker Dual PET @base",
+	"from": "system",
+	"setting_id": "2128577941_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

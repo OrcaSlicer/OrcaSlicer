@@ -1507,6 +1507,342 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Snapmaker ABS @base",
+			"sub_path": "filament/Snapmaker/Snapmaker ABS @base.json"
+		},
+		{
+			"name": "Snapmaker ABS @System",
+			"sub_path": "filament/Snapmaker/Snapmaker ABS @System.json"
+		},
+		{
+			"name": "Snapmaker Dual ABS @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual ABS @base.json"
+		},
+		{
+			"name": "Snapmaker Dual ABS @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual ABS @System.json"
+		},
+		{
+			"name": "Snapmaker J1 ABS @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 ABS @base.json"
+		},
+		{
+			"name": "Snapmaker J1 ABS @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 ABS @System.json"
+		},
+		{
+			"name": "Snapmaker ASA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker ASA @base.json"
+		},
+		{
+			"name": "Snapmaker ASA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker ASA @System.json"
+		},
+		{
+			"name": "Snapmaker Dual ASA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual ASA @base.json"
+		},
+		{
+			"name": "Snapmaker Dual ASA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual ASA @System.json"
+		},
+		{
+			"name": "Snapmaker J1 ASA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 ASA @base.json"
+		},
+		{
+			"name": "Snapmaker J1 ASA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 ASA @System.json"
+		},
+		{
+			"name": "Snapmaker Dual Breakaway @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual Breakaway @base.json"
+		},
+		{
+			"name": "Snapmaker Dual Breakaway @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual Breakaway @System.json"
+		},
+		{
+			"name": "Snapmaker J1 Breakaway @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 Breakaway @base.json"
+		},
+		{
+			"name": "Snapmaker J1 Breakaway @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 Breakaway @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PA-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PA-CF @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PA-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PA-CF @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PA-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PA-CF @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PA-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PA-CF @System.json"
+		},
+		{
+			"name": "Snapmaker PA-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PA-CF @base.json"
+		},
+		{
+			"name": "Snapmaker PA-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PA-CF @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PET @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PET @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PET @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PET @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PET @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PET @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PET @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PET @System.json"
+		},
+		{
+			"name": "Snapmaker PET @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PET @base.json"
+		},
+		{
+			"name": "Snapmaker PET @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PET @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PETG @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PETG @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PETG @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PETG @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PETG-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PETG-CF @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PETG-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PETG-CF @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PETG @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PETG @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PETG @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PETG @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PETG-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PETG-CF @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PETG-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PETG-CF @System.json"
+		},
+		{
+			"name": "Snapmaker PETG @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PETG @base.json"
+		},
+		{
+			"name": "Snapmaker PETG @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PETG @System.json"
+		},
+		{
+			"name": "Snapmaker PETG-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PETG-CF @base.json"
+		},
+		{
+			"name": "Snapmaker PETG-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PETG-CF @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Matte @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Matte @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Matte @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Matte @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Metal @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Metal @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Metal @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Metal @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Silk @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Silk @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Silk @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Silk @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA-CF @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA-CF @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Matte @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Matte @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Matte @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Matte @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Metal @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Metal @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Metal @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Metal @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Silk @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Silk @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Silk @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Silk @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA-CF @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA-CF @System.json"
+		},
+		{
+			"name": "Snapmaker PLA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA @base.json"
+		},
+		{
+			"name": "Snapmaker PLA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA @System.json"
+		},
+		{
+			"name": "Snapmaker PLA Silk @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA Silk @base.json"
+		},
+		{
+			"name": "Snapmaker PLA Silk @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA Silk @System.json"
+		},
+		{
+			"name": "Snapmaker PLA-CF @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA-CF @base.json"
+		},
+		{
+			"name": "Snapmaker PLA-CF @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA-CF @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PVA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PVA @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PVA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PVA @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PVA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PVA @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PVA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PVA @System.json"
+		},
+		{
+			"name": "Snapmaker PVA @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PVA @base.json"
+		},
+		{
+			"name": "Snapmaker PVA @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PVA @System.json"
+		},
+		{
+			"name": "Snapmaker Dual TPU @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual TPU @base.json"
+		},
+		{
+			"name": "Snapmaker Dual TPU @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual TPU @System.json"
+		},
+		{
+			"name": "Snapmaker J1 TPU @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 TPU @base.json"
+		},
+		{
+			"name": "Snapmaker J1 TPU @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 TPU @System.json"
+		},
+		{
+			"name": "Snapmaker TPU @base",
+			"sub_path": "filament/Snapmaker/Snapmaker TPU @base.json"
+		},
+		{
+			"name": "Snapmaker TPU @System",
+			"sub_path": "filament/Snapmaker/Snapmaker TPU @System.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Eco @base",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Eco @base.json"
+		},
+		{
+			"name": "Snapmaker Dual PLA Eco @System",
+			"sub_path": "filament/Snapmaker/Snapmaker Dual PLA Eco @System.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Eco @base",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Eco @base.json"
+		},
+		{
+			"name": "Snapmaker J1 PLA Eco @System",
+			"sub_path": "filament/Snapmaker/Snapmaker J1 PLA Eco @System.json"
+		},
+		{
+			"name": "Snapmaker PLA Eco @base",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA Eco @base.json"
+		},
+		{
+			"name": "Snapmaker PLA Eco @System",
+			"sub_path": "filament/Snapmaker/Snapmaker PLA Eco @System.json"
 		}
 	],
 	"process_list": [],

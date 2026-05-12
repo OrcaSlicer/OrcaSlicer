@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker J1 PLA @System",
+	"inherits": "Snapmaker J1 PLA @base",
+	"from": "system",
+	"setting_id": "377675245_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

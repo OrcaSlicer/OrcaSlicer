@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PA-CF @System",
+	"inherits": "Snapmaker Dual PA-CF @base",
+	"from": "system",
+	"setting_id": "3493177425_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

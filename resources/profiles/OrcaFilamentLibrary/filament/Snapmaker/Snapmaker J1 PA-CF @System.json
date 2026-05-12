@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker J1 PA-CF @System",
+	"inherits": "Snapmaker J1 PA-CF @base",
+	"from": "system",
+	"setting_id": "1210173120_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

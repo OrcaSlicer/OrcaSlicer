@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PVA @System",
+	"inherits": "Snapmaker Dual PVA @base",
+	"from": "system",
+	"setting_id": "3104636980_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

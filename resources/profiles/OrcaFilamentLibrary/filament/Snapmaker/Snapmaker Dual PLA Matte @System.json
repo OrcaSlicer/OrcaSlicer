@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PLA Matte @System",
+	"inherits": "Snapmaker Dual PLA Matte @base",
+	"from": "system",
+	"setting_id": "3503790988_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

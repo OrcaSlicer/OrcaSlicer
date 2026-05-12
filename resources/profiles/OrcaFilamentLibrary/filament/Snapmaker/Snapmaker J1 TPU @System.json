@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker J1 TPU @System",
+	"inherits": "Snapmaker J1 TPU @base",
+	"from": "system",
+	"setting_id": "4092268632_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

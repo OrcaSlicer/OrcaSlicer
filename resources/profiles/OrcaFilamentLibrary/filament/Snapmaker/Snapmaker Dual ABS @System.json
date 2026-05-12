@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual ABS @System",
+	"inherits": "Snapmaker Dual ABS @base",
+	"from": "system",
+	"setting_id": "168223792_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

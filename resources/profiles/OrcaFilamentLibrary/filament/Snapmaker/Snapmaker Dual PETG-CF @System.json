@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PETG-CF @System",
+	"inherits": "Snapmaker Dual PETG-CF @base",
+	"from": "system",
+	"setting_id": "1042511226_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

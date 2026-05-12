@@ -561,72 +561,16 @@
 			"sub_path": "filament/Snapmaker ABS @U1 base.json"
 		},
 		{
-			"name": "Snapmaker ABS @base",
-			"sub_path": "filament/Snapmaker ABS @base.json"
-		},
-		{
-			"name": "Snapmaker Dual ABS @base",
-			"sub_path": "filament/Snapmaker Dual ABS @base.json"
-		},
-		{
-			"name": "Snapmaker J1 ABS @base",
-			"sub_path": "filament/Snapmaker J1 ABS @base.json"
-		},
-		{
 			"name": "Snapmaker ASA @U1 base",
 			"sub_path": "filament/Snapmaker ASA @U1 base.json"
-		},
-		{
-			"name": "Snapmaker ASA @base",
-			"sub_path": "filament/Snapmaker ASA @base.json"
-		},
-		{
-			"name": "Snapmaker Dual ASA @base",
-			"sub_path": "filament/Snapmaker Dual ASA @base.json"
-		},
-		{
-			"name": "Snapmaker J1 ASA @base",
-			"sub_path": "filament/Snapmaker J1 ASA @base.json"
-		},
-		{
-			"name": "Snapmaker Dual Breakaway @base",
-			"sub_path": "filament/Snapmaker Dual Breakaway @base.json"
-		},
-		{
-			"name": "Snapmaker J1 Breakaway @base",
-			"sub_path": "filament/Snapmaker J1 Breakaway @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PA-CF @base",
-			"sub_path": "filament/Snapmaker Dual PA-CF @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PA-CF @base",
-			"sub_path": "filament/Snapmaker J1 PA-CF @base.json"
 		},
 		{
 			"name": "Snapmaker PA-CF @U1 base",
 			"sub_path": "filament/Snapmaker PA-CF @U1 base.json"
 		},
 		{
-			"name": "Snapmaker PA-CF @base",
-			"sub_path": "filament/Snapmaker PA-CF @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PET @base",
-			"sub_path": "filament/Snapmaker Dual PET @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PET @base",
-			"sub_path": "filament/Snapmaker J1 PET @base.json"
-		},
-		{
 			"name": "Snapmaker PET @U1 base",
 			"sub_path": "filament/Snapmaker PET @U1 base.json"
-		},
-		{
-			"name": "Snapmaker PET @base",
-			"sub_path": "filament/Snapmaker PET @base.json"
 		},
 		{
 			"name": "PolyLite PETG @Base",
@@ -637,36 +581,12 @@
 			"sub_path": "filament/Polymaker/Polymaker PETG @Base.json"
 		},
 		{
-			"name": "Snapmaker Dual PETG @base",
-			"sub_path": "filament/Snapmaker Dual PETG @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PETG-CF @base",
-			"sub_path": "filament/Snapmaker Dual PETG-CF @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PETG @base",
-			"sub_path": "filament/Snapmaker J1 PETG @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PETG-CF @base",
-			"sub_path": "filament/Snapmaker J1 PETG-CF @base.json"
-		},
-		{
 			"name": "Snapmaker PETG @U1 base",
 			"sub_path": "filament/Snapmaker PETG @U1 base.json"
 		},
 		{
-			"name": "Snapmaker PETG @base",
-			"sub_path": "filament/Snapmaker PETG @base.json"
-		},
-		{
 			"name": "Snapmaker PETG-CF @U1 base",
 			"sub_path": "filament/Snapmaker PETG-CF @U1 base.json"
-		},
-		{
-			"name": "Snapmaker PETG-CF @base",
-			"sub_path": "filament/Snapmaker PETG-CF @base.json"
 		},
 		{
 			"name": "Panchroma CoPE @U1 base",
@@ -769,52 +689,8 @@
 			"sub_path": "filament/Polymaker/Polymaker PLA Pro @Base.json"
 		},
 		{
-			"name": "Snapmaker Dual PLA @base",
-			"sub_path": "filament/Snapmaker Dual PLA @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PLA Matte @base",
-			"sub_path": "filament/Snapmaker Dual PLA Matte @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PLA Metal @base",
-			"sub_path": "filament/Snapmaker Dual PLA Metal @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PLA Silk @base",
-			"sub_path": "filament/Snapmaker Dual PLA Silk @base.json"
-		},
-		{
-			"name": "Snapmaker Dual PLA-CF @base",
-			"sub_path": "filament/Snapmaker Dual PLA-CF @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PLA @base",
-			"sub_path": "filament/Snapmaker J1 PLA @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PLA Matte @base",
-			"sub_path": "filament/Snapmaker J1 PLA Matte @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PLA Metal @base",
-			"sub_path": "filament/Snapmaker J1 PLA Metal @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PLA Silk @base",
-			"sub_path": "filament/Snapmaker J1 PLA Silk @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PLA-CF @base",
-			"sub_path": "filament/Snapmaker J1 PLA-CF @base.json"
-		},
-		{
 			"name": "Snapmaker PLA @U1 base",
 			"sub_path": "filament/Snapmaker PLA @U1 base.json"
-		},
-		{
-			"name": "Snapmaker PLA @base",
-			"sub_path": "filament/Snapmaker PLA @base.json"
 		},
 		{
 			"name": "Snapmaker PLA Metal @U1 base",
@@ -825,52 +701,20 @@
 			"sub_path": "filament/Snapmaker PLA Silk @U1 base.json"
 		},
 		{
-			"name": "Snapmaker PLA Silk @base",
-			"sub_path": "filament/Snapmaker PLA Silk @base.json"
-		},
-		{
 			"name": "Snapmaker PLA-CF @U1 base",
 			"sub_path": "filament/Snapmaker PLA-CF @U1 base.json"
-		},
-		{
-			"name": "Snapmaker PLA-CF @base",
-			"sub_path": "filament/Snapmaker PLA-CF @base.json"
 		},
 		{
 			"name": "fdm_filament_pla_eco",
 			"sub_path": "filament/fdm_filament_pla_eco.json"
 		},
 		{
-			"name": "Snapmaker Dual PVA @base",
-			"sub_path": "filament/Snapmaker Dual PVA @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PVA @base",
-			"sub_path": "filament/Snapmaker J1 PVA @base.json"
-		},
-		{
 			"name": "Snapmaker PVA @U1 base",
 			"sub_path": "filament/Snapmaker PVA @U1 base.json"
 		},
 		{
-			"name": "Snapmaker PVA @base",
-			"sub_path": "filament/Snapmaker PVA @base.json"
-		},
-		{
-			"name": "Snapmaker Dual TPU @base",
-			"sub_path": "filament/Snapmaker Dual TPU @base.json"
-		},
-		{
-			"name": "Snapmaker J1 TPU @base",
-			"sub_path": "filament/Snapmaker J1 TPU @base.json"
-		},
-		{
 			"name": "Snapmaker TPU @U1 base",
 			"sub_path": "filament/Snapmaker TPU @U1 base.json"
-		},
-		{
-			"name": "Snapmaker TPU @base",
-			"sub_path": "filament/Snapmaker TPU @base.json"
 		},
 		{
 			"name": "Snapmaker ABS @U1",
@@ -1281,20 +1125,8 @@
 			"sub_path": "filament/Snapmaker PLA-CF.json"
 		},
 		{
-			"name": "Snapmaker Dual PLA Eco @base",
-			"sub_path": "filament/Snapmaker Dual PLA Eco @base.json"
-		},
-		{
-			"name": "Snapmaker J1 PLA Eco @base",
-			"sub_path": "filament/Snapmaker J1 PLA Eco @base.json"
-		},
-		{
 			"name": "Snapmaker PLA Eco @U1 base",
 			"sub_path": "filament/Snapmaker PLA Eco @U1 base.json"
-		},
-		{
-			"name": "Snapmaker PLA Eco @base",
-			"sub_path": "filament/Snapmaker PLA Eco @base.json"
 		},
 		{
 			"name": "Snapmaker Dual PVA",

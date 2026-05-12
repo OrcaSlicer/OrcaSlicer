@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PLA Eco @System",
+	"inherits": "Snapmaker Dual PLA Eco @base",
+	"from": "system",
+	"setting_id": "200803790_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

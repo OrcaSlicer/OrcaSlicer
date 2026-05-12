@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker J1 ABS @System",
+	"inherits": "Snapmaker J1 ABS @base",
+	"from": "system",
+	"setting_id": "1223824394_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker ASA @System",
+	"inherits": "Snapmaker ASA @base",
+	"from": "system",
+	"setting_id": "2742961008_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

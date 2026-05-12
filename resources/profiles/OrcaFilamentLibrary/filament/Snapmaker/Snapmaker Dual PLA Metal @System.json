@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PLA Metal @System",
+	"inherits": "Snapmaker Dual PLA Metal @base",
+	"from": "system",
+	"setting_id": "2029994346_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

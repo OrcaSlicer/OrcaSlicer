@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker Dual PLA-CF @System",
+	"inherits": "Snapmaker Dual PLA-CF @base",
+	"from": "system",
+	"setting_id": "1702147325_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

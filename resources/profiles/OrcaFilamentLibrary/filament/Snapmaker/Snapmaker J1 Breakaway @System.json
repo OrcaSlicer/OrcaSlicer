@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker J1 Breakaway @System",
+	"inherits": "Snapmaker J1 Breakaway @base",
+	"from": "system",
+	"setting_id": "3492897526_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

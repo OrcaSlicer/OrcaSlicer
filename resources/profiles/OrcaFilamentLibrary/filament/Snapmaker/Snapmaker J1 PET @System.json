@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Snapmaker J1 PET @System",
+	"inherits": "Snapmaker J1 PET @base",
+	"from": "system",
+	"setting_id": "1009481135_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}
