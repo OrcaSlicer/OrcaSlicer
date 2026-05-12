@@ -169,6 +169,12 @@ modules:
         sha256: 4d27e9efed0f6f152dc28db6430b9d3dfb40c0345da7342eaa5a987dde57bd95
         dest: external-packages/Boost
 
+      # Eigen 5.0.1
+      - type: file
+        url: https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.zip
+        sha256: 0dbb1f9e3aaad66f352c03227d8c983f6f0b49e0b07e71a7300f4abcc01aee12
+        dest: external-packages/Eigen
+
       # TBB v2021.5.0
       - type: file
         url: https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.5.0.zip

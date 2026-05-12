@@ -11,22 +11,19 @@
 #include <Eigen/Dense>
 namespace igl
 {
-  // Round a scalar value
-  //
-  // Inputs:
-  //   x  number
-  // Returns x rounded to integer
+  /// Round a scalar value
+  ///
+  /// @param[in] x  number
+  /// @return x rounded to integer
   template <typename DerivedX>
   DerivedX round(const DerivedX r);
-  // Round a given matrix to nearest integers
-  //
-  // Inputs:
-  //   X  m by n matrix of scalars
-  // Outputs:
-  //   Y  m by n matrix of rounded integers
+  /// Round a given matrix to nearest integers
+  ///
+  /// @param[in] X  m by n matrix of scalars
+  /// @param[out] Y  m by n matrix of rounded integers
   template < typename DerivedX, typename DerivedY>
   IGL_INLINE void round(
-    const Eigen::PlainObjectBase<DerivedX>& X,
+    const Eigen::MatrixBase<DerivedX>& X,
     Eigen::PlainObjectBase<DerivedY>& Y);
 }
 

@@ -15,7 +15,9 @@ namespace igl
 {
   namespace matlab
   {
-    // Wrapper for mexErrMsgTxt that only calls error if test fails
+    /// Wrapper for mexErrMsgTxt that only calls error if test fails
+    /// @param[in] test boolean expression to test
+    /// @param[in] message message to print if test fails
     IGL_INLINE void mexErrMsgTxt(bool test, const char * message);
   }
 }
