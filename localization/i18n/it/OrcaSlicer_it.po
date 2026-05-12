@@ -1738,13 +1738,13 @@ msgid "Untitled"
 msgstr "Senza titolo"
 
 msgid "Reloading network plug-in..."
-msgstr "Ricaricamento plug-in di rete..."
+msgstr "Ricaricamento modulo di rete..."
 
 msgid "Downloading Network Plug-in"
-msgstr "Scaricamento plug-in di rete"
+msgstr "Scaricamento modulo di rete"
 
 msgid "Downloading Bambu Network Plug-in"
-msgstr "Scaricamento del modulo Bambu Network"
+msgstr "Scaricamento del modulo di rete Bambu"
 
 msgid "Login information expired. Please login again."
 msgstr ""
@@ -1916,7 +1916,7 @@ msgstr ""
 "funzionalità con OrcaSlicer."
 
 msgid "Network Plug-in Restriction"
-msgstr "Restrizione plug-in di rete"
+msgstr "Restrizione modulo di rete"
 
 msgid "Privacy Policy Update"
 msgstr "Aggiornamento dell'informativa sulla riservatezza"
@@ -3959,17 +3959,17 @@ msgid ""
 "Failed to download the plug-in. Please check your firewall settings and VPN "
 "software and retry."
 msgstr ""
-"Impossibile scaricare il modulo. Controlla le impostazioni del firewall e "
-"VPN poi riprova."
+"Impossibile scaricare il modulo. Controllare le impostazioni del firewall e "
+"della VPN e riprovare."
 
 msgid ""
 "Failed to install the plug-in. The plug-in file may be in use. Please "
 "restart OrcaSlicer and try again. Also check whether it is blocked or "
 "deleted by anti-virus software."
 msgstr ""
-"Impossibile installare il plug-in. Il file del plug-in potrebbe essere in "
-"uso. Riavviare OrcaSlicer e riprovare. Verificare anche che non sia bloccato "
-"o eliminato da un software antivirus."
+"Impossibile installare il modulo. Il modulo potrebbe essere in uso. "
+"Riavviare OrcaSlicer e riprovare. Verificare inoltre che non sia stato "
+"bloccato o eliminato da un software antivirus."
 
 msgid "Click here to see more info"
 msgstr "Per ulteriori informazioni clicca qui"
@@ -3978,7 +3978,7 @@ msgid ""
 "The network plug-in was installed but could not be loaded. Please restart "
 "the application."
 msgstr ""
-"Il plug-in di rete è stato installato ma non è stato possibile caricarlo. "
+"Il modulo di rete è stato installato ma non è stato possibile caricarlo. "
 "Riavviare l'applicazione."
 
 msgid "Restart Required"
@@ -6957,11 +6957,11 @@ msgstr "Assistente (HMS)"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s"
-msgstr "Plug-in di rete v%s"
+msgstr "Modulo di rete v%s"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s (%s)"
-msgstr "Plug-in di rete v%s (%s)"
+msgstr "Modulo di rete v%s (%s)"
 
 msgid "Don't show again"
 msgstr "Non mostrare più"
@@ -8786,28 +8786,28 @@ msgid "Color only"
 msgstr "Solo colore"
 
 msgid "Network plug-in"
-msgstr "Plug-in di rete"
+msgstr "Modulo di rete"
 
 msgid "Enable network plug-in"
 msgstr "Abilita modulo di rete"
 
 msgid "Network plug-in version"
-msgstr "Versione plug-in di rete"
+msgstr "Versione modulo di rete"
 
 msgid "Select the network plug-in version to use"
-msgstr "Seleziona la versione del plug-in di rete da utilizzare"
+msgstr "Seleziona la versione del modulo di rete da utilizzare"
 
 msgid "(Latest)"
 msgstr "(Ultima)"
 
 msgid "Network plug-in switched successfully."
-msgstr "Plug-in di rete cambiato con successo."
+msgstr "Modulo di rete cambiato con successo."
 
 msgid "Success"
 msgstr "Successo"
 
 msgid "Failed to load network plug-in. Please restart the application."
-msgstr "Impossibile caricare il plug-in di rete. Riavviare l'applicazione."
+msgstr "Impossibile caricare il modulo di rete. Riavviare l'applicazione."
 
 #, c-format, boost-format
 msgid ""
@@ -8817,7 +8817,7 @@ msgid ""
 "\n"
 "Note: The application may need to restart after installation."
 msgstr ""
-"Hai selezionato la versione %s del plug-in di rete.\n"
+"Hai selezionato la versione %s del modulo di rete.\n"
 "\n"
 "Vuoi scaricare e installare questa versione ora?\n"
 "\n"
@@ -8825,7 +8825,7 @@ msgstr ""
 "l'installazione."
 
 msgid "Download Network Plug-in"
-msgstr "Scarica plug-in di rete"
+msgstr "Scarica modulo di rete"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Associa i file ad OrcaSlicer"
@@ -8907,13 +8907,13 @@ msgid "Reload"
 msgstr "Ricarica"
 
 msgid "Reload the network plug-in without restarting the application"
-msgstr "Ricarica il plug-in di rete senza riavviare l'applicazione"
+msgstr "Ricarica il modulo di rete senza riavviare l'applicazione"
 
 msgid "Network plug-in reloaded successfully."
-msgstr "Plug-in di rete ricaricato con successo."
+msgstr "Modulo di rete ricaricato con successo."
 
 msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "Impossibile ricaricare il plug-in di rete. Riavviare l'applicazione."
+msgstr "Impossibile ricaricare il modulo di rete. Riavviare l'applicazione."
 
 msgid "Reload Failed"
 msgstr "Ricaricamento fallito"
@@ -11448,7 +11448,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
-msgstr "Disponibile nuovo modulo di rete (%s). Vuoi installarlo?"
+msgstr "È disponibile un nuovo modulo di rete (%s). Vuoi installarlo?"
 
 msgid "New version of Orca Slicer"
 msgstr "Nuova versione di OrcaSlicer"
@@ -22493,21 +22493,23 @@ msgid "More Colors"
 msgstr "Più colori"
 
 msgid "Network Plug-in Update Available"
-msgstr "Aggiornamento plug-in di rete disponibile"
+msgstr "Aggiornamento modulo di rete disponibile"
 
 msgid "Bambu Network Plug-in Required"
-msgstr "Plug-in di rete Bambu richiesto"
+msgstr "Modulo di rete Bambu richiesto"
 
 msgid ""
 "The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
-msgstr "Il plug-in di rete Bambu è corrotto o incompatibile. Reinstallarlo."
+msgstr ""
+"Il modulo di rete Bambu è corrotto o incompatibile. Si prega di "
+"reinstallarlo."
 
 msgid ""
 "The Bambu Network Plug-in is required for cloud features, printer discovery, "
 "and remote printing."
 msgstr ""
-"Il plug-in di rete Bambu è necessario per le funzionalità cloud, il "
-"rilevamento delle stampanti e la stampa remota."
+"Il modulo di rete Bambu è necessario per le funzionalità cloud, il "
+"rilevamento delle stampanti e la stampa in remoto."
 
 #, c-format, boost-format
 msgid "Error: %s"
@@ -22526,7 +22528,7 @@ msgid "Skip for Now"
 msgstr "Salta per ora"
 
 msgid "A new version of the Bambu Network Plug-in is available."
-msgstr "È disponibile una nuova versione del plug-in di rete Bambu."
+msgstr "È disponibile una nuova versione del modulo di rete Bambu."
 
 #, c-format, boost-format
 msgid "Current version: %s"
@@ -22548,12 +22550,12 @@ msgid "Don't Ask Again"
 msgstr "Non chiedere più"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
-msgstr "Il plug-in di rete Bambu è stato installato con successo."
+msgstr "Il modulo di rete Bambu è stato installato con successo."
 
 msgid ""
 "A restart is required to load the new plug-in. Would you like to restart now?"
 msgstr ""
-"È necessario un riavvio per caricare il nuovo plug-in. Vuoi riavviare ora?"
+"È necessario un riavvio per caricare il nuovo modulo. Vuoi riavviare ora?"
 
 msgid "Restart Now"
 msgstr "Riavvia ora"
