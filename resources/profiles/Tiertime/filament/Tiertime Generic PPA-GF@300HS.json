@@ -1,16 +1,10 @@
 {
 	"type": "filament",
 	"name": "Tiertime Generic PPA-GF@300HS",
-	"inherits": "fdm_filament_ppa",
+	"inherits": "Tiertime Generic PPA-GF@300HS @base",
 	"from": "system",
 	"filament_id": "GFN96_01",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"6"
-	],
-	"filament_type": [
-		"PPA-GF"
-	],
 	"compatible_printers": [
 		"Tiertime UP300 HS 0.4 nozzle",
 		"Tiertime UP600 HS 0.4 nozzle",

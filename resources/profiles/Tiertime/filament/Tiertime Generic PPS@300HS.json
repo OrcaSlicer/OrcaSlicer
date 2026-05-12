@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Tiertime Generic PPS@300HS",
-	"inherits": "fdm_filament_pps",
+	"inherits": "Tiertime Generic PPS@300HS @base",
 	"from": "system",
 	"filament_id": "GFT97_01",
 	"instantiation": "true",

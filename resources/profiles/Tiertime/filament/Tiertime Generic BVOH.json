@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Tiertime Generic BVOH",
-	"inherits": "fdm_filament_bvoh",
+	"inherits": "Tiertime Generic BVOH @base",
 	"from": "system",
 	"filament_id": "GFS97",
 	"instantiation": "true",

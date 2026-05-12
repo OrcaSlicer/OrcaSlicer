@@ -123,9 +123,6 @@
 	"wipe": [
 		"1"
 	],
-	"default_filament_profile": [
-		""
-	],
 	"default_print_profile": "0.20mm Standard @Tiertime UP400 Pro",
 	"bed_exclude_area": [
 		"0x0"

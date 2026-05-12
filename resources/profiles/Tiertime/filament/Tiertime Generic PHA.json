@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Tiertime Generic PHA",
-	"inherits": "fdm_filament_pha",
+	"inherits": "Tiertime Generic PHA @base",
 	"from": "system",
 	"filament_id": "GFR98",
 	"instantiation": "true",
