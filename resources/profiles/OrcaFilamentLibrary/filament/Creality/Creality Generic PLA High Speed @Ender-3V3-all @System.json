@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic PLA High Speed @Ender-3V3-all @System",
+	"inherits": "Creality Generic PLA High Speed @Ender-3V3-all @base",
+	"from": "system",
+	"setting_id": "GFSL95_00",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,17 +1,11 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ASA",
-	"inherits": "fdm_filament_asa",
+	"inherits": "Creality Generic ASA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFB98",
 	"instantiation": "true",
-	"filament_flow_ratio": [
-		"0.926"
-	],
-	"filament_max_volumetric_speed": [
-		"12"
-	],
 	"compatible_printers": [
 		"Creality CR-10 V2 0.4 nozzle",
 		"Creality CR-10 V3 0.4 nozzle",

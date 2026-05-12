@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Hyper PLA-CF @Ender-5Max-all @System",
+	"inherits": "Creality Hyper PLA-CF @Ender-5Max-all @base",
+	"from": "system",
+	"setting_id": "GFSA04_CREALITY_00",
+	"filament_id": "02001",
+	"instantiation": "true",
+	"compatible_printers": []
+}

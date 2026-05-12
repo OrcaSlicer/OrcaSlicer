@@ -1,13 +1,10 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA Matte @Ender-3V3-all",
-	"inherits": "Creality Generic PLA @Ender-3V3-all",
+	"inherits": "Creality Generic PLA Matte @Ender-3V3-all @base",
 	"from": "system",
 	"setting_id": "GFSL05_00",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"18"
-	],
 	"compatible_printers": [
 		"Creality Ender-3 V3 SE 0.2 nozzle",
 		"Creality Ender-3 V3 SE 0.4 nozzle",

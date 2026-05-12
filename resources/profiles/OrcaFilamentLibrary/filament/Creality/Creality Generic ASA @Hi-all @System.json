@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic ASA @Hi-all @System",
+	"inherits": "Creality Generic ASA @Hi-all @base",
+	"from": "system",
+	"setting_id": "GFSA04_00",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

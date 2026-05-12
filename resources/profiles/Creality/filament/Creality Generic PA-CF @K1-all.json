@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PA-CF @K1-all",
-	"inherits": "Creality Generic PA-CF",
+	"inherits": "Creality Generic PA-CF @K1-all @base",
 	"from": "system",
 	"setting_id": "GFSN99_01",
 	"instantiation": "true",

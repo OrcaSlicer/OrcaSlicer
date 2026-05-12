@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic PA-CF @System",
+	"inherits": "Creality Generic PA-CF @base",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

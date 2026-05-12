@@ -1,22 +1,10 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PA-CF @K2-all",
-	"inherits": "Creality Generic PA-CF",
+	"inherits": "Creality Generic PA-CF @K2-all @base",
 	"from": "system",
 	"setting_id": "GFSN99_01",
 	"instantiation": "true",
-	"nozzle_temperature_initial_layer": [
-		"280"
-	],
-	"nozzle_temperature": [
-		"280"
-	],
-	"fan_min_speed": [
-		"30"
-	],
-	"filament_start_gcode": [
-		";filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}"
-	],
 	"compatible_printers": [
 		"Creality K2 0.2 nozzle",
 		"Creality K2 0.4 nozzle",

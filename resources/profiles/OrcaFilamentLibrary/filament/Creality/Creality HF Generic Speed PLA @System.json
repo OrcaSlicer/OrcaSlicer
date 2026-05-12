@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality HF Generic Speed PLA @System",
+	"inherits": "Creality HF Generic Speed PLA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

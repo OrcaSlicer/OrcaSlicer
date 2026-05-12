@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic PA-CF @Ender-3V3-all @System",
+	"inherits": "Creality Generic PA-CF @Ender-3V3-all @base",
+	"from": "system",
+	"setting_id": "GFSN99_01",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

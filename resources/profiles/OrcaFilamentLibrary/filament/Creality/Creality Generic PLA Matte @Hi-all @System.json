@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic PLA Matte @Hi-all @System",
+	"inherits": "Creality Generic PLA Matte @Hi-all @base",
+	"from": "system",
+	"setting_id": "GFSL05_00",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

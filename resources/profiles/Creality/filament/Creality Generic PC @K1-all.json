@@ -1,13 +1,10 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PC @K1-all",
-	"inherits": "Creality Generic PC",
+	"inherits": "Creality Generic PC @K1-all @base",
 	"from": "system",
 	"setting_id": "GFSC99_06",
 	"instantiation": "true",
-	"chamber_temperatures": [
-		"60"
-	],
 	"compatible_printers": [
 		"Creality K1 (0.4 nozzle)",
 		"Creality K1 (0.6 nozzle)",

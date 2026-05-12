@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic PETG-CF @Hi-all @System",
+	"inherits": "Creality Generic PETG-CF @Hi-all @base",
+	"from": "system",
+	"setting_id": "GFSG99_00",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

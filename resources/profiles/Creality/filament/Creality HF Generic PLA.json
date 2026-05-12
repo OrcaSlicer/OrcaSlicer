@@ -1,23 +1,11 @@
 {
 	"type": "filament",
 	"name": "Creality HF Generic PLA",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Creality HF Generic PLA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"filament_flow_ratio": [
-		"0.98"
-	],
-	"filament_max_volumetric_speed": [
-		"18"
-	],
-	"slow_down_layer_time": [
-		"8"
-	],
-	"slow_down_min_speed": [
-		"20"
-	],
 	"compatible_printers": [
 		"Creality K1 (0.4 nozzle)",
 		"Creality K1 (0.6 nozzle)",

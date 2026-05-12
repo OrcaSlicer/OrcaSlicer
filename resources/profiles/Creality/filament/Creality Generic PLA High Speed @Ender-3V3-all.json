@@ -1,13 +1,10 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA High Speed @Ender-3V3-all",
-	"inherits": "Creality Generic PLA @Ender-3V3-all",
+	"inherits": "Creality Generic PLA High Speed @Ender-3V3-all @base",
 	"from": "system",
 	"setting_id": "GFSL95_00",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"23"
-	],
 	"compatible_printers": [
 		"Creality Ender-3 V3 SE 0.2 nozzle",
 		"Creality Ender-3 V3 SE 0.4 nozzle",

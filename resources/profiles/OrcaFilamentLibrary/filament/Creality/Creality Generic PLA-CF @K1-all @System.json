@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic PLA-CF @K1-all @System",
+	"inherits": "Creality Generic PLA-CF @K1-all @base",
+	"from": "system",
+	"setting_id": "GFSL96_00",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

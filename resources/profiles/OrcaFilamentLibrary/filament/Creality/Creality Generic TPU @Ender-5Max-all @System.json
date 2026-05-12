@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Creality Generic TPU @Ender-5Max-all @System",
+	"inherits": "Creality Generic TPU @Ender-5Max-all @base",
+	"from": "system",
+	"setting_id": "GFSA04_CREALITY_00",
+	"filament_id": "10001",
+	"instantiation": "true",
+	"compatible_printers": []
+}
