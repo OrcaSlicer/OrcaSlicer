@@ -1787,7 +1787,8 @@ msgid "Click to download new version in default browser: %s"
 msgstr ""
 "Haga clic para descargar la nueva versión en el navegador por defecto: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer necesita una actualización"
 
 msgid "This is the newest version."
@@ -2269,10 +2270,10 @@ msgstr "Convertir de metros"
 msgid "Restore to meters"
 msgstr "Restaurar a metros"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar los objetos seleccionados en un objeto con múltiples piezas"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Ensamblar los objetos seleccionados en un objeto de una sola pieza"
 
 msgid "Mesh boolean"
@@ -5787,7 +5788,7 @@ msgstr "Enviar a multidispositivo"
 msgid "Keyboard Shortcuts"
 msgstr "Atajos de teclado"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Mostrar la lista de los atajos de teclado"
 
 msgid "Setup Wizard"
@@ -8904,7 +8905,7 @@ msgstr "Asociar enlaces web a OrcaSlicer"
 msgid "Developer"
 msgstr "Desarrollador"
 
-msgid "Develop mode"
+msgid "Developer mode"
 msgstr "Modo de desarrollador"
 
 msgid "Skip AMS blacklist check"
@@ -20075,7 +20076,7 @@ msgstr "El nombre no puede exceder de 40 caracteres."
 msgid "Please find the best line on your plate"
 msgstr "Por favor encuentre la mejor línea en su cama"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Encuentre la esquina con el grado de extrusión perfecto"
 
 msgid "Input Value"
@@ -20859,7 +20860,8 @@ msgid "Vendor is not selected, please reselect vendor."
 msgstr ""
 "El fabricante no ha sido seleccionado, por favor, seleccione el fabricante."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 "El fabricante personalizado no ha sido introducido, por favor introdúzcalo."
 
@@ -20901,8 +20903,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "El nombre del filamento %s que ha creado ya existe.\n"
 "Si continúa, el perfil creado se mostrará con su nombre completo. ¿Desea "
@@ -22938,7 +22940,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Descarga en soporte/objetos/relleno\n"

@@ -1756,7 +1756,8 @@ msgid "Click to download new version in default browser: %s"
 msgstr ""
 "Klik hier om de nieuwe versie te downloaden in je standaard browser: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer heeft een upgrade nodig"
 
 msgid "This is the newest version."
@@ -2228,11 +2229,11 @@ msgstr "Omzetten vanuit meter"
 msgid "Restore to meters"
 msgstr "Terugzetten naar meter"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr ""
 "Monteer de geselecteerde objecten tot een object bestaande uit meerdere delen"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr ""
 "Monteer de geselecteerde objecten tot een object bestaande uit 1 onderdeel"
 
@@ -5697,7 +5698,7 @@ msgstr "Naar meerdere apparaten verzenden"
 msgid "Keyboard Shortcuts"
 msgstr "Sneltoesten"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Toon lijst met sneltoetsen"
 
 msgid "Setup Wizard"
@@ -8780,7 +8781,8 @@ msgstr "Koppel weblinks aan OrcaSlicer"
 msgid "Developer"
 msgstr "Ontwikkelaar"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Ontwikkelmodus"
 
 msgid "Skip AMS blacklist check"
@@ -19714,7 +19716,7 @@ msgstr "De naam mag niet langer zijn dan 40 tekens."
 msgid "Please find the best line on your plate"
 msgstr "Zoek de beste regel op je bord"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Zoek de hoek met de perfecte extrusiegraad"
 
 msgid "Input Value"
@@ -20480,10 +20482,12 @@ msgstr "Filament voorinstelling"
 msgid "Create"
 msgstr "Creëren"
 
+#, fuzzy
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Custom vendor missing; please input custom vendor."
 
 msgid ""
@@ -20521,8 +20525,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "De filamentnaam %s die je hebt gemaakt, bestaat al.\n"
 "Als u doorgaat, wordt de gemaakte voorinstelling weergegeven met de "
@@ -22488,7 +22492,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Flush in support/voorwerpen/infill\n"
