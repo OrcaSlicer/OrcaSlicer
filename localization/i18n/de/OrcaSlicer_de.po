@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-12 15:45-0300\n"
+"POT-Creation-Date: 2026-05-12 15:52-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -6338,6 +6338,11 @@ msgstr ""
 "Der Player ist nicht geladen. Klicken Sie auf die Schaltfläche „Wiedergabe“, "
 "um es erneut zu versuchen."
 
+msgid ""
+"The player is not loaded because the GStreamer GTK video sink is missing or "
+"failed to initialize."
+msgstr ""
+
 msgid "Please confirm if the printer is connected."
 msgstr "Bitte bestätigen Sie, ob der Drucker verbunden ist."
 
@@ -11360,6 +11365,16 @@ msgstr "Reinigungsvolumen für Filamentwechsel"
 
 msgid "Please choose the filament colour"
 msgstr "Bitte wählen Sie die Filamentfarbe"
+
+msgid ""
+"Native Wayland liveview requires the GStreamer GTK video sink. Please "
+"install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+msgstr ""
+
+msgid ""
+"Failed to initialize the native Wayland GStreamer video sink. Please check "
+"your GStreamer GTK plugin installation."
+msgstr ""
 
 msgid ""
 "Windows Media Player is required for this task! Do you want to enable "

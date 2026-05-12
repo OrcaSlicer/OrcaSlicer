@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-12 15:45-0300\n"
+"POT-Creation-Date: 2026-05-12 15:52-0300\n"
 "PO-Revision-Date: 2026-02-28 00:59\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -5959,6 +5959,11 @@ msgstr "播放器异常，请重新安装系统播放器。"
 msgid "The player is not loaded, please click \"play\" button to retry."
 msgstr "未能加载播放器，请重新点击“播放”按钮。"
 
+msgid ""
+"The player is not loaded because the GStreamer GTK video sink is missing or "
+"failed to initialize."
+msgstr ""
+
 msgid "Please confirm if the printer is connected."
 msgstr "请确认打印机是否连接成功。"
 
@@ -10509,6 +10514,16 @@ msgstr "耗材丝更换时的冲刷体积"
 
 msgid "Please choose the filament colour"
 msgstr "请选择耗材丝颜色"
+
+msgid ""
+"Native Wayland liveview requires the GStreamer GTK video sink. Please "
+"install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+msgstr ""
+
+msgid ""
+"Failed to initialize the native Wayland GStreamer video sink. Please check "
+"your GStreamer GTK plugin installation."
+msgstr ""
 
 msgid ""
 "Windows Media Player is required for this task! Do you want to enable "
