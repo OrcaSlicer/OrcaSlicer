@@ -13,6 +13,7 @@ REQUIRED_DEV_PACKAGES=(
     gettext
     git
     gstreamer1-devel
+    gstreamer1-plugins-good-gtk
     gstreamermm-devel
     gtk3-devel
     libmspack-devel

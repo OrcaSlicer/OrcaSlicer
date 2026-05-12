@@ -13,6 +13,7 @@ REQUIRED_DEV_PACKAGES=(
     gettext
     git
     gstreamer-devel
+    gstreamer-plugins-good-gtk
     gtk3-devel
     libmspack-devel
     libquadmath-devel

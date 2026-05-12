@@ -35,12 +35,13 @@ finish-args:
 
 modules:
 
-  # JPEG codec for the liveview
+  # JPEG codec and GTK video sink (Wayland liveview) for the liveview
   - name: gst-plugins-good
     buildsystem: meson
     config-opts:
       - -Dauto_features=disabled
       - -Djpeg=enabled
+      - -Dgtk3=enabled
       - -Ddoc=disabled
       - -Dexamples=disabled
       - -Dtests=disabled
