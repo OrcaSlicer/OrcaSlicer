@@ -725,6 +725,12 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 double radius = delta(2) / (2 * PI * atan(this->filament()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
                 ij_offset = { -ij_offset(1), ij_offset(0) };
+                // ORCA: prevent spiral from crossing X<0 when near the left boundary.
+                if (source.x() + ij_offset.x() - radius < 0.)
+                    ij_offset = { radius, 0. };
+                // ORCA: prevent spiral from crossing Y<0 when near the front boundary.
+                if (source.y() + ij_offset.y() - radius < 0.)
+                    ij_offset = { 0., radius };
                 slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
             }
             //BBS: SlopeLift
