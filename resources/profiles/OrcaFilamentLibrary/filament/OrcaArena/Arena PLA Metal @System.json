@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PLA Metal @System",
+	"inherits": "Arena PLA Metal @base",
+	"from": "system",
+	"setting_id": "GFA02_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

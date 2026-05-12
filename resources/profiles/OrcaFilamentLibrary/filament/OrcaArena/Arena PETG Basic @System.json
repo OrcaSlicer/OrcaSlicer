@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PETG Basic @System",
+	"inherits": "Arena PETG Basic @base",
+	"from": "system",
+	"setting_id": "GFG00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

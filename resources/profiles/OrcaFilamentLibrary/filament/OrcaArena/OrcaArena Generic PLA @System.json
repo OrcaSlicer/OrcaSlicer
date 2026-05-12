@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "OrcaArena Generic PLA @System",
+	"inherits": "OrcaArena Generic PLA @base",
+	"from": "system",
+	"setting_id": "GFL99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

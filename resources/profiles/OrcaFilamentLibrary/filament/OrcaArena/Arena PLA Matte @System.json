@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PLA Matte @System",
+	"inherits": "Arena PLA Matte @base",
+	"from": "system",
+	"setting_id": "GFA01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "OrcaArena Generic PC @System",
+	"inherits": "OrcaArena Generic PC @base",
+	"from": "system",
+	"setting_id": "GFC99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

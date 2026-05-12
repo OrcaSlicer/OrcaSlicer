@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena ABS @System",
+	"inherits": "Arena ABS @base",
+	"from": "system",
+	"setting_id": "GFB00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

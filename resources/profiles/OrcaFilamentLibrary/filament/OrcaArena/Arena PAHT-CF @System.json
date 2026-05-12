@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PAHT-CF @System",
+	"inherits": "Arena PAHT-CF @base",
+	"from": "system",
+	"setting_id": "GFN04_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

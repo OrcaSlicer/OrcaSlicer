@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena Support G @System",
+	"inherits": "Arena Support G @base",
+	"from": "system",
+	"setting_id": "GFS01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

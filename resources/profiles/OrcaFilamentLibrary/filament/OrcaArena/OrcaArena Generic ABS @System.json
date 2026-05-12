@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "OrcaArena Generic ABS @System",
+	"inherits": "OrcaArena Generic ABS @base",
+	"from": "system",
+	"setting_id": "GFB99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena TPU 95A @System",
+	"inherits": "Arena TPU 95A @base",
+	"from": "system",
+	"setting_id": "GFU01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

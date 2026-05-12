@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PC @System",
+	"inherits": "Arena PC @base",
+	"from": "system",
+	"setting_id": "GFC00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

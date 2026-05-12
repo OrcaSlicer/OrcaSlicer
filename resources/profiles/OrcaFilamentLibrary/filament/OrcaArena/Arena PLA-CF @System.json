@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PLA-CF @System",
+	"inherits": "Arena PLA-CF @base",
+	"from": "system",
+	"setting_id": "GFA50_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

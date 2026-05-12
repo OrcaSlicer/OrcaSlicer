@@ -1507,6 +1507,230 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Arena ABS @base",
+			"sub_path": "filament/OrcaArena/Arena ABS @base.json"
+		},
+		{
+			"name": "Arena ABS @System",
+			"sub_path": "filament/OrcaArena/Arena ABS @System.json"
+		},
+		{
+			"name": "Arena PA-CF @base",
+			"sub_path": "filament/OrcaArena/Arena PA-CF @base.json"
+		},
+		{
+			"name": "Arena PA-CF @System",
+			"sub_path": "filament/OrcaArena/Arena PA-CF @System.json"
+		},
+		{
+			"name": "Arena PAHT-CF @base",
+			"sub_path": "filament/OrcaArena/Arena PAHT-CF @base.json"
+		},
+		{
+			"name": "Arena PAHT-CF @System",
+			"sub_path": "filament/OrcaArena/Arena PAHT-CF @System.json"
+		},
+		{
+			"name": "Arena PC @base",
+			"sub_path": "filament/OrcaArena/Arena PC @base.json"
+		},
+		{
+			"name": "Arena PC @System",
+			"sub_path": "filament/OrcaArena/Arena PC @System.json"
+		},
+		{
+			"name": "Arena PET-CF @base",
+			"sub_path": "filament/OrcaArena/Arena PET-CF @base.json"
+		},
+		{
+			"name": "Arena PET-CF @System",
+			"sub_path": "filament/OrcaArena/Arena PET-CF @System.json"
+		},
+		{
+			"name": "Arena PETG Basic @base",
+			"sub_path": "filament/OrcaArena/Arena PETG Basic @base.json"
+		},
+		{
+			"name": "Arena PETG Basic @System",
+			"sub_path": "filament/OrcaArena/Arena PETG Basic @System.json"
+		},
+		{
+			"name": "Arena PETG-CF @base",
+			"sub_path": "filament/OrcaArena/Arena PETG-CF @base.json"
+		},
+		{
+			"name": "Arena PETG-CF @System",
+			"sub_path": "filament/OrcaArena/Arena PETG-CF @System.json"
+		},
+		{
+			"name": "Arena PLA Basic @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Basic @base.json"
+		},
+		{
+			"name": "Arena PLA Basic @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Basic @System.json"
+		},
+		{
+			"name": "Arena PLA Impact @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Impact @base.json"
+		},
+		{
+			"name": "Arena PLA Impact @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Impact @System.json"
+		},
+		{
+			"name": "Arena PLA Marble @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Marble @base.json"
+		},
+		{
+			"name": "Arena PLA Marble @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Marble @System.json"
+		},
+		{
+			"name": "Arena PLA Matte @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Matte @base.json"
+		},
+		{
+			"name": "Arena PLA Matte @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Matte @System.json"
+		},
+		{
+			"name": "Arena PLA Metal @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Metal @base.json"
+		},
+		{
+			"name": "Arena PLA Metal @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Metal @System.json"
+		},
+		{
+			"name": "Arena PLA Silk @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Silk @base.json"
+		},
+		{
+			"name": "Arena PLA Silk @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Silk @System.json"
+		},
+		{
+			"name": "Arena PLA Sparkle @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Sparkle @base.json"
+		},
+		{
+			"name": "Arena PLA Sparkle @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Sparkle @System.json"
+		},
+		{
+			"name": "Arena PLA Tough @base",
+			"sub_path": "filament/OrcaArena/Arena PLA Tough @base.json"
+		},
+		{
+			"name": "Arena PLA Tough @System",
+			"sub_path": "filament/OrcaArena/Arena PLA Tough @System.json"
+		},
+		{
+			"name": "Arena PLA-CF @base",
+			"sub_path": "filament/OrcaArena/Arena PLA-CF @base.json"
+		},
+		{
+			"name": "Arena PLA-CF @System",
+			"sub_path": "filament/OrcaArena/Arena PLA-CF @System.json"
+		},
+		{
+			"name": "Arena Support G @base",
+			"sub_path": "filament/OrcaArena/Arena Support G @base.json"
+		},
+		{
+			"name": "Arena Support G @System",
+			"sub_path": "filament/OrcaArena/Arena Support G @System.json"
+		},
+		{
+			"name": "Arena Support W @base",
+			"sub_path": "filament/OrcaArena/Arena Support W @base.json"
+		},
+		{
+			"name": "Arena Support W @System",
+			"sub_path": "filament/OrcaArena/Arena Support W @System.json"
+		},
+		{
+			"name": "Arena TPU 95A @base",
+			"sub_path": "filament/OrcaArena/Arena TPU 95A @base.json"
+		},
+		{
+			"name": "Arena TPU 95A @System",
+			"sub_path": "filament/OrcaArena/Arena TPU 95A @System.json"
+		},
+		{
+			"name": "OrcaArena Generic ABS @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic ABS @base.json"
+		},
+		{
+			"name": "OrcaArena Generic ABS @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic ABS @System.json"
+		},
+		{
+			"name": "OrcaArena Generic ASA @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic ASA @base.json"
+		},
+		{
+			"name": "OrcaArena Generic ASA @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic ASA @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PC @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PC @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PC @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PC @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PETG @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PETG @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PETG @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PETG @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PETG-CF @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PETG-CF @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PETG-CF @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PETG-CF @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PLA @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PLA @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PLA @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PLA @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PLA Silk @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PLA Silk @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PLA Silk @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PLA Silk @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PLA-CF @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PLA-CF @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PLA-CF @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PLA-CF @System.json"
+		},
+		{
+			"name": "OrcaArena Generic PVA @base",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PVA @base.json"
+		},
+		{
+			"name": "OrcaArena Generic PVA @System",
+			"sub_path": "filament/OrcaArena/OrcaArena Generic PVA @System.json"
 		}
 	],
 	"process_list": [],

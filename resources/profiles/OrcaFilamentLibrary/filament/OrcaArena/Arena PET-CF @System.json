@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PET-CF @System",
+	"inherits": "Arena PET-CF @base",
+	"from": "system",
+	"setting_id": "GFT01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

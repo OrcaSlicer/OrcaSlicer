@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PLA Tough @System",
+	"inherits": "Arena PLA Tough @base",
+	"from": "system",
+	"setting_id": "GFA09_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

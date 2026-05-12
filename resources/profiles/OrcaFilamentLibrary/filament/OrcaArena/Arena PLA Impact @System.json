@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PLA Impact @System",
+	"inherits": "Arena PLA Impact @base",
+	"from": "system",
+	"setting_id": "GFA03_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

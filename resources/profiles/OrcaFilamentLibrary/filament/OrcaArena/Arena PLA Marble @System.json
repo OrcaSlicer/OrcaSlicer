@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Arena PLA Marble @System",
+	"inherits": "Arena PLA Marble @base",
+	"from": "system",
+	"setting_id": "GFA07_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}
