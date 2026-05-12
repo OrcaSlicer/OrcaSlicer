@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Glitter @System",
+	"inherits": "BETA PLA Glitter @base",
+	"from": "system",
+	"setting_id": "BPLB05_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

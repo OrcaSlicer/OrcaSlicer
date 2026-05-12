@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Gradient @System",
+	"inherits": "BETA PLA Gradient @base",
+	"from": "system",
+	"setting_id": "BPLB07_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

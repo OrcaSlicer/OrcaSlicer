@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Silk+ @System",
+	"inherits": "BETA PLA Silk+ @base",
+	"from": "system",
+	"setting_id": "BPLB01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

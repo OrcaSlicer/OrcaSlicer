@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA TPU Matte @System",
+	"inherits": "BETA TPU Matte @base",
+	"from": "system",
+	"setting_id": "BTUB01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

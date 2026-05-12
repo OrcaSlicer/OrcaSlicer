@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PEBA 90A @System",
+	"inherits": "BETA PEBA 90A @base",
+	"from": "system",
+	"setting_id": "BPBB00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

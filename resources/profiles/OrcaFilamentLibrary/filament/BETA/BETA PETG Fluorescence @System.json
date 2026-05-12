@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PETG Fluorescence @System",
+	"inherits": "BETA PETG Fluorescence @base",
+	"from": "system",
+	"setting_id": "BPGB02_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

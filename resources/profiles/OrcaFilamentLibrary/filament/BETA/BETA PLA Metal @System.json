@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Metal @System",
+	"inherits": "BETA PLA Metal @base",
+	"from": "system",
+	"setting_id": "BPLB10_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

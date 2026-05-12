@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Marble @System",
+	"inherits": "BETA PLA Marble @base",
+	"from": "system",
+	"setting_id": "BPLB08_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PAHT-CF @System",
+	"inherits": "BETA PAHT-CF @base",
+	"from": "system",
+	"setting_id": "BPAB00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

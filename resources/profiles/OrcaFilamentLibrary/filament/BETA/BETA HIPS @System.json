@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA HIPS @System",
+	"inherits": "BETA HIPS @base",
+	"from": "system",
+	"setting_id": "BHIB00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

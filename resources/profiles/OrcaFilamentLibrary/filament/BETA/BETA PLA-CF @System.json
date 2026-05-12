@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA-CF @System",
+	"inherits": "BETA PLA-CF @base",
+	"from": "system",
+	"setting_id": "BPLB17_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

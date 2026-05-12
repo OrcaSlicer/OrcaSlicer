@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Wood @System",
+	"inherits": "BETA PLA Wood @base",
+	"from": "system",
+	"setting_id": "BPLB19_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

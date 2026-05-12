@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PETG Marble @System",
+	"inherits": "BETA PETG Marble @base",
+	"from": "system",
+	"setting_id": "BPGB07_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

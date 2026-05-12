@@ -1507,6 +1507,358 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "BETA ABS @base",
+			"sub_path": "filament/BETA/BETA ABS @base.json"
+		},
+		{
+			"name": "BETA ABS @System",
+			"sub_path": "filament/BETA/BETA ABS @System.json"
+		},
+		{
+			"name": "BETA ASA @base",
+			"sub_path": "filament/BETA/BETA ASA @base.json"
+		},
+		{
+			"name": "BETA ASA @System",
+			"sub_path": "filament/BETA/BETA ASA @System.json"
+		},
+		{
+			"name": "BETA HIPS @base",
+			"sub_path": "filament/BETA/BETA HIPS @base.json"
+		},
+		{
+			"name": "BETA HIPS @System",
+			"sub_path": "filament/BETA/BETA HIPS @System.json"
+		},
+		{
+			"name": "BETA PAHT-CF @base",
+			"sub_path": "filament/BETA/BETA PAHT-CF @base.json"
+		},
+		{
+			"name": "BETA PAHT-CF @System",
+			"sub_path": "filament/BETA/BETA PAHT-CF @System.json"
+		},
+		{
+			"name": "BETA PEBA 90A @base",
+			"sub_path": "filament/BETA/BETA PEBA 90A @base.json"
+		},
+		{
+			"name": "BETA PEBA 90A @System",
+			"sub_path": "filament/BETA/BETA PEBA 90A @System.json"
+		},
+		{
+			"name": "BETA PETG @base",
+			"sub_path": "filament/BETA/BETA PETG @base.json"
+		},
+		{
+			"name": "BETA PETG @System",
+			"sub_path": "filament/BETA/BETA PETG @System.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @base",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @base.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @System",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @System.json"
+		},
+		{
+			"name": "BETA PETG Glitter @base",
+			"sub_path": "filament/BETA/BETA PETG Glitter @base.json"
+		},
+		{
+			"name": "BETA PETG Glitter @System",
+			"sub_path": "filament/BETA/BETA PETG Glitter @System.json"
+		},
+		{
+			"name": "BETA PETG Glow @base",
+			"sub_path": "filament/BETA/BETA PETG Glow @base.json"
+		},
+		{
+			"name": "BETA PETG Glow @System",
+			"sub_path": "filament/BETA/BETA PETG Glow @System.json"
+		},
+		{
+			"name": "BETA PETG Gradient @base",
+			"sub_path": "filament/BETA/BETA PETG Gradient @base.json"
+		},
+		{
+			"name": "BETA PETG Gradient @System",
+			"sub_path": "filament/BETA/BETA PETG Gradient @System.json"
+		},
+		{
+			"name": "BETA PETG HF @base",
+			"sub_path": "filament/BETA/BETA PETG HF @base.json"
+		},
+		{
+			"name": "BETA PETG HF @System",
+			"sub_path": "filament/BETA/BETA PETG HF @System.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @base",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @base.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @System",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @System.json"
+		},
+		{
+			"name": "BETA PETG Marble @base",
+			"sub_path": "filament/BETA/BETA PETG Marble @base.json"
+		},
+		{
+			"name": "BETA PETG Marble @System",
+			"sub_path": "filament/BETA/BETA PETG Marble @System.json"
+		},
+		{
+			"name": "BETA PETG Matte @base",
+			"sub_path": "filament/BETA/BETA PETG Matte @base.json"
+		},
+		{
+			"name": "BETA PETG Matte @System",
+			"sub_path": "filament/BETA/BETA PETG Matte @System.json"
+		},
+		{
+			"name": "BETA PETG Metallic @base",
+			"sub_path": "filament/BETA/BETA PETG Metallic @base.json"
+		},
+		{
+			"name": "BETA PETG Metallic @System",
+			"sub_path": "filament/BETA/BETA PETG Metallic @System.json"
+		},
+		{
+			"name": "BETA PETG Transparent @base",
+			"sub_path": "filament/BETA/BETA PETG Transparent @base.json"
+		},
+		{
+			"name": "BETA PETG Transparent @System",
+			"sub_path": "filament/BETA/BETA PETG Transparent @System.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @base",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @base.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @System",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @System.json"
+		},
+		{
+			"name": "BETA PETG-CF @base",
+			"sub_path": "filament/BETA/BETA PETG-CF @base.json"
+		},
+		{
+			"name": "BETA PETG-CF @System",
+			"sub_path": "filament/BETA/BETA PETG-CF @System.json"
+		},
+		{
+			"name": "BETA PETG-GF @base",
+			"sub_path": "filament/BETA/BETA PETG-GF @base.json"
+		},
+		{
+			"name": "BETA PETG-GF @System",
+			"sub_path": "filament/BETA/BETA PETG-GF @System.json"
+		},
+		{
+			"name": "BETA PLA Basic @base",
+			"sub_path": "filament/BETA/BETA PLA Basic @base.json"
+		},
+		{
+			"name": "BETA PLA Basic @System",
+			"sub_path": "filament/BETA/BETA PLA Basic @System.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @base",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @base.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @System",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @System.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @base",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @base.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @System",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @System.json"
+		},
+		{
+			"name": "BETA PLA Glitter @base",
+			"sub_path": "filament/BETA/BETA PLA Glitter @base.json"
+		},
+		{
+			"name": "BETA PLA Glitter @System",
+			"sub_path": "filament/BETA/BETA PLA Glitter @System.json"
+		},
+		{
+			"name": "BETA PLA Glow @base",
+			"sub_path": "filament/BETA/BETA PLA Glow @base.json"
+		},
+		{
+			"name": "BETA PLA Glow @System",
+			"sub_path": "filament/BETA/BETA PLA Glow @System.json"
+		},
+		{
+			"name": "BETA PLA Gradient @base",
+			"sub_path": "filament/BETA/BETA PLA Gradient @base.json"
+		},
+		{
+			"name": "BETA PLA Gradient @System",
+			"sub_path": "filament/BETA/BETA PLA Gradient @System.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @base",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @base.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @System",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @System.json"
+		},
+		{
+			"name": "BETA PLA High Speed @base",
+			"sub_path": "filament/BETA/BETA PLA High Speed @base.json"
+		},
+		{
+			"name": "BETA PLA High Speed @System",
+			"sub_path": "filament/BETA/BETA PLA High Speed @System.json"
+		},
+		{
+			"name": "BETA PLA High Temp @base",
+			"sub_path": "filament/BETA/BETA PLA High Temp @base.json"
+		},
+		{
+			"name": "BETA PLA High Temp @System",
+			"sub_path": "filament/BETA/BETA PLA High Temp @System.json"
+		},
+		{
+			"name": "BETA PLA Marble @base",
+			"sub_path": "filament/BETA/BETA PLA Marble @base.json"
+		},
+		{
+			"name": "BETA PLA Marble @System",
+			"sub_path": "filament/BETA/BETA PLA Marble @System.json"
+		},
+		{
+			"name": "BETA PLA Matte @base",
+			"sub_path": "filament/BETA/BETA PLA Matte @base.json"
+		},
+		{
+			"name": "BETA PLA Matte @System",
+			"sub_path": "filament/BETA/BETA PLA Matte @System.json"
+		},
+		{
+			"name": "BETA PLA Metal @base",
+			"sub_path": "filament/BETA/BETA PLA Metal @base.json"
+		},
+		{
+			"name": "BETA PLA Metal @System",
+			"sub_path": "filament/BETA/BETA PLA Metal @System.json"
+		},
+		{
+			"name": "BETA PLA Metallic @base",
+			"sub_path": "filament/BETA/BETA PLA Metallic @base.json"
+		},
+		{
+			"name": "BETA PLA Metallic @System",
+			"sub_path": "filament/BETA/BETA PLA Metallic @System.json"
+		},
+		{
+			"name": "BETA PLA PRO @base",
+			"sub_path": "filament/BETA/BETA PLA PRO @base.json"
+		},
+		{
+			"name": "BETA PLA PRO @System",
+			"sub_path": "filament/BETA/BETA PLA PRO @System.json"
+		},
+		{
+			"name": "BETA PLA Silk @base",
+			"sub_path": "filament/BETA/BETA PLA Silk @base.json"
+		},
+		{
+			"name": "BETA PLA Silk @System",
+			"sub_path": "filament/BETA/BETA PLA Silk @System.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @base",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @base.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @System",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @System.json"
+		},
+		{
+			"name": "BETA PLA Transparent @base",
+			"sub_path": "filament/BETA/BETA PLA Transparent @base.json"
+		},
+		{
+			"name": "BETA PLA Transparent @System",
+			"sub_path": "filament/BETA/BETA PLA Transparent @System.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @base",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @base.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @System",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @System.json"
+		},
+		{
+			"name": "BETA PLA Wood @base",
+			"sub_path": "filament/BETA/BETA PLA Wood @base.json"
+		},
+		{
+			"name": "BETA PLA Wood @System",
+			"sub_path": "filament/BETA/BETA PLA Wood @System.json"
+		},
+		{
+			"name": "BETA PLA Youth @base",
+			"sub_path": "filament/BETA/BETA PLA Youth @base.json"
+		},
+		{
+			"name": "BETA PLA Youth @System",
+			"sub_path": "filament/BETA/BETA PLA Youth @System.json"
+		},
+		{
+			"name": "BETA PLA-CF @base",
+			"sub_path": "filament/BETA/BETA PLA-CF @base.json"
+		},
+		{
+			"name": "BETA PLA-CF @System",
+			"sub_path": "filament/BETA/BETA PLA-CF @System.json"
+		},
+		{
+			"name": "BETA TPU 90A @base",
+			"sub_path": "filament/BETA/BETA TPU 90A @base.json"
+		},
+		{
+			"name": "BETA TPU 90A @System",
+			"sub_path": "filament/BETA/BETA TPU 90A @System.json"
+		},
+		{
+			"name": "BETA TPU 95A @base",
+			"sub_path": "filament/BETA/BETA TPU 95A @base.json"
+		},
+		{
+			"name": "BETA TPU 95A @System",
+			"sub_path": "filament/BETA/BETA TPU 95A @System.json"
+		},
+		{
+			"name": "BETA TPU 98A @base",
+			"sub_path": "filament/BETA/BETA TPU 98A @base.json"
+		},
+		{
+			"name": "BETA TPU 98A @System",
+			"sub_path": "filament/BETA/BETA TPU 98A @System.json"
+		},
+		{
+			"name": "BETA TPU Matte @base",
+			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
+		},
+		{
+			"name": "BETA TPU Matte @System",
+			"sub_path": "filament/BETA/BETA TPU Matte @System.json"
 		}
 	],
 	"process_list": [],

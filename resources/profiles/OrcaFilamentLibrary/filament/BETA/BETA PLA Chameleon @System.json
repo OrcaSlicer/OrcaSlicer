@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Chameleon @System",
+	"inherits": "BETA PLA Chameleon @base",
+	"from": "system",
+	"setting_id": "BPLB02_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

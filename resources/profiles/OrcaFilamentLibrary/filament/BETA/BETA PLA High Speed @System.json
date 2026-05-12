@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA High Speed @System",
+	"inherits": "BETA PLA High Speed @base",
+	"from": "system",
+	"setting_id": "BPLB20_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

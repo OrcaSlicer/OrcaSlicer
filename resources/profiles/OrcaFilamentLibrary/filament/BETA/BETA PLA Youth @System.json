@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Youth @System",
+	"inherits": "BETA PLA Youth @base",
+	"from": "system",
+	"setting_id": "BPLB16_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

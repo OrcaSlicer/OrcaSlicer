@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PETG Metallic @System",
+	"inherits": "BETA PETG Metallic @base",
+	"from": "system",
+	"setting_id": "BPGB09_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

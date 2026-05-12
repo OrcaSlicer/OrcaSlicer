@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Transparent @System",
+	"inherits": "BETA PLA Transparent @base",
+	"from": "system",
+	"setting_id": "BPLB14_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

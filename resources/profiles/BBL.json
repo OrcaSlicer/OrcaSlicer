@@ -7774,10 +7774,6 @@
 			"sub_path": "filament/fdm_filament_dual_common.json"
 		},
 		{
-			"name": "BETA ABS @base",
-			"sub_path": "filament/BETA/BETA ABS @base.json"
-		},
-		{
 			"name": "BETA ABS @BBL P1P",
 			"sub_path": "filament/BETA/BETA ABS @BBL P1P.json"
 		},
@@ -7794,10 +7790,6 @@
 			"sub_path": "filament/BETA/BETA ABS @BBL X1C.json"
 		},
 		{
-			"name": "BETA ASA @base",
-			"sub_path": "filament/BETA/BETA ASA @base.json"
-		},
-		{
 			"name": "BETA ASA @BBL A1 0.4 nozzle",
 			"sub_path": "filament/BETA/BETA ASA @BBL A1 0.4 nozzle.json"
 		},
@@ -7808,10 +7800,6 @@
 		{
 			"name": "BETA ASA @BBL X1C 0.4 nozzle",
 			"sub_path": "filament/BETA/BETA ASA @BBL X1C 0.4 nozzle.json"
-		},
-		{
-			"name": "BETA PLA Silk+ @base",
-			"sub_path": "filament/BETA/BETA PLA Silk+ @base.json"
 		},
 		{
 			"name": "BETA PLA Silk+ @BBL P1P",
@@ -7834,10 +7822,6 @@
 			"sub_path": "filament/BETA/BETA PLA Silk+ @BBL H2D.json"
 		},
 		{
-			"name": "BETA PAHT-CF @base",
-			"sub_path": "filament/BETA/BETA PAHT-CF @base.json"
-		},
-		{
 			"name": "BETA PAHT-CF @BBL P1P",
 			"sub_path": "filament/BETA/BETA PAHT-CF @BBL P1P.json"
 		},
@@ -7848,10 +7832,6 @@
 		{
 			"name": "BETA PAHT-CF @BBL X1C",
 			"sub_path": "filament/BETA/BETA PAHT-CF @BBL X1C.json"
-		},
-		{
-			"name": "BETA PEBA 90A @base",
-			"sub_path": "filament/BETA/BETA PEBA 90A @base.json"
 		},
 		{
 			"name": "BETA PEBA 90A @BBL A1",
@@ -7874,10 +7854,6 @@
 			"sub_path": "filament/BETA/BETA PEBA 90A @BBL X1C.json"
 		},
 		{
-			"name": "BETA PETG Heat Color Change @base",
-			"sub_path": "filament/BETA/BETA PETG Heat Color Change @base.json"
-		},
-		{
 			"name": "BETA PETG Heat Color Change @BBL A1",
 			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL A1.json"
 		},
@@ -7892,10 +7868,6 @@
 		{
 			"name": "BETA PETG Heat Color Change @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG Heat Color Change @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Fluorescence @base",
-			"sub_path": "filament/BETA/BETA PETG Fluorescence @base.json"
 		},
 		{
 			"name": "BETA PETG Fluorescence @BBL A1",
@@ -7914,10 +7886,6 @@
 			"sub_path": "filament/BETA/BETA PETG Fluorescence @BBL X1C.json"
 		},
 		{
-			"name": "BETA PETG Glitter @base",
-			"sub_path": "filament/BETA/BETA PETG Glitter @base.json"
-		},
-		{
 			"name": "BETA PETG Glitter @BBL A1",
 			"sub_path": "filament/BETA/BETA PETG Glitter @BBL A1.json"
 		},
@@ -7932,10 +7900,6 @@
 		{
 			"name": "BETA PETG Glitter @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG Glitter @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Glow @base",
-			"sub_path": "filament/BETA/BETA PETG Glow @base.json"
 		},
 		{
 			"name": "BETA PETG Glow @BBL A1",
@@ -7954,10 +7918,6 @@
 			"sub_path": "filament/BETA/BETA PETG Glow @BBL X1C.json"
 		},
 		{
-			"name": "BETA PETG Gradient @base",
-			"sub_path": "filament/BETA/BETA PETG Gradient @base.json"
-		},
-		{
 			"name": "BETA PETG Gradient @BBL A1",
 			"sub_path": "filament/BETA/BETA PETG Gradient @BBL A1.json"
 		},
@@ -7972,10 +7932,6 @@
 		{
 			"name": "BETA PETG Gradient @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG Gradient @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG HF @base",
-			"sub_path": "filament/BETA/BETA PETG HF @base.json"
 		},
 		{
 			"name": "BETA PETG HF @BBL A1",
@@ -7994,10 +7950,6 @@
 			"sub_path": "filament/BETA/BETA PETG HF @BBL X1C.json"
 		},
 		{
-			"name": "BETA PETG Marble @base",
-			"sub_path": "filament/BETA/BETA PETG Marble @base.json"
-		},
-		{
 			"name": "BETA PETG Marble @BBL A1",
 			"sub_path": "filament/BETA/BETA PETG Marble @BBL A1.json"
 		},
@@ -8012,10 +7964,6 @@
 		{
 			"name": "BETA PETG Marble @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG Marble @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Matte @base",
-			"sub_path": "filament/BETA/BETA PETG Matte @base.json"
 		},
 		{
 			"name": "BETA PETG Matte @BBL H2D 0.4 nozzle",
@@ -8034,10 +7982,6 @@
 			"sub_path": "filament/BETA/BETA PETG Matte @BBL X1C.json"
 		},
 		{
-			"name": "BETA PETG Metallic @base",
-			"sub_path": "filament/BETA/BETA PETG Metallic @base.json"
-		},
-		{
 			"name": "BETA PETG Metallic @BBL H2D 0.4 nozzle",
 			"sub_path": "filament/BETA/BETA PETG Metallic @BBL H2D 0.4 nozzle.json"
 		},
@@ -8052,10 +7996,6 @@
 		{
 			"name": "BETA PETG Metallic @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG Metallic @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG Transparent @base",
-			"sub_path": "filament/BETA/BETA PETG Transparent @base.json"
 		},
 		{
 			"name": "BETA PETG Transparent @BBL A1",
@@ -8074,10 +8014,6 @@
 			"sub_path": "filament/BETA/BETA PETG Transparent @BBL X1C.json"
 		},
 		{
-			"name": "BETA PETG UV Color Change @base",
-			"sub_path": "filament/BETA/BETA PETG UV Color Change @base.json"
-		},
-		{
 			"name": "BETA PETG UV Color Change @BBL A1M 0.4 nozzle",
 			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL A1M 0.4 nozzle.json"
 		},
@@ -8092,10 +8028,6 @@
 		{
 			"name": "BETA PETG UV Color Change @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG UV Color Change @BBL X1C.json"
-		},
-		{
-			"name": "BETA PETG-CF @base",
-			"sub_path": "filament/BETA/BETA PETG-CF @base.json"
 		},
 		{
 			"name": "BETA PETG-CF @BBL P1P 0.4 nozzle",
@@ -8118,10 +8050,6 @@
 			"sub_path": "filament/BETA/BETA PETG-CF @BBL X1C 0.4 nozzle.json"
 		},
 		{
-			"name": "BETA PETG-GF @base",
-			"sub_path": "filament/BETA/BETA PETG-GF @base.json"
-		},
-		{
 			"name": "BETA PETG-GF @BBL P1P 0.4 nozzle",
 			"sub_path": "filament/BETA/BETA PETG-GF @BBL P1P 0.4 nozzle.json"
 		},
@@ -8142,10 +8070,6 @@
 			"sub_path": "filament/BETA/BETA PETG-GF @BBL X1C 0.4 nozzle.json"
 		},
 		{
-			"name": "BETA PETG @base",
-			"sub_path": "filament/BETA/BETA PETG @base.json"
-		},
-		{
 			"name": "BETA PETG @BBL A1M 0.4 nozzle",
 			"sub_path": "filament/BETA/BETA PETG @BBL A1M 0.4 nozzle.json"
 		},
@@ -8160,10 +8084,6 @@
 		{
 			"name": "BETA PETG @BBL X1C",
 			"sub_path": "filament/BETA/BETA PETG @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Basic @base",
-			"sub_path": "filament/BETA/BETA PLA Basic @base.json"
 		},
 		{
 			"name": "BETA PLA Basic @BBL P1P",
@@ -8186,10 +8106,6 @@
 			"sub_path": "filament/BETA/BETA PLA Basic @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Chameleon @base",
-			"sub_path": "filament/BETA/BETA PLA Chameleon @base.json"
-		},
-		{
 			"name": "BETA PLA Chameleon @BBL P1P",
 			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL P1P.json"
 		},
@@ -8208,10 +8124,6 @@
 		{
 			"name": "BETA PLA Chameleon @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Chameleon @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Heat Color Change @base",
-			"sub_path": "filament/BETA/BETA PLA Heat Color Change @base.json"
 		},
 		{
 			"name": "BETA PLA Heat Color Change @BBL P1P",
@@ -8234,10 +8146,6 @@
 			"sub_path": "filament/BETA/BETA PLA Heat Color Change @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Fluorescence @base",
-			"sub_path": "filament/BETA/BETA PLA Fluorescence @base.json"
-		},
-		{
 			"name": "BETA PLA Fluorescence @BBL P1P",
 			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL P1P.json"
 		},
@@ -8256,10 +8164,6 @@
 		{
 			"name": "BETA PLA Fluorescence @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Fluorescence @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Glitter @base",
-			"sub_path": "filament/BETA/BETA PLA Glitter @base.json"
 		},
 		{
 			"name": "BETA PLA Glitter @BBL A1",
@@ -8282,10 +8186,6 @@
 			"sub_path": "filament/BETA/BETA PLA Glitter @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Glow @base",
-			"sub_path": "filament/BETA/BETA PLA Glow @base.json"
-		},
-		{
 			"name": "BETA PLA Glow @BBL A1",
 			"sub_path": "filament/BETA/BETA PLA Glow @BBL A1.json"
 		},
@@ -8304,10 +8204,6 @@
 		{
 			"name": "BETA PLA Glow @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Glow @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Gradient @base",
-			"sub_path": "filament/BETA/BETA PLA Gradient @base.json"
 		},
 		{
 			"name": "BETA PLA Gradient @BBL H2D",
@@ -8330,10 +8226,6 @@
 			"sub_path": "filament/BETA/BETA PLA Gradient @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Marble @base",
-			"sub_path": "filament/BETA/BETA PLA Marble @base.json"
-		},
-		{
 			"name": "BETA PLA Marble @BBL H2D",
 			"sub_path": "filament/BETA/BETA PLA Marble @BBL H2D.json"
 		},
@@ -8352,10 +8244,6 @@
 		{
 			"name": "BETA PLA Marble @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Marble @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Matte @base",
-			"sub_path": "filament/BETA/BETA PLA Matte @base.json"
 		},
 		{
 			"name": "BETA PLA Matte @BBL P1P",
@@ -8378,10 +8266,6 @@
 			"sub_path": "filament/BETA/BETA PLA Matte @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Metal @base",
-			"sub_path": "filament/BETA/BETA PLA Metal @base.json"
-		},
-		{
 			"name": "BETA PLA Metal @BBL P1P",
 			"sub_path": "filament/BETA/BETA PLA Metal @BBL P1P.json"
 		},
@@ -8400,10 +8284,6 @@
 		{
 			"name": "BETA PLA Metal @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Metal @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Metallic @base",
-			"sub_path": "filament/BETA/BETA PLA Metallic @base.json"
 		},
 		{
 			"name": "BETA PLA Metallic @BBL H2D",
@@ -8426,10 +8306,6 @@
 			"sub_path": "filament/BETA/BETA PLA Metallic @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA PRO @base",
-			"sub_path": "filament/BETA/BETA PLA PRO @base.json"
-		},
-		{
 			"name": "BETA PLA PRO @BBL P1P",
 			"sub_path": "filament/BETA/BETA PLA PRO @BBL P1P.json"
 		},
@@ -8448,10 +8324,6 @@
 		{
 			"name": "BETA PLA PRO @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA PRO @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA Silk @base",
-			"sub_path": "filament/BETA/BETA PLA Silk @base.json"
 		},
 		{
 			"name": "BETA PLA Silk @BBL P1P",
@@ -8474,10 +8346,6 @@
 			"sub_path": "filament/BETA/BETA PLA Silk @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Transparent @base",
-			"sub_path": "filament/BETA/BETA PLA Transparent @base.json"
-		},
-		{
 			"name": "BETA PLA Transparent @BBL A1",
 			"sub_path": "filament/BETA/BETA PLA Transparent @BBL A1.json"
 		},
@@ -8496,10 +8364,6 @@
 		{
 			"name": "BETA PLA Transparent @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Transparent @BBL X1C.json"
-		},
-		{
-			"name": "BETA PLA UV Color Change @base",
-			"sub_path": "filament/BETA/BETA PLA UV Color Change @base.json"
 		},
 		{
 			"name": "BETA PLA UV Color Change @BBL P1P",
@@ -8522,10 +8386,6 @@
 			"sub_path": "filament/BETA/BETA PLA UV Color Change @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA Youth @base",
-			"sub_path": "filament/BETA/BETA PLA Youth @base.json"
-		},
-		{
 			"name": "BETA PLA Youth @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA Youth @BBL X1C.json"
 		},
@@ -8544,10 +8404,6 @@
 		{
 			"name": "BETA PLA Youth @BBL H2D",
 			"sub_path": "filament/BETA/BETA PLA Youth @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA-CF @base",
-			"sub_path": "filament/BETA/BETA PLA-CF @base.json"
 		},
 		{
 			"name": "BETA PLA-CF @BBL A1",
@@ -8570,10 +8426,6 @@
 			"sub_path": "filament/BETA/BETA PLA-CF @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA High Temp @base",
-			"sub_path": "filament/BETA/BETA PLA High Temp @base.json"
-		},
-		{
 			"name": "BETA PLA High Temp @BBL P1P",
 			"sub_path": "filament/BETA/BETA PLA High Temp @BBL P1P.json"
 		},
@@ -8592,10 +8444,6 @@
 		{
 			"name": "BETA PLA High Temp @BBL H2D",
 			"sub_path": "filament/BETA/BETA PLA High Temp @BBL H2D.json"
-		},
-		{
-			"name": "BETA PLA Wood @base",
-			"sub_path": "filament/BETA/BETA PLA Wood @base.json"
 		},
 		{
 			"name": "BETA PLA Wood @BBL A1",
@@ -8618,10 +8466,6 @@
 			"sub_path": "filament/BETA/BETA PLA Wood @BBL X1C.json"
 		},
 		{
-			"name": "BETA TPU Matte @base",
-			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
-		},
-		{
 			"name": "BETA TPU Matte @BBL A1",
 			"sub_path": "filament/BETA/BETA TPU Matte @BBL A1.json"
 		},
@@ -8640,10 +8484,6 @@
 		{
 			"name": "BETA TPU Matte @BBL X1C",
 			"sub_path": "filament/BETA/BETA TPU Matte @BBL X1C.json"
-		},
-		{
-			"name": "BETA TPU 95A @base",
-			"sub_path": "filament/BETA/BETA TPU 95A @base.json"
 		},
 		{
 			"name": "BETA TPU 95A @BBL A1",
@@ -8666,10 +8506,6 @@
 			"sub_path": "filament/BETA/BETA TPU 95A @BBL X1C.json"
 		},
 		{
-			"name": "BETA TPU 98A @base",
-			"sub_path": "filament/BETA/BETA TPU 98A @base.json"
-		},
-		{
 			"name": "BETA TPU 98A @BBL A1",
 			"sub_path": "filament/BETA/BETA TPU 98A @BBL A1.json"
 		},
@@ -8688,10 +8524,6 @@
 		{
 			"name": "BETA TPU 98A @BBL X1C",
 			"sub_path": "filament/BETA/BETA TPU 98A @BBL X1C.json"
-		},
-		{
-			"name": "BETA TPU 90A @base",
-			"sub_path": "filament/BETA/BETA TPU 90A @base.json"
 		},
 		{
 			"name": "BETA TPU 90A @BBL A1",
@@ -8714,10 +8546,6 @@
 			"sub_path": "filament/BETA/BETA TPU 90A @BBL X1C.json"
 		},
 		{
-			"name": "BETA PLA High Speed @base",
-			"sub_path": "filament/BETA/BETA PLA High Speed @base.json"
-		},
-		{
 			"name": "BETA PLA High Speed @BBL A1",
 			"sub_path": "filament/BETA/BETA PLA High Speed @BBL A1.json"
 		},
@@ -8736,10 +8564,6 @@
 		{
 			"name": "BETA PLA High Speed @BBL X1C",
 			"sub_path": "filament/BETA/BETA PLA High Speed @BBL X1C.json"
-		},
-		{
-			"name": "BETA HIPS @base",
-			"sub_path": "filament/BETA/BETA HIPS @base.json"
 		},
 		{
 			"name": "BETA HIPS @BBL H2D",

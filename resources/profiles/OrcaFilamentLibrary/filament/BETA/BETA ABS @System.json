@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA ABS @System",
+	"inherits": "BETA ABS @base",
+	"from": "system",
+	"setting_id": "BABB00_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Fluorescence @System",
+	"inherits": "BETA PLA Fluorescence @base",
+	"from": "system",
+	"setting_id": "BPLB04_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

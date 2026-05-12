@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA High Temp @System",
+	"inherits": "BETA PLA High Temp @base",
+	"from": "system",
+	"setting_id": "BPLB18_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

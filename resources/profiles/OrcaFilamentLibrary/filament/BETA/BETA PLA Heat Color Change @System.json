@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Heat Color Change @System",
+	"inherits": "BETA PLA Heat Color Change @base",
+	"from": "system",
+	"setting_id": "BPLB03_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

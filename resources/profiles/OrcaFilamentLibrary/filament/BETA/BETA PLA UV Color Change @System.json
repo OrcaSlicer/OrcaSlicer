@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA UV Color Change @System",
+	"inherits": "BETA PLA UV Color Change @base",
+	"from": "system",
+	"setting_id": "BPLB15_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

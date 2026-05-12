@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "BETA PLA Matte @System",
+	"inherits": "BETA PLA Matte @base",
+	"from": "system",
+	"setting_id": "BPLB09_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}
