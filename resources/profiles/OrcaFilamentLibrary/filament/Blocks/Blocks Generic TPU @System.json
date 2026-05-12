@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic TPU @System",
+	"inherits": "Blocks Generic TPU @base",
+	"from": "system",
+	"setting_id": "BSSI003",
+	"filament_id": "BSFI003",
+	"instantiation": "true",
+	"compatible_printers": []
+}

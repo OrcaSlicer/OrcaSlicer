@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic ABS @System",
+	"inherits": "Blocks Generic ABS @base",
+	"from": "system",
+	"setting_id": "BSSI004",
+	"filament_id": "BSFI004",
+	"instantiation": "true",
+	"compatible_printers": []
+}

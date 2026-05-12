@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic PLA-CF @System",
+	"inherits": "Blocks Generic PLA-CF @base",
+	"from": "system",
+	"setting_id": "BSSI010",
+	"filament_id": "BSFI010",
+	"instantiation": "true",
+	"compatible_printers": []
+}

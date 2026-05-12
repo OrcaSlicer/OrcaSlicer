@@ -1507,6 +1507,94 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Blocks Generic ABS @base",
+			"sub_path": "filament/Blocks/Blocks Generic ABS @base.json"
+		},
+		{
+			"name": "Blocks Generic ABS @System",
+			"sub_path": "filament/Blocks/Blocks Generic ABS @System.json"
+		},
+		{
+			"name": "Blocks Generic ASA-CF @base",
+			"sub_path": "filament/Blocks/Blocks Generic ASA-CF @base.json"
+		},
+		{
+			"name": "Blocks Generic ASA-CF @System",
+			"sub_path": "filament/Blocks/Blocks Generic ASA-CF @System.json"
+		},
+		{
+			"name": "Blocks Generic ASA @base",
+			"sub_path": "filament/Blocks/Blocks Generic ASA @base.json"
+		},
+		{
+			"name": "Blocks Generic ASA @System",
+			"sub_path": "filament/Blocks/Blocks Generic ASA @System.json"
+		},
+		{
+			"name": "Blocks Generic PA-CF @base",
+			"sub_path": "filament/Blocks/Blocks Generic PA-CF @base.json"
+		},
+		{
+			"name": "Blocks Generic PA-CF @System",
+			"sub_path": "filament/Blocks/Blocks Generic PA-CF @System.json"
+		},
+		{
+			"name": "Blocks Generic PA @base",
+			"sub_path": "filament/Blocks/Blocks Generic PA @base.json"
+		},
+		{
+			"name": "Blocks Generic PA @System",
+			"sub_path": "filament/Blocks/Blocks Generic PA @System.json"
+		},
+		{
+			"name": "Blocks Generic PC @base",
+			"sub_path": "filament/Blocks/Blocks Generic PC @base.json"
+		},
+		{
+			"name": "Blocks Generic PC @System",
+			"sub_path": "filament/Blocks/Blocks Generic PC @System.json"
+		},
+		{
+			"name": "Blocks Generic PETG @base",
+			"sub_path": "filament/Blocks/Blocks Generic PETG @base.json"
+		},
+		{
+			"name": "Blocks Generic PETG @System",
+			"sub_path": "filament/Blocks/Blocks Generic PETG @System.json"
+		},
+		{
+			"name": "Blocks Generic PLA-CF @base",
+			"sub_path": "filament/Blocks/Blocks Generic PLA-CF @base.json"
+		},
+		{
+			"name": "Blocks Generic PLA-CF @System",
+			"sub_path": "filament/Blocks/Blocks Generic PLA-CF @System.json"
+		},
+		{
+			"name": "Blocks Generic PLA @base",
+			"sub_path": "filament/Blocks/Blocks Generic PLA @base.json"
+		},
+		{
+			"name": "Blocks Generic PLA @System",
+			"sub_path": "filament/Blocks/Blocks Generic PLA @System.json"
+		},
+		{
+			"name": "Blocks Generic PVA @base",
+			"sub_path": "filament/Blocks/Blocks Generic PVA @base.json"
+		},
+		{
+			"name": "Blocks Generic PVA @System",
+			"sub_path": "filament/Blocks/Blocks Generic PVA @System.json"
+		},
+		{
+			"name": "Blocks Generic TPU @base",
+			"sub_path": "filament/Blocks/Blocks Generic TPU @base.json"
+		},
+		{
+			"name": "Blocks Generic TPU @System",
+			"sub_path": "filament/Blocks/Blocks Generic TPU @System.json"
 		}
 	],
 	"process_list": [],

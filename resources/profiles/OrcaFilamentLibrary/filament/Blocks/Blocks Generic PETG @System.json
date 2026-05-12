@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic PETG @System",
+	"inherits": "Blocks Generic PETG @base",
+	"from": "system",
+	"setting_id": "BSSI002",
+	"filament_id": "BSFI002",
+	"instantiation": "true",
+	"compatible_printers": []
+}

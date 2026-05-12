@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic PC @System",
+	"inherits": "Blocks Generic PC @base",
+	"from": "system",
+	"setting_id": "BSSI008",
+	"filament_id": "BSFI008",
+	"instantiation": "true",
+	"compatible_printers": []
+}

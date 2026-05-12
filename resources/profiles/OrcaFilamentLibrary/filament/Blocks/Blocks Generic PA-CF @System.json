@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic PA-CF @System",
+	"inherits": "Blocks Generic PA-CF @base",
+	"from": "system",
+	"setting_id": "BSSI007",
+	"filament_id": "BSFI007",
+	"instantiation": "true",
+	"compatible_printers": []
+}

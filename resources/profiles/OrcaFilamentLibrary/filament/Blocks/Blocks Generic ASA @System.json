@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic ASA @System",
+	"inherits": "Blocks Generic ASA @base",
+	"from": "system",
+	"setting_id": "BSSI005",
+	"filament_id": "BSFI005",
+	"instantiation": "true",
+	"compatible_printers": []
+}

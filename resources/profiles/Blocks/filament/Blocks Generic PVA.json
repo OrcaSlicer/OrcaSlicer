@@ -1,17 +1,11 @@
 {
 	"type": "filament",
 	"name": "Blocks Generic PVA",
-	"inherits": "fdm_filament_pva",
+	"inherits": "Blocks Generic PVA @base",
 	"from": "system",
 	"setting_id": "BSSI009",
 	"filament_id": "BSFI009",
 	"instantiation": "true",
-	"filament_flow_ratio": [
-		"0.98"
-	],
-	"filament_max_volumetric_speed": [
-		"20"
-	],
 	"compatible_printers": [
 		"BLOCKS RD50 V2 0.4 nozzle",
 		"BLOCKS RD50 V2 0.6 nozzle",

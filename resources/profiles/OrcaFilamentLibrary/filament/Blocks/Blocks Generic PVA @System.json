@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Blocks Generic PVA @System",
+	"inherits": "Blocks Generic PVA @base",
+	"from": "system",
+	"setting_id": "BSSI009",
+	"filament_id": "BSFI009",
+	"instantiation": "true",
+	"compatible_printers": []
+}
