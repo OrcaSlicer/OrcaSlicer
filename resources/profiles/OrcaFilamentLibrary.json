@@ -133,6 +133,10 @@
 			"sub_path": "filament/Generic ABS @System.json"
 		},
 		{
+			"name": "Lulzbot 2.85mm ABS @base",
+			"sub_path": "filament/Lulzbot/Lulzbot 2.85mm ABS @base.json"
+		},
+		{
 			"name": "NIT ABS @base",
 			"sub_path": "filament/NIT/NIT ABS @base.json"
 		},
@@ -389,6 +393,10 @@
 			"sub_path": "filament/Generic PETG-CF @System.json"
 		},
 		{
+			"name": "Lulzbot 2.85mm PETG @base",
+			"sub_path": "filament/Lulzbot/Lulzbot 2.85mm PETG @base.json"
+		},
+		{
 			"name": "NIT PETG @base",
 			"sub_path": "filament/NIT/NIT PETG @base.json"
 		},
@@ -579,6 +587,10 @@
 		{
 			"name": "Generic PLA-CF @System",
 			"sub_path": "filament/Generic PLA-CF @System.json"
+		},
+		{
+			"name": "Lulzbot 2.85mm PLA @base",
+			"sub_path": "filament/Lulzbot/Lulzbot 2.85mm PLA @base.json"
 		},
 		{
 			"name": "NIT PLA @base",
@@ -897,6 +909,10 @@
 			"sub_path": "filament/FDplast/FDplast ABS @System.json"
 		},
 		{
+			"name": "Lulzbot 2.85mm ABS @System",
+			"sub_path": "filament/Lulzbot/Lulzbot 2.85mm ABS @System.json"
+		},
+		{
 			"name": "NIT ABS @System",
 			"sub_path": "filament/NIT/NIT ABS @System.json"
 		},
@@ -1073,6 +1089,10 @@
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
 		},
 		{
+			"name": "Lulzbot 2.85mm PETG @System",
+			"sub_path": "filament/Lulzbot/Lulzbot 2.85mm PETG @System.json"
+		},
+		{
 			"name": "NIT PETG @System",
 			"sub_path": "filament/NIT/NIT PETG @System.json"
 		},
@@ -1243,6 +1263,10 @@
 		{
 			"name": "FILL3D PA @System",
 			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+		},
+		{
+			"name": "Lulzbot 2.85mm PLA @System",
+			"sub_path": "filament/Lulzbot/Lulzbot 2.85mm PLA @System.json"
 		},
 		{
 			"name": "NIT PLA @System",

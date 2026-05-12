@@ -1,17 +1,10 @@
 {
 	"type": "filament",
 	"name": "Lulzbot 2.85mm ABS",
-	"inherits": "Generic ABS @System",
+	"inherits": "Lulzbot 2.85mm ABS @base",
 	"from": "system",
 	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
 	"instantiation": "true",
-	"filament_diameter": [
-		"2.85"
-	],
-	"filament_max_volumetric_speed": [
-		"6"
-	],
 	"compatible_printers": [
 		"Lulzbot Taz 6 0.5 nozzle",
 		"Lulzbot Taz 4 or 5 0.5 nozzle",

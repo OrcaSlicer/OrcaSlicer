@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "GFL99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Lulzbot"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	]
+}

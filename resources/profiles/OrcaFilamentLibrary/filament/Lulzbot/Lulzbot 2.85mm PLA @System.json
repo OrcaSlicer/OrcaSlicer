@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm PLA @System",
+	"inherits": "Lulzbot 2.85mm PLA @base",
+	"from": "system",
+	"setting_id": "GFSL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm PETG @System",
+	"inherits": "Lulzbot 2.85mm PETG @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

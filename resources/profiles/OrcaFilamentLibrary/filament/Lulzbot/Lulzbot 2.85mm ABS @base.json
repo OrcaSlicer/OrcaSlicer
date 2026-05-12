@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Lulzbot 2.85mm ABS @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "GFB99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Lulzbot"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	]
+}
