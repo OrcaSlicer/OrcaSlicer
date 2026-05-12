@@ -1507,6 +1507,14 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Phrozen PLA @System",
+			"sub_path": "filament/Phrozen/Phrozen PLA @System.json"
+		},
+		{
+			"name": "Phrozen PLA @base",
+			"sub_path": "filament/Phrozen/Phrozen PLA @base.json"
 		}
 	],
 	"process_list": [],
