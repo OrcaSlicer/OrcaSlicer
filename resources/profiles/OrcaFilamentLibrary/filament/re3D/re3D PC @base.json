@@ -1,0 +1,7 @@
+{
+	"type": "filament",
+	"name": "re3D PC @base",
+	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"instantiation": "false"
+}

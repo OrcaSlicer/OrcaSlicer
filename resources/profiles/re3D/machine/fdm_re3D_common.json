@@ -1,9 +1,9 @@
 {
 	"type": "machine",
 	"name": "fdm_re3D_common",
+	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
-	"inherits": "fdm_machine_common",
 	"gcode_flavor": "klipper",
 	"machine_max_acceleration_e": [
 		"5000",
@@ -126,9 +126,6 @@
 	"machine_pause_gcode": "PAUSE",
 	"wipe": [
 		"0"
-	],
-	"default_filament_profile": [
-		""
 	],
 	"default_print_profile": "",
 	"bed_exclude_area": [

@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "re3D PETG @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"instantiation": "false",
+	"filament_start_gcode": [
+		"; Filament gcode"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode"
+	],
+	"filament_retraction_length": [
+		"1"
+	]
+}

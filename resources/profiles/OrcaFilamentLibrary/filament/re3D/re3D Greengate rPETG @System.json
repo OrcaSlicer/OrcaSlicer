@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "re3D Greengate rPETG @System",
+	"inherits": "re3D Greengate rPETG @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

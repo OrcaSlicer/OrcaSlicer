@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "re3D PC @System",
+	"inherits": "re3D PC @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
