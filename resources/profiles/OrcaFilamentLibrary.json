@@ -1509,6 +1509,18 @@
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		},
 		{
+			"name": "fdm_filament_breakaway",
+			"sub_path": "filament/Snapmaker/fdm_filament_breakaway.json"
+		},
+		{
+			"name": "fdm_filament_petg",
+			"sub_path": "filament/Snapmaker/fdm_filament_petg.json"
+		},
+		{
+			"name": "fdm_filament_pla_eco",
+			"sub_path": "filament/Snapmaker/fdm_filament_pla_eco.json"
+		},
+		{
 			"name": "Snapmaker ABS @base",
 			"sub_path": "filament/Snapmaker/Snapmaker ABS @base.json"
 		},
