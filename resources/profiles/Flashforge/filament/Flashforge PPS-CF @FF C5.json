@@ -1,0 +1,73 @@
+{
+	"compatible_printers": [
+		"Flashforge Creator 5 0.4 nozzle",
+		"Flashforge Creator 5 0.6 nozzle",
+		"Flashforge Creator 5 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"110"
+	],
+	"eng_plate_temp_initial_layer": [
+		"110"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"4"
+	],
+	"filament_settings_id": [
+		"Flashforge PPS-CF @FF C5"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"filament_type": [
+		"PPS-CF"
+	],
+	"from": "system",
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"inherits": "Generic PPA-GF @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Flashforge PPS-CF @FF C5",
+	"nozzle_temperature": [
+		"320"
+	],
+	"nozzle_temperature_initial_layer": [
+		"320"
+	],
+	"nozzle_temperature_range_low": [
+		"300"
+	],
+	"temperature_vitrification": [
+		"220"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_plate_temp": [
+		"110"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	],
+	"version": "2.3.0.3"
+}

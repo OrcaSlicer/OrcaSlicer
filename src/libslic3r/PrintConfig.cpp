@@ -91,6 +91,25 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+
+// Orca: input shaping values types by flavor
+std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
+{
+    switch (flavor) {
+    case GCodeFlavor::gcfKlipper:
+        return {"Default", "MZV", "ZV", "ZVD", "EI", "2HUMP_EI", "3HUMP_EI"};
+    case GCodeFlavor::gcfRepRapFirmware:
+        return {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI2", "EI3", "DAA"};
+    case GCodeFlavor::gcfMarlinFirmware:
+        return {"ZV"};
+    case GCodeFlavor::gcfMarlinLegacy:
+        return {};
+    default:
+        break;
+    }
+    return {"Default"};
+}
+
 static t_config_enum_names enum_names_from_keys_map(const t_config_enum_values &enum_keys_map)
 {
     t_config_enum_names names;
@@ -141,14 +160,14 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(AuthorizationType)
 
 static t_config_enum_values s_keys_map_GCodeFlavor {
     { "marlin",         gcfMarlinLegacy },
-    { "reprap",         gcfRepRapSprinter },
+    { "klipper",        gcfKlipper },
     { "reprapfirmware", gcfRepRapFirmware },
     { "repetier",       gcfRepetier },
+    { "marlin2",        gcfMarlinFirmware },
+    { "reprap",         gcfRepRapSprinter },
     { "teacup",         gcfTeacup },
     { "makerware",      gcfMakerWare },
-    { "marlin2",        gcfMarlinFirmware },
     { "sailfish",       gcfSailfish },
-    { "klipper",        gcfKlipper },
     { "smoothie",       gcfSmoothie },
     { "mach3",          gcfMach3 },
     { "machinekit",     gcfMachinekit },
@@ -480,6 +499,23 @@ static t_config_enum_values s_keys_map_PrinterStructure {
     {"delta",           int(PrinterStructure::psDelta)}
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrinterStructure)
+
+static t_config_enum_values s_keys_map_InputShaperType {
+    {"Default", int(InputShaperType::Default)},
+    {"MZV",     int(InputShaperType::MZV)},
+    {"ZV",      int(InputShaperType::ZV)},
+    {"ZVD",     int(InputShaperType::ZVD)},
+    {"ZVDD",    int(InputShaperType::ZVDD)},
+    {"ZVDDD",   int(InputShaperType::ZVDDD)},
+    {"EI",     int(InputShaperType::EI)},
+    {"EI2",     int(InputShaperType::EI2)},
+    {"2HUMP_EI",int(InputShaperType::TwoHumpEI)},
+    {"EI3",     int(InputShaperType::EI3)},
+    {"3HUMP_EI",int(InputShaperType::ThreeHumpEI)},
+    {"DAA",     int(InputShaperType::DAA)},
+    {"Disable", int(InputShaperType::Disable)}
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InputShaperType)
 
 static t_config_enum_values s_keys_map_PerimeterGeneratorType{
     { "classic", int(PerimeterGeneratorType::Classic) },
@@ -3706,10 +3742,11 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("marlin");
     def->enum_values.push_back("klipper");
     def->enum_values.push_back("reprapfirmware");
-    //def->enum_values.push_back("repetier");
+    def->enum_values.push_back("repetier");
+    def->enum_values.push_back("marlin2");
+    //def->enum_values.push_back("reprap");
     //def->enum_values.push_back("teacup");
     //def->enum_values.push_back("makerware");
-    def->enum_values.push_back("marlin2");
     //def->enum_values.push_back("sailfish");
     //def->enum_values.push_back("mach3");
     //def->enum_values.push_back("machinekit");
@@ -3718,11 +3755,11 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("Marlin(legacy)");
     def->enum_labels.push_back(L("Klipper"));
     def->enum_labels.push_back("RepRapFirmware");
+    def->enum_labels.push_back("Repetier");
+    def->enum_labels.push_back("Marlin 2");
     //def->enum_labels.push_back("RepRap/Sprinter");
-    //def->enum_labels.push_back("Repetier");
     //def->enum_labels.push_back("Teacup");
     //def->enum_labels.push_back("MakerWare (MakerBot)");
-    def->enum_labels.push_back("Marlin 2");
     //def->enum_labels.push_back("Sailfish (MakerBot)");
     //def->enum_labels.push_back("Mach3/LinuxCNC");
     //def->enum_labels.push_back("Machinekit");
@@ -4242,8 +4279,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("emit_machine_limits_to_gcode", coBool);
     def->label = L("Emit limits to G-code");
     def->category = L("Machine limits");
-    def->tooltip  = L("If enabled, the machine limits will be emitted to G-code file.\nThis option will be ignored if the G-code flavor is "
-                       "set to Klipper.");
+    def->tooltip = L("If enabled, the machine limits will be emitted to G-code file.\nThis option will be ignored if the G-code flavor is "
+        "set to Klipper.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -4453,6 +4490,56 @@ void PrintConfigDef::init_fff_params()
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
+
+    // Orca: Input Shaping support
+    def          = this->add("input_shaping_emit", coBool);
+    def->label   = L("Emit input shaping");
+    def->tooltip = L("Override firmware input shaping settings.\nIf disabled, firmware settings are used.");
+    def->mode    = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def               = this->add("input_shaping_type", coEnum);
+    def->label        = L("Input shaper type");
+    def->tooltip      = L("Choose the input shaper algorithm.\nDefault uses the firmware default settings.\nDisable turns off input shaping in the firmware.");
+    def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
+    def->enum_values  = {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI", "EI2", "2HUMP_EI", "EI3", "3HUMP_EI", "DAA", "Disable"};
+    def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HUMP_EI"), L("EI3"), L("3HUMP_EI"), L("DAA"), L("Disable")};
+    def->mode         = comExpert;
+    def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
+
+    def           = this->add("input_shaping_freq_x", coFloat);
+    def->label    = L("X");
+    def->tooltip  = L("Resonant frequency for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
+    def->sidetext = "Hz";
+    def->min      = 0;
+    def->max      = 1000;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def           = this->add("input_shaping_freq_y", coFloat);
+    def->label    = L("Y");
+    def->tooltip  = L("Resonant frequency for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
+    def->sidetext = "Hz";
+    def->min      = 0;
+    def->max      = 1000;
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def          = this->add("input_shaping_damp_x", coFloat);
+    def->label   = L("X");
+    def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
+    def->min     = 0;
+    def->max     = 1;
+    def->mode    = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def          = this->add("input_shaping_damp_y", coFloat);
+    def->label   = L("Y");
+    def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware damping ratio.\nTo disable input shaping, use the Disable type.");
+    def->min     = 0;
+    def->max     = 1;
+    def->mode    = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0.1));
 
     def = this->add("fan_max_speed", coFloats);
     def->label = L("Fan speed");
@@ -4854,7 +4941,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_contact_distance", coFloat);
     def->label = L("Raft contact Z distance");
     def->category = L("Support");
-    def->tooltip = L("Z gap between object and raft. Ignored for soluble interface.");
+    def->tooltip = L("Z gap between raft and object. "
+                    "If Support Top Z Distance is 0, this value is ignored and "
+                    "the object is printed in direct contact with the raft (no gap).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -5839,7 +5928,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top Z distance");
     def->min = 0;
     def->category = L("Support");
-    def->tooltip = L("The Z gap between the top support interface and object.");
+    def->tooltip = L("Z gap between the support's top and object.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
 //    def->min = 0;
 #if 0
@@ -5856,7 +5945,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_bottom_z_distance", coFloat);
     def->label = L("Bottom Z distance");
     def->category = L("Support");
-    def->tooltip = L("The Z gap between the bottom support interface and object.");
+    def->tooltip = L("Z gap between the object and the support bottom. "
+                    "If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+                    "is ignored and the support is printed in direct contact with the object (no gap).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;

@@ -57,6 +57,8 @@ namespace GUI {
 class TabPresetComboBox;
 class OG_CustomCtrl;
 
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
+
 // Single Tab page containing a{ vsizer } of{ optgroups }
 // package Slic3r::GUI::Tab::Page;
 using ConfigOptionsGroupShp = std::shared_ptr<ConfigOptionsGroup>;
@@ -419,6 +421,7 @@ public:
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();
+	bool        validate_filament_temperature_pairs();
     bool        validate_custom_gcodes_was_shown{ false };
     void        set_just_edit(bool just_edit);
 
@@ -599,6 +602,7 @@ private:
 	bool		m_use_silent_mode = false;
 	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
 	bool		m_rebuild_kinematics_page = false;
+	void        update_input_shaper_menu(GCodeFlavor flavor);
 
 	ogStaticText*	m_fff_print_host_upload_description_line {nullptr};
 	ogStaticText*	m_sla_print_host_upload_description_line {nullptr};
@@ -636,6 +640,7 @@ public:
     void		update_fff();
     void		update_sla();
     void        update_pages(); // update m_pages according to printer technology
+	void        on_gcode_flavor_changed();
 	void		extruders_count_changed(size_t extruders_count);
 	PageShp		build_kinematics_page();
 	void		build_unregular_pages(bool from_initial_build = false);
