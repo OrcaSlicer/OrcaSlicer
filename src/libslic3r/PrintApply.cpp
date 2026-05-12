@@ -1804,6 +1804,68 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     invalidate();
                     model_object_status.print_object_regions_status = ModelObjectStatus::PrintObjectRegionsStatus::PartiallyValid;
                     print_regions_reshuffled = true;
+                } else {
+                    // slot_per_part_enabled unchanged, but volume filament assignments may have
+                    // changed (e.g. user switched a volume from physical filament to a mixed slot).
+                    // verify_update_print_object_regions updates the region config in-place but does
+                    // not recompute gradient_volume_id, so we explicitly check tag eligibility against
+                    // the cached regions and force regeneration on mismatch.
+                    // Logic mirrors generate_print_object_regions's per_part_volume_users
+                    // computation and compute_volume_tag lambda — keep both in sync.
+                    bool tag_mismatch = false;
+                    if (!slot_per_part_enabled.empty()) {
+                        const DynamicPrintConfig *range_cfg =
+                            print_object_regions->layer_ranges.empty()
+                                ? nullptr
+                                : print_object_regions->layer_ranges.front().config;
+                        std::vector<int> cur_users(slot_per_part_enabled.size(), 0);
+                        for (const ModelVolume *mv : model_object.volumes) {
+                            if (! mv->is_model_part()) continue;
+                            PrintRegionConfig vol_cfg = region_config_from_model_volume(
+                                m_default_region_config, range_cfg, *mv, num_extruders, print_variant_index);
+                            for (unsigned int s1 : { (unsigned int)vol_cfg.wall_filament.value,
+                                                     (unsigned int)vol_cfg.sparse_infill_filament.value,
+                                                     (unsigned int)vol_cfg.solid_infill_filament.value }) {
+                                if (s1 >= 1 && size_t(s1 - 1) < slot_per_part_enabled.size()
+                                    && slot_per_part_enabled[s1 - 1])
+                                    ++cur_users[s1 - 1];
+                            }
+                        }
+                        for (auto &lr : print_object_regions->layer_ranges) {
+                            for (auto &vr : lr.volume_regions)
+                                if (vr.model_volume->is_model_part() && vr.region) {
+                                    PrintRegionConfig vol_cfg = region_config_from_model_volume(
+                                        m_default_region_config, lr.config, *vr.model_volume,
+                                        num_extruders, print_variant_index);
+                                    bool should_tag = false;
+                                    for (unsigned int s1 : { (unsigned int)vol_cfg.wall_filament.value,
+                                                             (unsigned int)vol_cfg.sparse_infill_filament.value,
+                                                             (unsigned int)vol_cfg.solid_infill_filament.value }) {
+                                        if (s1 >= 1 && size_t(s1 - 1) < slot_per_part_enabled.size()
+                                            && slot_per_part_enabled[s1 - 1] && cur_users[s1 - 1] >= 2) {
+                                            should_tag = true;
+                                            break;
+                                        }
+                                    }
+                                    // Compare exact ObjectID, not just validity. compute_volume_tag's
+                                    // contract is "return mv.id() or invalid ObjectID()", so the cache
+                                    // is consistent only when the tag matches the volume's own id.
+                                    // Guards against future refactors that might shift a tag to refer
+                                    // to a different volume while still keeping it valid.
+                                    ObjectID expected_tag = should_tag ? vr.model_volume->id() : ObjectID();
+                                    if (vr.region->gradient_volume_id() != expected_tag) {
+                                        tag_mismatch = true;
+                                        break;
+                                    }
+                                }
+                            if (tag_mismatch) break;
+                        }
+                    }
+                    if (tag_mismatch) {
+                        invalidate();
+                        model_object_status.print_object_regions_status = ModelObjectStatus::PrintObjectRegionsStatus::PartiallyValid;
+                        print_regions_reshuffled = true;
+                    }
                 }
                 // Otherwise regions are valid, just keep them.
             } else {

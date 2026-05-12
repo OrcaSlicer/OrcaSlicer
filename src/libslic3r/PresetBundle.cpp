@@ -3099,13 +3099,13 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     if (auto* opt = project_config.option<ConfigOptionBools>("filament_is_mixed"))
         opt->values.resize(n, false);
     if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_components"))
-        opt->resize(n);
+        opt->values.resize(n, std::string{});
     if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_sublayer_ratios"))
-        opt->resize(n);
+        opt->values.resize(n, std::string{});
     if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient"))
         opt->values.resize(n, false);
     if (auto* opt = project_config.option<ConfigOptionStrings>("filament_mixed_gradient_range"))
-        opt->resize(n);
+        opt->values.resize(n, std::string{});
     if (auto* opt = project_config.option<ConfigOptionBools>("filament_mixed_gradient_per_part"))
         opt->values.resize(n, false);
 

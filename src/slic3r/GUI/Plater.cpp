@@ -5302,6 +5302,8 @@ void Sidebar::edit_mixed_filament(size_t panel_idx)
             multi_colour_opt->values[cfg_idx] = blended;
 
         update_mixed_filament_list();
+        wxGetApp().plater()->update_project_dirty_from_presets();
+        wxPostEvent(this, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, this));
     }
 }
 
