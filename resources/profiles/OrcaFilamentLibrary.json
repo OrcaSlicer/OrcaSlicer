@@ -1197,6 +1197,54 @@
 			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
 		},
 		{
+			"name": "FILL3D PLA Basic @base",
+			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
+		},
+		{
+			"name": "FILL3D PLA Basic @System",
+			"sub_path": "filament/FILL3D/FILL3D PLA Basic @System.json"
+		},
+		{
+			"name": "FILL3D PETG @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
+		},
+		{
+			"name": "FILL3D PETG @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
+		},
+		{
+			"name": "FILL3D PETG CF @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
+		},
+		{
+			"name": "FILL3D PETG CF @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
+		},
+		{
+			"name": "FILL3D PP @base",
+			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
+		},
+		{
+			"name": "FILL3D PP @System",
+			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
+		},
+		{
+			"name": "FILL3D PPCF @base",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
+		},
+		{
+			"name": "FILL3D PPCF @System",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
+		},
+		{
+			"name": "FILL3D PA @base",
+			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
+		},
+		{
+			"name": "FILL3D PA @System",
+			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+		},
+		{
 			"name": "NIT PLA @System",
 			"sub_path": "filament/NIT/NIT PLA @System.json"
 		},

@@ -465,6 +465,7 @@ public:
 	static const char *ORCA_DEFAULT_PRINTER_VARIANT;
 	static const char *ORCA_DEFAULT_FILAMENT;
     static const char *ORCA_FILAMENT_LIBRARY;
+    static const char *ORCA_DEFAULT_FILAMENT_PLACEHOLDER;
 
 
     static std::array<Preset::Type, 3>  types_list(PrinterTechnology pt) {
