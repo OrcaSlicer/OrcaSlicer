@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "FlyingBear Generic PETG",
+	"name": "FlyingBear Generic PETG @System",
 	"inherits": "FlyingBear Generic PETG @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFG99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"FlyingBear Reborn3 0.4 nozzle",
-		"FlyingBear Ghost 6 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

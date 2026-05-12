@@ -1507,6 +1507,62 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "FlyingBear Generic ABS @base",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic ABS @base.json"
+		},
+		{
+			"name": "FlyingBear Generic ABS @System",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic ABS @System.json"
+		},
+		{
+			"name": "FlyingBear Generic PA-CF @base",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PA-CF @base.json"
+		},
+		{
+			"name": "FlyingBear Generic PA-CF @System",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PA-CF @System.json"
+		},
+		{
+			"name": "FlyingBear Generic PC @base",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PC @base.json"
+		},
+		{
+			"name": "FlyingBear Generic PC @System",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PC @System.json"
+		},
+		{
+			"name": "FlyingBear Generic PETG @base",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PETG @base.json"
+		},
+		{
+			"name": "FlyingBear Generic PETG @System",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PETG @System.json"
+		},
+		{
+			"name": "FlyingBear Generic PLA @base",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PLA @base.json"
+		},
+		{
+			"name": "FlyingBear Generic PLA @System",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic PLA @System.json"
+		},
+		{
+			"name": "FlyingBear Generic TPU @base",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic TPU @base.json"
+		},
+		{
+			"name": "FlyingBear Generic TPU @System",
+			"sub_path": "filament/FlyingBear/FlyingBear Generic TPU @System.json"
+		},
+		{
+			"name": "FlyingBear PLA Hyper @base",
+			"sub_path": "filament/FlyingBear/FlyingBear PLA Hyper @base.json"
+		},
+		{
+			"name": "FlyingBear PLA Hyper @System",
+			"sub_path": "filament/FlyingBear/FlyingBear PLA Hyper @System.json"
 		}
 	],
 	"process_list": [],

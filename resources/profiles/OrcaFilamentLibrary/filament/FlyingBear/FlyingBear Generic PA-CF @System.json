@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "FlyingBear Generic PA-CF",
+	"name": "FlyingBear Generic PA-CF @System",
 	"inherits": "FlyingBear Generic PA-CF @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFN98",
 	"instantiation": "true",
-	"compatible_printers": [
-		"FlyingBear Reborn3 0.4 nozzle",
-		"FlyingBear Ghost 6 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

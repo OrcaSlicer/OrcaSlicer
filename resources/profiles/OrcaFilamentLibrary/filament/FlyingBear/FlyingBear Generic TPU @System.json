@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "FlyingBear Generic TPU",
+	"name": "FlyingBear Generic TPU @System",
 	"inherits": "FlyingBear Generic TPU @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFU99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"FlyingBear Reborn3 0.4 nozzle",
-		"FlyingBear Ghost 6 0.4 nozzle"
-	]
+	"compatible_printers": []
 }
