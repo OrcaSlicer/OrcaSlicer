@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Ginger Generic PLA @System",
+	"inherits": "Ginger Generic PLA @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": []
+}

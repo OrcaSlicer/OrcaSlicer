@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "Ginger Generic PETG @System",
+	"inherits": "Ginger Generic PETG @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": []
+}

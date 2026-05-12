@@ -1507,6 +1507,22 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Ginger Generic PETG @base",
+			"sub_path": "filament/Ginger Additive/Ginger Generic PETG @base.json"
+		},
+		{
+			"name": "Ginger Generic PETG @System",
+			"sub_path": "filament/Ginger Additive/Ginger Generic PETG @System.json"
+		},
+		{
+			"name": "Ginger Generic PLA @base",
+			"sub_path": "filament/Ginger Additive/Ginger Generic PLA @base.json"
+		},
+		{
+			"name": "Ginger Generic PLA @System",
+			"sub_path": "filament/Ginger Additive/Ginger Generic PLA @System.json"
 		}
 	],
 	"process_list": [],
