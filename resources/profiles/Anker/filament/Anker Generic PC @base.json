@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Anker Generic PC @base",
-	"inherits": "fdm_filament_pc",
+	"inherits": "Anker PC @base",
 	"from": "system",
 	"filament_id": "GFC99",
 	"instantiation": "false"

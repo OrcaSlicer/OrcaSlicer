@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Anker ABS @System",
+	"inherits": "Anker ABS @base",
+	"from": "system",
+	"setting_id": "ANKS01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

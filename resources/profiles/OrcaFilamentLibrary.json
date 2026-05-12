@@ -1507,6 +1507,110 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Anker ABS @base",
+			"sub_path": "filament/Anker/Anker ABS @base.json"
+		},
+		{
+			"name": "Anker ABS @System",
+			"sub_path": "filament/Anker/Anker ABS @System.json"
+		},
+		{
+			"name": "Anker ASA @base",
+			"sub_path": "filament/Anker/Anker ASA @base.json"
+		},
+		{
+			"name": "Anker ASA @System",
+			"sub_path": "filament/Anker/Anker ASA @System.json"
+		},
+		{
+			"name": "Anker PA @base",
+			"sub_path": "filament/Anker/Anker PA @base.json"
+		},
+		{
+			"name": "Anker PA @System",
+			"sub_path": "filament/Anker/Anker PA @System.json"
+		},
+		{
+			"name": "Anker PA-CF @base",
+			"sub_path": "filament/Anker/Anker PA-CF @base.json"
+		},
+		{
+			"name": "Anker PA-CF @System",
+			"sub_path": "filament/Anker/Anker PA-CF @System.json"
+		},
+		{
+			"name": "Anker PC @base",
+			"sub_path": "filament/Anker/Anker PC @base.json"
+		},
+		{
+			"name": "Anker PC @System",
+			"sub_path": "filament/Anker/Anker PC @System.json"
+		},
+		{
+			"name": "Anker PETG @base",
+			"sub_path": "filament/Anker/Anker PETG @base.json"
+		},
+		{
+			"name": "Anker PETG @System",
+			"sub_path": "filament/Anker/Anker PETG @System.json"
+		},
+		{
+			"name": "Anker PETG-CF @base",
+			"sub_path": "filament/Anker/Anker PETG-CF @base.json"
+		},
+		{
+			"name": "Anker PETG-CF @System",
+			"sub_path": "filament/Anker/Anker PETG-CF @System.json"
+		},
+		{
+			"name": "Anker PLA @base",
+			"sub_path": "filament/Anker/Anker PLA @base.json"
+		},
+		{
+			"name": "Anker PLA @System",
+			"sub_path": "filament/Anker/Anker PLA @System.json"
+		},
+		{
+			"name": "Anker PLA Silk @base",
+			"sub_path": "filament/Anker/Anker PLA Silk @base.json"
+		},
+		{
+			"name": "Anker PLA Silk @System",
+			"sub_path": "filament/Anker/Anker PLA Silk @System.json"
+		},
+		{
+			"name": "Anker PLA+ @base",
+			"sub_path": "filament/Anker/Anker PLA+ @base.json"
+		},
+		{
+			"name": "Anker PLA+ @System",
+			"sub_path": "filament/Anker/Anker PLA+ @System.json"
+		},
+		{
+			"name": "Anker PLA-CF @base",
+			"sub_path": "filament/Anker/Anker PLA-CF @base.json"
+		},
+		{
+			"name": "Anker PLA-CF @System",
+			"sub_path": "filament/Anker/Anker PLA-CF @System.json"
+		},
+		{
+			"name": "Anker PVA @base",
+			"sub_path": "filament/Anker/Anker PVA @base.json"
+		},
+		{
+			"name": "Anker PVA @System",
+			"sub_path": "filament/Anker/Anker PVA @System.json"
+		},
+		{
+			"name": "Anker TPU @base",
+			"sub_path": "filament/Anker/Anker TPU @base.json"
+		},
+		{
+			"name": "Anker TPU @System",
+			"sub_path": "filament/Anker/Anker TPU @System.json"
 		}
 	],
 	"process_list": [],

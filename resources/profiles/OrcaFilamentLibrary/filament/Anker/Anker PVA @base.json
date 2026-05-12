@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Anker PVA @base",
+	"inherits": "fdm_filament_pva",
+	"from": "system",
+	"filament_id": "ANKS99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Anker"
+	]
+}

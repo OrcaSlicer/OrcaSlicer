@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Anker ASA @base",
+	"inherits": "fdm_filament_asa",
+	"from": "system",
+	"filament_id": "ANKA99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Anker"
+	]
+}

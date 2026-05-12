@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Anker PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "ANKL99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Anker"
+	]
+}

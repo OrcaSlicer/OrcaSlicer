@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Anker PETG @System",
+	"inherits": "Anker PETG @base",
+	"from": "system",
+	"setting_id": "ANKS06_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

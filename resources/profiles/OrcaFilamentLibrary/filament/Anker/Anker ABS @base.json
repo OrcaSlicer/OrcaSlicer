@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Anker ABS @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "ANKB99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Anker"
+	]
+}

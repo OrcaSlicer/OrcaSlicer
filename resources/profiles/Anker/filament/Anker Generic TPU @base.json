@@ -1,13 +1,8 @@
 {
 	"type": "filament",
 	"name": "Anker Generic TPU @base",
-	"inherits": "fdm_filament_tpu",
+	"inherits": "Anker TPU @base",
 	"from": "system",
 	"filament_id": "GFU99",
-	"instantiation": "false",
-	"filament_retraction_speed": "90",
-	"filament_deretraction_speed": "50",
-	"filament_retract_when_changing_layer": "1",
-	"filament_wipe": "1",
-	"filament_retract_before_wipe": "70"
+	"instantiation": "false"
 }

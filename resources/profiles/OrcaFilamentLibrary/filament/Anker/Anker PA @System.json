@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Anker PA @System",
+	"inherits": "Anker PA @base",
+	"from": "system",
+	"setting_id": "ANKS03_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

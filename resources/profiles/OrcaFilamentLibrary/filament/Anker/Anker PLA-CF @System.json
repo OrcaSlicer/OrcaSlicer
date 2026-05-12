@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Anker PLA-CF @System",
+	"inherits": "Anker PLA-CF @base",
+	"from": "system",
+	"setting_id": "ANKS11_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

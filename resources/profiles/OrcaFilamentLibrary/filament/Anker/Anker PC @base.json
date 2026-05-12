@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Anker PC @base",
+	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"filament_id": "ANKC99",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Anker"
+	]
+}
