@@ -1507,6 +1507,46 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Z-Bolt Generic ABS @System",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic ABS @System.json"
+		},
+		{
+			"name": "Z-Bolt Generic ABS @base",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic ABS @base.json"
+		},
+		{
+			"name": "Z-Bolt Generic ABS HT @System",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic ABS HT @System.json"
+		},
+		{
+			"name": "Z-Bolt Generic ABS HT @base",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic ABS HT @base.json"
+		},
+		{
+			"name": "Z-Bolt Generic PA @System",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic PA @System.json"
+		},
+		{
+			"name": "Z-Bolt Generic PA @base",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic PA @base.json"
+		},
+		{
+			"name": "Z-Bolt Generic PETG @System",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic PETG @System.json"
+		},
+		{
+			"name": "Z-Bolt Generic PETG @base",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic PETG @base.json"
+		},
+		{
+			"name": "Z-Bolt Generic PLA @System",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic PLA @System.json"
+		},
+		{
+			"name": "Z-Bolt Generic PLA @base",
+			"sub_path": "filament/Z-Bolt/Z-Bolt Generic PLA @base.json"
 		}
 	],
 	"process_list": [],

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"name": "Generic PETG @Z-Bolt Base",
+	"name": "Z-Bolt Generic PETG @System",
 	"inherits": "Z-Bolt Generic PETG @base",
-	"renamed_from": "Z-Bolt PETG;Generic PETG @Z-Bolt",
 	"from": "system",
 	"setting_id": "GFSL300",
 	"filament_id": "GFL300",
-	"instantiation": "false"
+	"instantiation": "true",
+	"compatible_printers": []
 }

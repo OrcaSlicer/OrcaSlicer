@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Z-Bolt Generic ABS @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"25"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"nozzle_temperature": [
+		"260"
+	],
+	"nozzle_temperature_initial_layer": [
+		"260"
+	],
+	"textured_plate_temp": [
+		"110"
+	],
+	"textured_plate_temp_initial_layer": [
+		"110"
+	]
+}

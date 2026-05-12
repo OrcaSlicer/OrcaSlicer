@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Z-Bolt Generic ABS HT @System",
+	"inherits": "Z-Bolt Generic ABS HT @base",
+	"from": "system",
+	"setting_id": "GFSL500",
+	"filament_id": "GFL500",
+	"instantiation": "true",
+	"compatible_printers": []
+}

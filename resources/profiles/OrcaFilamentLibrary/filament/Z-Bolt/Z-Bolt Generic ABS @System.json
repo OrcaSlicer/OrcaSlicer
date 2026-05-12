@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"name": "Generic ABS @Z-Bolt Base",
+	"name": "Z-Bolt Generic ABS @System",
 	"inherits": "Z-Bolt Generic ABS @base",
-	"renamed_from": "Z-Bolt ABS;Generic ABS @Z-Bolt",
 	"from": "system",
 	"setting_id": "GFSL200",
 	"filament_id": "GFL200",
-	"instantiation": "false"
+	"instantiation": "true",
+	"compatible_printers": []
 }

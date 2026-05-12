@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"name": "Generic PLA @Z-Bolt Base",
+	"name": "Z-Bolt Generic PLA @System",
 	"inherits": "Z-Bolt Generic PLA @base",
-	"renamed_from": "Z-Bolt PLA;Generic PLA @Z-Bolt",
 	"from": "system",
 	"setting_id": "GFSL100",
 	"filament_id": "GFL100",
-	"instantiation": "false"
+	"instantiation": "true",
+	"compatible_printers": []
 }
