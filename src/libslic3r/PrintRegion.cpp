@@ -3,6 +3,11 @@
 
 namespace Slic3r {
 
+static size_t configured_filament_count(const PrintConfig &print_config)
+{
+    return std::max(print_config.filament_diameter.size(), print_config.filament_colour.size());
+}
+
 // 1-based extruder identifier for this region and role.
 unsigned int PrintRegion::extruder(FlowRole role) const
 {
@@ -65,7 +70,7 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
 {
     // These checks reflect the same logic used in the GUI for enabling/disabling extruder selection fields.
     // BBS
-    auto num_extruders = (int)print_config.filament_diameter.size();
+    auto num_extruders = (int)configured_filament_count(print_config);
     auto emplace_extruder = [num_extruders, &object_extruders](int extruder_id) {
     	int i = std::max(0, extruder_id - 1);
         object_extruders.emplace_back((i >= num_extruders) ? 0 : i);
@@ -84,7 +89,7 @@ void PrintRegion::collect_object_printing_extruders(const Print &print, std::vec
     // If not, then there must be something wrong with the Print::apply() function.
 #ifndef NDEBUG
     // BBS
-    auto num_extruders = int(print.config().filament_diameter.size());
+    auto num_extruders = int(configured_filament_count(print.config()));
     assert(this->config().wall_filament    <= num_extruders);
     assert(this->config().sparse_infill_filament       <= num_extruders);
     assert(this->config().solid_infill_filament <= num_extruders);
