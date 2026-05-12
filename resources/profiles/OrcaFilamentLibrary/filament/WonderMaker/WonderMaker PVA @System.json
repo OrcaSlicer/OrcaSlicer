@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PVA @System",
+	"inherits": "WonderMaker PVA @base",
+	"from": "system",
+	"filament_id": "GFS04",
+	"instantiation": "true",
+	"compatible_printers": []
+}

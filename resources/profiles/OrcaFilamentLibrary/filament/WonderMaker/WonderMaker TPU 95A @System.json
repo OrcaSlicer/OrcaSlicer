@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker TPU 95A @System",
+	"inherits": "WonderMaker TPU 95A @base",
+	"from": "system",
+	"filament_id": "GFU01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

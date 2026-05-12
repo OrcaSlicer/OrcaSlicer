@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PLA Metal @System",
+	"inherits": "WonderMaker PLA Metal @base",
+	"from": "system",
+	"filament_id": "GFA02",
+	"instantiation": "true",
+	"compatible_printers": []
+}

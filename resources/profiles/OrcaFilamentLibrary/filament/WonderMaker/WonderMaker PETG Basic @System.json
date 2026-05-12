@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PETG Basic @System",
+	"inherits": "WonderMaker PETG Basic @base",
+	"from": "system",
+	"filament_id": "GFG00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

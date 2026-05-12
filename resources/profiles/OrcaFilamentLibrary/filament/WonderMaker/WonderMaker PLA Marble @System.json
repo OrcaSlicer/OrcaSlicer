@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PLA Marble @System",
+	"inherits": "WonderMaker PLA Marble @base",
+	"from": "system",
+	"filament_id": "GFA07",
+	"instantiation": "true",
+	"compatible_printers": []
+}

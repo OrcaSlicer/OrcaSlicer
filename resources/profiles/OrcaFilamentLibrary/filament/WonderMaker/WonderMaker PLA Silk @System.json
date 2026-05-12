@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PLA Silk @System",
+	"inherits": "WonderMaker PLA Silk @base",
+	"from": "system",
+	"filament_id": "GFA05",
+	"instantiation": "true",
+	"compatible_printers": []
+}

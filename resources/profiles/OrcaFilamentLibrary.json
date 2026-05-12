@@ -1507,6 +1507,126 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "WonderMaker ABS @WonderMaker ZR Ultra S @base",
+			"sub_path": "filament/WonderMaker/WonderMaker ABS @WonderMaker ZR Ultra S @base.json"
+		},
+		{
+			"name": "WonderMaker ABS @WonderMaker ZR Ultra S @System",
+			"sub_path": "filament/WonderMaker/WonderMaker ABS @WonderMaker ZR Ultra S @System.json"
+		},
+		{
+			"name": "WonderMaker ABS @base",
+			"sub_path": "filament/WonderMaker/WonderMaker ABS @base.json"
+		},
+		{
+			"name": "WonderMaker ABS @System",
+			"sub_path": "filament/WonderMaker/WonderMaker ABS @System.json"
+		},
+		{
+			"name": "WonderMaker ASA @WonderMaker ZR Ultra S @base",
+			"sub_path": "filament/WonderMaker/WonderMaker ASA @WonderMaker ZR Ultra S @base.json"
+		},
+		{
+			"name": "WonderMaker ASA @WonderMaker ZR Ultra S @System",
+			"sub_path": "filament/WonderMaker/WonderMaker ASA @WonderMaker ZR Ultra S @System.json"
+		},
+		{
+			"name": "WonderMaker ASA @base",
+			"sub_path": "filament/WonderMaker/WonderMaker ASA @base.json"
+		},
+		{
+			"name": "WonderMaker ASA @System",
+			"sub_path": "filament/WonderMaker/WonderMaker ASA @System.json"
+		},
+		{
+			"name": "WonderMaker PET-CF @WonderMaker ZR Ultra S @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PET-CF @WonderMaker ZR Ultra S @base.json"
+		},
+		{
+			"name": "WonderMaker PET-CF @WonderMaker ZR Ultra S @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PET-CF @WonderMaker ZR Ultra S @System.json"
+		},
+		{
+			"name": "WonderMaker PET-CF @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PET-CF @base.json"
+		},
+		{
+			"name": "WonderMaker PET-CF @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PET-CF @System.json"
+		},
+		{
+			"name": "WonderMaker PETG Basic @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PETG Basic @base.json"
+		},
+		{
+			"name": "WonderMaker PETG Basic @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PETG Basic @System.json"
+		},
+		{
+			"name": "WonderMaker PLA Basic @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Basic @base.json"
+		},
+		{
+			"name": "WonderMaker PLA Basic @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Basic @System.json"
+		},
+		{
+			"name": "WonderMaker PLA Marble @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Marble @base.json"
+		},
+		{
+			"name": "WonderMaker PLA Marble @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Marble @System.json"
+		},
+		{
+			"name": "WonderMaker PLA Matte @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Matte @base.json"
+		},
+		{
+			"name": "WonderMaker PLA Matte @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Matte @System.json"
+		},
+		{
+			"name": "WonderMaker PLA Metal @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Metal @base.json"
+		},
+		{
+			"name": "WonderMaker PLA Metal @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Metal @System.json"
+		},
+		{
+			"name": "WonderMaker PLA Silk @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Silk @base.json"
+		},
+		{
+			"name": "WonderMaker PLA Silk @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Silk @System.json"
+		},
+		{
+			"name": "WonderMaker PLA Wood @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Wood @base.json"
+		},
+		{
+			"name": "WonderMaker PLA Wood @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PLA Wood @System.json"
+		},
+		{
+			"name": "WonderMaker PVA @base",
+			"sub_path": "filament/WonderMaker/WonderMaker PVA @base.json"
+		},
+		{
+			"name": "WonderMaker PVA @System",
+			"sub_path": "filament/WonderMaker/WonderMaker PVA @System.json"
+		},
+		{
+			"name": "WonderMaker TPU 95A @base",
+			"sub_path": "filament/WonderMaker/WonderMaker TPU 95A @base.json"
+		},
+		{
+			"name": "WonderMaker TPU 95A @System",
+			"sub_path": "filament/WonderMaker/WonderMaker TPU 95A @System.json"
 		}
 	],
 	"process_list": [],

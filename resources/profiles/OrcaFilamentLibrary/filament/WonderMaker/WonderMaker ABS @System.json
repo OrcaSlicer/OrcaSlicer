@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker ABS @System",
+	"inherits": "WonderMaker ABS @base",
+	"from": "system",
+	"filament_id": "GFB00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

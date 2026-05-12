@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PLA Matte @System",
+	"inherits": "WonderMaker PLA Matte @base",
+	"from": "system",
+	"filament_id": "GFA01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker ASA @WonderMaker ZR Ultra S @System",
+	"inherits": "WonderMaker ASA @WonderMaker ZR Ultra S @base",
+	"from": "system",
+	"setting_id": "GFSB01_07",
+	"instantiation": "true",
+	"compatible_printers": []
+}

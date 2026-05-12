@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "WonderMaker PET-CF @System",
+	"inherits": "WonderMaker PET-CF @base",
+	"from": "system",
+	"filament_id": "GFT01",
+	"instantiation": "true",
+	"compatible_printers": []
+}
