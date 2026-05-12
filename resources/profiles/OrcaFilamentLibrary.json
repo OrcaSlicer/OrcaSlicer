@@ -1507,6 +1507,54 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Generic ABS @E3NG v1.2S @base",
+			"sub_path": "filament/RH3D/Generic ABS @E3NG v1.2S @base.json"
+		},
+		{
+			"name": "Generic ABS @E3NG v1.2S @System",
+			"sub_path": "filament/RH3D/Generic ABS @E3NG v1.2S @System.json"
+		},
+		{
+			"name": "Generic ASA @E3NG v1.2S @base",
+			"sub_path": "filament/RH3D/Generic ASA @E3NG v1.2S @base.json"
+		},
+		{
+			"name": "Generic ASA @E3NG v1.2S @System",
+			"sub_path": "filament/RH3D/Generic ASA @E3NG v1.2S @System.json"
+		},
+		{
+			"name": "Generic PCCF @E3NG v1.2S @base",
+			"sub_path": "filament/RH3D/Generic PCCF @E3NG v1.2S @base.json"
+		},
+		{
+			"name": "Generic PCCF @E3NG v1.2S @System",
+			"sub_path": "filament/RH3D/Generic PCCF @E3NG v1.2S @System.json"
+		},
+		{
+			"name": "Generic PETG @E3NG v1.2S @base",
+			"sub_path": "filament/RH3D/Generic PETG @E3NG v1.2S @base.json"
+		},
+		{
+			"name": "Generic PETG @E3NG v1.2S @System",
+			"sub_path": "filament/RH3D/Generic PETG @E3NG v1.2S @System.json"
+		},
+		{
+			"name": "Generic PLA @E3NG v1.2S @base",
+			"sub_path": "filament/RH3D/Generic PLA @E3NG v1.2S @base.json"
+		},
+		{
+			"name": "Generic PLA @E3NG v1.2S @System",
+			"sub_path": "filament/RH3D/Generic PLA @E3NG v1.2S @System.json"
+		},
+		{
+			"name": "Generic TPU @E3NG v1.2S @base",
+			"sub_path": "filament/RH3D/Generic TPU @E3NG v1.2S @base.json"
+		},
+		{
+			"name": "Generic TPU @E3NG v1.2S @System",
+			"sub_path": "filament/RH3D/Generic TPU @E3NG v1.2S @System.json"
 		}
 	],
 	"process_list": [],

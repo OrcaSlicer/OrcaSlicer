@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @E3NG v1.2S",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Generic PLA @E3NG v1.2S @base",
 	"from": "system",
 	"setting_id": "",
 	"filament_id": "Generic PLA @E3NG v1.2S",

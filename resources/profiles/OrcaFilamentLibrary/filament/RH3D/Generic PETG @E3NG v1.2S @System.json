@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @E3NG v1.2S @System",
+	"inherits": "Generic PETG @E3NG v1.2S @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "Generic PETG @E3NG v1.2S",
+	"instantiation": "true",
+	"compatible_printers": []
+}

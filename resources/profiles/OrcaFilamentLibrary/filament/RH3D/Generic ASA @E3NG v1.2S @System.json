@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic ASA @E3NG v1.2S @System",
+	"inherits": "Generic ASA @E3NG v1.2S @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "Generic ASA @E3NG v1.2S",
+	"instantiation": "true",
+	"compatible_printers": []
+}
