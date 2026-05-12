@@ -1507,6 +1507,38 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Dremel Generic PLA @base",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @base.json"
+		},
+		{
+			"name": "Dremel Generic PLA @System",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @System.json"
+		},
+		{
+			"name": "Dremel Generic PLA @3D20 all @base",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @3D20 all @base.json"
+		},
+		{
+			"name": "Dremel Generic PLA @3D20 all @System",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @3D20 all @System.json"
+		},
+		{
+			"name": "Dremel Generic PLA @3D40 all @base",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @3D40 all @base.json"
+		},
+		{
+			"name": "Dremel Generic PLA @3D40 all @System",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @3D40 all @System.json"
+		},
+		{
+			"name": "Dremel Generic PLA @3D45 all @base",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @3D45 all @base.json"
+		},
+		{
+			"name": "Dremel Generic PLA @3D45 all @System",
+			"sub_path": "filament/Dremel/Dremel Generic PLA @3D45 all @System.json"
 		}
 	],
 	"process_list": [],

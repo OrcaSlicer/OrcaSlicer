@@ -1,11 +1,9 @@
 {
 	"type": "filament",
-	"name": "Dremel Generic PLA @3D40 all",
+	"name": "Dremel Generic PLA @3D40 all @System",
 	"inherits": "Dremel Generic PLA @3D40 all @base",
 	"from": "system",
 	"setting_id": "GFSL99_00",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Dremel 3D40 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

@@ -1,0 +1,33 @@
+{
+	"type": "filament",
+	"name": "Dremel Generic PLA @3D40 all @base",
+	"inherits": "Dremel Generic PLA @base",
+	"from": "system",
+	"filament_max_volumetric_speed": [
+		"9"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"filament_retraction_length": [
+		"3"
+	],
+	"filament_retraction_speed": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"225"
+	],
+	"nozzle_temperature_initial_layer": [
+		"225"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	]
+}
