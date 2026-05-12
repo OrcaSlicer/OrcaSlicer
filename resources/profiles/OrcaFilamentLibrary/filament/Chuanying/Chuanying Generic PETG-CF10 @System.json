@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Chuanying Generic PETG-CF10 @System",
+	"inherits": "Chuanying Generic PETG-CF10 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

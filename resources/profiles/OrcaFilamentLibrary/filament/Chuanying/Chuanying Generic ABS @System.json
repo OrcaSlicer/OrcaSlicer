@@ -1,14 +1,10 @@
 {
 	"type": "filament",
-	"name": "Chuanying Generic ABS",
+	"name": "Chuanying Generic ABS @System",
 	"inherits": "Chuanying Generic ABS @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFB99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Chuanying X1 0.4 Nozzle",
-		"Chuanying X1 0.6 Nozzle",
-		"Chuanying X1 0.8 Nozzle"
-	]
+	"compatible_printers": []
 }

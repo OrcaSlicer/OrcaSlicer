@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Chuanying Generic HIPS @System",
+	"inherits": "Chuanying Generic HIPS @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

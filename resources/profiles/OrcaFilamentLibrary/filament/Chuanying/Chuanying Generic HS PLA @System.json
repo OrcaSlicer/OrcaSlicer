@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Chuanying Generic HS PLA @System",
+	"inherits": "Chuanying Generic HS PLA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

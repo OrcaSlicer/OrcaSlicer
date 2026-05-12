@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Chuanying Generic PVA @System",
+	"inherits": "Chuanying Generic PVA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "Chuanying PETG @Chuanying X1 0.25 Nozzle",
+	"name": "Chuanying PETG @Chuanying X1 0.25 Nozzle @System",
 	"inherits": "Chuanying PETG @Chuanying X1 0.25 Nozzle @base",
 	"from": "system",
 	"setting_id": "GFSA04_12",
 	"filament_id": "GFG99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Chuanying X1 0.25 Nozzle"
-	]
+	"compatible_printers": []
 }

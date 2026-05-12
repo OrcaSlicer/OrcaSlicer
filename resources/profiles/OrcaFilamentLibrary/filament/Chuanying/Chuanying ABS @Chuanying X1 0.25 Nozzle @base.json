@@ -1,0 +1,58 @@
+{
+	"type": "filament",
+	"name": "Chuanying ABS @Chuanying X1 0.25 Nozzle @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"instantiation": "false",
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"support_material_interface_fan_speed": [
+		"80"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n;right_extruder_material: ABS\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode\n"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.1"
+	],
+	"filament_density": [
+		"1.04"
+	],
+	"temperature_vitrification": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"105"
+	],
+	"hot_plate_temp": [
+		"105"
+	],
+	"filament_settings_id": [
+		"Chuanying ABS @Chuanying X1 0.25 Nozzle"
+	],
+	"fan_max_speed": [
+		"50"
+	],
+	"filament_cost": [
+		"40"
+	]
+}

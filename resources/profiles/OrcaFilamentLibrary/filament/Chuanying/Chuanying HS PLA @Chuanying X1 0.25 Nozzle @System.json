@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle",
+	"name": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle @System",
 	"inherits": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle @base",
 	"from": "system",
 	"setting_id": "GFSA04_09",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Chuanying X1 0.25 Nozzle"
-	]
+	"compatible_printers": []
 }
