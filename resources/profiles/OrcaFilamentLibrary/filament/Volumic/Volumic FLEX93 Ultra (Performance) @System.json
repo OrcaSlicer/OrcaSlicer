@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic FLEX93 Ultra (Performance) @System",
+	"inherits": "Volumic FLEX93 Ultra (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

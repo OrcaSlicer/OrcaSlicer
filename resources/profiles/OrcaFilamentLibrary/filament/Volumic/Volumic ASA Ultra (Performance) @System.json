@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic ASA Ultra (Performance) @System",
+	"inherits": "Volumic ASA Ultra (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

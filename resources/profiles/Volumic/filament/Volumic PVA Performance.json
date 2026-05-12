@@ -1,32 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFS99",
-	"setting_id": "GFSS99",
 	"name": "Volumic PVA-BVOH (Performance)",
+	"inherits": "Volumic PVA-BVOH (Performance) @base",
 	"from": "system",
+	"setting_id": "GFSS99",
+	"filament_id": "GFS99",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pva",
-	"filament_flow_ratio": [
-		"1.00"
-	],
-	"nozzle_temperature_initial_layer": [
-		"220"
-	],
-	"nozzle_temperature": [
-		"220"
-	],
-	"hot_plate_temp": [
-		"60"
-	],
-	"fan_max_speed": [
-		"80"
-	],
-	"fan_min_speed": [
-		"40"
-	],
-	"filament_max_volumetric_speed": [
-		"20"
-	],
 	"compatible_printers": [
 		"EXO42 Performance (0.4 nozzle)",
 		"EXO65 Performance (0.4 nozzle)",

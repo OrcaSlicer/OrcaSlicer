@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic ABS Ultra (Performance) @System",
+	"inherits": "Volumic ABS Ultra (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

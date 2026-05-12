@@ -1,29 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFC99",
-	"setting_id": "GFSC99",
 	"name": "Volumic PC",
+	"inherits": "Volumic PC @base",
 	"from": "system",
+	"setting_id": "GFSC99",
+	"filament_id": "GFC99",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pc",
-	"filament_flow_ratio": [
-		"1.00"
-	],
-	"nozzle_temperature": [
-		"270"
-	],
-	"hot_plate_temp": [
-		"115"
-	],
-	"fan_max_speed": [
-		"0"
-	],
-	"fan_min_speed": [
-		"0"
-	],
-	"filament_max_volumetric_speed": [
-		"22"
-	],
 	"compatible_printers": [
 		"EXO42 (0.4 nozzle)",
 		"EXO65 (0.6 nozzle)",

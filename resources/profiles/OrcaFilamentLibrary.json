@@ -1507,6 +1507,222 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Désactivé @base",
+			"sub_path": "filament/Volumic/Désactivé @base.json"
+		},
+		{
+			"name": "Désactivé @System",
+			"sub_path": "filament/Volumic/Désactivé @System.json"
+		},
+		{
+			"name": "PA6 CF20 (Performance) @base",
+			"sub_path": "filament/Volumic/PA6 CF20 (Performance) @base.json"
+		},
+		{
+			"name": "PA6 CF20 (Performance) @System",
+			"sub_path": "filament/Volumic/PA6 CF20 (Performance) @System.json"
+		},
+		{
+			"name": "PETG ESD (Performance) @base",
+			"sub_path": "filament/Volumic/PETG ESD (Performance) @base.json"
+		},
+		{
+			"name": "PETG ESD (Performance) @System",
+			"sub_path": "filament/Volumic/PETG ESD (Performance) @System.json"
+		},
+		{
+			"name": "PPS Carbone (Performance) @base",
+			"sub_path": "filament/Volumic/PPS Carbone (Performance) @base.json"
+		},
+		{
+			"name": "PPS Carbone (Performance) @System",
+			"sub_path": "filament/Volumic/PPS Carbone (Performance) @System.json"
+		},
+		{
+			"name": "Volumic ABS Ultra @base",
+			"sub_path": "filament/Volumic/Volumic ABS Ultra @base.json"
+		},
+		{
+			"name": "Volumic ABS Ultra @System",
+			"sub_path": "filament/Volumic/Volumic ABS Ultra @System.json"
+		},
+		{
+			"name": "Volumic ABS Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic ABS Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic ABS Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic ABS Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic ASA Ultra @base",
+			"sub_path": "filament/Volumic/Volumic ASA Ultra @base.json"
+		},
+		{
+			"name": "Volumic ASA Ultra @System",
+			"sub_path": "filament/Volumic/Volumic ASA Ultra @System.json"
+		},
+		{
+			"name": "Volumic ASA Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic ASA Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic ASA Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic ASA Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic FLEX93 Ultra @base",
+			"sub_path": "filament/Volumic/Volumic FLEX93 Ultra @base.json"
+		},
+		{
+			"name": "Volumic FLEX93 Ultra @System",
+			"sub_path": "filament/Volumic/Volumic FLEX93 Ultra @System.json"
+		},
+		{
+			"name": "Volumic FLEX93 Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic FLEX93 Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic FLEX93 Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic FLEX93 Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic NYLON Ultra @base",
+			"sub_path": "filament/Volumic/Volumic NYLON Ultra @base.json"
+		},
+		{
+			"name": "Volumic NYLON Ultra @System",
+			"sub_path": "filament/Volumic/Volumic NYLON Ultra @System.json"
+		},
+		{
+			"name": "Volumic NYLON Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic NYLON Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic NYLON Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic NYLON Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PC @base",
+			"sub_path": "filament/Volumic/Volumic PC @base.json"
+		},
+		{
+			"name": "Volumic PC @System",
+			"sub_path": "filament/Volumic/Volumic PC @System.json"
+		},
+		{
+			"name": "Volumic PC (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PC (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PC (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PC (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PCTG Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PCTG Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PCTG Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PCTG Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PETG Ultra @base",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra @base.json"
+		},
+		{
+			"name": "Volumic PETG Ultra @System",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra @System.json"
+		},
+		{
+			"name": "Volumic PETG Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PETG Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PETG Ultra carbone @base",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra carbone @base.json"
+		},
+		{
+			"name": "Volumic PETG Ultra carbone @System",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra carbone @System.json"
+		},
+		{
+			"name": "Volumic PETG Ultra carbone (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra carbone (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PETG Ultra carbone (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PETG Ultra carbone (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PLA Ultra @base",
+			"sub_path": "filament/Volumic/Volumic PLA Ultra @base.json"
+		},
+		{
+			"name": "Volumic PLA Ultra @System",
+			"sub_path": "filament/Volumic/Volumic PLA Ultra @System.json"
+		},
+		{
+			"name": "Volumic PLA Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PLA Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PLA Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PLA Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PP Ultra @base",
+			"sub_path": "filament/Volumic/Volumic PP Ultra @base.json"
+		},
+		{
+			"name": "Volumic PP Ultra @System",
+			"sub_path": "filament/Volumic/Volumic PP Ultra @System.json"
+		},
+		{
+			"name": "Volumic PP Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PP Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PP Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PP Ultra (Performance) @System.json"
+		},
+		{
+			"name": "Volumic PVA @base",
+			"sub_path": "filament/Volumic/Volumic PVA @base.json"
+		},
+		{
+			"name": "Volumic PVA @System",
+			"sub_path": "filament/Volumic/Volumic PVA @System.json"
+		},
+		{
+			"name": "Volumic PVA-BVOH (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic PVA-BVOH (Performance) @base.json"
+		},
+		{
+			"name": "Volumic PVA-BVOH (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic PVA-BVOH (Performance) @System.json"
+		},
+		{
+			"name": "Volumic UNIVERSAL Ultra @base",
+			"sub_path": "filament/Volumic/Volumic UNIVERSAL Ultra @base.json"
+		},
+		{
+			"name": "Volumic UNIVERSAL Ultra @System",
+			"sub_path": "filament/Volumic/Volumic UNIVERSAL Ultra @System.json"
+		},
+		{
+			"name": "Volumic UNIVERSAL Ultra (Performance) @base",
+			"sub_path": "filament/Volumic/Volumic UNIVERSAL Ultra (Performance) @base.json"
+		},
+		{
+			"name": "Volumic UNIVERSAL Ultra (Performance) @System",
+			"sub_path": "filament/Volumic/Volumic UNIVERSAL Ultra (Performance) @System.json"
 		}
 	],
 	"process_list": [],

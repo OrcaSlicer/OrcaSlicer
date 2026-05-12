@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic PVA-BVOH (Performance) @System",
+	"inherits": "Volumic PVA-BVOH (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSS99",
+	"filament_id": "GFS99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

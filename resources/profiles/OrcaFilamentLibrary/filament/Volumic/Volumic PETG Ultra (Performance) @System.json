@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic PETG Ultra (Performance) @System",
+	"inherits": "Volumic PETG Ultra (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

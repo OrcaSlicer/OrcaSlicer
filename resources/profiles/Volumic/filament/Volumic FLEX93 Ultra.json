@@ -1,29 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFU99",
-	"setting_id": "GFSR99",
 	"name": "Volumic FLEX93 Ultra",
+	"inherits": "Volumic FLEX93 Ultra @base",
 	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "GFU99",
 	"instantiation": "true",
-	"inherits": "fdm_filament_tpu",
-	"filament_flow_ratio": [
-		"1.20"
-	],
-	"nozzle_temperature": [
-		"235"
-	],
-	"hot_plate_temp": [
-		"45"
-	],
-	"fan_max_speed": [
-		"100"
-	],
-	"fan_min_speed": [
-		"80"
-	],
-	"filament_max_volumetric_speed": [
-		"5"
-	],
 	"compatible_printers": [
 		"EXO42 (0.4 nozzle)",
 		"EXO65 (0.6 nozzle)",

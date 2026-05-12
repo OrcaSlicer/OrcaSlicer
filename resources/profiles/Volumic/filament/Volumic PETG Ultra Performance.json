@@ -1,32 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFG99",
-	"setting_id": "GFSG99",
 	"name": "Volumic PETG Ultra (Performance)",
+	"inherits": "Volumic PETG Ultra (Performance) @base",
 	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pet",
-	"filament_flow_ratio": [
-		"1.00"
-	],
-	"nozzle_temperature_initial_layer": [
-		"240"
-	],
-	"nozzle_temperature": [
-		"240"
-	],
-	"hot_plate_temp": [
-		"60"
-	],
-	"fan_max_speed": [
-		"90"
-	],
-	"fan_min_speed": [
-		"70"
-	],
-	"filament_max_volumetric_speed": [
-		"36"
-	],
 	"compatible_printers": [
 		"EXO42 Performance (0.4 nozzle)",
 		"EXO65 Performance (0.4 nozzle)",

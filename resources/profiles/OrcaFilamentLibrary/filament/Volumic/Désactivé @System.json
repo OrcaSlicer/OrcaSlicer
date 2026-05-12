@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Désactivé @System",
+	"inherits": "Désactivé @base",
+	"from": "system",
+	"setting_id": "DFSL99",
+	"filament_id": "DFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,32 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFN99",
-	"setting_id": "GFSN98",
 	"name": "Volumic NYLON Ultra (Performance)",
+	"inherits": "Volumic NYLON Ultra (Performance) @base",
 	"from": "system",
+	"setting_id": "GFSN98",
+	"filament_id": "GFN99",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pa",
-	"filament_flow_ratio": [
-		"1.00"
-	],
-	"nozzle_temperature_initial_layer": [
-		"245"
-	],
-	"nozzle_temperature": [
-		"245"
-	],
-	"hot_plate_temp": [
-		"65"
-	],
-	"fan_max_speed": [
-		"0"
-	],
-	"fan_min_speed": [
-		"0"
-	],
-	"filament_max_volumetric_speed": [
-		"30"
-	],
 	"compatible_printers": [
 		"EXO42 Performance (0.4 nozzle)",
 		"EXO65 Performance (0.4 nozzle)",

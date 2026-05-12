@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic PVA @System",
+	"inherits": "Volumic PVA @base",
+	"from": "system",
+	"setting_id": "GFSS99",
+	"filament_id": "GFS99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

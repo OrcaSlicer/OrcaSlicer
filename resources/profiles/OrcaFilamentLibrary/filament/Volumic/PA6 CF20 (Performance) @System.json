@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "PA6 CF20 (Performance) @System",
+	"inherits": "PA6 CF20 (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSN98",
+	"filament_id": "GFN99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,32 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFG98",
-	"setting_id": "GFSG50",
 	"name": "Volumic PETG Ultra carbone (Performance)",
+	"inherits": "Volumic PETG Ultra carbone (Performance) @base",
 	"from": "system",
+	"setting_id": "GFSG50",
+	"filament_id": "GFG98",
 	"instantiation": "true",
-	"inherits": "fdm_filament_pet",
-	"filament_flow_ratio": [
-		"1.00"
-	],
-	"nozzle_temperature_initial_layer": [
-		"245"
-	],
-	"nozzle_temperature": [
-		"245"
-	],
-	"hot_plate_temp": [
-		"65"
-	],
-	"fan_max_speed": [
-		"60"
-	],
-	"fan_min_speed": [
-		"60"
-	],
-	"filament_max_volumetric_speed": [
-		"30"
-	],
 	"compatible_printers": [
 		"EXO42 Performance (0.4 nozzle)",
 		"EXO65 Performance (0.4 nozzle)",

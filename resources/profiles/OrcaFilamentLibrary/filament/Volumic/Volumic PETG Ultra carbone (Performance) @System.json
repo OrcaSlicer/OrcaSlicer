@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Volumic PETG Ultra carbone (Performance) @System",
+	"inherits": "Volumic PETG Ultra carbone (Performance) @base",
+	"from": "system",
+	"setting_id": "GFSG50",
+	"filament_id": "GFG98",
+	"instantiation": "true",
+	"compatible_printers": []
+}
