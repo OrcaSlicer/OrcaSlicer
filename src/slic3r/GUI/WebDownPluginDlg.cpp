@@ -31,7 +31,7 @@ using namespace nlohmann;
 
 namespace Slic3r { namespace GUI {
 
-DownPluginFrame::DownPluginFrame(GUI_App *pGUI) : wxDialog((wxWindow *) (pGUI->mainframe), wxID_ANY, "Orca Slicer"), m_appconfig_new()
+DownPluginFrame::DownPluginFrame(GUI_App *pGUI) : wxDialog((wxWindow *) (pGUI->mainframe), wxID_ANY, "OrcaSlicer"), m_appconfig_new()
 {
     // INI
     m_MainPtr = pGUI;

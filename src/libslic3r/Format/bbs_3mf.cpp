@@ -1079,7 +1079,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_restore = false;
         std::string m_backup_path;
         std::string m_origin_file;
-        // Semantic version of Orca Slicer, that generated this 3MF.
+        // Semantic version of OrcaSlicer, that generated this 3MF.
         boost::optional<Semver> m_bambuslicer_generator_version;
         // Semantic version from the OrcaSlicer metadata tag (if present).
         boost::optional<Semver> m_orca_slicer_version;

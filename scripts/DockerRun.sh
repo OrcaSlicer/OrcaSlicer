@@ -20,9 +20,9 @@ docker run \
   -e DISPLAY="$DISPLAY" \
   `# It seems that libGL and dbus things need privileged mode` \
   --privileged=true \
-  `# Attach tty for running orca slicer with command line things` \
+  `# Attach tty for running OrcaSlicer with command line things` \
   -ti \
   `# Clean up after yourself` \
   --rm \
-  `# Pass all parameters from this script to the orca slicer  ENTRYPOINT binary` \
+  `# Pass all parameters from this script to the OrcaSlicer  ENTRYPOINT binary` \
   orcaslicer "$@"
