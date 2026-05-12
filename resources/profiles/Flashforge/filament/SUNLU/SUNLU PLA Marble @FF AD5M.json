@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "SUNLU PLA Marble @FF AD5M",
-	"inherits": "SUNLU PLA Marble @base",
+	"inherits": "SUNLU PLA Marble @FF AD5M @base",
 	"from": "system",
 	"setting_id": "GFSNLS06",
 	"instantiation": "true",

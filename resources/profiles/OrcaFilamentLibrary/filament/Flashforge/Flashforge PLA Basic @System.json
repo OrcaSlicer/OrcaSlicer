@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Basic @System",
+	"inherits": "Flashforge PLA Basic @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

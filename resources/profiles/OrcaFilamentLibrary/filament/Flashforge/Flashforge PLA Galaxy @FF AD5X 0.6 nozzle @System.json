@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Galaxy @FF AD5X 0.6 nozzle @System",
+	"inherits": "Flashforge PLA Galaxy @FF AD5X 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

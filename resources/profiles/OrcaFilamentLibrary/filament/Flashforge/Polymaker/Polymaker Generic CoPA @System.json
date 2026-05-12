@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Polymaker Generic CoPA @System",
+	"inherits": "Polymaker Generic CoPA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

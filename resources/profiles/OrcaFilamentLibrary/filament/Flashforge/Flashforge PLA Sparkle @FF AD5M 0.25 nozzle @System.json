@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Sparkle @FF AD5M 0.25 nozzle @System",
+	"inherits": "Flashforge PLA Sparkle @FF AD5M 0.25 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04_19",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

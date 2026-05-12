@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FusRock PAHT-CF @FF G4P @System",
+	"inherits": "FusRock PAHT-CF @FF G4P @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

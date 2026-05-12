@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FusRock Generic NexPA-CF25 @System",
+	"inherits": "FusRock Generic NexPA-CF25 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

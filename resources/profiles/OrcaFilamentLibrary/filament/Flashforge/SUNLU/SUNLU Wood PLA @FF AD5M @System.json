@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "SUNLU Wood PLA @FF AD5M @System",
+	"inherits": "SUNLU Wood PLA @FF AD5M @base",
+	"from": "system",
+	"setting_id": "GFSNLS07",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

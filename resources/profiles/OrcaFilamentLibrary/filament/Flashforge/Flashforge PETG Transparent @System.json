@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PETG Transparent @System",
+	"inherits": "Flashforge PETG Transparent @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

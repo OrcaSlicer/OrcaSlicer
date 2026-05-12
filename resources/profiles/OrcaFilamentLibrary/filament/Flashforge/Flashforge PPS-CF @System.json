@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PPS-CF @System",
+	"inherits": "Flashforge PPS-CF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

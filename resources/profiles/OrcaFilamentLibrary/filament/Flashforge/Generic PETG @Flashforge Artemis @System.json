@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Flashforge Artemis @System",
+	"inherits": "Generic PETG @Flashforge Artemis @base",
+	"from": "system",
+	"setting_id": "FFFP02",
+	"filament_id": "FFF03",
+	"instantiation": "true",
+	"compatible_printers": []
+}

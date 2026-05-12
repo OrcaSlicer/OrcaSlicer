@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge Generic HIPS @System",
+	"inherits": "Flashforge Generic HIPS @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Matte @System",
+	"inherits": "Flashforge PLA Matte @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge HS PETG @System",
+	"inherits": "Flashforge HS PETG @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

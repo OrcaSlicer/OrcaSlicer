@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "SUNLU Wood PLA @FF AD5M",
-	"inherits": "SUNLU Wood PLA @base",
+	"inherits": "SUNLU Wood PLA @FF AD5M @base",
 	"from": "system",
 	"setting_id": "GFSNLS07",
 	"instantiation": "true",

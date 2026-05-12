@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Luminous @System",
+	"inherits": "Flashforge PLA Luminous @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

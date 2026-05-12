@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FlashForge PC @FF G4 0.6 nozzle @System",
+	"inherits": "FlashForge PC @FF G4 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

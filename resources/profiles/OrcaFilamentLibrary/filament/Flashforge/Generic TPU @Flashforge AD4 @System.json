@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @Flashforge AD4 @System",
+	"inherits": "Generic TPU @Flashforge AD4 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

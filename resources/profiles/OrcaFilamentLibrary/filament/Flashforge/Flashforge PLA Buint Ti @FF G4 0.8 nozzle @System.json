@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Buint Ti @FF G4 0.8 nozzle @System",
+	"inherits": "Flashforge PLA Buint Ti @FF G4 0.8 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

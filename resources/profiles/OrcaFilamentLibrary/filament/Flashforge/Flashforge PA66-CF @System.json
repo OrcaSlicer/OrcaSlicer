@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PA66-CF @System",
+	"inherits": "Flashforge PA66-CF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

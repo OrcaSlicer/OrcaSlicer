@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge HS PLA @FF G4P 0.25 nozzle @System",
+	"inherits": "Flashforge HS PLA @FF G4P 0.25 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA @System",
+	"inherits": "Flashforge PLA @base",
+	"from": "system",
+	"setting_id": "FFFP01",
+	"filament_id": "FFF01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

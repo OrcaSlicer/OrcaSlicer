@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "SUNLU Silk PLA+ @FF AD5M 0.25 Nozzle @System",
+	"inherits": "SUNLU Silk PLA+ @FF AD5M 0.25 Nozzle @base",
+	"from": "system",
+	"setting_id": "GFSNLS05_01",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

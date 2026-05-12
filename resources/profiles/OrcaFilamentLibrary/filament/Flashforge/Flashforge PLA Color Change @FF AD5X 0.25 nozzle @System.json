@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Color Change @FF AD5X 0.25 nozzle @System",
+	"inherits": "Flashforge PLA Color Change @FF AD5X 0.25 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04_19",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

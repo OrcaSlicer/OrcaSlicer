@@ -1,13 +1,10 @@
 {
 	"type": "filament",
 	"name": "SUNLU Silk PLA+ @FF AD5M",
-	"inherits": "SUNLU Silk PLA+ @base",
+	"inherits": "SUNLU Silk PLA+ @FF AD5M @base",
 	"from": "system",
 	"setting_id": "GFSNLS05",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"24"
-	],
 	"compatible_printers": [
 		"Flashforge Adventurer 5M Pro 0.4 Nozzle",
 		"Flashforge Adventurer 5M Pro 0.6 Nozzle",

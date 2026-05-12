@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PETG Pro @FF AD5X 0.25 nozzle @System",
+	"inherits": "Flashforge PETG Pro @FF AD5X 0.25 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04_12",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

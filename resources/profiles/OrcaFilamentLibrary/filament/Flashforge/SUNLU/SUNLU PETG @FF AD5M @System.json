@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "SUNLU PETG @FF AD5M @System",
+	"inherits": "SUNLU PETG @FF AD5M @base",
+	"from": "system",
+	"setting_id": "GFSNLS08",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

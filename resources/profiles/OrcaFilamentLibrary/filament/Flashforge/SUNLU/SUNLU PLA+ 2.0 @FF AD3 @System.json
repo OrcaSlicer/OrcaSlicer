@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "SUNLU PLA+ 2.0 @FF AD3 @System",
+	"inherits": "SUNLU PLA+ 2.0 @FF AD3 @base",
+	"from": "system",
+	"setting_id": "GFSNLS04_03",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

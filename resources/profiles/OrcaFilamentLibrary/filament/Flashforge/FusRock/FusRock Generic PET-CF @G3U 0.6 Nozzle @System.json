@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FusRock Generic PET-CF @G3U 0.6 Nozzle @System",
+	"inherits": "FusRock Generic PET-CF @G3U 0.6 Nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

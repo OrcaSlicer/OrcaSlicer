@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "SUNLU PLA Matte @FF AD3 @System",
+	"inherits": "SUNLU PLA Matte @FF AD3 @base",
+	"from": "system",
+	"setting_id": "GFSNLS02_03",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

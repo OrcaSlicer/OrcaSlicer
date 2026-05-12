@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Polymaker CoPA @FF G4P 0.6 nozzle @System",
+	"inherits": "Polymaker CoPA @FF G4P 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

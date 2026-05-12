@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic TPU 85A @FF AD5X @System",
+	"inherits": "Generic TPU 85A @FF AD5X @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

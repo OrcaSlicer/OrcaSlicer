@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "SUNLU PLA Marble @FF AD3 @System",
+	"inherits": "SUNLU PLA Marble @FF AD3 @base",
+	"from": "system",
+	"setting_id": "GFSNLS06_03",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PETG Pro @FF G4 0.8 HF nozzle @System",
+	"inherits": "Flashforge PETG Pro @FF G4 0.8 HF nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

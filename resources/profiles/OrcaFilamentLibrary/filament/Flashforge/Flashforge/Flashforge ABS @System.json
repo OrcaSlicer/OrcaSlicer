@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge ABS @System",
+	"inherits": "Flashforge ABS @base",
+	"from": "system",
+	"setting_id": "FFFA01",
+	"filament_id": "FFF02",
+	"instantiation": "true",
+	"compatible_printers": []
+}

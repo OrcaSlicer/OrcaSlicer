@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "SUNLU PLA+ @FF AD5M",
-	"inherits": "SUNLU PLA+ @base",
+	"inherits": "SUNLU PLA+ @FF AD5M @base",
 	"from": "system",
 	"setting_id": "GFSNLS03",
 	"instantiation": "true",

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PPA-GF @System",
+	"inherits": "Flashforge PPA-GF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

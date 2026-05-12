@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge PLA Matte @FF G4 0.6 nozzle @System",
+	"inherits": "Flashforge PLA Matte @FF G4 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

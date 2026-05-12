@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge ASA Basic @FF AD5X 0.25 nozzle @System",
+	"inherits": "Flashforge ASA Basic @FF AD5X 0.25 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04_05",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

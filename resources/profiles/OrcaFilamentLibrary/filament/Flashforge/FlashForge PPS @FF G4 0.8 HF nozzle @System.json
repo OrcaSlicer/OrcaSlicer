@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FlashForge PPS @FF G4 0.8 HF nozzle @System",
+	"inherits": "FlashForge PPS @FF G4 0.8 HF nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

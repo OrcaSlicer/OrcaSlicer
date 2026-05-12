@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge Generic PLA @G3U @System",
+	"inherits": "Flashforge Generic PLA @G3U @base",
+	"from": "system",
+	"setting_id": "FFGP02",
+	"filament_id": "FFG01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

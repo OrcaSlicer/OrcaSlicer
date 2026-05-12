@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Flashforge Generic PLA-CF10 @System",
+	"inherits": "Flashforge Generic PLA-CF10 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
