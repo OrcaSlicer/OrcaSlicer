@@ -1781,7 +1781,8 @@ msgstr "S'està carregant la configuració"
 msgid "Click to download new version in default browser: %s"
 msgstr "Feu clic per descarregar la nova versió al navegador predeterminat: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "L'Orca Slicer necessita una actualització"
 
 msgid "This is the newest version."
@@ -2258,10 +2259,10 @@ msgstr "Convertir des de metres"
 msgid "Restore to meters"
 msgstr "Restaurar a metres"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar els objectes seleccionats a un objecte amb diverses peces"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Ensamblar els objectes seleccionats a un objecte amb una sola peça"
 
 msgid "Mesh boolean"
@@ -5747,7 +5748,7 @@ msgstr "Enviar a multidispositiu"
 msgid "Keyboard Shortcuts"
 msgstr "Dreceres de teclat"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Mostrar la llista de les dreceres de teclat"
 
 msgid "Setup Wizard"
@@ -8857,7 +8858,8 @@ msgstr "Associar enllaços web a OrcaSlicer"
 msgid "Developer"
 msgstr "Desenvolupador"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Mode de desenvolupament"
 
 msgid "Skip AMS blacklist check"
@@ -19986,7 +19988,7 @@ msgstr "El nom no pot superar els 40 caràcters."
 msgid "Please find the best line on your plate"
 msgstr "Busqueu la millor línia a la placa"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Busqueu la cantonada amb un grau d'extrusió perfecte"
 
 msgid "Input Value"
@@ -20765,7 +20767,8 @@ msgstr "Crear"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "El proveïdor no està seleccionat, torneu a seleccionar el proveïdor."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 "El proveïdor personalitzat no s'ha introduït, introduïu un proveïdor "
 "personalitzat."
@@ -20808,8 +20811,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "El nom de Filament %s que heu creat ja existeix.\n"
 "Si continueu creant-lo, el perfil creat es mostrarà amb el seu nom complet. "
@@ -22837,7 +22840,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Neteja al suport/objectes/farciment\n"

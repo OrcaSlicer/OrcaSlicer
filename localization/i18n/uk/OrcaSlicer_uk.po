@@ -1757,7 +1757,8 @@ msgid "Click to download new version in default browser: %s"
 msgstr ""
 "Натисніть OK, щоб завантажити останню версію в стандартному браузері: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer потребує оновлення"
 
 msgid "This is the newest version."
@@ -2217,10 +2218,10 @@ msgstr "Перетворити з метричної"
 msgid "Restore to meters"
 msgstr "Відновити в метричну"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Зібрати вибрані об'єкти в об'єкт з кількома частинами"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Зібрати вибрані об'єкти в об'єкт в одне ціле"
 
 msgid "Mesh boolean"
@@ -5552,7 +5553,7 @@ msgstr "Відправити на багато пристроїв"
 msgid "Keyboard Shortcuts"
 msgstr "Гарячі клавіші"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Показати список гарячих клавіш"
 
 msgid "Setup Wizard"
@@ -8545,7 +8546,8 @@ msgstr "Асоціювати веб-посилання з OrcaSlicer"
 msgid "Developer"
 msgstr ""
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Режим розробки"
 
 msgid "Skip AMS blacklist check"
@@ -19046,7 +19048,7 @@ msgstr "Ім’я не може перевищувати 40 символів."
 msgid "Please find the best line on your plate"
 msgstr "Будь ласка, знайдіть найкращу лінію на вашій пластині"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Будь ласка, знайдіть кут з ідеальним ступенем витіснення"
 
 msgid "Input Value"
@@ -19776,7 +19778,8 @@ msgstr "Створити"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Виробник не вибраний. Будь ласка, перевиберіть виробника."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 "Власного виробника не введено. Будь ласка, введіть інформацію про власного "
 "виробника."
@@ -19818,8 +19821,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Назва філаменту %s, яку ви створили, вже існує.\n"
 "Якщо ви продовжите створення, новий набір параметрів буде відображений з "
@@ -21701,7 +21704,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Промивати в підтримки/об'єкти/заповнення\n"

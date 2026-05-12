@@ -1720,7 +1720,8 @@ msgstr "正在加载配置"
 msgid "Click to download new version in default browser: %s"
 msgstr "在默认浏览器中点击下载最新版本: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "逆戟鲸切片器需要进行升级"
 
 msgid "This is the newest version."
@@ -2179,10 +2180,10 @@ msgstr "从米转换"
 msgid "Restore to meters"
 msgstr "恢复到米"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "组合所选对象为一个多零件对象"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "组合所选对象为一个单零件对象"
 
 msgid "Mesh boolean"
@@ -5439,7 +5440,7 @@ msgstr "发送到多设备"
 msgid "Keyboard Shortcuts"
 msgstr "快捷键"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "显示快捷键列表"
 
 msgid "Setup Wizard"
@@ -8291,7 +8292,8 @@ msgstr "将网页链接关联到OrcaSlicer"
 msgid "Developer"
 msgstr "开发者"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "开发者模式"
 
 msgid "Skip AMS blacklist check"
@@ -18064,7 +18066,7 @@ msgstr "名称不能超过40个字符。"
 msgid "Please find the best line on your plate"
 msgstr "请在您的打印板上找到最佳线条"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "请找到具有完美挤出度的转角"
 
 msgid "Input Value"
@@ -18811,7 +18813,8 @@ msgstr "创建"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "未选择供应商，请重新选择供应商。"
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "未输入自定义供应商，请输入自定义供应商。"
 
 msgid ""
@@ -18843,8 +18846,8 @@ msgstr "您还没有选择打印机或预设。请至少选择一个。"
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "您创建的耗材名称 %s 有重名。\n"
 "如果您继续创建，您创建的预设将以全名显示。您想继续吗？"
@@ -20650,7 +20653,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "冲刷到支撑/对象/填充中\n"

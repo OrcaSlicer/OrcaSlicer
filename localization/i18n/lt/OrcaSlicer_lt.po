@@ -1764,7 +1764,8 @@ msgid "Click to download new version in default browser: %s"
 msgstr ""
 "Spustelėkite, kad atsisiųstumėte naują versiją numatytoje naršyklėje: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "OrcaSlicer reikia atnaujinti"
 
 msgid "This is the newest version."
@@ -2241,10 +2242,10 @@ msgstr "Konvertuoti iš metrų"
 msgid "Restore to meters"
 msgstr "Grąžinti į metrus"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Sujungti pasirinktus objektus į daugiadalį objektą"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Sujungti pasirinktus objektus į vienadalį objektą"
 
 msgid "Mesh boolean"
@@ -5710,7 +5711,7 @@ msgstr "Siųsti į multiįrenginį"
 msgid "Keyboard Shortcuts"
 msgstr "Klaviatūros nuorodos"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Rodyti sparčiųjų klavišų sąrašą"
 
 msgid "Setup Wizard"
@@ -8774,7 +8775,8 @@ msgstr "Susieti interneto nuorodas su Orca Slicer"
 msgid "Developer"
 msgstr "Developer"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Kūrėjo režimas"
 
 msgid "Skip AMS blacklist check"
@@ -19714,7 +19716,7 @@ msgstr "Pavadinimas negali būti ilgesnis nei 40 simbolių."
 msgid "Please find the best line on your plate"
 msgstr "Raskite geriausią liniją ant pagrindo"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Raskite kampą su tobulu išspaudimo laipsniu"
 
 msgid "Input Value"
@@ -20485,7 +20487,8 @@ msgstr "Sukurti"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Pardavėjas nepasirinktas, pasirinkite pardavėją iš naujo."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Pasirinktinis pardavėjas neįvestas, įveskite pasirinktinį pardavėją."
 
 msgid ""
@@ -20524,8 +20527,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Sukurtas gijos pavadinimas %s jau egzistuoja.\n"
 "Jei toliau kursite, bus rodomas visas sukurto išankstinio nustatymo "
@@ -22513,7 +22516,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Išspausti į atramą/objektus/užpildą \n"

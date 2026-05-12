@@ -1725,7 +1725,8 @@ msgstr "正在讀取設定檔"
 msgid "Click to download new version in default browser: %s"
 msgstr "在預設瀏覽器中開啟頁面下載最新版本： %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer 需要進行升級"
 
 msgid "This is the newest version."
@@ -2186,10 +2187,10 @@ msgstr "從公尺轉換"
 msgid "Restore to meters"
 msgstr "恢復到公尺"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "組合所選物件為一個多零件物件"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "組合所選物件為一個單零件物件"
 
 msgid "Mesh boolean"
@@ -5508,7 +5509,7 @@ msgstr "傳送給多個列印設備"
 msgid "Keyboard Shortcuts"
 msgstr "快捷鍵"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "顯示快捷鍵清單"
 
 msgid "Setup Wizard"
@@ -8382,7 +8383,8 @@ msgstr "將網頁連結關聯到 OrcaSlicer"
 msgid "Developer"
 msgstr "開發者"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "開發者模式"
 
 msgid "Skip AMS blacklist check"
@@ -18203,7 +18205,7 @@ msgstr "名稱不能超過40個字元。"
 msgid "Please find the best line on your plate"
 msgstr "請在您的列印板上找到最佳線條"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "請找到最完美的列印角度"
 
 msgid "Input Value"
@@ -18952,7 +18954,8 @@ msgstr "建立"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "廠牌尚未選擇，請重新選擇廠牌。"
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "自訂廠牌尚未輸入，請輸入自訂廠牌。"
 
 msgid ""
@@ -18983,8 +18986,8 @@ msgstr "尚未選擇列印設備或預設，請至少選擇一個。"
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "所建立的線材名稱 %s 已經存在。\n"
 "如果繼續建立，預設將顯示完整的名稱。是否要繼續？"
@@ -20798,7 +20801,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "廢料運用到支撐/物件/填充中\n"

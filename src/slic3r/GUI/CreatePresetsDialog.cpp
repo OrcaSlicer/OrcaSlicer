@@ -1058,7 +1058,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
             }
         } else {
             if (m_filament_custom_vendor_input->GetTextCtrl()->GetValue().empty()) {
-                MessageDialog dlg(this, _L("Custom vendor is not input, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                MessageDialog dlg(this, _L("Custom vendor is missing, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                                   wxYES | wxYES_DEFAULT | wxCENTRE);
                 dlg.ShowModal();
                 return;
@@ -1130,7 +1130,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         if (preset_bundle->filaments.is_alias_exist(filament_preset_name)) {
             MessageDialog dlg(this,
                               wxString::Format(_L("The Filament name %s you created already exists.\n"
-                                                  "If you continue creating, the preset created will be displayed with its full name. Do you want to continue?"),
+                                                  "If you continue, the preset created will be displayed with its full name. Do you want to continue?"),
                                                from_u8(filament_preset_name)),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             if (wxID_YES != dlg.ShowModal()) { return; }

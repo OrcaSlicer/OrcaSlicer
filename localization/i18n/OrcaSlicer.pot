@@ -1696,7 +1696,7 @@ msgstr ""
 msgid "Click to download new version in default browser: %s"
 msgstr ""
 
-msgid "The Orca Slicer needs an upgrade"
+msgid "OrcaSlicer needs an update"
 msgstr ""
 
 msgid "This is the newest version."
@@ -2135,10 +2135,10 @@ msgstr ""
 msgid "Restore to meters"
 msgstr ""
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr ""
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr ""
 
 msgid "Mesh boolean"
@@ -5269,7 +5269,7 @@ msgstr ""
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr ""
 
 msgid "Setup Wizard"
@@ -8049,7 +8049,7 @@ msgstr ""
 msgid "Developer"
 msgstr ""
 
-msgid "Develop mode"
+msgid "Developer mode"
 msgstr ""
 
 msgid "Skip AMS blacklist check"
@@ -16832,7 +16832,7 @@ msgstr ""
 msgid "Please find the best line on your plate"
 msgstr ""
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr ""
 
 msgid "Input Value"
@@ -17537,7 +17537,7 @@ msgstr ""
 msgid "Vendor is not selected, please reselect vendor."
 msgstr ""
 
-msgid "Custom vendor is not input, please input custom vendor."
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 
 msgid ""
@@ -17568,8 +17568,8 @@ msgstr ""
 #, possible-c-format, possible-boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 
 msgid "Some existing presets have failed to be created, as follows:\n"
@@ -19058,7 +19058,7 @@ msgid "Stack objects\nDid you know that you can stack objects as a whole one?"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
-msgid "Flush into support/objects/infill\nDid you know that you can save wasted filament by flushing it into support/objects/infill during filament change?"
+msgid "Flush into support/objects/infill\nDid you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Improve strength]
