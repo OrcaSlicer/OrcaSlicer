@@ -19,32 +19,31 @@ namespace igl
   {
     namespace cgal
     {
-      // Given a list of objects (e.g., resulting from intersecting a triangle
-      // with many other triangles), construct a constrained Delaunay
-      // triangulation on a given plane (P), by inersting constraints for each
-      // object projected onto that plane.
-      //
-      // Inputs:
-      //   objects  list of objects. This should lie on the given plane (P),
-      //     otherwise they are added to the cdt _after_ their non-trivial
-      //     projection
-      //   P  plane upon which all objects lie and upon which the CDT is
-      //     conducted
-      // Outputs:
-      //   vertices  list of vertices of the CDT mesh _back on the 3D plane_
-      //   faces  list of list of triangle indices into vertices
-      //
+      /// Given a list of objects (e.g., resulting from intersecting a triangle
+      /// with many other triangles), construct a constrained Delaunay
+      /// triangulation on a given plane (P), by inersting constraints for each
+      /// object projected onto that plane.
+      ///
+      /// @param[in] objects  list of objects. This should lie on the given plane (P),
+      ///     otherwise they are added to the cdt _after_ their non-trivial
+      ///     projection
+      /// @param[in] P  plane upon which all objects lie and upon which the CDT is
+      ///     conducted
+      /// @param[out] vertices  list of vertices of the CDT mesh _back on the 3D plane_
+      /// @param[out] faces  list of list of triangle indices into vertices
+      ///
       template <typename Kernel, typename Index>
       IGL_INLINE void projected_cdt(
         const std::vector<CGAL::Object> & objects,
         const CGAL::Plane_3<Kernel> & P,
         std::vector<CGAL::Point_3<Kernel> >& vertices,
         std::vector<std::vector<Index> >& faces);
-      // Outputs:
-      //   V  #V by 3 list of vertices of the CDT mesh _back on the 3D plane_,
-      //     **cast** from the number type of Kernel to the number type of
-      //     DerivedV
-      //   F  #F by 3 list of triangle indices into V
+      /// \overload
+      ///
+      /// @param[out] V  #V by 3 list of vertices of the CDT mesh _back on the 3D plane_,
+      ///     **cast** from the number type of Kernel to the number type of
+      ///     DerivedV
+      /// @param[out] F  #F by 3 list of triangle indices into V
       template < typename Kernel, typename DerivedV, typename DerivedF>
       IGL_INLINE void projected_cdt(
         const std::vector<CGAL::Object> & objects,

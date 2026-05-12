@@ -14,22 +14,20 @@ namespace igl
 {
   namespace copyleft
   {
-    // Solve a (dense) quadratric program of the form:
-    //
-    //   min  0.5 x G x + g0 x
-    //   s.t. CE' x + ce0  = 0
-    //   and  CI' x + ci0 >= 0
-    //
-    // Inputs:
-    //   G  #x by #x matrix of quadratic coefficients
-    //   g0  #x vector of linear coefficients
-    //   CE #x by #CE list of linear equality coefficients
-    //   ce0 #CE list of linear equality right-hand sides
-    //   CI #x by #CI list of linear equality coefficients
-    //   ci0 #CI list of linear equality right-hand sides
-    // Outputs:
-    //   x  #x vector of solution values
-    // Returns true iff success
+    /// Solve a (dense) convex quadratric program. Given in the form
+    ///
+    ///      min  0.5 x G x + g0 x
+    ///      s.t. CE' x + ce0  = 0
+    ///      and  CI' x + ci0 >= 0
+    ///
+    /// @param[in] G  #x by #x matrix of quadratic coefficients
+    /// @param[in] g0  #x vector of linear coefficients
+    /// @param[in] CE #x by #CE list of linear equality coefficients
+    /// @param[in] ce0 #CE list of linear equality right-hand sides
+    /// @param[in] CI #x by #CI list of linear equality coefficients
+    /// @param[in] ci0 #CI list of linear equality right-hand sides
+    /// @param[out] x  #x vector of solution values
+    /// @return true iff success
     IGL_INLINE bool quadprog(
       const Eigen::MatrixXd & G,  
       const Eigen::VectorXd & g0,  
