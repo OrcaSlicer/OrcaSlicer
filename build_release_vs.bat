@@ -124,7 +124,7 @@ if "%USE_NINJA%"=="1" (
 if "%1"=="deps" goto :done
 
 :slicer
-echo "building OrcaSlicer..."
+echo "building Orca Slicer..."
 cd %WP%
 mkdir %build_dir%
 cd %build_dir%

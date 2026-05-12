@@ -54,7 +54,7 @@ RUN apt-get update && apt-get install  -y \
 ENV LC_ALL=en_US.utf8
 RUN locale-gen $LC_ALL
 
-# Set this so that OrcaSlicer doesn't complain about
+# Set this so that Orca Slicer doesn't complain about
 # the CA cert path on every startup
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
@@ -76,7 +76,7 @@ RUN ./build_linux.sh -sr
 ENV container podman
 RUN ./build_linux.sh -ir
 
-# It's easier to run OrcaSlicer as the same username,
+# It's easier to run Orca Slicer as the same username,
 # UID and GID as your workstation.  Since we bind mount
 # your home directory into the container, it's handy
 # to keep permissions the same.  Just in case, defaults

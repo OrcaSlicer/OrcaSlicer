@@ -133,8 +133,8 @@ std::map<int, std::string> cli_errors = {
     {CLI_OBJECT_ORIENT_FAILED, "An error occurred when auto-orienting object(s)."},
     {CLI_MODIFIED_PARAMS_TO_PRINTER, "Found modified parameter in printer preset in the 3mf file, which should not be changed."},
         {CLI_FILE_VERSION_NOT_SUPPORTED, "Unsupported 3MF version. Please make sure the 3MF file was created with the official version of Bambu Studio, not a beta version."},
-    {CLI_NO_SUITABLE_OBJECTS, "One of the plate is empty or has no object fully inside it. Please check that the 3mf contains no empty plate in OrcaSlicer before uploading."},
-    {CLI_VALIDATE_ERROR, "There are some incorrect slicing parameters in the 3mf. Please verify the slicing of all plates in OrcaSlicer before uploading."},
+    {CLI_NO_SUITABLE_OBJECTS, "One of the plate is empty or has no object fully inside it. Please check that the 3mf contains no empty plate in Orca Slicer before uploading."},
+    {CLI_VALIDATE_ERROR, "There are some incorrect slicing parameters in the 3mf. Please verify the slicing of all plates in Orca Slicer before uploading."},
     {CLI_OBJECTS_PARTLY_INSIDE, "Some objects are located over the boundary of the heated bed."},
     {CLI_EXPORT_CACHE_DIRECTORY_CREATE_FAILED, "Failed creating directory when exporting cache data."},
     {CLI_EXPORT_CACHE_WRITE_FAILED, "Failed exporting cache data."},
@@ -144,17 +144,17 @@ std::map<int, std::string> cli_errors = {
     {CLI_SLICING_TIME_EXCEEDS_LIMIT, "Slicing time of a certain plate exceeds the limit. Please simplify the model or use a larger slicing layer height."},
     {CLI_TRIANGLE_COUNT_EXCEEDS_LIMIT, "Triangle count of single plate exceeds the limit. Please simplify the model and try to upload again."},
     {CLI_NO_SUITABLE_OBJECTS_AFTER_SKIP, "No printable objects to slice after skipping."},
-    {CLI_FILAMENT_NOT_MATCH_BED_TYPE, "Filaments are not compatible with the plate type. Please verify the slicing of all plates in OrcaSlicer before uploading."},
-    {CLI_FILAMENTS_DIFFERENT_TEMP, "The temperature difference of the filaments used is too large. Please verify the slicing of all plates in OrcaSlicer before uploading."},
-    {CLI_OBJECT_COLLISION_IN_SEQ_PRINT, "Object conflicts were detected when using print-by-object mode. Please verify the slicing of all plates in OrcaSlicer before uploading."},
-    {CLI_OBJECT_COLLISION_IN_LAYER_PRINT, "Object conflicts were detected. Please verify the slicing of all plates in OrcaSlicer before uploading."},
-    {CLI_SPIRAL_MODE_INVALID_PARAMS, "Some slicing parameters cannot work with Spiral Vase mode. Please solve the issue in OrcaSlicer before uploading."},
+    {CLI_FILAMENT_NOT_MATCH_BED_TYPE, "Filaments are not compatible with the plate type. Please verify the slicing of all plates in Orca Slicer before uploading."},
+    {CLI_FILAMENTS_DIFFERENT_TEMP, "The temperature difference of the filaments used is too large. Please verify the slicing of all plates in Orca Slicer before uploading."},
+    {CLI_OBJECT_COLLISION_IN_SEQ_PRINT, "Object conflicts were detected when using print-by-object mode. Please verify the slicing of all plates in Orca Slicer before uploading."},
+    {CLI_OBJECT_COLLISION_IN_LAYER_PRINT, "Object conflicts were detected. Please verify the slicing of all plates in Orca Slicer before uploading."},
+    {CLI_SPIRAL_MODE_INVALID_PARAMS, "Some slicing parameters cannot work with Spiral Vase mode. Please solve the issue in Orca Slicer before uploading."},
     {CLI_FILAMENT_CAN_NOT_MAP, "Some filaments cannot be mapped to correct extruders for multi-extruder Printer."},
     {CLI_ONLY_ONE_TPU_SUPPORTED, "Not support printing 2 or more TPU filaments."},
     {CLI_FILAMENTS_NOT_SUPPORTED_BY_EXTRUDER, "Some filaments cannot be printed on the extruder mapped to."},
-    {CLI_SLICING_ERROR, "Failed slicing the model. Please verify the slicing of all plates on OrcaSlicer before uploading."},
-    {CLI_GCODE_PATH_CONFLICTS, " G-code conflicts detected after slicing. Please make sure the 3mf file can be successfully sliced in the latest OrcaSlicer. If the file slices normally in OrcaSlicer, try moving the wipe tower further from other models, as we use more conservative parameters for it during upload."},
-    {CLI_GCODE_PATH_IN_UNPRINTABLE_AREA, "Found G-code in unprintable area of multi-extruder printers after slicing. Please make sure the 3mf file can be successfully sliced in the latest OrcaSlicer."}
+    {CLI_SLICING_ERROR, "Failed slicing the model. Please verify the slicing of all plates on Orca Slicer before uploading."},
+    {CLI_GCODE_PATH_CONFLICTS, " G-code conflicts detected after slicing. Please make sure the 3mf file can be successfully sliced in the latest Orca Slicer. If the file slices normally in Orca Slicer, try moving the wipe tower further from other models, as we use more conservative parameters for it during upload."},
+    {CLI_GCODE_PATH_IN_UNPRINTABLE_AREA, "Found G-code in unprintable area of multi-extruder printers after slicing. Please make sure the 3mf file can be successfully sliced in the latest Orca Slicer."}
 };
 
 typedef struct  _sliced_plate_info{
