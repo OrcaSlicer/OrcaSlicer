@@ -1507,6 +1507,38 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Generic PETG @LONGER LK10 @base",
+			"sub_path": "filament/LONGER/Generic PETG @LONGER LK10 @base.json"
+		},
+		{
+			"name": "Generic PETG @LONGER LK10 @System",
+			"sub_path": "filament/LONGER/Generic PETG @LONGER LK10 @System.json"
+		},
+		{
+			"name": "Generic PETG @LONGER LK10 Plus @base",
+			"sub_path": "filament/LONGER/Generic PETG @LONGER LK10 Plus @base.json"
+		},
+		{
+			"name": "Generic PETG @LONGER LK10 Plus @System",
+			"sub_path": "filament/LONGER/Generic PETG @LONGER LK10 Plus @System.json"
+		},
+		{
+			"name": "Generic PLA @LONGER LK10 @base",
+			"sub_path": "filament/LONGER/Generic PLA @LONGER LK10 @base.json"
+		},
+		{
+			"name": "Generic PLA @LONGER LK10 @System",
+			"sub_path": "filament/LONGER/Generic PLA @LONGER LK10 @System.json"
+		},
+		{
+			"name": "Generic PLA @LONGER LK10 Plus @base",
+			"sub_path": "filament/LONGER/Generic PLA @LONGER LK10 Plus @base.json"
+		},
+		{
+			"name": "Generic PLA @LONGER LK10 Plus @System",
+			"sub_path": "filament/LONGER/Generic PLA @LONGER LK10 Plus @System.json"
 		}
 	],
 	"process_list": [],

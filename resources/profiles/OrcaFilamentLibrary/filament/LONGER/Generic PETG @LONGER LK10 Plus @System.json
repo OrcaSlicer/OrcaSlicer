@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @LONGER LK10 Plus @System",
+	"inherits": "Generic PETG @LONGER LK10 Plus @base",
+	"from": "system",
+	"setting_id": "GFLLKPG",
+	"filament_id": "GFLLK10PPETG",
+	"instantiation": "true",
+	"compatible_printers": []
+}

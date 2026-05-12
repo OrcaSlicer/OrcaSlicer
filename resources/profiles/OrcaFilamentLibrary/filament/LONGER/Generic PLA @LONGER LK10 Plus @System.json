@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @LONGER LK10 Plus @System",
+	"inherits": "Generic PLA @LONGER LK10 Plus @base",
+	"from": "system",
+	"setting_id": "GFLLKPPL",
+	"filament_id": "GFLLK10PPLA",
+	"instantiation": "true",
+	"compatible_printers": []
+}
