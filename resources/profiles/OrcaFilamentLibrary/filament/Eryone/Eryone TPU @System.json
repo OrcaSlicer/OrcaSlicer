@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone TPU @System",
+	"inherits": "Eryone TPU @base",
+	"from": "system",
+	"setting_id": "EFSA05",
+	"filament_id": "EFL95",
+	"instantiation": "true",
+	"compatible_printers": []
+}

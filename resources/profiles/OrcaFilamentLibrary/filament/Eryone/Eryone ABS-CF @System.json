@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone ABS-CF @System",
+	"inherits": "Eryone ABS-CF @base",
+	"from": "system",
+	"setting_id": "EFSA11",
+	"filament_id": "EFL81",
+	"instantiation": "true",
+	"compatible_printers": []
+}

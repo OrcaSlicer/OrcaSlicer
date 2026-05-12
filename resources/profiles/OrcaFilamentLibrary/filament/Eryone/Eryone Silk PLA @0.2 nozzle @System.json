@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone Silk PLA @0.2 nozzle @System",
+	"inherits": "Eryone Silk PLA @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

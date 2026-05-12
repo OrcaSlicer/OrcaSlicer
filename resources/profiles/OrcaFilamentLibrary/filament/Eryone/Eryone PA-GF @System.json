@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone PA-GF @System",
+	"inherits": "Eryone PA-GF @base",
+	"from": "system",
+	"setting_id": "EFSA73",
+	"filament_id": "EFL73",
+	"instantiation": "true",
+	"compatible_printers": []
+}

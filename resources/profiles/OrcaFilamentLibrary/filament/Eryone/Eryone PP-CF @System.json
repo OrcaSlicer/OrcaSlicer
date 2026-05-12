@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone PP-CF @System",
+	"inherits": "Eryone PP-CF @base",
+	"from": "system",
+	"setting_id": "EFSA33",
+	"filament_id": "EFL33",
+	"instantiation": "true",
+	"compatible_printers": []
+}

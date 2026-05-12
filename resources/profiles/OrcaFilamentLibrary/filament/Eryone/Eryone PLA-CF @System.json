@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone PLA-CF @System",
+	"inherits": "Eryone PLA-CF @base",
+	"from": "system",
+	"setting_id": "EFSA40",
+	"filament_id": "EFL40",
+	"instantiation": "true",
+	"compatible_printers": []
+}

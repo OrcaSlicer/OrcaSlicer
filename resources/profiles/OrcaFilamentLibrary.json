@@ -1507,6 +1507,246 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Eryone ABS @base",
+			"sub_path": "filament/Eryone/Eryone ABS @base.json"
+		},
+		{
+			"name": "Eryone ABS @System",
+			"sub_path": "filament/Eryone/Eryone ABS @System.json"
+		},
+		{
+			"name": "Eryone ABS @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone ABS @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone ABS @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone ABS @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone ABS-CF @base",
+			"sub_path": "filament/Eryone/Eryone ABS-CF @base.json"
+		},
+		{
+			"name": "Eryone ABS-CF @System",
+			"sub_path": "filament/Eryone/Eryone ABS-CF @System.json"
+		},
+		{
+			"name": "Eryone ABS-CF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone ABS-CF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone ABS-CF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone ABS-CF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone ASA @base",
+			"sub_path": "filament/Eryone/Eryone ASA @base.json"
+		},
+		{
+			"name": "Eryone ASA @System",
+			"sub_path": "filament/Eryone/Eryone ASA @System.json"
+		},
+		{
+			"name": "Eryone ASA @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone ASA @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone ASA @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone ASA @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone ASA-CF @base",
+			"sub_path": "filament/Eryone/Eryone ASA-CF @base.json"
+		},
+		{
+			"name": "Eryone ASA-CF @System",
+			"sub_path": "filament/Eryone/Eryone ASA-CF @System.json"
+		},
+		{
+			"name": "Eryone ASA-CF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone ASA-CF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone ASA-CF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone ASA-CF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PA @base",
+			"sub_path": "filament/Eryone/Eryone PA @base.json"
+		},
+		{
+			"name": "Eryone PA @System",
+			"sub_path": "filament/Eryone/Eryone PA @System.json"
+		},
+		{
+			"name": "Eryone PA @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PA @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PA @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PA @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PA-CF @base",
+			"sub_path": "filament/Eryone/Eryone PA-CF @base.json"
+		},
+		{
+			"name": "Eryone PA-CF @System",
+			"sub_path": "filament/Eryone/Eryone PA-CF @System.json"
+		},
+		{
+			"name": "Eryone PA-CF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PA-CF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PA-CF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PA-CF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PA-GF @base",
+			"sub_path": "filament/Eryone/Eryone PA-GF @base.json"
+		},
+		{
+			"name": "Eryone PA-GF @System",
+			"sub_path": "filament/Eryone/Eryone PA-GF @System.json"
+		},
+		{
+			"name": "Eryone PA-GF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PA-GF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PA-GF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PA-GF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PETG @base",
+			"sub_path": "filament/Eryone/Eryone PETG @base.json"
+		},
+		{
+			"name": "Eryone PETG @System",
+			"sub_path": "filament/Eryone/Eryone PETG @System.json"
+		},
+		{
+			"name": "Eryone PETG @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PETG @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PETG @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PETG @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PETG-CF @base",
+			"sub_path": "filament/Eryone/Eryone PETG-CF @base.json"
+		},
+		{
+			"name": "Eryone PETG-CF @System",
+			"sub_path": "filament/Eryone/Eryone PETG-CF @System.json"
+		},
+		{
+			"name": "Eryone PETG-CF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PETG-CF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PETG-CF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PETG-CF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PLA @base",
+			"sub_path": "filament/Eryone/Eryone PLA @base.json"
+		},
+		{
+			"name": "Eryone PLA @System",
+			"sub_path": "filament/Eryone/Eryone PLA @System.json"
+		},
+		{
+			"name": "Eryone PLA @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PLA @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PLA @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PLA @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PLA-CF @base",
+			"sub_path": "filament/Eryone/Eryone PLA-CF @base.json"
+		},
+		{
+			"name": "Eryone PLA-CF @System",
+			"sub_path": "filament/Eryone/Eryone PLA-CF @System.json"
+		},
+		{
+			"name": "Eryone PLA-CF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PLA-CF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PLA-CF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PLA-CF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PP @base",
+			"sub_path": "filament/Eryone/Eryone PP @base.json"
+		},
+		{
+			"name": "Eryone PP @System",
+			"sub_path": "filament/Eryone/Eryone PP @System.json"
+		},
+		{
+			"name": "Eryone PP @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PP @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PP @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PP @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone PP-CF @base",
+			"sub_path": "filament/Eryone/Eryone PP-CF @base.json"
+		},
+		{
+			"name": "Eryone PP-CF @System",
+			"sub_path": "filament/Eryone/Eryone PP-CF @System.json"
+		},
+		{
+			"name": "Eryone PP-CF @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone PP-CF @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone PP-CF @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone PP-CF @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone Silk PLA @base",
+			"sub_path": "filament/Eryone/Eryone Silk PLA @base.json"
+		},
+		{
+			"name": "Eryone Silk PLA @System",
+			"sub_path": "filament/Eryone/Eryone Silk PLA @System.json"
+		},
+		{
+			"name": "Eryone Silk PLA @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone Silk PLA @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone Silk PLA @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone Silk PLA @0.2 nozzle @System.json"
+		},
+		{
+			"name": "Eryone TPU @base",
+			"sub_path": "filament/Eryone/Eryone TPU @base.json"
+		},
+		{
+			"name": "Eryone TPU @System",
+			"sub_path": "filament/Eryone/Eryone TPU @System.json"
+		},
+		{
+			"name": "Eryone TPU @0.2 nozzle @base",
+			"sub_path": "filament/Eryone/Eryone TPU @0.2 nozzle @base.json"
+		},
+		{
+			"name": "Eryone TPU @0.2 nozzle @System",
+			"sub_path": "filament/Eryone/Eryone TPU @0.2 nozzle @System.json"
 		}
 	],
 	"process_list": [],

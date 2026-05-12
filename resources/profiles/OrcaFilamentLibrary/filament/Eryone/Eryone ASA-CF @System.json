@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone ASA-CF @System",
+	"inherits": "Eryone ASA-CF @base",
+	"from": "system",
+	"setting_id": "EFSA82",
+	"filament_id": "EFL82",
+	"instantiation": "true",
+	"compatible_printers": []
+}

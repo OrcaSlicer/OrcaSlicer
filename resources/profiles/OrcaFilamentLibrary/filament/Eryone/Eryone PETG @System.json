@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone PETG @System",
+	"inherits": "Eryone PETG @base",
+	"from": "system",
+	"setting_id": "EFSA03",
+	"filament_id": "EFL93",
+	"instantiation": "true",
+	"compatible_printers": []
+}

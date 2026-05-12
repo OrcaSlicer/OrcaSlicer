@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Eryone Silk PLA @System",
+	"inherits": "Eryone Silk PLA @base",
+	"from": "system",
+	"setting_id": "EFSA041",
+	"filament_id": "EFL941",
+	"instantiation": "true",
+	"compatible_printers": []
+}
