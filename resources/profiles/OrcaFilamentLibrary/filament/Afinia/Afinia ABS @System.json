@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "Afinia ABS",
+	"name": "Afinia ABS @System",
 	"inherits": "Afinia ABS @base",
 	"from": "system",
 	"setting_id": "GFSB00",
 	"filament_id": "GFB00",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Afinia H400 Pro 0.4 nozzle",
-		"Afinia H400 Pro 0.6 nozzle"
-	]
+	"compatible_printers": []
 }

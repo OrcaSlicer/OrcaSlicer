@@ -1,9 +1,9 @@
 {
 	"type": "machine",
 	"name": "fdm_afinia_common",
+	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
-	"inherits": "fdm_machine_common",
 	"gcode_flavor": "klipper",
 	"machine_max_acceleration_e": [
 		"5000",
@@ -122,9 +122,6 @@
 	"change_filament_gcode": "",
 	"wipe": [
 		"1"
-	],
-	"default_filament_profile": [
-		""
 	],
 	"default_print_profile": "0.20mm Standard @Afinia H+1(HS)",
 	"bed_exclude_area": [

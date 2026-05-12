@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "Afinia PLA@HS",
+	"name": "Afinia PLA@HS @System",
 	"inherits": "Afinia PLA@HS @base",
 	"from": "system",
 	"setting_id": "GFSA00",
 	"filament_id": "GFA00_01",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Afinia H+1(HS) 0.4 nozzle",
-		"Afinia H+1(HS) 0.6 nozzle"
-	]
+	"compatible_printers": []
 }

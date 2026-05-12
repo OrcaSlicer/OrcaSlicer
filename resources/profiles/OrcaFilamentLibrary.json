@@ -97,6 +97,30 @@
 			"sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
 		},
 		{
+			"name": "Afinia ABS @base",
+			"sub_path": "filament/Afinia/Afinia ABS @base.json"
+		},
+		{
+			"name": "Afinia ABS+ @base",
+			"sub_path": "filament/Afinia/Afinia ABS+ @base.json"
+		},
+		{
+			"name": "Afinia ABS+@HS @base",
+			"sub_path": "filament/Afinia/Afinia ABS+@HS @base.json"
+		},
+		{
+			"name": "Afinia ABS@HS @base",
+			"sub_path": "filament/Afinia/Afinia ABS@HS @base.json"
+		},
+		{
+			"name": "Afinia Value ABS @base",
+			"sub_path": "filament/Afinia/Afinia Value ABS @base.json"
+		},
+		{
+			"name": "Afinia Value ABS@HS @base",
+			"sub_path": "filament/Afinia/Afinia Value ABS@HS @base.json"
+		},
+		{
 			"name": "Bambu ABS @base",
 			"sub_path": "filament/Bambu/Bambu ABS @base.json"
 		},
@@ -241,6 +265,10 @@
 			"sub_path": "filament/COEX/COEX NYLEX UNFILLED @base.json"
 		},
 		{
+			"name": "FILL3D PA @base",
+			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @base.json"
 		},
@@ -365,6 +393,14 @@
 			"sub_path": "filament/FDplast/FDplast PETG @base.json"
 		},
 		{
+			"name": "FILL3D PETG @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
+		},
+		{
+			"name": "FILL3D PETG CF @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
+		},
+		{
 			"name": "Fiberon PET-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @base.json"
 		},
@@ -389,6 +425,10 @@
 			"sub_path": "filament/Generic PETG-CF @System.json"
 		},
 		{
+			"name": "GreenGate3D PETG @base",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
+		},
+		{
 			"name": "NIT PETG @base",
 			"sub_path": "filament/NIT/NIT PETG @base.json"
 		},
@@ -407,6 +447,22 @@
 		{
 			"name": "Generic PHA @System",
 			"sub_path": "filament/Generic PHA @System.json"
+		},
+		{
+			"name": "Afinia PLA @base",
+			"sub_path": "filament/Afinia/Afinia PLA @base.json"
+		},
+		{
+			"name": "Afinia PLA@HS @base",
+			"sub_path": "filament/Afinia/Afinia PLA@HS @base.json"
+		},
+		{
+			"name": "Afinia Value PLA @base",
+			"sub_path": "filament/Afinia/Afinia Value PLA @base.json"
+		},
+		{
+			"name": "Afinia Value PLA@HS @base",
+			"sub_path": "filament/Afinia/Afinia Value PLA@HS @base.json"
 		},
 		{
 			"name": "AliZ PLA @base",
@@ -559,6 +615,10 @@
 		{
 			"name": "FDplast PLA @base",
 			"sub_path": "filament/FDplast/FDplast PLA @base.json"
+		},
+		{
+			"name": "FILL3D PLA Basic @base",
+			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
 		},
 		{
 			"name": "FILL3D PLA Turbo @base",
@@ -769,6 +829,14 @@
 			"sub_path": "filament/base/fdm_filament_pla_silk.json"
 		},
 		{
+			"name": "FILL3D PP @base",
+			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
+		},
+		{
+			"name": "FILL3D PPCF @base",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
+		},
+		{
 			"name": "Generic PP @System",
 			"sub_path": "filament/Generic PP @System.json"
 		},
@@ -811,6 +879,14 @@
 		{
 			"name": "Generic SBS @System",
 			"sub_path": "filament/Generic SBS @System.json"
+		},
+		{
+			"name": "Afinia TPU @base",
+			"sub_path": "filament/Afinia/Afinia TPU @base.json"
+		},
+		{
+			"name": "Afinia TPU@HS @base",
+			"sub_path": "filament/Afinia/Afinia TPU@HS @base.json"
 		},
 		{
 			"name": "Bambu TPU 95A @base",
@@ -871,6 +947,30 @@
 		{
 			"name": "Overture TPU @base",
 			"sub_path": "filament/Overture/Overture TPU @base.json"
+		},
+		{
+			"name": "Afinia ABS @System",
+			"sub_path": "filament/Afinia/Afinia ABS @System.json"
+		},
+		{
+			"name": "Afinia ABS+ @System",
+			"sub_path": "filament/Afinia/Afinia ABS+ @System.json"
+		},
+		{
+			"name": "Afinia ABS+@HS @System",
+			"sub_path": "filament/Afinia/Afinia ABS+@HS @System.json"
+		},
+		{
+			"name": "Afinia ABS@HS @System",
+			"sub_path": "filament/Afinia/Afinia ABS@HS @System.json"
+		},
+		{
+			"name": "Afinia Value ABS @System",
+			"sub_path": "filament/Afinia/Afinia Value ABS @System.json"
+		},
+		{
+			"name": "Afinia Value ABS@HS @System",
+			"sub_path": "filament/Afinia/Afinia Value ABS@HS @System.json"
 		},
 		{
 			"name": "Bambu ABS @System",
@@ -977,6 +1077,10 @@
 			"sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
 		},
 		{
+			"name": "FILL3D PA @System",
+			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @System.json"
 		},
@@ -1061,6 +1165,14 @@
 			"sub_path": "filament/FDplast/FDplast PETG @System.json"
 		},
 		{
+			"name": "FILL3D PETG @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
+		},
+		{
+			"name": "FILL3D PETG CF @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
+		},
+		{
 			"name": "Fiberon PET-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @System.json"
 		},
@@ -1071,6 +1183,10 @@
 		{
 			"name": "Fiberon PETG-rCF @System",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
+		},
+		{
+			"name": "GreenGate3D PETG @System",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		},
 		{
 			"name": "NIT PETG @System",
@@ -1087,6 +1203,22 @@
 		{
 			"name": "eSUN PETG @System",
 			"sub_path": "filament/eSUN/eSUN PETG @System.json"
+		},
+		{
+			"name": "Afinia PLA @System",
+			"sub_path": "filament/Afinia/Afinia PLA @System.json"
+		},
+		{
+			"name": "Afinia PLA@HS @System",
+			"sub_path": "filament/Afinia/Afinia PLA@HS @System.json"
+		},
+		{
+			"name": "Afinia Value PLA @System",
+			"sub_path": "filament/Afinia/Afinia Value PLA @System.json"
+		},
+		{
+			"name": "Afinia Value PLA@HS @System",
+			"sub_path": "filament/Afinia/Afinia Value PLA@HS @System.json"
 		},
 		{
 			"name": "AliZ PLA @System",
@@ -1193,56 +1325,12 @@
 			"sub_path": "filament/FDplast/FDplast PLA @System.json"
 		},
 		{
-			"name": "FILL3D PLA Turbo @System",
-			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
-		},
-		{
-			"name": "FILL3D PLA Basic @base",
-			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
-		},
-		{
 			"name": "FILL3D PLA Basic @System",
 			"sub_path": "filament/FILL3D/FILL3D PLA Basic @System.json"
 		},
 		{
-			"name": "FILL3D PETG @base",
-			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
-		},
-		{
-			"name": "FILL3D PETG @System",
-			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
-		},
-		{
-			"name": "FILL3D PETG CF @base",
-			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
-		},
-		{
-			"name": "FILL3D PETG CF @System",
-			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
-		},
-		{
-			"name": "FILL3D PP @base",
-			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
-		},
-		{
-			"name": "FILL3D PP @System",
-			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
-		},
-		{
-			"name": "FILL3D PPCF @base",
-			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
-		},
-		{
-			"name": "FILL3D PPCF @System",
-			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
-		},
-		{
-			"name": "FILL3D PA @base",
-			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
-		},
-		{
-			"name": "FILL3D PA @System",
-			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+			"name": "FILL3D PLA Turbo @System",
+			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
 		},
 		{
 			"name": "NIT PLA @System",
@@ -1441,6 +1529,14 @@
 			"sub_path": "filament/Generic PLA Silk @System.json"
 		},
 		{
+			"name": "FILL3D PP @System",
+			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
+		},
+		{
+			"name": "FILL3D PPCF @System",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
+		},
+		{
 			"name": "Bambu PPA-CF @System",
 			"sub_path": "filament/Bambu/Bambu PPA-CF @System.json"
 		},
@@ -1451,6 +1547,14 @@
 		{
 			"name": "FDplast SBS @System",
 			"sub_path": "filament/FDplast/FDplast SBS @System.json"
+		},
+		{
+			"name": "Afinia TPU @System",
+			"sub_path": "filament/Afinia/Afinia TPU @System.json"
+		},
+		{
+			"name": "Afinia TPU@HS @System",
+			"sub_path": "filament/Afinia/Afinia TPU@HS @System.json"
 		},
 		{
 			"name": "Bambu TPU 95A @System",
@@ -1499,14 +1603,6 @@
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
-		},
-		{
-			"name": "GreenGate3D PETG @base",
-			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
-		},
-		{
-			"name": "GreenGate3D PETG @System",
-			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		}
 	],
 	"process_list": [],
