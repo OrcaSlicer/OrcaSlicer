@@ -1507,6 +1507,62 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Peopoly Generic ABS @base",
+			"sub_path": "filament/Peopoly/Peopoly Generic ABS @base.json"
+		},
+		{
+			"name": "Peopoly Generic ABS @System",
+			"sub_path": "filament/Peopoly/Peopoly Generic ABS @System.json"
+		},
+		{
+			"name": "Peopoly Generic PETG @base",
+			"sub_path": "filament/Peopoly/Peopoly Generic PETG @base.json"
+		},
+		{
+			"name": "Peopoly Generic PETG @System",
+			"sub_path": "filament/Peopoly/Peopoly Generic PETG @System.json"
+		},
+		{
+			"name": "Peopoly Generic PLA @base",
+			"sub_path": "filament/Peopoly/Peopoly Generic PLA @base.json"
+		},
+		{
+			"name": "Peopoly Generic PLA @System",
+			"sub_path": "filament/Peopoly/Peopoly Generic PLA @System.json"
+		},
+		{
+			"name": "Peopoly Lancer ABS-GF @base",
+			"sub_path": "filament/Peopoly/Peopoly Lancer ABS-GF @base.json"
+		},
+		{
+			"name": "Peopoly Lancer ABS-GF @System",
+			"sub_path": "filament/Peopoly/Peopoly Lancer ABS-GF @System.json"
+		},
+		{
+			"name": "Peopoly Lancer PET-CF @base",
+			"sub_path": "filament/Peopoly/Peopoly Lancer PET-CF @base.json"
+		},
+		{
+			"name": "Peopoly Lancer PET-CF @System",
+			"sub_path": "filament/Peopoly/Peopoly Lancer PET-CF @System.json"
+		},
+		{
+			"name": "Peopoly Lancer PETG-C @base",
+			"sub_path": "filament/Peopoly/Peopoly Lancer PETG-C @base.json"
+		},
+		{
+			"name": "Peopoly Lancer PETG-C @System",
+			"sub_path": "filament/Peopoly/Peopoly Lancer PETG-C @System.json"
+		},
+		{
+			"name": "Peopoly Lancer PLA-C @base",
+			"sub_path": "filament/Peopoly/Peopoly Lancer PLA-C @base.json"
+		},
+		{
+			"name": "Peopoly Lancer PLA-C @System",
+			"sub_path": "filament/Peopoly/Peopoly Lancer PLA-C @System.json"
 		}
 	],
 	"process_list": [],

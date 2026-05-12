@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Peopoly Generic PLA",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Peopoly Generic PLA @base",
 	"from": "system",
 	"setting_id": "GFSL99",
 	"filament_id": "GFL99",

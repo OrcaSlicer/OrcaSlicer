@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Peopoly Generic ABS",
-	"inherits": "fdm_filament_abs",
+	"inherits": "Peopoly Generic ABS @base",
 	"from": "system",
 	"filament_id": "GFSL99",
 	"instantiation": "true",

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Peopoly Lancer PLA-C @System",
+	"inherits": "Peopoly Lancer PLA-C @base",
+	"from": "system",
+	"setting_id": "GFSL99",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

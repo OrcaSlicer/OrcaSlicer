@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Peopoly Generic PETG",
-	"inherits": "fdm_filament_petg",
+	"inherits": "Peopoly Generic PETG @base",
 	"from": "system",
 	"setting_id": "GSPETG-1",
 	"filament_id": "GFPETG-1",
