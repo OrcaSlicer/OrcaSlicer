@@ -10,27 +10,29 @@
 #include <Eigen/Dense>
 namespace igl
 {
-  // Given a triangle mesh (V,F) compute a new mesh (VV,FF) which contains the
-  // original faces and vertices of (V,F) except any small triangles have been
-  // removed via collapse.
-  //
-  // We are *not* following the rules in "Mesh Optimization" [Hoppe et al]
-  // Section 4.2. But for our purposes we don't care about this criteria.
-  //
-  // Inputs:
-  //   V  #V by 3 list of vertex positions
-  //   F  #F by 3 list of triangle indices into V
-  //   eps  epsilon for smallest allowed area treated as fraction of squared bounding box
-  //     diagonal
-  // Outputs:
-  //   FF  #FF by 3 list of triangle indices into V
-  //
-  //
+  /// Given a triangle mesh (V,F) compute a new mesh (VV,FF) which contains the
+  /// original faces and vertices of (V,F) except any small triangles have been
+  /// removed via collapse.
+  ///
+  /// We are *not* following the rules in "Mesh Optimization" [Hoppe et al]
+  /// Section 4.2. But for our purposes we don't care about this criteria.
+  ///
+  /// @param[in]  V  #V by 3 list of vertex positions
+  /// @param[in] F  #F by 3 list of triangle indices into V
+  /// @param[in] eps  epsilon for smallest allowed area treated as fraction of squared bounding box
+  ///     diagonal
+  /// @param[out] FF  #FF by 3 list of triangle indices into V
+  ///
+  ///
+  template <
+    typename DerivedV,
+    typename DerivedF,
+    typename DerivedFF>
   void collapse_small_triangles(
-    const Eigen::MatrixXd & V,
-    const Eigen::MatrixXi & F,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
     const double eps,
-    Eigen::MatrixXi & FF);
+    Eigen::PlainObjectBase<DerivedFF> & FF);
 }
 
 #ifndef IGL_STATIC_LIBRARY

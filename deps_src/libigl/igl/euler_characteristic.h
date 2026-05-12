@@ -15,28 +15,25 @@
 #include <vector>
 namespace igl
 {
-  // Computes the Euler characteristic of a given mesh (V,F)
-  //
-  // Inputs:
-  //   F #F by dim list of mesh faces (must be triangles)
-  // Returns An int containing the Euler characteristic
+  /// Computes the Euler characteristic of a given mesh (V,F)
+  ///
+  /// χ = |V| - |E| + |F|
+  ///
+  /// For example,
+  ///   - a single triangle has 3 - 3 + 1 = 1
+  ///   - a tetrahedron has 4 - 6 + 4 = 2
+  ///
+  /// @param[in] F #F by dim list of mesh faces (must be triangles)
+  /// @return An int containing the Euler characteristic
+  ///
+  /// \note There is [some confusion](https://github.com/libigl/libigl/issues/2249#issue-1863608449) over the standard definition of Euler
+  /// characteristic. libigl's definition agrees with
+  /// [wikipedia](https://en.wikipedia.org/wiki/Euler_characteristic) and [David
+  /// Eppstein's
+  /// proofs](https://www.ics.uci.edu/~eppstein/junkyard/euler/all.html).
   template <typename DerivedF>
   IGL_INLINE int euler_characteristic(
     const Eigen::MatrixBase<DerivedF> & F);
-
-  // Computes the Euler characteristic of a given mesh (V,F)
-  // Templates:
-  //   Scalar  should be a floating point number type
-  //   Index   should be an integer type
-  // Inputs:
-  //   V       #V by dim list of mesh vertex positions
-  //   F       #F by dim list of mesh faces (must be triangles)
-  // Returns An int containing the Euler characteristic
-  template <typename Scalar, typename Index>
-  IGL_INLINE int euler_characteristic(
-    const Eigen::PlainObjectBase<Scalar> & V,
-    const Eigen::PlainObjectBase<Index> & F);
-
 }
 
 #ifndef IGL_STATIC_LIBRARY

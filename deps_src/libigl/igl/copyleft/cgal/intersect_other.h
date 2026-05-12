@@ -18,25 +18,23 @@ namespace igl
   {
     namespace cgal
     {
-      // INTERSECT_OTHER Given a triangle mesh (VA,FA) and another mesh (VB,FB)
-      // find all pairs of intersecting faces. Note that self-intersections are
-      // ignored.
-      // 
-      // Inputs:
-      //   VA  #V by 3 list of vertex positions
-      //   FA  #F by 3 list of triangle indices into VA
-      //   VB  #V by 3 list of vertex positions
-      //   FB  #F by 3 list of triangle indices into VB
-      //   params   whether to detect only and then whether to only find first
-      //     intersection
-      // Outputs:
-      //   IF  #intersecting face pairs by 2 list of intersecting face pairs,
-      //     indexing FA and FB
-      //   VVAB  #VVAB by 3 list of vertex positions
-      //   FFAB  #FFAB by 3 list of triangle indices into VVA
-      //   JAB  #FFAB list of indices into [FA;FB] denoting birth triangle
-      //   IMAB  #VVAB list of indices stitching duplicates (resulting from
-      //     mesh intersections) together
+      /// Given a triangle mesh (VA,FA) and another mesh (VB,FB) find all pairs
+      /// of intersecting faces. Note that self-intersections are ignored.
+      /// 
+      /// @param[in] VA  #V by 3 list of vertex positions
+      /// @param[in] FA  #F by 3 list of triangle indices into VA
+      /// @param[in] VB  #V by 3 list of vertex positions
+      /// @param[in] FB  #F by 3 list of triangle indices into VB
+      /// @param[in] params   whether to detect only and then whether to only
+      ///   find first intersection
+      /// @param[out] IF  #intersecting face pairs by 2 list of intersecting
+      ///   face pairs, indexing FA and FB
+      /// @param[out] VVAB  #VVAB by 3 list of vertex positions
+      /// @param[out] FFAB  #FFAB by 3 list of triangle indices into VVA
+      /// @param[out] JAB  #FFAB list of indices into [FA;FB] denoting birth triangle
+      /// @param[out] IMAB  #VVAB list of indices stitching duplicates
+      ///   (resulting from mesh intersections) together
+      /// @return true on success
       template <
         typename DerivedVA,
         typename DerivedFA,
@@ -48,37 +46,31 @@ namespace igl
         typename DerivedJAB,
         typename DerivedIMAB>
       IGL_INLINE bool intersect_other(
-        const Eigen::PlainObjectBase<DerivedVA> & VA,
-        const Eigen::PlainObjectBase<DerivedFA> & FA,
-        const Eigen::PlainObjectBase<DerivedVB> & VB,
-        const Eigen::PlainObjectBase<DerivedFB> & FB,
+        const Eigen::MatrixBase<DerivedVA> & VA,
+        const Eigen::MatrixBase<DerivedFA> & FA,
+        const Eigen::MatrixBase<DerivedVB> & VB,
+        const Eigen::MatrixBase<DerivedFB> & FB,
         const RemeshSelfIntersectionsParam & params,
         Eigen::PlainObjectBase<DerivedIF> & IF,
         Eigen::PlainObjectBase<DerivedVVAB> & VVAB,
         Eigen::PlainObjectBase<DerivedFFAB> & FFAB,
         Eigen::PlainObjectBase<DerivedJAB>  & JAB,
         Eigen::PlainObjectBase<DerivedIMAB> & IMAB);
-      // Legacy wrapper for detect only using common types.
-      //
-      // Inputs:
-      //   VA  #V by 3 list of vertex positions
-      //   FA  #F by 3 list of triangle indices into VA
-      //   VB  #V by 3 list of vertex positions
-      //   FB  #F by 3 list of triangle indices into VB
-      //   first_only  whether to only detect the first intersection.
-      // Outputs:
-      //   IF  #intersecting face pairs by 2 list of intersecting face pairs,
-      //     indexing FA and FB
-      // Returns true if any intersections were found
-      //
-      // See also: remesh_self_intersections
+      /// \overload
+      /// @param[in] first_only  whether to only find first intersection
+      template <
+        typename DerivedVA,
+        typename DerivedFA,
+        typename DerivedVB,
+        typename DerivedFB,
+        typename DerivedIF>
       IGL_INLINE bool intersect_other(
-        const Eigen::MatrixXd & VA,
-        const Eigen::MatrixXi & FA,
-        const Eigen::MatrixXd & VB,
-        const Eigen::MatrixXi & FB,
+        const Eigen::MatrixBase<DerivedVA> & VA,
+        const Eigen::MatrixBase<DerivedFA> & FA,
+        const Eigen::MatrixBase<DerivedVB> & VB,
+        const Eigen::MatrixBase<DerivedFB> & FB,
         const bool first_only,
-        Eigen::MatrixXi & IF);
+        Eigen::PlainObjectBase<DerivedIF> & IF);
     }
   }
 }

@@ -6,8 +6,7 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "frame_to_cross_field.h"
-#include <igl/local_basis.h>
-#include <igl/dot_row.h>
+#include "local_basis.h"
 
 IGL_INLINE void igl::frame_to_cross_field(
   const Eigen::MatrixXd& V,
@@ -28,8 +27,11 @@ IGL_INLINE void igl::frame_to_cross_field(
   d1.resize(F.rows(),2);
   d2.resize(F.rows(),2);
 
-  d1 << igl::dot_row(B1,FF1), igl::dot_row(B2,FF1);
-  d2 << igl::dot_row(B1,FF2), igl::dot_row(B2,FF2);
+  //d1 << igl::dot_row(B1,FF1), igl::dot_row(B2,FF1);
+  //d2 << igl::dot_row(B1,FF2), igl::dot_row(B2,FF2);
+  // Use Eigen directly
+  d1 << (B1.array()*FF1.array()).rowwise().sum(), (B2.array()*FF1.array()).rowwise().sum();
+  d2 << (B1.array()*FF2.array()).rowwise().sum(), (B2.array()*FF2.array()).rowwise().sum();
 
   X.resize(F.rows(), 3);
 

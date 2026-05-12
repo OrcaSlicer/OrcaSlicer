@@ -9,11 +9,13 @@
 #define IGL_OPENGL_GLFW_IMGUI_IMGUIHELPERS_H
 
 ////////////////////////////////////////////////////////////////////////////////
-#include <imgui/imgui.h>
+#include "ImGuiTraits.h"
+#include <imgui.h>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <functional>
+#include <cstddef>
 ////////////////////////////////////////////////////////////////////////////////
 
 // Extend ImGui by populating its namespace directly
@@ -25,38 +27,38 @@ namespace ImGui
 
 static auto vector_getter = [](void* vec, int idx, const char** out_text)
 {
-	auto& vector = *static_cast<std::vector<std::string>*>(vec);
-	if (idx < 0 || idx >= static_cast<int>(vector.size())) { return false; }
-	*out_text = vector.at(idx).c_str();
-	return true;
+  auto& vector = *static_cast<std::vector<std::string>*>(vec);
+  if (idx < 0 || idx >= static_cast<int>(vector.size())) { return false; }
+  *out_text = vector.at(idx).c_str();
+  return true;
 };
 
 inline bool Combo(const char* label, int* idx, std::vector<std::string>& values)
 {
-	if (values.empty()) { return false; }
-	return Combo(label, idx, vector_getter,
-		static_cast<void*>(&values), values.size());
+  if (values.empty()) { return false; }
+  return Combo(label, idx, vector_getter,
+    static_cast<void*>(&values), values.size());
 }
 
 inline bool Combo(const char* label, int* idx, std::function<const char *(int)> getter, int items_count)
 {
-	auto func = [](void* data, int i, const char** out_text) {
-		auto &getter = *reinterpret_cast<std::function<const char *(int)> *>(data);
-		const char *s = getter(i);
-		if (s) { *out_text = s; return true; }
-		else { return false; }
-	};
-	return Combo(label, idx, func, reinterpret_cast<void *>(&getter), items_count);
+  auto func = [](void* data, int i, const char** out_text) {
+    auto &getter = *reinterpret_cast<std::function<const char *(int)> *>(data);
+    const char *s = getter(i);
+    if (s) { *out_text = s; return true; }
+    else { return false; }
+  };
+  return Combo(label, idx, func, reinterpret_cast<void *>(&getter), items_count);
 }
 
 inline bool ListBox(const char* label, int* idx, std::vector<std::string>& values)
 {
-	if (values.empty()) { return false; }
-	return ListBox(label, idx, vector_getter,
-		static_cast<void*>(&values), values.size());
+  if (values.empty()) { return false; }
+  return ListBox(label, idx, vector_getter,
+    static_cast<void*>(&values), values.size());
 }
 
-inline bool InputText(const char* label, std::string &str, ImGuiInputTextFlags flags = 0, ImGuiTextEditCallback callback = NULL, void* user_data = NULL)
+inline bool InputText(const char* label, std::string &str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL)
 {
   char buf[1024];
   std::fill_n(buf, 1024, 0);
@@ -67,6 +69,45 @@ inline bool InputText(const char* label, std::string &str, ImGuiInputTextFlags f
     return true;
   }
   return false;
+}
+
+// template<typename T>
+// inline bool DragScalar(const char *label, T* value, void* v, float v_speed, const void* v_min = NULL, const void* v_max = NULL, const char* format = NULL, float power = 1.0f)
+// {
+//   const char *fmt = format;
+//   if (format == nullptr) {
+//     fmt = ImGuiDataTypeTraits<T>::format;
+//   }
+//   return DragScalar(label, ImGuiDataTypeTraits<T>::value, value, &min, &max, fmt);
+// }
+
+// template<typename T>
+// inline bool InputScalar(const char *label, T* value, T min = 0, T max = 0, const char* format = nulltptr)
+// {
+//   const char *fmt = format;
+//   if (format == nullptr) {
+//     fmt = ImGuiDataTypeTraits<T>::format;
+//   }
+//   return InputScalar(label, ImGuiDataTypeTraits<T>::value, value, &min, &max, fmt);
+// }
+
+template<typename T>
+inline bool SliderScalar(const char *label, T* value, T min = 0, T max = 0, const char* format = "")
+{
+  const char *fmt = format;
+  if (format == nullptr) {
+    fmt = ImGuiDataTypeTraits<T>::format;
+  }
+  return SliderScalar(label, ImGuiDataTypeTraits<T>::value, value, &min, &max, fmt);
+}
+
+template<typename Getter, typename Setter>
+inline bool Checkbox(const char* label, Getter get, Setter set)
+{
+  bool value = get();
+  bool ret = ImGui::Checkbox(label, &value);
+  set(value);
+  return ret;
 }
 
 } // namespace ImGui

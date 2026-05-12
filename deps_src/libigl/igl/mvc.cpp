@@ -90,8 +90,12 @@ IGL_INLINE void igl::mvc(const Eigen::MatrixXd &V, const Eigen::MatrixXd &C, Eig
     for (int i = 0; i<V1.rows(); ++i)
     {
       double dist_to_plane_V = std::abs((V1.row(i)-p.transpose()).dot(n));
+#ifndef NDEBUG
       if(dist_to_plane_V>1e-10)
+      {
         std::cerr<<"Distance from V to plane of C is large..."<<std::endl;
+      }
+#endif
     }
     
     // change of basis

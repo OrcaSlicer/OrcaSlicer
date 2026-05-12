@@ -12,22 +12,20 @@
 
 namespace igl
 {
-  // CROUZEIX_RAVIART_MASSMATRIX Compute the Crouzeix-Raviart mass matrix where
-  // M(e,e) is just the sum of the areas of the triangles on either side of an
-  // edge e.
-  //
-  // See for example "Discrete Quadratic Curvature Energies" [Wardetzky, Bergou,
-  // Harmon, Zorin, Grinspun 2007]
-  //
-  // Inputs:
-  //   V  #V by dim list of vertex positions
-  //   F  #F by 3/4 list of triangle/tetrahedron indices
-  // Outputs:
-  //   M  #E by #E edge/face-based diagonal mass matrix
-  //   E  #E by 2/3 list of edges/faces
-  //   EMAP  #F*3/4 list of indices mapping allE to E
-  //
-  // See also: crouzeix_raviart_cotmatrix
+  /// CROUZEIX_RAVIART_MASSMATRIX Compute the Crouzeix-Raviart mass matrix where
+  /// M(e,e) is just the sum of the areas of the triangles on either side of an
+  /// edge e.
+  ///
+  /// See for example "Discrete Quadratic Curvature Energies" [Wardetzky, Bergou,
+  /// Harmon, Zorin, Grinspun 2007]
+  ///
+  /// @param[in] V  #V by dim list of vertex positions
+  /// @param[in] F  #F by 3/4 list of triangle/tetrahedron indices
+  /// @param[out] M  #E by #E edge/face-based diagonal mass matrix
+  /// @param[out] E  #E by 2/3 list of edges/faces
+  /// @param[out] EMAP  #F*3/4 list of indices mapping allE to E
+  ///
+  /// \see crouzeix_raviart_cotmatrix
   template <typename MT, typename DerivedV, typename DerivedF, typename DerivedE, typename DerivedEMAP>
   void crouzeix_raviart_massmatrix(
       const Eigen::MatrixBase<DerivedV> & V, 
@@ -35,7 +33,20 @@ namespace igl
       Eigen::SparseMatrix<MT> & M,
       Eigen::PlainObjectBase<DerivedE> & E,
       Eigen::PlainObjectBase<DerivedEMAP> & EMAP);
-  // wrapper if E and EMAP are already computed (better match!)
+  /// CROUZEIX_RAVIART_MASSMATRIX Compute the Crouzeix-Raviart mass matrix where
+  /// M(e,e) is just the sum of the areas of the triangles on either side of an
+  /// edge e.
+  ///
+  /// See for example "Discrete Quadratic Curvature Energies" [Wardetzky, Bergou,
+  /// Harmon, Zorin, Grinspun 2007]
+  ///
+  /// @param[in] V  #V by dim list of vertex positions
+  /// @param[in] F  #F by 3/4 list of triangle/tetrahedron indices
+  /// @param[in] E  #E by 2/3 list of edges/faces
+  /// @param[in] EMAP  #F*3/4 list of indices mapping allE to E
+  /// @param[out] M  #E by #E edge/face-based diagonal mass matrix
+  ///
+  /// \see crouzeix_raviart_cotmatrix
   template <typename MT, typename DerivedV, typename DerivedF, typename DerivedE, typename DerivedEMAP>
   void crouzeix_raviart_massmatrix(
       const Eigen::MatrixBase<DerivedV> & V, 

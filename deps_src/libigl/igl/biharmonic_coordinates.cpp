@@ -22,8 +22,8 @@ template <
   typename SType,
   typename DerivedW>
 IGL_INLINE bool igl::biharmonic_coordinates(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedT> & T,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedT> & T,
   const std::vector<std::vector<SType> > & S,
   Eigen::PlainObjectBase<DerivedW> & W)
 {
@@ -36,32 +36,36 @@ template <
   typename SType,
   typename DerivedW>
 IGL_INLINE bool igl::biharmonic_coordinates(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedT> & T,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedT> & T,
   const std::vector<std::vector<SType> > & S,
   const int k,
   Eigen::PlainObjectBase<DerivedW> & W)
 {
   using namespace Eigen;
   using namespace std;
+
+  typedef typename DerivedV::Scalar Scalar;
+  typedef typename DerivedT::Scalar Integer;
+
   // This is not the most efficient way to build A, but follows "Linear
   // Subspace Design for Real-Time Shape Deformation" [Wang et al. 2015].
-  SparseMatrix<double> A;
+  SparseMatrix<Scalar> A;
   {
-    DiagonalMatrix<double,Dynamic> Minv;
-    SparseMatrix<double> L,K;
+    DiagonalMatrix<Scalar, Dynamic> Minv;
+    SparseMatrix<Scalar> L, K;
     Array<bool,Dynamic,Dynamic> C;
     {
       Array<bool,Dynamic,1> I;
       on_boundary(T,I,C);
     }
-#ifdef false 
+#ifdef false
     // Version described in paper is "wrong"
     // http://www.cs.toronto.edu/~jacobson/images/error-in-linear-subspace-design-for-real-time-shape-deformation-2017-wang-et-al.pdf
-    SparseMatrix<double> N,Z,M;
+    SparseMatrix<Scalar> N, Z, M;
     normal_derivative(V,T,N);
     {
-      std::vector<Triplet<double> >ZIJV;
+      std::vector<Triplet<Scalar>> ZIJV;
       for(int t =0;t<T.rows();t++)
       {
         for(int f =0;f<T.cols();f++)
@@ -84,37 +88,37 @@ IGL_INLINE bool igl::biharmonic_coordinates(
     K = N+L;
     massmatrix(V,T,MASSMATRIX_TYPE_DEFAULT,M);
     // normalize
-    M /= ((VectorXd)M.diagonal()).array().abs().maxCoeff();
+    M /= ((Matrix<Scalar, Dynamic, 1>)M.diagonal()).array().abs().maxCoeff();
     Minv =
-      ((VectorXd)M.diagonal().array().inverse()).asDiagonal();
+      ((Matrix<Scalar, Dynamic, 1>)M.diagonal().array().inverse()).asDiagonal();
 #else
-    Eigen::SparseMatrix<double> M;
-    Eigen::MatrixXi E;
-    Eigen::VectorXi EMAP;
+    Eigen::SparseMatrix<Scalar> M;
+    Eigen::Matrix<Integer, Dynamic, Dynamic> E;
+    Eigen::Matrix<Integer, Dynamic, 1> EMAP;
     crouzeix_raviart_massmatrix(V,T,M,E,EMAP);
     crouzeix_raviart_cotmatrix(V,T,E,EMAP,L);
     // Ad  #E by #V facet-vertex incidence matrix
-    Eigen::SparseMatrix<double> Ad(E.rows(),V.rows());
+    Eigen::SparseMatrix<Scalar> Ad(E.rows(),V.rows());
     {
-      std::vector<Eigen::Triplet<double> > AIJV(E.size());
+      std::vector<Eigen::Triplet<Scalar>> AIJV(E.size());
       for(int e = 0;e<E.rows();e++)
       {
         for(int c = 0;c<E.cols();c++)
         {
-          AIJV[e+c*E.rows()] = Eigen::Triplet<double>(e,E(e,c),1);
+          AIJV[e + c * E.rows()] = Eigen::Triplet<Scalar>(e, E(e, c), 1);
         }
       }
       Ad.setFromTriplets(AIJV.begin(),AIJV.end());
     }
     // Degrees
-    Eigen::VectorXd De;
+    Eigen::Matrix<Scalar, Dynamic, 1> De;
     sum(Ad,2,De);
-    Eigen::DiagonalMatrix<double,Eigen::Dynamic> De_diag = 
+    Eigen::DiagonalMatrix<Scalar,Eigen::Dynamic> De_diag =
       De.array().inverse().matrix().asDiagonal();
     K = L*(De_diag*Ad);
     // normalize
-    M /= ((VectorXd)M.diagonal()).array().abs().maxCoeff();
-    Minv = ((VectorXd)M.diagonal().array().inverse()).asDiagonal();
+    M /= ((Matrix<Scalar, Dynamic, 1>)M.diagonal()).array().abs().maxCoeff();
+    Minv = ((Matrix<Scalar, Dynamic, 1>)M.diagonal().array().inverse()).asDiagonal();
     // kill boundary edges
     for(int f = 0;f<T.rows();f++)
     {
@@ -145,7 +149,7 @@ IGL_INLINE bool igl::biharmonic_coordinates(
   }
   // Vertices in point handles
   const size_t mp =
-    count_if(S.begin(),S.end(),[](const vector<int> & h){return h.size()==1;});
+    count_if(S.begin(),S.end(),[](const vector<SType> & h){return h.size()==1;});
   // number of region handles
   const size_t r = S.size()-mp;
   // Vertices in region handles
@@ -159,9 +163,9 @@ IGL_INLINE bool igl::biharmonic_coordinates(
   }
   const size_t dim = T.cols()-1;
   // Might as well be dense... I think...
-  MatrixXd J = MatrixXd::Zero(mp+mr,mp+r*(dim+1));
-  VectorXi b(mp+mr);
-  MatrixXd H(mp+r*(dim+1),dim);
+  Matrix<Scalar, Dynamic, Dynamic> J = Matrix<Scalar, Dynamic, Dynamic>::Zero(mp+mr,mp+r*(dim+1));
+  Matrix<Integer, Dynamic, 1> b(mp+mr);
+  Matrix<Scalar, Dynamic, Dynamic> H(mp+r*(dim+1),dim);
   {
     int v = 0;
     int c = 0;
@@ -194,10 +198,10 @@ IGL_INLINE bool igl::biharmonic_coordinates(
   // minimize    ½ W' A W'
   // subject to  W(b,:) = J
   return min_quad_with_fixed(
-    A,VectorXd::Zero(A.rows()).eval(),b,J,SparseMatrix<double>(),VectorXd(),true,W);
+    A,Matrix<Scalar, Dynamic, 1>::Zero(A.rows()).eval(),b,J,SparseMatrix<Scalar>(),Matrix<Scalar, Dynamic, 1>(),true,W);
 }
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template bool igl::biharmonic_coordinates<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, int, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template bool igl::biharmonic_coordinates<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, int, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 #endif

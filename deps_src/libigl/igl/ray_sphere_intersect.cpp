@@ -14,9 +14,9 @@ template <
   typename r_type, 
   typename t_type>
 IGL_INLINE int igl::ray_sphere_intersect(
-  const Eigen::PlainObjectBase<Derivedo> & ao,
-  const Eigen::PlainObjectBase<Derivedd> & d,
-  const Eigen::PlainObjectBase<Derivedc> & ac,
+  const Eigen::MatrixBase<Derivedo> & ao,
+  const Eigen::MatrixBase<Derivedd> & d,
+  const Eigen::MatrixBase<Derivedc> & ac,
   r_type r, 
   t_type & t0,
   t_type & t1)
@@ -70,5 +70,5 @@ IGL_INLINE int igl::ray_sphere_intersect(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template int igl::ray_sphere_intersect<Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, double, double>(Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, double, double&, double&);
+template int igl::ray_sphere_intersect<Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, double, double>(Eigen::MatrixBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 3, 1, 0, 3, 1> > const&, double, double&, double&);
 #endif

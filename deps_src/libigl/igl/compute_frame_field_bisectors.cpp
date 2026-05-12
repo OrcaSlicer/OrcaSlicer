@@ -14,15 +14,16 @@
 #include "compute_frame_field_bisectors.h"
 #include "igl/local_basis.h"
 #include "PI.h"
+#include "PlainMatrix.h"
 
 template <typename DerivedV, typename DerivedF>
 IGL_INLINE void igl::compute_frame_field_bisectors(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
-  const Eigen::PlainObjectBase<DerivedV>& B1,
-  const Eigen::PlainObjectBase<DerivedV>& B2,
-  const Eigen::PlainObjectBase<DerivedV>& PD1,
-  const Eigen::PlainObjectBase<DerivedV>& PD2,
+  const Eigen::MatrixBase<DerivedV>& /*V*/,
+  const Eigen::MatrixBase<DerivedF>& /*F*/,
+  const Eigen::MatrixBase<DerivedV>& B1,
+  const Eigen::MatrixBase<DerivedV>& B2,
+  const Eigen::MatrixBase<DerivedV>& PD1,
+  const Eigen::MatrixBase<DerivedV>& PD2,
   Eigen::PlainObjectBase<DerivedV>& BIS1,
   Eigen::PlainObjectBase<DerivedV>& BIS2)
 {
@@ -64,14 +65,14 @@ IGL_INLINE void igl::compute_frame_field_bisectors(
 
 template <typename DerivedV, typename DerivedF>
 IGL_INLINE void igl::compute_frame_field_bisectors(
-                                                   const Eigen::PlainObjectBase<DerivedV>& V,
-                                                   const Eigen::PlainObjectBase<DerivedF>& F,
-                                                   const Eigen::PlainObjectBase<DerivedV>& PD1,
-                                                   const Eigen::PlainObjectBase<DerivedV>& PD2,
+                                                   const Eigen::MatrixBase<DerivedV>& V,
+                                                   const Eigen::MatrixBase<DerivedF>& F,
+                                                   const Eigen::MatrixBase<DerivedV>& PD1,
+                                                   const Eigen::MatrixBase<DerivedV>& PD2,
                                                    Eigen::PlainObjectBase<DerivedV>& BIS1,
                                                    Eigen::PlainObjectBase<DerivedV>& BIS2)
 {
-  DerivedV B1, B2, B3;
+  PlainMatrix<DerivedV,Eigen::Dynamic> B1, B2, B3;
   igl::local_basis(V,F,B1,B2,B3);
 
   compute_frame_field_bisectors( V, F, B1, B2, PD1, PD2, BIS1, BIS2);
@@ -80,6 +81,7 @@ IGL_INLINE void igl::compute_frame_field_bisectors(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::compute_frame_field_bisectors<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&);
-template void igl::compute_frame_field_bisectors<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template void igl::compute_frame_field_bisectors<Eigen::Matrix<double, -1, 3, 0, -1, 3>, Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&);
+template void igl::compute_frame_field_bisectors<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template void igl::compute_frame_field_bisectors<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 #endif

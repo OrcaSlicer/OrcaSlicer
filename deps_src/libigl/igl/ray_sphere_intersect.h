@@ -11,20 +11,17 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Compute the intersection between a ray from O in direction D and a sphere
-  // centered at C with radius r
-  //
-  // Inputs:
-  //   o  origin of ray
-  //   d  direction of ray
-  //   c  center of sphere
-  //   r  radius of sphere
-  // Outputs:
-  //   t0  parameterization of first hit (set only if exists) so that hit
-  //    position = o + t0*d
-  //   t1  parameterization of second hit (set only if exists)
-  //   
-  // Returns the number of hits
+  /// Compute the intersection between a ray from O in direction D and a sphere
+  /// centered at C with radius r
+  ///
+  /// @param[in] o  origin of ray
+  /// @param[in] d  direction of ray
+  /// @param[in] c  center of sphere
+  /// @param[in] r  radius of sphere
+  /// @param[out] t0  parameterization of first hit (set only if exists) so that
+  ///   hit position = o + t0*d
+  /// @param[out] t1  parameterization of second hit (set only if exists)
+  /// @return the number of hits
   template <
     typename Derivedo,
     typename Derivedd,
@@ -32,9 +29,9 @@ namespace igl
     typename r_type, 
     typename t_type>
   IGL_INLINE int ray_sphere_intersect(
-    const Eigen::PlainObjectBase<Derivedo> & o,
-    const Eigen::PlainObjectBase<Derivedd> & d,
-    const Eigen::PlainObjectBase<Derivedc> & c,
+    const Eigen::MatrixBase<Derivedo> & o,
+    const Eigen::MatrixBase<Derivedd> & d,
+    const Eigen::MatrixBase<Derivedc> & c,
     r_type r, 
     t_type & t0,
     t_type & t1);

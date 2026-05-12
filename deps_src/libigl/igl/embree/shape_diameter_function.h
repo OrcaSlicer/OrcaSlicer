@@ -15,28 +15,29 @@ namespace igl
   {
     // Forward define
     class EmbreeIntersector;
-    // Compute shape diamter function per given point
-    //
-    // Inputs:
-    //    ei  EmbreeIntersector containing (V,F)
-    //    P  #P by 3 list of origin points
-    //    N  #P by 3 list of origin normals
-    // Outputs:
-    //    S  #P list of shape diamater function values between bounding box
-    //    diagonal (perfect sphere) and 0 (perfect needle hook)
-    //
+    /// Compute shape diamter function per given point
+    ///
+    /// @param[in] ei  EmbreeIntersector containing (V,F)
+    /// @param[in] P  #P by 3 list of origin points
+    /// @param[in] N  #P by 3 list of origin normals
+    /// @param[out] S  #P list of shape diamater function values between bounding box
+    ///    diagonal (perfect sphere) and 0 (perfect needle hook)
+    ///
     template <
       typename DerivedP,
       typename DerivedN,
       typename DerivedS >
     IGL_INLINE void shape_diameter_function(
       const EmbreeIntersector & ei,
-      const Eigen::PlainObjectBase<DerivedP> & P,
-      const Eigen::PlainObjectBase<DerivedN> & N,
+      const Eigen::MatrixBase<DerivedP> & P,
+      const Eigen::MatrixBase<DerivedN> & N,
       const int num_samples,
       Eigen::PlainObjectBase<DerivedS> & S);
-    // Wrapper which builds new EmbreeIntersector for (V,F). That's expensive so
-    // avoid this if repeatedly calling.
+    /// \overload
+    /// \brief Wrapper which builds new EmbreeIntersector for (V,F). That's expensive so
+    /// avoid this if repeatedly calling.
+    /// @param[in] V  #V by 3 list of mesh vertex positiosn
+    /// @param[in] F  #F by 3 list of mesh triangle indices into rows of V
     template <
       typename DerivedV,
       typename DerivedF,
@@ -44,10 +45,10 @@ namespace igl
       typename DerivedN,
       typename DerivedS >
     IGL_INLINE void shape_diameter_function(
-      const Eigen::PlainObjectBase<DerivedV> & V,
-      const Eigen::PlainObjectBase<DerivedF> & F,
-      const Eigen::PlainObjectBase<DerivedP> & P,
-      const Eigen::PlainObjectBase<DerivedN> & N,
+      const Eigen::MatrixBase<DerivedV> & V,
+      const Eigen::MatrixBase<DerivedF> & F,
+      const Eigen::MatrixBase<DerivedP> & P,
+      const Eigen::MatrixBase<DerivedN> & N,
       const int num_samples,
       Eigen::PlainObjectBase<DerivedS> & S);
   }

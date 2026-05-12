@@ -13,14 +13,14 @@
 
 namespace igl
 {
-  // Generate a uniformly random unit direction in 3D, return as vector
+  /// Generate a uniformly random unit direction in 3D, return as vector
+  /// @return random direction
   IGL_INLINE Eigen::Vector3d random_dir();
-  // Generate n stratified uniformly random unit directions in 3d, return as rows
-  // of an n by 3 matrix
-  //
-  // Inputs:
-  //   n  number of directions
-  // Return n by 3 matrix of random directions
+  /// Generate n stratified uniformly random unit directions in 3d, return as rows
+  /// of an n by 3 matrix
+  ///
+  /// @param[in] n  number of directions
+  /// @return n by 3 matrix of random directions
   IGL_INLINE Eigen::MatrixXd random_dir_stratified(const int n);
 }
 

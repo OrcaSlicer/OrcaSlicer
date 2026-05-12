@@ -12,26 +12,24 @@
 
 namespace igl 
 {
-  // Compute a planar mapping of a triangulated polygon (V,F) subjected to
-  // boundary conditions (b,bc). The mapping should be bijective in the sense
-  // that no triangles' areas become negative (this assumes they started
-  // positive). This mapping is computed by "composing" harmonic mappings
-  // between incremental morphs of the boundary conditions. This is a bit like
-  // a discrete version of "Bijective Composite Mean Value Mappings" [Schneider
-  // et al. 2013] but with a discrete harmonic map (cf. harmonic coordinates)
-  // instead of mean value coordinates. This is inspired by "Embedding a
-  // triangular graph within a given boundary" [Xu et al. 2011].
-  //
-  // Inputs:
-  //   V  #V by 2 list of triangle mesh vertex positions
-  //   F  #F by 3 list of triangle indices into V
-  //   b  #b list of boundary indices into V
-  //   bc  #b by 2 list of boundary conditions corresponding to b
-  // Outputs:
-  //   U  #V by 2 list of output mesh vertex locations
-  // Returns true if and only if U contains a successful bijectie mapping
-  //
-  // 
+  /// Compute a injective planar mapping of a triangulated polygon (V,F) subjected to
+  /// boundary conditions (b,bc). The mapping should be bijective in the sense
+  /// that no triangles' areas become negative (this assumes they started
+  /// positive). This mapping is computed by "composing" harmonic mappings
+  /// between incremental morphs of the boundary conditions. This is a bit like
+  /// a discrete version of "Bijective Composite Mean Value Mappings" [Schneider
+  /// et al. 2013] but with a discrete harmonic map (cf. harmonic coordinates)
+  /// instead of mean value coordinates. This is inspired by "Embedding a
+  /// triangular graph within a given boundary" [Xu et al. 2011].
+  ///
+  /// @param[in] V  #V by 2 list of triangle mesh vertex positions
+  /// @param[in] F  #F by 3 list of triangle indices into V
+  /// @param[in] b  #b list of boundary indices into V
+  /// @param[in] bc  #b by 2 list of boundary conditions corresponding to b
+  /// @param[out] U  #V by 2 list of output mesh vertex locations
+  /// @return true if and only if U contains a successful bijectie mapping
+  ///
+  /// 
   template <
     typename DerivedV,
     typename DerivedF,
@@ -44,17 +42,15 @@ namespace igl
     const Eigen::MatrixBase<Derivedb> & b,
     const Eigen::MatrixBase<Derivedbc> & bc,
     Eigen::PlainObjectBase<DerivedU> & U);
-  //
-  // Inputs:
-  //   min_steps  minimum number of steps to take from V(b,:) to bc
-  //   max_steps  minimum number of steps to take from V(b,:) to bc (if
-  //     max_steps == min_steps then no further number of steps will be tried)
-  //   num_inner_iters  number of iterations of harmonic solves to run after
-  //     for each morph step (to try to push flips back in)
-  //   test_for_flips  whether to check if flips occurred (and trigger more
-  //     steps). if test_for_flips = false then this function always returns
-  //     true
-  // 
+  ///  \overload
+  ///  @param[in] min_steps  minimum number of steps to take from V(b,:) to bc
+  ///  @param[in] max_steps  minimum number of steps to take from V(b,:) to bc (if
+  ///     max_steps == min_steps then no further number of steps will be tried)
+  ///  @param[in] num_inner_iters  number of iterations of harmonic solves to run after
+  ///     for each morph step (to try to push flips back in)
+  ///  @param[in] test_for_flips  whether to check if flips occurred (and trigger more
+  ///     steps). if test_for_flips = false then this function always returns
+  ///     true
   template <
     typename DerivedV,
     typename DerivedF,

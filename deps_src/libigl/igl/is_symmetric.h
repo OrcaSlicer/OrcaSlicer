@@ -12,19 +12,19 @@
 #include <Eigen/Sparse>
 namespace igl
 {
-  // Returns true if the given matrix is symmetric
-  // Inputs:
-  //   A  m by m matrix
-  // Returns true if the matrix is square and symmetric
+  /// Returns true if the given matrix is symmetric
+  /// @param[in] A  m by m matrix
+  /// @return true if the matrix is square and symmetric
   template <typename AT>
   IGL_INLINE bool is_symmetric(const Eigen::SparseMatrix<AT>& A);
-  // Inputs:
-  //   epsilon threshold on L1 difference between A and A'
+  /// \overload
+  /// @param[in] epsilon threshold on L1 difference between A and A'
   template <typename AT, typename epsilonT>
   IGL_INLINE bool is_symmetric(const Eigen::SparseMatrix<AT>& A, const epsilonT epsilon);
+  /// \overload
   template <typename DerivedA>
   IGL_INLINE bool is_symmetric(
-    const Eigen::PlainObjectBase<DerivedA>& A);
+    const Eigen::MatrixBase<DerivedA>& A);
 }
 
 #ifndef IGL_STATIC_LIBRARY
