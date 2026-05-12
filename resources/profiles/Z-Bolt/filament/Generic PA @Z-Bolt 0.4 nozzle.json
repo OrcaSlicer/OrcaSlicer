@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Z-Bolt 0.4 nozzle",
-	"inherits": "Generic PA @Z-Bolt",
-	"renamed_from": "Z-Bolt PA @0.4 nozzle",
+	"inherits": "Generic PA @Z-Bolt Base",
+	"renamed_from": "Z-Bolt PA;Generic PA @Z-Bolt;Z-Bolt PA @0.4 nozzle",
 	"from": "system",
 	"setting_id": "GFSL404",
 	"filament_id": "GFL404",

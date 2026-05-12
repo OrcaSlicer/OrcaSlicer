@@ -1,0 +1,58 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @Z-Bolt Base",
+	"inherits": "fdm_filament_pet",
+	"renamed_from": "Z-Bolt PETG;Generic PETG @Z-Bolt",
+	"from": "system",
+	"setting_id": "GFSL300",
+	"filament_id": "GFL300",
+	"instantiation": "false",
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"fan_max_speed": [
+		"90"
+	],
+	"fan_min_speed": [
+		"45"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"full_fan_speed_layer": [
+		"3"
+	],
+	"overhang_fan_speed": [
+		"90"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"slow_down_layer_time": [
+		"12"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"hot_plate_temp": [
+		"75"
+	],
+	"hot_plate_temp_initial_layer": [
+		"75"
+	],
+	"textured_plate_temp": [
+		"75"
+	],
+	"textured_plate_temp_initial_layer": [
+		"75"
+	]
+}

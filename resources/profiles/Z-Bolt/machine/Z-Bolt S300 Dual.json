@@ -8,5 +8,5 @@
 	"bed_model": "Z-Bolt_S300_buildplate_model.stl",
 	"bed_texture": "Z-Bolt_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Generic PLA @Z-Bolt;Generic ABS @Z-Bolt;Generic PETG @Z-Bolt;Generic PA @Z-Bolt;Generic ABS HT @Z-Bolt"
+	"default_materials": "Generic PLA @Z-Bolt 0.4 nozzle;Generic PLA @Z-Bolt 0.6 nozzle;Generic PLA @Z-Bolt 0.8 nozzle;Generic ABS @Z-Bolt 0.4 nozzle;Generic ABS @Z-Bolt 0.6 nozzle;Generic ABS @Z-Bolt 0.8 nozzle;Generic PETG @Z-Bolt 0.4 nozzle;Generic PETG @Z-Bolt 0.6 nozzle;Generic PETG @Z-Bolt 0.8 nozzle;Generic PA @Z-Bolt 0.4 nozzle;Generic PA @Z-Bolt 0.6 nozzle;Generic PA @Z-Bolt 0.8 nozzle;Generic ABS HT @Z-Bolt 0.4 nozzle;Generic ABS HT @Z-Bolt 0.6 nozzle;Generic ABS HT @Z-Bolt 0.8 nozzle"
 }
