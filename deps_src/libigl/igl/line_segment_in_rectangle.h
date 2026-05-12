@@ -11,14 +11,13 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Determine whether a line segment overlaps with a rectangle.
-  //
-  // Inputs:
-  //   s  source point of line segment
-  //   d  dest point of line segment
-  //   A  first corner of rectangle
-  //   B  opposite corner of rectangle
-  // Returns true if line segment is at all inside rectangle
+  /// Determine whether a line segment overlaps with a rectangle.
+  ///
+  /// @param[in] s  source point of line segment
+  /// @param[in] d  dest point of line segment
+  /// @param[in] A  first corner of rectangle
+  /// @param[in] B  opposite corner of rectangle
+  /// @return true if line segment is at all inside rectangle
   IGL_INLINE bool line_segment_in_rectangle(
     const Eigen::Vector2d & s,
     const Eigen::Vector2d & d,

@@ -8,9 +8,9 @@
 
 #include "loop.h"
 
-#include <igl/adjacency_list.h>
-#include <igl/triangle_triangle_adjacency.h>
-#include <igl/unique.h>
+#include "adjacency_list.h"
+#include "triangle_triangle_adjacency.h"
+#include "unique.h"
 
 #include <vector>
 
@@ -18,19 +18,18 @@ template <
   typename DerivedF,
   typename SType,
   typename DerivedNF>
-IGL_INLINE bool igl::loop(
+IGL_INLINE void igl::loop(
   const int n_verts,
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::SparseMatrix<SType>& S,
   Eigen::PlainObjectBase<DerivedNF> & NF)
 {
-  typedef Eigen::SparseMatrix<SType> SparseMat;
   typedef Eigen::Triplet<SType> Triplet_t;
 
   //Ref. https://graphics.stanford.edu/~mdfisher/subdivision.html
   //Heavily borrowing from igl::upsample
 
-  DerivedF FF, FFi;
+  Eigen::Matrix<typename DerivedF::Scalar, Eigen::Dynamic, Eigen::Dynamic> FF, FFi;
   triangle_triangle_adjacency(F, FF, FFi);
   std::vector<std::vector<typename DerivedF::Scalar>> adjacencyList;
   adjacency_list(F, adjacencyList, true);
@@ -51,14 +50,8 @@ IGL_INLINE bool igl::loop(
         if (FF(i,j) != -1)
         {
           //If it is not a boundary
-            int adj_triangle = FF(i, j);
-            int adj_edge     = FFi(i, j);
-            if (adj_triangle >= 0 && adj_triangle < NI.rows() && adj_edge >= 0 && adj_edge < NI.cols()) {
-                NI(adj_triangle, adj_edge) = counter;
-                NIdoubles(i, j)            = 1;
-            } else {
-                return false;
-            }
+          NI(FF(i,j), FFi(i,j)) = counter;
+          NIdoubles(i,j) = 1;
         } else
         {
           //Mark boundary vertices for later
@@ -79,7 +72,7 @@ IGL_INLINE bool igl::loop(
   for(int i=0; i<n_odd; ++i)
   {
     //Old vertices
-    const std::vector<int>& localAdjList = adjacencyList[i];
+    const auto& localAdjList = adjacencyList[i];
     if(vertIsOnBdry(i)==1)
     {
       //Boundary vertex
@@ -134,10 +127,10 @@ IGL_INLINE bool igl::loop(
   NF.resize(F.rows()*4, 3);
   for(int i=0; i<F.rows();++i)
   {
-    Eigen::VectorXi VI(6);
+    Eigen::Matrix<typename DerivedF::Scalar, 6, 1> VI(6);
     VI << F(i,0), F(i,1), F(i,2), NI(i,0) + n_odd, NI(i,1) + n_odd, NI(i,2) + n_odd;
 
-    Eigen::VectorXi f0(3), f1(3), f2(3), f3(3);
+    Eigen::Matrix<typename DerivedF::Scalar, 3, 1> f0(3), f1(3), f2(3), f3(3);
     f0 << VI(0), VI(3), VI(5);
     f1 << VI(1), VI(4), VI(3);
     f2 << VI(3), VI(4), VI(5);
@@ -148,7 +141,6 @@ IGL_INLINE bool igl::loop(
     NF.row((i*4)+2) = f2;
     NF.row((i*4)+3) = f3;
   }
-  return true;
 }
 
 template <
@@ -156,9 +148,9 @@ template <
   typename DerivedF,
   typename DerivedNV,
   typename DerivedNF>
-IGL_INLINE bool igl::loop(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+IGL_INLINE void igl::loop(
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   Eigen::PlainObjectBase<DerivedNV>& NV,
   Eigen::PlainObjectBase<DerivedNF>& NF,
   const int number_of_subdivs)
@@ -169,15 +161,12 @@ IGL_INLINE bool igl::loop(
   {
     DerivedNF tempF = NF;
     Eigen::SparseMatrix<typename DerivedV::Scalar> S;
-    if (!loop(NV.rows(), tempF, S, NF)) {
-        return false;
-    }
+    loop(NV.rows(), tempF, S, NF);
     // This .eval is super important
     NV = (S*NV).eval();
   }
-  return true;
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template void igl::loop<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, int);
+template void igl::loop<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const &, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const &, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> &, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> &, int);
 #endif

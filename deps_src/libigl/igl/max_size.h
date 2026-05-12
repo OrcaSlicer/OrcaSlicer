@@ -12,12 +12,11 @@
 
 namespace igl
 {
-  // Determine max size of lists in a vector
-  // Template:
-  //   T  some list type object that implements .size()
-  // Inputs:
-  //   V  vector of list types T
-  // Returns max .size() found in V, returns -1 if V is empty
+  /// Determine max size of lists in a vector
+  ///
+  /// @tparam T  some list type object that implements .size()
+  /// @param[in] V  vector of list types T
+  /// @return max .size() found in V, returns -1 if V is empty
   template <typename T>
   IGL_INLINE int max_size(const std::vector<T> & V);
 }

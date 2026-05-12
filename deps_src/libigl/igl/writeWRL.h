@@ -12,33 +12,26 @@
 #include <string>
 namespace igl
 {
-  // Write mesh to a .wrl file
-  //
-  // Inputs:
-  //   str  path to .wrl file
-  //   V  #V by 3 list of vertex positions
-  //   F  #F by 3 list of triangle indices
-  // Returns true iff succes
+  /// Write mesh to a .wrl file
+  ///
+  /// @param[in] str  path to .wrl file
+  /// @param[in] V  #V by 3 list of vertex positions
+  /// @param[in] F  #F by 3 list of triangle indices
+  /// @return true iff succes
   template <typename DerivedV, typename DerivedF>
   IGL_INLINE bool writeWRL(
     const std::string & str,
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::PlainObjectBase<DerivedF> & F);
-
-  // Write mesh to a .wrl file
-  //
-  // Inputs:
-  //   str  path to .wrl file
-  //   V  #V by 3 list of vertex positions
-  //   F  #F by 3 list of triangle indices
-  //   C  double matrix of rgb values per vertex #V by 3
-  // Returns true iff succes
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F);
+  /// \overload
+  ///
+  /// @param[in] C  double matrix of rgb values per vertex #V by 3
   template <typename DerivedV, typename DerivedF, typename DerivedC>
   IGL_INLINE bool writeWRL(
     const std::string & str,
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::PlainObjectBase<DerivedF> & F,
-    const Eigen::PlainObjectBase<DerivedC> & C);
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedC> & C);
 }
 #ifndef IGL_STATIC_LIBRARY
 #include "writeWRL.cpp"

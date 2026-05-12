@@ -15,13 +15,11 @@
 
 namespace igl 
 {
-  // read a matrix from a csv file into a Eigen matrix
-  // Templates:
-  //   Scalar  type for the matrix
-  // Inputs:
-  //   str  path to .csv file
-  // Outputs:
-  //   M  eigen matrix 
+  /// read a matrix from a csv file into a Eigen matrix
+  /// @tparam Scalar  type for the matrix
+  /// @param[in] str  path to .csv file
+  /// @param[out] M  eigen matrix 
+  /// @return true on success
   template <typename Scalar>
   IGL_INLINE bool readCSV(
     const std::string str, 

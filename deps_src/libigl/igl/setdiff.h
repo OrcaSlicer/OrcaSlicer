@@ -11,23 +11,20 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Set difference of elements of matrices
-  //
-  // Inputs:
-  //   A  m-long vector of indices
-  //   B  n-long vector of indices
-  // Outputs:
-  //   C  (k<=m)-long vector of unique elements appearing in A but not in B
-  //   IA  (k<=m)-long list of indices into A so that C = A(IA)
-  //
+  /// Set difference of elements of matrices
+  ///
+  /// @param[in] A  m-long vector of indices
+  /// @param[in] B  n-long vector of indices
+  /// @param[out] C  (k<=m)-long vector of unique elements appearing in A but not in B
+  /// @param[out] IA  (k<=m)-long list of indices into A so that C = A(IA)
   template <
     typename DerivedA,
     typename DerivedB,
     typename DerivedC,
     typename DerivedIA>
   IGL_INLINE void setdiff(
-    const Eigen::DenseBase<DerivedA> & A,
-    const Eigen::DenseBase<DerivedB> & B,
+    const Eigen::MatrixBase<DerivedA> & A,
+    const Eigen::MatrixBase<DerivedB> & B,
     Eigen::PlainObjectBase<DerivedC> & C,
     Eigen::PlainObjectBase<DerivedIA> & IA);
 }

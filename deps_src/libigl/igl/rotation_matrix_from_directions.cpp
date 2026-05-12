@@ -28,7 +28,9 @@ IGL_INLINE Eigen::Matrix<Scalar, 3, 3> igl::rotation_matrix_from_directions(
   {
     rotM = -Eigen::Matrix<Scalar, 3, 3>::Identity();
     rotM(0,0) = 1.;
+#ifdef IGL_ROTATION_MATRIX_FROM_DIRECTIONS_DEBUG
     std::cerr<<"igl::rotation_matrix_from_directions: rotating around x axis by 180o"<<std::endl;
+#endif
     return rotM;
   }
   ///find the axis of rotation

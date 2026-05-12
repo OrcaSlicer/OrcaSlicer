@@ -11,14 +11,13 @@
 
 namespace igl
 {
-  // Determine if 2d point is in a circle
-  // Inputs:
-  //   qx  x-coordinate of query point
-  //   qy  y-coordinate of query point
-  //   cx  x-coordinate of circle center
-  //   cy  y-coordinate of circle center
-  //   r  radius of circle
-  // Returns true if query point is in circle, false otherwise
+  /// Determine if 2d point is in a circle
+  /// @param[in] qx  x-coordinate of query point
+  /// @param[in] qy  y-coordinate of query point
+  /// @param[in] cx  x-coordinate of circle center
+  /// @param[in] cy  y-coordinate of circle center
+  /// @param[in] r  radius of circle
+  /// @return true if query point is in circle, false otherwise
   IGL_INLINE bool point_in_circle(
     const double qx, 
     const double qy,

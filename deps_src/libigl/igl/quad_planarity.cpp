@@ -10,8 +10,8 @@
 
 template <typename DerivedV, typename DerivedF, typename DerivedP>
 IGL_INLINE void igl::quad_planarity(
-  const Eigen::PlainObjectBase<DerivedV>& V,
-  const Eigen::PlainObjectBase<DerivedF>& F,
+  const Eigen::MatrixBase<DerivedV>& V,
+  const Eigen::MatrixBase<DerivedF>& F,
   Eigen::PlainObjectBase<DerivedP> & P)
 {
   int nf = F.rows();
@@ -27,13 +27,13 @@ IGL_INLINE void igl::quad_planarity(
       diagCross.norm()*(((v3-v1).norm()+(v4-v2).norm())/2);
     if (fabs(denom)<1e-8)
       //degenerate quad is still planar
-      P[i] = 0;
+      P(i) = 0;
     else
-      P[i] = (diagCross.dot(v2-v1)/denom);
+      P(i) = (diagCross.dot(v2-v1)/denom);
   }
 }
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::quad_planarity<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
+template void igl::quad_planarity<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
 #endif

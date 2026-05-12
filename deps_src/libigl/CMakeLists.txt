@@ -15,3 +15,8 @@ else()
         INTERFACE
             ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
+
+if(MSVC)
+    # disable min() and max() macros that break std::numeric_limits<>::max()
+    target_compile_definitions(libigl INTERFACE -DNOMINMAX)
+endif()

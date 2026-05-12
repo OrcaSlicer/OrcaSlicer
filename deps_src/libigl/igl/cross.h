@@ -11,27 +11,24 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Computes out = cross(a,b)
-  // Inputs:
-  //   a  left 3d vector
-  //   b  right 3d vector
-  // Outputs:
-  //   out  result 3d vector
+  /// Cross product; out = cross(a,b)
+  ///
+  /// @param[in] a  left 3d vector
+  /// @param[in] b  right 3d vector
+  /// @param[out] out  result 3d vector
   IGL_INLINE void cross( const double *a, const double *b, double *out);
-  // Computes C = cross(A,B,2);
-  //
-  // Inputs:
-  //   A  #A by 3 list of row-vectors
-  //   B  #A by 3 list of row-vectors
-  // Outputs:
-  //   C  #A by 3 list of row-vectors
+  /// Computes rowwise cross product C = cross(A,B,2);
+  ///
+  /// @param[in] A  #A by 3 list of row-vectors
+  /// @param[in] B  #A by 3 list of row-vectors
+  /// @param[out] C  #A by 3 list of row-vectors
   template <
     typename DerivedA,
     typename DerivedB,
     typename DerivedC>
   IGL_INLINE void cross(
-    const Eigen::PlainObjectBase<DerivedA> & A,
-    const Eigen::PlainObjectBase<DerivedB> & B,
+    const Eigen::MatrixBase<DerivedA> & A,
+    const Eigen::MatrixBase<DerivedB> & B,
     Eigen::PlainObjectBase<DerivedC> & C);
 }
 

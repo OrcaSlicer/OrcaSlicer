@@ -11,14 +11,13 @@
 
 namespace igl
 {
-  // Compute rotation of a given vector/point by a quaternion
-  // A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
-  // such that q = x*i + y*j + z*k + w
-  // Inputs:
-  //   v  input 3d point/vector
-  //   q  input quaternion
-  // Outputs:
-  //   out  result of rotation, allowed to be same as v
+  /// Compute rotation of a given vector/point by a quaternion
+  /// A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
+  /// such that q = x*i + y*j + z*k + w
+  ///
+  /// @param[in] v  input 3d point/vector
+  /// @param[in] q  input quaternion
+  /// @param[out] out  result of rotation, allowed to be same as v
   template <typename Q_type>
   IGL_INLINE void rotate_by_quat(
     const Q_type *v,

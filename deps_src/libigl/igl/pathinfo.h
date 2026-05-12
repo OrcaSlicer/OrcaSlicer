@@ -19,35 +19,34 @@ namespace igl
   //const int PATHINFO_EXTENSION 04
   //const int PATHINFO_FILENAME 08
 
-  // Function like PHP's pathinfo
-  //  returns information about path
-  // Input:
-  //  path  string containing input path
-  // Outputs:
-  //  dirname  string containing dirname (see dirname.h)
-  //  basename  string containing basename (see basename.h)
-  //  extension  string containing extension (characters after last '.')
-  //  filename  string containing filename (characters of basename before last
-  //    '.')
-  //
-  //
-  // Examples:
-  //
-  // input                     | dirname        basename       ext    filename
-  // "/"                       | "/"            ""             ""     ""
-  // "//"                      | "/"            ""             ""     ""
-  // "/foo"                    | "/"            "foo"          ""     "foo"
-  // "/foo/"                   | "/"            "foo"          ""     "foo"
-  // "/foo//"                  | "/"            "foo"          ""     "foo"
-  // "/foo/./"                 | "/foo"         "."            ""     ""
-  // "/foo/bar"                | "/foo"         "bar"          ""     "bar"
-  // "/foo/bar."               | "/foo"         "bar."         ""     "bar"
-  // "/foo/bar.txt"            | "/foo"         "bar.txt"      "txt"  "bar"
-  // "/foo/bar.txt.zip"        | "/foo"         "bar.txt.zip"  "zip"  "bar.txt"
-  // "/foo/bar.dir/"           | "/foo"         "bar.dir"      "dir"  "bar"
-  // "/foo/bar.dir/file"       | "/foo/bar.dir" "file"         ""     "file"
-  // "/foo/bar.dir/file.txt"   | "/foo/bar.dir" "file.txt"     "txt"  "file"
-  //  See also: basename, dirname
+  /// Function like PHP's pathinfo to return information about path
+  ///
+  /// @param[in] path  string containing input path
+  /// @param[out] dirname  string containing dirname (see dirname.h)
+  /// @param[out] basename  string containing basename (see basename.h)
+  /// @param[out] extension  string containing extension (characters after last '.')
+  /// @param[out] filename  string containing filename (characters of basename
+  ///   before last '.')
+  ///
+  ///
+  /// #### Examples
+  ///
+  ///      input                     | dirname        basename       ext    filename
+  ///      "/"                       | "/"            ""             ""     ""
+  ///      "//"                      | "/"            ""             ""     ""
+  ///      "/foo"                    | "/"            "foo"          ""     "foo"
+  ///      "/foo/"                   | "/"            "foo"          ""     "foo"
+  ///      "/foo//"                  | "/"            "foo"          ""     "foo"
+  ///      "/foo/./"                 | "/foo"         "."            ""     ""
+  ///      "/foo/bar"                | "/foo"         "bar"          ""     "bar"
+  ///      "/foo/bar."               | "/foo"         "bar."         ""     "bar"
+  ///      "/foo/bar.txt"            | "/foo"         "bar.txt"      "txt"  "bar"
+  ///      "/foo/bar.txt.zip"        | "/foo"         "bar.txt.zip"  "zip"  "bar.txt"
+  ///      "/foo/bar.dir/"           | "/foo"         "bar.dir"      "dir"  "bar"
+  ///      "/foo/bar.dir/file"       | "/foo/bar.dir" "file"         ""     "file"
+  ///      "/foo/bar.dir/file.txt"   | "/foo/bar.dir" "file.txt"     "txt"  "file"
+  ///
+  ///  \see basename, dirname
   IGL_INLINE void pathinfo(
     const std::string & path,
     std::string & dirname,

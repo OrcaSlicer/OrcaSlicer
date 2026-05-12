@@ -14,25 +14,25 @@
 
 namespace igl
 {
-  // Concatenate k meshes into a single >=k connected component mesh with a
-  // single vertex list and face list. Similar to Maya's Combine operation. 
-  //
-  // Inputs:
-  //   VV  k-long list of lists of mesh vertex positions
-  //   FF  k-long list of lists of mesh face indices so that FF[i] indexes
-  //     VV[i]
-  // Outputs:
-  //   V   VV[0].rows()+...+VV[k-1].rows() by VV[0].cols() list of mesh
-  //     vertex positions
-  //   F   FF[0].rows()+...+FF[k-1].rows() by FF[0].cols() list of mesh faces
-  //     indices into V
-  //   Vsizes  k list so that Vsizes(i) is the #vertices in the ith input
-  //   Fsizes  k list so that Fsizes(i) is the #faces in the ith input
-  // Example:
-  //   // Suppose you have mesh A (VA,FA) and mesh B (VB,FB)
-  //   igl::combine<Eigen::MatrixXd,Eigen::MatrixXi>({VA,VB},{FA,FB},V,F);
-  //
-  //
+  /// Concatenate k meshes into a single >=k connected component mesh with a
+  /// single vertex list and face list. Similar to Maya's Combine operation. 
+  ///
+  /// @param[in] VV  k-long list of lists of mesh vertex positions
+  /// @param[in] FF  k-long list of lists of mesh face indices so that FF[i] indexes
+  ///     VV[i]
+  /// @param[out] V   VV[0].rows()+...+VV[k-1].rows() by VV[0].cols() list of mesh
+  ///     vertex positions
+  /// @param[out] F   FF[0].rows()+...+FF[k-1].rows() by FF[0].cols() list of mesh faces
+  ///     indices into V
+  /// @param[out] Vsizes  k list so that Vsizes(i) is the #vertices in the ith input
+  /// @param[out] Fsizes  k list so that Fsizes(i) is the #faces in the ith input
+  ///
+  /// #### Example
+  /// \code{cpp}
+  ///   // Suppose you have mesh A (VA,FA) and mesh B (VB,FB)
+  ///   igl::combine<Eigen::MatrixXd,Eigen::MatrixXi>({VA,VB},{FA,FB},V,F);
+  /// \endcode
+  ///
   template <
     typename DerivedVV, 
     typename DerivedFF, 
@@ -47,6 +47,7 @@ namespace igl
     Eigen::PlainObjectBase<DerivedF> & F,
     Eigen::PlainObjectBase<DerivedVsizes> & Vsizes,
     Eigen::PlainObjectBase<DerivedFsizes> & Fsizes);
+  /// \overload
   template <
     typename DerivedVV, 
     typename DerivedFF, 

@@ -13,21 +13,28 @@ namespace igl
 {
   namespace matlab
   {
-    // Throw an error if arg i+1 is not a scalar
-    //
-    // Inputs:
-    //   i  index of current argument
-    //   nrhs  total number of arguments
-    //   prhs  pointer to arguments array
-    //   name   name of current argument
+    /// Throw an error if arg i+1 is not a scalar
+    ///
+    /// @param[in] i  index of current argument
+    /// @param[in] nrhs  total number of arguments
+    /// @param[in] prhs  pointer to arguments array
+    /// @param[in] name   name of current argument
     IGL_INLINE void validate_arg_scalar(
       const int i, const int nrhs, const mxArray * prhs[], const char * name);
+    /// \overload
+    /// \breif Throw an error if arg i+1 is not logical
     IGL_INLINE void validate_arg_logical(
       const int i, const int nrhs, const mxArray * prhs[], const char * name);
+    /// \overload
+    /// \breif Throw an error if arg i+1 is not char
     IGL_INLINE void validate_arg_char(
       const int i, const int nrhs, const mxArray * prhs[], const char * name);
+    /// \overload
+    /// \breif Throw an error if arg i+1 is not double
     IGL_INLINE void validate_arg_double(
       const int i, const int nrhs, const mxArray * prhs[], const char * name);
+    /// \overload
+    /// \breif Throw an error if arg i+1 is not a function handle
     IGL_INLINE void validate_arg_function_handle(
       const int i, const int nrhs, const mxArray * prhs[], const char * name);
   }

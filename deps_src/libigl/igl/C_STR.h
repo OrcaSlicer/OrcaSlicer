@@ -7,12 +7,23 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #ifndef IGL_C_STR_H
 #define IGL_C_STR_H
-// http://stackoverflow.com/a/2433143/148668
-// Suppose you have a function:
-//   void func(const char * c);
-// Then you can write:
-//   func(C_STR("foo"<<1<<"bar"));
 #include <sstream>
 #include <string>
+/// Convert a stream of things to a const char *.
+///
+/// Suppose you have a function:
+/// \code{cpp}
+/// void func(const char * c);
+/// \endcode
+/// Then you can write:
+/// \code{cpp}
+///   func(C_STR("foo"<<1<<"bar"));
+/// \endcode
+/// which is equivalent to:
+/// \code{cpp}
+///   func("foo1bar");
+/// \endcode
+///
+// http://stackoverflow.com/a/2433143/148668
 #define C_STR(X) static_cast<std::ostringstream&>(std::ostringstream().flush() << X).str().c_str()
 #endif

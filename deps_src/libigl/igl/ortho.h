@@ -13,17 +13,15 @@
 
 namespace igl 
 {
-  // Implementation of the deprecated glOrtho function.
-  //
-  // Inputs:
-  //   left  coordinate of left vertical clipping plane
-  //   right  coordinate of right vertical clipping plane
-  //   bottom  coordinate of bottom vertical clipping plane
-  //   top  coordinate of top vertical clipping plane
-  //   nearVal  distance to near plane
-  //   farVal  distance to far plane
-  // Outputs:
-  //   P  4x4 perspective matrix
+  /// Implementation of the deprecated glOrtho function.
+  ///
+  /// @param[in] left  coordinate of left vertical clipping plane
+  /// @param[in] right  coordinate of right vertical clipping plane
+  /// @param[in] bottom  coordinate of bottom vertical clipping plane
+  /// @param[in] top  coordinate of top vertical clipping plane
+  /// @param[in] nearVal  distance to near plane
+  /// @param[in] farVal  distance to far plane
+  /// @param[out] P  4x4 perspective matrix
   template < typename DerivedP>
   IGL_INLINE void ortho(
     const typename DerivedP::Scalar left,

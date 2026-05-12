@@ -373,6 +373,7 @@ igl::opengl::gliReadTGA(FILE *fp, char *name, int /*hflip*/, int vflip)
       sprintf(error, "TGA: error reading colormap (ftell == %ld)\n",
         ftell (fp));
       if (_verbose) printf("%s\n", error);
+      free(cmap);
       return NULL;
     }
 

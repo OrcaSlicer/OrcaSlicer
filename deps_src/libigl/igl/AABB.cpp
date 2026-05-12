@@ -10,6 +10,7 @@
 #include "barycenter.h"
 #include "colon.h"
 #include "doublearea.h"
+#include "increment_ulp.h"
 #include "point_simplex_squared_distance.h"
 #include "project_to_line_segment.h"
 #include "sort.h"
@@ -17,12 +18,794 @@
 #include "ray_box_intersect.h"
 #include "parallel_for.h"
 #include "ray_mesh_intersect.h"
+#include "box_surface_area.h"
+#include "pad_box.h"
 #include <iostream>
 #include <iomanip>
 #include <limits>
 #include <list>
 #include <queue>
 #include <stack>
+#include <string>
+#include <stdio.h>
+
+// This would be so much better with C++17 if constexpr
+namespace
+{
+  template <
+    typename DerivedV,
+    typename DerivedEle,
+    typename Derivedq,
+    int DIM>
+  struct AABB_all_positive_barycentric_coordinates_helper;
+
+  template <
+    typename DerivedV,
+    typename DerivedEle,
+    typename Derivedq>
+  struct AABB_all_positive_barycentric_coordinates_helper<
+  DerivedV,
+  DerivedEle,
+  Derivedq,
+  2>
+  {
+    static inline bool compute(
+      const Eigen::MatrixBase<DerivedV> & V,
+      const Eigen::MatrixBase<DerivedEle> & Ele,
+      const int primitive,
+      const Eigen::MatrixBase<Derivedq> & q)
+    {
+      using namespace igl;
+      using Scalar = typename DerivedV::Scalar;
+      const Scalar epsilon = igl::EPS<Scalar>();
+      static_assert(
+        DerivedV::ColsAtCompileTime == 2 ||
+        DerivedV::ColsAtCompileTime == Eigen::Dynamic,
+        "V should be 2D");
+      static_assert(
+        Derivedq::ColsAtCompileTime == 2 ||
+        Derivedq::ColsAtCompileTime == Eigen::Dynamic,
+        "q should be 2D");
+      // Barycentric coordinates
+      typedef Eigen::Matrix<Scalar,2,1> Vector2S;
+      const Vector2S V1 = V.row(Ele(primitive,0));
+      const Vector2S V2 = V.row(Ele(primitive,1));
+      const Vector2S V3 = V.row(Ele(primitive,2));
+      // Hack for now to keep templates simple. If becomes bottleneck
+      // consider using std::enable_if_t
+      const Vector2S q2 = q.head(2);
+      Scalar a1 = doublearea_single(V1,V2,q2);
+      Scalar a2 = doublearea_single(V2,V3,q2);
+      Scalar a3 = doublearea_single(V3,V1,q2);
+      // Normalization is important for correcting magnitude near epsilon
+      Scalar sum = a1+a2+a3;
+      a1 /= sum;
+      a2 /= sum;
+      a3 /= sum;
+      return a1>=-epsilon && a2>=-epsilon && a3>=-epsilon;
+    }
+  };
+
+
+  template <
+    typename DerivedV,
+    typename DerivedEle,
+    typename Derivedq>
+  struct AABB_all_positive_barycentric_coordinates_helper<
+  DerivedV,
+  DerivedEle,
+  Derivedq,
+  3>
+  {
+    static inline bool compute(
+      const Eigen::MatrixBase<DerivedV> & V,
+      const Eigen::MatrixBase<DerivedEle> & Ele,
+      const int primitive,
+      const Eigen::MatrixBase<Derivedq> & q)
+    {
+      using namespace igl;
+      using Scalar = typename DerivedV::Scalar;
+      const Scalar epsilon = igl::EPS<Scalar>();
+      static_assert(
+        DerivedV::ColsAtCompileTime == 3 ||
+        DerivedV::ColsAtCompileTime == Eigen::Dynamic,
+        "V should be 2D");
+      static_assert(
+        Derivedq::ColsAtCompileTime == 3 ||
+        Derivedq::ColsAtCompileTime == Eigen::Dynamic,
+        "q should be 2D");
+      // Barycentric coordinates
+      typedef Eigen::Matrix<Scalar,1,3> RowVector3S;
+      const RowVector3S V1 = V.row(Ele(primitive,0));
+      const RowVector3S V2 = V.row(Ele(primitive,1));
+      const RowVector3S V3 = V.row(Ele(primitive,2));
+      const RowVector3S V4 = V.row(Ele(primitive,3));
+      Scalar a1 = volume_single(V2,V4,V3,(RowVector3S)q);
+      Scalar a2 = volume_single(V1,V3,V4,(RowVector3S)q);
+      Scalar a3 = volume_single(V1,V4,V2,(RowVector3S)q);
+      Scalar a4 = volume_single(V1,V2,V3,(RowVector3S)q);
+      Scalar sum = a1+a2+a3+a4;
+      a1 /= sum;
+      a2 /= sum;
+      a3 /= sum;
+      a4 /= sum;
+      return a1>=-epsilon && a2>=-epsilon && a3>=-epsilon && a4>=-epsilon;
+    }
+  };
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Non-templated member functions
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename DerivedV, int DIM>
+IGL_INLINE bool igl::AABB<DerivedV,DIM>::is_leaf() const
+{
+  // This way (rather than `m_primitive != -1` we can have empty leaves
+  return m_left == nullptr && m_right == nullptr;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE bool igl::AABB<DerivedV,DIM>::is_root() const
+{
+  return m_parent == nullptr;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::root() const
+{
+  return (is_root() ?  const_cast<igl::AABB<DerivedV,DIM>*>(this) : m_parent->root());
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::detach()
+{
+  if(!this->m_parent)
+  {
+    // Before
+    //   ⊘-this
+    //
+    // After
+    //   ⊘-this
+    //
+    // `this` is the root. It's already detached.
+    return this;
+  }
+
+  auto * parent = this->m_parent;
+  assert(parent);
+  // Detach from parent
+  this->m_parent = nullptr;
+  auto * grandparent = parent->m_parent;
+  auto * sibling = parent->m_left == this ? parent->m_right : parent->m_left;
+  assert(sibling);
+  // Before
+  //     grandparent
+  //        ╱
+  //     parent
+  //     ╱    ╲
+  // sibling  this
+  //
+  // After
+  //     grandparent
+  //        /
+  //     sibling®   ⊘     ☠️ parent☠️
+  //                |
+  //               this
+  //
+  // Grandparent is sibling's parent now: works even if parent is root
+  // (grandparent is null)
+  sibling->m_parent = grandparent;
+  // Parent is now parentless and childless (to make clear() happy)
+  parent->m_parent = nullptr;
+  parent->m_left = nullptr;
+  parent->m_right = nullptr;
+  // Tell grandparent sibling is new child.
+  if(grandparent)
+  {
+    (grandparent->m_left == parent ?
+      grandparent->m_left : grandparent->m_right) = sibling;
+  }
+  // Did your code just crash here? Perhaps it's because you statically
+  // allocated your tree instead of using `new`. That's not allowed if you're
+  // going to call dynamic methods like `detach` and `insert`.
+  //
+  // This is a design flaw that requires a refactor of igl::AABB to fix.
+  delete parent;
+
+  return sibling;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::refit_lineage()
+{
+  const decltype(m_box) old_box = m_box;
+  if(!is_leaf())
+  {
+    m_box.setEmpty();
+    if(m_left) { m_box.extend(m_left->m_box); }
+    if(m_right) { m_box.extend(m_right->m_box); }
+  }
+  // Q: is box.contains(old_box) ever true?
+  // H: It's really supposed to be testing whether anything changed. But the
+  // call patterns for refit_lineage might be only hitting cases where box is always
+  // smaler than old_box.
+  if(m_parent && !m_box.contains(old_box)) { m_parent->refit_lineage(); }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE std::vector<igl::AABB<DerivedV,DIM>*>
+  igl::AABB<DerivedV,DIM>::gather_leaves(const int m)
+{
+  auto * tree = this;
+  std::vector<igl::AABB<DerivedV,DIM>*> leaves(m,nullptr);
+  {
+    std::vector<igl::AABB<DerivedV,DIM>* > stack;
+    stack.push_back(tree);
+    while(!stack.empty())
+    {
+      auto * node = stack.back();
+      stack.pop_back();
+      if(!node) { continue; }
+      stack.push_back(node->m_left);
+      stack.push_back(node->m_right);
+      if(node->is_leaf())
+      {
+        assert(node->m_primitive < m && node->m_primitive >= 0);
+        leaves[node->m_primitive] = node;
+      }
+    }
+  }
+  return leaves;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE std::vector<igl::AABB<DerivedV,DIM>*>
+  igl::AABB<DerivedV,DIM>::gather_leaves()
+{
+  int max_primitive = -1;
+  {
+    std::vector<igl::AABB<DerivedV,DIM>* > stack;
+    stack.push_back(this);
+    while(!stack.empty())
+    {
+      auto * node = stack.back();
+      stack.pop_back();
+      if(!node) { continue; }
+      stack.push_back(node->m_left);
+      stack.push_back(node->m_right);
+      max_primitive = std::max(max_primitive,node->m_primitive);
+    }
+  }
+  return gather_leaves(max_primitive+1);
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::pad(
+  const std::vector<igl::AABB<DerivedV,DIM>*> & leaves,
+  const igl::AABB<DerivedV,DIM>::Scalar pad,
+  const int polish_rotate_passes)
+{
+  // Will get reset to root below anyway. This does _not_ operate on subtrees.
+  auto * tree = this->root();
+  for(auto * leaf : leaves)
+  {
+    assert(leaf);
+    auto * sibling = leaf->detach();
+    tree = sibling->root();
+    // Refit near where leaf used to be since it might move far away.
+    sibling->refit_lineage();
+    pad_box(pad,leaf->m_box);
+    tree = tree->insert(leaf)->root();
+    // Will potentially reach "above" `this`
+    leaf->refit_lineage();
+    leaf->rotate_lineage();
+  }
+  for(int pass = 0;pass<polish_rotate_passes;pass++)
+  {
+    for(auto * leaf : leaves)
+    {
+      assert(leaf);
+      leaf->rotate_lineage();
+    }
+  }
+  // `this` may have been deleted (during `detach` above). Return (possibly new)
+  // root.
+  return tree->root();
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::update(
+    const Eigen::AlignedBox<Scalar,DIM> & new_box,
+    const Scalar pad)
+{
+  auto * leaf = this;
+  if(leaf->m_box.contains(new_box)) { return leaf; }
+  leaf->m_box = new_box;
+  pad_box(pad,leaf->m_box);
+  assert(leaf);
+  auto * sibling = leaf->detach();
+  auto * tree = sibling->root();
+  tree = tree->insert(leaf)->root();
+  leaf->refit_lineage();
+  leaf->rotate_lineage();
+  return this->root();
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::insert_as_sibling(AABB * other)
+{
+  // Before
+  //        parent
+  //          |
+  //        this(C)
+  //        ╱  ╲
+  //      left right
+  //
+  // After
+  //        parent
+  //          |
+  //         newbie
+  //        ╱   ╲
+  //     this    other
+  //     ╱    ╲
+  //   left  right
+  //
+
+  auto * parent = this->m_parent;
+
+  AABB<DerivedV,DIM> * newbie = new AABB<DerivedV,DIM>();
+  newbie->m_parent = parent;
+  newbie->m_left = this;
+  newbie->m_right = other;
+  newbie->m_box.extend(this->m_box);
+  newbie->m_box.extend(other->m_box);
+  newbie->m_primitive = -1;
+  this->m_parent = newbie;
+  other->m_parent = newbie;
+
+  if(parent)
+  {
+    parent->m_left == this ? parent->m_left = newbie : parent->m_right = newbie;
+    assert(parent->m_box.contains(newbie->m_box));
+  }
+  return newbie;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE typename DerivedV::Scalar igl::AABB<DerivedV,DIM>::rotate(const bool dry_run)
+{
+  if(is_root()) { return false; }
+  // Biased order.
+  //
+  // Would be good to check for a ton of insertions whether only one of these
+  // ever returns true.
+  //
+  //        grandparent
+  //        ╱         ╲
+  //     parent       pibling°
+  //     ╱    ╲         ╱    ╲
+  // sibling  this   cuz1°  cuz2°
+  //  ╱    ╲
+  // nib1° nib2°
+
+  // There is a _ton_ of repeated computation of surface areas and new-boxes in
+  // these.
+
+  // Rotate across first is much better. Then up seems slightly better than
+  // down, but this is moot if we're chooseing the best one.
+  const Scalar across_delta_sa = rotate_across(true);
+  const Scalar up_delta_sa     = rotate_up(    true);
+  const Scalar down_delta_sa   = rotate_down(  true);
+  if(dry_run){ std::min({across_delta_sa,up_delta_sa,down_delta_sa}); }
+
+  // conduct the rotate with smallest delta
+  if(across_delta_sa <= up_delta_sa && across_delta_sa <= down_delta_sa)
+  {
+    return rotate_across(false);
+  }else if(up_delta_sa <= down_delta_sa)
+  {
+    return rotate_up(false);
+  }else
+  {
+    return rotate_down(false);
+  }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE typename DerivedV::Scalar igl::AABB<DerivedV,DIM>::rotate_across(const bool dry_run)
+{
+  // Before
+  //        grandparent
+  //        ╱         ╲
+  //     parent       pibling
+  //     ╱    ╲         ╱    ╲
+  // sibling  this    cuz1  cuz2
+  //
+  //
+  // Candidates
+  //        grandparent
+  //        ╱         ╲
+  //     parent       pibling
+  //     ╱    ╲         ╱    ╲
+  // sibling  cuz1   this   cuz2
+  //
+  // Or
+  //        grandparent
+  //        ╱         ╲
+  //     parent       pibling
+  //     ╱    ╲         ╱    ╲
+  // sibling  cuz2    cuz1  this
+
+  auto * parent = this->m_parent;
+  if(!parent) { return false; }
+  const auto * grandparent = parent->m_parent;
+  if(!grandparent) { return false; }
+  auto * pibling = grandparent->m_left == parent ? grandparent->m_right : grandparent->m_left;
+  if(!pibling) { return false; }
+  const auto * sibling = parent->m_left == this ? parent->m_right : parent->m_left;
+
+  const Scalar current_sa = box_surface_area(parent->m_box) + box_surface_area(pibling->m_box);
+
+  const auto rotate_across_with = [&](
+      bool inner_dry_run,
+      igl::AABB<DerivedV,DIM> * cuz,
+      igl::AABB<DerivedV,DIM> * other_cuz
+      )->Scalar
+  {
+    // Before
+    //        grandparent
+    //        ╱         ╲
+    //     parent       pibling
+    //     ╱    ╲         ╱    ╲
+    // sibling  this    cuz  other_cuz
+    //
+    //
+    // Candidates
+    //        grandparent
+    //        ╱         ╲
+    //     parent       pibling
+    //     ╱    ╲         ╱    ╲
+    // sibling  cuz   this   other_cuz
+    if(!cuz){ return 0.0; }
+
+    Eigen::AlignedBox<Scalar,DIM> new_parent_box;
+    if(sibling) { new_parent_box.extend(sibling->m_box); }
+    new_parent_box.extend(cuz->m_box);
+    Eigen::AlignedBox<Scalar,DIM> new_pibling_box = this->m_box;
+    if(other_cuz) { new_pibling_box.extend(other_cuz->m_box); }
+    const Scalar new_sa =
+      box_surface_area(new_parent_box) + box_surface_area(new_pibling_box);
+    if(current_sa <= new_sa)
+    {
+      return 0.0;
+    }
+
+    if(!inner_dry_run)
+    {
+      assert(!dry_run);
+      parent->m_box = new_parent_box;
+      (parent->m_left == this ? parent->m_left : parent->m_right) = cuz;
+      cuz->m_parent = parent;
+
+      pibling->m_box = new_pibling_box;
+      (pibling->m_left == cuz ? pibling->m_left : pibling->m_right) = this;
+      this->m_parent = pibling;
+    }
+    return new_sa - current_sa;
+  };
+
+  auto * cuz1 = pibling->m_left;
+  auto * cuz2 = pibling->m_right;
+  const Scalar delta_1 = rotate_across_with(true,cuz1,cuz2);
+  const Scalar delta_2 = rotate_across_with(true,cuz2,cuz1);
+  if(delta_1 < delta_2)
+  {
+    return dry_run ? delta_1 : rotate_across_with(false,cuz1,cuz2);
+  }else
+  {
+    return dry_run ? delta_2 : rotate_across_with(false,cuz2,cuz1);
+  }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE typename DerivedV::Scalar igl::AABB<DerivedV,DIM>::rotate_up(const bool dry_run)
+{
+  // Before
+  //    grandparent
+  //       ╱    ╲
+  //     other  parent
+  //            ╱  ╲
+  //         this  sibling
+  //
+  //
+  // Candidate
+  //    grandparent
+  //       ╱    ╲
+  //    this    parent
+  //            ╱  ╲
+  //        other  sibling
+  //
+  auto * challenger = this;
+  auto * parent = challenger->m_parent;
+  if(!parent) { return false; }
+  auto * grandparent = parent->m_parent;
+  if(!grandparent) { return false; }
+  auto * reining = grandparent->m_left == parent ? grandparent->m_right : grandparent->m_left;
+  if(!reining) { return false; }
+  auto * sibling = parent->m_left == challenger ? parent->m_right : parent->m_left;
+  return rotate_up(dry_run,reining,grandparent,parent,challenger,sibling);
+}
+
+
+template <typename DerivedV, int DIM>
+IGL_INLINE typename DerivedV::Scalar igl::AABB<DerivedV,DIM>::rotate_down(const bool dry_run)
+{
+  // Before
+  //       parent
+  //       ╱    ╲
+  //     this   sibling
+  //            ╱  ╲
+  //         left  right
+  //
+  //
+  // Candidates
+  //       parent
+  //       ╱    ╲
+  //   left     sibling
+  //            ╱  ╲
+  //        this   right
+  //
+  // Or
+  //
+  //       parent
+  //       ╱    ╲
+  //   right    sibling
+  //            ╱  ╲
+  //        left   this
+  auto * parent = this->m_parent;
+  if(!parent) { return false; }
+  auto * sibling = parent->m_left == this ? parent->m_right : parent->m_left;
+  if(!sibling) { return false; }
+  const Scalar left_sa  = rotate_up(true,this,parent,sibling,sibling->m_left,sibling->m_right);
+  const Scalar right_sa = rotate_up(true,this,parent,sibling,sibling->m_right,sibling->m_left);
+  if(left_sa < right_sa)
+  {
+    return dry_run ?  left_sa : rotate_up(false,this,parent,sibling,sibling->m_left,sibling->m_right);
+  }else
+  {
+    return dry_run ? right_sa : rotate_up(false,this,parent,sibling,sibling->m_right,sibling->m_left);
+  }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE typename DerivedV::Scalar igl::AABB<DerivedV,DIM>::rotate_up(
+  const bool dry_run,
+  igl::AABB<DerivedV,DIM>* reining,
+  igl::AABB<DerivedV,DIM>* grandparent,
+  igl::AABB<DerivedV,DIM>* parent,
+  igl::AABB<DerivedV,DIM>* challenger,
+  igl::AABB<DerivedV,DIM>* sibling)
+{
+  // if any are null return false
+  if(!reining) { return false; }
+  if(!grandparent) { return false; }
+  if(!parent) { return false; }
+  if(!challenger) { return false; }
+  if(!sibling) { return false; }
+  // Before
+  //    grandparent
+  //       ╱      ╲
+  //  reining      parent
+  //               ╱    ╲
+  //        challenger  sibling
+  //
+  //
+  // Candidate
+  //    grandparent
+  //       ╱      ╲
+  // challenger    parent
+  //               ╱    ╲
+  //          reining   sibling
+  //
+
+  auto sibling_sa = 0;
+  // Sibling doesn't actually need to exist but probably should if parent is a
+  // true internal node.
+  if(sibling)
+  {
+    sibling_sa = box_surface_area(sibling->m_box);
+  }
+
+  const auto challenger_sa = box_surface_area(challenger->m_box);
+  const auto parent_sa = box_surface_area(challenger->m_parent->m_box);
+  const auto reining_sa = box_surface_area(reining->m_box);
+  auto new_parent_box = reining->m_box;
+  new_parent_box.extend(sibling->m_box);
+  const auto new_parent_sa = box_surface_area(new_parent_box);
+                                       // Cancels in comparison
+  const auto before_sa = parent_sa    ;// + reining_sa + challenger_sa + sibling_sa;
+  const auto after_sa  = new_parent_sa;// + reining_sa + challenger_sa + sibling_sa;
+  if(before_sa <= after_sa)
+  {
+    // No improvment.
+    return 0.0;
+  }
+  if(!dry_run)
+  {
+    // May reorder left and right but challenger doesn't matter.
+    grandparent->m_left = challenger;
+    grandparent->m_right = parent;
+    challenger->m_parent = grandparent;
+    parent->m_parent = grandparent;
+    parent->m_left = reining;
+    parent->m_right = sibling;
+    reining->m_parent = parent;
+    if(sibling){ sibling->m_parent = parent; }
+    parent->m_box = new_parent_box;
+  }
+  return after_sa - before_sa;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE int igl::AABB<DerivedV,DIM>::subtree_size() const
+{
+  // 1 for self
+  int n = 1;
+  int n_left = 0,n_right = 0;
+  if(m_left != nullptr)
+  {
+    n_left = m_left->subtree_size();
+  }
+  if(m_right != nullptr)
+  {
+    n_right = m_right->subtree_size();
+  }
+  n += 2*std::max(n_left,n_right);
+  return n;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::rotate_lineage()
+{
+  std::vector<igl::AABB<DerivedV, DIM> *> lineage;
+  {
+    auto * node = this;
+    while(node)
+    {
+      lineage.push_back(node);
+      node = node->m_parent;
+    }
+  }
+  // O(h)
+  while(!lineage.empty())
+  {
+    auto * node = lineage.back();
+    lineage.pop_back();
+    assert(node);
+    const bool ret = node->rotate();
+  }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE bool igl::AABB<DerivedV,DIM>::append_intersecting_leaves(
+    const Eigen::AlignedBox<igl::AABB<DerivedV,DIM>::Scalar,DIM> & box,
+    std::vector<const igl::AABB<DerivedV,DIM>*> & leaves) const
+{
+  if(!box.intersects(m_box)){ return false;}
+
+  if(is_leaf())
+  {
+    leaves.push_back(this);
+    return true;
+  }
+  bool any_left = (m_left ? m_left->append_intersecting_leaves(box,leaves) : false);
+  bool any_right = (m_right ? m_right->append_intersecting_leaves(box,leaves) : false);
+  return any_left || any_right;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE typename DerivedV::Scalar igl::AABB<DerivedV,DIM>::internal_surface_area() const
+{
+  // Don't include self (parent's call will add me if I'm not a root or leaf)
+  Scalar surface_area = 0;
+  if(m_left && !m_left->is_leaf())
+  {
+    surface_area += box_surface_area(m_left->m_box);
+    surface_area += m_left->internal_surface_area();
+  }
+  if(m_right && !m_right->is_leaf())
+  {
+    surface_area += box_surface_area(m_right->m_box);
+    surface_area += m_right->internal_surface_area();
+  }
+  return surface_area;
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::validate() const
+{
+  if(this->is_leaf())
+  {
+    assert(this->m_primitive >= 0 || this->is_root());
+  }
+  if(this->m_left)
+  {
+    assert(this->m_box.contains(this->m_left->m_box));
+    assert(this->m_left->m_parent == this);
+    this->m_left->validate();
+  }
+  if(this->m_right)
+  {
+    assert(this->m_box.contains(this->m_right->m_box));
+    assert(this->m_right->m_parent == this);
+    this->m_right->validate();
+  }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::print(const int depth) const
+{
+  const auto indent = std::string(depth*2,' ');
+  printf("%s%p",indent.c_str(),this);
+  if(this->is_leaf())
+  {
+    printf(" [%d]",this->m_primitive);
+  }
+  printf("\n");
+  if(this->m_left)
+  {
+    assert(this->m_box.contains(this->m_left->m_box));
+    assert(this->m_left->m_parent == this);
+    this->m_left->print(depth+1);
+  }
+  if(this->m_right)
+  {
+    assert(this->m_box.contains(this->m_right->m_box));
+    assert(this->m_right->m_parent == this);
+    this->m_right->print(depth+1);
+  }
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE int igl::AABB<DerivedV,DIM>::size() const
+{
+  return 1 +
+    (this->m_left ? this->m_left ->size():0) +
+    (this->m_right? this->m_right->size():0);
+}
+template <typename DerivedV, int DIM>
+IGL_INLINE int igl::AABB<DerivedV,DIM>::height() const
+{
+  return 1 + std::max(
+    (this->m_left ?this->m_left ->height():0),
+    (this->m_right?this->m_right->height():0));
+}
+
+template <typename DerivedV, int DIM>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::set_min(
+  const RowVectorDIMS & /* p */,
+  const Scalar sqr_d_candidate,
+  const int & i_candidate,
+  const RowVectorDIMS & c_candidate,
+  Scalar & sqr_d,
+  int & i,
+  Eigen::PlainObjectBase<RowVectorDIMS> & c) const
+{
+  if(sqr_d_candidate < sqr_d)
+  {
+    i = i_candidate;
+    c = c_candidate;
+    sqr_d = sqr_d_candidate;
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Templated member functions
+///////////////////////////////////////////////////////////////////////////////
+
 
 template <typename DerivedV, int DIM>
 template <typename DerivedEle, typename Derivedbb_mins, typename Derivedbb_maxs, typename Derivedelements>
@@ -36,7 +819,7 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::init(
 {
   using namespace std;
   using namespace Eigen;
-  deinit();
+  clear();
   if(bb_mins.size() > 0)
   {
     assert(bb_mins.rows() == bb_maxs.rows() && "Serial tree arrays must match");
@@ -53,8 +836,10 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::init(
     {
       m_left = new AABB();
       m_left->init( V,Ele,bb_mins,bb_maxs,elements,2*i+1);
+      m_left->m_parent = this;
       m_right = new AABB();
       m_right->init( V,Ele,bb_mins,bb_maxs,elements,2*i+2);
+      m_right->m_parent = this;
       //m_depth = std::max( m_left->m_depth, m_right->m_depth)+1;
     }
   }else
@@ -96,7 +881,7 @@ void igl::AABB<DerivedV,DIM>::init(
     const Eigen::MatrixBase<DerivedEle> & Ele)
 {
   using namespace Eigen;
-  // deinit will be immediately called...
+  // clear will be immediately called...
   return init(V,Ele,MatrixXDIMS(),MatrixXDIMS(),VectorXi(),0);
 }
 
@@ -113,7 +898,7 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::init(
 {
   using namespace Eigen;
   using namespace std;
-  deinit();
+  clear();
   if(V.size() == 0 || Ele.size() == 0 || I.size() == 0)
   {
     return;
@@ -183,23 +968,80 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::init(
         {
           m_left = new AABB();
           m_left->init(V,Ele,SI,LI);
+          m_left->m_parent = this;
           //m_depth = std::max(m_depth, m_left->m_depth+1);
         }
         if(RI.rows()>0)
         {
           m_right = new AABB();
           m_right->init(V,Ele,SI,RI);
+          m_right->m_parent = this;
           //m_depth = std::max(m_depth, m_right->m_depth+1);
         }
       }
   }
 }
 
+
 template <typename DerivedV, int DIM>
-IGL_INLINE bool igl::AABB<DerivedV,DIM>::is_leaf() const
+template <typename DerivedEle>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::update_primitive(
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedEle> & Ele,
+    const Scalar pad)
 {
-  return m_primitive != -1;
+  assert(this->is_leaf());
+  assert(this->m_primitive >= 0 && this->m_primitive < Ele.rows());
+  Eigen::AlignedBox<double, 3> new_box;
+  for(int c = 0;c<Ele.cols();c++)
+  {
+    new_box.extend(V.row(Ele(this->m_primitive,c)).transpose());
+  }
+  return this->update(new_box,pad);
 }
+
+template <typename DerivedV, int DIM>
+IGL_INLINE igl::AABB<DerivedV,DIM>* igl::AABB<DerivedV,DIM>::insert(AABB * other)
+{
+  // test if this is the same pointer as other
+  if(this == other)
+  {
+    // Only expecting this to happen when this/other are a singleton tree
+    assert(this->is_root() && this->is_leaf());
+    // Nothing changed.
+    return this;
+  }
+
+
+  if(this->is_leaf())
+  {
+    return this->insert_as_sibling(other);
+  }
+
+  // internal node case
+  if(!this->m_box.contains(other->m_box))
+  {
+    // it's annoying to have these special root handling cases. I wonder if the
+    // root should have been an ∞ node...
+    return insert_as_sibling(other);
+  }
+
+  Eigen::AlignedBox<Scalar,DIM> left_grow = this->m_left->m_box;
+  left_grow.extend(other->m_box);
+  Eigen::AlignedBox<Scalar,DIM> right_grow = this->m_right->m_box;
+  right_grow.extend(other->m_box);
+  const auto left_surface_area_increase =
+    box_surface_area(left_grow) - box_surface_area(this->m_left->m_box);
+  const auto right_surface_area_increase =
+    box_surface_area(right_grow) - box_surface_area(this->m_right->m_box);
+  assert(left_surface_area_increase >= 0);
+  assert(right_surface_area_increase >= 0);
+  // Handle both (left_surface_area_increase <= 0 && right_surface_area_increase <= 0)
+  return left_surface_area_increase < right_surface_area_increase ?
+    this->m_left->insert(other) :
+    this->m_right->insert(other);
+}
+
 
 template <typename DerivedV, int DIM>
 template <typename DerivedEle, typename Derivedq>
@@ -215,62 +1057,17 @@ IGL_INLINE std::vector<int> igl::AABB<DerivedV,DIM>::find(
       "Query dimension should match aabb dimension");
   assert(Ele.cols() == V.cols()+1 &&
       "AABB::find only makes sense for (d+1)-simplices");
-  const Scalar epsilon = igl::EPS<Scalar>();
   // Check if outside bounding box
   bool inside = m_box.contains(q.transpose());
   if(!inside)
   {
     return std::vector<int>();
   }
-  assert(m_primitive==-1 || (m_left == NULL && m_right == NULL));
+  assert(m_primitive==-1 || (m_left == nullptr && m_right == nullptr));
   if(is_leaf())
   {
-    // Initialize to some value > -epsilon
-    Scalar a1=0,a2=0,a3=0,a4=0;
-    switch(DIM)
-    {
-      case 3:
-        {
-          // Barycentric coordinates
-          typedef Eigen::Matrix<Scalar,1,3> RowVector3S;
-          const RowVector3S V1 = V.row(Ele(m_primitive,0));
-          const RowVector3S V2 = V.row(Ele(m_primitive,1));
-          const RowVector3S V3 = V.row(Ele(m_primitive,2));
-          const RowVector3S V4 = V.row(Ele(m_primitive,3));
-          a1 = volume_single(V2,V4,V3,(RowVector3S)q);
-          a2 = volume_single(V1,V3,V4,(RowVector3S)q);
-          a3 = volume_single(V1,V4,V2,(RowVector3S)q);
-          a4 = volume_single(V1,V2,V3,(RowVector3S)q);
-          break;
-        }
-      case 2:
-        {
-          // Barycentric coordinates
-          typedef Eigen::Matrix<Scalar,2,1> Vector2S;
-          const Vector2S V1 = V.row(Ele(m_primitive,0));
-          const Vector2S V2 = V.row(Ele(m_primitive,1));
-          const Vector2S V3 = V.row(Ele(m_primitive,2));
-          // Hack for now to keep templates simple. If becomes bottleneck
-          // consider using std::enable_if_t
-          const Vector2S q2 = q.head(2);
-          a1 = doublearea_single(V1,V2,q2);
-          a2 = doublearea_single(V2,V3,q2);
-          a3 = doublearea_single(V3,V1,q2);
-          break;
-        }
-      default:assert(false);
-    }
-    // Normalization is important for correcting sign
-    Scalar sum = a1+a2+a3+a4;
-    a1 /= sum;
-    a2 /= sum;
-    a3 /= sum;
-    a4 /= sum;
-    if(
-        a1>=-epsilon &&
-        a2>=-epsilon &&
-        a3>=-epsilon &&
-        a4>=-epsilon)
+    if(AABB_all_positive_barycentric_coordinates_helper<
+        DerivedV,DerivedEle,Derivedq, DIM>::compute(V,Ele,m_primitive,q))
     {
       return std::vector<int>(1,m_primitive);
     }else
@@ -292,23 +1089,6 @@ IGL_INLINE std::vector<int> igl::AABB<DerivedV,DIM>::find(
   return left;
 }
 
-template <typename DerivedV, int DIM>
-IGL_INLINE int igl::AABB<DerivedV,DIM>::subtree_size() const
-{
-  // 1 for self
-  int n = 1;
-  int n_left = 0,n_right = 0;
-  if(m_left != NULL)
-  {
-    n_left = m_left->subtree_size();
-  }
-  if(m_right != NULL)
-  {
-    n_right = m_right->subtree_size();
-  }
-  n += 2*std::max(n_left,n_right);
-  return n;
-}
 
 
 template <typename DerivedV, int DIM>
@@ -334,11 +1114,11 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::serialize(
   bb_mins.row(i) = m_box.min();
   bb_maxs.row(i) = m_box.max();
   elements(i) = m_primitive;
-  if(m_left != NULL)
+  if(m_left != nullptr)
   {
     m_left->serialize(bb_mins,bb_maxs,elements,2*i+1);
   }
-  if(m_right != NULL)
+  if(m_right != nullptr)
   {
     m_right->serialize(bb_mins,bb_maxs,elements,2*i+2);
   }
@@ -382,7 +1162,7 @@ igl::AABB<DerivedV,DIM>::squared_distance(
   assert((Ele.cols() == 3 || Ele.cols() == 2 || Ele.cols() == 1)
     && "Code has only been tested for simplex sizes 3,2,1");
 
-  assert(m_primitive==-1 || (m_left == NULL && m_right == NULL));
+  assert(m_primitive==-1 || (m_left == nullptr && m_right == nullptr));
   if(is_leaf())
   {
     leaf_squared_distance(V,Ele,p,low_sqr_d,sqr_d,i,c);
@@ -486,7 +1266,7 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::squared_distance(
   //for(int p = 0;p<P.rows();p++)
   igl::parallel_for(P.rows(),[&](int p)
     {
-      RowVectorDIMS Pp = P.row(p), c;
+      RowVectorDIMS Pp = P.row(p).template head<DIM>(), c;
       int Ip;
       sqrD(p) = squared_distance(V,Ele,Pp,Ip,c);
       I(p) = Ip;
@@ -529,6 +1309,7 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::squared_distance(
   squared_distance_helper(
     V,Ele,&other,other_V,other_Ele,0,up_sqr_d,sqrD,I,C);
 }
+
 
 template <typename DerivedV, int DIM>
 template <
@@ -639,128 +1420,6 @@ IGL_INLINE typename igl::AABB<DerivedV,DIM>::Scalar
   //other->m_low_sqr_d = std::max(other->m_left->m_low_sqr_d,other->m_right->m_low_sqr_d);
 
   return 0;
-#if 0 // False
-
-  // _Very_ conservative approximation of maximum squared distance between
-  // primitives inside this and other's bounding boxes
-  const auto & max_squared_distance = [](
-    const AABB<DerivedV,DIM> * A,
-    const AABB<Derivedother_V,DIM> * B)->Scalar
-  {
-    AlignedBox<Scalar,DIM> combo = A->m_box;
-    combo.extend(B->m_box);
-    return combo.diagonal().squaredNorm();
-  };
-
-  //// other base-case
-  //if(other->is_leaf())
-  //{
-  //  double sqr_d = sqrD(other->m_primitive);
-  //  int i = I(other->m_primitive);
-  //  RowVectorDIMS c = C.row(m_primitive);
-  //  RowVectorDIMS p = other_V.row(m_primitive);
-  //  leaf_squared_distance(V,Ele,p,sqr_d,i,c);
-  //  sqrD(other->m_primitive) = sqr_d;
-  //  I(other->m_primitive) = i;
-  //  C.row(m_primitive) = c;
-  //  return;
-  //}
-  std::vector<const AABB<DerivedV,DIM> * > this_list;
-  if(this->is_leaf())
-  {
-    this_list.push_back(this);
-  }else
-  {
-    assert(this->m_left);
-    this_list.push_back(this->m_left);
-    assert(this->m_right);
-    this_list.push_back(this->m_right);
-  }
-  std::vector<AABB<Derivedother_V,DIM> *> other_list;
-  if(other->is_leaf())
-  {
-    other_list.push_back(other);
-  }else
-  {
-    assert(other->m_left);
-    other_list.push_back(other->m_left);
-    assert(other->m_right);
-    other_list.push_back(other->m_right);
-  }
-
-  //const std::function<Scalar(
-  //  const AABB<Derivedother_V,DIM> * other)
-  //    > low_sqr_d = [&sqrD,&low_sqr_d](const AABB<Derivedother_V,DIM> * other)->Scalar
-  //  {
-  //    if(other->is_leaf())
-  //    {
-  //      return sqrD(other->m_primitive);
-  //    }else
-  //    {
-  //      return std::max(low_sqr_d(other->m_left),low_sqr_d(other->m_right));
-  //    }
-  //  };
-
-  //// Potentially recurse on all pairs, if minimum distance is less than running
-  //// bound
-  //Eigen::Matrix<Scalar,Eigen::Dynamic,1> other_low_sqr_d =
-  //  Eigen::Matrix<Scalar,Eigen::Dynamic,1>::Constant(other_list.size(),1,up_sqr_d);
-  for(size_t child = 0;child<other_list.size();child++)
-  {
-    auto other_tree = other_list[child];
-
-    Eigen::Matrix<Scalar,Eigen::Dynamic,1> this_low_sqr_d(this_list.size(),1);
-    for(size_t t = 0;t<this_list.size();t++)
-    {
-      const auto this_tree = this_list[t];
-      this_low_sqr_d(t) = max_squared_distance(this_tree,other_tree);
-    }
-    if(this_list.size() ==2 &&
-      ( this_low_sqr_d(0) > this_low_sqr_d(1))
-      )
-    {
-      std::swap(this_list[0],this_list[1]);
-      //std::swap(this_low_sqr_d(0),this_low_sqr_d(1));
-    }
-    const Scalar sqr_d = this_low_sqr_d.minCoeff();
-
-
-    for(size_t t = 0;t<this_list.size();t++)
-    {
-      const auto this_tree = this_list[t];
-
-      //const auto mm = low_sqr_d(other_tree);
-      //const Scalar mc = other_low_sqr_d(child);
-      //assert(mc == mm);
-      // Only look left/right in this_list if can possible decrease somebody's
-      // distance in this_tree.
-      const Scalar min_this_other = min_squared_distance(this_tree,other_tree);
-      if(
-          min_this_other < sqr_d &&
-          min_this_other < other_tree->m_low_sqr_d)
-      {
-        //cout<<"before: "<<other_low_sqr_d(child)<<endl;
-        //other_low_sqr_d(child) = std::min(
-        //  other_low_sqr_d(child),
-        //  this_tree->squared_distance_helper(
-        //    V,Ele,other_tree,other_V,other_Ele,other_low_sqr_d(child),sqrD,I,C));
-        //cout<<"after: "<<other_low_sqr_d(child)<<endl;
-          this_tree->squared_distance_helper(
-            V,Ele,other_tree,other_V,other_Ele,0,sqrD,I,C);
-      }
-    }
-  }
-  //const Scalar ret = other_low_sqr_d.maxCoeff();
-  //const auto mm = low_sqr_d(other);
-  //assert(mm == ret);
-  //cout<<"non-leaf: "<<ret<<endl;
-  //return ret;
-  if(!other->is_leaf())
-  {
-    other->m_low_sqr_d = std::max(other->m_left->m_low_sqr_d,other->m_right->m_low_sqr_d);
-  }
-  return 0;
-#endif
 }
 
 template <typename DerivedV, int DIM>
@@ -802,35 +1461,6 @@ IGL_INLINE void igl::AABB<DerivedV,DIM>::leaf_squared_distance(
 }
 
 
-template <typename DerivedV, int DIM>
-IGL_INLINE void igl::AABB<DerivedV,DIM>::set_min(
-  const RowVectorDIMS &
-#ifndef NDEBUG
-  p
-#endif
-  ,
-  const Scalar sqr_d_candidate,
-  const int i_candidate,
-  const RowVectorDIMS & c_candidate,
-  Scalar & sqr_d,
-  int & i,
-  Eigen::PlainObjectBase<RowVectorDIMS> & c) const
-{
-#ifndef NDEBUG
-  //std::cout<<matlab_format(c_candidate,"c_candidate")<<std::endl;
-  //// This doesn't quite make sense to check with bounds
-  // const Scalar pc_norm = (p-c_candidate).squaredNorm();
-  // const Scalar diff = fabs(sqr_d_candidate - pc_norm);
-  // assert(diff<=1e-10 && "distance should match norm of difference");
-#endif
-  if(sqr_d_candidate < sqr_d)
-  {
-    i = i_candidate;
-    c = c_candidate;
-    sqr_d = sqr_d_candidate;
-  }
-}
-
 
 template <typename DerivedV, int DIM>
 template <typename DerivedEle>
@@ -840,39 +1470,12 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
   const Eigen::MatrixBase<DerivedEle> & Ele,
   const RowVectorDIMS & origin,
   const RowVectorDIMS & dir,
-  std::vector<igl::Hit> & hits) const
+  std::vector<igl::Hit<typename DerivedV::Scalar>> & hits) const
 {
-  hits.clear();
-  const Scalar t0 = 0;
-  const Scalar t1 = std::numeric_limits<Scalar>::infinity();
-  {
-    Scalar _1,_2;
-    if(!ray_box_intersect(origin,dir,m_box,t0,t1,_1,_2))
-    {
-      return false;
-    }
-  }
-  if(this->is_leaf())
-  {
-    // Actually process elements
-    assert((Ele.size() == 0 || Ele.cols() == 3) && "Elements should be triangles");
-    // Cheesecake way of hitting element
-    bool ret = ray_mesh_intersect(origin,dir,V,Ele.row(m_primitive),hits);
-    // Since we only gave ray_mesh_intersect a single face, it will have set
-    // any hits to id=0. Set these to this primitive's id
-    for(auto & hit : hits)
-    {
-      hit.id = m_primitive;
-    }
-    return ret;
-  }
-  std::vector<igl::Hit> left_hits;
-  std::vector<igl::Hit> right_hits;
-  const bool left_ret = m_left->intersect_ray(V,Ele,origin,dir,left_hits);
-  const bool right_ret = m_right->intersect_ray(V,Ele,origin,dir,right_hits);
-  hits.insert(hits.end(),left_hits.begin(),left_hits.end());
-  hits.insert(hits.end(),right_hits.begin(),right_hits.end());
-  return left_ret || right_ret;
+  RowVectorDIMS inv_dir = dir.cwiseInverse();
+  RowVectorDIMS inv_dir_pad = inv_dir;
+  igl::increment_ulp(inv_dir_pad, 2);
+  return intersect_ray_opt(V, Ele, origin, dir, inv_dir, inv_dir_pad, hits);
 }
 
 template <typename DerivedV, int DIM>
@@ -883,10 +1486,9 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
   const Eigen::MatrixBase<DerivedEle> & Ele,
   const RowVectorDIMS & origin,
   const RowVectorDIMS & dir,
-  igl::Hit & hit) const
+  igl::Hit<typename DerivedV::Scalar> & hit) const
 {
-    // FIXME: Needs a proper path
-#if /*false*/ 0
+#if false
   // BFS
   std::queue<const AABB *> Q;
   // Or DFS
@@ -911,7 +1513,7 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
     {
       // Actually process elements
       assert((Ele.size() == 0 || Ele.cols() == 3) && "Elements should be triangles");
-      igl::Hit leaf_hit;
+      igl::Hit<typename DerivedV::Scalar> leaf_hit;
       if(
         ray_mesh_intersect(origin,dir,V,Ele.row(tree->m_primitive),leaf_hit)&&
         leaf_hit.t < hit.t)
@@ -943,24 +1545,141 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
   const RowVectorDIMS & origin,
   const RowVectorDIMS & dir,
   const Scalar _min_t,
-  igl::Hit & hit) const
+  igl::Hit<typename DerivedV::Scalar> & hit) const
 {
-  //// Naive, slow
-  //std::vector<igl::Hit> hits;
-  //intersect_ray(V,Ele,origin,dir,hits);
-  //if(hits.size() > 0)
-  //{
-  //  hit = hits.front();
-  //  return true;
-  //}else
-  //{
-  //  return false;
-  //}
+  RowVectorDIMS inv_dir = dir.cwiseInverse();
+  RowVectorDIMS inv_dir_pad = inv_dir;
+  igl::increment_ulp(inv_dir_pad, 2);
+  return intersect_ray_opt(V, Ele, origin, dir, inv_dir, inv_dir_pad, _min_t, hit);
+}
+
+
+template <typename DerivedV, int DIM>
+template <
+  typename DerivedEle,
+  typename DerivedOrigin,
+  typename DerivedDir,
+  typename DerivedI,
+  typename DerivedT,
+  typename DerivedUV>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::intersect_ray(
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedEle> & Ele,
+  const Eigen::MatrixBase<DerivedOrigin> & origin,
+  const Eigen::MatrixBase<DerivedDir> & dir,
+  const Scalar min_t,
+  Eigen::PlainObjectBase<DerivedI> & I,
+  Eigen::PlainObjectBase<DerivedT> & T,
+  Eigen::PlainObjectBase<DerivedUV> & UV)
+{
+  assert(origin.rows() == dir.rows());
+  I.setConstant(origin.rows(),1,-1);
+  T.setConstant(origin.rows(),1,std::numeric_limits<Scalar>::quiet_NaN());
+  UV.resize(origin.rows(),2);
+
+  igl::parallel_for(origin.rows(),[&](int i)
+  {
+    RowVectorDIMS origin_i = origin.row(i);
+    RowVectorDIMS dir_i = dir.row(i);
+    igl::Hit<typename DerivedV::Scalar> hit_i;
+    if(intersect_ray(V,Ele,origin_i,dir_i,min_t,hit_i))
+    {
+      I(i) = hit_i.id;
+      UV.row(i) << hit_i.u, hit_i.v;
+      T(i) = hit_i.t;
+    }
+  },
+  10000);
+}
+
+template <typename DerivedV, int DIM>
+template <
+  typename DerivedEle,
+  typename DerivedOrigin,
+  typename DerivedDir>
+IGL_INLINE void igl::AABB<DerivedV,DIM>::intersect_ray(
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedEle> & Ele,
+  const Eigen::MatrixBase<DerivedOrigin> & origin,
+  const Eigen::MatrixBase<DerivedDir> & dir,
+  std::vector<std::vector<igl::Hit<typename DerivedV::Scalar>>> & hits)
+{
+  assert(origin.rows() == dir.rows());
+  hits.resize(origin.rows());
+  igl::parallel_for(origin.rows(),[&](int i)
+  {
+    RowVectorDIMS origin_i = origin.row(i);
+    RowVectorDIMS dir_i = dir.row(i);
+    this->intersect_ray(V,Ele,origin_i,dir_i,hits[i]);
+  },
+  10000);
+}
+
+template <typename DerivedV, int DIM>
+template <typename DerivedEle>
+IGL_INLINE bool
+igl::AABB<DerivedV,DIM>::intersect_ray_opt(
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedEle> & Ele,
+  const RowVectorDIMS & origin,
+  const RowVectorDIMS & dir,
+  const RowVectorDIMS & inv_dir,
+  const RowVectorDIMS & inv_dir_pad,
+  std::vector<igl::Hit<typename DerivedV::Scalar>> & hits) const
+{
+  hits.clear();
+  const Scalar t0 = 0;
+  const Scalar t1 = std::numeric_limits<Scalar>::infinity();
+  {
+    Scalar _1,_2;
+
+
+    if(!ray_box_intersect(origin,inv_dir,inv_dir_pad,m_box,t0,t1,_1,_2))
+    {
+      return false;
+    }
+  }
+  if(this->is_leaf())
+  {
+    // Actually process elements
+    assert((Ele.size() == 0 || Ele.cols() == 3) && "Elements should be triangles");
+    // Cheesecake way of hitting element
+    bool ret = ray_mesh_intersect(origin,dir,V,Ele.row(m_primitive),hits);
+    // Since we only gave ray_mesh_intersect a single face, it will have set
+    // any hits to id=0. Set these to this primitive's id
+    for(auto & hit: hits)
+    {
+      hit.id = m_primitive;
+    }
+    return ret;
+  }
+  std::vector<igl::Hit<typename DerivedV::Scalar>> left_hits;
+  std::vector<igl::Hit<typename DerivedV::Scalar>> right_hits;
+  const bool left_ret = m_left->intersect_ray_opt(V,Ele,origin,dir,inv_dir,inv_dir_pad,left_hits);
+  const bool right_ret = m_right->intersect_ray_opt(V,Ele,origin,dir,inv_dir,inv_dir_pad,right_hits);
+  hits.insert(hits.end(),left_hits.begin(),left_hits.end());
+  hits.insert(hits.end(),right_hits.begin(),right_hits.end());
+  return left_ret || right_ret;
+}
+
+template <typename DerivedV, int DIM>
+template <typename DerivedEle>
+IGL_INLINE bool
+igl::AABB<DerivedV,DIM>::intersect_ray_opt(
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedEle> & Ele,
+  const RowVectorDIMS & origin,
+  const RowVectorDIMS & dir,
+  const RowVectorDIMS & inv_dir,
+  const RowVectorDIMS & inv_dir_pad,
+  const Scalar _min_t,
+  igl::Hit<typename DerivedV::Scalar> & hit) const
+{
   Scalar min_t = _min_t;
   const Scalar t0 = 0;
   {
     Scalar _1,_2;
-    if(!ray_box_intersect(origin,dir,m_box,t0,min_t,_1,_2))
+    if(!ray_box_intersect(origin,inv_dir,inv_dir_pad,m_box,t0,min_t,_1,_2))
     {
       return false;
     }
@@ -977,9 +1696,9 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
 
   // Doesn't seem like smartly choosing left before/after right makes a
   // differnce
-  igl::Hit left_hit;
-  igl::Hit right_hit;
-  bool left_ret = m_left->intersect_ray(V,Ele,origin,dir,min_t,left_hit);
+  igl::Hit<typename DerivedV::Scalar> left_hit;
+  igl::Hit<typename DerivedV::Scalar> right_hit;
+  bool left_ret = m_left->intersect_ray_opt(V,Ele,origin,dir,inv_dir,inv_dir_pad,min_t,left_hit);
   if(left_ret && left_hit.t<min_t)
   {
     // It's scary that this line doesn't seem to matter....
@@ -990,7 +1709,7 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
   {
     left_ret = false;
   }
-  bool right_ret = m_right->intersect_ray(V,Ele,origin,dir,min_t,right_hit);
+  bool right_ret = m_right->intersect_ray_opt(V,Ele,origin,dir,inv_dir,inv_dir_pad,min_t,right_hit);
   if(right_ret && right_hit.t<min_t)
   {
     min_t = right_hit.t;
@@ -1003,74 +1722,74 @@ igl::AABB<DerivedV,DIM>::intersect_ray(
   return left_ret || right_ret;
 }
 
-// This is a bullshit template because AABB annoyingly needs templates for bad
-// combinations of 3D V with DIM=2 AABB
-//
-// _Define_ as a no-op rather than monkeying around with the proper code above
-//
-// Meanwhile, GCC seems to have a bug. Let's see if GCC likes using explicit
-// namespace block instead. https://stackoverflow.com/a/25594681/148668
-namespace igl
-{
-  template<> template<> IGL_INLINE float AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 2>::squared_distance( Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<float, 1, 2, 1, 1, 2> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 2, 1, 1, 2> >&) const { assert(false);return -1;};
-  template<> template<> IGL_INLINE float igl::AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 2>::squared_distance( Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<float, 1, 2, 1, 1, 2> const&, float, float, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 2, 1, 1, 2> >&) const { assert(false);return -1;};
-  template<> template<> IGL_INLINE void igl::AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 2>::init (Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&) { assert(false);};
-  template<> template<> IGL_INLINE double AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 2>::squared_distance( Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<double, 1, 2, 1, 1, 2> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 2, 1, 1, 2> >&) const { assert(false);return -1;};
-  template<> template<> IGL_INLINE double igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 2>::squared_distance( Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<double, 1, 2, 1, 1, 2> const&, double, double, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 2, 1, 1, 2> >&) const { assert(false);return -1;};
-  template<> template<> IGL_INLINE void igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 2>::init (Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&) { assert(false);};
-  template<> template<> IGL_INLINE void igl::AABB<Eigen::Matrix<float, -1, 3, 0, -1, 3>, 2>::init(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&) {assert(false);};
-  template<> template<> IGL_INLINE float igl::AABB<Eigen::Matrix<float, -1, 3, 0, -1, 3>, 2>::squared_distance(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::Matrix<float, 1, 2, 1, 1, 2> const&, float, float, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 2, 1, 1, 2> >&) const { assert(false);return -1;};
-}
-
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
 // generated by autoexplicit.sh
-template double igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, double, double, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
+template bool igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::intersect_ray<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, std::vector<igl::Hit<double>, std::allocator<igl::Hit<double>> >&) const;
+
+template class igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>;
+template class igl::AABB<Eigen::Matrix<double, -1, 3, 0, -1, 3>, 3>;
+template class igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>;
+template class igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>;
+template class igl::AABB<Eigen::Matrix<double, -1, 2, 0, -1, 2>, 2>;
+
+template igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>* igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::update_primitive<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, double);
 // generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&);
+template double igl::AABB<Eigen::Matrix<double, -1, 3, 0, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, double, double, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
 // generated by autoexplicit.sh
+template double igl::AABB<Eigen::Matrix<double, -1, 2, 0, -1, 2>, 2>::squared_distance<Eigen::Matrix<int, -1, 2, 0, -1, 2> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 2, 0, -1, 2> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&, Eigen::Matrix<double, 1, 2, 1, 1, 2> const&, double, double, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 2, 1, 1, 2> >&) const;
 // generated by autoexplicit.sh
-template float igl::AABB<Eigen::Matrix<float, -1, 3, 0, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::Matrix<float, 1, 3, 1, 1, 3> const&, float, float, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 3, 1, 1, 3> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, 3, 0, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&);
 // generated by autoexplicit.sh
+template void igl::AABB<Eigen::Matrix<double, -1, 2, 0, -1, 2>, 2>::init<Eigen::Matrix<int, -1, 2, 0, -1, 2> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 2, 0, -1, 2> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 2, 0, -1, 2> > const&);
 // generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<float, -1, 3, 0, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&);
+template bool igl::AABB<Eigen::Matrix<float, -1, -1, 0, -1, -1>, 3>::intersect_ray<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<float, 1, 3, 1, 1, 3> const&, Eigen::Matrix<float, 1, 3, 1, 1, 3> const&, std::vector<igl::Hit<float>, std::allocator<igl::Hit<float>> >&) const;
 // generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::serialize<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, int) const;
+template void igl::AABB<Eigen::Matrix<float, -1, -1, 0, -1, -1>, 3>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
 // generated by autoexplicit.sh
-template std::vector<int, std::allocator<int> > igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 1, -1, 1, 1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, bool) const;
+template void igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> >&) const;
 // generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::serialize<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, int) const;
-// generated by autoexplicit.sh
-template std::vector<int, std::allocator<int> > igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 1, -1, 1, 1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, bool) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int);
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int);
-// generated by autoexplicit.sh
-template float igl::AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<float, 1, 3, 1, 1, 3> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 3, 1, 1, 3> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<long, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
-// generated by autoexplicit.sh
-template double igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<long, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
-// generated by autoexplicit.sh
+template void igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
+template bool igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::intersect_ray<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, igl::Hit<double>&) const;
 template double igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 2, 1, 1, 2> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 2, 1, 1, 2> >&) const;
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&);
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
-// generated by autoexplicit.sh
-template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
 template double igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, double, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
-template bool igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::intersect_ray<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, igl::Hit&) const;
+template double igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
+template double igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, double, double, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
+template float igl::AABB<Eigen::Matrix<float, -1, 3, 0, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&, Eigen::Matrix<float, 1, 3, 1, 1, 3> const&, float, float, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 3, 1, 1, 3> >&) const;
+template float igl::AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 3>::squared_distance<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&, Eigen::Matrix<float, 1, 3, 1, 1, 3> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<float, 1, 3, 1, 1, 3> >&) const;
+template std::vector<int, std::allocator<int> > igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 1, -1, 1, 1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, bool) const;
+template std::vector<int, std::allocator<int> > igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Block<Eigen::Matrix<double, -1, -1, 0, -1, -1> const, 1, -1, false> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Block<Eigen::Matrix<double, -1, -1, 0, -1, -1> const, 1, -1, false> > const&, bool) const;
+template std::vector<int, std::allocator<int> > igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 1, -1, 1, 1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, bool) const;
+template std::vector<int> igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 1, 2, 1, 1, 2>>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, 2, 1, 1, 2>> const&, bool) const;
+template std::vector<int> igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::find<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 1, 3, 1, 1, 3>>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, 3, 1, 1, 3>> const&, bool) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::init<Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::serialize<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, int) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::init<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, int);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::init<Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::serialize<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, int) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<long, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 0, -1, 3> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, 2, 3, 0, 2, 3>, Eigen::Matrix<double, 2, 1, 0, 2, 1>, Eigen::Matrix<int, 2, 1, 0, 2, 1>, Eigen::Matrix<double, 2, 3, 0, 2, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 2, 3, 0, 2, 3> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 2, 1, 0, 2, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, 2, 1, 0, 2, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, 2, 3, 0, 2, 3> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, 3, 1, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&);
+template void igl::AABB<Eigen::Matrix<float, -1, 3, 0, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 0, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 0, -1, 3> > const&);
+template void igl::AABB<Eigen::Matrix<float, -1, 3, 1, -1, 3>, 3>::init<Eigen::Matrix<int, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<float, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 3, 1, -1, 3> > const&);
+template double igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::squared_distance<Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::Matrix<double, 1, 3, 1, 1, 3> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 3, 1, 1, 3> >&) const;
+template double igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 2>::squared_distance<Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, Eigen::Matrix<double, 1, 2, 1, 1, 2> const&, int&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, 2, 1, 1, 2> >&) const;
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::intersect_ray<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, double, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1>>&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1>>&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>>&);
+template void igl::AABB<Eigen::Matrix<double, -1, -1, 0, -1, -1>, 3>::intersect_ray<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>>(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, std::vector<std::vector<igl::Hit<double>, std::allocator<igl::Hit<double>>>, std::allocator<std::vector<igl::Hit<double>, std::allocator<igl::Hit<double>>>>>&);
+#ifdef WIN32
+template void igl::AABB<class Eigen::Matrix<double,-1,-1,0,-1,-1>,3>::squared_distance<class Eigen::Matrix<int,-1,-1,0,-1,-1>,class Eigen::Matrix<double,-1,-1,0,-1,-1>,class Eigen::Matrix<double,-1,1,0,-1,1>,class Eigen::Matrix<__int64,-1,1,0,-1,1>,class Eigen::Matrix<double,-1,3,0,-1,3> >(class Eigen::MatrixBase<class Eigen::Matrix<double,-1,-1,0,-1,-1> > const &,class Eigen::MatrixBase<class Eigen::Matrix<int,-1,-1,0,-1,-1> > const &,class Eigen::MatrixBase<class Eigen::Matrix<double,-1,-1,0,-1,-1> > const &,class Eigen::PlainObjectBase<class Eigen::Matrix<double,-1,1,0,-1,1> > &,class Eigen::PlainObjectBase<class Eigen::Matrix<__int64,-1,1,0,-1,1> > &,class Eigen::PlainObjectBase<class Eigen::Matrix<double,-1,3,0,-1,3> > &)const;
+#endif
 #endif

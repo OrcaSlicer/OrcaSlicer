@@ -12,14 +12,12 @@
 
 namespace igl
 {
-  // This is an example of a function, it takes a templated parameter and
-  // shovels it into cout
-  //
-  // Templates:
-  //   T  type that supports
-  // Input:
-  //   input  some input of a Printable type
-  // Returns true for the sake of returning something
+  /// This is an example of a function, it takes a templated parameter and
+  /// shovels it into cout
+  ///
+  /// @tparam T  type that supports
+  /// @param[in] input  some input of a Printable type
+  /// @return true for the sake of returning something
   template <typename Printable>
   IGL_INLINE bool example_fun(const Printable & input);
 }

@@ -7,18 +7,19 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "bfs_orient.h"
 #include "orientable_patches.h"
+#include "parallel_for.h"
 #include <Eigen/Sparse>
 #include <queue>
 
 template <typename DerivedF, typename DerivedFF, typename DerivedC>
 IGL_INLINE void igl::bfs_orient(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedFF> & FF,
   Eigen::PlainObjectBase<DerivedC> & C)
 {
   using namespace Eigen;
   using namespace std;
-  SparseMatrix<int> A;
+  SparseMatrix<typename DerivedF::Scalar> A;
   orientable_patches(F,C,A);
 
   // number of faces
@@ -30,15 +31,14 @@ IGL_INLINE void igl::bfs_orient(
   // Edge sets
   const int ES[3][2] = {{1,2},{2,0},{0,1}};
 
-  if(&FF != &F)
+  if(((void*)&FF) != ((void*)&F))
   {
     FF = F;
   }
   // loop over patches
-#pragma omp parallel for
-  for(int c = 0;c<num_cc;c++)
+  parallel_for(num_cc,[&](const int c)
   {
-    queue<int> Q;
+    queue<typename DerivedF::Scalar> Q;
     // find first member of patch c
     for(int f = 0;f<FF.rows();f++)
     {
@@ -51,7 +51,7 @@ IGL_INLINE void igl::bfs_orient(
     assert(!Q.empty());
     while(!Q.empty())
     {
-      const int f = Q.front();
+      const typename DerivedF::Scalar f = Q.front();
       Q.pop();
       if(seen(f) > 0)
       {
@@ -59,7 +59,7 @@ IGL_INLINE void igl::bfs_orient(
       }
       seen(f)++;
       // loop over neighbors of f
-      for(typename SparseMatrix<int>::InnerIterator it (A,f); it; ++it)
+      for(typename SparseMatrix<typename DerivedF::Scalar>::InnerIterator it (A,f); it; ++it)
       {
         // might be some lingering zeros, and skip self-adjacency
         if(it.value() != 0 && it.row() != f)
@@ -89,12 +89,12 @@ IGL_INLINE void igl::bfs_orient(
         }
       }
     }
-  }
+  },1000);
 
   // make sure flip is OK if &FF = &F
 }
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::bfs_orient<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+template void igl::bfs_orient<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
 #endif
