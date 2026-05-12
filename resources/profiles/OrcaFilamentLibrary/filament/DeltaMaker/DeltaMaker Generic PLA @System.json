@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "DeltaMaker Generic PLA @System",
+	"inherits": "DeltaMaker Generic PLA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"instantiation": "true",
+	"compatible_printers": []
+}

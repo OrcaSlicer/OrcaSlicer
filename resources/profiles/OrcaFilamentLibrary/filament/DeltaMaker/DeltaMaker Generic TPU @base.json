@@ -1,0 +1,152 @@
+{
+	"type": "filament",
+	"name": "DeltaMaker Generic TPU @base",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"cool_plate_temp": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"0"
+	],
+	"hot_plate_temp": [
+		"0"
+	],
+	"textured_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp_initial_layer": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_plate_temp_initial_layer": [
+		"0"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"overhang_fan_speed": [
+		"80"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"filament_cost": [
+		"20"
+	],
+	"filament_density": [
+		"1.10"
+	],
+	"filament_deretraction_speed": [
+		"150"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_max_volumetric_speed": [
+		"4.5"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_retraction_minimum_travel": [
+		"3.0"
+	],
+	"filament_retract_before_wipe": [
+		"1"
+	],
+	"filament_retract_when_changing_layer": [
+		"0"
+	],
+	"filament_retraction_length": [
+		"8.0"
+	],
+	"filament_z_hop": [
+		"0.8"
+	],
+	"filament_z_hop_types": [
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"0.0"
+	],
+	"filament_retraction_speed": [
+		"150"
+	],
+	"filament_settings_id": [
+		""
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_type": [
+		"TPU"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_wipe_distance": [
+		"8.0"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"fan_max_speed": [
+		"5"
+	],
+	"fan_min_speed": [
+		"5"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"slow_down_layer_time": [
+		"15"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"temperature_vitrification": [
+		"110"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature": [
+		"235"
+	],
+	"nozzle_temperature_range_low": [
+		"235"
+	],
+	"nozzle_temperature_range_high": [
+		"240"
+	],
+	"filament_id": "GFB99",
+	"instantiation": "false"
+}

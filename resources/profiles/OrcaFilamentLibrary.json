@@ -1507,6 +1507,38 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "DeltaMaker Brand PLA @base",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Brand PLA @base.json"
+		},
+		{
+			"name": "DeltaMaker Brand PLA @System",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Brand PLA @System.json"
+		},
+		{
+			"name": "DeltaMaker Generic PLA @base",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Generic PLA @base.json"
+		},
+		{
+			"name": "DeltaMaker Generic PLA @System",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Generic PLA @System.json"
+		},
+		{
+			"name": "DeltaMaker Generic PETG @base",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Generic PETG @base.json"
+		},
+		{
+			"name": "DeltaMaker Generic PETG @System",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Generic PETG @System.json"
+		},
+		{
+			"name": "DeltaMaker Generic TPU @base",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Generic TPU @base.json"
+		},
+		{
+			"name": "DeltaMaker Generic TPU @System",
+			"sub_path": "filament/DeltaMaker/DeltaMaker Generic TPU @System.json"
 		}
 	],
 	"process_list": [],

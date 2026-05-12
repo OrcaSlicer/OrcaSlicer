@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "DeltaMaker Generic TPU @System",
+	"inherits": "DeltaMaker Generic TPU @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"instantiation": "true",
+	"compatible_printers": []
+}

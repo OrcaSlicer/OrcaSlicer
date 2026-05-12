@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "DeltaMaker Generic PETG @System",
+	"inherits": "DeltaMaker Generic PETG @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
