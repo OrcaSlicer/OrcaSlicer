@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament rPLA @CORE One 0.8",
-	"inherits": "Prusament rPLA @CORE One",
+	"inherits": "Prusament rPLA @CORE One 0.8 @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "Prusament rPLA @CORE One 0.8",
@@ -9,11 +9,5 @@
 	"compatible_printers": [
 		"Prusa CORE One 0.8 nozzle",
 		"Prusa CORE One HF 0.8 nozzle"
-	],
-	"filament_max_volumetric_speed": [
-		"14"
-	],
-	"slow_down_layer_time": [
-		"17"
 	]
 }

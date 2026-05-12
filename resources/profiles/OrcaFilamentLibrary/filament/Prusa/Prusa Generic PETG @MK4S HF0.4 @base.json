@@ -1,0 +1,121 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PETG @MK4S HF0.4 @base",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"0"
+	],
+	"hot_plate_temp": "90",
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": "85",
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"overhang_fan_speed": "40",
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"filament_end_gcode": [
+		"; Filament-specific end gcode"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"20"
+	],
+	"filament_cost": [
+		"27.82"
+	],
+	"filament_density": [
+		"1.27"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_max_volumetric_speed": [
+		"24"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retract_before_wipe": "20",
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": "0.8",
+	"filament_z_hop": "0.15",
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_settings_id": [
+		""
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_type": [
+		"PETG"
+	],
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_wipe": "1",
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"nozzle_temperature_initial_layer": "235",
+	"full_fan_speed_layer": "5",
+	"fan_max_speed": "40",
+	"fan_min_speed": [
+		"20"
+	],
+	"slow_down_min_speed": "15",
+	"slow_down_layer_time": "7",
+	"filament_start_gcode": [
+		"M572 S{if nozzle_diameter[0]==0.4}0.05{elsif nozzle_diameter[0]==0.5}0.044{elsif nozzle_diameter[0]==0.6}0.035{elsif nozzle_diameter[0]==0.8}0.022{elsif nozzle_diameter[0]==0.25}0.18{elsif nozzle_diameter[0]==0.3}0.1{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+	],
+	"nozzle_temperature": "245",
+	"temperature_vitrification": [
+		"80"
+	],
+	"idle_temperature": "0",
+	"nozzle_temperature_range_low": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"default_filament_colour": "#FF8000",
+	"filament_notes": [
+		""
+	],
+	"filament_ramming_parameters": [
+		"250 100 42.4 42.4 | 0.05 42.4 0.45 42.4 0.95 42.4 1.45 42.4 1.95 42.4 2.45 42.4 2.95 42.4 3.45 42.4 3.95 42.4 4.45 42.4 4.95 42.4"
+	]
+}

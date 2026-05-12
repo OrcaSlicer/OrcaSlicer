@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament PETG @XL 5T @System",
+	"inherits": "Prusament PETG @XL 5T @base",
+	"from": "system",
+	"setting_id": "GFG99_PRUSA_1",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

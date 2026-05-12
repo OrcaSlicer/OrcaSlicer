@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PETG @XL 5T @System",
+	"inherits": "Prusa Generic PETG @XL 5T @base",
+	"from": "system",
+	"setting_id": "GFG99_PRUSA_0",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

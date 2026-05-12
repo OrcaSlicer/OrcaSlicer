@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PC HF @MK3.5 0.8 @System",
+	"inherits": "Prusa Generic PC HF @MK3.5 0.8 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFC99_6",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament PC-CF @CORE One 0.8 @System",
+	"inherits": "Prusament PC-CF @CORE One 0.8 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusament PC-CF @CORE One 0.8",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PETG @CORE One 0.8 @System",
+	"inherits": "Prusa Generic PETG @CORE One 0.8 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusa Generic PETG @CORE One 0.8",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PETG @MK4S @System",
+	"inherits": "Prusa Generic PETG @MK4S @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Generic PETG @MK4S",
+	"instantiation": "true",
+	"compatible_printers": []
+}

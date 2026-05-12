@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusa Generic ABS @CORE One 0.6",
-	"inherits": "Prusa Generic ABS @CORE One",
+	"inherits": "Prusa Generic ABS @CORE One 0.6 @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "Prusa Generic ABS @CORE One 0.6",

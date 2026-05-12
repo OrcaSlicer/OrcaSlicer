@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament PVB @XL 5T @System",
+	"inherits": "Prusament PVB @XL 5T @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

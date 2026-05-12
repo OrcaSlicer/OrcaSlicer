@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PVA @MK3.5 @System",
+	"inherits": "Prusa Generic PVA @MK3.5 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFS99_1",
+	"instantiation": "true",
+	"compatible_printers": []
+}

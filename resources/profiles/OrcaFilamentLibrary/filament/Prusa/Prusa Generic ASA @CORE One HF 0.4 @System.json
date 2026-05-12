@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic ASA @CORE One HF 0.4 @System",
+	"inherits": "Prusa Generic ASA @CORE One HF 0.4 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusa Generic ASA @CORE One HF 0.4",
+	"instantiation": "true",
+	"compatible_printers": []
+}

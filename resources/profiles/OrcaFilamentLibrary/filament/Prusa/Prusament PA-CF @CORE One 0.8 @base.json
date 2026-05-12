@@ -1,0 +1,148 @@
+{
+	"type": "filament",
+	"name": "Prusament PA-CF @CORE One 0.8 @base",
+	"inherits": "fdm_filament_common",
+	"from": "system",
+	"instantiation": "false",
+	"cool_plate_temp": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp": [
+		"115"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp_initial_layer": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"overhang_fan_speed": [
+		"20"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"close_fan_the_first_x_layers": [
+		"4"
+	],
+	"filament_end_gcode": [
+		"; Filament-specific end gcode"
+	],
+	"filament_flow_ratio": [
+		"1.05"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"fan_cooling_layer_time": [
+		"20"
+	],
+	"filament_cost": [
+		"124.99"
+	],
+	"filament_density": [
+		"1.11"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_max_volumetric_speed": [
+		"10"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retract_before_wipe": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_z_hop": [
+		"0.2"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_settings_id": [
+		""
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_type": [
+		"PA"
+	],
+	"filament_vendor": [
+		"Prusa Polymers"
+	],
+	"filament_wipe": [
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"nozzle_temperature_initial_layer": [
+		"275"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"fan_max_speed": [
+		"20"
+	],
+	"fan_min_speed": [
+		"15"
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"slow_down_layer_time": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"M900 K{if nozzle_diameter[filament_extruder_id]==0.4}0.07{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{elsif nozzle_diameter[filament_extruder_id]==0.35}0.08{elsif nozzle_diameter[filament_extruder_id]==0.6}0.04{elsif nozzle_diameter[filament_extruder_id]==0.5}0.05{elsif nozzle_diameter[filament_extruder_id]==0.8}0.02{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*(MK4IS|XLIS|MK4S|MK3.9S|CORE One).*/}\nM572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.05{elsif nozzle_diameter[filament_extruder_id]==0.5}0.035{elsif nozzle_diameter[filament_extruder_id]==0.6}0.025{elsif nozzle_diameter[filament_extruder_id]==0.8}0.016{elsif nozzle_diameter[filament_extruder_id]==0.25}0.14{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S45 ; set heatbreak target temp"
+	],
+	"nozzle_temperature": [
+		"285"
+	],
+	"temperature_vitrification": [
+		"108"
+	],
+	"idle_temperature": [
+		"130"
+	],
+	"nozzle_temperature_range_low": [
+		"270"
+	],
+	"nozzle_temperature_range_high": [
+		"300"
+	],
+	"chamber_temperature": [
+		"40"
+	],
+	"filament_notes": [
+		""
+	]
+}

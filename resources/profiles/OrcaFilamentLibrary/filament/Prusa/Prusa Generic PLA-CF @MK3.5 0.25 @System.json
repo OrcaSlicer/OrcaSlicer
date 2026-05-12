@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PLA-CF @MK3.5 0.25 @System",
+	"inherits": "Prusa Generic PLA-CF @MK3.5 0.25 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL98_5",
+	"instantiation": "true",
+	"compatible_printers": []
+}

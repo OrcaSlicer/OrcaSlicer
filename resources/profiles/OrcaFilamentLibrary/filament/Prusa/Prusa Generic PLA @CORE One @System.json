@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PLA @CORE One @System",
+	"inherits": "Prusa Generic PLA @CORE One @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusa Generic PLA @CORE One",
+	"instantiation": "true",
+	"compatible_printers": []
+}

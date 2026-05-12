@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament ASA @XL @System",
+	"inherits": "Prusament ASA @XL @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

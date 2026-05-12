@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic ASA @MK3.5 0.6 @System",
+	"inherits": "Prusa Generic ASA @MK3.5 0.6 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB98_3",
+	"instantiation": "true",
+	"compatible_printers": []
+}

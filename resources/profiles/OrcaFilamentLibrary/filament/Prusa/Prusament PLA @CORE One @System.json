@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament PLA @CORE One @System",
+	"inherits": "Prusament PLA @CORE One @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusament PLA @CORE One",
+	"instantiation": "true",
+	"compatible_printers": []
+}

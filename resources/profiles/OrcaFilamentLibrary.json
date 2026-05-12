@@ -1507,6 +1507,2078 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @MK4S HF0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @MK4S HF0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @XL @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @XL @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @XL @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @XL @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @XL 5T @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS @XL 5T @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ABS HF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ABS HF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA @MK4S HF0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA @MK4S HF0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic ASA HF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic ASA HF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic FLEX @XL @base",
+			"sub_path": "filament/Prusa/Prusa Generic FLEX @XL @base.json"
+		},
+		{
+			"name": "Prusa Generic FLEX @XL @System",
+			"sub_path": "filament/Prusa/Prusa Generic FLEX @XL @System.json"
+		},
+		{
+			"name": "Prusa Generic FLEX @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusa Generic FLEX @XL 5T @base.json"
+		},
+		{
+			"name": "Prusa Generic FLEX @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusa Generic FLEX @XL 5T @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PA-CF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PA-CF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PC HF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PC HF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @MK4S HF0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @MK4S HF0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @XL @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @XL @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @XL @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @XL @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @XL 5T @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG @XL 5T @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PETG HF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PETG HF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.4 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.4 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @MK4S HF0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @MK4S HF0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @XL @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @XL @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @XL @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @XL @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @XL 5T @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA @XL 5T @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA HF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA HF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @CORE One @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @CORE One @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @CORE One @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @CORE One @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @MK4S @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @MK4S @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @MK4S @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @MK4S @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @MK4S 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @MK4S 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @MK4S 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @MK4S 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @MK4S 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @MK4S 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA Silk @MK4S 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA Silk @MK4S 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PLA-CF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PLA-CF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 0.25 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 0.25 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 0.25 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 0.25 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MINIIS 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MINIIS 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MINIIS 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MINIIS 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MINIIS 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MINIIS 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MINIIS 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MINIIS 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MK3.5 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MK3.5 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MK3.5 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MK3.5 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MK3.5 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MK3.5 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic PVA HF @MK3.5 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic PVA HF @MK3.5 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @CORE One @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @CORE One @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @CORE One @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @CORE One @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4S @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4S @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4S @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4S @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4S 0.6 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4S 0.6 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4S 0.6 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4S 0.6 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4S 0.8 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4S 0.8 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU @MK4S 0.8 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU @MK4S 0.8 @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU HF @MINIIS @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU HF @MINIIS @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU HF @MINIIS @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU HF @MINIIS @System.json"
+		},
+		{
+			"name": "Prusa Generic TPU HF @MK3.5 @base",
+			"sub_path": "filament/Prusa/Prusa Generic TPU HF @MK3.5 @base.json"
+		},
+		{
+			"name": "Prusa Generic TPU HF @MK3.5 @System",
+			"sub_path": "filament/Prusa/Prusa Generic TPU HF @MK3.5 @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusament ASA @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament ASA @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusament ASA @XL @base",
+			"sub_path": "filament/Prusa/Prusament ASA @XL @base.json"
+		},
+		{
+			"name": "Prusament ASA @XL @System",
+			"sub_path": "filament/Prusa/Prusament ASA @XL @System.json"
+		},
+		{
+			"name": "Prusament ASA @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament ASA @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament ASA @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament ASA @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament PA-CF @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament PA-CF @CORE One @base.json"
+		},
+		{
+			"name": "Prusament PA-CF @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament PA-CF @CORE One @System.json"
+		},
+		{
+			"name": "Prusament PA-CF @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PA-CF @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PA-CF @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PA-CF @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PA-CF @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PA-CF @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PA-CF @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PA-CF @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PA-CF @XL @base",
+			"sub_path": "filament/Prusa/Prusament PA-CF @XL @base.json"
+		},
+		{
+			"name": "Prusament PA-CF @XL @System",
+			"sub_path": "filament/Prusa/Prusament PA-CF @XL @System.json"
+		},
+		{
+			"name": "Prusament PA-CF @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament PA-CF @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament PA-CF @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament PA-CF @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @XL @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @XL @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @XL @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @XL @System.json"
+		},
+		{
+			"name": "Prusament PC Blend @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament PC Blend @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament PC Blend @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament PC Blend @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament PC-CF @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament PC-CF @CORE One @base.json"
+		},
+		{
+			"name": "Prusament PC-CF @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament PC-CF @CORE One @System.json"
+		},
+		{
+			"name": "Prusament PC-CF @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PC-CF @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PC-CF @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PC-CF @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PC-CF @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PC-CF @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PC-CF @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PC-CF @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PC-CF @XL @base",
+			"sub_path": "filament/Prusa/Prusament PC-CF @XL @base.json"
+		},
+		{
+			"name": "Prusament PC-CF @XL @System",
+			"sub_path": "filament/Prusa/Prusament PC-CF @XL @System.json"
+		},
+		{
+			"name": "Prusament PC-CF @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament PC-CF @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament PC-CF @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament PC-CF @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PETG @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PETG @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PETG @XL @base",
+			"sub_path": "filament/Prusa/Prusament PETG @XL @base.json"
+		},
+		{
+			"name": "Prusament PETG @XL @System",
+			"sub_path": "filament/Prusa/Prusament PETG @XL @System.json"
+		},
+		{
+			"name": "Prusament PETG @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament PETG @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament PETG @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament PETG @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.4 @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.4 @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.4 @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.4 @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.5 @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.5 @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.5 @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.5 @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PLA @CORE One HF 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PLA @CORE One HF 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PLA @XL @base",
+			"sub_path": "filament/Prusa/Prusament PLA @XL @base.json"
+		},
+		{
+			"name": "Prusament PLA @XL @System",
+			"sub_path": "filament/Prusa/Prusament PLA @XL @System.json"
+		},
+		{
+			"name": "Prusament PLA @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament PLA @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament PLA @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament PLA @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament PVB @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament PVB @CORE One @base.json"
+		},
+		{
+			"name": "Prusament PVB @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament PVB @CORE One @System.json"
+		},
+		{
+			"name": "Prusament PVB @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament PVB @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament PVB @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament PVB @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament PVB @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament PVB @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament PVB @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament PVB @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament PVB @XL @base",
+			"sub_path": "filament/Prusa/Prusament PVB @XL @base.json"
+		},
+		{
+			"name": "Prusament PVB @XL @System",
+			"sub_path": "filament/Prusa/Prusament PVB @XL @System.json"
+		},
+		{
+			"name": "Prusament PVB @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament PVB @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament PVB @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament PVB @XL 5T @System.json"
+		},
+		{
+			"name": "Prusament rPLA @CORE One @base",
+			"sub_path": "filament/Prusa/Prusament rPLA @CORE One @base.json"
+		},
+		{
+			"name": "Prusament rPLA @CORE One @System",
+			"sub_path": "filament/Prusa/Prusament rPLA @CORE One @System.json"
+		},
+		{
+			"name": "Prusament rPLA @CORE One 0.6 @base",
+			"sub_path": "filament/Prusa/Prusament rPLA @CORE One 0.6 @base.json"
+		},
+		{
+			"name": "Prusament rPLA @CORE One 0.6 @System",
+			"sub_path": "filament/Prusa/Prusament rPLA @CORE One 0.6 @System.json"
+		},
+		{
+			"name": "Prusament rPLA @CORE One 0.8 @base",
+			"sub_path": "filament/Prusa/Prusament rPLA @CORE One 0.8 @base.json"
+		},
+		{
+			"name": "Prusament rPLA @CORE One 0.8 @System",
+			"sub_path": "filament/Prusa/Prusament rPLA @CORE One 0.8 @System.json"
+		},
+		{
+			"name": "Prusament rPLA @XL @base",
+			"sub_path": "filament/Prusa/Prusament rPLA @XL @base.json"
+		},
+		{
+			"name": "Prusament rPLA @XL @System",
+			"sub_path": "filament/Prusa/Prusament rPLA @XL @System.json"
+		},
+		{
+			"name": "Prusament rPLA @XL 5T @base",
+			"sub_path": "filament/Prusa/Prusament rPLA @XL 5T @base.json"
+		},
+		{
+			"name": "Prusament rPLA @XL 5T @System",
+			"sub_path": "filament/Prusa/Prusament rPLA @XL 5T @System.json"
 		}
 	],
 	"process_list": [],

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament ASA @CORE One 0.6 @System",
+	"inherits": "Prusament ASA @CORE One 0.6 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusament ASA @CORE One 0.6",
+	"instantiation": "true",
+	"compatible_printers": []
+}

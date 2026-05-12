@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic ABS @MK3.5 @System",
+	"inherits": "Prusa Generic ABS @MK3.5 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99_2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

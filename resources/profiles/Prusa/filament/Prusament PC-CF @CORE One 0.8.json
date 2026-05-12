@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PC-CF @CORE One 0.8",
-	"inherits": "Prusament PC-CF @CORE One",
+	"inherits": "Prusament PC-CF @CORE One 0.8 @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "Prusament PC-CF @CORE One 0.8",
@@ -9,14 +9,5 @@
 	"compatible_printers": [
 		"Prusa CORE One 0.8 nozzle",
 		"Prusa CORE One HF 0.8 nozzle"
-	],
-	"fan_cooling_layer_time": [
-		"25"
-	],
-	"filament_max_volumetric_speed": [
-		"18"
-	],
-	"overhang_fan_speed": [
-		"30"
 	]
 }

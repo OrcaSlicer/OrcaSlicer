@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic TPU @MK4S 0.6 @System",
+	"inherits": "Prusa Generic TPU @MK4S 0.6 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Generic FLEX @MK4S 0.6",
+	"instantiation": "true",
+	"compatible_printers": []
+}

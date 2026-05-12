@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PVB @CORE One 0.8",
-	"inherits": "Prusament PVB @CORE One",
+	"inherits": "Prusament PVB @CORE One 0.8 @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "Prusament PVB @CORE One 0.8",
@@ -9,20 +9,5 @@
 	"compatible_printers": [
 		"Prusa CORE One 0.8 nozzle",
 		"Prusa CORE One HF 0.8 nozzle"
-	],
-	"filament_max_volumetric_speed": [
-		"19"
-	],
-	"filament_minimal_purge_on_wipe_tower": [
-		"15"
-	],
-	"nozzle_temperature": [
-		"225"
-	],
-	"nozzle_temperature_initial_layer": [
-		"225"
-	],
-	"slow_down_layer_time": [
-		"17"
 	]
 }

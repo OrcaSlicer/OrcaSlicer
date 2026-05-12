@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament PVB @CORE One 0.8 @System",
+	"inherits": "Prusament PVB @CORE One 0.8 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusament PVB @CORE One 0.8",
+	"instantiation": "true",
+	"compatible_printers": []
+}

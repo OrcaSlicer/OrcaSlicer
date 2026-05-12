@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PETG HF @MK3.5 0.6 @System",
+	"inherits": "Prusa Generic PETG HF @MK3.5 0.6 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFG99_6",
+	"instantiation": "true",
+	"compatible_printers": []
+}

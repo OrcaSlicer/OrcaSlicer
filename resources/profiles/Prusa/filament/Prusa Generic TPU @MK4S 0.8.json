@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusa Generic TPU @MK4S 0.8",
-	"inherits": "Prusa Generic TPU @MK4S",
+	"inherits": "Prusa Generic TPU @MK4S 0.8 @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "Generic FLEX @MK4S 0.8",
@@ -9,8 +9,5 @@
 	"compatible_printers": [
 		"Prusa MK4S 0.8 nozzle",
 		"Prusa MK4S HF0.8 nozzle"
-	],
-	"filament_max_volumetric_speed": [
-		"9"
 	]
 }

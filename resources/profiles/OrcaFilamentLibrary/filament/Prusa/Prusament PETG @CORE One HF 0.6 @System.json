@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament PETG @CORE One HF 0.6 @System",
+	"inherits": "Prusament PETG @CORE One HF 0.6 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusament PETG @CORE One HF 0.6",
+	"instantiation": "true",
+	"compatible_printers": []
+}

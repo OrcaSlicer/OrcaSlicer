@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusament rPLA @XL 5T @System",
+	"inherits": "Prusament rPLA @XL 5T @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

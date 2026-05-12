@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic PLA-CF @MINIIS 0.8 @System",
+	"inherits": "Prusa Generic PLA-CF @MINIIS 0.8 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Prusament PA-CF @CORE One 0.6",
-	"inherits": "Prusament PA-CF @CORE One",
+	"inherits": "Prusament PA-CF @CORE One 0.6 @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "Prusament PA-CF @CORE One 0.6",
@@ -9,11 +9,5 @@
 	"compatible_printers": [
 		"Prusa CORE One 0.6 nozzle",
 		"Prusa CORE One HF 0.6 nozzle"
-	],
-	"fan_cooling_layer_time": [
-		"18"
-	],
-	"filament_max_volumetric_speed": [
-		"8"
 	]
 }

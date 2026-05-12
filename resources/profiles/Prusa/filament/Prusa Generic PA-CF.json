@@ -1,22 +1,10 @@
 {
 	"type": "filament",
 	"name": "Prusa Generic PA-CF",
-	"inherits": "fdm_filament_pa",
+	"inherits": "Prusa Generic PA-CF @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"instantiation": "true",
-	"filament_type": [
-		"PA-CF"
-	],
-	"nozzle_temperature_initial_layer": [
-		"280"
-	],
-	"nozzle_temperature": [
-		"280"
-	],
-	"filament_max_volumetric_speed": [
-		"8"
-	],
 	"compatible_printers": [
 		"Prusa MK3S 0.25 nozzle",
 		"Prusa MK3S 0.4 nozzle",

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Prusa Generic ABS @CORE One HF 0.6 @System",
+	"inherits": "Prusa Generic ABS @CORE One HF 0.6 @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "Prusa Generic ABS @CORE One HF 0.6",
+	"instantiation": "true",
+	"compatible_printers": []
+}
