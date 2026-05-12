@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "MM Generic PEEK @System",
+	"inherits": "MM Generic PEEK @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "GFG99",
+	"setting_id": "GFSA04"
+}
