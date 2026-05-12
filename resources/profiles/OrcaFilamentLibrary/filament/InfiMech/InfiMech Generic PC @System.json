@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "InfiMech Generic PC",
+	"name": "InfiMech Generic PC @System",
 	"inherits": "InfiMech Generic PC @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFC99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"InfiMech TX 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

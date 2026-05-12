@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "InfiMech Generic PLA",
+	"name": "InfiMech Generic PLA @System",
 	"inherits": "InfiMech Generic PLA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"InfiMech TX 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

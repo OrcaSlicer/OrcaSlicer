@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "InfiMech PLA Hyper",
+	"name": "InfiMech PLA Hyper @System",
 	"inherits": "InfiMech PLA Hyper @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"InfiMech TX 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

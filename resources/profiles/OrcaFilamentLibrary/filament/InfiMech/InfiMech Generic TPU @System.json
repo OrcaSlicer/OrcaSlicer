@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "InfiMech Generic TPU",
+	"name": "InfiMech Generic TPU @System",
 	"inherits": "InfiMech Generic TPU @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFU99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"InfiMech TX 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

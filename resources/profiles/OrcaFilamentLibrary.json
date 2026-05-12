@@ -13,6 +13,34 @@
 			"sub_path": "filament/FusRock/FusRock ABS-GF @base.json"
 		},
 		{
+			"name": "InfiMech Generic ABS @base",
+			"sub_path": "filament/InfiMech/InfiMech Generic ABS @base.json"
+		},
+		{
+			"name": "InfiMech Generic PA-CF @base",
+			"sub_path": "filament/InfiMech/InfiMech Generic PA-CF @base.json"
+		},
+		{
+			"name": "InfiMech Generic PC @base",
+			"sub_path": "filament/InfiMech/InfiMech Generic PC @base.json"
+		},
+		{
+			"name": "InfiMech Generic PETG @base",
+			"sub_path": "filament/InfiMech/InfiMech Generic PETG @base.json"
+		},
+		{
+			"name": "InfiMech Generic PLA @base",
+			"sub_path": "filament/InfiMech/InfiMech Generic PLA @base.json"
+		},
+		{
+			"name": "InfiMech Generic TPU @base",
+			"sub_path": "filament/InfiMech/InfiMech Generic TPU @base.json"
+		},
+		{
+			"name": "InfiMech PLA Hyper @base",
+			"sub_path": "filament/InfiMech/InfiMech PLA Hyper @base.json"
+		},
+		{
 			"name": "fdm_filament_abs",
 			"sub_path": "filament/base/fdm_filament_abs.json"
 		},
@@ -95,6 +123,34 @@
 		{
 			"name": "FusRock ABS-GF @System",
 			"sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
+		},
+		{
+			"name": "InfiMech Generic ABS @System",
+			"sub_path": "filament/InfiMech/InfiMech Generic ABS @System.json"
+		},
+		{
+			"name": "InfiMech Generic PA-CF @System",
+			"sub_path": "filament/InfiMech/InfiMech Generic PA-CF @System.json"
+		},
+		{
+			"name": "InfiMech Generic PC @System",
+			"sub_path": "filament/InfiMech/InfiMech Generic PC @System.json"
+		},
+		{
+			"name": "InfiMech Generic PETG @System",
+			"sub_path": "filament/InfiMech/InfiMech Generic PETG @System.json"
+		},
+		{
+			"name": "InfiMech Generic PLA @System",
+			"sub_path": "filament/InfiMech/InfiMech Generic PLA @System.json"
+		},
+		{
+			"name": "InfiMech Generic TPU @System",
+			"sub_path": "filament/InfiMech/InfiMech Generic TPU @System.json"
+		},
+		{
+			"name": "InfiMech PLA Hyper @System",
+			"sub_path": "filament/InfiMech/InfiMech PLA Hyper @System.json"
 		},
 		{
 			"name": "Bambu ABS @base",
