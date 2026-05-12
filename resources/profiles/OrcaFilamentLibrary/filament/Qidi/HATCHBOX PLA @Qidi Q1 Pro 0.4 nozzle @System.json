@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "HATCHBOX PLA @Qidi Q1 Pro 0.4 nozzle @System",
+	"inherits": "HATCHBOX PLA @Qidi Q1 Pro 0.4 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

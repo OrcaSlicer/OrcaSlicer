@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI ASA @System",
+	"inherits": "QIDI ASA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

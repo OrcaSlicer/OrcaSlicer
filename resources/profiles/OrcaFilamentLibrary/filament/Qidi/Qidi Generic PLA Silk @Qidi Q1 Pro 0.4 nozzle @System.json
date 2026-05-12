@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi Generic PLA Silk @Qidi Q1 Pro 0.4 nozzle @System",
+	"inherits": "Qidi Generic PLA Silk @Qidi Q1 Pro 0.4 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSL99_01",
+	"filament_id": "GFA05",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PPS-CF @System",
+	"inherits": "QIDI PPS-CF @base",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

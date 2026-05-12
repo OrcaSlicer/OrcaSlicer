@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Matte Basic @Qidi X-Plus 4 0.8 nozzle @System",
+	"inherits": "QIDI PLA Matte Basic @Qidi X-Plus 4 0.8 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "QD_0_1_8",
+	"instantiation": "true",
+	"compatible_printers": []
+}

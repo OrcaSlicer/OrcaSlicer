@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tinmorry PETG-ECO @System",
+	"inherits": "Tinmorry PETG-ECO @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

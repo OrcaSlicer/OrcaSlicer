@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Translucent @System",
+	"inherits": "QIDI PETG Translucent @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

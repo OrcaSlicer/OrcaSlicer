@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi Generic PC @Qidi Q1 Pro 0.8 nozzle @System",
+	"inherits": "Qidi Generic PC @Qidi Q1 Pro 0.8 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSC99",
+	"filament_id": "GFC99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

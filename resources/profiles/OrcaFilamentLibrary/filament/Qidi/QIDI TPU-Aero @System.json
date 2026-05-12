@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU-Aero @System",
+	"inherits": "QIDI TPU-Aero @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

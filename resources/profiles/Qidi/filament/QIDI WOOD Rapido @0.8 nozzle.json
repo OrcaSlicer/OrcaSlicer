@@ -1,20 +1,11 @@
 {
 	"type": "filament",
 	"name": "QIDI WOOD Rapido @0.8 nozzle",
-	"inherits": "QIDI WOOD Rapido",
+	"inherits": "QIDI WOOD Rapido @0.8 nozzle @base",
 	"from": "system",
 	"setting_id": "GFSL99",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"slow_down_layer_time": [
-		"8"
-	],
-	"enable_pressure_advance": [
-		"1"
-	],
-	"pressure_advance": [
-		"0.01"
-	],
 	"compatible_printers": [
 		"Qidi X-Plus 0.8 nozzle",
 		"Qidi X-Max 0.8 nozzle",

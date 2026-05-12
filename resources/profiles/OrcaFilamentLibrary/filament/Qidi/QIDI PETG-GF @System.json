@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG-GF @System",
+	"inherits": "QIDI PETG-GF @base",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

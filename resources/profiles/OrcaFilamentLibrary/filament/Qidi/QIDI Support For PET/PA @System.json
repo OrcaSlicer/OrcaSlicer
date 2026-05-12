@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI Support For PET/PA @System",
+	"inherits": "QIDI Support For PET/PA @base",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

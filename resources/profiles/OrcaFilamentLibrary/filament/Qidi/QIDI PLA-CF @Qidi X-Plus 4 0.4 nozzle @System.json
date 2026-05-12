@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA-CF @Qidi X-Plus 4 0.4 nozzle @System",
+	"inherits": "QIDI PLA-CF @Qidi X-Plus 4 0.4 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSL98",
+	"filament_id": "QD_0_1_5",
+	"instantiation": "true",
+	"compatible_printers": []
+}

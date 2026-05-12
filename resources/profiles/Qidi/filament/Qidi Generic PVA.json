@@ -1,29 +1,11 @@
 {
 	"type": "filament",
 	"name": "Qidi Generic PVA",
-	"inherits": "fdm_filament_pva",
+	"inherits": "Qidi Generic PVA @base",
 	"from": "system",
 	"setting_id": "GFSS99",
 	"filament_id": "GFS99",
 	"instantiation": "true",
-	"filament_type": [
-		"PVA"
-	],
-	"filament_flow_ratio": [
-		"0.95"
-	],
-	"filament_max_volumetric_speed": [
-		"10"
-	],
-	"slow_down_layer_time": [
-		"7"
-	],
-	"slow_down_min_speed": [
-		"10"
-	],
-	"filament_vendor": [
-		"Generic"
-	],
 	"compatible_printers": [
 		"Qidi X-Plus 0.2 nozzle",
 		"Qidi X-Max 0.2 nozzle",

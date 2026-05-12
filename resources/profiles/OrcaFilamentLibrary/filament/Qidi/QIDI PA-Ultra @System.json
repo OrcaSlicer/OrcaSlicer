@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PA-Ultra @System",
+	"inherits": "QIDI PA-Ultra @base",
+	"from": "system",
+	"setting_id": "GFSN98",
+	"filament_id": "GFN99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

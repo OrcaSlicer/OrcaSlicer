@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU-GF @Qidi X-Plus 4 0.4 nozzle @System",
+	"inherits": "QIDI TPU-GF @Qidi X-Plus 4 0.4 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

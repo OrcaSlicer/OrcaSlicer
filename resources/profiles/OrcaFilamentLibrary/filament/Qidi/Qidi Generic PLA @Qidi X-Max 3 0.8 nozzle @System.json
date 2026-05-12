@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi Generic PLA @Qidi X-Max 3 0.8 nozzle @System",
+	"inherits": "Qidi Generic PLA @Qidi X-Max 3 0.8 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSL99",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

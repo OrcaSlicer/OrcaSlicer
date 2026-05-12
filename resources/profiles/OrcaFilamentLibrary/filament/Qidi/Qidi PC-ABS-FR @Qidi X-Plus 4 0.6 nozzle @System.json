@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi PC-ABS-FR @Qidi X-Plus 4 0.6 nozzle @System",
+	"inherits": "Qidi PC-ABS-FR @Qidi X-Plus 4 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "QD_0_1_34",
+	"instantiation": "true",
+	"compatible_printers": []
+}

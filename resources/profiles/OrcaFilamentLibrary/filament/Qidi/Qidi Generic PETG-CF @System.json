@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi Generic PETG-CF @System",
+	"inherits": "Qidi Generic PETG-CF @base",
+	"from": "system",
+	"setting_id": "GFSG50",
+	"filament_id": "GFG98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

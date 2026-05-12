@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Tough 0.6 nozzle @System",
+	"inherits": "QIDI PETG Tough 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

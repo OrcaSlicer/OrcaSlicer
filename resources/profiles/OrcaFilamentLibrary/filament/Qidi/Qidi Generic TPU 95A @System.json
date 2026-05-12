@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi Generic TPU 95A @System",
+	"inherits": "Qidi Generic TPU 95A @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

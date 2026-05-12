@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PEBA 95A @System",
+	"inherits": "QIDI PEBA 95A @base",
+	"from": "system",
+	"setting_id": "GFSR98",
+	"filament_id": "QD_0_1_36",
+	"instantiation": "true",
+	"compatible_printers": []
+}

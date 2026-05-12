@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI ABS Rapido Metal @System",
+	"inherits": "QIDI ABS Rapido Metal @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Bambu PETG @System",
+	"inherits": "Bambu PETG @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

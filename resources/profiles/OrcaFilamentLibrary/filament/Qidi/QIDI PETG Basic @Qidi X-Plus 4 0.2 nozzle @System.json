@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Basic @Qidi X-Plus 4 0.2 nozzle @System",
+	"inherits": "QIDI PETG Basic @Qidi X-Plus 4 0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "QD_0_1_39",
+	"instantiation": "true",
+	"compatible_printers": []
+}

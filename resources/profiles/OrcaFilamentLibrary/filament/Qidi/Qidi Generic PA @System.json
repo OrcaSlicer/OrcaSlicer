@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi Generic PA @System",
+	"inherits": "Qidi Generic PA @base",
+	"from": "system",
+	"setting_id": "GFSN98",
+	"filament_id": "GFN99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

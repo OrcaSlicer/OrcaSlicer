@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI PAHT-GF @System",
+	"inherits": "QIDI PAHT-GF @base",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU-GF @System",
+	"inherits": "QIDI TPU-GF @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "QD_0_1_15",
+	"instantiation": "true",
+	"compatible_printers": []
+}

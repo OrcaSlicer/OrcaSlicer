@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Qidi PLA-CF @System",
+	"inherits": "Qidi PLA-CF @base",
+	"from": "system",
+	"setting_id": "GFSL98",
+	"filament_id": "GFL98",
+	"instantiation": "true",
+	"compatible_printers": []
+}
