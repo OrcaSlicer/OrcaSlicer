@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PETG-CF @System",
+	"inherits": "Generic PETG-CF @base",
+	"from": "system",
+	"setting_id": "GFG98_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

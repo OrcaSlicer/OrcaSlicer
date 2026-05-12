@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PVA @System",
+	"inherits": "Generic PVA @base",
+	"from": "system",
+	"setting_id": "GFS99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PHA @System",
+	"inherits": "Generic PHA @base",
+	"from": "system",
+	"setting_id": "GFR98_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

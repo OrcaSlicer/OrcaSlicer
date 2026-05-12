@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @System",
+	"inherits": "Generic PLA-CF @base",
+	"from": "system",
+	"setting_id": "GFL98_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

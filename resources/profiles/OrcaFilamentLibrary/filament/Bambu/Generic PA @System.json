@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PA @System",
+	"inherits": "Generic PA @base",
+	"from": "system",
+	"setting_id": "GFN99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

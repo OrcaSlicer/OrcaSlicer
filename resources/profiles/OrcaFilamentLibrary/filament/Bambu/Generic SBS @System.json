@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic SBS @System",
+	"inherits": "Generic SBS @base",
+	"from": "system",
+	"setting_id": "GFLSBS99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

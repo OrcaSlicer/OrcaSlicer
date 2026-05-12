@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Tough+ @System",
+	"inherits": "Bambu PLA Tough+ @base",
+	"from": "system",
+	"setting_id": "GFA10_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

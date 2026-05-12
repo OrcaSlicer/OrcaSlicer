@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PPS-CF @System",
+	"inherits": "Generic PPS-CF @base",
+	"from": "system",
+	"setting_id": "GFT98_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

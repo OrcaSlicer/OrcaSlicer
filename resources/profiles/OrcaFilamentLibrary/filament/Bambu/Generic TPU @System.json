@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @System",
+	"inherits": "Generic TPU @base",
+	"from": "system",
+	"setting_id": "GFU99_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

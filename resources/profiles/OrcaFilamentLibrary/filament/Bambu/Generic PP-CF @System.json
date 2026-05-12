@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Generic PP-CF @System",
+	"inherits": "Generic PP-CF @base",
+	"from": "system",
+	"setting_id": "GFP96_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

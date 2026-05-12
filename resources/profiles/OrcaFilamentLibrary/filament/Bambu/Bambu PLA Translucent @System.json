@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Translucent @System",
+	"inherits": "Bambu PLA Translucent @base",
+	"from": "system",
+	"setting_id": "GFA17_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

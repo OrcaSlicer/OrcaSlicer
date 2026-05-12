@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU for AMS @System",
+	"inherits": "Bambu TPU for AMS @base",
+	"from": "system",
+	"setting_id": "GFU02_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Lite @System",
+	"inherits": "Bambu PLA Lite @base",
+	"from": "system",
+	"setting_id": "GFA18_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}
