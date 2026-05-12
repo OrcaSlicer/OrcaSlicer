@@ -73,6 +73,42 @@
 			"sub_path": "filament/fdm_filament_pla.json"
 		},
 		{
+			"name": "Cubicon ABS @base",
+			"sub_path": "filament/Cubicon ABS @base.json"
+		},
+		{
+			"name": "Cubicon PA-CF @base",
+			"sub_path": "filament/Cubicon PA-CF @base.json"
+		},
+		{
+			"name": "Cubicon PC @base",
+			"sub_path": "filament/Cubicon PC @base.json"
+		},
+		{
+			"name": "Cubicon PETG @base",
+			"sub_path": "filament/Cubicon PETG @base.json"
+		},
+		{
+			"name": "Cubicon PLA @base",
+			"sub_path": "filament/Cubicon PLA @base.json"
+		},
+		{
+			"name": "Cubicon ABS-A100 @base",
+			"sub_path": "filament/Cubicon ABS-A100 @base.json"
+		},
+		{
+			"name": "Cubicon ABSk @base",
+			"sub_path": "filament/Cubicon ABSk @base.json"
+		},
+		{
+			"name": "Cubicon PLA+ @base",
+			"sub_path": "filament/Cubicon PLA+ @base.json"
+		},
+		{
+			"name": "Cubicon PLAi21 @base",
+			"sub_path": "filament/Cubicon PLAi21 @base.json"
+		},
+		{
 			"name": "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle",
 			"sub_path": "filament/Cubicon ABS @Cubicon xCeler-I 0.4 nozzle.json"
 		},
