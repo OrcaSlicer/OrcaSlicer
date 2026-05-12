@@ -1507,6 +1507,86 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Vzbot Generic ABS @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic ABS @base.json"
+		},
+		{
+			"name": "Vzbot Generic ABS @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic ABS @System.json"
+		},
+		{
+			"name": "Vzbot Generic ASA @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic ASA @base.json"
+		},
+		{
+			"name": "Vzbot Generic ASA @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic ASA @System.json"
+		},
+		{
+			"name": "Vzbot Generic PA-CF @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PA-CF @base.json"
+		},
+		{
+			"name": "Vzbot Generic PA-CF @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PA-CF @System.json"
+		},
+		{
+			"name": "Vzbot Generic PA @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PA @base.json"
+		},
+		{
+			"name": "Vzbot Generic PA @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PA @System.json"
+		},
+		{
+			"name": "Vzbot Generic PC @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PC @base.json"
+		},
+		{
+			"name": "Vzbot Generic PC @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PC @System.json"
+		},
+		{
+			"name": "Vzbot Generic PETG @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PETG @base.json"
+		},
+		{
+			"name": "Vzbot Generic PETG @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PETG @System.json"
+		},
+		{
+			"name": "Vzbot Generic PLA-CF @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PLA-CF @base.json"
+		},
+		{
+			"name": "Vzbot Generic PLA-CF @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PLA-CF @System.json"
+		},
+		{
+			"name": "Vzbot Generic PLA @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PLA @base.json"
+		},
+		{
+			"name": "Vzbot Generic PLA @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PLA @System.json"
+		},
+		{
+			"name": "Vzbot Generic PVA @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic PVA @base.json"
+		},
+		{
+			"name": "Vzbot Generic PVA @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic PVA @System.json"
+		},
+		{
+			"name": "Vzbot Generic TPU @base",
+			"sub_path": "filament/Vzbot/Vzbot Generic TPU @base.json"
+		},
+		{
+			"name": "Vzbot Generic TPU @System",
+			"sub_path": "filament/Vzbot/Vzbot Generic TPU @System.json"
 		}
 	],
 	"process_list": [],

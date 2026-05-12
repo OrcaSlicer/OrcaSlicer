@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Vzbot Generic TPU @System",
+	"inherits": "Vzbot Generic TPU @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
