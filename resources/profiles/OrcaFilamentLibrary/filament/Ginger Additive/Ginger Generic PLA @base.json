@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "Ginger Generic PLA @base",
+	"instantiation": "false",
+	"filament_id": "GFL99",
 	"from": "system",
 	"activate_air_filtration": [
 		"0"

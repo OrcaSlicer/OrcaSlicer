@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Ginger Generic PLA @System",
+	"filament_id": "GFL99",
 	"inherits": "Ginger Generic PLA @base",
 	"from": "system",
 	"instantiation": "true",

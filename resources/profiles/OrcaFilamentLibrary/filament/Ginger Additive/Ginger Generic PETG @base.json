@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "Ginger Generic PETG @base",
+	"instantiation": "false",
+	"filament_id": "GFG99",
 	"from": "system",
 	"activate_air_filtration": [
 		"0"
