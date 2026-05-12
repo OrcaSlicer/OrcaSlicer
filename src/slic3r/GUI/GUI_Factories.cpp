@@ -141,6 +141,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"infill_wall_overlap", "", 1},
        {"top_bottom_infill_wall_overlap", "", 1},
        {"solid_infill_direction", "", 1},
+       {"top_layer_direction", "", 1},
        {"infill_direction", "", 1},
        {"bridge_angle", "", 1},
        {"internal_bridge_angle", "", 1},
