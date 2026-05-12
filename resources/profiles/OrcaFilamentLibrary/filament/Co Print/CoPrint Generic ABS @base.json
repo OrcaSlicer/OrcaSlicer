@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "CoPrint Generic ABS @base",
+	"instantiation": "false",
+	"filament_id": "GFB99",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"cool_plate_temp": [

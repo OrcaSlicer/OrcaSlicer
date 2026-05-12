@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "CoPrint Generic PETG @base",
+	"instantiation": "false",
+	"filament_id": "GFG99",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"cool_plate_temp": [

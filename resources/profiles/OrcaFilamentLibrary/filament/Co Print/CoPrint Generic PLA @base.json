@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "CoPrint Generic PLA @base",
+	"instantiation": "false",
+	"filament_id": "GFL99",
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"cool_plate_temp": [

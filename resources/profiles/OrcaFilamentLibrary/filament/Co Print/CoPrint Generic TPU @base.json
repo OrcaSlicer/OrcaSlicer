@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "CoPrint Generic TPU @base",
+	"instantiation": "false",
+	"filament_id": "GFU99",
 	"inherits": "CoPrint Generic PLA @base",
 	"from": "system",
 	"fan_max_speed": [
