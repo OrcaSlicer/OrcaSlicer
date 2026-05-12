@@ -1507,6 +1507,38 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Comgrow Generic ABS @base",
+			"sub_path": "filament/Comgrow/Comgrow Generic ABS @base.json"
+		},
+		{
+			"name": "Comgrow Generic ABS @System",
+			"sub_path": "filament/Comgrow/Comgrow Generic ABS @System.json"
+		},
+		{
+			"name": "Comgrow Generic PETG @base",
+			"sub_path": "filament/Comgrow/Comgrow Generic PETG @base.json"
+		},
+		{
+			"name": "Comgrow Generic PETG @System",
+			"sub_path": "filament/Comgrow/Comgrow Generic PETG @System.json"
+		},
+		{
+			"name": "Comgrow Generic PLA @base",
+			"sub_path": "filament/Comgrow/Comgrow Generic PLA @base.json"
+		},
+		{
+			"name": "Comgrow Generic PLA @System",
+			"sub_path": "filament/Comgrow/Comgrow Generic PLA @System.json"
+		},
+		{
+			"name": "Comgrow T300 PLA @base",
+			"sub_path": "filament/Comgrow/Comgrow T300 PLA @base.json"
+		},
+		{
+			"name": "Comgrow T300 PLA @System",
+			"sub_path": "filament/Comgrow/Comgrow T300 PLA @System.json"
 		}
 	],
 	"process_list": [],

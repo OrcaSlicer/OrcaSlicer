@@ -1,14 +1,10 @@
 {
 	"type": "filament",
-	"name": "Comgrow Generic PETG",
+	"name": "Comgrow Generic PETG @System",
 	"inherits": "Comgrow Generic PETG @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFG99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Comgrow T500 0.4 nozzle",
-		"Comgrow T500 0.6 nozzle",
-		"Comgrow T500 0.8 nozzle"
-	]
+	"compatible_printers": []
 }

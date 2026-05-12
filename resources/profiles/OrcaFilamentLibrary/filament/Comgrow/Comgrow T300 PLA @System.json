@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "Comgrow T300 PLA",
+	"name": "Comgrow T300 PLA @System",
 	"inherits": "Comgrow T300 PLA @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Comgrow T300 0.4 nozzle"
-	]
+	"compatible_printers": []
 }
