@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "Dremel Generic PLA @3D40 all @base",
+	"instantiation": "false",
+	"filament_id": "GFL99",
 	"inherits": "Dremel Generic PLA @base",
 	"from": "system",
 	"filament_max_volumetric_speed": [

@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Dremel Generic PLA @3D20 all @System",
+	"filament_id": "GFL99",
 	"inherits": "Dremel Generic PLA @3D20 all @base",
 	"from": "system",
 	"setting_id": "GFSL99_00",

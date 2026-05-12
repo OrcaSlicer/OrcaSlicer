@@ -1,6 +1,8 @@
 {
 	"type": "filament",
 	"name": "Dremel Generic PLA @base",
+	"instantiation": "false",
+	"filament_id": "GFL99",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"overhang_fan_threshold": [
