@@ -790,7 +790,8 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
     if (preset.vendor != nullptr && preset.preset.type == Preset::TYPE_FILAMENT) {
         const auto& excluded_printers = preset.preset.m_excluded_from;
         const auto  excluded         = preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY &&
-                              excluded_printers.find(active_printer.preset.name) != excluded_printers.end();
+                              (excluded_printers.find(active_printer.preset.name) != excluded_printers.end() ||
+                               excluded_printers.find(active_printer.preset.inherits()) != excluded_printers.end());
         if (excluded)
             return false;
     }
