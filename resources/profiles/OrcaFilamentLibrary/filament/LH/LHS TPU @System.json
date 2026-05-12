@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS TPU @System",
+	"inherits": "LHS TPU @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_ptpu_pl",
+	"setting_id": "LHF_S_ptpu_pl"
+}

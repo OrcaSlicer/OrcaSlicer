@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS ASA @System",
+	"inherits": "LHS ASA @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_asa",
+	"setting_id": "LHF_S_asa"
+}

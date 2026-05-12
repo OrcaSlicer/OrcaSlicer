@@ -136,7 +136,7 @@
 		"1"
 	],
 	"default_filament_profile": [
-		"LH Generic PLA"
+		"LHS PLA"
 	],
 	"enable_filament_ramming": "0",
 	"default_print_profile": "0.20mm Daily @LH Stinger",

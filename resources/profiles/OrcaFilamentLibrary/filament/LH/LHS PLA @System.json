@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS PLA @System",
+	"inherits": "LHS PLA @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_pla",
+	"setting_id": "LHF_S_pla"
+}

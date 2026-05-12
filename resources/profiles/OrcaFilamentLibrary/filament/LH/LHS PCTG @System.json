@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS PCTG @System",
+	"inherits": "LHS PCTG @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_pctg",
+	"setting_id": "LHF_S_pctg"
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS PC CF @System",
+	"inherits": "LHS PC CF @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_pccf",
+	"setting_id": "LHF_S_pccf"
+}

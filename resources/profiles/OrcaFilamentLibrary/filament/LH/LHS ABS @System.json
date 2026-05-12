@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS ABS @System",
+	"inherits": "LHS ABS @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_abs",
+	"setting_id": "LHF_S_abs"
+}

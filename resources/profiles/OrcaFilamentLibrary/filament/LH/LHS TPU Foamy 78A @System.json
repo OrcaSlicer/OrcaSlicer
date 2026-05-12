@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "LHS TPU Foamy 78A @System",
+	"inherits": "LHS TPU Foamy 78A @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [],
+	"filament_id": "LHF_ftpuf",
+	"setting_id": "LHF_S_ftpuf"
+}

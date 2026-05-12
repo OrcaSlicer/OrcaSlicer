@@ -1507,6 +1507,70 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "LHS ABS @base",
+			"sub_path": "filament/LH/LHS ABS @base.json"
+		},
+		{
+			"name": "LHS ABS @System",
+			"sub_path": "filament/LH/LHS ABS @System.json"
+		},
+		{
+			"name": "LHS ASA @base",
+			"sub_path": "filament/LH/LHS ASA @base.json"
+		},
+		{
+			"name": "LHS ASA @System",
+			"sub_path": "filament/LH/LHS ASA @System.json"
+		},
+		{
+			"name": "LHS PC CF @base",
+			"sub_path": "filament/LH/LHS PC CF @base.json"
+		},
+		{
+			"name": "LHS PC CF @System",
+			"sub_path": "filament/LH/LHS PC CF @System.json"
+		},
+		{
+			"name": "LHS PCTG @base",
+			"sub_path": "filament/LH/LHS PCTG @base.json"
+		},
+		{
+			"name": "LHS PCTG @System",
+			"sub_path": "filament/LH/LHS PCTG @System.json"
+		},
+		{
+			"name": "LHS PETG @base",
+			"sub_path": "filament/LH/LHS PETG @base.json"
+		},
+		{
+			"name": "LHS PETG @System",
+			"sub_path": "filament/LH/LHS PETG @System.json"
+		},
+		{
+			"name": "LHS PLA @base",
+			"sub_path": "filament/LH/LHS PLA @base.json"
+		},
+		{
+			"name": "LHS PLA @System",
+			"sub_path": "filament/LH/LHS PLA @System.json"
+		},
+		{
+			"name": "LHS TPU Foamy 78A @base",
+			"sub_path": "filament/LH/LHS TPU Foamy 78A @base.json"
+		},
+		{
+			"name": "LHS TPU Foamy 78A @System",
+			"sub_path": "filament/LH/LHS TPU Foamy 78A @System.json"
+		},
+		{
+			"name": "LHS TPU @base",
+			"sub_path": "filament/LH/LHS TPU @base.json"
+		},
+		{
+			"name": "LHS TPU @System",
+			"sub_path": "filament/LH/LHS TPU @System.json"
 		}
 	],
 	"process_list": [],
