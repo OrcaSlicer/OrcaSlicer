@@ -42,7 +42,6 @@
 #include "format.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
-#include "SettingsTransferDialog.hpp"
 #include "EditGCodeDialog.hpp"
 #include "MultiChoiceDialog.hpp"
 #include "MsgDialog.hpp"
@@ -102,36 +101,120 @@ static std::pair<std::string, std::string> extruder_variant_keys[]{
     {"printer_extruder_id", "printer_extruder_variant"}, // Preset::TYPE_PRINTER
 };
 
-static std::string serialize_config_option_value(const DynamicPrintConfig &config, const std::string &option_key)
+static std::vector<std::string> compatible_print_transfer_targets(const PresetCollection &prints)
 {
-    const ConfigOption *option = config.option(option_key);
-    return option != nullptr ? option->serialize() : std::string();
-}
-
-static std::vector<SettingsTransferTargetProfile> compatible_print_transfer_targets(const DynamicPrintConfig &source_config, const PresetCollection &prints)
-{
-    std::vector<SettingsTransferTargetProfile> targets;
+    std::vector<std::string> targets;
     for (const Preset &preset : prints.get_presets()) {
         if (!preset.is_visible || !preset.is_compatible)
             continue;
 
-        const auto option_keys = ProcessSettingsMerger::diff_keys(source_config, preset.config, ProcessSettingsMerger::all_categories());
-        std::vector<SettingsTransferOption> transferable_options;
-        transferable_options.reserve(option_keys.size());
-        for (const std::string &option_key : option_keys) {
-            transferable_options.push_back(SettingsTransferOption {
-                option_key,
-                serialize_config_option_value(source_config, option_key),
-                serialize_config_option_value(preset.config, option_key)
-            });
-        }
-
-        targets.push_back(SettingsTransferTargetProfile {
-            preset.name,
-            std::move(transferable_options)
-        });
+        targets.emplace_back(preset.name);
     }
     return targets;
+}
+
+static bool has_transferable_process_settings(
+    const DynamicPrintConfig &saved_config,
+    const DynamicPrintConfig &edited_config,
+    const DynamicPrintConfig *parent_config,
+    const PresetCollection &target_prints)
+{
+    for (const Preset &preset : target_prints.get_presets()) {
+        if (!preset.is_visible || !preset.is_compatible)
+            continue;
+
+        if (!ProcessSettingsMerger::transferable_settings(saved_config, edited_config, parent_config, &preset.config).empty())
+            return true;
+    }
+    return false;
+}
+
+static std::string print_profile_name_from_config(const DynamicPrintConfig &config)
+{
+    const ConfigOptionString *print_settings_id = config.option<ConfigOptionString>("print_settings_id");
+    return print_settings_id != nullptr ? print_settings_id->value : std::string();
+}
+
+static const Preset* find_preset_by_name(const PresetCollection &presets, const std::string &name)
+{
+    for (const Preset &preset : presets.get_presets()) {
+        if (preset.name == name)
+            return &preset;
+    }
+    return nullptr;
+}
+
+struct ProcessTransferSource
+{
+    std::string profile_name;
+    ProcessSettingsMerger::TransferSourceSettings settings;
+};
+
+static ProcessTransferSource resolve_process_transfer_source(const PresetCollection &prints, const std::string &requested_profile_name = {})
+{
+    const Preset &selected_preset = prints.get_selected_preset();
+    const Preset &edited_preset   = prints.get_edited_preset();
+
+    const std::string edited_profile_id = print_profile_name_from_config(edited_preset.config);
+    std::string source_profile_name = !requested_profile_name.empty() ? requested_profile_name :
+                                      !edited_profile_id.empty()     ? edited_profile_id :
+                                                                       edited_preset.name;
+    if (source_profile_name.empty())
+        source_profile_name = selected_preset.name;
+
+    const Preset *source_preset = source_profile_name.empty() ? nullptr : find_preset_by_name(prints, source_profile_name);
+    const DynamicPrintConfig *saved_config  = &selected_preset.config;
+    const DynamicPrintConfig *edited_config = &edited_preset.config;
+    const Preset *parent_preset = nullptr;
+
+    if (source_preset != nullptr && source_preset->name == source_profile_name) {
+        saved_config = &source_preset->config;
+        parent_preset = prints.get_preset_parent(*source_preset);
+
+        const bool initial_source = edited_preset.name == source_preset->name || edited_profile_id == source_preset->name;
+        if (!initial_source)
+            edited_config = &source_preset->config;
+    } else if (!edited_profile_id.empty() && edited_profile_id != selected_preset.name) {
+        // The project config names a model profile that is not selectable in the collection.
+        // Treat the current edited process config as that profile, not as unsaved edits over the selected system profile.
+        saved_config = &edited_preset.config;
+        edited_config = &edited_preset.config;
+    }
+
+    if (parent_preset == nullptr)
+        parent_preset = prints.get_selected_preset_parent();
+
+    return {
+        source_profile_name,
+        ProcessSettingsMerger::transfer_source_settings(
+            *saved_config,
+            *edited_config,
+            parent_preset != nullptr ? &parent_preset->config : nullptr)
+    };
+}
+
+static bool has_transferable_process_settings(
+    const PresetCollection &source_prints,
+    const ProcessTransferSource &initial_source,
+    const PresetCollection &target_prints)
+{
+    if (has_transferable_process_settings(
+            initial_source.settings.saved_settings,
+            initial_source.settings.edited_settings,
+            initial_source.settings.parent_settings(),
+            target_prints))
+        return true;
+
+    for (const Preset &source_preset : source_prints.get_presets()) {
+        if (!source_preset.is_visible || !source_preset.is_compatible || source_preset.name == initial_source.profile_name)
+            continue;
+
+        const ProcessTransferSource source = resolve_process_transfer_source(source_prints, source_preset.name);
+        if (has_transferable_process_settings(source.settings.saved_settings, source.settings.edited_settings, source.settings.parent_settings(), target_prints))
+            return true;
+    }
+
+    return false;
 }
 
 void Tab::Highlighter::set_timer_owner(wxEvtHandler* owner, int timerid/* = wxID_ANY*/)
@@ -6818,14 +6901,28 @@ bool Tab::select_preset(
             for (PresetUpdate &pu : updates) {
                 pu.old_preset_dirty = (old_printer_technology == pu.technology) && pu.presets->current_is_dirty();
                 pu.new_preset_compatible = (new_printer_technology == pu.technology) && is_compatible_with_printer(pu.presets->get_edited_preset_with_vendor_profile(), new_printer_preset_with_vendor_profile);
-                if (!canceled)
+            }
+
+            auto print_update = std::find_if(updates.begin(), updates.end(), [](const PresetUpdate &update) {
+                return update.tab_type == Preset::Type::TYPE_PRINT;
+            });
+            const bool use_process_transfer_dialog =
+                print_update != updates.end() &&
+                !force_select &&
+                !force_no_transfer &&
+                old_printer_technology == ptFFF &&
+                new_printer_technology == ptFFF &&
+                !print_update->new_preset_compatible;
+
+            for (PresetUpdate &pu : updates) {
+                const bool handled_by_process_transfer_dialog = use_process_transfer_dialog && pu.tab_type == Preset::Type::TYPE_PRINT;
+                if (!canceled && !handled_by_process_transfer_dialog)
                     canceled = pu.old_preset_dirty && !may_discard_current_dirty_preset(pu.presets, preset_name, false, no_transfer_variant) && !pu.new_preset_compatible && !force_select;
             }
-            if (!canceled && !force_select && !force_no_transfer && old_printer_technology == ptFFF && new_printer_technology == ptFFF) {
-                auto print_update = std::find_if(updates.begin(), updates.end(), [](const PresetUpdate &update) {
-                    return update.tab_type == Preset::Type::TYPE_PRINT;
-                });
-                if (print_update != updates.end() && !print_update->old_preset_dirty && !print_update->new_preset_compatible) {
+
+            if (!canceled && use_process_transfer_dialog) {
+                bool process_transfer_handled = false;
+                if (print_update != updates.end()) {
                     Tab *target_print_tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
                     if (target_print_tab != nullptr) {
                         transfer_target_print_tab = target_print_tab;
@@ -6841,40 +6938,57 @@ bool Tab::select_preset(
                                 update_compatible_type(technology_changed, false, target_print_tab->m_show_incompatible_presets),
                                 update_compatible_type(technology_changed, false, wxGetApp().get_tab(Preset::TYPE_FILAMENT)->m_show_incompatible_presets));
 
-                            const DynamicPrintConfig &current_process_config = m_preset_bundle->prints.get_edited_preset().config;
+                            const ProcessTransferSource transfer_source = resolve_process_transfer_source(m_preset_bundle->prints);
                             const std::string predicted_target_profile_name = simulated_bundle.prints.get_selected_preset_name();
-                            const auto compatible_target_profiles = compatible_print_transfer_targets(current_process_config, simulated_bundle.prints);
+                            const auto compatible_target_profiles = compatible_print_transfer_targets(simulated_bundle.prints);
                             const DynamicPrintConfig &predicted_process_config = simulated_bundle.prints.get_edited_preset().config;
-                            const bool has_transferable_settings = std::any_of(compatible_target_profiles.begin(), compatible_target_profiles.end(),
-                                [](const SettingsTransferTargetProfile &target_profile) {
-                                    return !target_profile.transferable_options.empty();
-                                });
+                            const bool has_transferable_settings = has_transferable_process_settings(m_preset_bundle->prints, transfer_source, simulated_bundle.prints);
                             if (!compatible_target_profiles.empty() && (has_transferable_settings || compatible_target_profiles.size() > 1)) {
-                                SettingsTransferDialog transfer_dialog(wxGetApp().mainframe, compatible_target_profiles, predicted_target_profile_name, !no_transfer_variant);
-                                if (transfer_dialog.ShowModal() != wxID_OK) {
+                                DiffPresetDialog transfer_dialog(wxGetApp().mainframe);
+                                if (transfer_dialog.show_process_transfer(
+                                        simulated_bundle,
+                                        transfer_source.profile_name,
+                                        predicted_target_profile_name,
+                                        transfer_source.settings.saved_settings,
+                                        transfer_source.settings.edited_settings,
+                                        transfer_source.settings.parent_settings()) != wxID_OK) {
                                     canceled = true;
                                 } else {
-                                    selected_target_print_profile_name = transfer_dialog.selected_target_profile_name();
+                                    process_transfer_handled = true;
+                                    selected_target_print_profile_name = transfer_dialog.selected_transfer_target_profile_name();
                                     if (selected_target_print_profile_name.empty())
                                         selected_target_print_profile_name = predicted_target_profile_name;
+
+                                    const ProcessTransferSource selected_source = resolve_process_transfer_source(
+                                        m_preset_bundle->prints,
+                                        transfer_dialog.selected_transfer_source_profile_name());
 
                                     const Preset *selected_target_preset = simulated_bundle.prints.find_preset(selected_target_print_profile_name, false);
                                     const DynamicPrintConfig &selected_target_process_config =
                                         selected_target_preset != nullptr ? selected_target_preset->config : predicted_process_config;
 
-                                    const auto keys = transfer_dialog.selected_option_keys();
+                                    const ProcessSettingsMerger::TransferSelection selection = transfer_dialog.selected_transfer_options();
+                                    const auto keys = selection.all_options();
                                     if (!keys.empty()) {
-                                        DynamicPrintConfig merged_config = ProcessSettingsMerger::merge_settings(current_process_config, selected_target_process_config, keys);
+                                        DynamicPrintConfig merged_config = ProcessSettingsMerger::merge_settings(
+                                            selected_source.settings.saved_settings,
+                                            selected_source.settings.edited_settings,
+                                            selected_target_process_config,
+                                            selection);
                                         target_print_tab->cache_config_diff(keys, &merged_config);
                                         suppress_transfer_target_print_dialog = true;
                                     }
                                 }
                             } else if (compatible_target_profiles.size() == 1) {
-                                selected_target_print_profile_name = compatible_target_profiles.front().profile_name;
+                                process_transfer_handled = !print_update->old_preset_dirty;
+                                selected_target_print_profile_name = compatible_target_profiles.front();
                             }
                         }
                     }
                 }
+
+                if (!canceled && !process_transfer_handled && print_update != updates.end() && print_update->old_preset_dirty)
+                    canceled = !may_discard_current_dirty_preset(print_update->presets, preset_name, false, no_transfer_variant) && !force_select;
             }
             if (!canceled) {
                 for (PresetUpdate &pu : updates) {
@@ -6999,9 +7113,6 @@ bool Tab::select_preset(
                 m_dependent_tabs = { Preset::Type::TYPE_SLA_PRINT, Preset::Type::TYPE_SLA_MATERIAL };
         }
 
-        // check if there is something in the cache to move to the new selected preset
-        apply_config_from_cache();
-
         // Orca: update presets for the selected printer
         if (m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config")) {
             m_preset_bundle->update_selections(*wxGetApp().app_config);
@@ -7016,6 +7127,9 @@ bool Tab::select_preset(
             transfer_target_print_tab->m_suppress_next_same_preset_selection = true;
             transfer_target_print_tab->m_suppressed_preset_name = m_preset_bundle->prints.get_selected_preset_name();
         }
+
+        // check if there is something in the cache to move to the new selected preset
+        apply_config_from_cache();
 
         load_current_preset();
 
