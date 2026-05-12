@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Cubicon ABS @System",
+	"inherits": "Cubicon ABS @base",
+	"from": "system",
+	"setting_id": "CBCS01_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

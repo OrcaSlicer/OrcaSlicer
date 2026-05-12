@@ -1507,6 +1507,78 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Cubicon ABS @base",
+			"sub_path": "filament/Cubicon/Cubicon ABS @base.json"
+		},
+		{
+			"name": "Cubicon ABS @System",
+			"sub_path": "filament/Cubicon/Cubicon ABS @System.json"
+		},
+		{
+			"name": "Cubicon PA-CF @base",
+			"sub_path": "filament/Cubicon/Cubicon PA-CF @base.json"
+		},
+		{
+			"name": "Cubicon PA-CF @System",
+			"sub_path": "filament/Cubicon/Cubicon PA-CF @System.json"
+		},
+		{
+			"name": "Cubicon PC @base",
+			"sub_path": "filament/Cubicon/Cubicon PC @base.json"
+		},
+		{
+			"name": "Cubicon PC @System",
+			"sub_path": "filament/Cubicon/Cubicon PC @System.json"
+		},
+		{
+			"name": "Cubicon PETG @base",
+			"sub_path": "filament/Cubicon/Cubicon PETG @base.json"
+		},
+		{
+			"name": "Cubicon PETG @System",
+			"sub_path": "filament/Cubicon/Cubicon PETG @System.json"
+		},
+		{
+			"name": "Cubicon PLA @base",
+			"sub_path": "filament/Cubicon/Cubicon PLA @base.json"
+		},
+		{
+			"name": "Cubicon PLA @System",
+			"sub_path": "filament/Cubicon/Cubicon PLA @System.json"
+		},
+		{
+			"name": "Cubicon ABS-A100 @base",
+			"sub_path": "filament/Cubicon/Cubicon ABS-A100 @base.json"
+		},
+		{
+			"name": "Cubicon ABS-A100 @System",
+			"sub_path": "filament/Cubicon/Cubicon ABS-A100 @System.json"
+		},
+		{
+			"name": "Cubicon ABSk @base",
+			"sub_path": "filament/Cubicon/Cubicon ABSk @base.json"
+		},
+		{
+			"name": "Cubicon ABSk @System",
+			"sub_path": "filament/Cubicon/Cubicon ABSk @System.json"
+		},
+		{
+			"name": "Cubicon PLA+ @base",
+			"sub_path": "filament/Cubicon/Cubicon PLA+ @base.json"
+		},
+		{
+			"name": "Cubicon PLA+ @System",
+			"sub_path": "filament/Cubicon/Cubicon PLA+ @System.json"
+		},
+		{
+			"name": "Cubicon PLAi21 @base",
+			"sub_path": "filament/Cubicon/Cubicon PLAi21 @base.json"
+		},
+		{
+			"name": "Cubicon PLAi21 @System",
+			"sub_path": "filament/Cubicon/Cubicon PLAi21 @System.json"
 		}
 	],
 	"process_list": [],

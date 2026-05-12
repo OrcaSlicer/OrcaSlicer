@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Cubicon PLAi21 @System",
+	"inherits": "Cubicon PLAi21 @base",
+	"from": "system",
+	"setting_id": "CBCS09_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

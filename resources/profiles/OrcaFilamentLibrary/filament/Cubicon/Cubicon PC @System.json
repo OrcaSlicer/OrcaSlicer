@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Cubicon PC @System",
+	"inherits": "Cubicon PC @base",
+	"from": "system",
+	"setting_id": "CBCS03_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

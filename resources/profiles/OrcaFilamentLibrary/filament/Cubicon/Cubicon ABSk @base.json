@@ -1,0 +1,161 @@
+{
+	"type": "filament",
+	"name": "Cubicon ABSk @base",
+	"inherits": "Cubicon ABS @base",
+	"from": "system",
+	"cool_plate_temp": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp": [
+		"115"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp_initial_layer": [
+		"105"
+	],
+	"hot_plate_temp_initial_layer": [
+		"115"
+	],
+	"textured_plate_temp_initial_layer": [
+		"105"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"overhang_fan_speed": [
+		"80"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"filament_cost": [
+		"20"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_max_volumetric_speed": [
+		"23"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retract_before_wipe": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_z_hop": [
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_type": [
+		"ABS"
+	],
+	"filament_vendor": [
+		"Cubicon"
+	],
+	"filament_wipe": [
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"70"
+	],
+	"slow_down_min_speed": [
+		"30"
+	],
+	"slow_down_layer_time": [
+		"3"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"temperature_vitrification": [
+		"85"
+	],
+	"activate_air_filtration": [
+		"0"
+	],
+	"supertack_plate_temp": [
+		"0"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"0"
+	],
+	"nozzle_temperature_range_high": [
+		"240"
+	],
+	"nozzle_temperature_range_low": [
+		"220"
+	],
+	"filament_id": "P510cfb2",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"instantiation": "false"
+}

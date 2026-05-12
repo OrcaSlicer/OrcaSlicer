@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Cubicon PLA+ @System",
+	"inherits": "Cubicon PLA+ @base",
+	"from": "system",
+	"setting_id": "CBCS08_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

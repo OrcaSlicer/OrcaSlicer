@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Cubicon PETG @System",
+	"inherits": "Cubicon PETG @base",
+	"from": "system",
+	"setting_id": "CBCS04_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

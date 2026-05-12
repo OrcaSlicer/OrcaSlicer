@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Cubicon PA-CF @System",
+	"inherits": "Cubicon PA-CF @base",
+	"from": "system",
+	"setting_id": "CBCS02_00",
+	"instantiation": "true",
+	"compatible_printers": []
+}
