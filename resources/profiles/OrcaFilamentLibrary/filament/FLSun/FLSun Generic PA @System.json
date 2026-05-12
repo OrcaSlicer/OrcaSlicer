@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun Generic PA @System",
+	"inherits": "FLSun Generic PA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFN99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

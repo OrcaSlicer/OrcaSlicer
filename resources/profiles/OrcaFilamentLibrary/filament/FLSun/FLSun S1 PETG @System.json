@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun S1 PETG @System",
+	"inherits": "FLSun S1 PETG @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

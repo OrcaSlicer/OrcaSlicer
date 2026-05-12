@@ -1507,6 +1507,198 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "FLSun Generic ABS @base",
+			"sub_path": "filament/FLSun/FLSun Generic ABS @base.json"
+		},
+		{
+			"name": "FLSun Generic ABS @System",
+			"sub_path": "filament/FLSun/FLSun Generic ABS @System.json"
+		},
+		{
+			"name": "FLSun Generic ASA @base",
+			"sub_path": "filament/FLSun/FLSun Generic ASA @base.json"
+		},
+		{
+			"name": "FLSun Generic ASA @System",
+			"sub_path": "filament/FLSun/FLSun Generic ASA @System.json"
+		},
+		{
+			"name": "FLSun Generic PA @base",
+			"sub_path": "filament/FLSun/FLSun Generic PA @base.json"
+		},
+		{
+			"name": "FLSun Generic PA @System",
+			"sub_path": "filament/FLSun/FLSun Generic PA @System.json"
+		},
+		{
+			"name": "FLSun Generic PA-CF @base",
+			"sub_path": "filament/FLSun/FLSun Generic PA-CF @base.json"
+		},
+		{
+			"name": "FLSun Generic PA-CF @System",
+			"sub_path": "filament/FLSun/FLSun Generic PA-CF @System.json"
+		},
+		{
+			"name": "FLSun Generic PC @base",
+			"sub_path": "filament/FLSun/FLSun Generic PC @base.json"
+		},
+		{
+			"name": "FLSun Generic PC @System",
+			"sub_path": "filament/FLSun/FLSun Generic PC @System.json"
+		},
+		{
+			"name": "FLSun Generic PETG @base",
+			"sub_path": "filament/FLSun/FLSun Generic PETG @base.json"
+		},
+		{
+			"name": "FLSun Generic PETG @System",
+			"sub_path": "filament/FLSun/FLSun Generic PETG @System.json"
+		},
+		{
+			"name": "FLSun Generic PLA @base",
+			"sub_path": "filament/FLSun/FLSun Generic PLA @base.json"
+		},
+		{
+			"name": "FLSun Generic PLA @System",
+			"sub_path": "filament/FLSun/FLSun Generic PLA @System.json"
+		},
+		{
+			"name": "FLSun Generic PLA-CF @base",
+			"sub_path": "filament/FLSun/FLSun Generic PLA-CF @base.json"
+		},
+		{
+			"name": "FLSun Generic PLA-CF @System",
+			"sub_path": "filament/FLSun/FLSun Generic PLA-CF @System.json"
+		},
+		{
+			"name": "FLSun Generic PVA @base",
+			"sub_path": "filament/FLSun/FLSun Generic PVA @base.json"
+		},
+		{
+			"name": "FLSun Generic PVA @System",
+			"sub_path": "filament/FLSun/FLSun Generic PVA @System.json"
+		},
+		{
+			"name": "FLSun Generic TPU @base",
+			"sub_path": "filament/FLSun/FLSun Generic TPU @base.json"
+		},
+		{
+			"name": "FLSun Generic TPU @System",
+			"sub_path": "filament/FLSun/FLSun Generic TPU @System.json"
+		},
+		{
+			"name": "FLSun S1 ABS @base",
+			"sub_path": "filament/FLSun/FLSun S1 ABS @base.json"
+		},
+		{
+			"name": "FLSun S1 ABS @System",
+			"sub_path": "filament/FLSun/FLSun S1 ABS @System.json"
+		},
+		{
+			"name": "FLSun S1 ASA @base",
+			"sub_path": "filament/FLSun/FLSun S1 ASA @base.json"
+		},
+		{
+			"name": "FLSun S1 ASA @System",
+			"sub_path": "filament/FLSun/FLSun S1 ASA @System.json"
+		},
+		{
+			"name": "FLSun S1 PETG @base",
+			"sub_path": "filament/FLSun/FLSun S1 PETG @base.json"
+		},
+		{
+			"name": "FLSun S1 PETG @System",
+			"sub_path": "filament/FLSun/FLSun S1 PETG @System.json"
+		},
+		{
+			"name": "FLSun S1 PLA Generic @base",
+			"sub_path": "filament/FLSun/FLSun S1 PLA Generic @base.json"
+		},
+		{
+			"name": "FLSun S1 PLA Generic @System",
+			"sub_path": "filament/FLSun/FLSun S1 PLA Generic @System.json"
+		},
+		{
+			"name": "FLSun S1 PLA High Speed @base",
+			"sub_path": "filament/FLSun/FLSun S1 PLA High Speed @base.json"
+		},
+		{
+			"name": "FLSun S1 PLA High Speed @System",
+			"sub_path": "filament/FLSun/FLSun S1 PLA High Speed @System.json"
+		},
+		{
+			"name": "FLSun S1 PLA Silk @base",
+			"sub_path": "filament/FLSun/FLSun S1 PLA Silk @base.json"
+		},
+		{
+			"name": "FLSun S1 PLA Silk @System",
+			"sub_path": "filament/FLSun/FLSun S1 PLA Silk @System.json"
+		},
+		{
+			"name": "FLSun S1 TPU @base",
+			"sub_path": "filament/FLSun/FLSun S1 TPU @base.json"
+		},
+		{
+			"name": "FLSun S1 TPU @System",
+			"sub_path": "filament/FLSun/FLSun S1 TPU @System.json"
+		},
+		{
+			"name": "FLSun T1 ABS @base",
+			"sub_path": "filament/FLSun/FLSun T1 ABS @base.json"
+		},
+		{
+			"name": "FLSun T1 ABS @System",
+			"sub_path": "filament/FLSun/FLSun T1 ABS @System.json"
+		},
+		{
+			"name": "FLSun T1 ASA @base",
+			"sub_path": "filament/FLSun/FLSun T1 ASA @base.json"
+		},
+		{
+			"name": "FLSun T1 ASA @System",
+			"sub_path": "filament/FLSun/FLSun T1 ASA @System.json"
+		},
+		{
+			"name": "FLSun T1 PETG @base",
+			"sub_path": "filament/FLSun/FLSun T1 PETG @base.json"
+		},
+		{
+			"name": "FLSun T1 PETG @System",
+			"sub_path": "filament/FLSun/FLSun T1 PETG @System.json"
+		},
+		{
+			"name": "FLSun T1 PLA Generic @base",
+			"sub_path": "filament/FLSun/FLSun T1 PLA Generic @base.json"
+		},
+		{
+			"name": "FLSun T1 PLA Generic @System",
+			"sub_path": "filament/FLSun/FLSun T1 PLA Generic @System.json"
+		},
+		{
+			"name": "FLSun T1 PLA High Speed @base",
+			"sub_path": "filament/FLSun/FLSun T1 PLA High Speed @base.json"
+		},
+		{
+			"name": "FLSun T1 PLA High Speed @System",
+			"sub_path": "filament/FLSun/FLSun T1 PLA High Speed @System.json"
+		},
+		{
+			"name": "FLSun T1 PLA Silk @base",
+			"sub_path": "filament/FLSun/FLSun T1 PLA Silk @base.json"
+		},
+		{
+			"name": "FLSun T1 PLA Silk @System",
+			"sub_path": "filament/FLSun/FLSun T1 PLA Silk @System.json"
+		},
+		{
+			"name": "FLSun T1 TPU @base",
+			"sub_path": "filament/FLSun/FLSun T1 TPU @base.json"
+		},
+		{
+			"name": "FLSun T1 TPU @System",
+			"sub_path": "filament/FLSun/FLSun T1 TPU @System.json"
 		}
 	],
 	"process_list": [],

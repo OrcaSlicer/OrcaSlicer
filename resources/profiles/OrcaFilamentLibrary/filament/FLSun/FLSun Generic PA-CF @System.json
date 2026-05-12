@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun Generic PA-CF @System",
+	"inherits": "FLSun Generic PA-CF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFN98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

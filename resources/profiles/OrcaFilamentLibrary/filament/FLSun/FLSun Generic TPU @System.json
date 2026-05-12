@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun Generic TPU @System",
+	"inherits": "FLSun Generic TPU @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

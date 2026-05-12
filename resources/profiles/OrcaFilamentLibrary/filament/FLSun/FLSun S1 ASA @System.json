@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun S1 ASA @System",
+	"inherits": "FLSun S1 ASA @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

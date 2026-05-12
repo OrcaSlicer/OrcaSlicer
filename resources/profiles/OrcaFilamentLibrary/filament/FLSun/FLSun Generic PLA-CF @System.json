@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun Generic PLA-CF @System",
+	"inherits": "FLSun Generic PLA-CF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

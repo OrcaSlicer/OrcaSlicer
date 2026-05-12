@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun Generic PC @System",
+	"inherits": "FLSun Generic PC @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFC99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

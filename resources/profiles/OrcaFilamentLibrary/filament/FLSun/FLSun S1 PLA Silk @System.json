@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "FLSun S1 PLA Silk @System",
+	"inherits": "FLSun S1 PLA Silk @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
