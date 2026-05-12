@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @0.2 nozzle @base",
+	"inherits": "Elegoo PETG PRO @base",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"1"
+	]
+}

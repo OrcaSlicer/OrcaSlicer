@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG Translucent @ECC2 @System",
+	"inherits": "Elegoo PETG Translucent @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPETGTRANSECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

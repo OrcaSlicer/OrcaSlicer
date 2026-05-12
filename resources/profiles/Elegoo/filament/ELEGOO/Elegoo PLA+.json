@@ -1,13 +1,10 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA+",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA+ @base",
 	"from": "system",
 	"setting_id": "EPLAPLUS00",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"16"
-	],
 	"compatible_printers": [
 		"Elegoo Neptune 0.4 nozzle",
 		"Elegoo Neptune X 0.4 nozzle",

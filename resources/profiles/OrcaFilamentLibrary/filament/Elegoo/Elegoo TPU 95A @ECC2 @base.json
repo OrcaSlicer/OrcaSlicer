@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Elegoo TPU 95A @ECC2 @base",
+	"inherits": "Elegoo TPU @base",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"3.2"
+	],
+	"pressure_advance": [
+		"0.024"
+	]
+}

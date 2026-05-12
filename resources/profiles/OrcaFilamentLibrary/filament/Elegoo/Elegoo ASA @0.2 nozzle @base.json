@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @0.2 nozzle @base",
+	"inherits": "Elegoo ASA @base",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"3.2"
+	]
+}

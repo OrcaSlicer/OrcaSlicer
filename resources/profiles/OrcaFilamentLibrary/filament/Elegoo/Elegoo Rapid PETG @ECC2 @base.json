@@ -1,0 +1,28 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PETG @ECC2 @base",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"instantiation": "false",
+	"pressure_advance": [
+		"0.024"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"filament_density": [
+		"1.26"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	]
+}

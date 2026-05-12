@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Elegoo PC-FR @0.2 nozzle @base",
+	"inherits": "Elegoo PC @base",
+	"from": "system",
+	"instantiation": "false",
+	"pressure_advance": [
+		"0.024"
+	],
+	"nozzle_temperature": [
+		"280"
+	],
+	"nozzle_temperature_initial_layer": [
+		"280"
+	],
+	"nozzle_temperature_range_high": [
+		"290"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"fan_max_speed": [
+		"40"
+	],
+	"filament_density": [
+		"1.1"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	]
+}

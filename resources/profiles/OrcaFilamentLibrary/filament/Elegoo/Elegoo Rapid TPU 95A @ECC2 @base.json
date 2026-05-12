@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid TPU 95A @ECC2 @base",
+	"inherits": "Elegoo TPU @base",
+	"from": "system",
+	"instantiation": "false",
+	"pressure_advance": [
+		"0.024"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	]
+}

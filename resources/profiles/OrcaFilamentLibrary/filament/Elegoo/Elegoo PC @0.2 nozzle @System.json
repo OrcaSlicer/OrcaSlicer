@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PC @0.2 nozzle @System",
+	"inherits": "Elegoo PC @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EPC00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

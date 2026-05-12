@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PC @ECC2 @System",
+	"inherits": "Elegoo PC @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPCECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

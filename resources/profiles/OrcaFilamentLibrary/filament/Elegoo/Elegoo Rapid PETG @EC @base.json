@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PETG @EC @base",
+	"inherits": "Elegoo Rapid PETG @base",
+	"from": "system",
+	"instantiation": "false",
+	"pressure_advance": [
+		"0.024"
+	]
+}

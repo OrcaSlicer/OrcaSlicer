@@ -1,13 +1,10 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG PRO @0.2 nozzle",
-	"inherits": "Elegoo PETG PRO @base",
+	"inherits": "Elegoo PETG PRO @0.2 nozzle @base",
 	"from": "system",
 	"setting_id": "EGPETG00020",
 	"instantiation": "true",
-	"filament_max_volumetric_speed": [
-		"1"
-	],
 	"compatible_printers": [
 		"Elegoo Centauri 0.2 nozzle",
 		"Elegoo Centauri Carbon 0.2 nozzle",

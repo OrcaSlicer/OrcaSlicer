@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG Translucent @0.2 nozzle @System",
+	"inherits": "Elegoo PETG Translucent @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EPETGTRAN00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

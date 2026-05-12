@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Marble @ECC2 @System",
+	"inherits": "Elegoo PLA Marble @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPLAMARBLEECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

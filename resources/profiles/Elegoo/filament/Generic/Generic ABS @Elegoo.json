@@ -1,20 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Elegoo",
-	"inherits": "fdm_filament_abs",
+	"inherits": "Generic ABS @Elegoo @base",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFB99",
 	"instantiation": "true",
-	"filament_flow_ratio": [
-		"0.926"
-	],
-	"filament_max_volumetric_speed": [
-		"12"
-	],
-	"nozzle_temperature_initial_layer": [
-		"245"
-	],
 	"compatible_printers": [
 		"Elegoo Neptune 0.4 nozzle",
 		"Elegoo Neptune X 0.4 nozzle",

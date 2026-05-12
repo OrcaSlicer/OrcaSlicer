@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo ABS @ECC2 @System",
+	"inherits": "Elegoo ABS @ECC2 @base",
+	"from": "system",
+	"setting_id": "EABSECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

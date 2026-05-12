@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @EC @System",
+	"inherits": "Elegoo ASA @EC @base",
+	"from": "system",
+	"setting_id": "EASAEC",
+	"instantiation": "true",
+	"compatible_printers": []
+}

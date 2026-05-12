@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Silk @ECC @System",
+	"inherits": "Elegoo PLA Silk @ECC @base",
+	"from": "system",
+	"setting_id": "EPLASECC",
+	"instantiation": "true",
+	"compatible_printers": []
+}

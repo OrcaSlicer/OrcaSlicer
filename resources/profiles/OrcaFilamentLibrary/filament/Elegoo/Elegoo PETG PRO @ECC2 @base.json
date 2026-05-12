@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @ECC2 @base",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"instantiation": "false",
+	"pressure_advance": [
+		"0.024"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	]
+}

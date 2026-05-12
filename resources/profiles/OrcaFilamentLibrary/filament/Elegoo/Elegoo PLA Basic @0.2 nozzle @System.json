@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Basic @0.2 nozzle @System",
+	"inherits": "Elegoo PLA Basic @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EPLABASIC00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

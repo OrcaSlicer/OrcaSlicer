@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Silk @0.2 nozzle @System",
+	"inherits": "Elegoo PLA Silk @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EPLAS00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

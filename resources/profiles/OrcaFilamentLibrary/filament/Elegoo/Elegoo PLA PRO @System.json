@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA PRO @System",
+	"inherits": "Elegoo PLA PRO @base",
+	"from": "system",
+	"setting_id": "EPLAPRO00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid TPU 95A @ECC2 @System",
+	"inherits": "Elegoo Rapid TPU 95A @ECC2 @base",
+	"from": "system",
+	"setting_id": "ERTPU95AECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,23 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Matte @Elegoo",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Generic PLA Matte @Elegoo @base",
 	"from": "system",
 	"setting_id": "GFSL99",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"filament_cost": [
-		"0"
-	],
-	"filament_density": [
-		"1.25"
-	],
-	"filament_vendor": [
-		"Elegoo"
-	],
-	"filament_start_gcode": [
-		"; filament start gcode\n"
-	],
 	"compatible_printers": [
 		"Elegoo Neptune 0.4 nozzle",
 		"Elegoo Neptune X 0.4 nozzle",

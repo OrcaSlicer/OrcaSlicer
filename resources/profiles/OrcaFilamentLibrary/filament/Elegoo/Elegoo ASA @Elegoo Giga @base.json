@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @Elegoo Giga @base",
+	"inherits": "Generic ASA @Elegoo",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"30"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	]
+}

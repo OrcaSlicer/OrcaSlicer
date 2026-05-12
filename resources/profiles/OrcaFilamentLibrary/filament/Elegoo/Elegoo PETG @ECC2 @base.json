@@ -1,0 +1,22 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG @ECC2 @base",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"instantiation": "false",
+	"pressure_advance": [
+		"0.024"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"filament_max_volumetric_speed": [
+		"11"
+	]
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PETG @0.2 nozzle @System",
+	"inherits": "Elegoo Rapid PETG @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "ERPETG00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

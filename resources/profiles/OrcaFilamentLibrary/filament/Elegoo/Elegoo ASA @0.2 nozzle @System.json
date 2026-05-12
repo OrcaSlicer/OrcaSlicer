@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @0.2 nozzle @System",
+	"inherits": "Elegoo ASA @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EASA00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Generic PETG PRO @Elegoo @System",
+	"inherits": "Generic PETG PRO @Elegoo @base",
+	"from": "system",
+	"setting_id": "GFSG99",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @Elegoo Giga @base",
+	"inherits": "Generic PETG PRO @Elegoo",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"21"
+	]
+}

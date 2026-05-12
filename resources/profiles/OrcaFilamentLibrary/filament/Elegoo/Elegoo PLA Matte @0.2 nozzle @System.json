@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Matte @0.2 nozzle @System",
+	"inherits": "Elegoo PLA Matte @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EPLAM00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

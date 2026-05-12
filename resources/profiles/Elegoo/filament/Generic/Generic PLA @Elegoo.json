@@ -1,23 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Elegoo",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Generic PLA @Elegoo @base",
 	"from": "system",
 	"setting_id": "GFSL99",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"filament_flow_ratio": [
-		"0.98"
-	],
-	"filament_max_volumetric_speed": [
-		"15"
-	],
-	"nozzle_temperature_initial_layer": [
-		"210"
-	],
-	"slow_down_layer_time": [
-		"8"
-	],
 	"compatible_printers": [
 		"Elegoo Neptune 0.4 nozzle",
 		"Elegoo Neptune X 0.4 nozzle",

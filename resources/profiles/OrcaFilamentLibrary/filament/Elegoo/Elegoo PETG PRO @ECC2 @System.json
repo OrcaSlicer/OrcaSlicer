@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @ECC2 @System",
+	"inherits": "Elegoo PETG PRO @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPETGPROECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

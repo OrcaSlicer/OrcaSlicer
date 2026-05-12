@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG-GF @ECC2 @System",
+	"inherits": "Elegoo PETG-GF @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPETGFECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

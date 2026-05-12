@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PAHT-CF @ECC2 @System",
+	"inherits": "Elegoo PAHT-CF @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPAHTCFECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

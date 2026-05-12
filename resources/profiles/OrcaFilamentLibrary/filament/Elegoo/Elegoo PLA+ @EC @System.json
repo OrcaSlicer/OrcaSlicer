@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA+ @EC @System",
+	"inherits": "Elegoo PLA+ @EC @base",
+	"from": "system",
+	"setting_id": "EPLAPLUSEC",
+	"instantiation": "true",
+	"compatible_printers": []
+}

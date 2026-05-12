@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PLA+ @ECC @System",
+	"inherits": "Elegoo Rapid PLA+ @ECC @base",
+	"from": "system",
+	"setting_id": "ERPLAPLUSECC",
+	"instantiation": "true",
+	"compatible_printers": []
+}

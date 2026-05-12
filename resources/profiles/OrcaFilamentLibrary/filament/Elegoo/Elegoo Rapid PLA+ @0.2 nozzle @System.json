@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PLA+ @0.2 nozzle @System",
+	"inherits": "Elegoo Rapid PLA+ @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "ERPLAPLUS00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

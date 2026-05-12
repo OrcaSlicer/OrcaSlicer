@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA @Elegoo Giga @System",
+	"inherits": "Elegoo ASA @Elegoo Giga @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

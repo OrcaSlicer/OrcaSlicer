@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Sparkle @ECC2 @System",
+	"inherits": "Elegoo PLA Sparkle @ECC2 @base",
+	"from": "system",
+	"setting_id": "EPLASPARKLEECC2",
+	"instantiation": "true",
+	"compatible_printers": []
+}

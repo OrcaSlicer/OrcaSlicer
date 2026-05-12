@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA Silk @0.2 nozzle @base",
+	"inherits": "Elegoo PLA Silk @base",
+	"from": "system",
+	"instantiation": "false",
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"60"
+	],
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	]
+}

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG PRO @0.2 nozzle @System",
+	"inherits": "Elegoo PETG PRO @0.2 nozzle @base",
+	"from": "system",
+	"setting_id": "EGPETG00020",
+	"instantiation": "true",
+	"compatible_printers": []
+}

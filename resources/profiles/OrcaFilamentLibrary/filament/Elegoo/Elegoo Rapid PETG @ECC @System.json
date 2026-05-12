@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid PETG @ECC @System",
+	"inherits": "Elegoo Rapid PETG @ECC @base",
+	"from": "system",
+	"setting_id": "ERPETGECC",
+	"instantiation": "true",
+	"compatible_printers": []
+}

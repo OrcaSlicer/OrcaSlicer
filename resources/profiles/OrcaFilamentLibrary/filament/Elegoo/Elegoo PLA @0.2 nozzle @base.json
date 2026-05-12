@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA @0.2 nozzle @base",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"instantiation": "false",
+	"filament_max_volumetric_speed": [
+		"3.2"
+	]
+}
