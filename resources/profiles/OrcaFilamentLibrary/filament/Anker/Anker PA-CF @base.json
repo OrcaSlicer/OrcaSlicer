@@ -5,17 +5,110 @@
 	"from": "system",
 	"filament_id": "ANKN98",
 	"instantiation": "false",
-	"filament_type": [
-		"PA-CF"
+	"filament_soluble": [
+		"0"
+	],
+	"filament_is_support": [
+		"0"
 	],
 	"required_nozzle_HRC": [
 		"40"
 	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_flow_ratio": [
+		"0.97"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"10"
+	],
+	"filament_cooling_moves": [
+		"0"
+	],
+	"filament_cooling_initial_speed": [
+		"0"
+	],
+	"filament_cooling_final_speed": [
+		"0"
+	],
+	"filament_type": [
+		"PA-CF"
+	],
+	"filament_density": [
+		"1.05"
+	],
 	"filament_cost": [
 		"55"
 	],
+	"temperature_vitrification": [
+		"108"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"nozzle_temperature_range_high": [
+		"300"
+	],
+	"nozzle_temperature_initial_layer": [
+		"290"
+	],
+	"nozzle_temperature": [
+		"290"
+	],
+	"hot_plate_temp_initial_layer": [
+		"95"
+	],
+	"hot_plate_temp": [
+		"95"
+	],
 	"filament_max_volumetric_speed": [
 		"6"
+	],
+	"close_fan_the_first_x_layers": [
+		"4"
+	],
+	"full_fan_speed_layer": [
+		"4"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"fan_cooling_layer_time": [
+		"4"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"2"
+	],
+	"reduce_fan_stop_start_freq": [
+		"0"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"overhang_fan_speed": [
+		"30"
+	],
+	"support_material_interface_fan_speed": [
+		"-1"
 	],
 	"filament_vendor": [
 		"Anker"
