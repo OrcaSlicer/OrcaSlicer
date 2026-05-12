@@ -1507,6 +1507,30 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "C1 Generic PLA @base",
+			"sub_path": "filament/CONSTRUCT3D/C1 Generic PLA @base.json"
+		},
+		{
+			"name": "C1 Generic PLA @System",
+			"sub_path": "filament/CONSTRUCT3D/C1 Generic PLA @System.json"
+		},
+		{
+			"name": "C1 Generic PETG @base",
+			"sub_path": "filament/CONSTRUCT3D/C1 Generic PETG @base.json"
+		},
+		{
+			"name": "C1 Generic PETG @System",
+			"sub_path": "filament/CONSTRUCT3D/C1 Generic PETG @System.json"
+		},
+		{
+			"name": "C1 Generic High Flow PETG @base",
+			"sub_path": "filament/CONSTRUCT3D/C1 Generic High Flow PETG @base.json"
+		},
+		{
+			"name": "C1 Generic High Flow PETG @System",
+			"sub_path": "filament/CONSTRUCT3D/C1 Generic High Flow PETG @System.json"
 		}
 	],
 	"process_list": [],

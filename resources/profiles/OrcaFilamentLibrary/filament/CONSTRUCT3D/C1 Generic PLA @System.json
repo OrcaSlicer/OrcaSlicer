@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "C1 Generic PLA",
+	"name": "C1 Generic PLA @System",
 	"inherits": "C1 Generic PLA @base",
 	"from": "system",
 	"setting_id": "GFSL99",
 	"filament_id": "GFL99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Construct 1 0.4 nozzle",
-		"Construct 1 XL 0.6 nozzle"
-	]
+	"compatible_printers": []
 }

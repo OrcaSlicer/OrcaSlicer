@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "C1 Generic PETG",
+	"name": "C1 Generic PETG @System",
 	"inherits": "C1 Generic PETG @base",
 	"from": "system",
 	"setting_id": "GFSG99",
 	"filament_id": "GFG99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"Construct 1 0.4 nozzle",
-		"Construct 1 XL 0.6 nozzle"
-	]
+	"compatible_printers": []
 }

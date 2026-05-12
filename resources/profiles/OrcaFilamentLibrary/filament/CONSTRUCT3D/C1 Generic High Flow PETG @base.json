@@ -1,0 +1,66 @@
+{
+	"type": "filament",
+	"name": "C1 Generic High Flow PETG @base",
+	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"cool_plate_temp": [
+		"62"
+	],
+	"eng_plate_temp": [
+		"75"
+	],
+	"textured_plate_temp": [
+		"62"
+	],
+	"cool_plate_temp_initial_layer": [
+		"66"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"66"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_cost": [
+		"25"
+	],
+	"filament_max_volumetric_speed": [
+		"43"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"temperature_vitrification": [
+		"75"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"275"
+	]
+}

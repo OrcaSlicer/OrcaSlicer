@@ -1,0 +1,54 @@
+{
+	"type": "filament",
+	"name": "C1 Generic PLA @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"cool_plate_temp": [
+		"40"
+	],
+	"eng_plate_temp": [
+		"62"
+	],
+	"hot_plate_temp": [
+		"62"
+	],
+	"textured_plate_temp": [
+		"62"
+	],
+	"cool_plate_temp_initial_layer": [
+		"40"
+	],
+	"eng_plate_temp_initial_layer": [
+		"68"
+	],
+	"hot_plate_temp_initial_layer": [
+		"68"
+	],
+	"textured_plate_temp_initial_layer": [
+		"66"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_cost": [
+		"25"
+	],
+	"filament_max_volumetric_speed": [
+		"30"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"temperature_vitrification": [
+		"60"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	]
+}
