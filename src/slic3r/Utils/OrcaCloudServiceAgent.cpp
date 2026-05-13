@@ -82,6 +82,24 @@ std::string get_json_string_field(const json& j, const std::string& key)
     }
     return "";
 }
+
+// Resolve the human-facing UI label from provider metadata.
+std::string resolve_display_name(
+    const std::string& display_name,
+    const std::string& nickname,
+    const std::string& full_name,
+    const std::string& name,
+    const std::string& username)
+{
+    // Providers and payload shapes do not all use the same display-name field.
+    // Fallback sequence: display_name -> nickname -> full_name -> name
+    if (!display_name.empty()) return display_name;
+    if (!nickname.empty()) return nickname;
+    if (!full_name.empty()) return full_name;
+    if (!name.empty()) return name;
+    return username;
+}
+
 std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "")
 {
     if (name.empty()) {
