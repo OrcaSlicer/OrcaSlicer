@@ -14,7 +14,7 @@
 	"bottom_shell_layers": "0",
 	"bottom_surface_pattern": "concentric",
 	"bridge_speed": "20",
-	"counterbore_hole_bridging": "partially",
+	"counterbore_hole_bridging": "partiallybridge",
 	"detect_thin_wall": "1",
 	"enable_arc_fitting": "1",
 	"ensure_vertical_shell_thickness": "ensure_all",
