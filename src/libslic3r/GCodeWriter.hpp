@@ -194,7 +194,6 @@ public:
 
     std::string _travel_to_z(double z, const std::string &comment);
     std::string _spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment);
-    bool adjust_spiral_lift_ij_offset_for_printable_area(const Vec3d &source_on_plate, double radius, Vec2d &ij_offset) const;
     std::string _retract(double length, double restart_extra, const std::string &comment);
     std::string set_acceleration_internal(Acceleration type, unsigned int acceleration);
 

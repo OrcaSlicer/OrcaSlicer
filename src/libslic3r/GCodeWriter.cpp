@@ -81,30 +81,6 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     }
 }
 
-bool GCodeWriter::adjust_spiral_lift_ij_offset_for_printable_area(const Vec3d &source_on_plate, double radius, Vec2d &ij_offset) const
-{
-    if (!m_has_printable_area_bounds)
-        return true;
-
-    const double center_x_min = m_printable_x_min + radius;
-    const double center_x_max = m_printable_x_max - radius;
-    const double center_y_min = m_printable_y_min + radius;
-    const double center_y_max = m_printable_y_max - radius;
-
-    // Geometrically impossible to place a full circle of this radius in printable area.
-    if (center_x_min > center_x_max || center_y_min > center_y_max)
-        return false;
-
-    const double desired_cx = source_on_plate.x() + ij_offset.x();
-    const double desired_cy = source_on_plate.y() + ij_offset.y();
-
-    const double clamped_cx = std::clamp(desired_cx, center_x_min, center_x_max);
-    const double clamped_cy = std::clamp(desired_cy, center_y_min, center_y_max);
-
-    ij_offset = Vec2d(clamped_cx - source_on_plate.x(), clamped_cy - source_on_plate.y());
-    return true;
-}
-
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
 {
     std::sort(extruder_ids.begin(), extruder_ids.end());
@@ -770,7 +746,25 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 double radius = delta(2) / (2 * PI * atan(this->filament()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
                 ij_offset = { -ij_offset(1), ij_offset(0) };
-                if (adjust_spiral_lift_ij_offset_for_printable_area(source, radius, ij_offset))
+                bool can_spiral_lift = true;
+                if (m_has_printable_area_bounds) {
+                    const double center_x_min = m_printable_x_min + radius;
+                    const double center_x_max = m_printable_x_max - radius;
+                    const double center_y_min = m_printable_y_min + radius;
+                    const double center_y_max = m_printable_y_max - radius;
+
+                    if (center_x_min > center_x_max || center_y_min > center_y_max)
+                        can_spiral_lift = false;
+                    else {
+                        double cx = source.x() + ij_offset.x();
+                        double cy = source.y() + ij_offset.y();
+                        cx = std::clamp(cx, center_x_min, center_x_max);
+                        cy = std::clamp(cy, center_y_min, center_y_max);
+                        ij_offset = { cx - source.x(), cy - source.y() };
+                    }
+                }
+
+                if (can_spiral_lift)
                     slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
                 else
                     slop_move = _travel_to_z(target.z(), "normal lift Z");
