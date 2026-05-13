@@ -5794,7 +5794,7 @@ void PrintConfigDef::init_fff_params()
     // each toolhead. The slicer's zone overlay, placement check, and mode signaling
     // are unchanged; only the gcode emission frame shifts.
     def = this->add("imex_firmware_managed_zones", coBool);
-    def->label = L("Firmware-managed zones (center-origin slice)");
+    def->label = L("Firmware-managed zones");
     def->tooltip = L("When enabled, the slicer emits g-code with the primary zone's "
                      "contents centered on bed origin (0,0). The printer firmware is "
                      "responsible for placing copies/mirrors at each physical zone "
