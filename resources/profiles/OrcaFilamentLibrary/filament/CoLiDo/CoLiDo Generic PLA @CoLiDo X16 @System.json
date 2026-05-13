@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "CoLiDo Generic PLA @CoLiDo X16",
+	"name": "CoLiDo Generic PLA @CoLiDo X16 @System",
 	"inherits": "CoLiDo Generic PLA @CoLiDo X16 @base",
 	"from": "system",
 	"setting_id": "GFSA99_05",
 	"filament_id": "GFA99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"CoLiDo X16 0.4 nozzle",
-		"CoLiDo 160 V2 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

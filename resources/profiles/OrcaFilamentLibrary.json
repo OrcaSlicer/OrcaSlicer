@@ -1507,6 +1507,110 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "CoLiDo ABS @CoLiDo SR1 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo ABS @CoLiDo SR1 @base.json"
+		},
+		{
+			"name": "CoLiDo ABS @CoLiDo SR1 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo ABS @CoLiDo SR1 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic ABS @CoLiDo DIY 4.0 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic ABS @CoLiDo DIY 4.0 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic ABS @CoLiDo DIY 4.0 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic ABS @CoLiDo DIY 4.0 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic ABS @CoLiDo X16 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic ABS @CoLiDo X16 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic ABS @CoLiDo X16 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic ABS @CoLiDo X16 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic PETG @CoLiDo DIY 4.0 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PETG @CoLiDo DIY 4.0 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic PETG @CoLiDo DIY 4.0 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PETG @CoLiDo DIY 4.0 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic PETG @CoLiDo X16 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PETG @CoLiDo X16 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic PETG @CoLiDo X16 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PETG @CoLiDo X16 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic PLA @CoLiDo DIY 4.0 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PLA @CoLiDo DIY 4.0 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic PLA @CoLiDo DIY 4.0 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PLA @CoLiDo DIY 4.0 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic PLA @CoLiDo X16 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PLA @CoLiDo X16 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic PLA @CoLiDo X16 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic PLA @CoLiDo X16 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic TPU @CoLiDo DIY 4.0 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic TPU @CoLiDo DIY 4.0 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic TPU @CoLiDo DIY 4.0 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic TPU @CoLiDo DIY 4.0 @System.json"
+		},
+		{
+			"name": "CoLiDo Generic TPU @CoLiDo X16 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic TPU @CoLiDo X16 @base.json"
+		},
+		{
+			"name": "CoLiDo Generic TPU @CoLiDo X16 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo Generic TPU @CoLiDo X16 @System.json"
+		},
+		{
+			"name": "CoLiDo PETG @CoLiDo SR1 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo PETG @CoLiDo SR1 @base.json"
+		},
+		{
+			"name": "CoLiDo PETG @CoLiDo SR1 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo PETG @CoLiDo SR1 @System.json"
+		},
+		{
+			"name": "CoLiDo PLA @CoLiDo SR1 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo PLA @CoLiDo SR1 @base.json"
+		},
+		{
+			"name": "CoLiDo PLA @CoLiDo SR1 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo PLA @CoLiDo SR1 @System.json"
+		},
+		{
+			"name": "CoLiDo PLA Silk @CoLiDo SR1 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo PLA Silk @CoLiDo SR1 @base.json"
+		},
+		{
+			"name": "CoLiDo PLA Silk @CoLiDo SR1 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo PLA Silk @CoLiDo SR1 @System.json"
+		},
+		{
+			"name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2 @base",
+			"sub_path": "filament/CoLiDo/CoLiDo PLA+ @CoLiDo DIY 4.0 V2 @base.json"
+		},
+		{
+			"name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2 @System",
+			"sub_path": "filament/CoLiDo/CoLiDo PLA+ @CoLiDo DIY 4.0 V2 @System.json"
 		}
 	],
 	"process_list": [],

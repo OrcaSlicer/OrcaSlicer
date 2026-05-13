@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "CoLiDo Generic ABS @CoLiDo DIY 4.0",
+	"name": "CoLiDo Generic ABS @CoLiDo DIY 4.0 @System",
 	"inherits": "CoLiDo Generic ABS @CoLiDo DIY 4.0 @base",
 	"from": "system",
 	"setting_id": "GFSB99",
 	"filament_id": "GFB99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"CoLiDo DIY 4.0 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

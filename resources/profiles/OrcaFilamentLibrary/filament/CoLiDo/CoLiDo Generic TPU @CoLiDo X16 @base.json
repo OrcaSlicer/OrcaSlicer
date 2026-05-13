@@ -1,0 +1,37 @@
+{
+	"type": "filament",
+	"name": "CoLiDo Generic TPU @CoLiDo X16 @base",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"instantiation": "false",
+	"filament_density": [
+		"1.22"
+	],
+	"filament_max_volumetric_speed": [
+		"3.6"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_vendor": [
+		"CoLiDo"
+	],
+	"hot_plate_temp": [
+		"40"
+	],
+	"hot_plate_temp_initial_layer": [
+		"40"
+	],
+	"nozzle_temperature_initial_layer": [
+		"180"
+	],
+	"nozzle_temperature": [
+		"180"
+	],
+	"textured_plate_temp": [
+		"45"
+	],
+	"textured_plate_temp_initial_layer": [
+		"45"
+	]
+}

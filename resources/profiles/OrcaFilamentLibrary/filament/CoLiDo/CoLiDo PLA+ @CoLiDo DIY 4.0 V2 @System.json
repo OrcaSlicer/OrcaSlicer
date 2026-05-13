@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2",
+	"name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2 @System",
 	"inherits": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2 @base",
 	"from": "system",
 	"setting_id": "GFSA99_07",
 	"filament_id": "GFA99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"CoLiDo DIY 4.0 V2 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

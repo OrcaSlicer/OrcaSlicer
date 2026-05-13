@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "CoLiDo PLA @CoLiDo SR1 @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"instantiation": "false",
+	"filament_vendor": [
+		"CoLiDo"
+	],
+	"additional_cooling_fan_speed": [
+		"100"
+	],
+	"filament_deretraction_speed": [
+		"40"
+	],
+	"filament_flow_ratio": [
+		"1.05"
+	],
+	"filament_max_volumetric_speed": [
+		"21"
+	],
+	"filament_settings_id": [
+		"CoLiDo PLA @CoLiDo SR1"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"slow_down_layer_time": [
+		"8"
+	]
+}

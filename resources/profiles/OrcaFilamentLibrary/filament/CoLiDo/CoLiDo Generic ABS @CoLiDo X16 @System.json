@@ -1,13 +1,10 @@
 {
 	"type": "filament",
-	"name": "CoLiDo Generic ABS @CoLiDo X16",
+	"name": "CoLiDo Generic ABS @CoLiDo X16 @System",
 	"inherits": "CoLiDo Generic ABS @CoLiDo X16 @base",
 	"from": "system",
 	"setting_id": "GFSB99_05",
 	"filament_id": "GFB99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"CoLiDo X16 0.4 nozzle",
-		"CoLiDo 160 V2 0.4 nozzle"
-	]
+	"compatible_printers": []
 }

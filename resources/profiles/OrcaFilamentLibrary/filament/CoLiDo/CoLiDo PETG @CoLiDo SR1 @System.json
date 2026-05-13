@@ -1,12 +1,10 @@
 {
 	"type": "filament",
-	"name": "CoLiDo PETG @CoLiDo SR1",
+	"name": "CoLiDo PETG @CoLiDo SR1 @System",
 	"inherits": "CoLiDo PETG @CoLiDo SR1 @base",
 	"from": "system",
 	"setting_id": "GFSG99_06",
 	"filament_id": "GFG99",
 	"instantiation": "true",
-	"compatible_printers": [
-		"CoLiDo SR1 0.4 nozzle"
-	]
+	"compatible_printers": []
 }
