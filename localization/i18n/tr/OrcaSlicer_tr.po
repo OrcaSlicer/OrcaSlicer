@@ -1679,7 +1679,8 @@ msgstr "Yapılandırma yükleniyor"
 msgid "Click to download new version in default browser: %s"
 msgstr "Yeni sürümü varsayılan tarayıcıda indirmek için tıklayın: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Dilimleyicinin yükseltilmesi gerekiyor"
 
 msgid "This is the newest version."
@@ -2129,10 +2130,10 @@ msgstr "Metreden dönüştür"
 msgid "Restore to meters"
 msgstr "Metreye geri çevir"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Seçilen nesneleri birden çok parçalı bir nesneyle birleştirin"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Seçilen nesneleri tek parçalı bir nesneye birleştirin"
 
 msgid "Mesh boolean"
@@ -5296,7 +5297,7 @@ msgstr "Çoklu cihaza gönder"
 msgid "Keyboard Shortcuts"
 msgstr "Klavye kısayolları"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Klavye kısayollarının listesini göster"
 
 msgid "Setup Wizard"
@@ -8077,7 +8078,8 @@ msgstr "Web bağlantılarını OrcaSlicer ile ilişkilendirin"
 msgid "Developer"
 msgstr "Geliştirici"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Geliştirici Modu"
 
 msgid "Skip AMS blacklist check"
@@ -17203,7 +17205,7 @@ msgstr "Ad 40 karakteri aşamaz."
 msgid "Please find the best line on your plate"
 msgstr "Lütfen plakadaki en iyi çizgiyi bulun"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Lütfen mükemmel ekstrüzyon derecesine sahip köşeyi bulun"
 
 msgid "Input Value"
@@ -17940,7 +17942,8 @@ msgstr "Oluştur"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Satıcı seçilmedi, lütfen satıcıyı yeniden seçin."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Özel satıcı girişi yapılmaz, lütfen özel satıcıyı girin."
 
 msgid ""
@@ -17970,8 +17973,8 @@ msgstr "Henüz bir yazıcı veya ön ayar seçmediniz. Lütfen en az birini seç
 
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Oluşturduğunuz %s Filament adı zaten mevcut.\n"
 "Oluşturmaya devam ederseniz oluşturulan ön ayar tam adıyla görüntülenecektir. Devam etmek istiyor musun?"
@@ -19658,7 +19661,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Desteğe/nesnelere/dolguya hizalayın\n"

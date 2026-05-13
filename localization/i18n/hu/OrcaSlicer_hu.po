@@ -1766,7 +1766,8 @@ msgstr "Konfiguráció betöltése"
 msgid "Click to download new version in default browser: %s"
 msgstr "Kattints az új verzió letöltéséhez az alapértelmezett böngészőben: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "A Orca Slicert frissíteni kell"
 
 msgid "This is the newest version."
@@ -2241,10 +2242,10 @@ msgstr "Átváltás méterről"
 msgid "Restore to meters"
 msgstr "Visszaállítás méterre"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Összeállítja a kijelölt objektumot egy több részből álló objektummá"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr ""
 "Összeállítja a kijelölt objektumokat egy egyetlen részből álló objektummá"
 
@@ -5727,7 +5728,7 @@ msgstr "Küldés több eszközre"
 msgid "Keyboard Shortcuts"
 msgstr "Gyorsbillentyűk"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Gyorsgombok listájának megjelenítése"
 
 msgid "Setup Wizard"
@@ -8794,7 +8795,8 @@ msgstr "Webhivatkozások társítása OrcaSlicerhez"
 msgid "Developer"
 msgstr "Fejlesztő"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Fejlesztői mód"
 
 msgid "Skip AMS blacklist check"
@@ -19847,7 +19849,7 @@ msgstr "A név nem haladhatja meg a 40 karaktert."
 msgid "Please find the best line on your plate"
 msgstr "Keresd meg a legjobb vonalat a tálcán"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Keresd meg a tökéletesen extrudált sarkot"
 
 msgid "Input Value"
@@ -20617,10 +20619,12 @@ msgstr "Filamentbeállítás"
 msgid "Create"
 msgstr "Létrehoz"
 
+#, fuzzy
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Custom vendor missing; please input custom vendor."
 
 msgid ""
@@ -20657,8 +20661,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "A(z) %s filamentnév már létezik.\n"
 "Ha folytatod, az új beállítás a teljes nevével fog megjelenni. Folytatod?"
@@ -22657,7 +22661,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Öblítés támaszokba/objektumokba/kitöltésbe\n"

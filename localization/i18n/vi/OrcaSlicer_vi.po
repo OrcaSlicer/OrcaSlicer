@@ -1742,7 +1742,8 @@ msgstr "Đang tải cấu hình"
 msgid "Click to download new version in default browser: %s"
 msgstr "Nhấn để tải phiên bản mới trong trình duyệt mặc định: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer cần nâng cấp"
 
 msgid "This is the newest version."
@@ -2212,10 +2213,10 @@ msgstr "Chuyển đổi từ mét"
 msgid "Restore to meters"
 msgstr "Khôi phục về mét"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Lắp ráp các vật thể đã chọn thành vật thể có nhiều phần"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Lắp ráp các vật thể đã chọn thành vật thể có một phần"
 
 msgid "Mesh boolean"
@@ -5627,7 +5628,7 @@ msgstr "Gửi đến nhiều thiết bị"
 msgid "Keyboard Shortcuts"
 msgstr "Phím tắt"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Hiện danh sách phím tắt"
 
 msgid "Setup Wizard"
@@ -8634,10 +8635,12 @@ msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định 
 msgid "Associate web links to OrcaSlicer"
 msgstr "Liên kết liên kết web với OrcaSlicer"
 
+#, fuzzy
 msgid "Developer"
 msgstr "Developer"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Chế độ phát triển"
 
 msgid "Skip AMS blacklist check"
@@ -19290,7 +19293,7 @@ msgstr "Tên không thể vượt quá 40 ký tự."
 msgid "Please find the best line on your plate"
 msgstr "Vui lòng tìm đường tốt nhất trên bàn của bạn"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Vui lòng tìm góc có mức độ đùn hoàn hảo"
 
 msgid "Input Value"
@@ -20054,7 +20057,8 @@ msgstr "Tạo"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Nhà cung cấp không được chọn, vui lòng chọn lại nhà cung cấp."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 "Nhà cung cấp tùy chỉnh không được nhập, vui lòng nhập nhà cung cấp tùy chỉnh."
 
@@ -20092,8 +20096,8 @@ msgstr "Bạn chưa chọn máy in hoặc cài đặt sẵn. Vui lòng chọn í
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Tên filament %s bạn đã tạo đã tồn tại.\n"
 "Nếu bạn tiếp tục tạo, cài đặt sẵn được tạo sẽ được hiển thị với tên đầy đủ "
@@ -22051,7 +22055,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Xả vào support/đối tượng/infill\n"
