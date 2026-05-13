@@ -4631,7 +4631,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("additional_fan_full_speed_layer", coInts);
     def->label = L("Full fan speed at layer");
-    def->tooltip = L("Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\". "
+    def->tooltip = L("Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\".\n"
                      "\"Full fan speed at layer\" will be ignored if lower than \"For the first\", in which case the fan will run at maximum allowed speed at layer \"For the first\" + 1.");
     def->min = 0;
     def->max = 1000;
