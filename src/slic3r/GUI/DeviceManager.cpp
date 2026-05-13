@@ -3,6 +3,7 @@
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/DllCrashGuard.hpp"
 #include "GuiColor.hpp"
 
 #include "GUI_App.hpp"
@@ -2402,7 +2403,22 @@ int MachineObject::connect(bool use_openssl)
 
     if (m_agent) {
         try {
-            return m_agent->connect_printer(get_dev_id(), get_dev_ip(), username, password, use_openssl);
+            g_networking_dll_crashed.store(false, std::memory_order_release);
+
+            int result = m_agent->connect_printer(get_dev_id(), get_dev_ip(), username, password, use_openssl);
+            if (result < 0 && g_networking_dll_crashed.load(std::memory_order_acquire)) {
+                BOOST_LOG_TRIVIAL(error) << "MachineObject::connect: networking DLL crashed during connection attempt";
+                Slic3r::GUI::wxGetApp().CallAfter([] {
+                    wxMessageBox(
+                        _L("Connection to the printer failed.\n\n"
+                           "The networking plugin encountered an internal error.\n"
+                           "Please restart both your printer and OrcaSlicer to reconnect.\n"
+                           "If the problem persists, try printing via SD card instead."),
+                        _L("Connection Error"),
+                        wxICON_ERROR | wxOK);
+                });
+            }
+            return result;
         } catch (...) {
             ;
         }

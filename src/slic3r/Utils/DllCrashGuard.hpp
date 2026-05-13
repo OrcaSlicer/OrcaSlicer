@@ -10,7 +10,9 @@
 //    threads (e.g. MQTTAsync_sendThread) and prevents process termination.
 
 #include <atomic>
+#include <chrono>
 #include <functional>
+#include <future>
 #include <string>
 
 #include <boost/log/trivial.hpp>

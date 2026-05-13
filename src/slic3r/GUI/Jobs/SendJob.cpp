@@ -262,6 +262,8 @@ void SendJob::process(Ctl &ctl)
                     };
 
     auto cancel_fn = [&ctl]() {
+            if (g_networking_dll_crashed.load(std::memory_order_acquire))
+                return true;
             return ctl.was_canceled();
         };
 
@@ -339,9 +341,10 @@ void SendJob::process(Ctl &ctl)
         curr_percent = -1;
 
         if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
-            msg_text = _u8L("The networking plugin encountered an internal error (crash). "
-                            "Please restart OrcaSlicer and try again. "
-                            "If the problem persists, check your network connection.");
+            msg_text = _u8L("Connection to the printer failed. "
+                            "The networking plugin encountered an internal error. "
+                            "Please restart both your printer and OrcaSlicer to reconnect. "
+                            "If the problem persists, try printing via SD card instead.");
             BOOST_LOG_TRIVIAL(error) << "send_job: networking DLL crash detected, showing error to user";
         }
         else if (result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {

@@ -2,6 +2,9 @@
 
 #include <mutex>
 #include <cstring>
+#include <chrono>
+#include <future>
+#include <thread>
 
 #include <boost/log/trivial.hpp>
 
@@ -131,9 +134,8 @@ void install_dll_crash_handler()
     });
 }
 
-int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
+static int dll_safe_call_direct(std::function<int()>& fn, int fallback, const char* context)
 {
-    // Layer 1: Signal protection (SIGSEGV / SIGBUS)
     sigjmp_buf jmpbuf;
     sigjmp_buf* old_recovery = tl_recovery_point;
     tl_recovery_point = &jmpbuf;
@@ -141,9 +143,7 @@ int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* contex
     int result = fallback;
 
     if (sigsetjmp(jmpbuf, 1) == 0) {
-        // Normal execution path
         try {
-            // Layer 2: C++ exception protection
             result = fn();
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: C++ exception in " << context << ": " << e.what();
@@ -155,9 +155,7 @@ int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* contex
             result = fallback;
         }
     } else {
-        // Recovered from SIGSEGV/SIGBUS via siglongjmp
-        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: RECOVERED from crash (SIGSEGV/SIGBUS) in " << context
-                                 << " — the networking DLL has a bug. Returning error code.";
+        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: RECOVERED from crash (SIGSEGV/SIGBUS) in " << context;
         set_crash_message(std::string("Crash recovered in ") + context +
                          ": the Bambu networking library crashed (SIGSEGV). "
                          "This is a bug in the networking plugin.");
@@ -167,6 +165,31 @@ int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* contex
 
     tl_recovery_point = old_recovery;
     return result;
+}
+
+static constexpr int DLL_CALL_TIMEOUT_SECONDS = 15;
+
+int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
+{
+    auto promise = std::make_shared<std::promise<int>>();
+    auto future = promise->get_future();
+
+    auto fn_copy = std::make_shared<std::function<int()>>(std::move(fn));
+
+    std::thread([promise, fn_copy, fallback, context]() {
+        promise->set_value(dll_safe_call_direct(*fn_copy, fallback, context));
+    }).detach();
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(DLL_CALL_TIMEOUT_SECONDS);
+
+    if (future.wait_until(deadline) == std::future_status::ready)
+        return future.get();
+
+    BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: " << context << " timed out after " << DLL_CALL_TIMEOUT_SECONDS << "s";
+    g_networking_dll_crashed.store(true, std::memory_order_release);
+    set_crash_message(std::string("The networking plugin stopped responding during ") + context +
+                     ". The operation was aborted to prevent the application from freezing.");
+    return fallback;
 }
 
 #endif // DLL_CRASH_GUARD_POSIX
@@ -289,17 +312,41 @@ static int dll_safe_call_seh(void* fn_ptr, int fallback, const char* context)
     return result;
 }
 
-int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
+static int dll_safe_call_direct_win(std::function<int()>& fn, int fallback, const char* context)
 {
     int result = dll_safe_call_seh(&fn, fallback, context);
     if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
-        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: RECOVERED from access violation (SEH) in " << context
-                                 << " — the networking DLL has a bug. Returning error code.";
+        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: RECOVERED from access violation (SEH) in " << context;
         set_crash_message(std::string("Crash recovered in ") + context +
                          ": the Bambu networking library crashed (access violation). "
                          "This is a bug in the networking plugin.");
     }
     return result;
+}
+
+static constexpr int DLL_CALL_TIMEOUT_SECONDS = 15;
+
+int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
+{
+    auto promise = std::make_shared<std::promise<int>>();
+    auto future = promise->get_future();
+
+    auto fn_copy = std::make_shared<std::function<int()>>(std::move(fn));
+
+    std::thread([promise, fn_copy, fallback, context]() {
+        promise->set_value(dll_safe_call_direct_win(*fn_copy, fallback, context));
+    }).detach();
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(DLL_CALL_TIMEOUT_SECONDS);
+
+    if (future.wait_until(deadline) == std::future_status::ready)
+        return future.get();
+
+    BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: " << context << " timed out after " << DLL_CALL_TIMEOUT_SECONDS << "s";
+    g_networking_dll_crashed.store(true, std::memory_order_release);
+    set_crash_message(std::string("The networking plugin stopped responding during ") + context +
+                     ". The operation was aborted to prevent the application from freezing.");
+    return fallback;
 }
 
 #endif // DLL_CRASH_GUARD_WINDOWS
