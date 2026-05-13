@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "YUMI PLA Direct Drive @System",
+	"inherits": "YUMI PLA Direct Drive @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1507,6 +1507,30 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "YUMI PETG @base",
+			"sub_path": "filament/Wanhao France/YUMI PETG @base.json"
+		},
+		{
+			"name": "YUMI PETG @System",
+			"sub_path": "filament/Wanhao France/YUMI PETG @System.json"
+		},
+		{
+			"name": "YUMI PLA Bowden @base",
+			"sub_path": "filament/Wanhao France/YUMI PLA Bowden @base.json"
+		},
+		{
+			"name": "YUMI PLA Bowden @System",
+			"sub_path": "filament/Wanhao France/YUMI PLA Bowden @System.json"
+		},
+		{
+			"name": "YUMI PLA Direct Drive @base",
+			"sub_path": "filament/Wanhao France/YUMI PLA Direct Drive @base.json"
+		},
+		{
+			"name": "YUMI PLA Direct Drive @System",
+			"sub_path": "filament/Wanhao France/YUMI PLA Direct Drive @System.json"
 		}
 	],
 	"process_list": [],

@@ -1,0 +1,52 @@
+{
+	"type": "filament",
+	"name": "YUMI PLA Bowden @base",
+	"inherits": "Yumi Generic PLA",
+	"from": "system",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Yumi"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"filament_loading_speed_start": [
+		"25"
+	],
+	"pressure_advance": [
+		"0.4"
+	]
+}
