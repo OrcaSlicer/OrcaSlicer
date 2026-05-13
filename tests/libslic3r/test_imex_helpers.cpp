@@ -645,3 +645,76 @@ TEST_CASE("group_imex_active_tools_by_gantry — column pairing picks correct re
     REQUIRE(g.groups[1].gantry_index == 1);
     REQUIRE(g.groups[1].representative_phys == 3);  // column-paired to primary T1
 }
+
+// -----------------------------------------------------------------------------
+// compute_imex_slice_offset — center-origin shift for firmware-managed printers
+// -----------------------------------------------------------------------------
+// Centered on the plate-local zone at (10,5)..(110,75) → center (60, 40).
+static const BoundingBoxf kPrimaryZoneCenteredAt60_40{
+    Vec2d(10.0, 5.0), Vec2d(110.0, 75.0)};
+
+TEST_CASE("compute_imex_slice_offset — flag off returns zero regardless of mode", "[IMEX]") {
+    auto z = compute_imex_slice_offset(false, "copy",    kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+
+    z = compute_imex_slice_offset(false, "mirror",  kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+
+    z = compute_imex_slice_offset(false, "primary", kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — primary mode returns zero even with flag on", "[IMEX]") {
+    auto z = compute_imex_slice_offset(true, "primary", kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — empty mode returns zero even with flag on", "[IMEX]") {
+    auto z = compute_imex_slice_offset(true, "", kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — empty zone box returns zero even with flag on and copy mode", "[IMEX]") {
+    auto z = compute_imex_slice_offset(true, "copy", std::nullopt);
+    REQUIRE_THAT(z.x(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — flag on + copy mode returns primary zone center", "[IMEX]") {
+    auto z = compute_imex_slice_offset(true, "copy", kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(60.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(40.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — flag on + mirror mode returns primary zone center", "[IMEX]") {
+    auto z = compute_imex_slice_offset(true, "mirror", kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(60.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(40.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — user-defined non-primary mode names trigger shift", "[IMEX]") {
+    // Mode names are user-defined; anything not "primary" or "" should activate.
+    auto z = compute_imex_slice_offset(true, "iq-copy", kPrimaryZoneCenteredAt60_40);
+    REQUIRE_THAT(z.x(), WithinAbs(60.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(40.0, 1e-9));
+}
+
+TEST_CASE("compute_imex_slice_offset — center value tracks zone box position", "[IMEX]") {
+    // Right half of a center-origin bed: (0,-75)..(160,75) → center (80, 0).
+    BoundingBoxf right_half{Vec2d(0.0, -75.0), Vec2d(160.0, 75.0)};
+    auto z = compute_imex_slice_offset(true, "copy", right_half);
+    REQUIRE_THAT(z.x(), WithinAbs(80.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+
+    // Left half of a center-origin bed: (-160,-75)..(0,75) → center (-80, 0).
+    BoundingBoxf left_half{Vec2d(-160.0, -75.0), Vec2d(0.0, 75.0)};
+    z = compute_imex_slice_offset(true, "mirror", left_half);
+    REQUIRE_THAT(z.x(), WithinAbs(-80.0, 1e-9));
+    REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
+}
+

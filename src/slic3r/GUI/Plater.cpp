@@ -7933,6 +7933,13 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     else
         invalidated = background_process.apply(this->model, preset_bundle->full_config(false));
 
+    // IMEX firmware-managed zones: refresh the per-slice XY shift on the print backend.
+    // Plater::reslice() calls update_background_process with switch_print=false, which skips
+    // update_slice_context_to_current_plate — so the offset would otherwise stay stale across
+    // mode changes. Pushing it here guarantees every slice picks up the current mode + zone.
+    if (auto* cur_plate = this->partplate_list.get_curr_plate())
+        cur_plate->refresh_imex_slice_offset();
+
     if ((invalidated == Print::APPLY_STATUS_CHANGED) || (invalidated == Print::APPLY_STATUS_INVALIDATED))
         // BBS: add only gcode mode
         q->set_only_gcode(false);

@@ -388,4 +388,15 @@ Transform3d imex_head_transform(int /*primary*/, int /*target*/, ImexRole role,
     return Transform3d::Identity();
 }
 
+Vec2d compute_imex_slice_offset(bool firmware_managed,
+                                const std::string& parallel_mode,
+                                const std::optional<BoundingBoxf>& primary_zone_box)
+{
+    if (!firmware_managed)                    return Vec2d::Zero();
+    if (parallel_mode.empty())                return Vec2d::Zero();
+    if (parallel_mode == kImexPrimaryMode)    return Vec2d::Zero();
+    if (!primary_zone_box.has_value())        return Vec2d::Zero();
+    return primary_zone_box->center();
+}
+
 } // namespace Slic3r

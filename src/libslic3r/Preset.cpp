@@ -1354,7 +1354,8 @@ static std::vector<std::string> s_Preset_printer_options {
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset",
     // IDEX/IQEX (independent X extruder) — printer capability and user-defined modes
-    "is_imex", "imex_gantry_count", "imex_tools_per_gantry", "imex_tool_layout",
+    "is_imex", "imex_firmware_managed_zones",
+    "imex_gantry_count", "imex_tools_per_gantry", "imex_tool_layout",
     "imex_nozzle_clearance_x", "imex_nozzle_clearance_y", "imex_carriage_margin", "imex_viz_theme",
     "imex_mode_names", "imex_mode_active_tools", "imex_mode_gcodes"
     };

@@ -1,11 +1,13 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Geometry>
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
 
@@ -288,5 +290,14 @@ ImexGantryGrouping group_imex_active_tools_by_gantry(const std::string& active_t
 Transform3d imex_head_transform(int primary, int target, ImexRole role,
                                 const Vec2d& gantry_offset,
                                 const Vec2d& primary_zone_center = Vec2d::Zero());
+
+// Slice-time XY shift for printers that delegate copy/mirror placement to firmware.
+// When `imex_firmware_managed_zones` is on AND the active mode is non-primary, returns
+// the primary zone's plate-local center so gcode emission can subtract it (yielding a
+// centered slice the firmware can fan out). Returns Vec2d::Zero() in every other case:
+// flag off, primary/empty mode, or no zone box (IMEX disabled, primary-only, etc.).
+Vec2d compute_imex_slice_offset(bool firmware_managed,
+                                const std::string& parallel_mode,
+                                const std::optional<BoundingBoxf>& primary_zone_box);
 
 } // namespace Slic3r

@@ -1370,6 +1370,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                manual_filament_change))
     // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
     ((ConfigOptionBool,                is_imex))
+    ((ConfigOptionBool,                imex_firmware_managed_zones))
     ((ConfigOptionInt,                 imex_gantry_count))
     ((ConfigOptionInt,                 imex_tools_per_gantry))
     ((ConfigOptionFloat,               imex_nozzle_clearance_x))

@@ -1089,6 +1089,17 @@ void PartPlate::calc_imex_ghosts()
     int primary_phys = -1;
     if (!resolve_active_mode_tools(active_tools_str, primary_phys)) return;
 
+    // IMEX firmware-managed zones: the slicer emits a centered single-half slice and the
+    // firmware fans copies/mirrors out from there — placement is not slicer-authoritative.
+    // Rendering secondary-tool ghosts via imex_head_transform (which assumes slicer-managed
+    // placement at primary_zone_center + gantry_offset) would draw them at positions the
+    // firmware doesn't honor (e.g. off-bed once the centered slice is in play). Suppress
+    // ghost generation entirely so we don't lie about something the slicer doesn't own.
+    if (auto* fw_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
+                          .config.option<ConfigOptionBool>("imex_firmware_managed_zones");
+        fw_opt && fw_opt->value)
+        return;
+
     // Zone centers are the basis for ghost placement; make sure they exist before
     // we read them. render_imex_zones already ensures this, but ghost rebuild can
     // also be driven from mode/preset invalidation paths that don't touch zones.
@@ -4507,6 +4518,35 @@ void PartPlate::update_slice_result_valid_state(bool valid)
     }
 }
 
+// IMEX firmware-managed zones: compute the plate-local primary-zone center and push it
+// to m_print as the slice-time XY shift. Vec2d::Zero() in every non-firmware-managed
+// path (flag off, primary/empty mode, empty zone box) → byte-identical gcode output for
+// unaffected printers. Defensive accessors tolerate option() returning nullptr in case
+// the preset bundle is reached during early Plater construction.
+// Called both from update_slice_context (plate switch path) and from
+// Plater::priv::update_background_process (every-slice path) so reslice with mode toggled
+// without plate change picks up the right shift.
+void PartPlate::refresh_imex_slice_offset()
+{
+	Vec2d imex_off = Vec2d::Zero();
+	if (auto* app = &wxGetApp(); app && app->preset_bundle && m_print) {
+		const DynamicPrintConfig& printer_cfg = app->preset_bundle->printers.get_edited_preset().config;
+		auto* fw_opt = printer_cfg.option<ConfigOptionBool>("imex_firmware_managed_zones");
+		if (fw_opt && fw_opt->value) {
+			std::string active_mode = get_imex_mode();
+			if (active_mode == kImexPrimaryMode) {
+				const DynamicPrintConfig& process_cfg = app->preset_bundle->prints.get_edited_preset().config;
+				if (auto* mo = process_cfg.option<ConfigOptionString>("imex_parallel_mode"))
+					if (!mo->value.empty()) active_mode = mo->value;
+			}
+			ensure_imex_zones();
+			imex_off = compute_imex_slice_offset(true, active_mode, m_imex_primary_zone_box);
+		}
+	}
+	if (m_print)
+		m_print->set_imex_slice_offset(imex_off);
+}
+
 //update current slice context into backgroud slicing process
 void PartPlate::update_slice_context(BackgroundSlicingProcess & process)
 {
@@ -4519,6 +4559,8 @@ void PartPlate::update_slice_context(BackgroundSlicingProcess & process)
 		}
 		wxQueueEvent(m_plater, event);
 	};
+
+	refresh_imex_slice_offset();
 
 	process.set_fff_print(m_print);
 	process.set_gcode_result(m_gcode_result);

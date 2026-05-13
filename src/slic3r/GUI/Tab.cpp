@@ -5560,6 +5560,7 @@ if (is_marlin_flavor)
         // IDEX/IQEX (IMEX) parallel printing configuration
         optgroup = page->new_optgroup(L("IDEX/IQEX Configuration"), L"param_advanced");
         optgroup->append_single_option_line("is_imex");
+        optgroup->append_single_option_line("imex_firmware_managed_zones");
         optgroup->append_single_option_line("imex_gantry_count");
         optgroup->append_single_option_line("imex_tools_per_gantry");
         optgroup->append_single_option_line("imex_tool_layout");
@@ -5982,6 +5983,7 @@ void TabPrinter::toggle_options()
             toggle_option(el, is_imex);
         toggle_option("imex_tool_layout", is_imex);
         toggle_option("imex_viz_theme",   is_imex);
+        toggle_option("imex_firmware_managed_zones", is_imex);
         if (m_imex_modes_ctrl) m_imex_modes_ctrl->Show(is_imex);
     }
     wxString extruder_number;
