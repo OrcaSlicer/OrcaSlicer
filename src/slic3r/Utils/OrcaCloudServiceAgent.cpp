@@ -1707,25 +1707,28 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
 
         if (user.contains("user_metadata") && user["user_metadata"].is_object()) {
             const auto& meta = user["user_metadata"];
-            nickname = safe_str(meta, "display_name"); // Orca Cloud's primary display name field
-            // Fallback to different name from different providers if display_name is not set
-            if (nickname.empty())
-                nickname = safe_str(meta, "full_name");
-            if (nickname.empty())
-                nickname = safe_str(meta, "name");
-            if (nickname.empty())
-                nickname = username;
             username = get_json_string_field(meta, "username"); // Orca Cloud's unique username
 
+            // Orca Cloud's primary display name field is display_name.
+            // Fallback to different names from different providers if display_name is not set.
+            nickname = resolve_display_name(
+                get_json_string_field(meta, "display_name"),
+                get_json_string_field(meta, "nickname"),
+                get_json_string_field(meta, "full_name"),
+                get_json_string_field(meta, "name"),
+                username);
             avatar = get_json_string_field(meta, "avatar_url");
         }
     } else {
         // Flat format (WebView direct token flow)
-        nickname = safe_str(session_json, "display_name");
-        if(nickname.empty())
-            nickname = safe_str(session_json, "nickname");
         user_id = get_json_string_field(session_json, "user_id");
         username = get_json_string_field(session_json, "username");
+        nickname = resolve_display_name(
+            get_json_string_field(session_json, "display_name"),
+            get_json_string_field(session_json, "nickname"),
+            get_json_string_field(session_json, "full_name"),
+            get_json_string_field(session_json, "name"),
+            username);
         avatar = get_json_string_field(session_json, "avatar");
     }
 
