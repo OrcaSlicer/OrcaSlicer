@@ -1781,7 +1781,8 @@ msgstr "S'està carregant la configuració"
 msgid "Click to download new version in default browser: %s"
 msgstr "Feu clic per descarregar la nova versió al navegador predeterminat: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "L'Orca Slicer necessita una actualització"
 
 msgid "This is the newest version."
@@ -2258,10 +2259,10 @@ msgstr "Convertir des de metres"
 msgid "Restore to meters"
 msgstr "Restaurar a metres"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar els objectes seleccionats a un objecte amb diverses peces"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Ensamblar els objectes seleccionats a un objecte amb una sola peça"
 
 msgid "Mesh boolean"
@@ -5747,7 +5748,7 @@ msgstr "Enviar a multidispositiu"
 msgid "Keyboard Shortcuts"
 msgstr "Dreceres de teclat"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Mostrar la llista de les dreceres de teclat"
 
 msgid "Setup Wizard"
@@ -8857,7 +8858,8 @@ msgstr "Associar enllaços web a OrcaSlicer"
 msgid "Developer"
 msgstr "Desenvolupador"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Mode de desenvolupament"
 
 msgid "Skip AMS blacklist check"
@@ -15232,6 +15234,9 @@ msgstr "Només pintat"
 msgid "Contour"
 msgstr "Contorn"
 
+msgid "Hole"
+msgstr "Forat"
+
 msgid "Contour and hole"
 msgstr "Contorn i forat"
 
@@ -16644,10 +16649,14 @@ msgstr "Model d'impressora"
 msgid "Raft contact Z distance"
 msgstr "Distància Z de contacte de la Vora d'Adherència"
 
-msgid "Z gap between object and raft. Ignored for soluble interface."
+msgid ""
+"Z gap between raft and object. "
+"If Support Top Z Distance is 0, this value is ignored and "
+"the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"Distància Z entre l'objecte i la Vora d'Adherència. S'ignorarà per a "
-"interfície soluble"
+"Espai Z entre la vora d'Adherència i l'objecte. "
+"Si la distància Z superior del suport és 0, aquest valor s'ignora i l'objecte "
+"s'imprimeix en contacte directe amb la vora d'Adherència (sense espai)."
 
 msgid "Raft expansion"
 msgstr "Expansió de la Vora d'Adherència"
@@ -17628,14 +17637,20 @@ msgstr "Ignora els voladissos petits que possiblement no requereixen suport."
 msgid "Top Z distance"
 msgstr "Distància Z superior"
 
-msgid "The Z gap between the top support interface and object."
-msgstr "La distància z entre la interfície de suport superior i l'objecte"
+msgid "Z gap between the support's top and object."
+msgstr "Espai Z entre la part superior del suport i l'objecte."
 
 msgid "Bottom Z distance"
 msgstr "Distància Z inferior"
 
-msgid "The Z gap between the bottom support interface and object."
-msgstr "La distància z entre la interfície de suport inferior i l'objecte"
+msgid ""
+"Z gap between the object and the support bottom. "
+"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+"is ignored and the support is printed in direct contact with the object (no gap)."
+msgstr ""
+"Espai Z entre l'objecte i la part inferior del suport. "
+"Si la distància Z superior del suport és 0 i la part inferior té capes d'interfície, aquest "
+"valor s'ignora i el suport s'imprimeix en contacte directe amb l'objecte (sense espai)."
 
 msgid "Support/raft base"
 msgstr "Base del Suport/Vora d'Adherència"
@@ -19973,7 +19988,7 @@ msgstr "El nom no pot superar els 40 caràcters."
 msgid "Please find the best line on your plate"
 msgstr "Busqueu la millor línia a la placa"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Busqueu la cantonada amb un grau d'extrusió perfecte"
 
 msgid "Input Value"
@@ -20752,7 +20767,8 @@ msgstr "Crear"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "El proveïdor no està seleccionat, torneu a seleccionar el proveïdor."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 "El proveïdor personalitzat no s'ha introduït, introduïu un proveïdor "
 "personalitzat."
@@ -20795,8 +20811,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "El nom de Filament %s que heu creat ja existeix.\n"
 "Si continueu creant-lo, el perfil creat es mostrarà amb el seu nom complet. "
@@ -22824,7 +22840,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Neteja al suport/objectes/farciment\n"

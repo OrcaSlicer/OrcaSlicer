@@ -491,7 +491,11 @@ public:
         { Polygons out; this->polygons_covered_by_spacing(out, scaled_epsilon); return out; }
     // Minimum volumetric velocity of this extrusion entity. Used by the constant nozzle pressure algorithm.
     double min_mm3_per_mm() const override;
-    Polyline as_polyline() const override { return this->polygon().split_at_first_point(); }
+    Polyline as_polyline() const override {
+        if (this->paths.empty() || this->length() <= 0.)
+            return Polyline();
+        return this->polygon().split_at_first_point();
+    }
     void   collect_polylines(Polylines &dst) const override { Polyline pl = this->as_polyline(); if (! pl.empty()) dst.emplace_back(std::move(pl)); }
     void   collect_points(Points &dst) const override {
         size_t n = std::accumulate(paths.begin(), paths.end(), 0, [](const size_t n, const ExtrusionPath &p){ return n + p.polyline.size(); });

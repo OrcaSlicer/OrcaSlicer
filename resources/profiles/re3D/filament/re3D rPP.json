@@ -6,7 +6,9 @@
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
-	"filament_type": "PP",
+	"filament_type": [
+		"PP"
+	],
 	"nozzle_temperature_initial_layer": [
 		"185"
 	],
