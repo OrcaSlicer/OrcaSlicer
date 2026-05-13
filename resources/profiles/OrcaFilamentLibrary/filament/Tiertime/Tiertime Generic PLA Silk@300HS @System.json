@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PLA Silk@300HS @System",
+	"inherits": "Tiertime Generic PLA Silk@300HS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFL96_01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

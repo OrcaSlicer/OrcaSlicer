@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic TPU @System",
+	"inherits": "Tiertime Generic TPU @base",
+	"from": "system",
+	"setting_id": "GFSR99",
+	"filament_id": "GFU99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

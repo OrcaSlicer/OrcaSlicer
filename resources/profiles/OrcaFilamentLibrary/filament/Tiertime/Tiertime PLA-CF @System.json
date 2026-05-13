@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime PLA-CF @System",
+	"inherits": "Tiertime PLA-CF @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFA50",
+	"instantiation": "true",
+	"compatible_printers": []
+}

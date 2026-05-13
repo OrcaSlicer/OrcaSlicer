@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PHA @System",
+	"inherits": "Tiertime Generic PHA @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFR98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

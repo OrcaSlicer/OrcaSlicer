@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic SBS @System",
+	"inherits": "Tiertime Generic SBS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

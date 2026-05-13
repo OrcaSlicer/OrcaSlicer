@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PLA High Speed @System",
+	"inherits": "Tiertime Generic PLA High Speed @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFL95",
+	"instantiation": "true",
+	"compatible_printers": []
+}

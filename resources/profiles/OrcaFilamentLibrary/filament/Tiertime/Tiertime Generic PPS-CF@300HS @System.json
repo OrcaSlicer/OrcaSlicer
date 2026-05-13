@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PPS-CF@300HS @System",
+	"inherits": "Tiertime Generic PPS-CF@300HS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFT98_01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

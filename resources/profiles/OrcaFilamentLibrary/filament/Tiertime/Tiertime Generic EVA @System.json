@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic EVA @System",
+	"inherits": "Tiertime Generic EVA @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFR99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

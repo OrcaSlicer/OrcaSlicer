@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic ASA @System",
+	"inherits": "Tiertime Generic ASA @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFB98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

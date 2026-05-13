@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime PA6-CF @System",
+	"inherits": "Tiertime PA6-CF @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFN05",
+	"instantiation": "true",
+	"compatible_printers": []
+}

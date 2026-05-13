@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PLA-CF @System",
+	"inherits": "Tiertime Generic PLA-CF @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFL98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

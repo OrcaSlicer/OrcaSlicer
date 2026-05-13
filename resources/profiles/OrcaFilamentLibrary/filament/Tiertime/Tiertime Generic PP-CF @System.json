@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PP-CF @System",
+	"inherits": "Tiertime Generic PP-CF @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFP96",
+	"instantiation": "true",
+	"compatible_printers": []
+}

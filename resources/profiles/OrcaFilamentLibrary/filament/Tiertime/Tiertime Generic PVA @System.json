@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PVA @System",
+	"inherits": "Tiertime Generic PVA @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFS99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

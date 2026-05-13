@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime TPU 95A @System",
+	"inherits": "Tiertime TPU 95A @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFU01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

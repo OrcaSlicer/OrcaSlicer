@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PETG @System",
+	"inherits": "Tiertime Generic PETG @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFG99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

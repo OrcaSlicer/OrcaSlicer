@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PCTG@300HS @System",
+	"inherits": "Tiertime Generic PCTG@300HS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFG97-01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

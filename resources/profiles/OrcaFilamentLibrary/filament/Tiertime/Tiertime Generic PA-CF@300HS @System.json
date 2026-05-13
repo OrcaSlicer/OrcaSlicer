@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PA-CF@300HS @System",
+	"inherits": "Tiertime Generic PA-CF@300HS @base",
+	"from": "system",
+	"setting_id": "GFSN99",
+	"filament_id": "GFN98_02",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime ASA@300HS @System",
+	"inherits": "Tiertime ASA@300HS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFB01_01",
+	"instantiation": "true",
+	"compatible_printers": []
+}

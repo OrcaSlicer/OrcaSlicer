@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic PPA-CF @System",
+	"inherits": "Tiertime Generic PPA-CF @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFN97",
+	"instantiation": "true",
+	"compatible_printers": []
+}

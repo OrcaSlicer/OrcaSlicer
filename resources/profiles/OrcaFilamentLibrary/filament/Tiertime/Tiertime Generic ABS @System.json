@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic ABS @System",
+	"inherits": "Tiertime Generic ABS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFB99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

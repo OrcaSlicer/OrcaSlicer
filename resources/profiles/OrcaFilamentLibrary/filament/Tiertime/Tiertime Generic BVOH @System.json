@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic BVOH @System",
+	"inherits": "Tiertime Generic BVOH @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFS97",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime PC @System",
+	"inherits": "Tiertime PC @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFC00",
+	"instantiation": "true",
+	"compatible_printers": []
+}

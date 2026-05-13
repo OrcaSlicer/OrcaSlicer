@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime Generic HIPS @System",
+	"inherits": "Tiertime Generic HIPS @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFS98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

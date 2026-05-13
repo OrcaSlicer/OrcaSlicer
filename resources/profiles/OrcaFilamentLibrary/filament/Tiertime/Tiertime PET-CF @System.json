@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Tiertime PET-CF @System",
+	"inherits": "Tiertime PET-CF @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "GFT01",
+	"instantiation": "true",
+	"compatible_printers": []
+}
