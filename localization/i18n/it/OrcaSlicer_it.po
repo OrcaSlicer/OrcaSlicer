@@ -10724,7 +10724,7 @@ msgid "Continue"
 msgstr "Continua"
 
 msgid "Back"
-msgstr "Indietro"
+msgstr "Posteriore"
 
 msgid "Don't warn again for this preset"
 msgstr ""
@@ -16631,7 +16631,7 @@ msgid ""
 msgstr ""
 
 msgid "Input shaper type"
-msgstr "Tipo di input shaper"
+msgstr "Tipo di compensazione della risonanza"
 
 msgid ""
 "Choose the input shaper algorithm.\n"
@@ -17407,9 +17407,6 @@ msgstr "Allineato"
 
 msgid "Aligned back"
 msgstr "Allineato dietro"
-
-msgid "Back"
-msgstr "Posteriore"
 
 msgid "Random"
 msgstr "Casuale"
@@ -20938,9 +20935,6 @@ msgstr "Torre Ringing"
 
 msgid "Fast Tower"
 msgstr "Torre veloce"
-
-msgid "Input shaper type"
-msgstr "Tipo di compensazione della risonanza"
 
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
