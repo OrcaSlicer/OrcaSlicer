@@ -17,6 +17,24 @@
 		{
 			"type": "TPU",
 			"action": "warning",
+			"model_id": [
+				"N6"
+			],
+			"description": "How to feed TPU filament on X2D.",
+			"wiki": "https://e.bambulab.com/t?c=PAxXqQu2zBgvN3ea"
+		},
+		{
+			"type": "TPU-AMS",
+			"action": "warning",
+			"model_id": [
+				"N6"
+			],
+			"description": "How to feed TPU filament on X2D.",
+			"wiki": "https://e.bambulab.com/t?c=PAxXqQu2zBgvN3ea"
+		},
+		{
+			"type": "TPU",
+			"action": "warning",
 			"description": "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
 		},
 		{

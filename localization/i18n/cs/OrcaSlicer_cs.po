@@ -1745,7 +1745,8 @@ msgstr "Načítání konfigurace"
 msgid "Click to download new version in default browser: %s"
 msgstr "Kliknutím stáhnete novou verzi ve výchozím prohlížeči: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer potřebuje aktualizaci"
 
 msgid "This is the newest version."
@@ -2220,10 +2221,10 @@ msgstr "Převést z metrů"
 msgid "Restore to meters"
 msgstr "Obnovit na metry"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Sestavit vybrané objekty do objektu s více částmi"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Sestavit vybrané objekty do objektu s jednou částí"
 
 msgid "Mesh boolean"
@@ -5654,7 +5655,7 @@ msgstr "Odeslat na více zařízení"
 msgid "Keyboard Shortcuts"
 msgstr "Klávesové zkratky"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Zobrazit seznam klávesových zkratek"
 
 msgid "Setup Wizard"
@@ -8682,7 +8683,8 @@ msgstr "Přiřadit webové odkazy k OrcaSliceru"
 msgid "Developer"
 msgstr "Developer"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Vývojářský režim"
 
 msgid "Skip AMS blacklist check"
@@ -14821,6 +14823,9 @@ msgstr "Painted only"
 msgid "Contour"
 msgstr "Obrys"
 
+msgid "Hole"
+msgstr "Otvor"
+
 msgid "Contour and hole"
 msgstr "Obrys a otvor"
 
@@ -16178,9 +16183,14 @@ msgstr "Varianta tiskárny"
 msgid "Raft contact Z distance"
 msgstr "Z vzdálenost kontaktu raftu"
 
-msgid "Z gap between object and raft. Ignored for soluble interface."
+msgid ""
+"Z gap between raft and object. "
+"If Support Top Z Distance is 0, this value is ignored and "
+"the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"Z mezera mezi objektem a raftem. Ignorováno pro rozpustitelné rozhraní."
+"Z mezera mezi raftem a objektem. "
+"Pokud je Horní Z vzdálenost podpory 0, tato hodnota se ignoruje "
+"a objekt se tiskne v přímém kontaktu s raftem (bez mezery)."
 
 msgid "Raft expansion"
 msgstr "Rozšíření raftu"
@@ -17131,14 +17141,20 @@ msgstr "Ignore small overhangs that possibly don't require support."
 msgid "Top Z distance"
 msgstr "Horní vzdálenost v ose Z"
 
-msgid "The Z gap between the top support interface and object."
+msgid "Z gap between the support's top and object."
 msgstr "Z mezera mezi horním rozhraním podpory a objektem."
 
 msgid "Bottom Z distance"
 msgstr "Spodní vzdálenost v ose Z"
 
-msgid "The Z gap between the bottom support interface and object."
-msgstr "Z mezera mezi spodním rozhraním podpory a objektem."
+msgid ""
+"Z gap between the object and the support bottom. "
+"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+"is ignored and the support is printed in direct contact with the object (no gap)."
+msgstr ""
+"Z mezera mezi spodním rozhraním podpory a objektem. "
+"Pokud je Horní Z vzdálenost podpory 0 a spodek má vrstvy rozhraní, tato hodnota "
+"se ignoruje a podpora se tiskne v přímém kontaktu s objektem (bez mezery)."
 
 msgid "Support/raft base"
 msgstr "Podpora/základ raftu"
@@ -19389,7 +19405,7 @@ msgstr "Název nesmí přesáhnout 40 znaků."
 msgid "Please find the best line on your plate"
 msgstr "Najděte nejlepší čáru na své desce."
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Najděte roh s ideálním množstvím extruze."
 
 msgid "Input Value"
@@ -20152,7 +20168,8 @@ msgstr "Vytvořit"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Dodavatel není vybrán, prosím vyberte jej znovu."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Není zadán vlastní výrobce, zadejte prosím vlastního výrobce."
 
 msgid ""
@@ -20190,8 +20207,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Název filamentu %s, který jste vytvořili, již existuje.\n"
 "Pokud budete pokračovat, vytvořená předvolba se zobrazí s plným názvem. "
@@ -22145,7 +22162,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Proplach do podpory/objektů/výplně\n"

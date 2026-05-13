@@ -1743,7 +1743,8 @@ msgstr "Konfigurationen laddas"
 msgid "Click to download new version in default browser: %s"
 msgstr "Tryck på ladda ner ny version ifrån standard webbläsaren: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer behöver uppdateras"
 
 msgid "This is the newest version."
@@ -2216,10 +2217,10 @@ msgstr "Konvertera ifrån meter"
 msgid "Restore to meters"
 msgstr "Återställ till meter"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Montera de valda objekten till ett objekt med multipla delar"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Montera de valda objekten till ett objekt med en enda del"
 
 msgid "Mesh boolean"
@@ -5666,7 +5667,7 @@ msgstr "Send to Multi-device"
 msgid "Keyboard Shortcuts"
 msgstr "Kortkommando"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Visa lista över kortkommandon"
 
 msgid "Setup Wizard"
@@ -8694,7 +8695,8 @@ msgstr "Associate web links to OrcaSlicer"
 msgid "Developer"
 msgstr "Utvecklare"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Utvecklingsläge"
 
 msgid "Skip AMS blacklist check"
@@ -14883,6 +14885,9 @@ msgstr "Endast målad"
 msgid "Contour"
 msgstr "Kontur"
 
+msgid "Hole"
+msgstr "Hål"
+
 msgid "Contour and hole"
 msgstr "Kontur och hål"
 
@@ -16255,10 +16260,14 @@ msgstr "Printer variant"
 msgid "Raft contact Z distance"
 msgstr "Raft kontakt Z avstånd"
 
-msgid "Z gap between object and raft. Ignored for soluble interface."
+msgid ""
+"Z gap between raft and object. "
+"If Support Top Z Distance is 0, this value is ignored and "
+"the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"Där finns Z mellanrum mellan ett objekt och en raft. Detta ignoreras för "
-"lösliga gränssnitt"
+"Z-gapet mellan raften och objektet. "
+"Om Topp Z-distans är 0 ignoreras detta värde och objektet "
+"skrivs ut i direkt kontakt med raften (utan mellanrum)."
 
 msgid "Raft expansion"
 msgstr "Raft expansion"
@@ -17219,15 +17228,20 @@ msgstr "Ignore small overhangs that possibly don't require support."
 msgid "Top Z distance"
 msgstr "Topp Z-distans"
 
-msgid "The Z gap between the top support interface and object."
+msgid "Z gap between the support's top and object."
 msgstr ""
-"Detta bestämmer Z-avståndet mellan det övre support gränssnittet och objektet"
+"Z-gapet mellan supportens topp och objektet."
 
 msgid "Bottom Z distance"
 msgstr "Nedre Z-avstånd"
 
-msgid "The Z gap between the bottom support interface and object."
-msgstr "Z-gapet mellan botten support och objektets anläggningsyta"
+msgid ""
+"Z gap between the object and the support bottom. "
+"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+"is ignored and the support is printed in direct contact with the object (no gap)."
+msgstr "Z-gapet mellan objektet och supportens botten. "
+"Om Topp Z-distans är 0 och botten har gränssnittslager ignoreras detta "
+"värde och supporten skrivs ut i direkt kontakt med objektet (utan mellanrum)."
 
 msgid "Support/raft base"
 msgstr "Support/raft bas"
@@ -19503,7 +19517,7 @@ msgstr "Namnet får inte innehålla mer än 40 tecken."
 msgid "Please find the best line on your plate"
 msgstr "Hitta den bästa linjen på din platta."
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Hitta hörnet med den perfekta graden av extrudering"
 
 msgid "Input Value"
@@ -20265,10 +20279,12 @@ msgstr "Filament inställning"
 msgid "Create"
 msgstr "Skapa"
 
+#, fuzzy
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Vendor is not selected; please reselect vendor."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Custom vendor missing; please input custom vendor."
 
 msgid ""
@@ -20305,8 +20321,8 @@ msgstr "Du har ännu inte valt någon printer eller inställning. Välj minst en
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Filamentnamnet %s som du skapade finns redan.\n"
 "Om du fortsätter kommer den skapade inställningen att visas med sitt "
@@ -22267,7 +22283,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Rensa in i support/objekt/ifyllnad\n"

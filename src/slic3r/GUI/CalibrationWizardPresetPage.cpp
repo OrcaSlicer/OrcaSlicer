@@ -1505,6 +1505,9 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
 
     bed_temp = 0;
     std::vector<std::string> filament_types;
+    std::vector<int> nozzle_temperatures;
+    std::vector<int> nozzle_temperature_range_lows;
+    std::vector<int> nozzle_temperature_range_highs;
     for (auto &item : prests) {
         const auto& item_preset = item.second;
         if (!item_preset)
@@ -1533,13 +1536,38 @@ bool CalibrationPresetPage::is_filaments_compatiable(const std::map<int, Preset*
         std::string display_filament_type;
         filament_types.push_back(item_preset->config.get_filament_type(display_filament_type, 0));
 
+        int nozzle_temperature = 0;
+        int nozzle_temperature_range_low = 0;
+        int nozzle_temperature_range_high = 0;
+        if (const auto* opt_nozzle_temp = item_preset->config.option<ConfigOptionInts>("nozzle_temperature"))
+            nozzle_temperature = opt_nozzle_temp->get_at(0);
+        if (const auto* opt_nozzle_temp_low = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_low"))
+            nozzle_temperature_range_low = opt_nozzle_temp_low->get_at(0);
+        if (const auto* opt_nozzle_temp_high = item_preset->config.option<ConfigOptionInts>("nozzle_temperature_range_high"))
+            nozzle_temperature_range_high = opt_nozzle_temp_high->get_at(0);
+
+        nozzle_temperatures.push_back(nozzle_temperature);
+        nozzle_temperature_range_lows.push_back(nozzle_temperature_range_low);
+        nozzle_temperature_range_highs.push_back(nozzle_temperature_range_high);
+
         // check is it in the filament blacklist
         if (!is_filament_in_blacklist(item.first, item_preset, error_tips))
             return false;
     }
 
-    if (Print::check_multi_filaments_compatibility(filament_types) == FilamentCompatibilityType::HighLowMixed) {
-        error_tips = _u8L("Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing");
+    auto compatibility = Print::check_multi_filaments_compatibility(
+            filament_types,
+            nozzle_temperatures,
+            nozzle_temperature_range_lows,
+            nozzle_temperature_range_highs);
+
+    if (compatibility == FilamentCompatibilityType::InvalidTemperatureRange) {
+        error_tips = _u8L("Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound.");
+        return false;
+    }
+
+    if (compatibility == FilamentCompatibilityType::HighLowMixed) {
+        error_tips = _u8L("Selected nozzle temperatures are incompatible. For multi-material printing, each filament's nozzle temperature must be within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur.");
         return false;
     }
 

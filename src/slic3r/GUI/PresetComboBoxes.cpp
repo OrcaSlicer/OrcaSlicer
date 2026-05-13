@@ -1355,16 +1355,16 @@ void PlaterPresetComboBox::update()
                 bool unsupported = group == "Unsupported presets";
                 for (auto it : list) {
                     // ORCA add sorting support for vendor / type for user presets
-                    auto groupName2 = groupName == "by_bundle"   ? (preset_bundle_names[it->first].empty()     ? _L("Unspecified")   : preset_bundle_names[it->first])
-                                    : groupName == "by_type"     ? (preset_filament_types[it->first].empty()   ? _L("Unspecified") : preset_filament_types[it->first])
-                                    : groupName == "by_vendor"   ? (preset_filament_vendors[it->first].empty() ? _L("Unspecified") : preset_filament_vendors[it->first])
+                    auto groupName2 = groupName == "by_bundle"   ? (preset_bundle_names[it->first].empty()     ? _L("Unspecified") : from_u8(preset_bundle_names[it->first]))
+                                    : groupName == "by_type"     ? (preset_filament_types[it->first].empty()   ? _L("Unspecified") : from_u8(preset_filament_types[it->first]))
+                                    : groupName == "by_vendor"   ? (preset_filament_vendors[it->first].empty() ? _L("Unspecified") : from_u8(preset_filament_vendors[it->first]))
                                     : groupByGroup               ? groupName
-                                    : preset_filament_vendors[it->first];
+                                    : from_u8(preset_filament_vendors[it->first]);
                     int  index = groupName == "by_bundle"
-                        ? Append(preset_aliases[it->first], *it->second,
+                        ? Append(from_u8(preset_aliases[it->first]), *it->second,
                                  from_u8(preset_bundle_ids[it->first]), groupName2, nullptr,
                                  unsupported ? DD_ITEM_STYLE_DISABLED : 0)
-                        : Append(preset_aliases[it->first], *it->second, groupName2, nullptr,
+                        : Append(from_u8(preset_aliases[it->first]), *it->second, groupName2, nullptr,
                                  unsupported ? DD_ITEM_STYLE_DISABLED : 0);
                     SetItemAlias(index, it->first);
                     if (unsupported)
@@ -1380,7 +1380,7 @@ void PlaterPresetComboBox::update()
                 }
             } else {
                 for (std::map<wxString, wxBitmap *>::const_iterator it = presets.begin(); it != presets.end(); ++it) {
-                    int index = Append(preset_aliases[it->first], *it->second);
+                    int index = Append(from_u8(preset_aliases[it->first]), *it->second);
                     SetItemAlias(index, it->first);
                     SetItemTooltip(index, preset_descriptions[it->first]);
                     if (group == "System presets")
@@ -1767,10 +1767,10 @@ void TabPresetComboBox::update()
             // Get bundle name for grouping
             wxString bundle_name = _L("Unspecified");
             if (preset_bundle_names.count(it->first) > 0 && !preset_bundle_names[it->first].empty()) {
-                bundle_name = preset_bundle_names[it->first];
+                bundle_name = from_u8(preset_bundle_names[it->first]);
             }
             // Use Append with group parameter for sub-dropdown grouping
-            int item_id = Append(preset_aliases[it->first], *it->second.first, from_u8(preset_bundle_ids[it->first]), bundle_name);
+            int item_id = Append(from_u8(preset_aliases[it->first]), *it->second.first, from_u8(preset_bundle_ids[it->first]), bundle_name);
             SetItemAlias(item_id, it->first);
             SetItemTooltip(item_id, preset_descriptions[it->first]);
             bool is_enabled = it->second.second;

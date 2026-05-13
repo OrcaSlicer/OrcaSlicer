@@ -1812,7 +1812,8 @@ msgstr "Загрузка настроек"
 msgid "Click to download new version in default browser: %s"
 msgstr "Нажмите «Скачать» для загрузки версии %s в вашем основном браузере."
 
-msgid "The Orca Slicer needs an upgrade"
+#, fuzzy
+msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer нуждается в обновлении"
 
 msgid "This is the newest version."
@@ -2291,11 +2292,11 @@ msgstr "Преобразовать миллиметры в дюймы"
 msgid "Restore to meters"
 msgstr "Восстановить в миллиметры"
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr ""
 "Объединение выбранных объектов в модель, состоящую из нескольких частей"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Объединение выбранных моделей в единую"
 
 msgid "Mesh boolean"
@@ -5891,7 +5892,7 @@ msgstr "Отправить на несколько устройств"
 msgid "Keyboard Shortcuts"
 msgstr "Горячие клавиши"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Показать список сочетаний клавиш"
 
 msgid "Setup Wizard"
@@ -9018,7 +9019,8 @@ msgstr "Открытие ссылок в OrcaSlicer"
 msgid "Developer"
 msgstr "Разработка"
 
-msgid "Develop mode"
+#, fuzzy
+msgid "Developer mode"
 msgstr "Режим разработчика"
 
 msgid "Skip AMS blacklist check"
@@ -15501,6 +15503,9 @@ msgstr "Вручную"
 msgid "Contour"
 msgstr "Контур"
 
+msgid "Hole"
+msgstr "Отверстия"
+
 msgid "Contour and hole"
 msgstr "Контур и отверстия"
 
@@ -16954,10 +16959,14 @@ msgstr "Модификация принтера"
 msgid "Raft contact Z distance"
 msgstr "Зазор под моделью"
 
-msgid "Z gap between object and raft. Ignored for soluble interface."
+msgid ""
+"Z gap between raft and object. "
+"If Support Top Z Distance is 0, this value is ignored and "
+"the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"Вертикальное расстояние между подложкой и моделью. Значение игнорируется при "
-"выборе растворимого материала."
+"Вертикальное расстояние между подложкой и моделью. "
+"Если зазор поддержки сверху равен 0, это значение игнорируется, "
+"и модель печатается в прямом контакте с подложкой (без зазора)."
 
 msgid "Raft expansion"
 msgstr "Расширение подложки"
@@ -18047,16 +18056,20 @@ msgstr ""
 msgid "Top Z distance"
 msgstr "Зазор поддержки сверху"
 
-msgid "The Z gap between the top support interface and object."
-msgstr ""
-"Вертикальное расстояние между связующим слоем поддержки сверху и моделью."
+msgid "Z gap between the support's top and object."
+msgstr "Вертикальное расстояние между связующим слоем поддержки сверху и моделью."
 
 msgid "Bottom Z distance"
 msgstr "Зазор поддержки снизу"
 
-msgid "The Z gap between the bottom support interface and object."
+msgid ""
+"Z gap between the object and the support bottom. "
+"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+"is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr ""
-"Вертикальное расстояние между связующим слоем поддержки снизу и моделью."
+"Вертикальное расстояние между связующим слоем поддержки снизу и моделью. "
+"Если зазор поддержки сверху равен 0 и снизу есть интерфейсные слои, это значение "
+"игнорируется, и поддержка печатается в прямом контакте с моделью (без зазора)."
 
 msgid "Support/raft base"
 msgstr "Поддержка/подложка"
@@ -20530,7 +20543,7 @@ msgstr "Максимальная длина имени 40 символов."
 msgid "Please find the best line on your plate"
 msgstr "Пожалуйста, найдите лучшую линию на столе"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Пожалуйста, найдите угол с идеальной экструзией"
 
 msgid "Input Value"
@@ -21311,7 +21324,8 @@ msgstr "Создать"
 msgid "Vendor is not selected, please reselect vendor."
 msgstr "Не выбран производитель, пожалуйста, выберите его заново."
 
-msgid "Custom vendor is not input, please input custom vendor."
+#, fuzzy
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr "Не задан производитель, пожалуйста, введите производителя."
 
 msgid ""
@@ -21350,8 +21364,8 @@ msgstr "Выберите хотя бы один принтер или профи
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. "
+"Do you want to continue?"
 msgstr ""
 "Материал с таким именем %s уже существует.\n"
 "Если продолжить создание, то созданный профиль будет отображаться с полным "
@@ -23353,7 +23367,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Прочистка в поддержку/модель/заполнение\n"
