@@ -4,7 +4,7 @@
 	"inherits": "Generic PLA @LONGER LK10 Plus @base",
 	"from": "system",
 	"setting_id": "GFLLKPPL",
-	"filament_id": "GFLLK10PPLA",
+	"filament_id": "GFLLKPPL",
 	"instantiation": "true",
 	"compatible_printers": []
 }

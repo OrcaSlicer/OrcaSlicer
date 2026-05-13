@@ -3,6 +3,8 @@
 	"name": "Generic PLA @LONGER LK10 Plus @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
+	"filament_id": "GFLLKPPL",
+	"instantiation": "false",
 	"cool_plate_temp": [
 		"60"
 	],

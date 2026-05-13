@@ -3,6 +3,8 @@
 	"name": "Generic PETG @LONGER LK10 @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
+	"filament_id": "GFLLK10G",
+	"instantiation": "false",
 	"cool_plate_temp": [
 		"60"
 	],

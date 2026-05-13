@@ -4,7 +4,7 @@
 	"inherits": "Generic PETG @LONGER LK10 @base",
 	"from": "system",
 	"setting_id": "GFLLK10G",
-	"filament_id": "GFLLK10PETG",
+	"filament_id": "GFLLK10G",
 	"instantiation": "true",
 	"compatible_printers": []
 }
