@@ -6,6 +6,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
+#include "slic3r/Utils/DllCrashGuard.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -261,6 +262,8 @@ void SendJob::process(Ctl &ctl)
                     };
 
     auto cancel_fn = [&ctl]() {
+            if (g_networking_dll_crashed.load(std::memory_order_acquire))
+                return true;
             return ctl.was_canceled();
         };
 
@@ -328,10 +331,23 @@ void SendJob::process(Ctl &ctl)
         return;
     }
 
+    // Check if the networking DLL crashed asynchronously (e.g. on its MQTT thread)
+    if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
+        BOOST_LOG_TRIVIAL(error) << "send_job: networking DLL crashed asynchronously: " << get_dll_crash_message();
+        result = -1;
+    }
+
     if (result < 0) {
         curr_percent = -1;
 
-        if (result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {
+        if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
+            msg_text = _u8L("Connection to the printer failed. "
+                            "The networking plugin encountered an internal error. "
+                            "Please restart both your printer and OrcaSlicer to reconnect. "
+                            "If the problem persists, try printing via SD card instead.");
+            BOOST_LOG_TRIVIAL(error) << "send_job: networking DLL crash detected, showing error to user";
+        }
+        else if (result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {
             msg_text = file_is_not_exists_str;
         }
         else if (result == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE || result == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE) {
