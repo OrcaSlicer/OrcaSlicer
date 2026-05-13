@@ -1507,6 +1507,254 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Generic ABS @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Generic ABS @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Generic ABS @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Generic ABS @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Generic PC @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Generic PC @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Generic PC @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Generic PC @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Generic PETG @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Generic PETG @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Generic PETG @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Generic PETG @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Generic PLA @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Generic PLA @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Generic PLA @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Generic PLA @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Generic PLA Silk @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Generic PLA Silk @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Generic PLA Silk @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Generic PLA Silk @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Generic TPU @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Generic TPU @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Generic TPU @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Generic TPU @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Polymaker PETG @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/Polymaker PETG @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "Polymaker PETG @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/Polymaker PETG @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "SUNLU PETG @Sovol SV08 MAX @base",
+			"sub_path": "filament/Sovol/SUNLU PETG @Sovol SV08 MAX @base.json"
+		},
+		{
+			"name": "SUNLU PETG @Sovol SV08 MAX @System",
+			"sub_path": "filament/Sovol/SUNLU PETG @Sovol SV08 MAX @System.json"
+		},
+		{
+			"name": "Sovol SV06 ACE ABS @base",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE ABS @base.json"
+		},
+		{
+			"name": "Sovol SV06 ACE ABS @System",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE ABS @System.json"
+		},
+		{
+			"name": "Sovol SV06 ACE PETG @base",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE PETG @base.json"
+		},
+		{
+			"name": "Sovol SV06 ACE PETG @System",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE PETG @System.json"
+		},
+		{
+			"name": "Sovol SV06 ACE PLA @base",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE PLA @base.json"
+		},
+		{
+			"name": "Sovol SV06 ACE PLA @System",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE PLA @System.json"
+		},
+		{
+			"name": "Sovol SV06 ACE TPU @base",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE TPU @base.json"
+		},
+		{
+			"name": "Sovol SV06 ACE TPU @System",
+			"sub_path": "filament/Sovol/Sovol SV06 ACE TPU @System.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE ABS @base",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE ABS @base.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE ABS @System",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE ABS @System.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE PETG @base",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE PETG @base.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE PETG @System",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE PETG @System.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE PLA @base",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE PLA @base.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE PLA @System",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE PLA @System.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE TPU @base",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE TPU @base.json"
+		},
+		{
+			"name": "Sovol SV06 Plus ACE TPU @System",
+			"sub_path": "filament/Sovol/Sovol SV06 Plus ACE TPU @System.json"
+		},
+		{
+			"name": "Sovol SV07 PLA @base",
+			"sub_path": "filament/Sovol/Sovol SV07 PLA @base.json"
+		},
+		{
+			"name": "Sovol SV07 PLA @System",
+			"sub_path": "filament/Sovol/Sovol SV07 PLA @System.json"
+		},
+		{
+			"name": "Sovol SV08 ABS @base",
+			"sub_path": "filament/Sovol/Sovol SV08 ABS @base.json"
+		},
+		{
+			"name": "Sovol SV08 ABS @System",
+			"sub_path": "filament/Sovol/Sovol SV08 ABS @System.json"
+		},
+		{
+			"name": "Sovol SV08 PETG @base",
+			"sub_path": "filament/Sovol/Sovol SV08 PETG @base.json"
+		},
+		{
+			"name": "Sovol SV08 PETG @System",
+			"sub_path": "filament/Sovol/Sovol SV08 PETG @System.json"
+		},
+		{
+			"name": "Sovol SV08 PLA @base",
+			"sub_path": "filament/Sovol/Sovol SV08 PLA @base.json"
+		},
+		{
+			"name": "Sovol SV08 PLA @System",
+			"sub_path": "filament/Sovol/Sovol SV08 PLA @System.json"
+		},
+		{
+			"name": "Sovol SV08 PLA @SV08 0.2 nozzle @base",
+			"sub_path": "filament/Sovol/Sovol SV08 PLA @SV08 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Sovol SV08 PLA @SV08 0.2 nozzle @System",
+			"sub_path": "filament/Sovol/Sovol SV08 PLA @SV08 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Sovol SV08 TPU @base",
+			"sub_path": "filament/Sovol/Sovol SV08 TPU @base.json"
+		},
+		{
+			"name": "Sovol SV08 TPU @System",
+			"sub_path": "filament/Sovol/Sovol SV08 TPU @System.json"
+		},
+		{
+			"name": "Sovol Zero ABS @base",
+			"sub_path": "filament/Sovol/Sovol Zero ABS @base.json"
+		},
+		{
+			"name": "Sovol Zero ABS @System",
+			"sub_path": "filament/Sovol/Sovol Zero ABS @System.json"
+		},
+		{
+			"name": "Sovol Zero PC @base",
+			"sub_path": "filament/Sovol/Sovol Zero PC @base.json"
+		},
+		{
+			"name": "Sovol Zero PC @System",
+			"sub_path": "filament/Sovol/Sovol Zero PC @System.json"
+		},
+		{
+			"name": "Sovol Zero PETG @base",
+			"sub_path": "filament/Sovol/Sovol Zero PETG @base.json"
+		},
+		{
+			"name": "Sovol Zero PETG @System",
+			"sub_path": "filament/Sovol/Sovol Zero PETG @System.json"
+		},
+		{
+			"name": "Sovol Zero PETG HS Nozzle @base",
+			"sub_path": "filament/Sovol/Sovol Zero PETG HS Nozzle @base.json"
+		},
+		{
+			"name": "Sovol Zero PETG HS Nozzle @System",
+			"sub_path": "filament/Sovol/Sovol Zero PETG HS Nozzle @System.json"
+		},
+		{
+			"name": "Sovol Zero PLA Basic @base",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Basic @base.json"
+		},
+		{
+			"name": "Sovol Zero PLA Basic @System",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Basic @System.json"
+		},
+		{
+			"name": "Sovol Zero PLA Basic HS Nozzle @base",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Basic HS Nozzle @base.json"
+		},
+		{
+			"name": "Sovol Zero PLA Basic HS Nozzle @System",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Basic HS Nozzle @System.json"
+		},
+		{
+			"name": "Sovol Zero PLA Silk @base",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Silk @base.json"
+		},
+		{
+			"name": "Sovol Zero PLA Silk @System",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Silk @System.json"
+		},
+		{
+			"name": "Sovol Zero PLA Silk HS Nozzle @base",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Silk HS Nozzle @base.json"
+		},
+		{
+			"name": "Sovol Zero PLA Silk HS Nozzle @System",
+			"sub_path": "filament/Sovol/Sovol Zero PLA Silk HS Nozzle @System.json"
+		},
+		{
+			"name": "Sovol Zero TPU @base",
+			"sub_path": "filament/Sovol/Sovol Zero TPU @base.json"
+		},
+		{
+			"name": "Sovol Zero TPU @System",
+			"sub_path": "filament/Sovol/Sovol Zero TPU @System.json"
 		}
 	],
 	"process_list": [],

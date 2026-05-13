@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Sovol SV06 Plus ACE PETG @System",
+	"inherits": "Sovol SV06 Plus ACE PETG @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}

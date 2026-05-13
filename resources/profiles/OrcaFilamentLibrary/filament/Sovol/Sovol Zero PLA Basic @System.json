@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Sovol Zero PLA Basic @System",
+	"inherits": "Sovol Zero PLA Basic @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL99",
+	"instantiation": "true",
+	"compatible_printers": []
+}
