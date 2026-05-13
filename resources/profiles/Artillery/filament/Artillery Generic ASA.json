@@ -1,17 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFB98",
-	"setting_id": "GFSA04",
 	"name": "Artillery Generic ASA",
+	"inherits": "Artillery Generic ASA @base",
 	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFB98",
 	"instantiation": "true",
-	"inherits": "fdm_filament_asa",
-	"filament_flow_ratio": [
-		"0.93"
-	],
-	"filament_max_volumetric_speed": [
-		"12"
-	],
 	"compatible_printers": [
 		"Artillery Sidewinder X1 0.4 nozzle",
 		"Artillery Genius 0.4 nozzle",

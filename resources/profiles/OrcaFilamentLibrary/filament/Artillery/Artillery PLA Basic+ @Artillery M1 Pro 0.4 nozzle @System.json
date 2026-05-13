@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle @System",
+	"inherits": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

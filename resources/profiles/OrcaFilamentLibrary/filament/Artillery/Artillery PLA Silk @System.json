@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery PLA Silk @System",
+	"inherits": "Artillery PLA Silk @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

@@ -1507,6 +1507,494 @@
 		{
 			"name": "GreenGate3D PETG @System",
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
+		},
+		{
+			"name": "Artillery ABS @base",
+			"sub_path": "filament/Artillery/Artillery ABS @base.json"
+		},
+		{
+			"name": "Artillery ABS @System",
+			"sub_path": "filament/Artillery/Artillery ABS @System.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ABS @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ABS @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery ASA @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery ASA @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery Generic ABS @base",
+			"sub_path": "filament/Artillery/Artillery Generic ABS @base.json"
+		},
+		{
+			"name": "Artillery Generic ABS @System",
+			"sub_path": "filament/Artillery/Artillery Generic ABS @System.json"
+		},
+		{
+			"name": "Artillery Generic ASA @base",
+			"sub_path": "filament/Artillery/Artillery Generic ASA @base.json"
+		},
+		{
+			"name": "Artillery Generic ASA @System",
+			"sub_path": "filament/Artillery/Artillery Generic ASA @System.json"
+		},
+		{
+			"name": "Artillery Generic PETG @base",
+			"sub_path": "filament/Artillery/Artillery Generic PETG @base.json"
+		},
+		{
+			"name": "Artillery Generic PETG @System",
+			"sub_path": "filament/Artillery/Artillery Generic PETG @System.json"
+		},
+		{
+			"name": "Artillery Generic PLA @base",
+			"sub_path": "filament/Artillery/Artillery Generic PLA @base.json"
+		},
+		{
+			"name": "Artillery Generic PLA @System",
+			"sub_path": "filament/Artillery/Artillery Generic PLA @System.json"
+		},
+		{
+			"name": "Artillery Generic PLA-CF @base",
+			"sub_path": "filament/Artillery/Artillery Generic PLA-CF @base.json"
+		},
+		{
+			"name": "Artillery Generic PLA-CF @System",
+			"sub_path": "filament/Artillery/Artillery Generic PLA-CF @System.json"
+		},
+		{
+			"name": "Artillery Generic TPU @base",
+			"sub_path": "filament/Artillery/Artillery Generic TPU @base.json"
+		},
+		{
+			"name": "Artillery Generic TPU @System",
+			"sub_path": "filament/Artillery/Artillery Generic TPU @System.json"
+		},
+		{
+			"name": "Artillery PA @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PA @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PA @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PA @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PA-CF @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PA-CF @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PC @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PC @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PC @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PC @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PET @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PET @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG @base",
+			"sub_path": "filament/Artillery/Artillery PETG @base.json"
+		},
+		{
+			"name": "Artillery PETG @System",
+			"sub_path": "filament/Artillery/Artillery PETG @System.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG Basic @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG Basic @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PETG-CF @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Basic @base",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @base.json"
+		},
+		{
+			"name": "Artillery PLA Basic @System",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @System.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Matte @base",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @base.json"
+		},
+		{
+			"name": "Artillery PLA Matte @System",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @System.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Matte @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Matte @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Silk @base",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @base.json"
+		},
+		{
+			"name": "Artillery PLA Silk @System",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @System.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA Silk @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA Silk @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PLA Tough @base",
+			"sub_path": "filament/Artillery/Artillery PLA Tough @base.json"
+		},
+		{
+			"name": "Artillery PLA Tough @System",
+			"sub_path": "filament/Artillery/Artillery PLA Tough @System.json"
+		},
+		{
+			"name": "Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.2 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.2 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.2 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.2 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery PVA @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery PVA @Artillery M1 Pro 0.8 nozzle @System.json"
+		},
+		{
+			"name": "Artillery TPU @base",
+			"sub_path": "filament/Artillery/Artillery TPU @base.json"
+		},
+		{
+			"name": "Artillery TPU @System",
+			"sub_path": "filament/Artillery/Artillery TPU @System.json"
+		},
+		{
+			"name": "Artillery TPU @Artillery M1 Pro 0.4 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery TPU @Artillery M1 Pro 0.4 nozzle @base.json"
+		},
+		{
+			"name": "Artillery TPU @Artillery M1 Pro 0.4 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery TPU @Artillery M1 Pro 0.4 nozzle @System.json"
+		},
+		{
+			"name": "Artillery TPU @Artillery M1 Pro 0.6 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery TPU @Artillery M1 Pro 0.6 nozzle @base.json"
+		},
+		{
+			"name": "Artillery TPU @Artillery M1 Pro 0.6 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery TPU @Artillery M1 Pro 0.6 nozzle @System.json"
+		},
+		{
+			"name": "Artillery TPU @Artillery M1 Pro 0.8 nozzle @base",
+			"sub_path": "filament/Artillery/Artillery TPU @Artillery M1 Pro 0.8 nozzle @base.json"
+		},
+		{
+			"name": "Artillery TPU @Artillery M1 Pro 0.8 nozzle @System",
+			"sub_path": "filament/Artillery/Artillery TPU @Artillery M1 Pro 0.8 nozzle @System.json"
 		}
 	],
 	"process_list": [],

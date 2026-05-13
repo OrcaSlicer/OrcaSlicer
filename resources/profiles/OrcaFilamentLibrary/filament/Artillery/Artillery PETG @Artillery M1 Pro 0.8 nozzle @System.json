@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle @System",
+	"inherits": "Artillery PETG @Artillery M1 Pro 0.8 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "P284941e",
+	"instantiation": "true",
+	"compatible_printers": []
+}

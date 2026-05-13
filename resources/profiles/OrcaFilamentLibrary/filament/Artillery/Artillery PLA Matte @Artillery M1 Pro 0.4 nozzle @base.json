@@ -1,0 +1,160 @@
+{
+	"type": "filament",
+	"name": "Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle @base",
+	"inherits": "Artillery Generic PLA",
+	"from": "system",
+	"instantiation": "false",
+	"cool_plate_temp": [
+		"50"
+	],
+	"eng_plate_temp": [
+		"0"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"50"
+	],
+	"eng_plate_temp_initial_layer": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"fan_cooling_layer_time": [
+		"100"
+	],
+	"filament_cost": [
+		"20"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_max_volumetric_speed": [
+		"21"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retract_before_wipe": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"0.8"
+	],
+	"filament_z_hop": [
+		"0.6"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"40"
+	],
+	"filament_settings_id": [
+		"Artillery PLA Matte @Artillery M1 Pro 0.4 nozzle"
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_type": [
+		"PLA Matte"
+	],
+	"filament_vendor": [
+		"Artillery"
+	],
+	"filament_wipe": [
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"slow_down_min_speed": [
+		"15"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"filament_start_gcode": [
+		""
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"temperature_vitrification": [
+		"60"
+	],
+	"nozzle_temperature_range_low": [
+		"190"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"additional_cooling_fan_speed": [
+		"50"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.038"
+	]
+}

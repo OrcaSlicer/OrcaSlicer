@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery ABS @Artillery M1 Pro 0.6 nozzle @System",
+	"inherits": "Artillery ABS @Artillery M1 Pro 0.6 nozzle @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "P39db358",
+	"instantiation": "true",
+	"compatible_printers": []
+}

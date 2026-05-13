@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery PETG @System",
+	"inherits": "Artillery PETG @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}

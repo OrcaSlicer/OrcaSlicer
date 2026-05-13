@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery Generic PLA-CF @System",
+	"inherits": "Artillery Generic PLA-CF @base",
+	"from": "system",
+	"setting_id": "GFSA04",
+	"filament_id": "GFL98",
+	"instantiation": "true",
+	"compatible_printers": []
+}

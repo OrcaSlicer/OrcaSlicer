@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Artillery TPU @System",
+	"inherits": "Artillery TPU @base",
+	"from": "system",
+	"setting_id": "",
+	"filament_id": "",
+	"instantiation": "true",
+	"compatible_printers": []
+}
