@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-20 23:26+0800\n"
+"POT-Creation-Date: 2026-05-12 15:52-0300\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -16,8 +16,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && (n%100<11 || n%100>19) ? 0 : "
-"n%10>=2 && n%10<=9 && (n%100<11 || n%100>19) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && (n%100<11 || n%100>19) ? 0 : n"
+"%10>=2 && n%10<=9 && (n%100<11 || n%100>19) ? 1 : 2);\n"
 "X-Generator: Poedit 3.6\n"
 
 msgid "right"
@@ -115,26 +115,38 @@ msgstr "Paskutinė versija"
 msgid "Support Painting"
 msgstr "Palaiko piešimą"
 
-msgid "Ctrl+"
-msgstr "Ctrl+"
+msgid "Perform"
+msgstr "Atlikti"
 
-msgid "Alt+"
-msgstr "Alt+"
+msgid "On highlighted overhangs only"
+msgstr "Tik paryškintiems kabantiems"
 
-msgid "Shift+"
-msgstr "Shift+"
+msgid "Erase all painting"
+msgstr "Ištrinti visą piešinį"
 
-msgid "Mouse wheel"
-msgstr "Pelės ratukas"
+msgid "Highlight overhang areas"
+msgstr "Paryškinti kabančias vietas"
 
-msgid "Section view"
-msgstr "Sekcijų peržiūra"
+msgid "Tool type"
+msgstr "Įrankio tipas"
+
+msgid "Gap fill"
+msgstr "Plyšių užpildymas"
 
 msgid "Reset direction"
 msgstr "Atstatyti kryptį"
 
-msgid "Pen size"
-msgstr "Pieštuko dydis"
+msgid "Section view"
+msgstr "Sekcijų peržiūra"
+
+msgid "Brush size"
+msgstr "Teptuko dydis"
+
+msgid "Smart fill angle"
+msgstr "Išmanaus užpildymo kampas"
+
+msgid "Gap area"
+msgstr "Plyšio vieta"
 
 msgid "Left mouse button"
 msgstr "Kairys pelės mygtukas"
@@ -151,29 +163,8 @@ msgstr "Blokuoti atramas"
 msgid "Erase"
 msgstr "Ištrinti"
 
-msgid "Erase all painting"
-msgstr "Ištrinti visą piešinį"
-
-msgid "Highlight overhang areas"
-msgstr "Paryškinti kabančias vietas"
-
-msgid "Gap fill"
-msgstr "Plyšių užpildymas"
-
-msgid "Perform"
-msgstr "Atlikti"
-
-msgid "Gap area"
-msgstr "Plyšio vieta"
-
-msgid "Tool type"
-msgstr "Įrankio tipas"
-
-msgid "Smart fill angle"
-msgstr "Išmanaus užpildymo kampas"
-
-msgid "On highlighted overhangs only"
-msgstr "Tik paryškintiems kabantiems"
+msgid "Mouse wheel"
+msgstr "Pelės ratukas"
 
 msgid "Auto support threshold angle: "
 msgstr "Automatinių atramų generavimo kampas: "
@@ -220,14 +211,11 @@ msgstr ""
 msgid "Color Painting"
 msgstr "Spalvotas piešimas"
 
-msgid "Pen shape"
-msgstr "Rašiklio forma"
+msgid "Brush shape"
+msgstr "Teptuko forma"
 
 msgid "Paint"
 msgstr "Piešti"
-
-msgid "Key 1~9"
-msgstr "Klavišai 1~9"
 
 msgid "Choose filament"
 msgstr "Pasirinkite giją"
@@ -253,9 +241,6 @@ msgstr "Kibiro užpildymas"
 msgid "Height range"
 msgstr "Aukščio diapazonas"
 
-msgid "Enter"
-msgstr "Įvesti"
-
 msgid "Toggle Wireframe"
 msgstr "Perjungti \"vielinį\" vaizdą"
 
@@ -265,8 +250,11 @@ msgstr "Perplanuoti gijas"
 msgid "Remap"
 msgstr "Perplanuoti"
 
-msgid "Cancel"
-msgstr "Atšaukti"
+msgid "Reset"
+msgstr "Nustatyti iš naujo"
+
+msgid "Enter"
+msgstr "Įvesti"
 
 msgid "Shortcut Key "
 msgstr "Spartusis klavišas "
@@ -295,12 +283,6 @@ msgstr "To:"
 
 msgid "Paint-on fuzzy skin"
 msgstr "Piešti grublėtą paviršių"
-
-msgid "Brush size"
-msgstr "Teptuko dydis"
-
-msgid "Brush shape"
-msgstr "Teptuko forma"
 
 msgid "Add fuzzy skin"
 msgstr "Add fuzzy skin"
@@ -547,17 +529,14 @@ msgstr "Paklaidos"
 msgid "Drag"
 msgstr "Vilkti"
 
+msgid "Move cut line"
+msgstr ""
+
 msgid "Draw cut line"
 msgstr "Brėžti pjūvio liniją"
 
-msgid "Left click"
-msgstr "Kairysis spustelėjimas"
-
 msgid "Add connector"
 msgstr "Įtraukti jungtį"
-
-msgid "Right click"
-msgstr "Spustelėti dešinįjį pelės mygtuką"
 
 msgid "Remove connector"
 msgstr "Pašalinti jungtį"
@@ -598,14 +577,14 @@ msgstr "Tarpo proporcija spindulio atžvilgiu"
 msgid "Confirm connectors"
 msgstr "Patvirtinti jungtis"
 
+msgid "Cancel"
+msgstr "Atšaukti"
+
 msgid "Flip cut plane"
 msgstr "Apversti pjovimo plokštumą"
 
 msgid "Groove change"
 msgstr "Griovelio kaita"
-
-msgid "Reset"
-msgstr "Nustatyti iš naujo"
 
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
 msgid "Edited"
@@ -813,6 +792,9 @@ msgstr "Paviršius"
 msgid "Horizontal text"
 msgstr "Horizontalus tekstas"
 
+msgid "Shift+"
+msgstr "Shift+"
+
 msgid "Mouse move up or down"
 msgstr "Pele judėkite aukštyn arba žemyn"
 
@@ -844,6 +826,9 @@ msgstr "Palikti reljefinio rašto įrankį"
 
 msgid "Embossing actions"
 msgstr "Reljefiniai veiksmai"
+
+msgid "Position on surface"
+msgstr ""
 
 msgid "Emboss"
 msgstr "Iškelti"
@@ -1444,8 +1429,8 @@ msgstr "Briaunos centras"
 msgid "Center of circle"
 msgstr "Apskritimo centras"
 
-msgid "Select feature"
-msgstr "Pasirinkti elementą"
+msgid "Select"
+msgstr "Pasirinkti"
 
 msgid "Select point"
 msgstr "Pasirinkti tašką"
@@ -1594,6 +1579,12 @@ msgstr ""
 msgid "Face and face assembly"
 msgstr "Face and face assembly"
 
+msgid "Ctrl+"
+msgstr "Ctrl+"
+
+msgid "Alt+"
+msgstr "Alt+"
+
 msgid "Notice"
 msgstr "Įspėjimas"
 
@@ -1631,8 +1622,8 @@ msgstr ""
 "Konfigūracijos failas „%1%“ buvo įkeltas, tačiau kai kurios reikšmės nebuvo "
 "atpažintos."
 
-msgid "Based on PrusaSlicer and BambuStudio"
-msgstr "Remiantis „PrusaSlicer“ ir „BambuStudio“"
+msgid "Loading configuration"
+msgstr "Įkeliama konfigūracija"
 
 msgid "STEP files"
 msgstr "STEP files"
@@ -1755,9 +1746,6 @@ msgstr ""
 
 msgid "Remember my choice"
 msgstr "Prisiminti mano pasirinkimą"
-
-msgid "Loading configuration"
-msgstr "Įkeliama konfigūracija"
 
 #, c-format, boost-format
 msgid "Click to download new version in default browser: %s"
@@ -1896,6 +1884,33 @@ msgstr "Network Plug-in Restriction"
 msgid "Privacy Policy Update"
 msgstr "Privatumo politikos atnaujinimas"
 
+#, c-format, boost-format
+msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgstr ""
+
+msgid "your default profile"
+msgstr ""
+
+#, c-format, boost-format
+msgid "a user profile (folder: \"%s\")"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Existing user presets were found in %s.\n"
+"Do you want to migrate them to your OrcaCloud profile?\n"
+"This will copy your presets so they are available under your new account."
+msgstr ""
+
+msgid "Migrate User Presets"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to migrate user presets:\n"
+"%s"
+msgstr ""
+
 msgid ""
 "The number of user presets cached in the cloud has exceeded the upper limit, "
 "newly created user presets can only be used locally."
@@ -1906,8 +1921,34 @@ msgstr ""
 msgid "Sync user presets"
 msgstr "Sinchronizuoti naudotojo nustatymus"
 
+msgid ""
+"The preset content is too large to sync to the cloud (exceeds 1MB). Please "
+"reduce the preset size by removing custom configurations or use it locally "
+"only."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s updated from %s to %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has been downloaded."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Bundle %s is no longer available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Bundle %s access is unauthorized."
+msgstr ""
+
 msgid "Loading user preset"
 msgstr "Įkeliami naudotojo nustatymai"
+
+#, c-format, boost-format
+msgid "%s has been removed."
+msgstr ""
 
 msgid "Switching application language"
 msgstr "Perjungiama programoskalba"
@@ -2145,6 +2186,18 @@ msgstr "Pridėti nustatymus"
 msgid "Change type"
 msgstr "Keisti tipą"
 
+msgid "Negative Part"
+msgstr "Neigiama dalis"
+
+msgid "Support Blocker"
+msgstr "Atramų blokatorius"
+
+msgid "Support Enforcer"
+msgstr "Priverstinės atramos"
+
+msgid "Change part type"
+msgstr ""
+
 msgid "Set as an individual object"
 msgstr "Nustatyti kaip atskirą objektą"
 
@@ -2159,6 +2212,12 @@ msgstr "Užpildyti likusią pagrindo vietą pasirinkto objekto kopijomis"
 
 msgid "Printable"
 msgstr "Galima spausdinti"
+
+msgid "Auto Drop"
+msgstr ""
+
+msgid "Automatically drops the selected object to the build plate"
+msgstr ""
 
 msgid "Fix model"
 msgstr "Sutaisyti objektą"
@@ -2437,6 +2496,9 @@ msgstr "Keisti giją"
 msgid "Set Filament for selected items"
 msgstr "Nsutatyti giją pasirinktiems objektams"
 
+msgid "Automatically snaps the selected object to the build plate"
+msgstr ""
+
 msgid "Unlock"
 msgstr "Atrakinti"
 
@@ -2629,15 +2691,6 @@ msgstr ""
 msgid "The type of the last solid object part is not to be changed."
 msgstr "Paskutinės vientiso objekto dalies tipas negali būti keičiamas."
 
-msgid "Negative Part"
-msgstr "Neigiama dalis"
-
-msgid "Support Blocker"
-msgstr "Atramų blokatorius"
-
-msgid "Support Enforcer"
-msgstr "Priverstinės atramos"
-
 msgid "Type:"
 msgstr "Tipas:"
 
@@ -2746,8 +2799,8 @@ msgstr "Plokštė"
 msgid "Brim"
 msgstr "Kraštas"
 
-msgid "Object/Part Setting"
-msgstr "Objekto / Dalies nustatymai"
+msgid "Object/Part Settings"
+msgstr ""
 
 msgid "Reset parameter"
 msgstr "Grąžinti į pradinį"
@@ -3443,22 +3496,27 @@ msgstr ""
 msgid "About %s"
 msgstr "Apie %s"
 
-msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
-msgstr "OrcaSlicer sukurtas remiantis BambuStudio, PrusaSlicer ir SuperSlicer."
-
-msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
+msgid ""
+"Open-source slicing stands on a tradition of collaboration and attribution. "
+"Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the "
+"foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio "
+"forked from PrusaSlicer, and SuperSlicer extended it with community-driven "
+"enhancements. Each project carried the work of its predecessors forward, "
+"crediting those who came before."
 msgstr ""
-"Pradinė BambuStudio programos kūrimo bazė buvo PrusaSlicer iš PrusaResearch."
-
-msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
-msgstr ""
-"Pradinė PrusaSlicer programos kūrimo bazė buvo Slic3r, kurį sukūrė "
-"Alessandro Ranellucci."
 
 msgid ""
-"Slic3r was created by Alessandro Ranellucci with the help of many other "
-"contributors."
-msgstr "Slic3r sukūrė Alessandro Ranellucci su daugelio kitų kūrėjų pagalba."
+"OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStudio, "
+"SuperSlicer, and CuraSlicer. But it has since grown far beyond its origins — "
+"introducing advanced calibration tools, precise wall and seam control and "
+"hundreds of other features."
+msgstr ""
+
+msgid ""
+"Today, OrcaSlicer is the most widely used and actively developed open-source "
+"slicer in the 3D printing community. Many of its innovations have been "
+"adopted by other slicers, making it a driving force for the entire industry."
+msgstr ""
 
 msgid "Version"
 msgstr "Versija"
@@ -4307,7 +4365,7 @@ msgstr ""
 "seam_slope_start_height turi būti mažesnis nei layer_height.\n"
 "Atstatoma į 0."
 
-#, fuzzy, c-format, boost-format
+#, fuzzy, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4853,6 +4911,12 @@ msgstr "Linijos plotis"
 msgid "Actual Speed"
 msgstr "Faktinis greitis"
 
+msgid "Acceleration"
+msgstr "Pagreitis"
+
+msgid "Jerk"
+msgstr ""
+
 msgid "Fan Speed"
 msgstr "Ventiliatoriaus greitis"
 
@@ -4952,6 +5016,9 @@ msgstr "Mixed"
 msgid "mm/s"
 msgstr "mm/s"
 
+msgid "mm/s²"
+msgstr "mm/s²"
+
 msgid "Flow rate"
 msgstr "Srauto greitis"
 
@@ -4997,8 +5064,11 @@ msgstr "Tool: "
 msgid "Color: "
 msgstr "Color: "
 
-msgid "Actual Speed: "
-msgstr "Faktinis greitis: "
+msgid "Acceleration: "
+msgstr ""
+
+msgid "Jerk: "
+msgstr ""
 
 msgid "PA: "
 msgstr "PA: "
@@ -5099,8 +5169,8 @@ msgstr "Set to Optimal"
 msgid "Regroup filament"
 msgstr "Regroup filament"
 
-msgid "Tips"
-msgstr "Patarimai"
+msgid "Wiki Guide"
+msgstr "Wiki Guide"
 
 msgid "up to"
 msgstr "iki"
@@ -5125,6 +5195,12 @@ msgstr "Greitis (mm/s)"
 
 msgid "Actual Speed (mm/s)"
 msgstr "Faktinis greitis (mm/s)"
+
+msgid "Acceleration (mm/s²)"
+msgstr ""
+
+msgid "Jerk (mm/s)"
+msgstr ""
 
 msgid "Fan Speed (%)"
 msgstr "Ventiliatoriaus greitis (%)"
@@ -5155,6 +5231,9 @@ msgstr "Kaina"
 
 msgid "Filament change times"
 msgstr "Gijų keitimo laikai"
+
+msgid "Tool changes"
+msgstr ""
 
 msgid "Color change"
 msgstr "Spalvos pakeitimas"
@@ -5239,17 +5318,17 @@ msgstr "Iš naujo nustatyti į pagrindinį"
 msgid "Smoothing"
 msgstr "Glotninimas"
 
-msgid "Mouse wheel:"
-msgstr "Pelės ratukas:"
-
 msgid "Increase/decrease edit area"
 msgstr "Padidinti / sumažinti redagavimo sritį"
 
 msgid "Sequence"
 msgstr "Seka"
 
-msgid "Object selection"
-msgstr "objekto pasirinkimas"
+msgid "Object Selection"
+msgstr ""
+
+msgid "Part Selection"
+msgstr ""
 
 msgid "number keys"
 msgstr "skaičių klavišai"
@@ -5437,6 +5516,9 @@ msgstr "Labels"
 msgid "Paint Toolbar"
 msgstr "Piešimo įrankių juosta"
 
+msgid "part selection"
+msgstr "detalės pasirinkimas"
+
 msgid "Explosion Ratio"
 msgstr "Plėtimosi santykis"
 
@@ -5461,7 +5543,7 @@ msgstr "Tūris:"
 msgid "Size:"
 msgstr "Dydis:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5984,6 +6066,9 @@ msgstr "Parinktys"
 msgid "View"
 msgstr "Vaizdas"
 
+msgid "Preset Bundle"
+msgstr ""
+
 msgid "Help"
 msgstr "Pagalba"
 
@@ -5996,35 +6081,14 @@ msgstr "Maks srautas"
 msgid "Pressure advance"
 msgstr "Filamento tiekimas posūkio metu"
 
-msgid "Pass 1"
-msgstr "1 fazė"
-
-msgid "Flow ratio test - Pass 1"
-msgstr "Srauto santykio testas - 1 fazė"
-
-msgid "Pass 2"
-msgstr "2 fazė"
-
-msgid "Flow ratio test - Pass 2"
-msgstr "Srauto santykio testas - 2 fazė"
-
-msgid "YOLO (Recommended)"
-msgstr "YOLO (rekomenduojama)"
-
-msgid "Orca YOLO flowratio calibration, 0.01 step"
-msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,01 žingsnis"
-
-msgid "YOLO (perfectionist version)"
-msgstr "YOLO (perfekcionistinė versija)"
-
-msgid "Orca YOLO flowratio calibration, 0.005 step"
-msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,005 žingsnis"
-
 msgid "Flow ratio"
 msgstr "Srauto santykis"
 
-msgid "Retraction test"
-msgstr "Įtraukimo testas"
+msgid "Flow Rate Calibration"
+msgstr "Srauto kalibravimas"
+
+msgid "Retraction"
+msgstr "Įtraukimas"
 
 msgid "Cornering"
 msgstr "Posūkiai"
@@ -6044,11 +6108,8 @@ msgstr "Įvesties formavimas"
 msgid "VFA"
 msgstr "VFA"
 
-msgid "Tutorial"
-msgstr "Pamokos"
-
-msgid "Calibration help"
-msgstr "Kalibravimo pagalba"
+msgid "Calibration Guide"
+msgstr ""
 
 msgid "&Open G-code"
 msgstr "Atidaryti G-kodą"
@@ -6157,17 +6218,12 @@ msgid "Filament Settings"
 msgstr "Gijos nustatymai"
 
 msgid ""
-"Do you want to synchronize your personal data from Bambu Cloud?\n"
+"Do you want to synchronize your personal data from Orca Cloud?\n"
 "It contains the following information:\n"
 "1. The Process presets\n"
 "2. The Filament presets\n"
 "3. The Printer presets"
 msgstr ""
-"Ar norite sinchronizuoti asmeninius duomenis iš Bambu Cloud?\n"
-"Juose yra ši informacija:\n"
-"1. Procesų išankstiniai nustatymai\n"
-"2. Filamento išankstiniai nustatymai\n"
-"3. Spausdintuvo išankstiniai nustatymai"
 
 msgid "Synchronization"
 msgstr "Sinchronizacija"
@@ -6184,6 +6240,11 @@ msgid "The player is not loaded, please click \"play\" button to retry."
 msgstr ""
 "Grotuvas neįkeltas. Spustelėkite \"paleisti\" mygtuką, kad bandytumėte iš "
 "naujo."
+
+msgid ""
+"The player is not loaded because the GStreamer GTK video sink is missing or "
+"failed to initialize."
+msgstr ""
 
 msgid "Please confirm if the printer is connected."
 msgstr "Prašome patvirtinti, kas spausdintuvas prijungtas."
@@ -6310,9 +6371,6 @@ msgstr "Parsisiųsti"
 
 msgid "Download selected files from printer."
 msgstr "Atsisiųsti pasirinktus failus iš spausdintuvo."
-
-msgid "Select"
-msgstr "Pasirinkti"
 
 msgid "Batch manage files."
 msgstr "Valdyti fails rinkinyje."
@@ -7020,9 +7078,6 @@ msgstr "Smulkiau"
 msgid "New printer config available."
 msgstr "Pasiekiama nauja spausdintuvo konfigūracija."
 
-msgid "Wiki Guide"
-msgstr "Wiki Guide"
-
 msgid "Undo integration failed."
 msgstr "Integracijos atšaukimas nepavyko."
 
@@ -7095,6 +7150,12 @@ msgstr "Sėkmingai eksportuota"
 
 msgid "Model file downloaded."
 msgstr "Modelio failas parsiųstas."
+
+msgid "Shared profiles may be available for this printer."
+msgstr ""
+
+msgid "Browse shared profiles"
+msgstr ""
 
 msgid "Serious warning:"
 msgstr "Svarbus įspėjimas:"
@@ -7300,8 +7361,8 @@ msgstr "Bendras"
 msgid "Objects"
 msgstr "Objektai"
 
-msgid "Show/Hide advanced parameters"
-msgstr "Show/Hide advanced parameters"
+msgid "Cycle settings visibility"
+msgstr ""
 
 msgid "Compare presets"
 msgstr "Palyginti išankstinius nustatymus"
@@ -7420,14 +7481,6 @@ msgstr ""
 
 msgid "Switch diameter"
 msgstr "Switch diameter"
-
-#, c-format, boost-format
-msgid "Left nozzle: %smm"
-msgstr "Left nozzle: %smm"
-
-#, c-format, boost-format
-msgid "Right nozzle: %smm"
-msgstr "Right nozzle: %smm"
 
 msgid "Configuration incompatible"
 msgstr "Nesuderinama konfigūracija"
@@ -7588,12 +7641,29 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Įkeliamas failas: %s"
 
+msgid "Load 3MF"
+msgstr "Įkelti 3MF"
+
+msgid "BambuStudio Project"
+msgstr ""
+
 #, fuzzy
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "3MF nepalaikomas Orca Slicer. Įkeliami tik geometrijos duomenys."
 
-msgid "Load 3MF"
-msgstr "Įkelti 3MF"
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
+msgstr ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
+
+msgid ""
+"The 3MF file was generated by an older version, loading geometry data only."
+msgstr ""
+
+msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
+msgstr ""
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -7629,12 +7699,21 @@ msgstr ""
 "3MF failo versija %s yra naujesnė nei %s versija %s. Siūloma atnaujinti jūsų "
 "programinę įrangą."
 
+#, c-format, boost-format
 msgid ""
-"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
-"data only."
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Found unrecognized settings:"
 msgstr ""
-"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
-"data only."
+
+#, c-format, boost-format
+msgid ""
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Some settings may not be fully compatible."
+msgstr ""
+
+msgid ""
+"The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
+msgstr ""
 
 msgid "Invalid values found in the 3MF:"
 msgstr "3MF rasti netinkami duomenys:"
@@ -7720,6 +7799,9 @@ msgstr "Ar įkelti šiuos failus kaip vieną objektą su keliomis detalėmis?\n"
 msgid "Object with multiple parts was detected"
 msgstr "Aptiktas objektas su keliomis detalėmis"
 
+msgid "Auto-Drop"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "Connected printer is %s. It must match the project preset for printing.\n"
@@ -7732,6 +7814,9 @@ msgid ""
 msgstr ""
 "Do you want to sync the printer information and automatically switch the "
 "preset?"
+
+msgid "Tips"
+msgstr "Patarimai"
 
 msgid "The file does not contain any geometry data."
 msgstr "Faile nėra jokių geometrinių duomenų."
@@ -7786,6 +7871,12 @@ msgstr ""
 
 msgid "The selected object couldn't be split."
 msgstr "Pasirinkto objekto negalima suskaidyti."
+
+msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgstr ""
+
+msgid "Object with floating parts was detected"
+msgstr ""
 
 msgid "Another export job is running."
 msgstr "Vyksta kitas eksportavimo procesas."
@@ -7956,9 +8047,6 @@ msgid ""
 msgstr ""
 "Kalibravimui nepateikti jokie pagreičiai. Naudokite numatytąją pagreičio "
 "vertę "
-
-msgid "mm/s²"
-msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "Kalibravimo greičiai nenumatyti. Naudokite numatytąjį optimalų greitį "
@@ -8200,12 +8288,8 @@ msgstr "Tūris: %1% mm³\n"
 msgid "Triangles: %1%\n"
 msgstr "Trikampių: %1%\n"
 
-msgid ""
-"\"Fix Model\" feature is currently only on Windows. Please repair the model "
-"on Orca Slicer(windows) or CAD softwares."
+msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
-"Funkcija „Pataisyti modelį“ šiuo metu pasiekiama tik „Windows“. Pataisykite "
-"modelį „Orca Slicer“ („Windows“) arba CAD programinėje įrangoje."
 
 #, c-format, boost-format
 msgid ""
@@ -8376,6 +8460,20 @@ msgstr "Rodyti paleidimo ekraną"
 msgid "Show the splash screen during startup."
 msgstr "Paleidžiant programą rodyti informacinį ekramą."
 
+msgid "Show shared profiles notification"
+msgstr ""
+
+msgid ""
+"Show a notification with a link to browse shared profiles when the selected "
+"printer is changed."
+msgstr ""
+
+msgid "Use window buttons on left side"
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr "(Reikia paleisti iš naujo)"
+
 msgid "Downloads folder"
 msgstr "Atsisiuntimų aplankas"
 
@@ -8482,9 +8580,6 @@ msgid ""
 msgstr ""
 "Kai įjungta ši funkcija, jūs galite siųsti užduotį keliems įrenginiams vienu "
 "metu, taip apt kontroliuoti keletą įrenginių."
-
-msgid "(Requires restart)"
-msgstr "(Reikia paleisti iš naujo)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Pop up to select filament grouping mode"
@@ -8635,18 +8730,27 @@ msgid "Stealth mode"
 msgstr "Slaptas režimas"
 
 msgid ""
-"This stops the transmission of data to Bambu's cloud services. Users who "
-"don't use BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
+"the transmission of data to Bambu's cloud services too. Users who don't use "
+"BBL machines or use LAN mode only can safely turn on this function."
 msgstr ""
-"Įjungus šią funkciją, sustabdomas duomenų perdavimas į „Bambu“ debesijos "
-"paslaugas. Šią funkciją gali drąsiai įjungti naudotojai, kurie nesinaudoja "
-"„BBL“ įrenginiais arba naudoja tik LAN režimą."
 
 msgid "Network test"
 msgstr "Tinklo testas"
 
 msgid "Test"
 msgstr "Testas"
+
+msgid "Cloud Providers"
+msgstr ""
+
+msgid "Enable Bambu Cloud"
+msgstr ""
+
+msgid ""
+"Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu "
+"login section appears on the homepage."
+msgstr ""
 
 msgid "Update & sync"
 msgstr "Update & sync"
@@ -8929,6 +9033,9 @@ msgstr "Unspecified"
 
 msgid "Project-inside presets"
 msgstr "Projekto vidiniai nustatymai"
+
+msgid "Bundle presets"
+msgstr ""
 
 msgid "System"
 msgstr "Sistema"
@@ -9511,6 +9618,12 @@ msgstr ""
 "try updating the firmware. If you are still restricted after the update, "
 "please wait for subsequent firmware support."
 
+msgid ""
+"The type of external filament is unknown or does not match with the filament "
+"type in the slicing file. Please make sure you have installed the correct "
+"filament in the external spool."
+msgstr ""
+
 msgid "Please refer to Wiki before use->"
 msgstr "Please refer to Wiki before use->"
 
@@ -9889,8 +10002,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Įrašant pakadrinį vaizdo įrašą be spausdinimo galvutės judesių, "
 "rekomenduojama naudoti „Pakadrinio valymo bokštą“.\n"
@@ -10024,9 +10137,6 @@ msgstr "Vidinių ir išorinių tiltų greitis"
 msgid "Travel speed"
 msgstr "Judėjimo greitis"
 
-msgid "Acceleration"
-msgstr "Pagreitis"
-
 msgid "Jerk(XY)"
 msgstr "Pagreitis (XY)"
 
@@ -10056,6 +10166,9 @@ msgstr "Specialus režimas"
 
 msgid "G-code output"
 msgstr "G-kodo išvestis"
+
+msgid "Change extrusion role G-code"
+msgstr "Keisti išspaudimo vaidmenį G-kodas"
 
 msgid "Post-processing Scripts"
 msgstr "Scenarijai po apdorojimo"
@@ -10093,9 +10206,6 @@ msgstr "Rasti rezervuoti raktažodžiai"
 
 msgid "Setting Overrides"
 msgstr "Apribojimų nustatymas"
-
-msgid "Retraction"
-msgstr "Įtraukimas"
 
 msgid "Basic information"
 msgstr "Pagrindinė informacija"
@@ -10306,9 +10416,6 @@ msgstr "Clumping Detection G-code"
 msgid "Change filament G-code"
 msgstr "Gijos keitimo G-kodas"
 
-msgid "Change extrusion role G-code"
-msgstr "Keisti išspaudimo vaidmenį G-kodas"
-
 msgid "Pause G-code"
 msgstr "Pauzė G-kodas"
 
@@ -10321,11 +10428,25 @@ msgstr "Judėjimo parinktys"
 msgid "Normal"
 msgstr "Normalus"
 
-msgid "Resonance Avoidance"
-msgstr "Rezonanso vengimas"
+msgid "Resonance Compensation"
+msgstr ""
 
 msgid "Resonance Avoidance Speed"
 msgstr "Rezonanso išvengimo greitis"
+
+msgid "Frequency"
+msgstr "Dažnis"
+
+msgid ""
+"The frequency of the anti-vibration signal will correspond to the natural "
+"frequency of the frame."
+msgstr ""
+
+msgid "Damping"
+msgstr ""
+
+msgid "Damping ratio for the input shaping filter."
+msgstr ""
 
 msgid "Speed limitation"
 msgstr "Greičio ribojimas"
@@ -10444,6 +10565,45 @@ msgstr ""
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
 msgstr "Ar tikrai naudojate %1% pasirinktą išankstinį nustatymą?"
+
+#, c-format, boost-format
+msgid ""
+" - %s:\n"
+"    %s first layer %d %s, other layers %d %s\n"
+"    %s max delta %d %s, current delta %d %s\n"
+msgstr ""
+
+msgid ""
+"Some first-layer and other-layer temperature pairs exceed safety limits.\n"
+msgstr ""
+
+msgid ""
+"\n"
+"Invalid pairs:\n"
+msgstr ""
+
+msgid ""
+"\n"
+"You can go back to edit values, or continue if this is intentional."
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Continue anyway?"
+msgstr ""
+
+msgid "Temperature Safety Check"
+msgstr ""
+
+msgid "Continue"
+msgstr "Tęsti"
+
+msgid "Back"
+msgstr "Gale"
+
+msgid "Don't warn again for this preset"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Left: %s"
@@ -11012,6 +11172,16 @@ msgid "Please choose the filament colour"
 msgstr "Please choose the filament colour"
 
 msgid ""
+"Native Wayland liveview requires the GStreamer GTK video sink. Please "
+"install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+msgstr ""
+
+msgid ""
+"Failed to initialize the native Wayland GStreamer video sink. Please check "
+"your GStreamer GTK plugin installation."
+msgstr ""
+
+msgid ""
 "Windows Media Player is required for this task! Do you want to enable "
 "'Windows Media Player' for your operation system?"
 msgstr ""
@@ -11047,6 +11217,9 @@ msgstr ""
 "Jūsų sistemoje nėra \"GStreamer\" H.264 kodekų, reikalingų vaizdo įrašams "
 "atkurti. (Pabandykite įdiegti gstreamer1.0-plugins-bad arba gstreamer1.0-"
 "libav paketus, tada iš naujo paleiskite \"Orca Slicer\")"
+
+msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
+msgstr ""
 
 msgid "Bambu Network plug-in not detected."
 msgstr "\"Bambu\" tinklo papildinys neaptiktas."
@@ -11222,11 +11395,11 @@ msgstr "Padidinti"
 msgid "Zoom out"
 msgstr "Nutolinti"
 
-msgid "Switch between Prepare/Preview"
-msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
-
 msgid "Toggle printable for object/part"
 msgstr "Perjungti objekto / dalies spausdinimą"
+
+msgid "Switch between Prepare/Preview"
+msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
 
 msgid "Plater"
 msgstr "Plokštė"
@@ -11313,6 +11486,9 @@ msgstr "Yra naujas tinklo papildinys(%s), ar norite jį įdiegti?"
 
 msgid "New version of Orca Slicer"
 msgstr "Nauja \"Orca Slicer\" versija"
+
+msgid "Check on Github"
+msgstr ""
 
 msgid "Skip this Version"
 msgstr "Praleisti šią versiją"
@@ -11468,56 +11644,21 @@ msgid ""
 msgstr ""
 "Įterptinės programinės įrangos versija yra nenormali. Prieš spausdinant "
 "reikia pataisyti ir atnaujinti. Ar norite atnaujinti dabar? Taip pat galite "
-"atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami "
-"\"Orca\"."
+"atnaujinti vėliau spausdintuve arba atnaujinti kitą kartą paleisdami \"Orca"
+"\"."
 
 msgid "Extension Board"
 msgstr "Išplėtimo plokštė"
 
-msgid "Saving objects into the 3MF failed."
-msgstr "Saving objects into the 3MF failed.Nepavyko įrašyti objektų į 3MF."
-
-msgid "Only Windows 10 is supported."
-msgstr "Palaikoma tik \"Windows 10\"."
-
-msgid "Failed to initialize the WinRT library."
-msgstr "Nepavyko inicializuoti \"WinRT\" bibliotekos."
-
-msgid "Exporting objects"
-msgstr "Objektų eksportavimas"
-
-msgid "Failed loading objects."
-msgstr "Nepavyko įkelti objektų."
-
-msgid "Repairing object by Windows service"
-msgstr "Objekto taisymas \"Windows\" paslauga"
-
-msgid "Repair failed."
-msgstr "Taisymas nepavyko."
-
-msgid "Loading repaired objects"
-msgstr "Pataisytų objektų įkėlimas"
-
-msgid "Exporting 3MF file failed"
-msgstr "Nepavyko eksportuoti 3MF failo"
-
-msgid "Import 3MF file failed"
-msgstr "Nepavyko importuoti 3MF failo"
-
-msgid "Repaired 3MF file does not contain any object"
-msgstr "Pataisytame 3MF faile nėra jokių objektų"
-
-msgid "Repaired 3MF file contains more than one object"
-msgstr "Pataisytame 3MF faile yra daugiau nei vienas objektas"
-
-msgid "Repaired 3MF file does not contain any volume"
-msgstr "Pataisytame 3MF faile nėra jokio tūrio"
-
-msgid "Repaired 3MF file contains more than one volume"
-msgstr "Pataisytame 3MF faile yra daugiau nei vienas tomas"
+#, boost-format
+msgid "Split into %1% parts"
+msgstr ""
 
 msgid "Repair finished"
 msgstr "Taisymas baigtas"
+
+msgid "Repair failed"
+msgstr ""
 
 msgid "Repair canceled"
 msgstr "Taisymas atšauktas"
@@ -11561,6 +11702,12 @@ msgstr ""
 "Objekto dalys šiuose aukščiuose gali būti per plonos arba gali būti pažeista "
 "objekto 3D figūra"
 
+msgid "Process change extrusion role G-code"
+msgstr ""
+
+msgid "Filament change extrusion role G-code"
+msgstr ""
+
 msgid "No object can be printed. Maybe too small"
 msgstr "Negalima spausdinti jokio objekto. Jis gali būti per mažas"
 
@@ -11589,6 +11736,17 @@ msgstr "G-kodo generavimas: sluoksnis %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
 msgstr "Flush volumes matrix do not match to the correct size!"
+
+msgid "set_accel_and_jerk() is only supported by Klipper"
+msgstr ""
+
+msgid ""
+"Input shaping is not supported by Marlin < 2.1.2.\n"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+msgstr ""
+
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgstr ""
 
 msgid "Grouping error: "
 msgstr "Grouping error: "
@@ -11746,41 +11904,20 @@ msgstr ""
 " is too close to clumping detection area, and collisions will be caused.\n"
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Selected nozzle temperatures are incompatible. Each filament's nozzle "
+"temperature must fall within the recommended nozzle temperature range of the "
+"other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage. If you still want to print, you can enable the option in "
-"Preferences."
+"Invalid recommended nozzle temperature range. The lower bound must be lower "
+"than the upper bound."
 msgstr ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage. If you still want to print, you can enable the option in "
-"Preferences."
 
 msgid ""
-"Printing different-temp filaments together may cause nozzle clogging or "
-"printer damage."
+"If you still want to print, you can enable the option in Preferences / "
+"Control / Slicing / Remove mixed temperature restriction."
 msgstr ""
-"Printing different-temp filaments together may cause nozzle clogging or "
-"printer damage."
-
-msgid ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
-
-msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
 
 msgid "No extrusions under current settings."
 msgstr "Pagal dabartinius nustatymus nėra išspaudimų."
@@ -11881,8 +12018,8 @@ msgid ""
 "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, "
 "RepRapFirmware and Repetier G-code flavors."
 msgstr ""
-"Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/"
-"Sprinter\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
+"Pagrindinis bokštas šiuo metu palaikomas tik \"Marlin\", \"RepRap/Sprinter"
+"\", \"RepRapFirmware\" ir \"Repetier\" G-kodo tipuose."
 
 msgid "The prime tower is not supported in \"By object\" print."
 msgstr "Pirminis bokštas nepalaikomas spausdinant \"Pagal objektą\"."
@@ -12180,6 +12317,16 @@ msgstr ""
 "Sluoksnių, kuriuose veiks dramblio pėdos kompensavimas, skaičius. Pirmasis "
 "sluoksnis bus sumažintas pagal dramblio pėdos kompensavimo vertę, tada kiti "
 "sluoksniai bus tiesiškai mažinami mažiau, iki šia verte nurodyto sluoksnio."
+
+msgid "Elephant foot layers density"
+msgstr ""
+
+msgid ""
+"Density of internal solid infill for Elephant foot layers compensation.\n"
+"The initial value for the second layer is set.\n"
+"Subsequent layers become linearly denser by the height specified in "
+"elefant_foot_compensation_layers."
+msgstr ""
 
 msgid ""
 "Slicing height for each layer. Smaller layer height means more accurate and "
@@ -13154,6 +13301,18 @@ msgstr ""
 "Sukuriamas tarpas tarp vidinės krašto linijos ir objekto, todėl galima "
 "lengviau jį atskirti."
 
+msgid "Brim flow ratio"
+msgstr ""
+
+msgid ""
+"This factor affects the amount of material for brims.\n"
+"\n"
+"The actual brim flow used is calculated by multiplying this value by the "
+"filament flow ratio, and if set, the object's flow ratio.\n"
+"\n"
+"Note: The resulting value will not be affected by the first-layer flow ratio."
+msgstr ""
+
 msgid "Brim follows compensated outline"
 msgstr "Kraštas atitinka kompensuotą kontūrą"
 
@@ -13173,6 +13332,14 @@ msgstr ""
 "\n"
 "Jei dabartinė sąranka jau veikia gerai, jos įjungti gali nebūti ir gali "
 "sukelti kraštas susiliejimą su viršutiniais sluoksniais."
+
+msgid "Combine brims"
+msgstr ""
+
+msgid ""
+"Combine multiple brims into one when they are close to each other. This can "
+"improve brim adhesion."
+msgstr ""
 
 msgid "Brim ears"
 msgstr "Krašto \"ausys\""
@@ -13297,6 +13464,18 @@ msgstr "Įjungti oro filtravimą"
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Suaktyvinkite, kad geriau filtruotumėte orą. G-kodo komanda: M106 P3 S(0-255)"
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code during print."
+msgstr ""
+
+msgid "On completion"
+msgstr ""
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code after print "
+"completion."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -13712,23 +13891,14 @@ msgid "Wall loop direction"
 msgstr "Sienos kontūro kryptis"
 
 msgid ""
-"The direction which the wall loops are extruded when looking down from the "
-"top.\n"
-"\n"
-"By default all walls are extruded in counter-clockwise, unless Reverse on "
-"even is enabled. Set this to any option other than Auto will force the wall "
-"direction regardless of the Reverse on even.\n"
+"The direction which the contour wall loops are extruded when looking down "
+"from the top.\n"
+"Holes are printed in the opposite direction to the contour to maintain "
+"alignment with layers whose contour polygons are incomplete and change "
+"direction, also partially forming the contour of a hole.\n"
 "\n"
 "This option will be disabled if spiral vase mode is enabled."
 msgstr ""
-"Sienų kontūrų išspaudimo kryptis žiūrint iš viršaus žemyn.\n"
-"\n"
-"Pagal numatytuosius nustatymus visos sienos išspaudžiamos prieš laikrodžio "
-"rodyklę, nebent įjungta galimybė „ Apsukti lyginius“. Nustačius bet kurią "
-"kitą parinktį, išskyrus Auto (automatinis), sienos kryptis bus priverstinė, "
-"neatsižvelgiant į įjungtą funkciją Apsukti lyginius.\n"
-"\n"
-"Ši parinktis bus išjungta, jei įjungtas spiralinės vazos režimas."
 
 msgid "Counter clockwise"
 msgstr "Prieš laikrodžio rodyklę"
@@ -14382,6 +14552,12 @@ msgstr ""
 "paruoš tokį medžiagos kiekį į valymo bokštą, kad būtų patikimai gaminami "
 "vienas po kito einantys užpildų arba apsauginių objektų išspaudimai."
 
+msgid "Wipe tower cooling"
+msgstr ""
+
+msgid "Temperature drop before entering filament tower"
+msgstr ""
+
 msgid "Interface layer pre-extrusion distance"
 msgstr "Interface layer pre-extrusion distance"
 
@@ -14800,8 +14976,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² arba %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Retų užpildų pagreitis. Jei reikšmė išreikšta procentais (pvz., 100 %), ji "
 "bus apskaičiuota pagal numatytąjį pagreitį."
@@ -14820,6 +14996,14 @@ msgid ""
 msgstr ""
 "Tai pirmojo sluoksnio spausdinimo pagreitis. Naudojant ribotą pagreitį "
 "galima pagerinti sukibimą su pagrindu."
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "Įjungti accel_to_decel"
@@ -14865,6 +15049,11 @@ msgstr "Pradinio sluoksnio trūkčiojimas."
 
 msgid "Jerk for travel."
 msgstr "Judėjimo trūkčiojimas."
+
+msgid ""
+"Travel jerk of first layer.\n"
+"The percentage value is relative to Travel Jerk."
+msgstr ""
 
 msgid ""
 "Line width of the first layer. If expressed as a %, it will be computed over "
@@ -14923,10 +15112,10 @@ msgstr "Visas ventiliatoriaus greitis sluoksnyje"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Ventiliatoriaus greitis bus didinamas tiesiškai nuo nulio sluoksnyje "
 "\"close_fan_the_first_x_layers\" iki maksimalaus sluoksnyje "
@@ -15146,16 +15335,10 @@ msgid ""
 "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
 "marble-like textures.\n"
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a "
-"random amount. Creates a patchwork texture."
+"random amount. Creates a patchwork texture.\n"
+"Ripple: Uniform ripple pattern that ripples left and right of the original "
+"path. Repeating pattern, woven appearance."
 msgstr ""
-"Nelygumų tipas, kurį naudoti generuojant grublėtą paviršių.\n"
-"Klasikinis: Klasikinis vienodas atsitiktinis triukšmas.\n"
-"Perlin: Perlino triukšmas, kuris suteikia nuoseklesnę tekstūrą.\n"
-"Billow: Panašus į Perlino triukšmą, bet gremėzdiškesnis.\n"
-"Ridged Multifractal: Tai - rifliuotas triukšmas su aštriomis, dantytomis "
-"savybėmis. Sukuria marmurines tekstūras.\n"
-"Voronoi: Paviršius padalijamas į Voronoi ląsteles ir kiekviena iš jų "
-"pasislenka atsitiktiniu dydžiu. Sukuriama mozaikinė tekstūra."
 
 msgid "Classic"
 msgstr "Klasikinis"
@@ -15171,6 +15354,9 @@ msgstr "Ridged Multifractal"
 
 msgid "Voronoi"
 msgstr "Voronoi"
+
+msgid "Ripple"
+msgstr ""
 
 msgid "Fuzzy skin feature size"
 msgstr "Grublėto paviršiaus elementų dydis"
@@ -15202,6 +15388,43 @@ msgid ""
 msgstr ""
 "Aukštesnių oktavų koherentinio triukšmo silpnėjimo greitis. Dėl mažesnių "
 "verčių triukšmas bus lygesnis."
+
+msgid "Number of ripples per layer"
+msgstr ""
+
+msgid "Controls how many full cycles of ripples will be added per layer."
+msgstr ""
+
+msgid "Ripple offset"
+msgstr ""
+
+msgid ""
+"Shifts the ripple phase forward along the print path by the specified "
+"percentage of a wavelength each layer period.\n"
+"- 0% keeps every layer identical.\n"
+"- 50% shifts the pattern by half a wavelength, effectively inverting the "
+"phase.\n"
+"- 100% shifts the pattern by a full wavelength, returning to the original "
+"phase.\n"
+"\n"
+"The shift is applied once every number of layers set by Layers between "
+"ripple offset, so layers within the same group are printed identically."
+msgstr ""
+
+msgid "Layers between ripple offset"
+msgstr ""
+
+msgid ""
+"Specifies how many consecutive layers share the same ripple phase before the "
+"offset is applied.\n"
+"For example:\n"
+"- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is "
+"shifted by the configured offset, then layer 3 returns to the base pattern, "
+"and so on.\n"
+"- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 "
+"to 6 are shifted by the configured offset, then layers 7 to 9 return to the "
+"base pattern, etc."
+msgstr ""
 
 msgid "Filter out tiny gaps"
 msgstr "Filtruoti mažus tarpus"
@@ -15864,6 +16087,44 @@ msgstr "Fixed ironing angle"
 msgid "Use a fixed absolute angle for ironing."
 msgstr "Use a fixed absolute angle for ironing."
 
+msgid "Ironing expansion"
+msgstr ""
+
+msgid "Expand or contract the ironing area."
+msgstr ""
+
+msgid "Z contouring enabled"
+msgstr ""
+
+msgid "Enable Z-layer contouring (aka Z-layer anti-aliasing)."
+msgstr ""
+
+msgid "Minimize wall height angle"
+msgstr ""
+
+msgid ""
+"Reduce the height of top-surface perimeters to match the model edge height.\n"
+"Affects perimeters with a slope less than this angle (degrees).\n"
+"A reasonable value is 35. Set to 0 to disable."
+msgstr ""
+
+msgid "°"
+msgstr "°"
+
+msgid "Don't alternate fill direction"
+msgstr ""
+
+msgid "Disable alternating fill direction when using Z contouring."
+msgstr ""
+
+msgid "Minimum z height"
+msgstr ""
+
+msgid ""
+"Minimum Z-layer height.\n"
+"Also controls the slicing plane."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "Šis G kodas įterpiamas po kiekvieno sluoksnio keitimo po Z pakėlimo."
 
@@ -16062,6 +16323,88 @@ msgstr "Maks"
 msgid "Maximum speed of resonance avoidance."
 msgstr "Maksimalus greitis, leidžiantis išvengti rezonanso."
 
+msgid "Emit input shaping"
+msgstr ""
+
+msgid ""
+"Override firmware input shaping settings.\n"
+"If disabled, firmware settings are used."
+msgstr ""
+
+msgid "Input shaper type"
+msgstr "Input shaper type"
+
+msgid ""
+"Choose the input shaper algorithm.\n"
+"Default uses the firmware default settings.\n"
+"Disable turns off input shaping in the firmware."
+msgstr ""
+
+msgid "MZV"
+msgstr ""
+
+msgid "ZV"
+msgstr ""
+
+msgid "ZVD"
+msgstr ""
+
+msgid "ZVDD"
+msgstr ""
+
+msgid "ZVDDD"
+msgstr ""
+
+msgid "EI"
+msgstr ""
+
+msgid "EI2"
+msgstr ""
+
+msgid "2HUMP_EI"
+msgstr ""
+
+msgid "EI3"
+msgstr ""
+
+msgid "3HUMP_EI"
+msgstr ""
+
+msgid "DAA"
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid ""
+"Resonant frequency for the X axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+
+msgid "Y"
+msgstr ""
+
+msgid ""
+"Resonant frequency for the Y axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+
+msgid ""
+"Damping ratio for the X axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+
+msgid ""
+"Damping ratio for the Y axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+
 msgid ""
 "Part cooling fan speed may be increased when auto cooling is enabled. This "
 "is the maximum speed for the part cooling fan."
@@ -16191,6 +16534,23 @@ msgstr ""
 "kelis sluoksnius, kuriems netaikomas sluoksnių aušinimas.\n"
 "Norėdami naudotis šia funkcija, spausdintuvo nustatymuose įjunkite "
 "auxiliary_fan. G-kodo komanda: M106 P2 S(0-255)"
+
+msgid "For the first"
+msgstr ""
+
+msgid "Set special auxiliary cooling fan for the first certain layers."
+msgstr ""
+
+msgid ""
+"Auxiliary fan speed will be ramped up linearly from layer \"For the first\" "
+"to maximum at layer \"Full fan speed at layer\". \"Full fan speed at layer\" "
+"will be ignored if lower than \"For the first\", in which case the fan will "
+"run at maximum allowed speed at layer \"For the first\" + 1."
+msgstr ""
+
+msgid ""
+"Special auxiliary cooling fan speed, effective only for the first x layers."
+msgstr ""
 
 msgid ""
 "The lowest printable layer height for the extruder. Used to limit the "
@@ -16419,6 +16779,14 @@ msgstr ""
 "kelias iki G-kodo failo ir jie galės pasiekti \"Orca Slicer\" konfigūracijos "
 "nustatymus skaitydami aplinkos kintamuosius."
 
+msgid "Change extrusion role G-code (process)"
+msgstr ""
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed. It runs after "
+"the machine and filament extrusion role G-code."
+msgstr ""
+
 msgid "Printer type"
 msgstr "Spausdintuvo tipas"
 
@@ -16438,13 +16806,12 @@ msgid "Raft contact Z distance"
 msgstr "Platformos kontakto Z atstumas"
 
 msgid ""
-"Z gap between raft and object. "
-"If Support Top Z Distance is 0, this value is ignored and "
-"the object is printed in direct contact with the raft (no gap)."
+"Z gap between raft and object. If Support Top Z Distance is 0, this value is "
+"ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"Z tarpas tarp platformos ir objekto. "
-"Jei viršutinis atramos Z atstumas yra 0, ši reikšmė ignoruojama ir "
-"objektas spausdinamas tiesiogiai kontaktuojant su platforma (be tarpo)."
+"Z tarpas tarp platformos ir objekto. Jei viršutinis atramos Z atstumas yra "
+"0, ši reikšmė ignoruojama ir objektas spausdinamas tiesiogiai kontaktuojant "
+"su platforma (be tarpo)."
 
 msgid "Raft expansion"
 msgstr "Platformos išplėtimas"
@@ -16720,9 +17087,6 @@ msgstr "Sulygiuota"
 msgid "Aligned back"
 msgstr "Sulygiuotos galinės dalys"
 
-msgid "Back"
-msgstr "Gale"
-
 msgid "Random"
 msgstr "Atsitiktinė"
 
@@ -16872,8 +17236,8 @@ msgid "Role base wipe speed"
 msgstr "Vaidmens pagrindo nuvalymo greitis"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17421,13 +17785,13 @@ msgid "Bottom Z distance"
 msgstr "Apatinis Z atstumas"
 
 msgid ""
-"Z gap between the object and the support bottom. "
-"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
-"is ignored and the support is printed in direct contact with the object (no gap)."
+"Z gap between the object and the support bottom. If Support Top Z Distance "
+"is 0 and the bottom has interface layers, this value is ignored and the "
+"support is printed in direct contact with the object (no gap)."
 msgstr ""
-"Z tarpas tarp objekto ir atramos apačios. "
-"Jei viršutinis atramos Z atstumas yra 0 ir apačioje yra sąsajos sluoksniai, ši reikšmė "
-"ignoruojama ir atrama spausdinama tiesiogiai kontaktuojant su objektu (be tarpo)."
+"Z tarpas tarp objekto ir atramos apačios. Jei viršutinis atramos Z atstumas "
+"yra 0 ir apačioje yra sąsajos sluoksniai, ši reikšmė ignoruojama ir atrama "
+"spausdinama tiesiogiai kontaktuojant su objektu (be tarpo)."
 
 msgid "Support/raft base"
 msgstr "Atraminis ir (arba) platformos pagrindas"
@@ -17786,8 +18150,8 @@ msgstr "Suaktyvinti temperatūros reguliavimą"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -17872,6 +18236,14 @@ msgstr ""
 
 msgid "This G-code is inserted when the extrusion role is changed."
 msgstr "Šis G kodas įterpiamas, kai keičiamas išspaudimo vaidmuo."
+
+msgid "Change extrusion role G-code (filament)"
+msgstr ""
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed for the active "
+"filament."
+msgstr ""
 
 msgid ""
 "Line width for top surfaces. If expressed as a %, it will be computed over "
@@ -18466,6 +18838,25 @@ msgstr ""
 "numatytąją vertę 0,5 arba jei įjungta vienos sienelės viršutinių paviršių "
 "funkcija."
 
+msgid "Maximum wall resolution"
+msgstr ""
+
+msgid ""
+"This value determines the smallest wall line segment length in mm. The "
+"smaller you set this value, the more accurate and precise the walls will be."
+msgstr ""
+
+msgid "Maximum wall deviation"
+msgstr ""
+
+msgid ""
+"The maximum deviation allowed when reducing the resolution for the 'Maximum "
+"wall resolution' setting. If you increase this, the print will be less "
+"accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits "
+"'Maximum wall resolution', so if the two conflict, 'Maximum wall deviation' "
+"takes precedence."
+msgstr ""
+
 msgid "First layer minimum wall width"
 msgstr "Pirmojo sluoksnio mažiausias sienos plotis"
 
@@ -18765,8 +19156,8 @@ msgid "Debug level"
 msgstr "Derinimo lygis"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "Nustato derinimo žurnalizavimo lygį. 0: mirtinas, 1: klaida, 2: įspėjimas, "
 "3: informacija, 4: derinimas, 5: sekimas\n"
@@ -19234,6 +19625,9 @@ msgstr "Užpildomų regionų kūrimas"
 msgid "Generating infill toolpath"
 msgstr "Užpildymo įrankių trajektorijų generavimas"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Detect overhangs for auto-lift"
 msgstr "Aptikti iškyšas automatiniam pakėlimui"
 
@@ -19309,13 +19703,13 @@ msgstr "Pateikto failo nepavyko perskaityti, nes jis tuščias"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Nežinomas failo formatas. Įvesties failo plėtinys turi "
-"būti .stl, .obj, .amf(.xml)."
+"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .stl, .obj, ."
+"amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf "
-"arba .zip.amf."
+"Nežinomas failo formatas. Įvesties failo plėtinys turi būti .3mf arba .zip."
+"amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: nepavyko apdoroti"
@@ -19334,9 +19728,6 @@ msgstr "Faile yra neteisingas viršūnių indeksas."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Šio OBJ failo nepavyko perskaityti, nes jis tuščias."
-
-msgid "Flow Rate Calibration"
-msgstr "Srauto kalibravimas"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "Didžiausio tūrio greičio kalibravimas"
@@ -19394,9 +19785,6 @@ msgstr "Papildoma informacija"
 
 msgid "Flow Dynamics"
 msgstr "Srauto dinamika"
-
-msgid "Flow Rate"
-msgstr "Srautas"
 
 msgid "Max Volumetric Speed"
 msgstr "Didžiausias tūrinis greitis"
@@ -19847,12 +20235,11 @@ msgid "TPU is not supported for Flow Dynamics Auto-Calibration."
 msgstr "TPU nepalaiko srauto dinamikos automatinio kalibravimo."
 
 msgid ""
-"Cannot print multiple filaments which have large difference of temperature "
-"together. Otherwise, the extruder and nozzle may be blocked or damaged "
-"during printing"
+"Selected nozzle temperatures are incompatible. For multi-material printing, "
+"each filament's nozzle temperature must be within the recommended nozzle "
+"temperature range of the other filaments. Otherwise, nozzle clogging or "
+"printer damage may occur."
 msgstr ""
-"Negalima spausdinti kelių skirtingos temperatūros gijų kartu. Priešingu "
-"atveju, spausdinimo metu gali užsikimšti purkštukas arba sugesti ekstruderiai"
 
 msgid "Sync AMS and nozzle information"
 msgstr "Sync AMS and nozzle information"
@@ -20131,9 +20518,6 @@ msgstr "Bangavimo bokštas"
 msgid "Fast Tower"
 msgstr "Greitasis bokštas"
 
-msgid "Input shaper type"
-msgstr "Input shaper type"
-
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
 msgstr ""
@@ -20201,9 +20585,6 @@ msgstr "Check firmware compatibility."
 
 msgid "Frequency: "
 msgstr "Frequency: "
-
-msgid "Frequency"
-msgstr "Dažnis"
 
 msgid "Damp"
 msgstr "Slopinimas"
@@ -20281,6 +20662,27 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "NOTE: High values may cause Layer shift (>%s)"
+
+msgid "Flow Ratio Calibration"
+msgstr ""
+
+msgid "Calibration Test Type"
+msgstr ""
+
+msgid "Pass 1 (Coarse)"
+msgstr ""
+
+msgid "Pass 2 (Fine)"
+msgstr ""
+
+msgid "YOLO (Recommended)"
+msgstr "YOLO (rekomenduojama)"
+
+msgid "YOLO (Perfectionist)"
+msgstr ""
+
+msgid "Top Surface Pattern"
+msgstr ""
 
 msgid "Send G-code to printer host"
 msgstr "Siųsti G-kodą tinkliniam spausdintuvui"
@@ -20527,8 +20929,8 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue, the preset created will be displayed with its full name. "
-"Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. Do "
+"you want to continue?"
 msgstr ""
 "Sukurtas gijos pavadinimas %s jau egzistuoja.\n"
 "Jei toliau kursite, bus rodomas visas sukurto išankstinio nustatymo "
@@ -20545,8 +20947,8 @@ msgstr ""
 "Ar norite jį perrašyti?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Būtų galima pervadinti iš anksto nustatytus nustatymus į \"Pardavėjo tipo "
@@ -21396,9 +21798,9 @@ msgid ""
 "quality but much longer print time."
 msgstr ""
 "Palyginti su numatytuoju 0,4 mm purkštuko profiliu, jo sluoksnio aukštis "
-"mažesnis, greitis ir pagreitis mažesni, o retas užpildymo raštas yra "
-"\"Gyroid\". Taigi, dėl jo mažiau matomų sluoksnio linijų ir daug geresnė "
-"spausdinimo kokybė, tačiau daug ilgesnis spausdinimo laikas."
+"mažesnis, greitis ir pagreitis mažesni, o retas užpildymo raštas yra \"Gyroid"
+"\". Taigi, dėl jo mažiau matomų sluoksnio linijų ir daug geresnė spausdinimo "
+"kokybė, tačiau daug ilgesnis spausdinimo laikas."
 
 msgid ""
 "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer "
@@ -21877,6 +22279,9 @@ msgstr "Manually assign filament to the left or right nozzle"
 msgid "Global settings"
 msgstr "Global settings"
 
+msgid "Video tutorial"
+msgstr ""
+
 msgid "(Sync with printer)"
 msgstr "(Sync with printer)"
 
@@ -22020,9 +22425,6 @@ msgstr "This action cannot be undone. Continue?"
 
 msgid "Skipping objects."
 msgstr "Skipping objects."
-
-msgid "Continue"
-msgstr "Tęsti"
 
 msgid "Select Filament"
 msgstr "Select Filament"
@@ -22559,6 +22961,263 @@ msgstr ""
 "pavyzdžiui, ABS, tinkamai padidinus kaitinimo pagrindo temperatūrą galima "
 "sumažinti deformavimosi tikimybę."
 
+#~ msgid "Pen size"
+#~ msgstr "Pieštuko dydis"
+
+#~ msgid "Pen shape"
+#~ msgstr "Rašiklio forma"
+
+#~ msgid "Key 1~9"
+#~ msgstr "Klavišai 1~9"
+
+#~ msgid "Left click"
+#~ msgstr "Kairysis spustelėjimas"
+
+#~ msgid "Right click"
+#~ msgstr "Spustelėti dešinįjį pelės mygtuką"
+
+#~ msgid "Select feature"
+#~ msgstr "Pasirinkti elementą"
+
+#~ msgid "Based on PrusaSlicer and BambuStudio"
+#~ msgstr "Remiantis „PrusaSlicer“ ir „BambuStudio“"
+
+#~ msgid "Object/Part Setting"
+#~ msgstr "Objekto / Dalies nustatymai"
+
+#~ msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
+#~ msgstr ""
+#~ "OrcaSlicer sukurtas remiantis BambuStudio, PrusaSlicer ir SuperSlicer."
+
+#~ msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
+#~ msgstr ""
+#~ "Pradinė BambuStudio programos kūrimo bazė buvo PrusaSlicer iš "
+#~ "PrusaResearch."
+
+#~ msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
+#~ msgstr ""
+#~ "Pradinė PrusaSlicer programos kūrimo bazė buvo Slic3r, kurį sukūrė "
+#~ "Alessandro Ranellucci."
+
+#~ msgid ""
+#~ "Slic3r was created by Alessandro Ranellucci with the help of many other "
+#~ "contributors."
+#~ msgstr ""
+#~ "Slic3r sukūrė Alessandro Ranellucci su daugelio kitų kūrėjų pagalba."
+
+#~ msgid "Actual Speed: "
+#~ msgstr "Faktinis greitis: "
+
+#~ msgid "Mouse wheel:"
+#~ msgstr "Pelės ratukas:"
+
+#~ msgid "Object selection"
+#~ msgstr "objekto pasirinkimas"
+
+#~ msgid "Pass 1"
+#~ msgstr "1 fazė"
+
+#~ msgid "Flow ratio test - Pass 1"
+#~ msgstr "Srauto santykio testas - 1 fazė"
+
+#~ msgid "Pass 2"
+#~ msgstr "2 fazė"
+
+#~ msgid "Flow ratio test - Pass 2"
+#~ msgstr "Srauto santykio testas - 2 fazė"
+
+#~ msgid "Orca YOLO flowratio calibration, 0.01 step"
+#~ msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,01 žingsnis"
+
+#~ msgid "YOLO (perfectionist version)"
+#~ msgstr "YOLO (perfekcionistinė versija)"
+
+#~ msgid "Orca YOLO flowratio calibration, 0.005 step"
+#~ msgstr "„Orca YOLO“ srauto santykio kalibravimas, 0,005 žingsnis"
+
+#~ msgid "Retraction test"
+#~ msgstr "Įtraukimo testas"
+
+#~ msgid "Tutorial"
+#~ msgstr "Pamokos"
+
+#~ msgid "Calibration help"
+#~ msgstr "Kalibravimo pagalba"
+
+#~ msgid ""
+#~ "Do you want to synchronize your personal data from Bambu Cloud?\n"
+#~ "It contains the following information:\n"
+#~ "1. The Process presets\n"
+#~ "2. The Filament presets\n"
+#~ "3. The Printer presets"
+#~ msgstr ""
+#~ "Ar norite sinchronizuoti asmeninius duomenis iš Bambu Cloud?\n"
+#~ "Juose yra ši informacija:\n"
+#~ "1. Procesų išankstiniai nustatymai\n"
+#~ "2. Filamento išankstiniai nustatymai\n"
+#~ "3. Spausdintuvo išankstiniai nustatymai"
+
+#~ msgid "Show/Hide advanced parameters"
+#~ msgstr "Show/Hide advanced parameters"
+
+#, c-format, boost-format
+#~ msgid "Left nozzle: %smm"
+#~ msgstr "Left nozzle: %smm"
+
+#, c-format, boost-format
+#~ msgid "Right nozzle: %smm"
+#~ msgstr "Right nozzle: %smm"
+
+#~ msgid ""
+#~ "\"Fix Model\" feature is currently only on Windows. Please repair the "
+#~ "model on Orca Slicer(windows) or CAD softwares."
+#~ msgstr ""
+#~ "Funkcija „Pataisyti modelį“ šiuo metu pasiekiama tik „Windows“. "
+#~ "Pataisykite modelį „Orca Slicer“ („Windows“) arba CAD programinėje "
+#~ "įrangoje."
+
+#~ msgid ""
+#~ "This stops the transmission of data to Bambu's cloud services. Users who "
+#~ "don't use BBL machines or use LAN mode only can safely turn on this "
+#~ "function."
+#~ msgstr ""
+#~ "Įjungus šią funkciją, sustabdomas duomenų perdavimas į „Bambu“ debesijos "
+#~ "paslaugas. Šią funkciją gali drąsiai įjungti naudotojai, kurie "
+#~ "nesinaudoja „BBL“ įrenginiais arba naudoja tik LAN režimą."
+
+#~ msgid "Resonance Avoidance"
+#~ msgstr "Rezonanso vengimas"
+
+#~ msgid "Saving objects into the 3MF failed."
+#~ msgstr "Saving objects into the 3MF failed.Nepavyko įrašyti objektų į 3MF."
+
+#~ msgid "Only Windows 10 is supported."
+#~ msgstr "Palaikoma tik \"Windows 10\"."
+
+#~ msgid "Failed to initialize the WinRT library."
+#~ msgstr "Nepavyko inicializuoti \"WinRT\" bibliotekos."
+
+#~ msgid "Exporting objects"
+#~ msgstr "Objektų eksportavimas"
+
+#~ msgid "Failed loading objects."
+#~ msgstr "Nepavyko įkelti objektų."
+
+#~ msgid "Repairing object by Windows service"
+#~ msgstr "Objekto taisymas \"Windows\" paslauga"
+
+#~ msgid "Repair failed."
+#~ msgstr "Taisymas nepavyko."
+
+#~ msgid "Loading repaired objects"
+#~ msgstr "Pataisytų objektų įkėlimas"
+
+#~ msgid "Exporting 3MF file failed"
+#~ msgstr "Nepavyko eksportuoti 3MF failo"
+
+#~ msgid "Import 3MF file failed"
+#~ msgstr "Nepavyko importuoti 3MF failo"
+
+#~ msgid "Repaired 3MF file does not contain any object"
+#~ msgstr "Pataisytame 3MF faile nėra jokių objektų"
+
+#~ msgid "Repaired 3MF file contains more than one object"
+#~ msgstr "Pataisytame 3MF faile yra daugiau nei vienas objektas"
+
+#~ msgid "Repaired 3MF file does not contain any volume"
+#~ msgstr "Pataisytame 3MF faile nėra jokio tūrio"
+
+#~ msgid "Repaired 3MF file contains more than one volume"
+#~ msgstr "Pataisytame 3MF faile yra daugiau nei vienas tomas"
+
+#~ msgid ""
+#~ "Printing high-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+#~ msgstr ""
+#~ "Printing high-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+
+#~ msgid ""
+#~ "Printing high-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage. If you still want to print, you can enable "
+#~ "the option in Preferences."
+#~ msgstr ""
+#~ "Printing high-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage. If you still want to print, you can enable "
+#~ "the option in Preferences."
+
+#~ msgid ""
+#~ "Printing different-temp filaments together may cause nozzle clogging or "
+#~ "printer damage."
+#~ msgstr ""
+#~ "Printing different-temp filaments together may cause nozzle clogging or "
+#~ "printer damage."
+
+#~ msgid ""
+#~ "Printing high-temp and mid-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+#~ msgstr ""
+#~ "Printing high-temp and mid-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+
+#~ msgid ""
+#~ "Printing mid-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+#~ msgstr ""
+#~ "Printing mid-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+
+#~ msgid ""
+#~ "The direction which the wall loops are extruded when looking down from "
+#~ "the top.\n"
+#~ "\n"
+#~ "By default all walls are extruded in counter-clockwise, unless Reverse on "
+#~ "even is enabled. Set this to any option other than Auto will force the "
+#~ "wall direction regardless of the Reverse on even.\n"
+#~ "\n"
+#~ "This option will be disabled if spiral vase mode is enabled."
+#~ msgstr ""
+#~ "Sienų kontūrų išspaudimo kryptis žiūrint iš viršaus žemyn.\n"
+#~ "\n"
+#~ "Pagal numatytuosius nustatymus visos sienos išspaudžiamos prieš "
+#~ "laikrodžio rodyklę, nebent įjungta galimybė „ Apsukti lyginius“. "
+#~ "Nustačius bet kurią kitą parinktį, išskyrus Auto (automatinis), sienos "
+#~ "kryptis bus priverstinė, neatsižvelgiant į įjungtą funkciją Apsukti "
+#~ "lyginius.\n"
+#~ "\n"
+#~ "Ši parinktis bus išjungta, jei įjungtas spiralinės vazos režimas."
+
+#~ msgid ""
+#~ "Noise type to use for fuzzy skin generation:\n"
+#~ "Classic: Classic uniform random noise.\n"
+#~ "Perlin: Perlin noise, which gives a more consistent texture.\n"
+#~ "Billow: Similar to perlin noise, but clumpier.\n"
+#~ "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
+#~ "marble-like textures.\n"
+#~ "Voronoi: Divides the surface into voronoi cells, and displaces each one "
+#~ "by a random amount. Creates a patchwork texture."
+#~ msgstr ""
+#~ "Nelygumų tipas, kurį naudoti generuojant grublėtą paviršių.\n"
+#~ "Klasikinis: Klasikinis vienodas atsitiktinis triukšmas.\n"
+#~ "Perlin: Perlino triukšmas, kuris suteikia nuoseklesnę tekstūrą.\n"
+#~ "Billow: Panašus į Perlino triukšmą, bet gremėzdiškesnis.\n"
+#~ "Ridged Multifractal: Tai - rifliuotas triukšmas su aštriomis, dantytomis "
+#~ "savybėmis. Sukuria marmurines tekstūras.\n"
+#~ "Voronoi: Paviršius padalijamas į Voronoi ląsteles ir kiekviena iš jų "
+#~ "pasislenka atsitiktiniu dydžiu. Sukuriama mozaikinė tekstūra."
+
+#~ msgid "Flow Rate"
+#~ msgstr "Srautas"
+
+#~ msgid ""
+#~ "Cannot print multiple filaments which have large difference of "
+#~ "temperature together. Otherwise, the extruder and nozzle may be blocked "
+#~ "or damaged during printing"
+#~ msgstr ""
+#~ "Negalima spausdinti kelių skirtingos temperatūros gijų kartu. Priešingu "
+#~ "atveju, spausdinimo metu gali užsikimšti purkštukas arba sugesti "
+#~ "ekstruderiai"
+
 #~ msgid ""
 #~ "Zero first layer height is invalid.\n"
 #~ "\n"
@@ -22609,9 +23268,6 @@ msgstr ""
 
 #~ msgid "travel"
 #~ msgstr "judėjimas"
-
-#~ msgid "part selection"
-#~ msgstr "detalės pasirinkimas"
 
 #~ msgid "Filament remapping finished."
 #~ msgstr "Gijų perplanavimas baigtas."
@@ -22677,9 +23333,6 @@ msgstr ""
 
 #~ msgid "Acceleration of outer walls."
 #~ msgstr "Išorinių sienų pagreitis."
-
-#~ msgid "°"
-#~ msgstr "°"
 
 #~ msgid "Rib width."
 #~ msgstr "Briaunų plotis."

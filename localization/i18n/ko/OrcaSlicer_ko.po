@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-20 23:26+0800\n"
+"POT-Creation-Date: 2026-05-12 15:52-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -116,26 +116,38 @@ msgstr "최신 버전"
 msgid "Support Painting"
 msgstr "서포트 칠하기"
 
-msgid "Ctrl+"
-msgstr "Ctrl+"
+msgid "Perform"
+msgstr "수행"
 
-msgid "Alt+"
-msgstr "Alt+"
+msgid "On highlighted overhangs only"
+msgstr "강조된 오버행에만 칠하기"
 
-msgid "Shift+"
-msgstr "Shift+"
+msgid "Erase all painting"
+msgstr "모든 페인팅 삭제"
 
-msgid "Mouse wheel"
-msgstr "마우스 휠"
+msgid "Highlight overhang areas"
+msgstr "오버행 영역 강조"
 
-msgid "Section view"
-msgstr "단면도"
+msgid "Tool type"
+msgstr "도구 유형"
+
+msgid "Gap fill"
+msgstr "간격 채우기"
 
 msgid "Reset direction"
 msgstr "방향 초기화"
 
-msgid "Pen size"
-msgstr "펜 크기"
+msgid "Section view"
+msgstr "단면도"
+
+msgid "Brush size"
+msgstr "붓 크기"
+
+msgid "Smart fill angle"
+msgstr "스마트 채우기 각도"
+
+msgid "Gap area"
+msgstr "간격 영역"
 
 msgid "Left mouse button"
 msgstr "마우스 왼쪽 버튼"
@@ -152,29 +164,8 @@ msgstr "서포트 차단"
 msgid "Erase"
 msgstr "지우기"
 
-msgid "Erase all painting"
-msgstr "모든 페인팅 삭제"
-
-msgid "Highlight overhang areas"
-msgstr "오버행 영역 강조"
-
-msgid "Gap fill"
-msgstr "간격 채우기"
-
-msgid "Perform"
-msgstr "수행"
-
-msgid "Gap area"
-msgstr "간격 영역"
-
-msgid "Tool type"
-msgstr "도구 유형"
-
-msgid "Smart fill angle"
-msgstr "스마트 채우기 각도"
-
-msgid "On highlighted overhangs only"
-msgstr "강조된 오버행에만 칠하기"
+msgid "Mouse wheel"
+msgstr "마우스 휠"
 
 msgid "Auto support threshold angle: "
 msgstr "자동 서포트 임계값 각도: "
@@ -221,14 +212,11 @@ msgstr ""
 msgid "Color Painting"
 msgstr "색 칠하기"
 
-msgid "Pen shape"
-msgstr "펜 모양"
+msgid "Brush shape"
+msgstr "붓 모양"
 
 msgid "Paint"
 msgstr "칠하기"
-
-msgid "Key 1~9"
-msgstr "키 1~9"
 
 msgid "Choose filament"
 msgstr "필라멘트 선택"
@@ -254,9 +242,6 @@ msgstr "버킷 채우기"
 msgid "Height range"
 msgstr "높이 범위"
 
-msgid "Enter"
-msgstr "Enter"
-
 msgid "Toggle Wireframe"
 msgstr "와이어프레임 전환"
 
@@ -266,8 +251,11 @@ msgstr "필라멘트 재매핑"
 msgid "Remap"
 msgstr "재매핑"
 
-msgid "Cancel"
-msgstr "취소"
+msgid "Reset"
+msgstr "초기화"
+
+msgid "Enter"
+msgstr "Enter"
 
 msgid "Shortcut Key "
 msgstr "단축키 "
@@ -296,12 +284,6 @@ msgstr "대상:"
 
 msgid "Paint-on fuzzy skin"
 msgstr "퍼지 스킨 칠하기"
-
-msgid "Brush size"
-msgstr "붓 크기"
-
-msgid "Brush shape"
-msgstr "붓 모양"
 
 msgid "Add fuzzy skin"
 msgstr "퍼지 스킨 추가"
@@ -547,17 +529,14 @@ msgstr "공차"
 msgid "Drag"
 msgstr "드래그"
 
+msgid "Move cut line"
+msgstr ""
+
 msgid "Draw cut line"
 msgstr "절단선 그리기"
 
-msgid "Left click"
-msgstr "좌 클릭"
-
 msgid "Add connector"
 msgstr "커넥터 추가"
-
-msgid "Right click"
-msgstr "우 클릭"
 
 msgid "Remove connector"
 msgstr "커넥터 제거"
@@ -598,14 +577,14 @@ msgstr "반경과 관련된 공간 비율"
 msgid "Confirm connectors"
 msgstr "커넥터 승인"
 
+msgid "Cancel"
+msgstr "취소"
+
 msgid "Flip cut plane"
 msgstr "절단면 뒤집기"
 
 msgid "Groove change"
 msgstr "그루브 변경"
-
-msgid "Reset"
-msgstr "초기화"
 
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
 msgid "Edited"
@@ -808,6 +787,9 @@ msgstr "표면"
 msgid "Horizontal text"
 msgstr "가로 텍스트"
 
+msgid "Shift+"
+msgstr "Shift+"
+
 msgid "Mouse move up or down"
 msgstr "마우스 위 또는 아래로 이동"
 
@@ -839,6 +821,9 @@ msgstr "변형도구 - 양각 나가기"
 
 msgid "Embossing actions"
 msgstr "양각 작업"
+
+msgid "Position on surface"
+msgstr ""
 
 msgid "Emboss"
 msgstr "양각"
@@ -1436,8 +1421,8 @@ msgstr "가장자리 중심"
 msgid "Center of circle"
 msgstr "원의 중심"
 
-msgid "Select feature"
-msgstr "기능 선택"
+msgid "Select"
+msgstr "선택"
 
 msgid "Select point"
 msgstr "위치 선택"
@@ -1585,6 +1570,12 @@ msgstr ""
 msgid "Face and face assembly"
 msgstr "면과 면 조립"
 
+msgid "Ctrl+"
+msgstr "Ctrl+"
+
+msgid "Alt+"
+msgstr "Alt+"
+
 msgid "Notice"
 msgstr "공지사항"
 
@@ -1618,8 +1609,8 @@ msgid ""
 "Configuration file \"%1%\" was loaded, but some values were not recognized."
 msgstr "구성 파일 \"%1%\"가 로드되었지만 일부 값이 인식되지 않았습니다."
 
-msgid "Based on PrusaSlicer and BambuStudio"
-msgstr "PrusaSlicer와 BambuStudio 기반"
+msgid "Loading configuration"
+msgstr "구성 파일 로드 중"
 
 msgid "STEP files"
 msgstr "STEP 파일"
@@ -1741,9 +1732,6 @@ msgstr ""
 
 msgid "Remember my choice"
 msgstr "내 선택 기억"
-
-msgid "Loading configuration"
-msgstr "구성 파일 로드 중"
 
 #, c-format, boost-format
 msgid "Click to download new version in default browser: %s"
@@ -1873,6 +1861,33 @@ msgstr "네트워크 플러그인 제한"
 msgid "Privacy Policy Update"
 msgstr "개인 정보 보호 정책 업데이트"
 
+#, c-format, boost-format
+msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgstr ""
+
+msgid "your default profile"
+msgstr ""
+
+#, c-format, boost-format
+msgid "a user profile (folder: \"%s\")"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Existing user presets were found in %s.\n"
+"Do you want to migrate them to your OrcaCloud profile?\n"
+"This will copy your presets so they are available under your new account."
+msgstr ""
+
+msgid "Migrate User Presets"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to migrate user presets:\n"
+"%s"
+msgstr ""
+
 msgid ""
 "The number of user presets cached in the cloud has exceeded the upper limit, "
 "newly created user presets can only be used locally."
@@ -1883,8 +1898,34 @@ msgstr ""
 msgid "Sync user presets"
 msgstr "사용자 사전 설정 동기화"
 
+msgid ""
+"The preset content is too large to sync to the cloud (exceeds 1MB). Please "
+"reduce the preset size by removing custom configurations or use it locally "
+"only."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s updated from %s to %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has been downloaded."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Bundle %s is no longer available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Bundle %s access is unauthorized."
+msgstr ""
+
 msgid "Loading user preset"
 msgstr "사용자 사전 설정 로드 중"
+
+#, c-format, boost-format
+msgid "%s has been removed."
+msgstr ""
 
 msgid "Switching application language"
 msgstr "응용 프로그램 언어 전환"
@@ -2121,6 +2162,18 @@ msgstr "설정 추가"
 msgid "Change type"
 msgstr "유형 변경"
 
+msgid "Negative Part"
+msgstr "비우기 부품"
+
+msgid "Support Blocker"
+msgstr "서포트 차단기"
+
+msgid "Support Enforcer"
+msgstr "서포트 강제기"
+
+msgid "Change part type"
+msgstr ""
+
 msgid "Set as an individual object"
 msgstr "개별 객체로 설정"
 
@@ -2135,6 +2188,12 @@ msgstr "베드의 나머지 영역을 선택한 객체의 복사본으로 채웁
 
 msgid "Printable"
 msgstr "출력 가능"
+
+msgid "Auto Drop"
+msgstr ""
+
+msgid "Automatically drops the selected object to the build plate"
+msgstr ""
 
 msgid "Fix model"
 msgstr "모델 수리"
@@ -2413,6 +2472,9 @@ msgstr "필라멘트 변경"
 msgid "Set Filament for selected items"
 msgstr "선택한 항목의 필라멘트로 설정"
 
+msgid "Automatically snaps the selected object to the build plate"
+msgstr ""
+
 msgid "Unlock"
 msgstr "잠금 해제"
 
@@ -2587,15 +2649,6 @@ msgstr ""
 msgid "The type of the last solid object part is not to be changed."
 msgstr "마지막 꽉찬 객체 부품의 유형은 변경되지 않습니다."
 
-msgid "Negative Part"
-msgstr "비우기 부품"
-
-msgid "Support Blocker"
-msgstr "서포트 차단기"
-
-msgid "Support Enforcer"
-msgstr "서포트 강제기"
-
 msgid "Type:"
 msgstr "유형:"
 
@@ -2698,8 +2751,8 @@ msgstr "플레이트"
 msgid "Brim"
 msgstr "브림"
 
-msgid "Object/Part Setting"
-msgstr "객체/부품 설정"
+msgid "Object/Part Settings"
+msgstr ""
 
 msgid "Reset parameter"
 msgstr "매개변수 초기화"
@@ -3378,22 +3431,27 @@ msgstr ""
 msgid "About %s"
 msgstr "%s 정보"
 
-msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
+msgid ""
+"Open-source slicing stands on a tradition of collaboration and attribution. "
+"Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the "
+"foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio "
+"forked from PrusaSlicer, and SuperSlicer extended it with community-driven "
+"enhancements. Each project carried the work of its predecessors forward, "
+"crediting those who came before."
 msgstr ""
-"Orca Slicer는 BambuStudio, PrusaSlicer 및 SuperSlicer를 기반으로 합니다."
-
-msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
-msgstr "BambuStudio는 PrusaResearch의 PrusaSlicer를 기반으로 합니다."
-
-msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
-msgstr "PrusaSlicer는 Alessandro Ranellucci의 Slic3r을 기반으로 합니다."
 
 msgid ""
-"Slic3r was created by Alessandro Ranellucci with the help of many other "
-"contributors."
+"OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStudio, "
+"SuperSlicer, and CuraSlicer. But it has since grown far beyond its origins — "
+"introducing advanced calibration tools, precise wall and seam control and "
+"hundreds of other features."
 msgstr ""
-"Slic3r은 Alessandro Ranellucci가 다른 많은 기여자들의 도움을 받아 만들었습니"
-"다."
+
+msgid ""
+"Today, OrcaSlicer is the most widely used and actively developed open-source "
+"slicer in the 3D printing community. Many of its innovations have been "
+"adopted by other slicers, making it a driving force for the entire industry."
+msgstr ""
 
 msgid "Version"
 msgstr "버전"
@@ -4181,7 +4239,7 @@ msgstr ""
 "심_경사_시작_높이는 레이어_높이보다 작아야 합니다.\n"
 "0으로 재설정합니다."
 
-#, fuzzy, c-format, boost-format
+#, fuzzy, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4716,6 +4774,12 @@ msgstr "선 너비"
 msgid "Actual Speed"
 msgstr "실제 속도"
 
+msgid "Acceleration"
+msgstr "가속도"
+
+msgid "Jerk"
+msgstr ""
+
 msgid "Fan Speed"
 msgstr "팬 속도"
 
@@ -4815,6 +4879,9 @@ msgstr "혼합"
 msgid "mm/s"
 msgstr "mm/s"
 
+msgid "mm/s²"
+msgstr "mm/s²"
+
 msgid "Flow rate"
 msgstr "압출량"
 
@@ -4860,8 +4927,11 @@ msgstr "도구: "
 msgid "Color: "
 msgstr "색상: "
 
-msgid "Actual Speed: "
-msgstr "실제 속도: "
+msgid "Acceleration: "
+msgstr ""
+
+msgid "Jerk: "
+msgstr ""
 
 msgid "PA: "
 msgstr "PA: "
@@ -4957,8 +5027,8 @@ msgstr "최적으로 설정"
 msgid "Regroup filament"
 msgstr "필라멘트 재그룹핑"
 
-msgid "Tips"
-msgstr "팁"
+msgid "Wiki Guide"
+msgstr "위키 가이드"
 
 msgid "up to"
 msgstr "까지"
@@ -4983,6 +5053,12 @@ msgstr "속도 (mm/s)"
 
 msgid "Actual Speed (mm/s)"
 msgstr "실제 속도 (mm/s)"
+
+msgid "Acceleration (mm/s²)"
+msgstr ""
+
+msgid "Jerk (mm/s)"
+msgstr ""
 
 msgid "Fan Speed (%)"
 msgstr "팬 속도 (%)"
@@ -5013,6 +5089,9 @@ msgstr "비용"
 
 msgid "Filament change times"
 msgstr "필라멘트 변경 시간"
+
+msgid "Tool changes"
+msgstr ""
 
 msgid "Color change"
 msgstr "색 변경"
@@ -5096,17 +5175,17 @@ msgstr "기본으로 초기화"
 msgid "Smoothing"
 msgstr "스무딩"
 
-msgid "Mouse wheel:"
-msgstr "마우스 휠:"
-
 msgid "Increase/decrease edit area"
 msgstr "편집 영역 증가/감소"
 
 msgid "Sequence"
 msgstr "순서"
 
-msgid "Object selection"
-msgstr "객체 선택"
+msgid "Object Selection"
+msgstr ""
+
+msgid "Part Selection"
+msgstr ""
 
 msgid "number keys"
 msgstr "숫자 키"
@@ -5290,6 +5369,9 @@ msgstr "레이블"
 msgid "Paint Toolbar"
 msgstr "칠하기 도구 모음"
 
+msgid "part selection"
+msgstr ""
+
 msgid "Explosion Ratio"
 msgstr "분해 비율"
 
@@ -5314,7 +5396,7 @@ msgstr "용량:"
 msgid "Size:"
 msgstr "크기:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5834,6 +5916,9 @@ msgstr "기본 설정"
 msgid "View"
 msgstr "시점"
 
+msgid "Preset Bundle"
+msgstr ""
+
 msgid "Help"
 msgstr "도움말"
 
@@ -5846,35 +5931,14 @@ msgstr "최대 압출량"
 msgid "Pressure advance"
 msgstr "프레셔 어드밴스"
 
-msgid "Pass 1"
-msgstr "1차 테스트"
-
-msgid "Flow ratio test - Pass 1"
-msgstr "압출량 비율 테스트 - 1차"
-
-msgid "Pass 2"
-msgstr "2차 테스트"
-
-msgid "Flow ratio test - Pass 2"
-msgstr "압출량 비율 테스트 - 2차"
-
-msgid "YOLO (Recommended)"
-msgstr "YOLO (권장)"
-
-msgid "Orca YOLO flowratio calibration, 0.01 step"
-msgstr "Orca YOLO 압출량 비율 보정, 0.01 단계"
-
-msgid "YOLO (perfectionist version)"
-msgstr "YOLO (완벽주의자 버전)"
-
-msgid "Orca YOLO flowratio calibration, 0.005 step"
-msgstr "Orca YOLO 압출량 비율 보정, 0.005 단계"
-
 msgid "Flow ratio"
 msgstr "압출량 비율"
 
-msgid "Retraction test"
-msgstr "후퇴 테스트"
+msgid "Flow Rate Calibration"
+msgstr "압출량 교정"
+
+msgid "Retraction"
+msgstr "후퇴"
 
 msgid "Cornering"
 msgstr "코너링"
@@ -5894,11 +5958,8 @@ msgstr "입력 셰이핑"
 msgid "VFA"
 msgstr "VFA"
 
-msgid "Tutorial"
-msgstr "설명서"
-
-msgid "Calibration help"
-msgstr "교정 도움말"
+msgid "Calibration Guide"
+msgstr ""
 
 msgid "&Open G-code"
 msgstr "Gcode 열기 (&O)"
@@ -5998,17 +6059,12 @@ msgid "Filament Settings"
 msgstr "필라멘트 설정"
 
 msgid ""
-"Do you want to synchronize your personal data from Bambu Cloud?\n"
+"Do you want to synchronize your personal data from Orca Cloud?\n"
 "It contains the following information:\n"
 "1. The Process presets\n"
 "2. The Filament presets\n"
 "3. The Printer presets"
 msgstr ""
-"뱀부 클라우드의 개인 데이터를 동기화하시겠습니까?\n"
-"다음과 같은 정보가 포함되어 있습니다:\n"
-"1. 프로세스 사전 설정\n"
-"2. 필라멘트 사전 설정\n"
-"3. 프린터 사전 설정"
 
 msgid "Synchronization"
 msgstr "동기화"
@@ -6022,6 +6078,11 @@ msgstr "플레이어가 오작동합니다. 시스템 플레이어를 다시 설
 msgid "The player is not loaded, please click \"play\" button to retry."
 msgstr ""
 "플레이어가 로드되지 않았습니다. 다시 시도하려면 '재생' 버튼을 클릭하세요."
+
+msgid ""
+"The player is not loaded because the GStreamer GTK video sink is missing or "
+"failed to initialize."
+msgstr ""
 
 msgid "Please confirm if the printer is connected."
 msgstr "프린터가 연결되어 있는지 확인하세요."
@@ -6145,9 +6206,6 @@ msgstr "다운로드"
 msgid "Download selected files from printer."
 msgstr "선택된 파일을 프린터에서 다운로드합니다."
 
-msgid "Select"
-msgstr "선택"
-
 msgid "Batch manage files."
 msgstr "파일을 일괄 관리합니다."
 
@@ -6211,8 +6269,8 @@ msgid ""
 "The .gcode.3mf file contains no G-code data. Please slice it with Orca "
 "Slicer and export a new .gcode.3mf file."
 msgstr ""
-".gcode.3mf 파일에는 Gcode 데이터가 없습니다. OrcaSlicer에서 슬라이스하고 "
-"새 .gcode.3mf 파일을 내보내십시오."
+".gcode.3mf 파일에는 Gcode 데이터가 없습니다. OrcaSlicer에서 슬라이스하고 새 ."
+"gcode.3mf 파일을 내보내십시오."
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -6844,9 +6902,6 @@ msgstr "세부 사항"
 msgid "New printer config available."
 msgstr "새로운 프린터 구성을 사용할 수 있습니다."
 
-msgid "Wiki Guide"
-msgstr "위키 가이드"
-
 msgid "Undo integration failed."
 msgstr "통합 실행 취소에 실패했습니다."
 
@@ -6911,6 +6966,12 @@ msgstr "내보내기 성공."
 
 msgid "Model file downloaded."
 msgstr "모델 파일이 다운로드되었습니다."
+
+msgid "Shared profiles may be available for this printer."
+msgstr ""
+
+msgid "Browse shared profiles"
+msgstr ""
 
 msgid "Serious warning:"
 msgstr "심각한 경고:"
@@ -7115,8 +7176,8 @@ msgstr "전역"
 msgid "Objects"
 msgstr "객체"
 
-msgid "Show/Hide advanced parameters"
-msgstr "고급 매개변수 표시/숨기기"
+msgid "Cycle settings visibility"
+msgstr ""
 
 msgid "Compare presets"
 msgstr "사전 설정 비교"
@@ -7227,14 +7288,6 @@ msgid ""
 msgstr ""
 
 msgid "Switch diameter"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Left nozzle: %smm"
-msgstr ""
-
-#, c-format, boost-format
-msgid "Right nozzle: %smm"
 msgstr ""
 
 msgid "Configuration incompatible"
@@ -7381,12 +7434,28 @@ msgid "Loading file: %s"
 msgstr "파일 로드 중: %s"
 
 #, fuzzy
+msgid "Load 3MF"
+msgstr "3mf 불러오기"
+
+msgid "BambuStudio Project"
+msgstr ""
+
+#, fuzzy
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "이 3mf는 OrcaSlicer에서 지원되지 않습니다. 형상 데이터만 불러옵니다."
 
 #, fuzzy
-msgid "Load 3MF"
-msgstr "3mf 불러오기"
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
+msgstr "이 3mf는 이전 Orca Slicer에서 생성되었으며, 형상 데이터만 로드합니다."
+
+msgid ""
+"The 3MF file was generated by an older version, loading geometry data only."
+msgstr ""
+
+msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
+msgstr ""
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -7417,11 +7486,21 @@ msgstr ""
 "3mf의 %s 버전이 %s의 %s 버전보다 최신입니다. 소프트웨어를 업그레이드 하십시"
 "오."
 
-#, fuzzy
+#, c-format, boost-format
 msgid ""
-"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
-"data only."
-msgstr "이 3mf는 이전 Orca Slicer에서 생성되었으며, 형상 데이터만 로드합니다."
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Found unrecognized settings:"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Some settings may not be fully compatible."
+msgstr ""
+
+msgid ""
+"The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
+msgstr ""
 
 msgid "Invalid values found in the 3MF:"
 msgstr "3mf에서 잘못된 값이 발견됨:"
@@ -7504,6 +7583,9 @@ msgstr "이 파일을 여러 부품이 있는 단일 객체로 로드하시겠�
 msgid "Object with multiple parts was detected"
 msgstr "여러 부품으로 구성된 객체가 감지되었습니다"
 
+msgid "Auto-Drop"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "Connected printer is %s. It must match the project preset for printing.\n"
@@ -7513,6 +7595,9 @@ msgid ""
 "Do you want to sync the printer information and automatically switch the "
 "preset?"
 msgstr ""
+
+msgid "Tips"
+msgstr "팁"
 
 msgid "The file does not contain any geometry data."
 msgstr "파일에 형상 데이터가 포함되어 있지 않습니다."
@@ -7565,6 +7650,12 @@ msgstr ""
 
 msgid "The selected object couldn't be split."
 msgstr "선택한 객체를 분할할 수 없습니다."
+
+msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgstr ""
+
+msgid "Object with floating parts was detected"
+msgstr ""
 
 msgid "Another export job is running."
 msgstr "다른 내보내기 작업이 실행 중입니다."
@@ -7728,9 +7819,6 @@ msgstr "정보:"
 msgid ""
 "No accelerations provided for calibration. Use default acceleration value "
 msgstr "보정을 위해 가속도가 제공되지 않습니다. 기본 가속도 값 사용 "
-
-msgid "mm/s²"
-msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr "보정을 위한 속도가 제공되지 않습니다. 기본 최적 속도 사용 "
@@ -7958,12 +8046,8 @@ msgstr "부피: %1% mm³\n"
 msgid "Triangles: %1%\n"
 msgstr "삼각형: %1%\n"
 
-msgid ""
-"\"Fix Model\" feature is currently only on Windows. Please repair the model "
-"on Orca Slicer(windows) or CAD softwares."
+msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
-"\"모델 수리\" 기능은 현재 Windows에만 있습니다. Orca Slicer(Wndows) 또는 CAD "
-"소프트웨어 등에서 모델을 수정하세요."
 
 #, c-format, boost-format
 msgid ""
@@ -8125,6 +8209,20 @@ msgstr "시작 화면 표시"
 msgid "Show the splash screen during startup."
 msgstr "시작 화면을 표시합니다."
 
+msgid "Show shared profiles notification"
+msgstr ""
+
+msgid ""
+"Show a notification with a link to browse shared profiles when the selected "
+"printer is changed."
+msgstr ""
+
+msgid "Use window buttons on left side"
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
 msgid "Downloads folder"
 msgstr ""
 
@@ -8224,9 +8322,6 @@ msgid ""
 "same time and manage multiple devices."
 msgstr ""
 "활성화하면 여러 장치에 동시에 작업을 보내고 여러 장치를 관리할 수 있습니다."
-
-msgid "(Requires restart)"
-msgstr ""
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
@@ -8360,17 +8455,27 @@ msgid "Stealth mode"
 msgstr "스텔스 모드"
 
 msgid ""
-"This stops the transmission of data to Bambu's cloud services. Users who "
-"don't use BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
+"the transmission of data to Bambu's cloud services too. Users who don't use "
+"BBL machines or use LAN mode only can safely turn on this function."
 msgstr ""
-"이 기능은 뱀부의 클라우드 서비스로의 데이터 전송을 중지합니다. BBL 머신을 사"
-"용하지 않거나 LAN 모드만 사용하는 사용자는 이 기능을 안전하게 켤 수 있습니다."
 
 msgid "Network test"
 msgstr "네트워크 테스트"
 
 msgid "Test"
 msgstr "테스트"
+
+msgid "Cloud Providers"
+msgstr ""
+
+msgid "Enable Bambu Cloud"
+msgstr ""
+
+msgid ""
+"Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu "
+"login section appears on the homepage."
+msgstr ""
 
 msgid "Update & sync"
 msgstr ""
@@ -8638,6 +8743,9 @@ msgstr ""
 
 msgid "Project-inside presets"
 msgstr "프로젝트 내부 사전 설정"
+
+msgid "Bundle presets"
+msgstr ""
 
 msgid "System"
 msgstr ""
@@ -9152,6 +9260,12 @@ msgid ""
 "please wait for subsequent firmware support."
 msgstr ""
 
+msgid ""
+"The type of external filament is unknown or does not match with the filament "
+"type in the slicing file. Please make sure you have installed the correct "
+"filament in the external spool."
+msgstr ""
+
 msgid "Please refer to Wiki before use->"
 msgstr ""
 
@@ -9496,8 +9610,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "툴헤드 없이 시간 경과를 기록할 경우 \"타임랩스 프라임 타워\"를 추가하는 것이 "
 "좋습니다\n"
@@ -9621,9 +9735,6 @@ msgstr "외부 및 내부 브릿지 속도 설정"
 msgid "Travel speed"
 msgstr "이동 속도"
 
-msgid "Acceleration"
-msgstr "가속도"
-
 msgid "Jerk(XY)"
 msgstr "저크(XY)"
 
@@ -9654,6 +9765,9 @@ msgstr "특수 모드"
 msgid "G-code output"
 msgstr "Gcode 출력"
 
+msgid "Change extrusion role G-code"
+msgstr "압출 역할 Gcode 변경"
+
 msgid "Post-processing Scripts"
 msgstr "후처리 스크립트"
 
@@ -9682,9 +9796,6 @@ msgstr "예약어를 찾았습니다"
 
 msgid "Setting Overrides"
 msgstr "설정 덮어쓰기"
-
-msgid "Retraction"
-msgstr "후퇴"
 
 msgid "Basic information"
 msgstr "기본 정보"
@@ -9886,9 +9997,6 @@ msgstr ""
 msgid "Change filament G-code"
 msgstr "필라멘트 교체 Gcode"
 
-msgid "Change extrusion role G-code"
-msgstr "압출 역할 Gcode 변경"
-
 msgid "Pause G-code"
 msgstr "일시 정지 Gcode"
 
@@ -9901,10 +10009,24 @@ msgstr "동작 능력"
 msgid "Normal"
 msgstr "일반"
 
-msgid "Resonance Avoidance"
+msgid "Resonance Compensation"
 msgstr ""
 
 msgid "Resonance Avoidance Speed"
+msgstr ""
+
+msgid "Frequency"
+msgstr ""
+
+msgid ""
+"The frequency of the anti-vibration signal will correspond to the natural "
+"frequency of the frame."
+msgstr ""
+
+msgid "Damping"
+msgstr ""
+
+msgid "Damping ratio for the input shaping filter."
 msgstr ""
 
 msgid "Speed limitation"
@@ -10016,6 +10138,45 @@ msgstr ""
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
 msgstr "선택한 사전 설정을 %1%로 설정하시겠습니까?"
+
+#, c-format, boost-format
+msgid ""
+" - %s:\n"
+"    %s first layer %d %s, other layers %d %s\n"
+"    %s max delta %d %s, current delta %d %s\n"
+msgstr ""
+
+msgid ""
+"Some first-layer and other-layer temperature pairs exceed safety limits.\n"
+msgstr ""
+
+msgid ""
+"\n"
+"Invalid pairs:\n"
+msgstr ""
+
+msgid ""
+"\n"
+"You can go back to edit values, or continue if this is intentional."
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Continue anyway?"
+msgstr ""
+
+msgid "Temperature Safety Check"
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "Back"
+msgstr "뒷면"
+
+msgid "Don't warn again for this preset"
+msgstr ""
 
 #, c-format, boost-format
 msgid "Left: %s"
@@ -10548,6 +10709,16 @@ msgid "Please choose the filament colour"
 msgstr ""
 
 msgid ""
+"Native Wayland liveview requires the GStreamer GTK video sink. Please "
+"install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+msgstr ""
+
+msgid ""
+"Failed to initialize the native Wayland GStreamer video sink. Please check "
+"your GStreamer GTK plugin installation."
+msgstr ""
+
+msgid ""
 "Windows Media Player is required for this task! Do you want to enable "
 "'Windows Media Player' for your operation system?"
 msgstr ""
@@ -10581,6 +10752,9 @@ msgstr ""
 "시스템에 동영상 재생을 위해 필요한 GStreamer용 H.264 코덱이 존재하지 않습니"
 "다. (gstreamer1.0-plugins-bad 또는 gstreamer1.0-libav 패키지를 설치한 다음 "
 "Orca Slicer를 다시 실행하십시오.)"
+
+msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
+msgstr ""
 
 msgid "Bambu Network plug-in not detected."
 msgstr "뱀부 네트워크 플러그인이 감지되지 않습니다."
@@ -10756,6 +10930,9 @@ msgstr "확대"
 msgid "Zoom out"
 msgstr "축소"
 
+msgid "Toggle printable for object/part"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "준비 하기/미리 보기 전환"
 
@@ -10841,6 +11018,9 @@ msgstr "새 네트워크 플러그인(%s)을 사용할 수 있습니다. 설치�
 
 msgid "New version of Orca Slicer"
 msgstr "Orca Slicer의 새 버전"
+
+msgid "Check on Github"
+msgstr ""
 
 msgid "Skip this Version"
 msgstr "이 버전 건너뛰기"
@@ -10993,50 +11173,15 @@ msgstr ""
 msgid "Extension Board"
 msgstr "확장 보드"
 
-msgid "Saving objects into the 3MF failed."
-msgstr "객체를 3mf에 저장하지 못했습니다."
-
-msgid "Only Windows 10 is supported."
-msgstr "윈도우 10만 지원합니다."
-
-msgid "Failed to initialize the WinRT library."
-msgstr "WinRT 라이브러리를 초기화하지 못했습니다."
-
-msgid "Exporting objects"
-msgstr "객체 내보내는 중"
-
-msgid "Failed loading objects."
-msgstr "객체를 로드하지 못했습니다."
-
-msgid "Repairing object by Windows service"
-msgstr "Windows 서비스로 객체 수리 중"
-
-msgid "Repair failed."
-msgstr "수리에 실패하였습니다."
-
-msgid "Loading repaired objects"
-msgstr "수리된 객체 로드"
-
-msgid "Exporting 3MF file failed"
-msgstr "3mf 파일 내보내기 실패"
-
-msgid "Import 3MF file failed"
-msgstr "3mf 파일 가져오기 실패"
-
-msgid "Repaired 3MF file does not contain any object"
-msgstr "수리된 3MF 파일에 객체가 없습니다"
-
-msgid "Repaired 3MF file contains more than one object"
-msgstr "수리된 3MF 파일에 둘 이상의 객체가 포함되어 있습니다"
-
-msgid "Repaired 3MF file does not contain any volume"
-msgstr "수리된 3MF 파일에 부피가 없습니다"
-
-msgid "Repaired 3MF file contains more than one volume"
-msgstr "수리된 3MF 파일에 둘 이상의 부피가 포함되어 있습니다"
+#, boost-format
+msgid "Split into %1% parts"
+msgstr ""
 
 msgid "Repair finished"
 msgstr "수리 완료"
+
+msgid "Repair failed"
+msgstr ""
 
 msgid "Repair canceled"
 msgstr "수리 취소됨"
@@ -11079,6 +11224,12 @@ msgstr ""
 "이 높이에 있는 객체의 일부가 너무 얇거나 객체에 결함이 있는 메시가 있을 수 있"
 "습니다"
 
+msgid "Process change extrusion role G-code"
+msgstr ""
+
+msgid "Filament change extrusion role G-code"
+msgstr ""
+
 msgid "No object can be printed. Maybe too small"
 msgstr "객체를 출력할 수 없습니다. 너무 작을 수 있습니다"
 
@@ -11102,6 +11253,17 @@ msgid "Generating G-code: layer %1%"
 msgstr "Gcode 생성 중: 레이어 %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
+msgstr ""
+
+msgid "set_accel_and_jerk() is only supported by Klipper"
+msgstr ""
+
+msgid ""
+"Input shaping is not supported by Marlin < 2.1.2.\n"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+msgstr ""
+
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
 msgstr ""
 
 msgid "Grouping error: "
@@ -11259,29 +11421,19 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Selected nozzle temperatures are incompatible. Each filament's nozzle "
+"temperature must fall within the recommended nozzle temperature range of the "
+"other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr ""
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage. If you still want to print, you can enable the option in "
-"Preferences."
+"Invalid recommended nozzle temperature range. The lower bound must be lower "
+"than the upper bound."
 msgstr ""
 
 msgid ""
-"Printing different-temp filaments together may cause nozzle clogging or "
-"printer damage."
-msgstr ""
-
-msgid ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-
-msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"If you still want to print, you can enable the option in Preferences / "
+"Control / Slicing / Remove mixed temperature restriction."
 msgstr ""
 
 msgid "No extrusions under current settings."
@@ -11634,6 +11786,16 @@ msgstr ""
 "만큼 축소되고, 다음 레이어부터 이 값으로 표시된 레이어까지 선형적으로 덜 축소"
 "됩니다."
 
+msgid "Elephant foot layers density"
+msgstr ""
+
+msgid ""
+"Density of internal solid infill for Elephant foot layers compensation.\n"
+"The initial value for the second layer is set.\n"
+"Subsequent layers become linearly denser by the height specified in "
+"elefant_foot_compensation_layers."
+msgstr ""
+
 msgid ""
 "Slicing height for each layer. Smaller layer height means more accurate and "
 "more printing time."
@@ -11688,9 +11850,9 @@ msgid ""
 msgstr ""
 "Orca Slicer은 Gcode 파일을 프린터 호스트에 업로드할 수 있습니다. 이 필드에는 "
 "프린터 호스트 인스턴스의 호스트 이름, IP 주소 또는 URL이 포함되어야 합니다. "
-"기본 인증이 활성화된 HAProxy 뒤의 출력 호스트는 https://"
-"username:password@your-octopi-address/ 형식의 URL에 사용자 이름과 암호를 입력"
-"하여 액세스할 수 있습니다"
+"기본 인증이 활성화된 HAProxy 뒤의 출력 호스트는 https://username:"
+"password@your-octopi-address/ 형식의 URL에 사용자 이름과 암호를 입력하여 액세"
+"스할 수 있습니다"
 
 msgid "Device UI"
 msgstr "장치 UI"
@@ -12496,6 +12658,18 @@ msgstr ""
 "가장 안쪽 브림 라인과 객체 사이에 간격을 주어 쉽게 브림을 제거 할 수 있게 합"
 "니다"
 
+msgid "Brim flow ratio"
+msgstr ""
+
+msgid ""
+"This factor affects the amount of material for brims.\n"
+"\n"
+"The actual brim flow used is calculated by multiplying this value by the "
+"filament flow ratio, and if set, the object's flow ratio.\n"
+"\n"
+"Note: The resulting value will not be affected by the first-layer flow ratio."
+msgstr ""
+
 msgid "Brim follows compensated outline"
 msgstr "브림는 보상된 아웃라인을 따릅니다."
 
@@ -12515,6 +12689,14 @@ msgstr ""
 "\n"
 "현재 설정이 이미 잘 작동하는 경우 활성화할 필요가 없으며 브림이 상위 레이어"
 "와 융합될 수 있습니다."
+
+msgid "Combine brims"
+msgstr ""
+
+msgid ""
+"Combine multiple brims into one when they are close to each other. This can "
+"improve brim adhesion."
+msgstr ""
 
 msgid "Brim ears"
 msgstr "브림 귀"
@@ -12630,6 +12812,18 @@ msgstr "공기 여과 활성화"
 
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
 msgstr "더 나은 공기 여과를 위해 활성화하세요. Gcode 명령: M106 P3 S(0-255)"
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code during print."
+msgstr ""
+
+msgid "On completion"
+msgstr ""
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code after print "
+"completion."
+msgstr ""
 
 msgid ""
 "Speed of exhaust fan during printing. This speed will override the speed in "
@@ -13026,22 +13220,14 @@ msgid "Wall loop direction"
 msgstr "벽 루프 방향"
 
 msgid ""
-"The direction which the wall loops are extruded when looking down from the "
-"top.\n"
-"\n"
-"By default all walls are extruded in counter-clockwise, unless Reverse on "
-"even is enabled. Set this to any option other than Auto will force the wall "
-"direction regardless of the Reverse on even.\n"
+"The direction which the contour wall loops are extruded when looking down "
+"from the top.\n"
+"Holes are printed in the opposite direction to the contour to maintain "
+"alignment with layers whose contour polygons are incomplete and change "
+"direction, also partially forming the contour of a hole.\n"
 "\n"
 "This option will be disabled if spiral vase mode is enabled."
 msgstr ""
-"위에서 아래를 내려다볼 때 벽 루프가 돌출되는 방향입니다.\n"
-"\n"
-"기본적으로 짝수에 반전이 활성화되지 않은 한 모든 벽은 시계 반대 방향으로 돌출"
-"됩니다. Auto 이외의 옵션으로 설정하면 짝수에 반전 관계없이 벽 방향이 강제됩니"
-"다.\n"
-"\n"
-"나선형 꽃병 모드가 활성화된 경우 이 옵션은 비활성화됩니다."
 
 msgid "Counter clockwise"
 msgstr "시계 반대 방향"
@@ -13643,6 +13829,12 @@ msgstr ""
 "생 객체로 청소하기 전에 Orca Slicer은 항상 이 양의 재료를 프라임 타워로 프라"
 "이밍하여 연속적인 채우기 또는 희생 물체 압출을 안정적으로 생성합니다."
 
+msgid "Wipe tower cooling"
+msgstr ""
+
+msgid "Temperature drop before entering filament tower"
+msgstr ""
+
 msgid "Interface layer pre-extrusion distance"
 msgstr ""
 
@@ -14022,8 +14214,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 또는 %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "드문 채우기 가속도. 값이 백분율 (예. 100%)로 표시되면 기본 가속도를 기준으로 "
 "계산됩니다."
@@ -14042,6 +14234,14 @@ msgid ""
 msgstr ""
 "초기 레이어 가속도. 낮은 값을 사용하면 빌드 플레이트 안착률을 높일 수 있습니"
 "다"
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "가속/감속 활성화"
@@ -14085,6 +14285,11 @@ msgstr "초기 레이어 저크"
 
 msgid "Jerk for travel."
 msgstr "이동 저크"
+
+msgid ""
+"Travel jerk of first layer.\n"
+"The percentage value is relative to Travel Jerk."
+msgstr ""
 
 msgid ""
 "Line width of the first layer. If expressed as a %, it will be computed over "
@@ -14139,10 +14344,10 @@ msgstr "팬 최대 속도 레이어"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "팬 속도는 \"close_fan_the_first_x_layers\" 의 0에서 \"full_fan_speed_layer\" "
 "의 최고 속도까지 선형적으로 증가합니다. \"full_fan_speed_layer\"가 "
@@ -14320,16 +14525,10 @@ msgid ""
 "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
 "marble-like textures.\n"
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a "
-"random amount. Creates a patchwork texture."
+"random amount. Creates a patchwork texture.\n"
+"Ripple: Uniform ripple pattern that ripples left and right of the original "
+"path. Repeating pattern, woven appearance."
 msgstr ""
-"흐릿한 피부 생성에 사용할 노이즈 유형입니다.\n"
-"클래식: 클래식 균일 랜덤 노이즈.\n"
-"펄린: 펄린 노이즈: 보다 일관된 텍스처를 제공하는 펄린 노이즈입니다.\n"
-"빌로우: 펄린 노이즈와 비슷하지만 더 뭉툭합니다.\n"
-"리지드 멀티프랙탈: 날카롭고 들쭉날쭉한 특징을 가진 리지드 노이즈입니다. 대리"
-"석과 같은 텍스처를 만듭니다.\n"
-"보로노이: 보로노이: 표면을 보로노이 셀로 나누고 각 셀을 임의의 양만큼 이동시"
-"킵니다. 패치워크 텍스처를 만듭니다."
 
 msgid "Classic"
 msgstr "클래식"
@@ -14345,6 +14544,9 @@ msgstr "리지드 멀티프랙탈"
 
 msgid "Voronoi"
 msgstr "보로노이"
+
+msgid "Ripple"
+msgstr ""
 
 msgid "Fuzzy skin feature size"
 msgstr "퍼지 스킨 피처 크기"
@@ -14374,6 +14576,43 @@ msgid ""
 msgstr ""
 "코히어런트 노이즈의 높은 옥타브에 대한 감쇠율입니다. 값이 낮을수록 노이즈가 "
 "더 부드러워집니다."
+
+msgid "Number of ripples per layer"
+msgstr ""
+
+msgid "Controls how many full cycles of ripples will be added per layer."
+msgstr ""
+
+msgid "Ripple offset"
+msgstr ""
+
+msgid ""
+"Shifts the ripple phase forward along the print path by the specified "
+"percentage of a wavelength each layer period.\n"
+"- 0% keeps every layer identical.\n"
+"- 50% shifts the pattern by half a wavelength, effectively inverting the "
+"phase.\n"
+"- 100% shifts the pattern by a full wavelength, returning to the original "
+"phase.\n"
+"\n"
+"The shift is applied once every number of layers set by Layers between "
+"ripple offset, so layers within the same group are printed identically."
+msgstr ""
+
+msgid "Layers between ripple offset"
+msgstr ""
+
+msgid ""
+"Specifies how many consecutive layers share the same ripple phase before the "
+"offset is applied.\n"
+"For example:\n"
+"- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is "
+"shifted by the configured offset, then layer 3 returns to the base pattern, "
+"and so on.\n"
+"- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 "
+"to 6 are shifted by the configured offset, then layers 7 to 9 return to the "
+"base pattern, etc."
+msgstr ""
 
 msgid "Filter out tiny gaps"
 msgstr "작은 간격 필터링"
@@ -14980,6 +15219,44 @@ msgstr ""
 msgid "Use a fixed absolute angle for ironing."
 msgstr ""
 
+msgid "Ironing expansion"
+msgstr ""
+
+msgid "Expand or contract the ironing area."
+msgstr ""
+
+msgid "Z contouring enabled"
+msgstr ""
+
+msgid "Enable Z-layer contouring (aka Z-layer anti-aliasing)."
+msgstr ""
+
+msgid "Minimize wall height angle"
+msgstr ""
+
+msgid ""
+"Reduce the height of top-surface perimeters to match the model edge height.\n"
+"Affects perimeters with a slope less than this angle (degrees).\n"
+"A reasonable value is 35. Set to 0 to disable."
+msgstr ""
+
+msgid "°"
+msgstr "°"
+
+msgid "Don't alternate fill direction"
+msgstr ""
+
+msgid "Disable alternating fill direction when using Z contouring."
+msgstr ""
+
+msgid "Minimum z height"
+msgstr ""
+
+msgid ""
+"Minimum Z-layer height.\n"
+"Also controls the slicing plane."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "이 Gcode는 Z올리기 이후 모든 레이어 변경에 삽입됩니다"
 
@@ -15165,6 +15442,88 @@ msgstr "최대"
 msgid "Maximum speed of resonance avoidance."
 msgstr ""
 
+msgid "Emit input shaping"
+msgstr ""
+
+msgid ""
+"Override firmware input shaping settings.\n"
+"If disabled, firmware settings are used."
+msgstr ""
+
+msgid "Input shaper type"
+msgstr ""
+
+msgid ""
+"Choose the input shaper algorithm.\n"
+"Default uses the firmware default settings.\n"
+"Disable turns off input shaping in the firmware."
+msgstr ""
+
+msgid "MZV"
+msgstr ""
+
+msgid "ZV"
+msgstr ""
+
+msgid "ZVD"
+msgstr ""
+
+msgid "ZVDD"
+msgstr ""
+
+msgid "ZVDDD"
+msgstr ""
+
+msgid "EI"
+msgstr ""
+
+msgid "EI2"
+msgstr ""
+
+msgid "2HUMP_EI"
+msgstr ""
+
+msgid "EI3"
+msgstr ""
+
+msgid "3HUMP_EI"
+msgstr ""
+
+msgid "DAA"
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid ""
+"Resonant frequency for the X axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+
+msgid "Y"
+msgstr ""
+
+msgid ""
+"Resonant frequency for the Y axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+
+msgid ""
+"Damping ratio for the X axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+
+msgid ""
+"Damping ratio for the Y axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+
 msgid ""
 "Part cooling fan speed may be increased when auto cooling is enabled. This "
 "is the maximum speed for the part cooling fan."
@@ -15286,6 +15645,23 @@ msgstr ""
 "를 제외하고 출력 중에 보조 팬이 이 속도로 작동합니다.\n"
 "이 기능을 사용하려면 프린터 설정에서 보조 팬을 활성화하세요. Gcode 명령: "
 "M106 P2 S(0-255)"
+
+msgid "For the first"
+msgstr ""
+
+msgid "Set special auxiliary cooling fan for the first certain layers."
+msgstr ""
+
+msgid ""
+"Auxiliary fan speed will be ramped up linearly from layer \"For the first\" "
+"to maximum at layer \"Full fan speed at layer\". \"Full fan speed at layer\" "
+"will be ignored if lower than \"For the first\", in which case the fan will "
+"run at maximum allowed speed at layer \"For the first\" + 1."
+msgstr ""
+
+msgid ""
+"Special auxiliary cooling fan speed, effective only for the first x layers."
+msgstr ""
 
 msgid ""
 "The lowest printable layer height for the extruder. Used to limit the "
@@ -15493,6 +15869,14 @@ msgstr ""
 "대 경로를 첫 번째 값으로 전달하며 환경 변수를 읽어 Orca Slicer 구성 설정에 접"
 "근할 수 있습니다."
 
+msgid "Change extrusion role G-code (process)"
+msgstr ""
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed. It runs after "
+"the machine and filament extrusion role G-code."
+msgstr ""
+
 msgid "Printer type"
 msgstr "프린터 유형"
 
@@ -15512,13 +15896,11 @@ msgid "Raft contact Z distance"
 msgstr "라프트 접점 Z 거리"
 
 msgid ""
-"Z gap between raft and object. "
-"If Support Top Z Distance is 0, this value is ignored and "
-"the object is printed in direct contact with the raft (no gap)."
+"Z gap between raft and object. If Support Top Z Distance is 0, this value is "
+"ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"래프트와 객체 사이의 Z 간격. "
-"서포트 상단 Z 거리가 0이면 이 값은 무시되고 "
-"객체는 래프트에 직접 접촉하여 출력됩니다(간격 없음)."
+"래프트와 객체 사이의 Z 간격. 서포트 상단 Z 거리가 0이면 이 값은 무시되고 객체"
+"는 래프트에 직접 접촉하여 출력됩니다(간격 없음)."
 
 msgid "Raft expansion"
 msgstr "라프트 확장"
@@ -15783,9 +16165,6 @@ msgstr "정렬"
 msgid "Aligned back"
 msgstr ""
 
-msgid "Back"
-msgstr "뒷면"
-
 msgid "Random"
 msgstr "무작위"
 
@@ -15933,8 +16312,8 @@ msgid "Role base wipe speed"
 msgstr "역할 기반 노즐 청소 속도"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -16441,13 +16820,13 @@ msgid "Bottom Z distance"
 msgstr "하단 Z 거리"
 
 msgid ""
-"Z gap between the object and the support bottom. "
-"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
-"is ignored and the support is printed in direct contact with the object (no gap)."
+"Z gap between the object and the support bottom. If Support Top Z Distance "
+"is 0 and the bottom has interface layers, this value is ignored and the "
+"support is printed in direct contact with the object (no gap)."
 msgstr ""
-"객체와 서포트 하단 사이의 Z 간격. "
-"서포트 상단 Z 거리가 0이고 하단에 인터페이스 레이어가 있으"
-"면 이 값은 무시되고 서포트가 객체에 직접 접촉하여 출력됩니다(간격 없음)."
+"객체와 서포트 하단 사이의 Z 간격. 서포트 상단 Z 거리가 0이고 하단에 인터페이"
+"스 레이어가 있으면 이 값은 무시되고 서포트가 객체에 직접 접촉하여 출력됩니다"
+"(간격 없음)."
 
 msgid "Support/raft base"
 msgstr "서포트/라프트 기본"
@@ -16774,8 +17153,8 @@ msgstr "온도 제어 활성화"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16853,6 +17232,14 @@ msgstr ""
 
 msgid "This G-code is inserted when the extrusion role is changed."
 msgstr "이 Gcode는 압출 역할이 변경될 때 삽입됩니다"
+
+msgid "Change extrusion role G-code (filament)"
+msgstr ""
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed for the active "
+"filament."
+msgstr ""
 
 msgid ""
 "Line width for top surfaces. If expressed as a %, it will be computed over "
@@ -17385,6 +17772,25 @@ msgstr ""
 "값인 0.5보다 높게 설정되거나 단일 벽 상단 표면이 활성화된 경우에만 표시됩니"
 "다."
 
+msgid "Maximum wall resolution"
+msgstr ""
+
+msgid ""
+"This value determines the smallest wall line segment length in mm. The "
+"smaller you set this value, the more accurate and precise the walls will be."
+msgstr ""
+
+msgid "Maximum wall deviation"
+msgstr ""
+
+msgid ""
+"The maximum deviation allowed when reducing the resolution for the 'Maximum "
+"wall resolution' setting. If you increase this, the print will be less "
+"accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits "
+"'Maximum wall resolution', so if the two conflict, 'Maximum wall deviation' "
+"takes precedence."
+msgstr ""
+
 msgid "First layer minimum wall width"
 msgstr "첫 레이어 최소 벽 너비"
 
@@ -17676,8 +18082,8 @@ msgid "Debug level"
 msgstr "디버그 수준"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "디버그 로깅 수준을 설정합니다. 0:치명적, 1:오류, 2:경고, 3:정보, 4:디버그, 5:"
 "추적\n"
@@ -18117,6 +18523,9 @@ msgstr "채우기 영역 생성 중"
 msgid "Generating infill toolpath"
 msgstr "채우기 툴 경로 생성 중"
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Detect overhangs for auto-lift"
 msgstr "Z 올리기를 위한 오버행 감지"
 
@@ -18213,9 +18622,6 @@ msgstr "파일에 잘못된 꼭지점 인덱스가 포함되어 있습니다."
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "이 OBJ 파일은 비어 있어서 읽을 수 없습니다."
 
-msgid "Flow Rate Calibration"
-msgstr "압출량 교정"
-
 msgid "Max Volumetric Speed Calibration"
 msgstr "최대 압출 속도 교정"
 
@@ -18271,9 +18677,6 @@ msgstr "추가 정보"
 
 msgid "Flow Dynamics"
 msgstr "동적 압출량"
-
-msgid "Flow Rate"
-msgstr "압출량"
 
 msgid "Max Volumetric Speed"
 msgstr "최대 압출 속도"
@@ -18689,9 +19092,10 @@ msgid "TPU is not supported for Flow Dynamics Auto-Calibration."
 msgstr "TPU는 동적 압출량 자동 교정에서 지원되지 않습니다."
 
 msgid ""
-"Cannot print multiple filaments which have large difference of temperature "
-"together. Otherwise, the extruder and nozzle may be blocked or damaged "
-"during printing"
+"Selected nozzle temperatures are incompatible. For multi-material printing, "
+"each filament's nozzle temperature must be within the recommended nozzle "
+"temperature range of the other filaments. Otherwise, nozzle clogging or "
+"printer damage may occur."
 msgstr ""
 
 msgid "Sync AMS and nozzle information"
@@ -18958,9 +19362,6 @@ msgstr ""
 msgid "Fast Tower"
 msgstr ""
 
-msgid "Input shaper type"
-msgstr ""
-
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
 msgstr ""
@@ -19016,9 +19417,6 @@ msgid "Check firmware compatibility."
 msgstr ""
 
 msgid "Frequency: "
-msgstr ""
-
-msgid "Frequency"
 msgstr ""
 
 msgid "Damp"
@@ -19082,6 +19480,27 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr ""
+
+msgid "Calibration Test Type"
+msgstr ""
+
+msgid "Pass 1 (Coarse)"
+msgstr ""
+
+msgid "Pass 2 (Fine)"
+msgstr ""
+
+msgid "YOLO (Recommended)"
+msgstr "YOLO (권장)"
+
+msgid "YOLO (Perfectionist)"
+msgstr ""
+
+msgid "Top Surface Pattern"
 msgstr ""
 
 msgid "Send G-code to printer host"
@@ -19327,8 +19746,8 @@ msgstr "아직 프린터나 사전 설정을 선택하지 않았습니다. 하�
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue, the preset created will be displayed with its full name. "
-"Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. Do "
+"you want to continue?"
 msgstr ""
 "생성한 필라멘트 이름 %s이(가) 이미 존재합니다.\n"
 "계속 생성하면 생성된 사전 설정이 전체 이름과 함께 표시됩니다. 계속하시겠습니"
@@ -19345,8 +19764,8 @@ msgstr ""
 "다시 작성하시겠습니까?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -20529,6 +20948,9 @@ msgstr ""
 msgid "Global settings"
 msgstr ""
 
+msgid "Video tutorial"
+msgstr ""
+
 msgid "(Sync with printer)"
 msgstr ""
 
@@ -20669,9 +21091,6 @@ msgid "This action cannot be undone. Continue?"
 msgstr ""
 
 msgid "Skipping objects."
-msgstr ""
-
-msgid "Continue"
 msgstr ""
 
 msgid "Select Filament"
@@ -21188,6 +21607,200 @@ msgstr ""
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 "
 "높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
+#~ msgid "Pen size"
+#~ msgstr "펜 크기"
+
+#~ msgid "Pen shape"
+#~ msgstr "펜 모양"
+
+#~ msgid "Key 1~9"
+#~ msgstr "키 1~9"
+
+#~ msgid "Left click"
+#~ msgstr "좌 클릭"
+
+#~ msgid "Right click"
+#~ msgstr "우 클릭"
+
+#~ msgid "Select feature"
+#~ msgstr "기능 선택"
+
+#~ msgid "Based on PrusaSlicer and BambuStudio"
+#~ msgstr "PrusaSlicer와 BambuStudio 기반"
+
+#~ msgid "Object/Part Setting"
+#~ msgstr "객체/부품 설정"
+
+#~ msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
+#~ msgstr ""
+#~ "Orca Slicer는 BambuStudio, PrusaSlicer 및 SuperSlicer를 기반으로 합니다."
+
+#~ msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
+#~ msgstr "BambuStudio는 PrusaResearch의 PrusaSlicer를 기반으로 합니다."
+
+#~ msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
+#~ msgstr "PrusaSlicer는 Alessandro Ranellucci의 Slic3r을 기반으로 합니다."
+
+#~ msgid ""
+#~ "Slic3r was created by Alessandro Ranellucci with the help of many other "
+#~ "contributors."
+#~ msgstr ""
+#~ "Slic3r은 Alessandro Ranellucci가 다른 많은 기여자들의 도움을 받아 만들었습"
+#~ "니다."
+
+#~ msgid "Actual Speed: "
+#~ msgstr "실제 속도: "
+
+#~ msgid "Mouse wheel:"
+#~ msgstr "마우스 휠:"
+
+#~ msgid "Object selection"
+#~ msgstr "객체 선택"
+
+#~ msgid "Pass 1"
+#~ msgstr "1차 테스트"
+
+#~ msgid "Flow ratio test - Pass 1"
+#~ msgstr "압출량 비율 테스트 - 1차"
+
+#~ msgid "Pass 2"
+#~ msgstr "2차 테스트"
+
+#~ msgid "Flow ratio test - Pass 2"
+#~ msgstr "압출량 비율 테스트 - 2차"
+
+#~ msgid "Orca YOLO flowratio calibration, 0.01 step"
+#~ msgstr "Orca YOLO 압출량 비율 보정, 0.01 단계"
+
+#~ msgid "YOLO (perfectionist version)"
+#~ msgstr "YOLO (완벽주의자 버전)"
+
+#~ msgid "Orca YOLO flowratio calibration, 0.005 step"
+#~ msgstr "Orca YOLO 압출량 비율 보정, 0.005 단계"
+
+#~ msgid "Retraction test"
+#~ msgstr "후퇴 테스트"
+
+#~ msgid "Tutorial"
+#~ msgstr "설명서"
+
+#~ msgid "Calibration help"
+#~ msgstr "교정 도움말"
+
+#~ msgid ""
+#~ "Do you want to synchronize your personal data from Bambu Cloud?\n"
+#~ "It contains the following information:\n"
+#~ "1. The Process presets\n"
+#~ "2. The Filament presets\n"
+#~ "3. The Printer presets"
+#~ msgstr ""
+#~ "뱀부 클라우드의 개인 데이터를 동기화하시겠습니까?\n"
+#~ "다음과 같은 정보가 포함되어 있습니다:\n"
+#~ "1. 프로세스 사전 설정\n"
+#~ "2. 필라멘트 사전 설정\n"
+#~ "3. 프린터 사전 설정"
+
+#~ msgid "Show/Hide advanced parameters"
+#~ msgstr "고급 매개변수 표시/숨기기"
+
+#~ msgid ""
+#~ "\"Fix Model\" feature is currently only on Windows. Please repair the "
+#~ "model on Orca Slicer(windows) or CAD softwares."
+#~ msgstr ""
+#~ "\"모델 수리\" 기능은 현재 Windows에만 있습니다. Orca Slicer(Wndows) 또는 "
+#~ "CAD 소프트웨어 등에서 모델을 수정하세요."
+
+#~ msgid ""
+#~ "This stops the transmission of data to Bambu's cloud services. Users who "
+#~ "don't use BBL machines or use LAN mode only can safely turn on this "
+#~ "function."
+#~ msgstr ""
+#~ "이 기능은 뱀부의 클라우드 서비스로의 데이터 전송을 중지합니다. BBL 머신을 "
+#~ "사용하지 않거나 LAN 모드만 사용하는 사용자는 이 기능을 안전하게 켤 수 있습"
+#~ "니다."
+
+#~ msgid "Saving objects into the 3MF failed."
+#~ msgstr "객체를 3mf에 저장하지 못했습니다."
+
+#~ msgid "Only Windows 10 is supported."
+#~ msgstr "윈도우 10만 지원합니다."
+
+#~ msgid "Failed to initialize the WinRT library."
+#~ msgstr "WinRT 라이브러리를 초기화하지 못했습니다."
+
+#~ msgid "Exporting objects"
+#~ msgstr "객체 내보내는 중"
+
+#~ msgid "Failed loading objects."
+#~ msgstr "객체를 로드하지 못했습니다."
+
+#~ msgid "Repairing object by Windows service"
+#~ msgstr "Windows 서비스로 객체 수리 중"
+
+#~ msgid "Repair failed."
+#~ msgstr "수리에 실패하였습니다."
+
+#~ msgid "Loading repaired objects"
+#~ msgstr "수리된 객체 로드"
+
+#~ msgid "Exporting 3MF file failed"
+#~ msgstr "3mf 파일 내보내기 실패"
+
+#~ msgid "Import 3MF file failed"
+#~ msgstr "3mf 파일 가져오기 실패"
+
+#~ msgid "Repaired 3MF file does not contain any object"
+#~ msgstr "수리된 3MF 파일에 객체가 없습니다"
+
+#~ msgid "Repaired 3MF file contains more than one object"
+#~ msgstr "수리된 3MF 파일에 둘 이상의 객체가 포함되어 있습니다"
+
+#~ msgid "Repaired 3MF file does not contain any volume"
+#~ msgstr "수리된 3MF 파일에 부피가 없습니다"
+
+#~ msgid "Repaired 3MF file contains more than one volume"
+#~ msgstr "수리된 3MF 파일에 둘 이상의 부피가 포함되어 있습니다"
+
+#~ msgid ""
+#~ "The direction which the wall loops are extruded when looking down from "
+#~ "the top.\n"
+#~ "\n"
+#~ "By default all walls are extruded in counter-clockwise, unless Reverse on "
+#~ "even is enabled. Set this to any option other than Auto will force the "
+#~ "wall direction regardless of the Reverse on even.\n"
+#~ "\n"
+#~ "This option will be disabled if spiral vase mode is enabled."
+#~ msgstr ""
+#~ "위에서 아래를 내려다볼 때 벽 루프가 돌출되는 방향입니다.\n"
+#~ "\n"
+#~ "기본적으로 짝수에 반전이 활성화되지 않은 한 모든 벽은 시계 반대 방향으로 "
+#~ "돌출됩니다. Auto 이외의 옵션으로 설정하면 짝수에 반전 관계없이 벽 방향이 "
+#~ "강제됩니다.\n"
+#~ "\n"
+#~ "나선형 꽃병 모드가 활성화된 경우 이 옵션은 비활성화됩니다."
+
+#~ msgid ""
+#~ "Noise type to use for fuzzy skin generation:\n"
+#~ "Classic: Classic uniform random noise.\n"
+#~ "Perlin: Perlin noise, which gives a more consistent texture.\n"
+#~ "Billow: Similar to perlin noise, but clumpier.\n"
+#~ "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
+#~ "marble-like textures.\n"
+#~ "Voronoi: Divides the surface into voronoi cells, and displaces each one "
+#~ "by a random amount. Creates a patchwork texture."
+#~ msgstr ""
+#~ "흐릿한 피부 생성에 사용할 노이즈 유형입니다.\n"
+#~ "클래식: 클래식 균일 랜덤 노이즈.\n"
+#~ "펄린: 펄린 노이즈: 보다 일관된 텍스처를 제공하는 펄린 노이즈입니다.\n"
+#~ "빌로우: 펄린 노이즈와 비슷하지만 더 뭉툭합니다.\n"
+#~ "리지드 멀티프랙탈: 날카롭고 들쭉날쭉한 특징을 가진 리지드 노이즈입니다. 대"
+#~ "리석과 같은 텍스처를 만듭니다.\n"
+#~ "보로노이: 보로노이: 표면을 보로노이 셀로 나누고 각 셀을 임의의 양만큼 이동"
+#~ "시킵니다. 패치워크 텍스처를 만듭니다."
+
+#~ msgid "Flow Rate"
+#~ msgstr "압출량"
+
 #~ msgid ""
 #~ "Zero first layer height is invalid.\n"
 #~ "\n"
@@ -21304,9 +21917,6 @@ msgstr ""
 
 #~ msgid "Acceleration of outer walls."
 #~ msgstr "외벽의 가속도"
-
-#~ msgid "°"
-#~ msgstr "°"
 
 #~ msgid ""
 #~ "Don't retract when the travel is in infill area absolutely. That means "
@@ -22276,8 +22886,8 @@ msgstr ""
 #~ msgstr "mm/mm"
 
 #~ msgid ""
-#~ "We would rename the presets as \"Vendor Type Serial @printer you "
-#~ "selected\".\n"
+#~ "We would rename the presets as \"Vendor Type Serial @printer you selected"
+#~ "\".\n"
 #~ "To add preset for more printers, Please go to printer selection"
 #~ msgstr ""
 #~ "사전 설정의 이름을 \"선택한 공급업체 유형 직렬 @프린터\"로 변경합니다.\n"
@@ -23304,8 +23914,8 @@ msgstr ""
 #~ "로 지정되지 않은 경우 필라멘트의 최소 출력 속도가 활성화됩니다."
 
 #~ msgid ""
-#~ "We would rename the presets as \"Vendor Type Serial @printer you "
-#~ "selected\".\n"
+#~ "We would rename the presets as \"Vendor Type Serial @printer you selected"
+#~ "\".\n"
 #~ "To add preset for more prinetrs, Please go to printer selection"
 #~ msgstr ""
 #~ "사전 설정의 이름을 \"선택한 공급업체 유형 직렬 @프린터\"로 변경합니다.\n"
