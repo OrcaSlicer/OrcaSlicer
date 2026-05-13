@@ -8,6 +8,9 @@
 		"SeeMeCNC PETG-CF"
 	],
 	"filament_id": "13dbcfdd-d3e6-5468-897e-1bab77e07258",
+	"filament_vendor": [
+		"SeeMeCNC"
+	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",

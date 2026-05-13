@@ -8,6 +8,9 @@
 		"SeeMeCNC PLA"
 	],
 	"filament_id": "3c2693e2-ed7f-53ce-9883-611028772c75",
+	"filament_vendor": [
+		"SeeMeCNC"
+	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",

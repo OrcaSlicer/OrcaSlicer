@@ -8,6 +8,9 @@
 		"SeeMeCNC TPU 85A-95A"
 	],
 	"filament_id": "1a05187c-5b07-5e62-a618-8fbc86a83ba5",
+	"filament_vendor": [
+		"SeeMeCNC"
+	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
