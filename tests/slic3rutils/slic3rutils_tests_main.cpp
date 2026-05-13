@@ -3,15 +3,7 @@
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/OrcaCloudServiceAgent.hpp"
 
-#include <wx/init.h>
-
 namespace {
-
-struct WxFixture {
-    WxFixture() { REQUIRE(initializer.IsOk()); }
-
-    wxInitializer initializer;
-};
 
 nlohmann::json flat_session_json(const nlohmann::json& fields)
 {
@@ -61,7 +53,7 @@ TEST_CASE("Check SSL certificates paths", "[Http][NotWorking]") {
     REQUIRE(status == 200);
 }
 
-TEST_CASE_METHOD(WxFixture, "Orca cloud flat session resolves display name consistently", "[OrcaCloudServiceAgent]")
+TEST_CASE("Orca cloud flat session resolves display name consistently", "[OrcaCloudServiceAgent]")
 {
     CHECK(resolved_display_name(flat_session_json({
         {"username", "orca_username"},
@@ -89,7 +81,7 @@ TEST_CASE_METHOD(WxFixture, "Orca cloud flat session resolves display name consi
     })) == "orca_username");
 }
 
-TEST_CASE_METHOD(WxFixture, "Orca cloud nested session resolves display name consistently", "[OrcaCloudServiceAgent]")
+TEST_CASE("Orca cloud nested session resolves display name consistently", "[OrcaCloudServiceAgent]")
 {
     CHECK(resolved_display_name(nested_session_json({
         {"username", "orca_username"},
