@@ -86,33 +86,23 @@ bool GCodeWriter::adjust_spiral_lift_ij_offset_for_printable_area(const Vec3d &s
     if (!m_has_printable_area_bounds)
         return true;
 
-    auto fits = [this, &source_on_plate, radius](const Vec2d &candidate) {
-        const double cx = source_on_plate.x() + candidate.x();
-        const double cy = source_on_plate.y() + candidate.y();
-        return cx - radius >= m_printable_x_min &&
-               cx + radius <= m_printable_x_max &&
-               cy - radius >= m_printable_y_min &&
-               cy + radius <= m_printable_y_max;
-    };
+    const double center_x_min = m_printable_x_min + radius;
+    const double center_x_max = m_printable_x_max - radius;
+    const double center_y_min = m_printable_y_min + radius;
+    const double center_y_max = m_printable_y_max - radius;
 
-    if (fits(ij_offset))
-        return true;
+    // Geometrically impossible to place a full circle of this radius in printable area.
+    if (center_x_min > center_x_max || center_y_min > center_y_max)
+        return false;
 
-    const Vec2d candidates[] = {
-        Vec2d(radius, 0.),
-        Vec2d(-radius, 0.),
-        Vec2d(0., radius),
-        Vec2d(0., -radius)
-    };
+    const double desired_cx = source_on_plate.x() + ij_offset.x();
+    const double desired_cy = source_on_plate.y() + ij_offset.y();
 
-    for (const Vec2d &candidate : candidates) {
-        if (fits(candidate)) {
-            ij_offset = candidate;
-            return true;
-        }
-    }
+    const double clamped_cx = std::clamp(desired_cx, center_x_min, center_x_max);
+    const double clamped_cy = std::clamp(desired_cy, center_y_min, center_y_max);
 
-    return false;
+    ij_offset = Vec2d(clamped_cx - source_on_plate.x(), clamped_cy - source_on_plate.y());
+    return true;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
