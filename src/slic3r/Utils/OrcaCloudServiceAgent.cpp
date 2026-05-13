@@ -74,6 +74,14 @@ constexpr const char* SECRET_STORE_SERVICE = "OrcaSlicer/Auth";
 constexpr const char* SECRET_STORE_USER    = "orca_refresh_token";
 constexpr std::chrono::seconds TOKEN_REFRESH_SKEW{900}; // 15 minutes
 
+// Return a JSON field only when it is present as a string. Missing or non-string values normalize to empty.
+std::string get_json_string_field(const json& j, const std::string& key)
+{
+    if (j.contains(key) && j[key].is_string()) {
+        return j[key].get<std::string>();
+    }
+    return "";
+}
 std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "")
 {
     if (name.empty()) {
