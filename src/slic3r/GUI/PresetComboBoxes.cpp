@@ -1241,6 +1241,9 @@ void PlaterPresetComboBox::update()
                     // Remove the old preset name if exists, and add the new one with the same name but with modified suffix if needed.
                     if (system_presets.erase(alternate_name))
                         system_presets.emplace(name, bmp);
+
+                    preset_aliases.erase(alternate_name);  // ORCA: do this to aliases too
+                    preset_aliases[name] = name.utf8_string();
                 }
             } else {
                 system_presets.emplace(name, bmp);
