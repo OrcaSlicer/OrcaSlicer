@@ -173,6 +173,11 @@ public:
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;
+    bool            m_has_printable_area_bounds = false;
+    double          m_printable_x_min = 0.;
+    double          m_printable_x_max = 0.;
+    double          m_printable_y_min = 0.;
+    double          m_printable_y_max = 0.;
     
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;
@@ -189,6 +194,7 @@ public:
 
     std::string _travel_to_z(double z, const std::string &comment);
     std::string _spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment);
+    bool adjust_spiral_lift_ij_offset_for_printable_area(const Vec3d &source_on_plate, double radius, Vec2d &ij_offset) const;
     std::string _retract(double length, double restart_extra, const std::string &comment);
     std::string set_acceleration_internal(Acceleration type, unsigned int acceleration);
 

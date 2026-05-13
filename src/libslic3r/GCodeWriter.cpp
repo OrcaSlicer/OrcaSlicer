@@ -58,6 +58,61 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
     m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
     m_resolution = print_config.resolution.value;
+
+    m_has_printable_area_bounds = false;
+    if (print_config.printable_area.values.size() >= 3) {
+        double x_min = std::numeric_limits<double>::max();
+        double x_max = std::numeric_limits<double>::lowest();
+        double y_min = std::numeric_limits<double>::max();
+        double y_max = std::numeric_limits<double>::lowest();
+        for (const Vec2d &p : print_config.printable_area.values) {
+            x_min = std::min(x_min, p.x());
+            x_max = std::max(x_max, p.x());
+            y_min = std::min(y_min, p.y());
+            y_max = std::max(y_max, p.y());
+        }
+        if (x_min <= x_max && y_min <= y_max) {
+            m_printable_x_min = x_min;
+            m_printable_x_max = x_max;
+            m_printable_y_min = y_min;
+            m_printable_y_max = y_max;
+            m_has_printable_area_bounds = true;
+        }
+    }
+}
+
+bool GCodeWriter::adjust_spiral_lift_ij_offset_for_printable_area(const Vec3d &source_on_plate, double radius, Vec2d &ij_offset) const
+{
+    if (!m_has_printable_area_bounds)
+        return true;
+
+    auto fits = [this, &source_on_plate, radius](const Vec2d &candidate) {
+        const double cx = source_on_plate.x() + candidate.x();
+        const double cy = source_on_plate.y() + candidate.y();
+        return cx - radius >= m_printable_x_min &&
+               cx + radius <= m_printable_x_max &&
+               cy - radius >= m_printable_y_min &&
+               cy + radius <= m_printable_y_max;
+    };
+
+    if (fits(ij_offset))
+        return true;
+
+    const Vec2d candidates[] = {
+        Vec2d(radius, 0.),
+        Vec2d(-radius, 0.),
+        Vec2d(0., radius),
+        Vec2d(0., -radius)
+    };
+
+    for (const Vec2d &candidate : candidates) {
+        if (fits(candidate)) {
+            ij_offset = candidate;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -725,13 +780,10 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 double radius = delta(2) / (2 * PI * atan(this->filament()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
                 ij_offset = { -ij_offset(1), ij_offset(0) };
-                // ORCA: prevent spiral from crossing X<0 when near the left boundary.
-                if (source.x() + ij_offset.x() - radius < 0.)
-                    ij_offset = { radius, 0. };
-                // ORCA: prevent spiral from crossing Y<0 when near the front boundary.
-                if (source.y() + ij_offset.y() - radius < 0.)
-                    ij_offset = { 0., radius };
-                slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
+                if (adjust_spiral_lift_ij_offset_for_printable_area(source, radius, ij_offset))
+                    slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
+                else
+                    slop_move = _travel_to_z(target.z(), "normal lift Z");
             }
             //BBS: SlopeLift
             else if (m_to_lift_type == LiftType::SlopeLift &&
