@@ -3253,6 +3253,7 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
         obj_layer_zs.reserve(m_object->layer_count());
         for (const Layer *l : m_object->layers()) obj_layer_zs.emplace_back((float) l->print_z);
         z_heights[m_object->get_layer(0)->print_z] = m_object->get_layer(0)->height;
+        const coordf_t min_print_z = m_object->get_layer(0)->print_z;
         // Collect top contact layers
         for (int layer_nr = 1; layer_nr < contact_nodes.size(); layer_nr++) {
             if (!contact_nodes[layer_nr].empty()) {
@@ -3260,7 +3261,7 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
                 coordf_t height = contact_nodes[layer_nr].front()->height;
                 // insertion will fail if there is already a key of print_z, so no need to check
                 bounds.insert({print_z, height});
-                bounds.insert({print_z - height, 0}); // the bottom_z of the layer
+                bounds.insert({std::max(min_print_z, print_z - height), 0}); // the bottom_z of the layer
             }
         }
 

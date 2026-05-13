@@ -35,6 +35,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/nowide/cstdio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/beast/core/detail/base64.hpp>
@@ -2842,7 +2843,7 @@ bool GUI_App::on_init_inner()
                 wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_str);
                 DownloadDialog dialog(this->mainframe,
                     tips,
-                    _L("The Orca Slicer needs an upgrade"),
+                    _L("OrcaSlicer needs an update"),
                     false,
                     wxCENTER | wxICON_INFORMATION);
                 dialog.SetExtendedMessage(description_text);
