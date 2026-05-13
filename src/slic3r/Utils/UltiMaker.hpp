@@ -26,7 +26,7 @@ public:
 	bool has_auth_creds() const;
 	bool is_authorized() const;
 	std::string auth_status() const;
-	std::string generate_auth_creds() const;
+	bool generate_auth_creds(wxString &msg) const;
 	std::string test_auth() const;
 
 	bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;

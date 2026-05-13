@@ -49,8 +49,7 @@ bool UltiMaker::test(wxString &msg) const
 	// If called with specific arg, just generate the auth creds.
 	if (msg == "generate_auth_creds") {
 		BOOST_LOG_TRIVIAL(warning) << "UltiMaker: test called with generate_auth_creds! Generating the auth credentials.";
-		this->generate_auth_creds();
-		return true;
+		return this->generate_auth_creds(msg);;
 	}
 
 	// Since the request is performed synchronously here,
@@ -238,14 +237,80 @@ std::string UltiMaker::auth_status() const{
 
 
 
-std::string UltiMaker::generate_auth_creds() const {
-	//TODO: Implement.
-	// Send POST request to generate creds
-	// Get the ID and key from the request
-	// Wait for user to authorize on the physical machine
-	// Return the result.
+bool UltiMaker::generate_auth_creds(wxString &msg) const {
+	// Returns true if no error, false otherwise.
+
 	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds called!";
-	return "Unimplemeneted.";
+	bool ret = true;
+
+	/*
+		The auth POST request returns json of the form
+		{
+  			"id": "string",
+  			"key": "string"
+		}
+		where id is the m_api_username and key is the m_api_password
+	*/
+	
+	// Send POST request to generate creds
+	const char* name = get_name();
+
+	std::string rtn = "ERROR: unknown value";
+	std::string application = "OrcaSlicer";
+	std::string user = "OrcaSlicer"; // TODO: get the user name from OrcaSlicer
+
+    auto url = (boost::format("http://%1%/api/v1/auth/request?application=%2%&user=%3%") % host % application % user).str();
+
+    auto http = Http::get(std::move(url));
+    // set_auth(http);
+    http.on_error([&](std::string body, std::string error, unsigned status) {
+        BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error generating credentials: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
+
+        })
+        .on_complete([&, this](std::string body, unsigned) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: url completed without error: %2%") % name % url;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
+
+			std::stringstream sin(body);
+			boost::property_tree::ptree pt;
+
+    		try {
+				// Parse JSON into property tree
+				boost::property_tree::read_json(sin, pt);
+				// Extract the keys from the json
+				std::string id  = pt.get<std::string>("id", "");
+				std::string key = pt.get<std::string>("key", "");
+				BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: Got id and key. ID=%1%") % id;
+				BOOST_LOG_TRIVIAL(error) << boost::format("UltiMaker: KEY=%1%") % key;
+
+				if (id.empty() || key.empty()) {
+					msg = GUI::from_u8("ERROR: Either ID or KEY is empty. ID=" + id + " KEY=" + key);
+					BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Either ID or KEY is empty.") % name % id % key;
+					ret = false;
+				} else {
+					msg = "Username: " + id + "  Password: " + key + "  \n Please select the \"Allow\" button on the machine to authorize access. ";
+				}
+            }
+            catch (const std::exception &) {
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+				ret = false;
+            }
+        })
+#ifdef WIN32
+        .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+        .on_ip_resolve([&](std::string address) {
+            // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
+            // Remember resolved address to be reused at successive REST API call.
+            // msg = GUI::from_u8(address);
+        })
+#endif // WIN32
+        .perform_sync();
+
+	
+	// Wait for user to authorize on the physical machine
+
+	BOOST_LOG_TRIVIAL(warning) << "UltiMaker: generate_auth_creds done! ret=" << ret;
+	return ret;
 }
 
 
@@ -280,11 +345,8 @@ std::string UltiMaker::test_auth() const {
 		}
 
 	} else { // Auth credentials do not exist
-		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials do NOT already exist.") % name;
-		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: TODO: create generateAuthCreds logic.") % name;
-		//TODO create the auth creds
-		// generateAuthCreds(); // NOT a cost member function, what to do? Add another button?
-
+		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials do NOT already exist. Returning error string. ") % name;
+		// BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: TODO: create generateAuthCreds logic.") % name
 		return "Error: No authentication credentials found!";
 	}
 
