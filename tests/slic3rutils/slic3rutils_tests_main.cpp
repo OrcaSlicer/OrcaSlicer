@@ -31,7 +31,7 @@ std::string resolved_display_name(const nlohmann::json& session)
     Slic3r::OrcaCloudServiceAgent agent("");
     REQUIRE(agent.set_user_session(session, false));
     return agent.get_user_nickname();
-}
+} 
 
 } // namespace
 
