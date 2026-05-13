@@ -1693,27 +1693,20 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
 
 bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool notify_login)
 {
-    auto safe_str = [](const json& j, const std::string& key) -> std::string {
-        if (j.contains(key) && j[key].is_string()) return j[key].get<std::string>();
-        return "";
-    };
-
-    std::string access_token = safe_str(session_json, "access_token");
+    std::string access_token = get_json_string_field(session_json, "access_token");
     if (access_token.empty()) {
-        access_token = safe_str(session_json, "token");
+        access_token = get_json_string_field(session_json, "token");
     }
-    std::string refresh_token = safe_str(session_json, "refresh_token");
+    std::string refresh_token = get_json_string_field(session_json, "refresh_token");
 
     std::string user_id, username, nickname, avatar;
     if (session_json.contains("user") && session_json["user"].is_object()) {
         // Nested format (Orca cloud / GoTrue response)
         const auto& user = session_json["user"];
-        user_id = safe_str(user, "id");
+        user_id = get_json_string_field(user, "id");
+
         if (user.contains("user_metadata") && user["user_metadata"].is_object()) {
-
             const auto& meta = user["user_metadata"];
-            username = safe_str(meta, "username"); // Orca Cloud's unique username 
-
             nickname = safe_str(meta, "display_name"); // Orca Cloud's primary display name field
             // Fallback to different name from different providers if display_name is not set
             if (nickname.empty())
@@ -1722,18 +1715,18 @@ bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool noti
                 nickname = safe_str(meta, "name");
             if (nickname.empty())
                 nickname = username;
+            username = get_json_string_field(meta, "username"); // Orca Cloud's unique username
 
-            avatar = safe_str(meta, "avatar_url");
+            avatar = get_json_string_field(meta, "avatar_url");
         }
     } else {
         // Flat format (WebView direct token flow)
-        user_id = safe_str(session_json, "user_id");
-        username = safe_str(session_json, "username");
         nickname = safe_str(session_json, "display_name");
         if(nickname.empty())
             nickname = safe_str(session_json, "nickname");
-            
-        avatar = safe_str(session_json, "avatar");
+        user_id = get_json_string_field(session_json, "user_id");
+        username = get_json_string_field(session_json, "username");
+        avatar = get_json_string_field(session_json, "avatar");
     }
 
     if (access_token.empty() || user_id.empty()) {
