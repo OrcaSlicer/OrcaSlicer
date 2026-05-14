@@ -180,7 +180,7 @@
 	"seam_slope_min_length": "20",
 	"seam_slope_start_height": "0",
 	"seam_slope_steps": "10",
-	"seam_slope_type": "contour",
+	"seam_slope_type": "none",
 	"set_other_flow_ratios": "0",
 	"single_extruder_multi_material_priming": "0",
 	"single_loop_draft_shield": "0",
