@@ -2397,25 +2397,57 @@ void MachineObject::set_print_state(std::string status)
 
 int MachineObject::connect(bool use_openssl)
 {
+    // Drain any deferred SIGSEGV logs from the signal handler (the handler
+    // itself can't call boost::log safely).
+    int pending = g_pending_sigsegv_log_count.exchange(0, std::memory_order_acq_rel);
+    if (pending > 0) {
+        BOOST_LOG_TRIVIAL(error) << "[DllGuard] " << pending
+                                 << " SIGSEGV(s) caught on DLL-owned thread(s) since last check";
+    }
+
+    // After a SIGSEGV in the DLL the library is internally deadlocked — every
+    // call (connect_printer, disconnect_printer, …) hangs forever. Recovery
+    // via the DLL's own API is impossible (proven empirically). Short-circuit
+    // and show the restart dialog instead of blocking the UI thread.
+    if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
+        BOOST_LOG_TRIVIAL(warning) << "[DllGuard] MachineObject::connect skipped — DLL crashed, restart required";
+        Slic3r::GUI::wxGetApp().CallAfter([] {
+            Slic3r::GUI::MessageDialog dlg(
+                nullptr,
+                _L("Connection to the printer failed.\n\n"
+                   "The networking plugin encountered an internal error.\n"
+                   "Please restart both your printer and OrcaSlicer to reconnect.\n"
+                   "If the problem persists, try printing via SD card instead."),
+                _L("Connection Error"),
+                wxICON_ERROR | wxOK);
+            dlg.ShowModal();
+        });
+        return -1;
+    }
+
     if (get_dev_ip().empty()) return -1;
     std::string username = "bblp";
     std::string password = get_access_code();
 
     if (m_agent) {
         try {
-            g_networking_dll_crashed.store(false, std::memory_order_release);
-
             int result = m_agent->connect_printer(get_dev_id(), get_dev_ip(), username, password, use_openssl);
+
+            // If the call returned because dll_safe_call detected a crash/hang
+            // (SIGSEGV recovered or timeout), show the dialog so the user is
+            // told to restart.
             if (result < 0 && g_networking_dll_crashed.load(std::memory_order_acquire)) {
-                BOOST_LOG_TRIVIAL(error) << "MachineObject::connect: networking DLL crashed during connection attempt";
+                BOOST_LOG_TRIVIAL(error) << "[DllGuard] DLL crashed/hung during connect — showing dialog";
                 Slic3r::GUI::wxGetApp().CallAfter([] {
-                    wxMessageBox(
+                    Slic3r::GUI::MessageDialog dlg(
+                        nullptr,
                         _L("Connection to the printer failed.\n\n"
                            "The networking plugin encountered an internal error.\n"
                            "Please restart both your printer and OrcaSlicer to reconnect.\n"
                            "If the problem persists, try printing via SD card instead."),
                         _L("Connection Error"),
                         wxICON_ERROR | wxOK);
+                    dlg.ShowModal();
                 });
             }
             return result;

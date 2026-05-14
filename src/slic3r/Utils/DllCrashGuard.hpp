@@ -23,6 +23,12 @@ namespace Slic3r {
 // Check this flag after networking operations to detect async DLL failures.
 extern std::atomic<bool> g_networking_dll_crashed;
 
+// Counter incremented by the SIGSEGV signal handler when it can't safely call
+// boost::log (because it's about to pthread_exit the crashing thread). The
+// signal handler is async-signal-restricted; we use this counter to defer the
+// logging to the next normal-context call into the crash guard.
+extern std::atomic<int> g_pending_sigsegv_log_count;
+
 // Returns a human-readable description of the last DLL crash (empty if none).
 std::string get_dll_crash_message();
 

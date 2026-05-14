@@ -7,6 +7,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/Utils/DllCrashGuard.hpp"
 
 #include "libslic3r/Time.hpp"
 
@@ -906,7 +907,8 @@ namespace Slic3r
         }
 
         // do some refresh
-        if (Slic3r::GUI::wxGetApp().is_user_login())
+        if (Slic3r::GUI::wxGetApp().is_user_login() &&
+            !g_networking_dll_crashed.load(std::memory_order_acquire))
         {
             m_manager->check_pushing();
             try

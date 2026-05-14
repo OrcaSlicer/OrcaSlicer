@@ -27,6 +27,13 @@ namespace Slic3r {
 
 std::atomic<bool> g_networking_dll_crashed{false};
 
+// Counter for SIGSEGV events that fired on DLL-owned threads (where we can't
+// call boost::log because the thread is being terminated via pthread_exit and
+// boost::log isn't async-signal-safe). The next call into dll_safe_call_impl
+// drains this counter and emits a proper log line, so we can see in the log
+// that a crash happened even though the signal handler can't log directly.
+std::atomic<int> g_pending_sigsegv_log_count{0};
+
 static std::mutex  s_crash_msg_mutex;
 static std::string s_crash_message;
 static std::once_flag s_handler_installed;
@@ -41,6 +48,28 @@ static void set_crash_message(const std::string& msg)
 {
     std::lock_guard<std::mutex> lock(s_crash_msg_mutex);
     s_crash_message = msg;
+}
+
+// ============================================================================
+// Timeout policy (shared between POSIX and Windows)
+// ============================================================================
+
+// Fast timeout for short DLL calls (MQTT connect/disconnect, send_message etc.).
+// Healthy calls return in 0–4ms. 500ms means the UI never blocks noticeably
+// even if the DLL is internally hung after a SIGSEGV in one of its threads.
+static constexpr int DLL_CALL_TIMEOUT_FAST_MS = 500;
+// Slow timeout for operations that legitimately take a long time, e.g. sending
+// a gcode file to the printer (can be tens of MBs).
+static constexpr int DLL_CALL_TIMEOUT_SLOW_MS = 60000;
+
+// Return the appropriate timeout in ms for the given call context name.
+static int timeout_ms_for_context(const char* context)
+{
+    if (!context) return DLL_CALL_TIMEOUT_FAST_MS;
+    if (strncmp(context, "start_", 6) == 0)      return DLL_CALL_TIMEOUT_SLOW_MS;
+    if (strcmp(context, "bind") == 0)            return DLL_CALL_TIMEOUT_SLOW_MS;
+    if (strcmp(context, "install_device_cert") == 0) return DLL_CALL_TIMEOUT_SLOW_MS;
+    return DLL_CALL_TIMEOUT_FAST_MS;
 }
 
 // ============================================================================
@@ -76,6 +105,9 @@ static void sigsegv_handler(int sig, siginfo_t* info, void* ucontext)
     (void)write(STDERR_FILENO, crash_msg, sizeof(crash_msg) - 1);
 
     g_networking_dll_crashed.store(true, std::memory_order_release);
+    // Increment async-signal-safe counter. The next dll_safe_call_impl invocation
+    // (or anyone polling) drains it and emits a proper boost::log entry.
+    g_pending_sigsegv_log_count.fetch_add(1, std::memory_order_release);
 
     // Attempt to terminate just this thread.
     // This is a best-effort recovery — it may not always work cleanly.
@@ -155,7 +187,8 @@ static int dll_safe_call_direct(std::function<int()>& fn, int fallback, const ch
             result = fallback;
         }
     } else {
-        BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: RECOVERED from crash (SIGSEGV/SIGBUS) in " << context;
+        BOOST_LOG_TRIVIAL(error) << "[DllGuard] SIGSEGV/SIGBUS RECOVERED in context=" << context
+                                 << " — setting crash flag";
         set_crash_message(std::string("Crash recovered in ") + context +
                          ": the Bambu networking library crashed (SIGSEGV). "
                          "This is a bug in the networking plugin.");
@@ -167,25 +200,48 @@ static int dll_safe_call_direct(std::function<int()>& fn, int fallback, const ch
     return result;
 }
 
-static constexpr int DLL_CALL_TIMEOUT_SECONDS = 15;
-
 int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
 {
+    // Drain deferred SIGSEGV log events: the signal handler can't call
+    // boost::log safely, so it bumps a counter; we log it here.
+    int pending = g_pending_sigsegv_log_count.exchange(0, std::memory_order_acq_rel);
+    if (pending > 0) {
+        BOOST_LOG_TRIVIAL(error) << "[DllGuard] !!! DEFERRED LOG: " << pending
+                                 << " SIGSEGV(s) caught on DLL-owned thread(s) "
+                                 << "(MQTT or similar) — crash flag was set by signal handler";
+    }
+
+    bool flag_was_set = g_networking_dll_crashed.load(std::memory_order_acquire);
+
+    // Fast-path: once the DLL has crashed/hung, every subsequent call would
+    // also potentially block until the timeout. Skip them entirely.
+    if (flag_was_set) {
+        BOOST_LOG_TRIVIAL(warning) << "[DllGuard] SKIP (flag latched) context=" << context;
+        return fallback;
+    }
+
+    int timeout_ms = timeout_ms_for_context(context);
+
     auto promise = std::make_shared<std::promise<int>>();
     auto future = promise->get_future();
 
     auto fn_copy = std::make_shared<std::function<int()>>(std::move(fn));
 
     std::thread([promise, fn_copy, fallback, context]() {
-        promise->set_value(dll_safe_call_direct(*fn_copy, fallback, context));
+        int r = dll_safe_call_direct(*fn_copy, fallback, context);
+        // The promise may be the only reference; if dll_safe_call_impl already
+        // returned (timeout case), set_value is a no-op for the abandoned
+        // future and the result is simply dropped.
+        try { promise->set_value(r); } catch (...) {}
     }).detach();
 
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(DLL_CALL_TIMEOUT_SECONDS);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
 
     if (future.wait_until(deadline) == std::future_status::ready)
         return future.get();
 
-    BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: " << context << " timed out after " << DLL_CALL_TIMEOUT_SECONDS << "s";
+    BOOST_LOG_TRIVIAL(error) << "[DllGuard] TIMEOUT context=" << context
+                             << " (limit_ms=" << timeout_ms << ") — setting crash flag";
     g_networking_dll_crashed.store(true, std::memory_order_release);
     set_crash_message(std::string("The networking plugin stopped responding during ") + context +
                      ". The operation was aborted to prevent the application from freezing.");
@@ -324,25 +380,32 @@ static int dll_safe_call_direct_win(std::function<int()>& fn, int fallback, cons
     return result;
 }
 
-static constexpr int DLL_CALL_TIMEOUT_SECONDS = 15;
-
 int dll_safe_call_impl(std::function<int()> fn, int fallback, const char* context)
 {
+    // Fast-path: once the DLL has crashed/hung, every subsequent call would
+    // also potentially block until the timeout. Skip them.
+    if (g_networking_dll_crashed.load(std::memory_order_acquire))
+        return fallback;
+
+    int timeout_ms = timeout_ms_for_context(context);
+
     auto promise = std::make_shared<std::promise<int>>();
     auto future = promise->get_future();
 
     auto fn_copy = std::make_shared<std::function<int()>>(std::move(fn));
 
     std::thread([promise, fn_copy, fallback, context]() {
-        promise->set_value(dll_safe_call_direct_win(*fn_copy, fallback, context));
+        int r = dll_safe_call_direct_win(*fn_copy, fallback, context);
+        try { promise->set_value(r); } catch (...) {}
     }).detach();
 
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(DLL_CALL_TIMEOUT_SECONDS);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
 
     if (future.wait_until(deadline) == std::future_status::ready)
         return future.get();
 
-    BOOST_LOG_TRIVIAL(error) << "DllCrashGuard: " << context << " timed out after " << DLL_CALL_TIMEOUT_SECONDS << "s";
+    BOOST_LOG_TRIVIAL(error) << "[DllGuard] TIMEOUT context=" << context
+                             << " (limit_ms=" << timeout_ms << ") — setting crash flag";
     g_networking_dll_crashed.store(true, std::memory_order_release);
     set_crash_message(std::string("The networking plugin stopped responding during ") + context +
                      ". The operation was aborted to prevent the application from freezing.");

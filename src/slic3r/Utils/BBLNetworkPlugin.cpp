@@ -1,5 +1,6 @@
 #include "BBLNetworkPlugin.hpp"
 #include "NetworkAgent.hpp"
+#include "DllCrashGuard.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -185,25 +186,33 @@ int BBLNetworkPlugin::unload()
 {
     UnloadFTModule();
 
+    // If the DLL is hung, dlclose/FreeLibrary while its threads are still
+    // running inside the library would be undefined behaviour (likely a crash
+    // or hang). The OS will clean up on process exit.
+    bool dll_is_hung = g_networking_dll_crashed.load(std::memory_order_acquire);
+    if (dll_is_hung) {
+        BOOST_LOG_TRIVIAL(warning) << "[DllGuard] BBLNetworkPlugin::unload: "
+                                      "skipping FreeLibrary/dlclose — DLL is hung "
+                                      "(threads still inside the library)";
+    } else {
 #if defined(_MSC_VER) || defined(_WIN32)
-    if (m_networking_module) {
-        FreeLibrary(m_networking_module);
-        m_networking_module = NULL;
-    }
-    if (m_source_module) {
-        FreeLibrary(m_source_module);
-        m_source_module = NULL;
-    }
+        if (m_networking_module) {
+            FreeLibrary(m_networking_module);
+        }
+        if (m_source_module) {
+            FreeLibrary(m_source_module);
+        }
 #else
-    if (m_networking_module) {
-        dlclose(m_networking_module);
-        m_networking_module = NULL;
-    }
-    if (m_source_module) {
-        dlclose(m_source_module);
-        m_source_module = NULL;
-    }
+        if (m_networking_module) {
+            dlclose(m_networking_module);
+        }
+        if (m_source_module) {
+            dlclose(m_source_module);
+        }
 #endif
+    }
+    m_networking_module = NULL;
+    m_source_module = NULL;
 
     clear_all_function_pointers();
 
@@ -258,7 +267,16 @@ int BBLNetworkPlugin::destroy_agent()
 {
     int ret = 0;
     if (m_agent && m_destroy_agent) {
-        ret = m_destroy_agent(m_agent);
+        // If the DLL is known to be hung (SIGSEGV on one of its threads),
+        // skip the call — it would deadlock and make the app unkillable.
+        // The OS will reclaim resources on process exit anyway.
+        if (g_networking_dll_crashed.load(std::memory_order_acquire)) {
+            BOOST_LOG_TRIVIAL(warning) << "[DllGuard] BBLNetworkPlugin::destroy_agent: "
+                                          "skipping m_destroy_agent — DLL is hung "
+                                          "(would deadlock on shutdown)";
+        } else {
+            ret = m_destroy_agent(m_agent);
+        }
     }
     m_agent = nullptr;
     return ret;
