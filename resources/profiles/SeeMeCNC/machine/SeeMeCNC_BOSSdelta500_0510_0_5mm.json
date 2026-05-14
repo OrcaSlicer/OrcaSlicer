@@ -17,7 +17,7 @@
 	"cooling_tube_length": "5",
 	"cooling_tube_retraction": "260",
 	"default_filament_profile": [
-		"SeeMeCNC PLA (0.5mm)"
+		"SeeMeCNC PLA"
 	],
 	"default_nozzle_volume_type": [
 		"Standard"

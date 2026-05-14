@@ -17,12 +17,12 @@
 	"cooling_tube_length": "5",
 	"cooling_tube_retraction": "160",
 	"default_filament_profile": [
-		"SeeMeCNC PLA (1.0mm)"
+		"SeeMeCNC PLA"
 	],
 	"default_nozzle_volume_type": [
 		"Standard"
 	],
-	"default_print_profile": "0.5mm Standard @SeeMeCNC RostockMAX v4 1.0",
+	"default_print_profile": "0.50mm Standard @SeeMeCNC RostockMAX v4 1.0",
 	"deretraction_speed": [
 		"60"
 	],
@@ -68,7 +68,7 @@
 		"0"
 	],
 	"machine_end_gcode": [
-		";======= SEEMECNC ROSTOCKMAX V4 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes \u2014 clears part immediately on a delta\n;======= END G-CODE ======="
+		";======= SEEMECNC ROSTOCKMAX V4 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes — clears part immediately on a delta\n;======= END G-CODE ======="
 	],
 	"machine_load_filament_time": "4",
 	"machine_max_acceleration_e": [
