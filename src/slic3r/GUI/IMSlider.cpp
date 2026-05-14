@@ -18,7 +18,8 @@ inline double miscalculation() { return scale_(scale_(1)); }
 
 static const float  LEFT_MARGIN       = 13.0f + 100.0f;  // avoid thumbnail toolbar
 static const float  HORIZONTAL_SLIDER_WINDOW_HEIGHT  = 64.0f;
-static const float  VERTICAL_SLIDER_WINDOW_WIDTH     = 160.0f;
+// ORCA: widen slider window to account for one-layer label box left shift.
+static const float  VERTICAL_SLIDER_WINDOW_WIDTH     = 164.0f;
 static const float  GROOVE_WIDTH      = 12.0f;
 static const ImVec2 ONE_LAYER_MARGIN  = ImVec2(20.0f, 20.0f);
 static const ImVec2 ONE_LAYER_BUTTON_SIZE  = ImVec2(56.0f, 56.0f);
@@ -32,6 +33,12 @@ static const ImU32 BRAND_COLOR            = IM_COL32(0, 150, 136, 255);
 
 static int m_tick_value = -1;
 static ImVec4 m_tick_rect;
+
+// ORCA: keep the slider window width in one place for layout alignment.
+float IMSlider::vertical_slider_window_width()
+{
+    return VERTICAL_SLIDER_WINDOW_WIDTH;
+}
 
 bool equivalent_areas(const double& bottom_area, const double& top_area)
 {
@@ -892,6 +899,11 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const ImRect groove = ImRect(groove_start, groove_start + groove_size);
     const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
     const float mid_x = groove.GetCenter().x;
+    // ORCA: tune label box width to fit the slider window without overlapping the groove.
+    const float label_extra_padding = 10.0f * m_scale;
+    const float one_layer_extra_padding = 6.0f * m_scale;
+    const float max_label_width = std::max(0.0f,
+        groove.Min.x - draw_region.Min.x - triangle_offsets[2].x - text_padding.x * 2.0f - label_extra_padding);
 
     // set mouse active region.
     const ImRect active_region = ImRect(ImVec2(draw_region.Min.x + 35.0f * m_scale, draw_region.Min.y), draw_region.Max);
@@ -999,30 +1011,33 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
             window->DrawList->AddLine(lower_handle_center + ImVec2(0.0f, -0.5f * line_length), lower_handle_center + ImVec2(0.0f, 0.5f * line_length), white_bg, line_width);
         }
 
-        // draw higher label
-        auto text_utf8 = into_u8(higher_label);
-        text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
-        text_size = text_content_size + text_padding * 2;
-        ImVec2 text_start = ImVec2(higher_handle.Min.x - text_size.x - triangle_offsets[2].x, higher_handle_center.y - text_size.y);
-        ImRect text_rect(text_start, text_start + text_size);
-        ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-        ImVec2 pos_1 = text_rect.Max - triangle_offsets[0];
-        ImVec2 pos_2 = pos_1 - triangle_offsets[1];
-        ImVec2 pos_3 = pos_1 + triangle_offsets[2];
-        window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
-        ImGui::RenderText(text_start + text_padding, higher_label.c_str());
-        // draw lower label
-        text_utf8 = into_u8(lower_label);
-        text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
-        text_size = text_content_size + text_padding * 2;
-        text_start        = ImVec2(lower_handle.Min.x - text_size.x - triangle_offsets[2].x, lower_handle_center.y);
-        text_rect = ImRect(text_start, text_start + text_size);
-        ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-        pos_1 = ImVec2(text_rect.Max.x, text_rect.Min.y) - triangle_offsets[0];
-        pos_2 = pos_1 + triangle_offsets[1];
-        pos_3 = pos_1 + triangle_offsets[2];
-        window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
-        ImGui::RenderText(text_start + text_padding, lower_label.c_str());
+    // ORCA: render fixed-width label boxes
+    // draw higher label
+    auto text_utf8 = into_u8(higher_label);
+    text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
+    text_size = ImVec2(max_label_width, text_content_size.y) + text_padding * 2;
+    ImVec2 text_start = ImVec2(higher_handle.Min.x - text_size.x - triangle_offsets[2].x, higher_handle_center.y - text_size.y);
+    ImRect text_rect(text_start, text_start + text_size);
+    ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
+    ImVec2 pos_1 = text_rect.Max - triangle_offsets[0];
+    ImVec2 pos_2 = pos_1 - triangle_offsets[1];
+    ImVec2 pos_3 = pos_1 + triangle_offsets[2];
+    window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
+    ImGui::RenderText(text_start + ImVec2((text_size.x - text_content_size.x) * 0.5f,
+        (text_size.y - text_content_size.y) * 0.5f), higher_label.c_str());
+    // draw lower label
+    text_utf8 = into_u8(lower_label);
+    text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
+    text_size = ImVec2(max_label_width, text_content_size.y) + text_padding * 2;
+    text_start        = ImVec2(lower_handle.Min.x - text_size.x - triangle_offsets[2].x, lower_handle_center.y);
+    text_rect = ImRect(text_start, text_start + text_size);
+    ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
+    pos_1 = ImVec2(text_rect.Max.x, text_rect.Min.y) - triangle_offsets[0];
+    pos_2 = pos_1 + triangle_offsets[1];
+    pos_3 = pos_1 + triangle_offsets[2];
+    window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
+    ImGui::RenderText(text_start + ImVec2((text_size.x - text_content_size.x) * 0.5f,
+        (text_size.y - text_content_size.y) * 0.5f), lower_label.c_str());
         
         // draw mouse position
         if (hovered) {
@@ -1062,11 +1077,14 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         // draw label
         auto text_utf8 = into_u8(higher_label);
         text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
-        text_size = text_content_size + text_padding * 2;
+        // ORCA: slightly narrower label box in one-layer mode to avoid left shift.
+        text_size = ImVec2(std::max(0.0f, max_label_width - label_extra_padding - one_layer_extra_padding),
+            text_content_size.y) + text_padding * 2;
         ImVec2 text_start = ImVec2(one_handle.Min.x - text_size.x, handle_center.y - 0.5 * text_size.y);
         ImRect text_rect = ImRect(text_start, text_start + text_size);
         ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-        ImGui::RenderText(text_start + text_padding, higher_label.c_str());
+        ImGui::RenderText(text_start + ImVec2((text_size.x - text_content_size.x) * 0.5f,
+            (text_size.y - text_content_size.y) * 0.5f), higher_label.c_str());
         
         // draw mouse position
         if (hovered) {

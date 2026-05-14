@@ -33,7 +33,8 @@ class OpenGLManager;
 static const float GCODE_VIEWER_SLIDER_SCALE = 0.6f;
 static const float SLIDER_DEFAULT_RIGHT_MARGIN  = 10.0f;
 static const float SLIDER_DEFAULT_BOTTOM_MARGIN = 10.0f;
-static const float SLIDER_RIGHT_MARGIN = 124.0f;
+// ORCA: match right margin to the vertical slider window width to prevent overlap.
+static inline const float SLIDER_RIGHT_MARGIN = IMSlider::vertical_slider_window_width();
 static const float SLIDER_BOTTOM_MARGIN = 64.0f;
 class GCodeViewer
 {

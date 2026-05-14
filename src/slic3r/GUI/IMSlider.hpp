@@ -128,6 +128,8 @@ public:
 
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
+    // ORCA: expose vertical slider width for right-margin alignment in the preview UI.
+    static float vertical_slider_window_width();
     void on_change_color_mode(bool is_dark);
     void set_menu_enable(bool enable = true) { m_menu_enable = enable; }
 
