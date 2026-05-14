@@ -1247,10 +1247,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     // Apply variables to placeholder parser. The placeholder parser is used by G-code export,
     // which should be stopped if print_diff is not empty.
-    auto configured_filament_count = [this]() {
-        return std::max(m_config.filament_diameter.size(), m_config.filament_colour.size());
-    };
-    size_t num_extruders  = configured_filament_count();
+    size_t num_extruders  = m_config.filament_diameter.size();
     bool   num_extruders_changed  = false;
     if (! full_config_diff.empty()) {
         //BBS: add more logs
@@ -1276,8 +1273,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	    m_default_region_config.apply_only(new_full_config, region_diff, true);
         //m_full_print_config = std::move(new_full_config);
         m_full_print_config = new_full_config;
-        if (num_extruders  != configured_filament_count()) {
-            num_extruders  = configured_filament_count();
+        if (num_extruders  != m_config.filament_diameter.size()) {
+            num_extruders  = m_config.filament_diameter.size();
             num_extruders_changed  = true;
         }
     }

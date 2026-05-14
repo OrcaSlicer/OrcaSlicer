@@ -485,7 +485,7 @@ std::vector<unsigned int> Print::support_material_extruders() const
     std::vector<unsigned int> extruders;
     bool support_uses_current_extruder = false;
     // BBS
-    auto num_extruders = (unsigned int)std::max(m_config.filament_diameter.size(), m_config.filament_colour.size());
+    auto num_extruders = (unsigned int)m_config.filament_diameter.size();
 
     for (PrintObject *object : m_objects) {
         if (object->has_support_material()) {
@@ -533,9 +533,8 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
     if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
-        const int configured_filaments = int(std::max(config().filament_diameter.size(), config().filament_colour.size()));
-        if (config().wipe_tower_filament > 0 && config().wipe_tower_filament <= configured_filaments)
-            extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
 
     sort_remove_duplicates(extruders);
@@ -1163,7 +1162,7 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
             }
 
             if (print_object->has_support_material()) { // extruder used by supports
-                auto num_extruders                 = (unsigned int) std::max(print_config.filament_diameter.size(), print_config.filament_colour.size());
+                auto num_extruders                 = (unsigned int) print_config.filament_diameter.size();
                 assert(print_object->config().support_filament >= 0);
                 if (print_object->config().support_filament >= 1 && (unsigned int)print_object->config().support_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_filament - 1);//0-based extruder id
@@ -2100,7 +2099,7 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
     for (const PrintObject* object : print.objects()) {
         // BBS
         if (object->object_first_layer_wall_extruders.empty()){
-            unsigned int objectFirstLayerFirstExtruder = std::max(print.config().filament_diameter.size(), print.config().filament_colour.size());
+            unsigned int objectFirstLayerFirstExtruder = print.config().filament_diameter.size();
             auto firstLayerRegions = object->layers().front()->regions();
             if (!firstLayerRegions.empty()) {
                 for (const LayerRegion* regionPtr : firstLayerRegions) {

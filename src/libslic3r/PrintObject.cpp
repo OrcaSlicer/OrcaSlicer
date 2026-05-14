@@ -3377,11 +3377,6 @@ static void clamp_exturder_to_default(ConfigOptionInt &opt, size_t num_extruders
         opt.value = 1;
 }
 
-static size_t configured_filament_count(const PrintConfig &print_config)
-{
-    return std::max(print_config.filament_diameter.size(), print_config.filament_colour.size());
-}
-
 PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders)
 {
     PrintObjectConfig config = default_object_config;
@@ -3504,7 +3499,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 	object_config.apply(full_config, true);
 	default_region_config.apply(full_config, true);
     // BBS
-	size_t              filament_extruders = configured_filament_count(print_config);
+	size_t              filament_extruders = print_config.filament_diameter.size();
 	object_config = object_config_from_model_object(object_config, model_object, filament_extruders);
 
 	std::vector<unsigned int> object_extruders;

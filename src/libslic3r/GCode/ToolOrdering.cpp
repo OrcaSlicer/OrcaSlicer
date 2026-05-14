@@ -452,7 +452,7 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
 	std::vector<std::pair<double, unsigned int>> per_layer_extruder_switches;
 
     // BBS
-	if (auto num_filaments = unsigned(std::max(print.config().filament_diameter.size(), print.config().filament_colour.size()));
+	if (auto num_filaments = unsigned(print.config().filament_diameter.size());
 		num_filaments > 1 && print.object_extruders().size() == 1 && // the current Print's configuration is CustomGCode::MultiAsSingle
         //BBS: replace model custom gcode with current plate custom gcode
         print.model().get_curr_plate_custom_gcodes().mode == CustomGCode::MultiAsSingle) {
@@ -1435,7 +1435,7 @@ void ToolOrdering::assign_custom_gcodes(const Print &print)
 		return;
 
     // BBS
-	auto 						num_filaments = unsigned(std::max(print.config().filament_diameter.size(), print.config().filament_colour.size()));
+	auto 						num_filaments = unsigned(print.config().filament_diameter.size());
 	CustomGCode::Mode 			mode          =
 		(num_filaments == 1) ? CustomGCode::SingleExtruder :
 		print.object_extruders().size() == 1 ? CustomGCode::MultiAsSingle : CustomGCode::MultiExtruder;
