@@ -15,7 +15,6 @@
 #include "GCode/WipeTower.hpp"
 #include "ShortestPath.hpp"
 #include "GCode/ConvexHullPeeling.hpp"
-#include "GCode/AngleSortCycle.hpp"
 #include "GCode/Boustrophedon.hpp"
 #include "GCode/GridPath.hpp"
 #include "GCode/BestOfStrategies.hpp"
@@ -2486,6 +2485,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_role_based_fan_marker_layer.fill(-1);
 
     m_fan_mover.release();
+    m_ordering_cache.clear();
     
     m_writer.set_is_bbl_machine(is_bbl_printers);
 
@@ -2801,8 +2801,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             (print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
             // Convex hull peeling: onion-peel layers from outside in
             : (print.config().print_order == PrintOrder::ConvexHullPeeling ? chain_print_object_instances_convex_hull_peeling(print)
-            // Angle sort + 2-opt: simple polygon via angular sort, then 2-opt
-            : (print.config().print_order == PrintOrder::AngleSortCycle ? chain_print_object_instances_angle_sort(print)
             // Boustrophedon: snake-like row traversal + 2-opt
             : (print.config().print_order == PrintOrder::Boustrophedon ? chain_print_object_instances_boustrophedon(print)
             // Grid Path: serpentine with L1 distance optimization, avoids diagonal moves
@@ -2812,7 +2810,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Min-max edge: run every strategy, pick smallest max edge (tiebreak: shortest)
             : (print.config().print_order == PrintOrder::MinMaxEdge ? chain_print_object_instances_min_max_edge(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print))))))));
+            : sort_object_instances_by_model_order(print)))))));
 
 
 
@@ -5176,11 +5174,22 @@ LayerResult GCode::process_layer(
                 print_objects.push_back(print.get_object(obj_idx));
             }
 
-            std::vector<const PrintInstance *> new_ordering = 
-                print.config().print_order == PrintOrder::ConvexHullPeeling
-                        ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
-                        : (print.config().print_order == PrintOrder::AngleSortCycle
-                            ? chain_print_object_instances_angle_sort(print_objects, &wt_pos)
+            // Build cache key from sorted object IDs.
+            std::vector<ObjectID> obj_ids;
+            for (const PrintObject* po : print_objects)
+                obj_ids.emplace_back(po->id());
+            std::sort(obj_ids.begin(), obj_ids.end());
+
+            // Check cache: reuse ordering if filament + object set unchanged.
+            auto &cache_entry = m_ordering_cache[filament_id];
+            bool cache_hit = (cache_entry.first == obj_ids);
+
+            if (!cache_hit) {
+                // Compute fresh ordering and store in cache.
+                cache_entry.first = obj_ids;
+                cache_entry.second =
+                    print.config().print_order == PrintOrder::ConvexHullPeeling
+                            ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
                             : (print.config().print_order == PrintOrder::Boustrophedon
                                 ? chain_print_object_instances_boustrophedon(print_objects, &wt_pos)
                                 : (print.config().print_order == PrintOrder::GridPath
@@ -5189,9 +5198,11 @@ LayerResult GCode::process_layer(
                                     ? chain_print_object_instances_best_of(print_objects, &wt_pos)
                                     : (print.config().print_order == PrintOrder::MinMaxEdge
                                         ? chain_print_object_instances_min_max_edge(print_objects, &wt_pos)
-                                        : chain_print_object_instances(print_objects, &wt_pos))))));
+                                        : chain_print_object_instances(print_objects, &wt_pos)))));
+            }
 
-
+            // Reverse a local copy; keep cached value intact for reuse.
+            std::vector<const PrintInstance *> new_ordering = cache_entry.second;
             std::reverse(new_ordering.begin(), new_ordering.end());
 
             if (print.config().print_sequence == PrintSequence::ByObject) {

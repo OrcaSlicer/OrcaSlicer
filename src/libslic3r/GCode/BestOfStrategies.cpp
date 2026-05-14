@@ -3,7 +3,6 @@
 #include "BestOfStrategies.hpp"
 #include "../Print.hpp"
 #include "ConvexHullPeeling.hpp"
-#include "AngleSortCycle.hpp"
 #include "Boustrophedon.hpp"
 #include "GridPath.hpp"
 
@@ -31,7 +30,6 @@ std::vector<const PrintInstance*> chain_print_object_instances_best_of(const std
     // Run all strategies.
     std::vector<std::vector<const PrintInstance*>> candidates;
     candidates.push_back(chain_print_object_instances_convex_hull_peeling(print_objects, start_near));
-    candidates.push_back(chain_print_object_instances_angle_sort(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_boustrophedon(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_grid_path(print_objects, start_near));
 

@@ -30,8 +30,6 @@ void tsp_remove_crossings(std::vector<size_t>& path, const Points& centers);
 // Rotate the cycle so the closing edge (last → first) is minimized.
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers);
 
-// --- Path metrics (operate on index vectors into `centers`) ---
-
 // Total Euclidean path length of a cycle (including closing edge).
 inline double tsp_cycle_path_length(const std::vector<size_t>& path, const Points& centers)
 {
