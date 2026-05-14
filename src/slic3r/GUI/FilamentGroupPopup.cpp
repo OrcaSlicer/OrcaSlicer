@@ -353,7 +353,13 @@ void FilamentGroupPopup::OnLeaveWindow(wxMouseEvent &)
     StartTimer();
 }
 
-void FilamentGroupPopup::OnEnterWindow(wxMouseEvent &) { ResetTimer(); }
+void FilamentGroupPopup::OnEnterWindow(wxMouseEvent &)
+{
+    // Ignore spurious ENTER synthesized by PopupWindow::OnMouseEvent2 on macOS.
+    wxPoint pos = this->ScreenToClient(wxGetMousePosition());
+    if (!this->GetClientRect().Contains(pos)) return;
+    ResetTimer();
+}
 
 void FilamentGroupPopup::UpdateButtonStatus(int hover_idx)
 {

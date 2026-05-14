@@ -7,7 +7,7 @@
 	"family": "LONGER",
 	"printer_settings_id": "LONGER",
 	"bed_model": "longer_lk10plus_buildplate_model.stl",
-	"bed_texture": "longer_lk10plus_buildplate_texture.png",
+	"bed_texture": "longer_lk10plus_buildplate_texture.svg",
 	"bed_exclude_area": [
 		"0x0"
 	],

@@ -15,7 +15,7 @@
 #ifndef TETLIBRARY
 #define TETLIBRARY 
 #endif
-#include "tetgen.h" // Defined REAL
+#include <tetgen.h> // Defined REAL
 
 namespace igl
 {
@@ -23,107 +23,104 @@ namespace igl
   {
     namespace tetgen
     {
-      // Mesh the interior of a surface mesh (V,F) using tetgen
-      //
-      // Inputs:
-      //   V  #V by 3 vertex position list
-      //   F  #F list of polygon face indices into V (0-indexed)
-      //   switches  string of tetgen options (See tetgen documentation) e.g.
-      //     "pq1.414a0.01" tries to mesh the interior of a given surface with
-      //       quality and area constraints
-      //     "" will mesh the convex hull constrained to pass through V (ignores F)
-      // Outputs:
-      //   TV  #V by 3 vertex position list
-      //   TT  #T by 4 list of tet face indices
-      //   TF  #F by 3 list of triangle face indices
-      // Returns status:
-      //   0 success
-      //   1 tetgen threw exception
-      //   2 tetgen did not crash but could not create any tets (probably there are
-      //     holes, duplicate faces etc.)
-      //   -1 other error
-      IGL_INLINE int tetrahedralize(
-        const std::vector<std::vector<REAL > > & V, 
-        const std::vector<std::vector<int> > & F, 
-        const std::string switches,
-        std::vector<std::vector<REAL > > & TV, 
-        std::vector<std::vector<int > > & TT, 
-        std::vector<std::vector<int> > & TF);
-      
-      // Wrapper with Eigen types
-      // Templates:
-      //   DerivedV  real-value: i.e. from MatrixXd
-      //   DerivedF  integer-value: i.e. from MatrixXi
+      /// Mesh the interior of a surface mesh (V,F) using tetgen
+      ///
+      /// @param[in] V  #V by 3 vertex position list
+      /// @param[in] F  #F list of polygon face indices into V (0-indexed)
+      /// @param[in] H  #H by 3 list of seed points inside holes
+      /// @param[in] VM  #VM list of vertex markers
+      /// @param[in] FM  #FM list of face markers
+      /// @param[in] R  #R by 5 list of region attributes            
+      /// @param[in] switches  string of tetgen options (See tetgen documentation) e.g.
+      ///     "pq1.414a0.01" tries to mesh the interior of a given surface with
+      ///       quality and area constraints
+      ///     "" will mesh the convex hull constrained to pass through V (ignores F)
+      /// @param[out] TV  #TV by 3 vertex position list
+      /// @param[out] TT  #TT by 4 list of tet face indices
+      /// @param[out] TF  #TF by 3 list of triangle face indices ('f', else
+      ///   `boundary_facets` is called on TT)
+      /// @param[out] TR  #TT list of region ID for each tetrahedron      
+      /// @param[out] TN  #TT by 4 list of indices neighbors for each tetrahedron ('n')
+      /// @param[out] PT  #TV list of incident tetrahedron for a vertex ('m')
+      /// @param[out] FT  #TF by 2 list of tetrahedrons sharing a triface ('nn')
+      /// @param[out] num_regions Number of regions in output mesh
+      /// @return status:
+      ///   0 success
+      ///   1 tetgen threw exception
+      ///   2 tetgen did not crash but could not create any tets (probably there are
+      ///     holes, duplicate faces etc.)
+      ///   -1 other error
+      ///
+      /// \note The polygons F can contain polygons with different number of vertices.
+      /// Trailing unused columns are filled with -1. For example, triangles and
+      /// segments can be specified using a #F x 3 matrix: for segments the third 
+      /// column contains -1.
+      ///
+      /// \note Tetgen mixes integer region ids in with other region data `attr
+      /// = (int) in->regionlist[i + 3];`. So it's declared safe to use integer
+      /// types for `TR` since this also assumes that there's a single tet
+      /// attribute and that it's the region id.
+      ///
+      /// #### Example
+      ///
+      /// ```cpp
+      /// Eigen::MatrixXd V;
+      /// Eigen::MatrixXi F;
+      /// …
+      /// Eigen::VectorXi VM,FM;
+      /// Eigen::MatrixXd H,R;
+      /// Eigen::VectorXi TM,TR,PT;
+      /// Eigen::MatrixXi FT,TN;
+      /// int numRegions;
+      /// tetrahedralize(V,F,H,VM,FM,R,switches,TV,TT,TF,TM,TR,TN,PT,FT,numRegions);
+      /// ```
       template <
-        typename DerivedV, 
-        typename DerivedF, 
-        typename DerivedTV, 
-        typename DerivedTT, 
-        typename DerivedTF>
+        typename DerivedV,
+        typename DerivedF,
+        typename DerivedH,
+        typename DerivedVM,
+        typename DerivedFM,
+        typename DerivedR,
+        typename DerivedTV,
+        typename DerivedTT,
+        typename DerivedTF,
+        typename DerivedTM,
+        typename DerivedTR,
+        typename DerivedTN,
+        typename DerivedPT,
+        typename DerivedFT>
       IGL_INLINE int tetrahedralize(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const std::string switches,
-        Eigen::PlainObjectBase<DerivedTV>& TV,
-        Eigen::PlainObjectBase<DerivedTT>& TT,
-        Eigen::PlainObjectBase<DerivedTF>& TF);
-      
-			// Mesh the interior of a surface mesh (V,F) using tetgen
-      //
-      // Inputs:
-      //   V  #V by 3 vertex position list
-      //   F  #F list of polygon face indices into V (0-indexed)
-			//   M  #V list of markers for vertices
-      //   switches  string of tetgen options (See tetgen documentation) e.g.
-      //     "pq1.414a0.01" tries to mesh the interior of a given surface with
-      //       quality and area constraints
-      //     "" will mesh the convex hull constrained to pass through V (ignores F)
-      // Outputs:
-      //   TV  #V by 3 vertex position list
-      //   TT  #T by 4 list of tet face indices
-      //   TF  #F by 3 list of triangle face indices
-			//   TM  #V list of markers for vertices
-      // Returns status:
-      //   0 success
-      //   1 tetgen threw exception
-      //   2 tetgen did not crash but could not create any tets (probably there are
-      //     holes, duplicate faces etc.)
-      //   -1 other error
-      IGL_INLINE int tetrahedralize(
-        const std::vector<std::vector<REAL > > & V, 
-        const std::vector<std::vector<int> > & F, 
-				const std::vector<int> & VM,
-				const std::vector<int> & FM,
-        const std::string switches,
-        std::vector<std::vector<REAL > > & TV, 
-        std::vector<std::vector<int > > & TT, 
-        std::vector<std::vector<int> > & TF,
-				std::vector<int> & TM);
-      
-      // Wrapper with Eigen types
-      // Templates:
-      //   DerivedV  real-value: i.e. from MatrixXd
-      //   DerivedF  integer-value: i.e. from MatrixXi
-      template <
-        typename DerivedV, 
-        typename DerivedF, 
-				typename DerivedVM,
-				typename DerivedFM,
-        typename DerivedTV, 
-        typename DerivedTT, 
-        typename DerivedTF, 
-        typename DerivedTM>
-      IGL_INLINE int tetrahedralize(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const Eigen::PlainObjectBase<DerivedVM>& VM,
-        const Eigen::PlainObjectBase<DerivedFM>& FM,
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const Eigen::MatrixBase<DerivedH>& H,
+        const Eigen::MatrixBase<DerivedVM>& VM,
+        const Eigen::MatrixBase<DerivedFM>& FM,
+        const Eigen::MatrixBase<DerivedR>& R,
         const std::string switches,
         Eigen::PlainObjectBase<DerivedTV>& TV,
         Eigen::PlainObjectBase<DerivedTT>& TT,
         Eigen::PlainObjectBase<DerivedTF>& TF,
-        Eigen::PlainObjectBase<DerivedTM>& TM);
-    }
+        Eigen::PlainObjectBase<DerivedTM>& TM,
+        Eigen::PlainObjectBase<DerivedTR>& TR, 
+        Eigen::PlainObjectBase<DerivedTN>& TN, 
+        Eigen::PlainObjectBase<DerivedPT>& PT, 
+        Eigen::PlainObjectBase<DerivedFT>& FT, 
+        int & num_regions);
+      /// \overload
+      template <
+        typename DerivedV,
+        typename DerivedF,
+        typename DerivedTV,
+        typename DerivedTT,
+        typename DerivedTF>
+      IGL_INLINE int tetrahedralize(
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const std::string switches,
+        Eigen::PlainObjectBase<DerivedTV>& TV,
+        Eigen::PlainObjectBase<DerivedTT>& TT,
+        Eigen::PlainObjectBase<DerivedTF>& TF);
+   }
   }
 }
 

@@ -240,7 +240,14 @@ wxString DeviceErrorDialog::show_error_code(int error_code)
     Show();
     Raise();
 
+#ifndef __linux__
+    // On Linux (especially Wayland) RequestUserAttention(wxUSER_ATTENTION_ERROR) maps to
+    // gtk_window_set_urgency_hint(TRUE) which can leave the window in an urgent-but-unfocused
+    // state — clicks no longer reach any widget in the app and the user has to kill the
+    // process to recover. Same root cause as #9874, where SecondaryCheckDialog had its
+    // RequestUserAttention call removed for the identical reason.
     this->RequestUserAttention(wxUSER_ATTENTION_ERROR);
+#endif
 
     return error_msg;
 }

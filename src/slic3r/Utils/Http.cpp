@@ -608,6 +608,16 @@ Http& Http::ca_file(const std::string &name)
 	return *this;
 }
 
+Http& Http::tls_verify(bool enable)
+{
+	if (p) {
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYPEER, enable ? 1L : 0L);
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYHOST, enable ? 2L : 0L);
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+	}
+	return *this;
+}
+
 Http& Http::form_clear() {
 	if (p) {
         if (p->form) {

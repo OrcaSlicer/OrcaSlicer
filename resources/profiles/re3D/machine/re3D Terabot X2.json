@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "re3D",
 	"bed_model": "",
-	"bed_texture": "Gigabot 4_buildplate_texture.png",
+	"bed_texture": "re3D Terabot X2_buildplate_texture.svg",
 	"hotend_model": "GBX-HOTEND.stl",
 	"default_materials": "re3D rPP;re3D Greengate rPETG;"
 }

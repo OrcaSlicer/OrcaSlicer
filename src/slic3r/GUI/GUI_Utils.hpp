@@ -461,6 +461,10 @@ void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
 #endif
 
+#ifdef __WXGTK3__
+void RemoveButtonBorder(wxWindow* win);
+#endif
+
 #if defined(__WXOSX__) || defined(__linux__)
 bool is_debugger_present();
 #endif

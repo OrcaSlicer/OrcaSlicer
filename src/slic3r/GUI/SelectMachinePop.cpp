@@ -96,7 +96,7 @@ MachineObjectPanel::~MachineObjectPanel() {}
 
 void MachineObjectPanel::show_bind_dialog()
 {
-    if (wxGetApp().is_user_login()) {
+    if (wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider())) {
         BindMachineDialog dlg;
         dlg.update_machine_info(m_info);
         dlg.ShowModal();
@@ -387,13 +387,14 @@ void SelectMachinePopup::Popup(wxWindow *WXUNUSED(focus))
         m_refresh_timer->Start(MACHINE_LIST_REFRESH_INTERVAL);
     }
 
-    if (wxGetApp().is_user_login()) {
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
+    if (wxGetApp().is_user_login(provider)) {
         if (!get_print_info_thread) {
-            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token)] {
+            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token), provider] {
                 NetworkAgent* agent = wxGetApp().getAgent();
                 unsigned int http_code;
                 std::string body;
-                int result = agent->get_user_print_info(&http_code, &body);
+                int result = agent->get_user_print_info(&http_code, &body, provider);
                 CallAfter([token, this, result, body]() {
                     if (token.expired()) {return;}
                     if (result == 0) {
@@ -511,7 +512,7 @@ void SelectMachinePopup::update_other_devices()
         /* do not show printer bind state is empty */
         if (!mobj->is_avaliable()) continue;
 
-        if (!wxGetApp().is_user_login() && !mobj->is_lan_mode_printer())
+        if (!wxGetApp().is_user_login(wxGetApp().get_printer_cloud_provider()) && !mobj->is_lan_mode_printer())
             continue;
 
         /* do not show printer in my list */
@@ -983,7 +984,7 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
             auto           utf8_str = new_dev_name.ToUTF8();
             auto           name     = std::string(utf8_str.data(), utf8_str.length());
             if (m_info)
-                dev->modify_device_name(m_info->get_dev_id(), name);
+                dev->modify_device_name(m_info->get_dev_id(), name, wxGetApp().get_printer_cloud_provider());
         }
         DPIDialog::EndModal(wxID_CLOSE);
     }

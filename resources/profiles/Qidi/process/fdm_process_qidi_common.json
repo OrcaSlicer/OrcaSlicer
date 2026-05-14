@@ -41,7 +41,7 @@
 	"ironing_spacing": "0.1",
 	"ironing_speed": "15",
 	"ironing_type": "no ironing",
-	"reduce_infill_retraction": "1",
+	"reduce_infill_retraction": "0",
 	"filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
 	"detect_overhang_wall": "1",
 	"overhang_1_4_speed": "0",

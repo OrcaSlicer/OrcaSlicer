@@ -7,7 +7,7 @@
 	"family": "Flashforge",
 	"host_type": "Flashforge",
 	"bed_model": "flashforge_adventurer5m_series_buildplate_model.STL",
-	"bed_texture": "flashforge_adventurer5mpro_buildplate_texture.png",
+	"bed_texture": "flashforge_adventurer5mpro_buildplate_texture.svg",
 	"hotend_model": "flashforge_adventurer_5m_series_hotend.STL",
 	"default_filament_profile": "Generic ABS @Flashforge AD4;Generic PETG @Flashforge AD4;Generic PLA @Flashforge AD4;Generic PLA High Speed @Flashforge AD4;Generic TPU @Flashforge AD4"
 }
