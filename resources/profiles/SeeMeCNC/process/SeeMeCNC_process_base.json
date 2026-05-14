@@ -60,7 +60,7 @@
 	"fuzzy_skin_scale": "1",
 	"fuzzy_skin_thickness": "0.2",
 	"gap_fill_flow_ratio": "1",
-	"gap_fill_target": "not_on_top",
+	"gap_fill_target": "everywhere",
 	"gcode_add_line_number": "0",
 	"gcode_comments": "0",
 	"gcode_label_objects": "1",

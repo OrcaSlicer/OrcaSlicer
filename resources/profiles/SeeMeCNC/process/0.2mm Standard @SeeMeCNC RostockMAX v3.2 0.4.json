@@ -14,7 +14,7 @@
 	"bottom_shell_layers": "4",
 	"bottom_surface_pattern": "monotonicline",
 	"bridge_speed": "35",
-	"counterbore_hole_bridging": "sacrificiallayer",
+	"counterbore_hole_bridging": "none",
 	"detect_thin_wall": "0",
 	"enable_arc_fitting": "0",
 	"ensure_vertical_shell_thickness": "ensure_all",
@@ -52,5 +52,5 @@
 	"travel_jerk": "10",
 	"travel_speed": "250",
 	"wall_loops": "3",
-	"xy_hole_compensation": "0.05"
+	"xy_hole_compensation": "0"
 }
