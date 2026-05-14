@@ -6141,6 +6141,49 @@ void TabPrinter::toggle_options()
         toggle_option("imex_viz_theme",   is_imex);
         toggle_option("imex_firmware_managed_zones", is_imex);
         if (m_imex_modes_ctrl) m_imex_modes_ctrl->Show(is_imex);
+
+        // IDEX/IQEX: the tool_layout dropdown carries 4 corner values
+        // (front-left / front-right / rear-left / rear-right) in storage, but front/rear
+        // is meaningless on single-gantry setups. Collapse the dropdown to just two
+        // items ("Left" / "Right") when imex_gantry_count == 1 — mapped to front-left
+        // and front-right internally — and normalize any stored rear-* selection to its
+        // front-* equivalent so the displayed selection always matches the stored value.
+        if (is_imex) {
+            if (Field* layout_field = get_field("imex_tool_layout"); layout_field) {
+                if (auto* choice = dynamic_cast<Choice*>(layout_field); choice) {
+                    const int gantry_count = m_config->opt_int("imex_gantry_count");
+                    int current_val = 0;
+                    if (auto* o = m_config->option<ConfigOptionEnum<ImexToolLayout>>("imex_tool_layout"))
+                        current_val = static_cast<int>(o->value);
+
+                    // Normalize rear-* → front-* when collapsing to 1 gantry.
+                    if (gantry_count == 1 && (current_val == static_cast<int>(ImexToolLayout::RearLeft)
+                                           || current_val == static_cast<int>(ImexToolLayout::RearRight))) {
+                        ImexToolLayout normalized = (current_val == static_cast<int>(ImexToolLayout::RearLeft))
+                                                  ? ImexToolLayout::FrontLeft
+                                                  : ImexToolLayout::FrontRight;
+                        DynamicPrintConfig new_conf = *m_config;
+                        new_conf.set_key_value("imex_tool_layout",
+                                               new ConfigOptionEnum<ImexToolLayout>(normalized));
+                        load_config(new_conf);
+                        current_val = static_cast<int>(normalized);
+                    }
+
+                    wxArrayString items;
+                    if (gantry_count >= 2) {
+                        items.Add(_L("Front-left"));
+                        items.Add(_L("Front-right"));
+                        items.Add(_L("Rear-left"));
+                        items.Add(_L("Rear-right"));
+                    } else {
+                        items.Add(_L("Left"));
+                        items.Add(_L("Right"));
+                    }
+                    choice->set_values(items);
+                    choice->set_value(boost::any(current_val), false);
+                }
+            }
+        }
     }
     wxString extruder_number;
     long val = 1;
