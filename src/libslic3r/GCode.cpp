@@ -111,6 +111,12 @@ static bool is_multi_nozzle_printer(const FullPrintConfig &config)
                        [](int v) { return v > 1; });
 }
 
+static bool is_bambu_h2d_printer(const FullPrintConfig &config)
+{
+    return config.printer_model.value == "Bambu Lab H2D" ||
+           config.printer_model.value == "Bambu Lab H2D Pro";
+}
+
 static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int hotend_id)
 {
     return is_bambu_x2d_printer(config) ? -1 : hotend_id;
@@ -224,6 +230,14 @@ static std::vector<std::string> get_nozzle_volume_types_by_nozzle_id(const Multi
             volume_types[id] = get_nozzle_volume_type_string(nozzle->volume_type);
     }
     return volume_types;
+}
+
+static int hotend_id_for_temperature_gcode(const FullPrintConfig &config, int hotend_id)
+{
+    // H2D profile hotend ids are logical; temperature G-code addresses the physical T index.
+    if (is_bambu_h2d_printer(config) && hotend_id >= 0 && hotend_id < (int) config.physical_extruder_map.values.size())
+        return config.physical_extruder_map.get_at(hotend_id);
+    return hotend_id;
 }
 
 Vec2d travel_point_1;
@@ -390,21 +404,29 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     {
         std::string gcode;
 
-        unsigned int extruder_id = gcodegen.writer().filament()->id();
+        unsigned int filament_id = gcodegen.writer().filament()->id();
+        const bool is_h2d_printer = is_bambu_h2d_printer(gcodegen.config());
+        int tool_id = is_h2d_printer ?
+            hotend_id_for_temperature_gcode(gcodegen.config(), (int) gcodegen.get_extruder_id(filament_id)) :
+            (int) filament_id;
         const auto& filament_idle_temp = gcodegen.config().idle_temperature;
-        if (filament_idle_temp.get_at(extruder_id) == 0) {
+        if (filament_idle_temp.get_at(filament_id) == 0) {
             // There is no idle temperature defined in filament settings.
             // Use the delta value from print config.
             if (gcodegen.config().standby_temperature_delta.value != 0) {
                 // we assume that heating is always slower than cooling, so no need to block
-                gcode += gcodegen.writer().set_temperature
-                (this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false, extruder_id);
+                int temp = this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value;
+                gcode += is_h2d_printer ?
+                    GCodeWriter::set_temperature(temp, gcodegen.config().gcode_flavor, false, tool_id) :
+                    gcodegen.writer().set_temperature(temp, false, tool_id);
                 gcode.pop_back();
                 gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
             }
         } else {
             // Use the value from filament settings. That one is absolute, not delta.
-            gcode += gcodegen.writer().set_temperature(filament_idle_temp.get_at(extruder_id), false, extruder_id);
+            gcode += is_h2d_printer ?
+                GCodeWriter::set_temperature(filament_idle_temp.get_at(filament_id), gcodegen.config().gcode_flavor, false, tool_id) :
+                gcodegen.writer().set_temperature(filament_idle_temp.get_at(filament_id), false, tool_id);
             gcode.pop_back();
             gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
         }
@@ -414,9 +436,17 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
     std::string OozePrevention::post_toolchange(GCode& gcodegen)
     {
-        return (gcodegen.config().standby_temperature_delta.value != 0) ?
-            gcodegen.writer().set_temperature(this->_get_temp(gcodegen), true, gcodegen.writer().filament()->id()) :
-            std::string();
+        if (gcodegen.config().standby_temperature_delta.value == 0)
+            return std::string();
+
+        unsigned int filament_id = gcodegen.writer().filament()->id();
+        const bool is_h2d_printer = is_bambu_h2d_printer(gcodegen.config());
+        int tool_id = is_h2d_printer ?
+            hotend_id_for_temperature_gcode(gcodegen.config(), (int) gcodegen.get_extruder_id(filament_id)) :
+            (int) filament_id;
+        return is_h2d_printer ?
+            GCodeWriter::set_temperature(this->_get_temp(gcodegen), gcodegen.config().gcode_flavor, true, tool_id) :
+            gcodegen.writer().set_temperature(this->_get_temp(gcodegen), true, tool_id);
     }
 
     int OozePrevention::_get_temp(const GCode &gcodegen) const
@@ -2705,9 +2735,11 @@ namespace DoExport {
 #endif
 
     static void init_ooze_prevention(const Print &print, OozePrevention &ooze_prevention)
-	{
-	    ooze_prevention.enable = print.config().ooze_prevention.value && ! print.config().single_extruder_multi_material;
-	}
+    {
+        // H2D is represented as single-extruder multi-material, but still has two physical hotends.
+        ooze_prevention.enable = print.config().ooze_prevention.value &&
+            (!print.config().single_extruder_multi_material || is_bambu_h2d_printer(print.config()));
+    }
 
     // Count tool/filament changes across the print from the tool ordering. Used as a fallback when no
     // wipe tower populated WipeTowerData::number_of_toolchanges (left at -1). Covers non-sequential
