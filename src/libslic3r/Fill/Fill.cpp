@@ -930,9 +930,10 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                                                    region_config.sparse_infill_rotate_template.value);
                     params.fixed_angle = !region_config.sparse_infill_rotate_template.value.empty();
                 } else {
-                    const bool top_layer_direction_set = surface.is_top() && region_config.top_layer_direction.value >= 0.;
-                    if (top_layer_direction_set) {
-                        params.angle = Geometry::deg2rad(region_config.top_layer_direction.value);
+                    const bool top_layer_direction_set    = surface.is_top() && region_config.top_layer_direction.value >= 0.;
+                    const bool bottom_layer_direction_set = surface.is_bottom() && region_config.bottom_layer_direction.value >= 0.;
+                    if (top_layer_direction_set || bottom_layer_direction_set) {
+                        params.angle = Geometry::deg2rad(top_layer_direction_set ? region_config.top_layer_direction.value : region_config.bottom_layer_direction.value);
                         params.fixed_angle = true;
                     } else {
                         params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.solid_infill_direction.value,

@@ -2965,7 +2965,17 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
-    def->mode = comAdvanced;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(-1));
+
+    def = this->add("bottom_layer_direction", coFloat);
+    def->label = L("Bottom layer direction");
+    def->category = L("Strength");
+    def->tooltip = L("Optional absolute angle for bottom-layer infill. Set to -1 to use the current solid infill direction behavior.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min = -1;
+    def->max = 360;
+    def->mode = comExpert;
     def->set_default_value(new ConfigOptionFloat(-1));
 
     def = this->add("sparse_infill_density", coPercent);
