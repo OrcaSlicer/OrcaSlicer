@@ -1,8 +1,8 @@
 {
 	"name": "SeeMeCNC",
-	"version": "1.0.0.4",
+	"version": "1.0.0.6",
 	"force_update": "1",
-	"description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers",
+	"description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers (fixed default_print_profile names)",
 	"machine_model_list": [
 		{
 			"name": "SeeMeCNC Artemis 300",
@@ -34,6 +34,10 @@
 		}
 	],
 	"process_list": [
+		{
+			"name": "SeeMeCNC process base",
+			"sub_path": "process/SeeMeCNC_process_base.json"
+		},
 		{
 			"name": "0.16mm Fine @SeeMeCNC Artemis 0.4",
 			"sub_path": "process/0.16mm Fine @SeeMeCNC Artemis 0.4.json"
@@ -544,6 +548,10 @@
 		}
 	],
 	"filament_list": [
+		{
+			"name": "SeeMeCNC filament base",
+			"sub_path": "filament/SeeMeCNC_filament_base.json"
+		},
 		{
 			"name": "SeeMeCNC PA-CF",
 			"sub_path": "filament/SeeMeCNC_PA-CF.json"
