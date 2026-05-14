@@ -498,6 +498,11 @@ private:
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
 
+    // Cache per-filament ordering to avoid recomputing when object set is unchanged across layers.
+    // Key: sorted ObjectIDs of objects present on this filament. Value: cached ordering.
+    std::map<unsigned int, std::pair<std::vector<ObjectID>, std::vector<const PrintInstance*>>>
+                                        m_ordering_cache;
+
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
 
 

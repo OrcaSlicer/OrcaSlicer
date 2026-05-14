@@ -4,7 +4,6 @@
 #include "MinMaxEdge.hpp"
 #include "TSPPostProcessing.hpp"
 #include "ConvexHullPeeling.hpp"
-#include "AngleSortCycle.hpp"
 #include "Boustrophedon.hpp"
 #include "GridPath.hpp"
 
@@ -21,7 +20,6 @@ std::vector<size_t> min_max_edge_core(const Points& centers)
     struct Candidate { std::string name; std::vector<size_t> path; };
     std::vector<Candidate> candidates;
     candidates.push_back({"Convex Hull Peeling", convex_hull_peeling_core(centers)});
-    candidates.push_back({"Angle Sort", angle_sort_core(centers)});
     candidates.push_back({"Boustrophedon", boustrophedon_core(centers)});
     candidates.push_back({"Grid Path", grid_path_core(centers)});
 

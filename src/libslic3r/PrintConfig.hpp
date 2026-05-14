@@ -159,7 +159,6 @@ enum class PrintOrder
     BestOfStrategies,    // run all custom strategies, pick the shortest total path
     MinMaxEdge,          // run all custom strategies, pick smallest max edge (tiebreak: shortest)
     ConvexHullPeeling,   // onion-peeling convex hull layers, outermost first
-    AngleSortCycle,      // sort by angle around centroid, then 2-opt to improve
     Boustrophedon,       // snake-like row traversal (back-and-forth) + 2-opt
     GridPath,              // serpentine with L1 distance optimization, avoids diagonal moves
     Count,

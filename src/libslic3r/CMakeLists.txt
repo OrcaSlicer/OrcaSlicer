@@ -252,8 +252,6 @@ set(lisbslic3r_sources
     GCode/TSPPostProcessing.hpp
     GCode/ConvexHullPeeling.cpp
     GCode/ConvexHullPeeling.hpp
-    GCode/AngleSortCycle.cpp
-    GCode/AngleSortCycle.hpp
     GCode/Boustrophedon.cpp
     GCode/Boustrophedon.hpp
     GCode/GridPath.cpp
