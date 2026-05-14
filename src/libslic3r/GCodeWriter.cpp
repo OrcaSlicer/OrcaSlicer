@@ -748,7 +748,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 ij_offset = { -ij_offset(1), ij_offset(0) };
                 bool can_spiral_lift = true;
                 if (m_has_printable_area_bounds) {
-                    const double safety_margin = 0.5;
+                    const double safety_margin = 1.0;
                     const double center_x_min = m_printable_x_min + radius + safety_margin;
                     const double center_x_max = m_printable_x_max - radius - safety_margin;
                     const double center_y_min = m_printable_y_min + radius + safety_margin;
