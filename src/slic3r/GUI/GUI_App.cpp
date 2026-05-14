@@ -7787,8 +7787,14 @@ std::vector<std::pair<unsigned int, std::string>> GUI_App::get_selected_presets(
 // This is called when:
 // - Exporting config_bundle
 // - Taking snapshot
-bool GUI_App::check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice/* = true*/, bool dont_save_insted_of_discard/* = false*/)
+bool GUI_App::check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice/* = true*/, bool dont_save_insted_of_discard/* = false*/,
+                                                    bool* saved_changes/* = nullptr*/, bool* saved_to_project/* = nullptr*/)
 {
+    if (saved_changes)
+        *saved_changes = false;
+    if (saved_to_project)
+        *saved_to_project = false;
+
     if (has_current_preset_changes()) {
         int act_buttons = ActionButtons::SAVE;
         if (dont_save_insted_of_discard)
@@ -7802,11 +7808,19 @@ bool GUI_App::check_and_save_current_preset_changes(const wxString& caption, con
 
         if (dlg.save_preset())  // save selected changes
         {
+            bool has_project_embedded_changes = false;
             //BBS: add project embedded preset relate logic
-            for (const UnsavedChangesDialog::PresetData& nt : dlg.get_names_and_types())
+            for (const UnsavedChangesDialog::PresetData& nt : dlg.get_names_and_types()) {
                 preset_bundle->save_changes_for_preset(nt.name, nt.type, dlg.get_unselected_options(nt.type), nt.save_to_project);
+                has_project_embedded_changes |= nt.save_to_project;
+            }
             //for (const std::pair<std::string, Preset::Type>& nt : dlg.get_names_and_types())
             //    preset_bundle->save_changes_for_preset(nt.first, nt.second, dlg.get_unselected_options(nt.second));
+
+            if (saved_changes)
+                *saved_changes = true;
+            if (saved_to_project)
+                *saved_to_project = has_project_embedded_changes;
 
             load_current_presets(false);
 

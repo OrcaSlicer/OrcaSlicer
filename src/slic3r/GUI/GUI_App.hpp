@@ -585,7 +585,8 @@ public:
     bool            has_current_preset_changes() const;
     void            update_saved_preset_from_current_preset();
     std::vector<std::pair<unsigned int, std::string>> get_selected_presets() const;
-    bool            check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice = true, bool use_dont_save_insted_of_discard = false);
+    bool            check_and_save_current_preset_changes(const wxString& caption, const wxString& header, bool remember_choice = true, bool use_dont_save_insted_of_discard = false,
+                                                          bool* saved_changes = nullptr, bool* saved_to_project = nullptr);
     void            apply_keeped_preset_modifications();
     bool            check_and_keep_current_preset_changes(const wxString& caption, const wxString& header, int action_buttons, bool* postponed_apply_of_keeped_changes = nullptr);
     bool            can_load_project();
