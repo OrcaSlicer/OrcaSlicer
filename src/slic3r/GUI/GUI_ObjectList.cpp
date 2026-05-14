@@ -2518,6 +2518,9 @@ void ObjectList::load_shape_object(const std::string &type_name)
     if (selection.get_object_idx() != -1)
         return;
 
+    if (!wxGetApp().plater()->maybe_start_new_project_after_empty_plate_delete())
+        return;
+
     const int obj_idx = m_objects->size();
     if (obj_idx < 0)
         return;

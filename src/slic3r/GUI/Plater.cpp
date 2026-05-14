@@ -4815,6 +4815,8 @@ struct Plater::priv
 
     //BBS: project
     BBLProject                  project;
+    bool                        m_offer_new_project_after_empty_plate_on_next_add { false };
+    bool                        has_saved_or_opened_project_file() const { return !get_project_filename(".3mf").IsEmpty(); }
 
     //BBS: add print project related logic
     void update_fff_scene_only_shells(bool only_shells = true);
@@ -7374,7 +7376,9 @@ void Plater::priv::object_list_changed()
     model_fits = model_fits && object_results.filaments.empty();
 
     PartPlate* part_plate = partplate_list.get_curr_plate();
-
+    if (!model.objects.empty()) {
+        m_offer_new_project_after_empty_plate_on_next_add = false;
+    }
     // BBS
     //sidebar->enable_buttons(!model.objects.empty() && !export_in_progress && model_fits && part_plate->has_printable_instances());
     bool can_slice = !model.objects.empty() && !export_in_progress && model_fits && part_plate->has_printable_instances();
@@ -7394,6 +7398,9 @@ void Plater::priv::remove_curr_plate_all()
 {
     SingleSnapshot ss(q);
     view3D->remove_curr_plate_all();
+    if (model.objects.empty()) {
+        m_offer_new_project_after_empty_plate_on_next_add = has_saved_or_opened_project_file();
+    }
     this->sidebar->obj_list()->update_selections();
 }
 
@@ -7420,6 +7427,9 @@ void Plater::priv::remove(size_t obj_idx)
 
     m_worker.cancel_all();
     model.delete_object(obj_idx);
+    if (model.objects.empty()) {
+        m_offer_new_project_after_empty_plate_on_next_add = has_saved_or_opened_project_file();
+    }
     //BBS: notify partplate the instance removed
     partplate_list.notify_instance_removed(obj_idx, -1);
     update();
@@ -7455,6 +7465,9 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
         sidebar->obj_list()->invalidate_cut_info_for_object(obj_idx);
 
     model.delete_object(obj_idx);
+    if (model.objects.empty()) {
+        m_offer_new_project_after_empty_plate_on_next_add = has_saved_or_opened_project_file();
+    }
     //BBS: notify partplate the instance removed
     partplate_list.notify_instance_removed(obj_idx, -1);
 
@@ -7469,6 +7482,8 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
 
 void Plater::priv::delete_all_objects_from_model()
 {
+    const bool had_objects = !model.objects.empty();
+
     Plater::TakeSnapshot snapshot(q, "Delete All Objects");
 
     if (view3D->is_layers_editing_enabled())
@@ -7496,11 +7511,17 @@ void Plater::priv::delete_all_objects_from_model()
     //BBS
     model.calib_pa_pattern.reset();
     model.plates_custom_gcodes.clear();
+
+    if (had_objects) {
+        m_offer_new_project_after_empty_plate_on_next_add = has_saved_or_opened_project_file();
+    }
 }
 
 void Plater::priv::reset(bool apply_presets_change)
 {
     Plater::TakeSnapshot snapshot(q, "Reset Project", UndoRedo::SnapshotType::ProjectSeparator);
+
+    m_offer_new_project_after_empty_plate_on_next_add = false;
 
     clear_warnings();
 
@@ -12519,6 +12540,38 @@ bool Plater::up_to_date(bool saved, bool backup)
                                         !Slic3r::has_other_changes(backup));
 }
 
+static bool maybe_start_new_project_after_empty_plate_delete_impl(Plater* plater, bool& offer_prompt)
+{
+    if (!offer_prompt)
+        return true;
+
+    if (plater->get_project_filename(".3mf").IsEmpty()) {
+        offer_prompt = false;
+        return true;
+    }
+
+    int result = MessageDialog(
+                     static_cast<wxWindow*>(plater),
+                     _L("All objects were removed from the build plate.\nDo you want to create a new project before adding models?"),
+                     wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Create New Project"),
+                     wxYES_NO | wxCANCEL | wxYES_DEFAULT | wxCENTRE)
+                     .ShowModal();
+
+    if (result == wxID_CANCEL)
+        return false;
+
+    if (result == wxID_YES && plater->new_project(false, true) == wxID_CANCEL)
+        return false;
+
+    offer_prompt = false;
+    return true;
+}
+
+bool Plater::maybe_start_new_project_after_empty_plate_delete()
+{
+    return maybe_start_new_project_after_empty_plate_delete_impl(this, p->m_offer_new_project_after_empty_plate_on_next_add);
+}
+
 void Plater::add_model(bool imperial_units, std::string fname)
 {
     wxArrayString input_files;
@@ -12563,6 +12616,11 @@ void Plater::add_model(bool imperial_units, std::string fname)
     if (paths.size() > 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::MultipleOther; }
     if (paths.size() == 1 && amf_files_count == 1) { loadfiles_type = LoadFilesType::Single3MF; };
     if (paths.size() == 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::SingleOther; };
+
+    if (fname.empty() &&
+        (loadfiles_type == LoadFilesType::SingleOther || loadfiles_type == LoadFilesType::MultipleOther) &&
+        !maybe_start_new_project_after_empty_plate_delete())
+        return;
 
     bool ask_multi = false;
 
@@ -13761,6 +13819,10 @@ std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files,
     p->m_slice_all_only_has_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
+
+    if ((strategy & LoadStrategy::LoadModel) && !input_files.empty() && !maybe_start_new_project_after_empty_plate_delete())
+        return {};
+
     return p->load_files(input_files, strategy, ask_multi);
 }
 
@@ -14194,6 +14256,10 @@ bool Plater::load_files(const wxArrayString& filenames)
     if (normal_paths.size() == 1 && amf_files_count == 1) { loadfiles_type = LoadFilesType::Single3MF; };
     if (normal_paths.size() == 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::SingleOther; };
 
+    if ((loadfiles_type == LoadFilesType::SingleOther || loadfiles_type == LoadFilesType::MultipleOther) &&
+        !maybe_start_new_project_after_empty_plate_delete())
+        return false;
+
     auto first_file = std::vector<fs::path>{};
     auto tmf_file   = std::vector<fs::path>{};
     auto other_file = std::vector<fs::path>{};
@@ -14385,6 +14451,10 @@ void Plater::add_file()
     if (paths.size() > 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::MultipleOther; }
     if (paths.size() == 1 && amf_files_count == 1) { loadfiles_type = LoadFilesType::Single3MF; };
     if (paths.size() == 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::SingleOther; };
+
+    if ((loadfiles_type == LoadFilesType::SingleOther || loadfiles_type == LoadFilesType::MultipleOther) &&
+        !maybe_start_new_project_after_empty_plate_delete())
+        return;
 
     auto first_file = std::vector<fs::path>{};
     auto tmf_file   = std::vector<fs::path>{};
