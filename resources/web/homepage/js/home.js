@@ -103,10 +103,19 @@ function HandleStudio( pVal )
 
     GotoMenu(strName);
   } else if (strCmd == "cloud_providers_info") {
-    if (pVal["data"]["providers"] && pVal["data"]["providers"].indexOf("bbl") >= 0) {
+    var providers = (pVal["data"] && pVal["data"]["providers"]) || [];
+
+    if (providers.indexOf("bbl") >= 0) {
       $("#BambuCloudSection").show();
     } else {
+      SetBambuUserOffline();
       $("#BambuCloudSection").hide();
+    }
+
+    if (providers.indexOf("orca") >= 0) {
+      $("#LeftBoard").show();
+    } else {
+      $("#LeftBoard").hide();
     }
   } else if (strCmd == "network_plugin_installtip") {
     let nShow = pVal["show"] * 1;

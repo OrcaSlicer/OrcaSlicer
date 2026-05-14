@@ -31,8 +31,19 @@
 namespace Slic3r {
 
 enum GCodeFlavor : unsigned char {
-    gcfMarlinLegacy, gcfKlipper, gcfRepRapFirmware, gcfMarlinFirmware, gcfRepRapSprinter, gcfRepetier, gcfTeacup, gcfMakerWare, gcfSailfish, gcfMach3, gcfMachinekit,
-    gcfSmoothie, gcfNoExtrusion
+    gcfMarlinLegacy, 
+    gcfKlipper, 
+    gcfRepRapFirmware, 
+    gcfRepetier, 
+    gcfMarlinFirmware, 
+    gcfRepRapSprinter, 
+    gcfTeacup, 
+    gcfMakerWare, 
+    gcfSailfish, 
+    gcfMach3, 
+    gcfMachinekit,
+    gcfSmoothie, 
+    gcfNoExtrusion
 };
 
 
@@ -351,6 +362,22 @@ enum PrinterStructure {
     psDelta
 };
 
+enum class InputShaperType : unsigned char {
+    Default = 0,
+    MZV,
+    ZV,
+    ZVD,
+    ZVDD,
+    ZVDDD,
+    EI,
+    EI2,
+    TwoHumpEI,
+    EI3,
+    ThreeHumpEI,
+    DAA,
+    Disable
+};
+
 // BBS
 enum ZHopType {
     zhtAuto = 0,
@@ -514,6 +541,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BrimType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TimelapseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BedType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SkirtType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InputShaperType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(DraftShield)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ForwardCompatibilitySubstitutionRule)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeThumbnailsFormat)
@@ -1248,6 +1276,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 resonance_avoidance))
     ((ConfigOptionFloat,                min_resonance_avoidance_speed))
     ((ConfigOptionFloat,                max_resonance_avoidance_speed))
+
+    //Orca: Input shaping
+    ((ConfigOptionBool,                 input_shaping_emit))
+    ((ConfigOptionEnum<InputShaperType>, input_shaping_type))
+    ((ConfigOptionFloat,                input_shaping_freq_x))
+    ((ConfigOptionFloat,                input_shaping_freq_y))
+    ((ConfigOptionFloat,                input_shaping_damp_x))
+    ((ConfigOptionFloat,                input_shaping_damp_y))
 )
 
 // This object is mapped to Perl as Slic3r::Config::GCode.
@@ -1400,6 +1436,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_cooling_moves))
     ((ConfigOptionFloats,              filament_cooling_initial_speed))
     ((ConfigOptionFloats,              filament_minimal_purge_on_wipe_tower))
+    ((ConfigOptionFloatsNullable,      filament_cooling_before_tower))
     ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_dist))
     ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_length))
     ((ConfigOptionFloats,              filament_tower_ironing_area))
@@ -1430,6 +1467,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
 
     //BBS
     ((ConfigOptionInts,               additional_cooling_fan_speed))
+    ((ConfigOptionInts,               close_additional_fan_first_x_layers))
+    ((ConfigOptionInts,               additional_fan_full_speed_layer))
+    ((ConfigOptionFloats,             first_x_layer_fan_speed))
     ((ConfigOptionBool,               reduce_crossing_wall))
     ((ConfigOptionFloatOrPercent,     max_travel_detour_distance))
     ((ConfigOptionPoints,             printable_area))

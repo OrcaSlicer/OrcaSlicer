@@ -169,6 +169,8 @@
 
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevConfigUtil.h"
+#include "DeviceCore/DevDefs.h"
 
 using boost::optional;
 namespace fs = boost::filesystem;
@@ -443,6 +445,7 @@ struct ExtruderGroup : StaticGroup
     }
 
     void update_ams();
+    void SetTitle(const wxString& title);
 
     void sync_ams(MachineObject const *obj, std::vector<DevAms *> const &ams4, std::vector<DevAms *> const &ams1);
 
@@ -1263,6 +1266,16 @@ void ExtruderGroup::sync_ams(MachineObject const *obj, std::vector<DevAms *> con
         update_ams();
 }
 
+void ExtruderGroup::SetTitle(const wxString& title)
+{
+    m_label = title;
+    int tW, tH, descent, externalLeading;
+    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &tW, &tH, &descent, &externalLeading, &m_font);
+    m_label_height = tH - externalLeading;
+    m_label_width  = tW;
+    Refresh();
+}
+
 bool Sidebar::priv::switch_diameter(bool single)
 {
     wxString diameter;
@@ -1272,13 +1285,16 @@ bool Sidebar::priv::switch_diameter(bool single)
         auto diameter_left = left_extruder->combo_diameter->GetValue();
         auto diameter_right = right_extruder->combo_diameter->GetValue();
         if (diameter_left != diameter_right) {
+            std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+            auto left_name  = _L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase));
+            auto right_name = _L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase));
             MessageDialog dlg(this->plater,
                               _L("The software does not support using different diameter of nozzles for one print. "
                                  "If the left and right nozzles are inconsistent, we can only proceed with single-head printing. "
                                  "Please confirm which nozzle you would like to use for this project."),
                               _L("Switch diameter"), wxYES_NO | wxNO_DEFAULT);
-            dlg.SetButtonLabel(wxID_YES, wxString::Format(_L("Left nozzle: %smm"), diameter_left));
-            dlg.SetButtonLabel(wxID_NO, wxString::Format(_L("Right nozzle: %smm"), diameter_right));
+            dlg.SetButtonLabel(wxID_YES, wxString::Format("%s: %smm", left_name, diameter_left));
+            dlg.SetButtonLabel(wxID_NO, wxString::Format("%s: %smm", right_name, diameter_right));
             int result = dlg.ShowModal();
             if (result == wxID_YES)
                 diameter = diameter_left;
@@ -2661,6 +2677,9 @@ void Sidebar::update_presets(Preset::Type preset_type)
         };
         auto image_path = get_cur_select_bed_image();
         if (is_dual_extruder) {
+            std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
+            p->left_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
+            p->right_extruder->SetTitle(_L(DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase)));
             AMSCountPopupWindow::UpdateAMSCount(0, p->left_extruder);
             AMSCountPopupWindow::UpdateAMSCount(1, p->right_extruder);
             //if (!p->is_switching_diameter) {
@@ -6923,6 +6942,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     }
 
     if (load_model) {
+        if (!q->m_exported_file && view3D != nullptr) {
+            // Force a 3D scene refresh after view/plate selection to avoid losing the first load
+            // on platforms where the GL canvas mapping lags behind model loading.
+            view3D->reload_scene(true);
+            view3D->set_as_dirty();
+        }
         if (!silence) wxGetApp().app_config->update_skein_dir(input_files[input_files.size() - 1].parent_path().make_preferred().string());
         // XXX: Plater.pm had @loaded_files, but didn't seem to fill them with the filenames...
     }
@@ -9130,6 +9155,20 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
 
     if (current_panel == panel)
     {
+        if (panel == view3D) {
+            if (view3D->is_reload_delayed()) {
+                // Delayed loading of the 3D scene when caller requests the already active tab.
+                if (printer_technology == ptSLA)
+                    update_restart_background_process(true, false);
+                else
+                    view3D->reload_scene(true);
+            }
+
+            view3D->set_as_dirty();
+            view3D->get_canvas3d()->reset_old_size();
+            if (notification_manager != nullptr)
+                notification_manager->set_in_preview(false);
+        }
         //BBS: add slice logic when switch to preview page
         //BBS: add only gcode mode
         if (!q->only_gcode_mode() && (current_panel == preview) && (wxGetApp().is_editor())) {
@@ -13257,6 +13296,8 @@ void Plater::calib_VFA(const Calib_Params& params)
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+    printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{true});
+    printer_config->set_key_value("input_shaping_type", new ConfigOptionEnum<InputShaperType>(InputShaperType::Disable));
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool { false });
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
@@ -13320,10 +13361,12 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     }
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+    printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{false});
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});
-    print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool { false });
+    print_config->set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool{false});
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("wall_loops", new ConfigOptionInt(1));
     print_config->set_key_value("top_shell_layers", new ConfigOptionInt(0));
@@ -13381,6 +13424,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     }
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+    printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{false});
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});
@@ -13443,6 +13487,8 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     }
 
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+    printer_config->set_key_value("input_shaping_emit", new ConfigOptionBool{true});
+    printer_config->set_key_value("input_shaping_type", new ConfigOptionEnum<InputShaperType>(InputShaperType::Disable));
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});

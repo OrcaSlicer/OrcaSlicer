@@ -23,6 +23,7 @@
 #include "PrePrintChecker.hpp"
 
 #include "DeviceCore/DevConfig.h"
+#include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevMapping.h"
@@ -1261,15 +1262,10 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
     }
     // single nozzle
     else {
-        if (obj_->is_support_amx_ext_mix_mapping()) {
-            map_opt         = {false, true, false, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-            filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt, std::vector<int>(),
-                                                         wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
-            // auto_supply_with_ext(obj_->vt_slot);
-        } else {
-            map_opt         = {false, true, false, false};
-            filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt);
-        }
+        map_opt         = {false, true, false, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+        filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt, std::vector<int>(),
+                                                     wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
+        // auto_supply_with_ext(obj_->vt_slot);
     }
 
     if (filament_result == 0) {
@@ -1577,10 +1573,11 @@ bool SyncAmsInfoDialog::is_nozzle_type_match(DevExtderSystem data, wxString &err
             if (target_machine_nozzle_id < flow_type_of_machine.size()) {
                 if (flow_type_of_machine[target_machine_nozzle_id] != used_extruders_flow[it->first]) {
                     wxString pos;
+                    auto sai_nz_pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
                     if (target_machine_nozzle_id == DEPUTY_EXTRUDER_ID) {
-                        pos = _L("left nozzle");
+                        pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     } else if ((target_machine_nozzle_id == MAIN_EXTRUDER_ID)) {
-                        pos = _L("right nozzle");
+                        pos = _L(DevPrinterConfigUtil::get_toolhead_display_name(sai_nz_pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::LowerCase));
                     }
 
                     error_message = wxString::Format(_L("The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). "

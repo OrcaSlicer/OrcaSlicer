@@ -546,8 +546,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
 void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase *, ModelConfig *> const &configs)
 {
     for (auto &k : keys) {
-        if (/*k == "adaptive_layer_height" || */ k == "independent_support_layer_height" || k == "enable_support" ||
-            k == "detect_thin_wall" || k == "tree_support_adaptive_layer_height")
+        if (k == "independent_support_layer_height" || k == "enable_support" || k == "detect_thin_wall")
             config->set_key_value(k, new ConfigOptionBool(true));
         else if (k == "wall_loops")
             config->set_key_value(k, new ConfigOptionInt(0));
@@ -742,19 +741,20 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
-    bool support_is_normal_tree = support_is_tree && support_style != smsTreeOrganic &&
-    // Orca: use organic as default
-    support_style != smsDefault;
-    bool support_is_organic = support_is_tree && !support_is_normal_tree;
-    // settings shared by normal and organic trees
-    for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter" })
-        toggle_line(el, support_is_normal_tree);
+    bool support_is_organic = support_is_tree && (support_style == smsTreeOrganic || support_style == smsDefault);
+    bool support_is_normal_tree = support_is_tree && !support_is_organic;
+
+    // hide settings that are not used by tree supports
+    toggle_line("support_threshold_overlap", !support_is_tree); // ORCA: tree supports do not use Threshold Overlap
     // settings specific to normal trees
-    for (auto el : {"tree_support_auto_brim", "tree_support_brim_width", "tree_support_adaptive_layer_height"})
+    for (auto el : {"tree_support_branch_angle", "tree_support_branch_distance", "tree_support_branch_diameter", "tree_support_auto_brim", "tree_support_brim_width"})
         toggle_line(el, support_is_normal_tree);
     // settings specific to organic trees
     for (auto el : {"tree_support_branch_angle_organic", "tree_support_branch_distance_organic", "tree_support_branch_diameter_organic", "tree_support_angle_slow", "tree_support_tip_diameter", "tree_support_top_rate", "tree_support_branch_diameter_angle"})
         toggle_line(el, support_is_organic);
+    // ORCA: Independent support layer height is not compatible with organic tree supports,
+    // as they rely on the support layers being the same as the object layers to determine where to place branches.
+    toggle_line("independent_support_layer_height", have_support_material && !support_is_organic);
 
     toggle_field("tree_support_brim_width", support_is_tree && !config->opt_bool("tree_support_auto_brim"));
     // tree support use max_bridge_length instead of bridge_no_support
@@ -788,9 +788,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("raft_contact_distance", have_raft && !have_support_soluble);
 
-    // Orca: Raft, grid, snug and organic supports use these two parameters to control the size & density of the "brim"/flange
-    for (auto el : { "raft_first_layer_expansion", "raft_first_layer_density"})
-        toggle_field(el, have_support_material && !(support_is_normal_tree && !have_raft));
+    // Orca: First-layer density is available for supports broadly.
+    toggle_field("raft_first_layer_density", have_support_material);
+    // Orca: For regular tree (Slim/Strong) without raft, hide first-layer expansion.
+    // Keep it enabled for non-tree supports, organic tree, hybrid tree, and any raft case.
+    toggle_field("raft_first_layer_expansion",
+                 have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
     for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })

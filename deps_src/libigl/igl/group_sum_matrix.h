@@ -14,26 +14,21 @@
 
 namespace igl
 {
-  // GROUP_SUM_MATRIX Builds a matrix A such that A*V computes the sum of
-  // vertices in each group specified by G
-  //
-  // group_sum_matrix(G,k,A);
-  // 
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Inputs:
-  //   G  #V list of group indices (0 to k-1) for each vertex, such that vertex i 
-  //     is assigned to group G(i)
-  //   k  #groups, good choice is max(G)+1
-  // Outputs:
-  //   A  #groups by #V sparse matrix such that A*V = group_sums
-  //
+  /// Builds a matrix A such that A*V computes the sum of
+  /// vertices in each group specified by G
+  ///
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] G  #V list of group indices (0 to k-1) for each vertex, such that vertex i 
+  ///              is assigned to group G(i)
+  /// @param[in] k  #groups, good choice is max(G)+1
+  /// @param[out] A  #groups by #V sparse matrix such that A*V = group_sums
+  ///
   template <typename T>
   IGL_INLINE void group_sum_matrix(
     const Eigen::Matrix<int,Eigen::Dynamic,1> & G,
     const int k,
     Eigen::SparseMatrix<T>& A);
-  // Wrapper with k = max(G)+1
+  /// \overload
   template <typename T>
   IGL_INLINE void group_sum_matrix(
     const Eigen::Matrix<int,Eigen::Dynamic,1> & G,
