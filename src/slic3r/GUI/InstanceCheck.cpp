@@ -87,45 +87,39 @@ namespace instance_check_internal
 
 #ifdef _WIN32
 
-	static HWND l_bambu_studio_hwnd;
+	static HWND orca_slicer_hwnd;
 	static BOOL CALLBACK EnumWindowsProc(_In_ HWND   hwnd, _In_ LPARAM lParam)
 	{
-		//checks for other instances of prusaslicer, if found brings it to front and return false to stop enumeration and quit this instance
-		//search is done by classname(wxWindowNR is wxwidgets thing, so probably not unique) and name in window upper panel
-		//other option would be do a mutex and check for its existence
-		//BOOST_LOG_TRIVIAL(error) << "ewp: version: " << l_version_wstring;
-		TCHAR 		 wndText[1000];
-		TCHAR 		 className[1000];
-		int          err;
-		err = GetClassName(hwnd, className, 1000);
-		if (err == 0)
+		// ORCA: Find the already-running instance by its window properties
+		TCHAR className[256]; // class names are limited to 255 characters, see https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-wndclassa
+		if (GetClassName(hwnd, className, 256) == 0)
 			return true;
-		err = GetWindowText(hwnd, wndText, 1000);
-		if (err == 0)
+
+		if (std::wstring(className) != L"wxWindowNR")
 			return true;
-		std::wstring classNameString(className);
-		std::wstring wndTextString(wndText);
-		if (wndTextString.find(L"OrcaSlicer") != std::wstring::npos && classNameString == L"wxWindowNR") {
-			//check if other instances has same instance hash
-			//if not it is not same version(binary) as this version 
-			HANDLE   handle = GetProp(hwnd, L"Instance_Hash_Minor");
-			uint64_t other_instance_hash = PtrToUint(handle);
-			uint64_t other_instance_hash_major;
-			uint64_t my_instance_hash = GUI::wxGetApp().get_instance_hash_int();
-			handle = GetProp(hwnd, L"Instance_Hash_Major");
-			other_instance_hash_major = PtrToUint(handle);
-			other_instance_hash_major = other_instance_hash_major << 32;
-			other_instance_hash += other_instance_hash_major;
-			if(my_instance_hash == other_instance_hash)
-			{
-				BOOST_LOG_TRIVIAL(debug) << "win enum - found correct instance";
-				l_bambu_studio_hwnd = hwnd;
-				ShowWindow(hwnd, SW_SHOWMAXIMIZED);
-				SetForegroundWindow(hwnd);
-				return false;
-			}
-			BOOST_LOG_TRIVIAL(debug) << "win enum - found wrong instance";
+
+		// Check if the candidate window has the same instance hash. If the
+		// properties are missing, it is not an OrcaSlicer main window.
+		HANDLE handle_minor = GetProp(hwnd, L"Instance_Hash_Minor");
+		HANDLE handle_major = GetProp(hwnd, L"Instance_Hash_Major");
+		if (handle_minor == nullptr || handle_major == nullptr)
+			return true;
+
+		uint64_t other_instance_hash       = PtrToUint(handle_minor);
+		uint64_t other_instance_hash_major = PtrToUint(handle_major);
+		other_instance_hash_major          = other_instance_hash_major << 32;
+		other_instance_hash += other_instance_hash_major;
+
+		uint64_t my_instance_hash = GUI::wxGetApp().get_instance_hash_int();
+		if (my_instance_hash == other_instance_hash) {
+			BOOST_LOG_TRIVIAL(debug) << "win enum - found correct instance";
+			orca_slicer_hwnd = hwnd;
+			ShowWindow(hwnd, SW_SHOWMAXIMIZED);
+			SetForegroundWindow(hwnd);
+			return false;
 		}
+
+		BOOST_LOG_TRIVIAL(debug) << "win enum - found wrong instance";
 		return true;
 	}
 	static bool send_message(const std::string& message, const std::string &version)
@@ -145,7 +139,7 @@ namespace instance_check_internal
 			data_to_send.dwData = 1;
 			data_to_send.cbData = sizeof(TCHAR) * (wcslen(*command_line_args.get()) + 1);
 			data_to_send.lpData = *command_line_args.get();
-			SendMessage(l_bambu_studio_hwnd, WM_COPYDATA, 0, (LPARAM)&data_to_send);
+			SendMessage(orca_slicer_hwnd, WM_COPYDATA, 0, (LPARAM)&data_to_send);
 			return true;  
 		}
 	    return false;
