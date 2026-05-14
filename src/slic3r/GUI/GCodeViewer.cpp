@@ -326,7 +326,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         // ImGui::SameLine();
         libvgcode::PathVertex vertex = viewer->get_current_vertex();
         size_t vertex_id = viewer->get_current_vertex_id();
-        if (vertex.type == libvgcode::EMoveType::Seam) {
+        if (view_type != libvgcode::EViewType::FeatureType && vertex.type == libvgcode::EMoveType::Seam) { // exclude FeatureType for proper type readings
             vertex_id = static_cast<size_t>(viewer->get_view_visible_range()[1]) - 1;
             vertex = viewer->get_vertex_at(vertex_id);
         }
@@ -516,13 +516,15 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         }
 
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * m_scale);
-        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(.5f, .5f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(2.f, 2.f) * m_scale);
         ImGui::PushStyleColor(ImGuiCol_Button            , ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered     , ImVec4(84 / 255.f, 84 / 255.f, 90 / 255.f, 1.f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive      , ImVec4(84 / 255.f, 84 / 255.f, 90 / 255.f, 1.f));
          
         const float main_wnd_height = ImGui::GetWindowHeight();
-        if (ImGui::Button(into_u8(properties_shown ? ImGui::UnfoldButtonIcon : ImGui::FoldButtonIcon).c_str(), ImVec2(24.f, 24.f) * m_scale)) {
+        // ORCA use glyph based button for fixing button sizes changing depends on used font size on platform
+        const wchar_t foldIcon = properties_shown ? ImGui::UnfoldButtonIcon : ImGui::FoldButtonIcon;
+        if (imgui.glyph_button(foldIcon, ImVec2(16.f, 16.f) * m_scale)) {
             properties_shown = !properties_shown;
             static float main_wnd_height_temp = ImGui::GetWindowHeight();
             static float first_click = true;
@@ -537,7 +539,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         ImGui::SameLine();
 
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().FramePadding.y); // aligns button with next group
+        if(!properties_shown)
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetStyle().FramePadding.y); // aligns button with next group
 
         ImGui::BeginGroup(); // group contents to make information area more compact
 
@@ -571,17 +574,26 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGui::Dummy({0,0});
 
         const bool is_extrusion = vertex.is_extrusion();
-        char buf[1024]; char valBuf[32]; char spdBuf[128];
+        char buf[1024] = ""; char valBuf[32]; char spdBuf[128];
         sprintf(spdBuf, "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
         const float speed_width = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;
         ImGuiWrapper::text(std::string(spdBuf)); // render Speed as differrent item to keep next item in same place
         switch (view_type) {
+                case libvgcode::EViewType::FeatureType: {
+                    if (is_extrusion && !vertex.is_option()) // ORCA show more types on FeatureType
+                        sprintf(buf, "%s", to_string(vertex.role).c_str());
+                    else if(vertex.is_travel() || vertex.is_option() || vertex.is_wipe()) 
+                        sprintf(buf, "%s", to_string(vertex.type).c_str());
+                    else
+                        sprintf(buf, "%s", NA_CSTR);
+                    break;
+                }
                 case libvgcode::EViewType::Height: {
                     if (is_extrusion)
                         sprintf(valBuf, "%.2f", vertex.height);
                     else
                         sprintf(valBuf, "%s", NA_CSTR);
-                    sprintf(buf, "%s %s%s", buf, _u8L("Height: ").c_str(), valBuf);
+                    sprintf(buf, "%s%s", _u8L("Height: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::Width: {
@@ -589,7 +601,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                         sprintf(valBuf, "%.2f", vertex.width);
                     else
                         sprintf(valBuf, "%s", NA_CSTR);
-                    sprintf(buf, "%s %s%s", buf, _u8L("Width: ").c_str(), valBuf);
+                    sprintf(buf, "%s%s", _u8L("Width: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::VolumetricFlowRate: {
@@ -597,38 +609,42 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                         sprintf(valBuf, "%.2f", vertex.volumetric_rate());
                     else
                         sprintf(valBuf, "%s", NA_CSTR);
-                    sprintf(buf, "%s %s%s", buf, _u8L("Flow: ").c_str(), valBuf);
+                    sprintf(buf, "%s%s", _u8L("Flow: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::FanSpeed: {
-                    sprintf(buf, "%s %s%.0f", buf, _u8L("Fan: ").c_str(), vertex.fan_speed);
+                    sprintf(buf, "%s%.0f", _u8L("Fan: ").c_str(), vertex.fan_speed);
                     break;
                 }
                 case libvgcode::EViewType::Temperature: {
-                    sprintf(buf, "%s %s%.0f", buf, _u8L("Temperature: ").c_str(), vertex.temperature);
+                    sprintf(buf, "%s%.0f", _u8L("Temperature: ").c_str(), vertex.temperature);
                     break;
                 }
                 case libvgcode::EViewType::LayerTimeLinear:
                 case libvgcode::EViewType::LayerTimeLogarithmic: {
-                    sprintf(buf, "%s %s%.1f", buf, _u8L("Layer Time: ").c_str(), vertex.layer_duration);
+                    sprintf(buf, "%s%.1f", _u8L("Layer Time: ").c_str(), vertex.layer_duration);
                     break;
                 }
                 case libvgcode::EViewType::Tool: {
-                    sprintf(buf, "%s %s%d", buf, _u8L("Tool: ").c_str(), vertex.extruder_id + 1);
+                    sprintf(buf, "%s%d", _u8L("Tool: ").c_str(), vertex.extruder_id + 1);
                     break;
                 }
                 case libvgcode::EViewType::ColorPrint: {
-                    sprintf(buf, "%s %s%d", buf, _u8L("Color: ").c_str(), vertex.color_id + 1);
+                    sprintf(buf, "%s%d", _u8L("Color: ").c_str(), vertex.color_id + 1);
                     break;
                 }
                 case libvgcode::EViewType::ActualVolumetricFlowRate: {
                     // Don't display the actual flow, since it only gives data for the end of a segment
-                    // sprintf(buf, "%s %s%.2f", buf, _u8L("Actual Flow: ").c_str(), vertex.actual_volumetric_rate());
-                    sprintf(buf, "%s %s", buf, " ");
+                    //if (is_extrusion)
+                    //    sprintf(valBuf, "%.2f", vertex.actual_volumetric_rate());
+                    //else
+                    //    sprintf(valBuf, "%s", NA_CSTR);
+                    //sprintf(buf, "%s%s", _u8L("Actual Flow: ").c_str(), valBuf);
                     break;
                 }
                 case libvgcode::EViewType::ActualSpeed: {
-                    sprintf(buf, "%s %s%.1f", buf, _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
+                    // Don't display the actual flow, since it only gives data for the end of a segment
+                    //sprintf(buf, "%s%.1f", _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
                     break;
                 }
                 case libvgcode::EViewType::Acceleration: {
@@ -641,19 +657,16 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 }
 // ORCA: Add Pressure Advance visualization support
                 case libvgcode::EViewType::PressureAdvance: {
-                    sprintf(buf, "%s %s%.4f", buf, _u8L("PA: ").c_str(), vertex.pressure_advance);
+                    sprintf(buf, "%s%.4f", _u8L("PA: ").c_str(), vertex.pressure_advance);
                     break;
                 }
 
                 default:
                     break;
-                }
-        
-        ImGui::SameLine(speed_width);
-        if (view_type == libvgcode::EViewType::FeatureType) {
-            ImGuiWrapper::text(vertex.is_extrusion() ? to_string(vertex.role).c_str() : NA_CSTR);
         }
-        else {
+        
+        if (buf[0] != '\0') { // dont render if buffer empty
+            ImGui::SameLine(speed_width);
             ImGuiWrapper::text(std::string(buf));
         }
 
@@ -3327,29 +3340,26 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::Dummy({ window_padding, window_padding });
     ImGui::Dummy({ window_padding, window_padding });
     ImGui::SameLine(window_padding * 2); // ORCA Ignores item spacing to get perfect window margins since since this part uses dummies for window padding
-    std::wstring btn_name;
-    if (m_fold)
-        btn_name = ImGui::UnfoldButtonIcon;
-    else
-        btn_name = ImGui::FoldButtonIcon;
+
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(84 / 255.f, 84 / 255.f, 90 / 255.f, 1.f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(84 / 255.f, 84 / 255.f, 90 / 255.f, 1.f));
-    float calc_padding = (ImGui::GetFrameHeight() - 16 * m_scale) / 2;                      // ORCA calculated padding for 16x16 icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(calc_padding, calc_padding));    // ORCA Center icon with frame padding
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f * m_scale);                       // ORCA Match button style with combo box
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding , ImVec2(2.f, 2.f) * m_scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f * m_scale); // ORCA Match button style with combo box
 
-    float button_width = 16 * m_scale + calc_padding * 2;                                   // ORCA match buttons height with combo box
-    if (ImGui::Button(into_u8(btn_name).c_str(), ImVec2(button_width, button_width))) {
+    // ORCA use glyph based button for fixing button sizes changing depends on used font size on platform
+    const wchar_t foldIcon = m_fold ? ImGui::UnfoldButtonIcon : ImGui::FoldButtonIcon;
+    if (imgui.glyph_button(foldIcon, ImVec2(16.f, 16.f) * m_scale)) {
         m_fold = !m_fold;
     }
 
     ImGui::SameLine();
     const wchar_t gCodeToggle = ImGui::gCodeButtonIcon;
-    if (ImGui::Button(into_u8(gCodeToggle).c_str(), ImVec2(button_width, button_width))) {
+    if (imgui.glyph_button(gCodeToggle, ImVec2(16.f, 16.f) * m_scale)) {
         wxGetApp().toggle_show_gcode_window();
         wxGetApp().plater()->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
     }
+
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
 

@@ -1,0 +1,10 @@
+{
+	"type": "filament",
+	"name": "Cubicon ABS @Cubicon xCeler-Mini 0.4 nozzle",
+	"inherits": "Cubicon ABS @base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Mini 0.4 nozzle"
+	]
+}

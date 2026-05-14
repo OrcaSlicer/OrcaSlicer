@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Elegoo",
 	"bed_model": "elegoo_neptune4plus_buildplate_model.stl",
-	"bed_texture": "elegoo_neptune4plus_buildplate_texture.png",
+	"bed_texture": "elegoo_neptune4plus_buildplate_texture.svg",
 	"bed_exclude_area": [
 		"0x0"
 	],

@@ -13,26 +13,23 @@
 
 namespace igl 
 {
-  // Writes the tetmesh in (V,T,F) to a temporary file, opens it with medit
-  // (forking with a system call) and returns
-  //
-  //
-  // Templates:
-  //   DerivedV  real-value: i.e. from MatrixXd
-  //   DerivedT  integer-value: i.e. from MatrixXi
-  //   DerivedF  integer-value: i.e. from MatrixXi
-  // Inputs:
-  //   V  double matrix of vertex positions  #V by 3
-  //   T  #T list of tet indices into vertex positions
-  //   F  #F list of face indices into vertex positions
-  //   wait  whether to wait for medit process to finish before returning
-  // Returns returned value of system call (probably not useful if wait=false
-  // because of the fork)
+  /// Writes the tetmesh in (V,T,F) to a temporary file, opens it with medit
+  /// (forking with a system call) and returns
+  ///
+  /// @tparam DerivedV  real-value: i.e. from MatrixXd
+  /// @tparam DerivedT  integer-value: i.e. from MatrixXi
+  /// @tparam DerivedF  integer-value: i.e. from MatrixXi
+  /// @param[in] V  double matrix of vertex positions  #V by 3
+  /// @param[in] T  #T list of tet indices into vertex positions
+  /// @param[in] F  #F list of face indices into vertex positions
+  /// @param[in] wait  whether to wait for medit process to finish before returning
+  /// @return returned value of system call (probably not useful if wait=false
+  /// because of the fork)
   template <typename DerivedV, typename DerivedT, typename DerivedF>
   IGL_INLINE int launch_medit(
-    const Eigen::PlainObjectBase<DerivedV> & V, 
-    const Eigen::PlainObjectBase<DerivedT> & T,
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedV> & V, 
+    const Eigen::MatrixBase<DerivedT> & T,
+    const Eigen::MatrixBase<DerivedF> & F,
     const bool wait);
 }
 

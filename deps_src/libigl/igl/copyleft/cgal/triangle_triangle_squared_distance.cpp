@@ -20,7 +20,6 @@ IGL_INLINE bool igl::copyleft::cgal::triangle_triangle_squared_distance(
   typename Kernel::FT & d)
 {
   typedef CGAL::Point_3<Kernel> Point_3;
-  typedef CGAL::Vector_3<Kernel> Vector_3;
   typedef CGAL::Triangle_3<Kernel> Triangle_3;
   typedef CGAL::Segment_3<Kernel> Segment_3;
   typedef typename Kernel::FT EScalar;

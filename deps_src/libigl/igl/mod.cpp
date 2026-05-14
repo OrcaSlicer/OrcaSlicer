@@ -9,7 +9,7 @@
 
 template <typename DerivedA, typename DerivedB>
 IGL_INLINE void igl::mod(
-  const Eigen::PlainObjectBase<DerivedA> & A,
+  const Eigen::MatrixBase<DerivedA> & A,
   const int base,
   Eigen::PlainObjectBase<DerivedB> & B)
 {
@@ -23,10 +23,10 @@ IGL_INLINE void igl::mod(
   }
 }
 template <typename DerivedA>
-IGL_INLINE DerivedA igl::mod(
-  const Eigen::PlainObjectBase<DerivedA> & A, const int base)
+IGL_INLINE igl::PlainMatrix<DerivedA> igl::mod(
+  const Eigen::MatrixBase<DerivedA> & A, const int base)
 {
-  DerivedA B;
+  PlainMatrix<DerivedA> B;
   mod(A,base,B);
   return B;
 }

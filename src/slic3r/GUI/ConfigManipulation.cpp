@@ -720,7 +720,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("brim_ears_detection_length", have_brim_ear);
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
-    toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0);
+    toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
 
     bool have_raft = config->opt_int("raft_layers") > 0;
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
@@ -788,9 +788,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("raft_contact_distance", have_raft && !have_support_soluble);
 
-    // Orca: Raft, grid, snug and organic supports use these two parameters to control the size & density of the "brim"/flange
-    for (auto el : { "raft_first_layer_expansion", "raft_first_layer_density"})
-        toggle_field(el, have_support_material && !(support_is_normal_tree && !have_raft));
+    // Orca: First-layer density is available for supports broadly.
+    toggle_field("raft_first_layer_density", have_support_material);
+    // Orca: For regular tree (Slim/Strong) without raft, hide first-layer expansion.
+    // Keep it enabled for non-tree supports, organic tree, hybrid tree, and any raft case.
+    toggle_field("raft_first_layer_expansion",
+                 have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
     for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
@@ -800,6 +803,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_field(el, has_ironing && has_rectilinear_ironing);
     
     toggle_line("ironing_speed", has_ironing || has_support_ironing);
+
+    bool has_zaa = config->opt_bool("zaa_enabled");
+    for (auto el : {"zaa_minimize_perimeter_height", "zaa_min_z", "zaa_dont_alternate_fill_direction", "ironing_expansion"})
+        toggle_line(el, has_zaa);
 
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })
@@ -877,13 +884,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     
     // Show noise type specific options with the same logic
     NoiseType fuzzy_skin_noise_type = config->opt_enum<NoiseType>("fuzzy_skin_noise_type");
-    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && has_fuzzy_skin);
-    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && has_fuzzy_skin);
-    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && has_fuzzy_skin);
+    const bool is_ripple = fuzzy_skin_noise_type == NoiseType::Ripple;
+    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && has_fuzzy_skin && !is_ripple);
+    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && has_fuzzy_skin && !is_ripple);
+    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && has_fuzzy_skin && !is_ripple);
+    toggle_line("fuzzy_skin_ripples_per_layer", is_ripple && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_ripple_offset", is_ripple && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_layers_between_ripple_offset", is_ripple && has_fuzzy_skin);
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
-    for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
-        "min_feature_size", "min_length_factor", "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width"})
+    for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle", "min_feature_size", "min_length_factor",
+        "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width", "wall_maximum_resolution", "wall_maximum_deviation"})
         toggle_line(el, have_arachne);
     toggle_field("detect_thin_wall", !have_arachne);
 
