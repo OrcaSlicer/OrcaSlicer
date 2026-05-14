@@ -3396,10 +3396,18 @@ static constexpr const std::initializer_list<const std::string_view> keys_extrud
 
 static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in)
 {
-    // 1) Copy the "extruder key to sparse_infill_filament and wall_filament.
+    // 1) Map legacy "extruder" to feature filament keys as a fallback only.
+    // If any feature-specific filament is explicitly set, keep those values.
     auto *opt_extruder = in.opt<ConfigOptionInt>(key_extruder);
+    auto *opt_sparse_infill_filament = in.opt<ConfigOptionInt>("sparse_infill_filament");
+    auto *opt_solid_infill_filament  = in.opt<ConfigOptionInt>("solid_infill_filament");
+    auto *opt_wall_filament          = in.opt<ConfigOptionInt>("wall_filament");
+    const bool has_feature_filament_override =
+        (opt_sparse_infill_filament != nullptr && opt_sparse_infill_filament->value > 0) ||
+        (opt_solid_infill_filament  != nullptr && opt_solid_infill_filament->value > 0) ||
+        (opt_wall_filament          != nullptr && opt_wall_filament->value > 0);
     if (opt_extruder)
-        if (int extruder = opt_extruder->value; extruder != 0) {
+        if (int extruder = opt_extruder->value; extruder > 1 && ! has_feature_filament_override) {
             // Not a default extruder.
             out.sparse_infill_filament.value = extruder;
             out.solid_infill_filament.value  = extruder;
