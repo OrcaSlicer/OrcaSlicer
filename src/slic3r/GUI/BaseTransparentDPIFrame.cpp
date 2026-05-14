@@ -156,9 +156,11 @@ void BaseTransparentDPIFrame::on_hide()
         m_refresh_timer->Stop();
     }
     Hide();
-    if (wxGetApp().mainframe != nullptr) {
-        wxGetApp().mainframe->Show();
-        wxGetApp().mainframe->Raise();
+    auto *mainframe = wxGetApp().mainframe;
+    if (mainframe != nullptr) {
+        if (!mainframe->IsShown())
+            mainframe->Show();
+        mainframe->Raise();
     }
 }
 
