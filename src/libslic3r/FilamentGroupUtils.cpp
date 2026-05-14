@@ -358,7 +358,9 @@ namespace FilamentGroupUtils
     {
         std::vector<int> res = old_values;
         for (size_t i = 0; i < used_filaments.size(); ++i) {
-            res[used_filaments[i]] = new_values[used_filaments[i]];
+            unsigned int fid = used_filaments[i];
+            if (fid < res.size() && fid < new_values.size())
+                res[fid] = new_values[fid];
         }
         return res;
     }

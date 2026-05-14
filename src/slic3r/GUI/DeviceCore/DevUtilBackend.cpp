@@ -20,14 +20,12 @@ MultiNozzleUtils::NozzleInfo DevUtilBackend::GetNozzleInfo(const DevNozzle& dev_
 
 std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> DevUtilBackend::GetNozzleGroupResult(Slic3r::GUI::Plater* plater)
 {
-    // Orca stores nozzle_group_result as std::optional<MultiNozzleGroupResult> (value type)
-    // in GCodeProcessorResult, whereas BBL uses shared_ptr<NozzleGroupResultBase>.
-    // Wrap the value in a shared_ptr so callers get the same interface.
+    // GCodeProcessorResult::nozzle_group_result is now shared_ptr<LayeredNozzleGroupResult>;
+    // LayeredNozzleGroupResult derives from NozzleGroupResultBase so the conversion is implicit.
     if (plater) {
         auto* gcode_result = plater->background_process().get_current_gcode_result();
-        if (gcode_result && gcode_result->nozzle_group_result.has_value()) {
-            return std::make_shared<MultiNozzleUtils::NozzleGroupResultBase>(
-                gcode_result->nozzle_group_result.value());
+        if (gcode_result && gcode_result->nozzle_group_result) {
+            return gcode_result->nozzle_group_result;
         }
     }
     return nullptr;

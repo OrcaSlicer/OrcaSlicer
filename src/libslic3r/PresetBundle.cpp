@@ -1012,9 +1012,12 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
     fs::path    folder(user_folder / user);
     if (!fs::exists(folder)) fs::create_directory(folder);
 
+    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ PresetBundle.cpp:1015 (clear m_bundles)";
     bundles.WriteLock();
+    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ PresetBundle.cpp:1015";
     bundles.m_bundles.clear();
     bundles.WriteUnlock();
+    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ PresetBundle.cpp:1015";
 
     // Load bundle metadata from _local directory first
     fs::path local_dir(folder / PRESET_LOCAL_DIR);
@@ -1047,9 +1050,12 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             metadata.bundle_type = BundleType::Local;
             metadata.path = metadata_file.string();
 
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ PresetBundle.cpp:1050 (insert local bundle " << metadata.id << ")";
             bundles.WriteLock();
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ PresetBundle.cpp:1050";
             bundles.m_bundles[metadata.id] = metadata;
             bundles.WriteUnlock();
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ PresetBundle.cpp:1050";
         }
     }
 
@@ -1086,9 +1092,12 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(std::string user, For
             metadata.path = metadata_file.string();
             metadata.update_available = false;
 
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ PresetBundle.cpp:1089 (insert subscribed bundle " << metadata.id << ")";
             bundles.WriteLock();
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ PresetBundle.cpp:1089";
             bundles.m_bundles[metadata.id] = metadata;
             bundles.WriteUnlock();
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ PresetBundle.cpp:1089";
         }
     }
 
@@ -1365,6 +1374,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                                                         AppConfig&                            config)
 {
     bundles.PauseRead(); // Pause threads from reading
+    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] PauseRead set @ PresetBundle.cpp:1367 (import_presets entry)";
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry";
     PresetsConfigSubstitutions substitutions;
     int overwrite = 0;
@@ -1487,9 +1497,12 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                     // Store the bundle metadata in m_bundles for tracking
                     
 
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ PresetBundle.cpp:1490 (import insert " << metadata.id << ")";
                     bundles.WriteLock();
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ PresetBundle.cpp:1490";
                     bundles.m_bundles[metadata.id] = metadata;
                     bundles.WriteUnlock();
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ PresetBundle.cpp:1490";
                 } else {
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to save bundle metadata to: " << metadata_save_path.string();
                 }
@@ -1501,6 +1514,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
         }
     }
     bundles.UnpauseRead();
+    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] UnpauseRead @ PresetBundle.cpp:1503 (import_presets exit)";
     files = result;
     return substitutions;
 }

@@ -6197,12 +6197,15 @@ void GUI_App::update_single_bundle(wxCommandEvent& evt)
             preset_bundle->bundles.ReadUnlock();
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : CallAfter from update_single_bundle function actually updating subscribed presets";
-            
+
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ GUI_App.cpp:6201 (update_single_bundle CallAfter, bundle_id=" << bundle_id << ")";
             preset_bundle->bundles.WriteLock();
-            
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ GUI_App.cpp:6201 -- about to call update_subscribed_presets";
+
             preset_bundle->update_subscribed_presets(*app_config, bundle_presets, remote_metadata, ForwardCompatibilitySubstitutionRule::Enable);
 
             preset_bundle->bundles.WriteUnlock();
+            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ GUI_App.cpp:6205 (update_single_bundle done)";
             
             std::string text = format(_L("%s updated from %s to %s"), remote_metadata.name, initial_version, remote_metadata.version);
             wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);
@@ -6279,11 +6282,14 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
     std::string ver;
     if(is_update)
     {
+        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ GUI_App.cpp:6282 (sync_bundle mark update_available, bundle_id=" << bundle_id << ")";
         preset_bundle->bundles.WriteLock();
+        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ GUI_App.cpp:6282";
         preset_bundle->bundles.m_bundles[bundle_id].update_available = true;
         preset_bundle->bundles.m_bundles[bundle_id].is_subscribed = true;
         ver = preset_bundle->bundles.m_bundles[bundle_id].version;
         preset_bundle->bundles.WriteUnlock();
+        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ GUI_App.cpp:6286";
     }
 
     if(app_config->get_bool("preset_bundle_auto_update") == true || is_new) 
@@ -6312,12 +6318,15 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
                 // if(!preset_bundle->bundles.pauseReads.load()) // check again if we can actually update so as to not block the main thread 
                 // {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : CallAfter from sync_bundle function actually updating subscribed presets";
-                    
+
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ GUI_App.cpp:6316 (sync_bundle CallAfter, bundle_id=" << bundle_id << ")";
                     preset_bundle->bundles.WriteLock();
-                    
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ GUI_App.cpp:6316 -- about to call update_subscribed_presets";
+
                     preset_bundle->update_subscribed_presets(*app_config, bundle_presets, remote_metadata, ForwardCompatibilitySubstitutionRule::Enable);
 
                     preset_bundle->bundles.WriteUnlock();
+                    BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ GUI_App.cpp:6320 (sync_bundle done)";
 
                     if(is_new)
                     {
@@ -6654,18 +6663,21 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         }
                         
                         std::vector<BundleMetadata> to_delete;
+                        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] ReadLock req @ GUI_App.cpp:6666 (bg sync thread, scan to_delete)";
                         preset_bundle->bundles.ReadLock();
-                        for (const auto& [id, bundle] : preset_bundle->bundles.m_bundles) {                                                                                                                                                    
-                            if (bundle.bundle_type != BundleType::Subscribed)                                                                                                                                                                                         
-                                continue;                                                                                                                                                                                                      
-                            if (bundles_synced.find(id) != bundles_synced.end())                                                                                                                                                               
+                        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] ReadLock got @ GUI_App.cpp:6666";
+                        for (const auto& [id, bundle] : preset_bundle->bundles.m_bundles) {
+                            if (bundle.bundle_type != BundleType::Subscribed)
+                                continue;
+                            if (bundles_synced.find(id) != bundles_synced.end())
                                 continue;
                             if(bundle.unauthorized && bundle.is_subscribed)
                                 continue;
-                            
+
                             to_delete.push_back(bundle);
                         }
-                        preset_bundle->bundles.ReadUnlock();  
+                        preset_bundle->bundles.ReadUnlock();
+                        BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] ReadUnlock @ GUI_App.cpp:6677 (bg sync thread)";
 
                         bool has_deletion = false;
                         for (const auto& bundle : to_delete) {
@@ -6683,9 +6695,12 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                             boost::system::error_code ec;
                             boost::filesystem::remove_all(bundle_folder, ec);
 
+                            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock req @ GUI_App.cpp:6695 (bg sync thread, erase bundle " << bundle.id << ")";
                             preset_bundle->bundles.WriteLock();
+                            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteLock got @ GUI_App.cpp:6695";
                             preset_bundle->bundles.m_bundles.erase(bundle.id);
                             preset_bundle->bundles.WriteUnlock();
+                            BOOST_LOG_TRIVIAL(info) << "[H2C-LOCK] WriteUnlock @ GUI_App.cpp:6697 (bg sync thread)";
 
                             std::string text = format(_L("%s has been removed."), bundle.name);
                             wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);

@@ -20,8 +20,11 @@ namespace Slic3r
             auto top = heap.top();
             heap.pop();
             std::vector<int> labels_tmp(total_filament_num, 0);
-            for (size_t idx = 0; idx < top.group.size(); ++idx)
-                labels_tmp[used_filaments[idx]] = top.group[idx];
+            for (size_t idx = 0; idx < top.group.size(); ++idx) {
+                unsigned int fid = used_filaments[idx];
+                if ((int)fid < total_filament_num)
+                    labels_tmp[fid] = top.group[idx];
+            }
             arrs.emplace_back(std::move(labels_tmp));
         }
     }

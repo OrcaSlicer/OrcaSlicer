@@ -351,10 +351,10 @@ public:
 
 	void set_used_filament_ids(const std::vector<int> &used_filament_ids) { m_used_filament_ids = used_filament_ids; };
     void set_filament_categories(const std::vector<int> & filament_categories) { m_filament_categories = filament_categories;};
-    void set_nozzle_group_result(const MultiNozzleUtils::MultiNozzleGroupResult &multi_nozzle_group_result) { m_multi_nozzle_group_result = &multi_nozzle_group_result; };
+    void set_nozzle_group_result(const MultiNozzleUtils::LayeredNozzleGroupResult &multi_nozzle_group_result) { m_multi_nozzle_group_result = &multi_nozzle_group_result; };
 	std::vector<int> m_used_filament_ids;
     std::vector<int> m_filament_categories;
-    const MultiNozzleUtils::MultiNozzleGroupResult *m_multi_nozzle_group_result{nullptr};
+    const MultiNozzleUtils::LayeredNozzleGroupResult *m_multi_nozzle_group_result{nullptr};
 
 	struct WipeTowerBlock
     {

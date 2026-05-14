@@ -1153,7 +1153,7 @@ namespace Slic3r
 #endif
 
     int reorder_filaments_for_multi_nozzle_extruder(const std::vector<unsigned int>& filament_lists,
-        const MultiNozzleUtils::MultiNozzleGroupResult& nozzle_group_result,
+        const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result,
         const std::vector<std::vector<unsigned int>>& layer_filaments,
         const std::vector<FlushMatrix>& flush_matrix,
         const std::function<bool(int, std::vector<int>&)> get_custom_seq,

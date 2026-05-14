@@ -84,6 +84,11 @@ using namespace std::literals::string_view_literals;
 
 namespace Slic3r {
 
+// BBL: when LayeredNozzleGroupResult supports per-layer dynamic remapping (e.g. AMS HT
+// selectors), emit the actual hotend slot ID; otherwise emit -1 to defer to the firmware's
+// filament_nozzle_map lookup. Mirrors BambuStudio GCode.cpp:82.
+#define NOZZLE_ID_FOR_GCODE(RESULT, ID) ((RESULT) && (RESULT)->is_support_dynamic_nozzle_map() ? (ID) : -1)
+
     //! macro used to mark string used at localization,
     //! return same string
 #define L(s) (s)
@@ -845,11 +850,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // wipe-tower toolchanges.
             int next_hotend_id = -1;
             if (gcodegen.m_print) {
-                const auto& gr = gcodegen.m_print->get_nozzle_group_result();
-                if (gr.has_value()) {
-                    if (auto nozzle = gr->get_nozzle_for_filament(new_filament_id))
-                        next_hotend_id = nozzle->group_id;
-                }
+                auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
+                int next_nozzle_id = gr ? gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index) : -1;
+                next_hotend_id = NOZZLE_ID_FOR_GCODE(gr, next_nozzle_id);
             }
             std::string old_extruder_variant_str, new_extruder_variant_str;
             if (gcodegen.m_print) {
@@ -1099,11 +1102,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // BBL's NOZZLE_ID_FOR_GCODE behaviour — see initial set site for rationale.
         int current_hotend_id = -1;
         if (gcodegen.m_print) {
-            const auto& gr = gcodegen.m_print->get_nozzle_group_result();
-            if (gr.has_value()) {
-                if (auto nozzle = gr->get_nozzle_for_filament(new_filament_id))
-                    current_hotend_id = nozzle->group_id;
-            }
+            auto gr = gcodegen.m_print->get_layered_nozzle_group_result();
+            int current_nozzle_id = gr ? gr->get_nozzle_id(new_filament_id, gcodegen.m_layer_index) : -1;
+            current_hotend_id = NOZZLE_ID_FOR_GCODE(gr, current_nozzle_id);
         }
         gcodegen.placeholder_parser().set("current_hotend", current_hotend_id);
         gcodegen.placeholder_parser().set("retraction_distance_when_cut", gcodegen.m_config.retraction_distances_when_cut.get_at(new_filament_id));
@@ -2131,9 +2132,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.initialize(path_tmp);
     m_processor.set_print(print);
 
-    // H2C TODO - MONITOR
-    if(print->get_nozzle_group_result().has_value())
-        m_processor.initialize_from_context(print->get_nozzle_group_result().value());
+    if (auto gr = print->get_layered_nozzle_group_result())
+        m_processor.initialize_from_context(*gr);
 
     GCodeOutputStream file(boost::nowide::fopen(path_tmp.c_str(), "wb"), m_processor);
     if (! file.is_open()) {
@@ -2488,6 +2488,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     m_print = &print;
     m_timelapse_pos_picker.init(&print,m_writer.get_xy_offset().cast<coord_t>());
+
+    // BBL: seed m_config / m_writer.config with the layer-0 nozzle map before any custom
+    // gcode evaluation so {filament_nozzle_map}, {filament_map} placeholders see the planned
+    // assignment. Mirrors BambuStudio GCode.cpp:2060.
+    update_layer_related_config(0);
 
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
@@ -2879,18 +2884,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // single-nozzle slicing keeps producing correct output.
     auto resolve_hotend_id = [&print](int filament_id) -> int {
         if (filament_id < 0) return -1;
-        const auto& gr = print.get_nozzle_group_result();
-        if (gr.has_value()) {
-            if (auto nozzle = gr->get_nozzle_for_filament(filament_id))
-                return nozzle->group_id;
-        }
-        // BBL parity: NOZZLE_ID_FOR_GCODE returns -1 when dynamic nozzle map
-        // isn't available (which is always for non-LayeredNozzleGroupResult).
-        // The H2C firmware reads -1 as "use whatever hotend is currently
-        // mounted". Returning a concrete filament_id here would lock the
-        // command to a specific hotend slot and could be wrong if the rack
-        // moved between print prep and execution.
-        return -1;
+        auto gr = print.get_layered_nozzle_group_result();
+        if (!gr) return -1;
+        int nozzle_id = gr->get_nozzle_id(filament_id);
+        return NOZZLE_ID_FOR_GCODE(gr, nozzle_id);
     };
     std::vector<int> first_non_support_hotends;
     first_non_support_hotends.reserve(first_non_support_filaments.size());
@@ -5629,6 +5626,12 @@ void GCode::apply_print_config(const PrintConfig &print_config)
 void GCode::append_full_config(const Print &print, std::string &str)
 {
     DynamicPrintConfig cfg = print.full_print_config();
+    {
+        auto fmt_vec_opt = [](const ConfigOption* opt){ if(!opt) return std::string("(null)"); auto* v = dynamic_cast<const ConfigOptionInts*>(opt); if(!v) return std::string("(not_ints)"); std::string s="["; for(size_t i=0;i<v->values.size();++i){ if(i)s+=","; s+=std::to_string(v->values[i]); } return s+"]"; };
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-HDR] cfg.filament_map=" << fmt_vec_opt(cfg.option("filament_map"))
+            << " cfg.filament_volume_map=" << fmt_vec_opt(cfg.option("filament_volume_map"))
+            << " cfg.filament_nozzle_map=" << fmt_vec_opt(cfg.option("filament_nozzle_map"));
+    }
     { // correct the flush_volumes_matrix with flush_multiplier values
         std::vector<double> temp_cfg_flush_multiplier = cfg.option<ConfigOptionFloats>("flush_multiplier")->values;
         std::vector<double> temp_flush_volumes_matrix = cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
@@ -5707,6 +5710,30 @@ void GCode::set_origin(const Vec2d &pointf)
     m_origin = pointf;
 }
 
+// BBL: push the LayeredNozzleGroupResult's per-layer maps into m_config and m_writer.config
+// so downstream G-code emission (and the change_filament_gcode placeholder evaluator) sees
+// the correct filament_nozzle_map / filament_map / filament_volume_map for the active layer.
+// Mirrors BambuStudio GCode.cpp:7136-7152.
+void GCode::update_layer_related_config(int layer_id)
+{
+    auto group_result = m_print->get_layered_nozzle_group_result();
+    if (!group_result)
+        return;
+    auto extruder_map = group_result->get_extruder_map(false, layer_id);
+    auto volume_map   = group_result->get_volume_map(layer_id);
+    auto nozzle_map   = group_result->get_nozzle_map(layer_id);
+    // Guard: a degenerate (default-constructed) LayeredNozzleGroupResult yields empty maps.
+    // Overwriting m_config with empty vectors would break downstream get_at(filament_id).
+    if (extruder_map.empty() || volume_map.empty() || nozzle_map.empty())
+        return;
+    m_config.filament_map.values         = extruder_map;
+    m_config.filament_volume_map.values  = volume_map;
+    m_config.filament_nozzle_map.values  = nozzle_map;
+    m_writer.config.filament_map.values        = extruder_map;
+    m_writer.config.filament_volume_map.values = volume_map;
+    m_writer.config.filament_nozzle_map.values = nozzle_map;
+}
+
 std::string GCode::preamble()
 {
     std::string gcode = m_writer.preamble();
@@ -5727,6 +5754,9 @@ std::string GCode::change_layer(coordf_t print_z)
     if (m_layer_count > 0)
         // Increment a progress bar indicator.
         gcode += m_writer.update_progress(++ m_layer_index, m_layer_count);
+    // BBL: refresh per-layer maps so subsequent placeholder evaluation and toolchanges see
+    // the active layer's filament_nozzle_map. Mirrors BambuStudio GCode.cpp:4105.
+    update_layer_related_config(m_layer_index);
     //BBS
     coordf_t z = print_z + m_config.z_offset.value;  // in unscaled coordinates
     if (FILAMENT_CONFIG(retract_when_changing_layer) && m_writer.will_move_z(z)) {
@@ -7868,11 +7898,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             return wipe_volume;
         };
 
-        assert(m_print->get_nozzle_group_result().has_value());
+        auto layered_gr = m_print->get_layered_nozzle_group_result();
+        assert(layered_gr);
 
-        int new_nozzle_id = m_print->get_nozzle_group_result()->get_nozzle_for_filament(new_filament_id)->group_id;
+        int new_nozzle_id = layered_gr->get_nozzle_id(new_filament_id, m_layer_index);
 
-        if (old_extruder_id != new_extruder_id || !m_print->get_nozzle_group_result()->are_filaments_same_nozzle(old_filament_id,new_filament_id)) {
+        if (old_extruder_id != new_extruder_id || !layered_gr->are_filaments_same_nozzle(old_filament_id, new_filament_id, m_layer_index)) {
             wipe_volume = switch_to_nozzle(new_filament_id, new_nozzle_id);
         }
         else {
@@ -7897,16 +7928,15 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_filament_e_feedrate = (int)(60.0 * m_config.filament_max_volumetric_speed.get_at(new_filament_id) / filament_area);
     new_filament_e_feedrate = new_filament_e_feedrate == 0 ? 100 : new_filament_e_feedrate;
 
-    // BBL H2C: hotend ID for the new filament. Same value flows to `next_hotend` in
-    // dyn_config (consumed by change_filament_gcode) and to `current_hotend` after the
-    // toolchange completes. Default -1 matches BBL when no nozzle-group result is set.
+    // BBL H2C: hotend ID for `next_hotend` placeholder in change_filament_gcode and for
+    // `current_hotend` after the toolchange completes. NOZZLE_ID_FOR_GCODE returns -1 when
+    // no dynamic-nozzle layered map is in play, telling H2C firmware to look the slot up
+    // from filament_nozzle_map (which is pushed per-layer by update_layer_related_config).
     int next_hotend_id = -1;
     if (m_print) {
-        const auto& gr = m_print->get_nozzle_group_result();
-        if (gr.has_value()) {
-            if (auto nozzle = gr->get_nozzle_for_filament(new_filament_id))
-                next_hotend_id = nozzle->group_id;
-        }
+        auto gr = m_print->get_layered_nozzle_group_result();
+        int next_nozzle_id = gr ? gr->get_nozzle_id(new_filament_id, m_layer_index) : -1;
+        next_hotend_id = NOZZLE_ID_FOR_GCODE(gr, next_nozzle_id);
     }
 
     // BBL H2C: per-extruder variant strings (e.g. "Direct Drive Standard",

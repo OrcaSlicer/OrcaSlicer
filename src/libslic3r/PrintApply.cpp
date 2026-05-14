@@ -1205,6 +1205,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 //full_config_diff.erase("filament_nozzle_map");
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
+                {
+                    auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+                    BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] (auto-mode-block) erasing nozzle_map diff & overwriting old=" << fmt(old_opt->values) << " <- new=" << fmt(new_opt->values);
+                }
                 old_opt->set(new_opt);
                 m_config.filament_nozzle_map = *new_opt;
             }
@@ -1300,6 +1304,12 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	    // Handle changes to regions config defaults
 	    m_default_region_config.apply_only(new_full_config, region_diff, true);
         //m_full_print_config = std::move(new_full_config);
+        {
+            auto fmt_vec_opt = [](const ConfigOption* opt){ if(!opt) return std::string("(null)"); auto* v = dynamic_cast<const ConfigOptionInts*>(opt); if(!v) return std::string("(not_ints)"); std::string s="["; for(size_t i=0;i<v->values.size();++i){ if(i)s+=","; s+=std::to_string(v->values[i]); } return s+"]"; };
+            BOOST_LOG_TRIVIAL(warning) << "[H2C-APP] (line 1303) overwriting m_full_print_config: old.filament_nozzle_map=" << fmt_vec_opt(m_full_print_config.option("filament_nozzle_map"))
+                << " new.filament_nozzle_map=" << fmt_vec_opt(new_full_config.option("filament_nozzle_map"))
+                << " (m_config.filament_nozzle_map=" << fmt_vec_opt(m_config.option("filament_nozzle_map")) << ")";
+        }
         m_full_print_config = new_full_config;
         if (num_extruders  != m_config.filament_diameter.size()) {
             num_extruders  = m_config.filament_diameter.size();

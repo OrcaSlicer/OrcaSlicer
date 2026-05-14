@@ -2409,12 +2409,12 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             auto geometric_unprintables = this->get_geometric_unprintable_filaments();
             // get recommended filament map
             {
-                if (!get_nozzle_group_result().has_value()) {
+                if (!get_nozzle_group_result()) {
                     auto map_mode = get_filament_map_mode();
                     auto group_result = ToolOrdering::get_recommended_filament_maps(this, all_filaments, map_mode, physical_unprintables, geometric_unprintables);
-                    set_nozzle_group_result(group_result);
+                    set_nozzle_group_result(std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(group_result));
                 }
-                auto group_result = get_nozzle_group_result();
+                auto group_result = get_layered_nozzle_group_result();
                 update_filament_maps_to_config(
                     FilamentGroupUtils::update_used_filament_values(this->config().filament_map.values, group_result->get_extruder_map(false), used_filaments),
                     FilamentGroupUtils::update_used_filament_values(this->config().filament_volume_map.values, group_result->get_volume_map(), used_filaments),
@@ -2976,6 +2976,15 @@ void Print::finalize_first_layer_convex_hull()
 
 void Print::update_filament_maps_to_config(std::vector<int> f_maps, std::vector<int> f_volume_maps, std::vector<int> f_nozzle_maps)
 {
+    {
+        auto fmt_vec = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-UFM] in: f_maps.sz=" << f_maps.size() << "=" << fmt_vec(f_maps)
+            << " f_vol.sz=" << f_volume_maps.size() << "=" << fmt_vec(f_volume_maps)
+            << " f_noz.sz=" << f_nozzle_maps.size() << "=" << fmt_vec(f_nozzle_maps);
+        BOOST_LOG_TRIVIAL(warning) << "[H2C-UFM] cfg: m_cfg.filament_map.sz=" << m_config.filament_map.values.size() << "=" << fmt_vec(m_config.filament_map.values)
+            << " m_cfg.filament_volume_map.sz=" << m_config.filament_volume_map.values.size() << "=" << fmt_vec(m_config.filament_volume_map.values)
+            << " m_cfg.filament_nozzle_map.sz=" << m_config.filament_nozzle_map.values.size() << "=" << fmt_vec(m_config.filament_nozzle_map.values);
+    }
     if ((m_config.filament_map.values != f_maps) || (m_config.filament_volume_map.values != f_volume_maps) || (m_config.filament_nozzle_map.values != f_nozzle_maps))
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament maps changed after pre-slicing.");
@@ -3335,7 +3344,7 @@ void Print::_make_wipe_tower()
         // WipeTower::is_same_extruder / is_same_nozzle. Without this wire-up
         // the pointer stays null and any multi-color slice SIGSEGVs at the
         // first toolchange. Mirrors BBL Print.cpp:3291.
-        if (const auto& gr = this->get_nozzle_group_result(); gr.has_value())
+        if (auto gr = this->get_layered_nozzle_group_result())
             wipe_tower.set_nozzle_group_result(*gr);
         // Set the extruder & material properties at the wipe tower object.
         for (size_t i = 0; i < number_of_extruders; ++i)

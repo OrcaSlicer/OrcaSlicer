@@ -2637,9 +2637,9 @@ void GCodeProcessor::initialize(const std::string& filename)
 }
 
 
-void GCodeProcessor::initialize_from_context(const MultiNozzleUtils::MultiNozzleGroupResult& nozzle_group_result)
+void GCodeProcessor::initialize_from_context(const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result)
 {
-    m_nozzle_group_result = nozzle_group_result;
+    m_nozzle_group_result = std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(nozzle_group_result);
 }
 
 
@@ -5524,7 +5524,7 @@ void GCodeProcessor::process_filament_change(int id)
     if (prev_extruder_id != -1)
         m_last_filament_id[prev_extruder_id] = prev_filament_id;
 
-    if(!m_nozzle_group_result.has_value()){
+    if(!m_nozzle_group_result){
     if (prev_extruder_id == next_extruder_id) {
         // don't need extruder change
         assert(prev_extruder_id != -1);

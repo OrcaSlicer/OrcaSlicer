@@ -1922,9 +1922,10 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
     std::vector<int> used_filaments = get_extruders(true); // 1-based
     if (!used_filaments.empty()) {
         const auto *filament_types = config.option<ConfigOptionStrings>("filament_type");
+        if (!filament_types) return true;
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
-            if (filament_id < (int)filament_types->values.size()) {
+            if (filament_id >= 0 && filament_id < (int)filament_types->values.size()) {
                 const std::string &filament_type = filament_types->values[filament_id];
                 if (filament_type == "PLA") {
                     has_pla = true;

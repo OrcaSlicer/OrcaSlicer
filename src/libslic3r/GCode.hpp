@@ -381,6 +381,11 @@ private:
         // BBS
         const bool                               prime_extruder = false);
 
+    // BBL: per-layer push of filament_map / filament_volume_map / filament_nozzle_map into
+    // m_config and m_writer.config from the LayeredNozzleGroupResult. Mirrors BambuStudio
+    // GCode.cpp:7136-7152. Called at print-start (layer_id=0) and at each layer transition.
+    void update_layer_related_config(int layer_id);
+
     //BBS
     void check_placeholder_parser_failed();
     size_t get_extruder_id(unsigned int filament_id) const;

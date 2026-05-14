@@ -1,6 +1,7 @@
 #include "PresetComboBoxes.hpp"
 
 #include <cstddef>
+#include <chrono>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -1180,13 +1181,17 @@ void PlaterPresetComboBox::update()
 
         // Track bundle names for bundled presets
         if (preset.is_from_bundle()) {
-             m_preset_bundle->bundles.ReadLock();
+            auto __h2c_lock_t0 = std::chrono::steady_clock::now();
+            m_preset_bundle->bundles.ReadLock();
+            auto __h2c_wait_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - __h2c_lock_t0).count();
+            if (__h2c_wait_us > 50000)
+                BOOST_LOG_TRIVIAL(warning) << "[H2C-LOCK] ReadLock SLOW @ PresetComboBoxes.cpp:1183 waited " << __h2c_wait_us << " us for preset=" << preset.name;
             auto bundle_it = m_preset_bundle->bundles.m_bundles.find(preset.bundle_id);
             if (bundle_it != m_preset_bundle->bundles.m_bundles.end()) {
                 preset_bundle_ids[name] = bundle_it->second.id;
                 preset_bundle_names[name] = bundle_it->second.name;
             }
-             m_preset_bundle->bundles.ReadUnlock();
+            m_preset_bundle->bundles.ReadUnlock();
 
         }
 
