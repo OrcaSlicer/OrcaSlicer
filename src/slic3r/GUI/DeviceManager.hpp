@@ -218,6 +218,7 @@ public:
     bool is_series_p() const;
     bool is_series_x() const;
     bool is_series_o() const;
+    bool can_use_emmc_print() const;
 
     void reload_printer_settings();
     std::string get_printer_thumbnail_img_str() const;
