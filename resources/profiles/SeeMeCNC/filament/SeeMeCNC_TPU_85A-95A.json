@@ -79,7 +79,7 @@
 		"4"
 	],
 	"filament_notes": [
-		""
+		"Pressure Advance values tuned per nozzle size:\n  0.7mm nozzle: 0.8\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
 	],
 	"filament_retract_before_wipe": [
 		"0%"

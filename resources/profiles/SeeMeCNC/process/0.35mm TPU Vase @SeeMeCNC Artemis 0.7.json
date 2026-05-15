@@ -17,7 +17,7 @@
 	"counterbore_hole_bridging": "none",
 	"detect_thin_wall": "0",
 	"enable_arc_fitting": "1",
-	"ensure_vertical_shell_thickness": "moderate",
+	"ensure_vertical_shell_thickness": "ensure_all",
 	"gap_infill_speed": "20",
 	"initial_layer_line_width": "0.9",
 	"initial_layer_print_height": "0.3",
