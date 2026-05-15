@@ -8193,6 +8193,12 @@ std::set<std::string> print_options_with_variant = {
 
 std::set<std::string> filament_options_with_variant = {
     "filament_flow_ratio",
+    "enable_pressure_advance",
+    "pressure_advance",
+    "adaptive_pressure_advance",
+    "adaptive_pressure_advance_model",
+    "adaptive_pressure_advance_overhangs",
+    "adaptive_pressure_advance_bridges",
     "filament_max_volumetric_speed",
     //"filament_extruder_id",
     "filament_extruder_variant",
