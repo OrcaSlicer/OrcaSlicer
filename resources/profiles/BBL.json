@@ -1,9 +1,9 @@
 {
 	"name": "Bambulab",
 	"url": "http://www.bambulab.com/Parameters/vendor/BBL.json",
-	"version": "02.01.00.12",
+	"version": "02.01.00.13",
 	"force_update": "0",
-	"description": "the initial version of BBL configurations",
+	"description": "BBL configurations",
 	"machine_model_list": [
 		{
 			"name": "Bambu Lab A1",
