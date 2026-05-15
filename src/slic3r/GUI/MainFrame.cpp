@@ -1,7 +1,5 @@
 #include "MainFrame.hpp"
 
-#include <thread>
-
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -2687,12 +2685,7 @@ void MainFrame::init_menubar_as_editor()
         {
             m_recent_projects.AddFileToHistory(from_u8(project));
         }
-        // Load 3MF thumbnails on a background thread. LoadThumbnails opens
-        // every recent file; doing it synchronously here blocks startup —
-        // and on macOS triggers the TCC permission dialog for ~/Downloads
-        // mid-launch, which freezes the whole app until the user clicks.
-        // Detached thread is safe: the menu reads m_thumbnails opportunistically.
-        std::thread([this]() { m_recent_projects.LoadThumbnails(); }).detach();
+        m_recent_projects.LoadThumbnails();
 
         Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& evt) { evt.Enable(can_open_project() && (m_recent_projects.GetCount() > 0)); }, recent_projects_submenu->GetId());
 
