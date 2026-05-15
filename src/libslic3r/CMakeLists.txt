@@ -248,14 +248,8 @@ set(lisbslic3r_sources
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
     GCode/ToolOrdering.hpp
-    GCode/TSPPostProcessing.cpp
-    GCode/TSPPostProcessing.hpp
-    GCode/ConvexHullPeeling.cpp
-    GCode/ConvexHullPeeling.hpp
-    GCode/Boustrophedon.cpp
-    GCode/Boustrophedon.hpp
-    GCode/BestOfStrategies.cpp
-    GCode/BestOfStrategies.hpp
+    GCode/OrderingStrategies.cpp
+    GCode/OrderingStrategies.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp

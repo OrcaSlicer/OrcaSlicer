@@ -9,7 +9,7 @@
 #include "KDTreeIndirect.hpp"
 #include "MutablePriorityQueue.hpp"
 #include "Print.hpp"
-#include "GCode/TSPPostProcessing.hpp"
+#include "GCode/OrderingStrategies.hpp"
 
 #include <cmath>
 #include <cassert>
