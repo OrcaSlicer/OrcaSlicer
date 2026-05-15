@@ -1,5 +1,5 @@
 // Print-object ordering strategies: implementation.
-// Consolidates TSP post-processing, Boustrophedon, Convex Hull Peeling, and Best-of-Strategies.
+// Consolidates TSP post-processing, Snake, Convex Hull Peeling, and Best-of-Strategies.
 
 #include "OrderingStrategies.hpp"
 #include "../Geometry.hpp"
@@ -74,42 +74,35 @@ void tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
     size_t pn = path.size();
     if (pn <= 3) return;
 
-    int max_iters = static_cast<int>(pn * pn);
-    while (max_iters-- > 0) {
-        // Batch pass: collect all crossings, then reverse them all at once.
-        // This avoids restarting the scan from i=0 after every single reversal.
-        struct Crossing { size_t i, j; };
-        std::vector<Crossing> crossings;
-        crossings.reserve(pn / 2);
+    // Open path: edges 0..pn-2 (no artificial closing edge pn-1→0).
+    size_t n_edges = pn - 1;
 
-        for (size_t i = 0; i < pn; ++i) {
-            size_t i_next = (i + 1) % pn;
+    // Scan for first crossing; returns {i, j} or {npos, npos} if none.
+    auto find_crossing = [&]() -> std::pair<size_t, size_t> {
+        for (size_t i = 0; i < n_edges; ++i) {
             const Point& ai = centers[path[i]];
-            const Point& bi = centers[path[i_next]];
+            const Point& bi = centers[path[i + 1]];
 
-            for (size_t j = i + 2; j < pn; ++j) {
-                if (j == i_next) continue;
-                if (j == (pn - 1) && i == 0) continue;
-                size_t j_next = (j + 1) % pn;
+            for (size_t j = i + 2; j < n_edges; ++j) {
                 const Point& aj = centers[path[j]];
-                const Point& bj = centers[path[j_next]];
+                const Point& bj = centers[path[j + 1]];
 
-                // Cheap bounding-box prefilter before expensive intersection test.
                 if (!bboxes_overlap(ai, bi, aj, bj)) continue;
-
-                if (Geometry::segments_intersect(ai, bi, aj, bj)) {
-                    crossings.push_back({i, j});
-                }
+                if (Geometry::segments_intersect(ai, bi, aj, bj))
+                    return {i, j};
             }
         }
+        return {std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()};
+    };
 
-        if (crossings.empty()) break;
-
-        // Apply all reversals. Process from highest i first so indices stay valid.
-        for (auto it = crossings.rbegin(); it != crossings.rend(); ++it) {
-            size_t a = it->i + 1, b = it->j;
-            while (a < b) std::swap(path[a++], path[b--]);
-        }
+    // Process crossings one at a time: find first, reverse it, restart scan.
+    // Cap iterations to prevent infinite loops on collinear/overlapping segments.
+    int max_iters = static_cast<int>(pn * pn);
+    while (max_iters-- > 0) {
+        auto [ci, cj] = find_crossing();
+        if (ci == std::numeric_limits<size_t>::max()) break;
+        size_t a = ci + 1, b = cj;
+        while (a < b) std::swap(path[a++], path[b--]);
     }
 }
 
@@ -127,7 +120,7 @@ void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& center
 }
 
 /* ====================================================================
- * Boustrophedon (snake) ordering
+ * Snake ordering
  * ==================================================================== */
 
 // Group points into rows by Y coordinate and traverse them in alternating direction.
@@ -192,7 +185,7 @@ static std::vector<size_t> row_serpentine_path(const Points& centers, double fra
     return path;
 }
 
-std::vector<size_t> boustrophedon_core(const Points& centers)
+std::vector<size_t> snake_core(const Points& centers)
 {
     if (centers.empty()) return {};
 
@@ -207,14 +200,14 @@ std::vector<size_t> boustrophedon_core(const Points& centers)
     return path;
 }
 
-std::vector<const PrintInstance*> chain_print_object_instances_boustrophedon(const std::vector<const PrintObject*>& print_objects, const Point* start_near)
+std::vector<const PrintInstance*> chain_print_object_instances_snake(const std::vector<const PrintObject*>& print_objects, const Point* start_near)
 {
-    return chain_instances_with_core(print_objects, start_near, boustrophedon_core);
+    return chain_instances_with_core(print_objects, start_near, snake_core);
 }
 
-std::vector<const PrintInstance*> chain_print_object_instances_boustrophedon(const Print& print)
+std::vector<const PrintInstance*> chain_print_object_instances_snake(const Print& print)
 {
-    return chain_print_object_instances_boustrophedon(print.objects().vector(), nullptr);
+    return chain_print_object_instances_snake(print.objects().vector(), nullptr);
 }
 
 /* ====================================================================
@@ -355,10 +348,12 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
         if (layers.back().empty()) break;
     }
 
-    // Per-layer 2-opt.
+    // Per-layer crossing removal + 2-opt.
     for (auto& layer : layers) {
-        if (layer.size() >= 4)
+        if (layer.size() >= 4) {
+            tsp_remove_crossings(layer, centers);
             tsp_2opt_improve(layer, centers);
+        }
     }
 
     // Build path by traversing layers.
@@ -457,6 +452,9 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers)
     tsp_remove_crossings(path, centers);
     tsp_rotate_minimize_closing(path, centers);
 
+    // Final crossing removal on complete path (inter-layer connections can create crossings).
+    tsp_remove_crossings(path, centers);
+
     return path;
 }
 
@@ -495,7 +493,7 @@ std::vector<const PrintInstance*> chain_print_object_instances_best_of(const std
     std::vector<std::vector<const PrintInstance*>> candidates;
     candidates.push_back(chain_print_object_instances(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_convex_hull_peeling(print_objects, start_near));
-    candidates.push_back(chain_print_object_instances_boustrophedon(print_objects, start_near));
+    candidates.push_back(chain_print_object_instances_snake(print_objects, start_near));
 
     // Compute metrics for each candidate.
     struct Candidate { double total_len; double max_edge; };

@@ -123,6 +123,8 @@ TEST_CASE("tsp_remove_crossings eliminates crossings", "[TSPPostProcessing]") {
     REQUIRE(is_permutation(path, centers.size()));
 }
 
+
+
 TEST_CASE("tsp_rotate_minimize_closing shortens closing edge", "[TSPPostProcessing]") {
     Points centers = make_random_16();
     std::vector<size_t> path(centers.size());
@@ -172,9 +174,9 @@ TEST_CASE("tsp_max_edge_length finds longest edge", "[TSPPostProcessing]") {
 
 // --- Core Strategy Tests: Empty / Small Inputs ---
 
-TEST_CASE("boustrophedon_core handles empty input", "[Boustrophedon]") {
+TEST_CASE("snake_core handles empty input", "[Snake]") {
     Points centers;
-    auto path = boustrophedon_core(centers);
+    auto path = snake_core(centers);
     REQUIRE(path.empty());
 }
 
@@ -186,13 +188,13 @@ TEST_CASE("convex_hull_peeling_core handles empty input", "[ConvexHullPeeling]")
 
 TEST_CASE("all strategies handle single point", "[Strategies]") {
     Points pts{{100, 200}};
-    CHECK(boustrophedon_core(pts) == std::vector<size_t>{0});
+    CHECK(snake_core(pts) == std::vector<size_t>{0});
     CHECK(convex_hull_peeling_core(pts) == std::vector<size_t>{0});
 }
 
 TEST_CASE("all strategies handle two points", "[Strategies]") {
     Points pts{{100, 200}, {300, 400}};
-    auto p2 = boustrophedon_core(pts);
+    auto p2 = snake_core(pts);
     auto p3 = convex_hull_peeling_core(pts);
 
     REQUIRE(is_permutation(p2, 2));
@@ -201,9 +203,9 @@ TEST_CASE("all strategies handle two points", "[Strategies]") {
 
 // --- Core Strategy Tests: Grid Layout ---
 
-TEST_CASE("boustrophedon produces good path on grid", "[Boustrophedon]") {
+TEST_CASE("snake produces good path on grid", "[Snake]") {
     Points centers = make_grid_4x4();
-    auto path = boustrophedon_core(centers);
+    auto path = snake_core(centers);
 
     REQUIRE(is_permutation(path, centers.size()));
     CHECK(!has_crossings(path, centers));
@@ -214,7 +216,7 @@ TEST_CASE("boustrophedon produces good path on grid", "[Boustrophedon]") {
 TEST_CASE("all strategies handle collinear points", "[Strategies]") {
     Points centers = make_linear_5();
 
-    auto p2 = boustrophedon_core(centers);
+    auto p2 = snake_core(centers);
     auto p3 = convex_hull_peeling_core(centers);
 
     REQUIRE(is_permutation(p2, centers.size()));
@@ -226,7 +228,7 @@ TEST_CASE("all strategies handle collinear points", "[Strategies]") {
 TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
     Points centers = make_ring_8();
 
-    auto p2 = boustrophedon_core(centers);
+    auto p2 = snake_core(centers);
     auto p3 = convex_hull_peeling_core(centers);
 
     REQUIRE(is_permutation(p2, centers.size()));
@@ -238,7 +240,7 @@ TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
 TEST_CASE("all strategies produce valid paths on random input", "[Strategies]") {
     Points centers = make_random_16();
 
-    auto p2 = boustrophedon_core(centers);
+    auto p2 = snake_core(centers);
     auto p3 = convex_hull_peeling_core(centers);
 
     REQUIRE(is_permutation(p2, centers.size()));
@@ -258,9 +260,9 @@ TEST_CASE("convex_hull_peeling is near-optimal on structured input", "[ConvexHul
     REQUIRE(len < 2500000);
 }
 
-TEST_CASE("boustrophedon has no crossings on random input", "[Boustrophedon]") {
+TEST_CASE("snake has no crossings on random input", "[Snake]") {
     Points centers = make_random_16();
-    auto path = boustrophedon_core(centers);
+    auto path = snake_core(centers);
 
     REQUIRE(is_permutation(path, centers.size()));
     CHECK(!has_crossings(path, centers));
@@ -274,7 +276,7 @@ TEST_CASE("strategies handle duplicate points", "[Strategies]") {
     pts.emplace_back(100, 200); // duplicate
     pts.emplace_back(300, 400);
 
-    auto p2 = boustrophedon_core(pts);
+    auto p2 = snake_core(pts);
     auto p3 = convex_hull_peeling_core(pts);
 
     REQUIRE(p2.size() == pts.size());
@@ -287,7 +289,7 @@ TEST_CASE("strategies handle three points", "[Strategies]") {
     pts.emplace_back(100000, 0);
     pts.emplace_back(50000, 86602);
 
-    auto p2 = boustrophedon_core(pts);
+    auto p2 = snake_core(pts);
     auto p3 = convex_hull_peeling_core(pts);
 
     REQUIRE(is_permutation(p2, 3));

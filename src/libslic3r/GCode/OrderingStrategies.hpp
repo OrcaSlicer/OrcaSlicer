@@ -107,8 +107,8 @@ std::vector<const PrintInstance*> chain_instances_with_core(
 
 // --- Core algorithms (operate on raw Points, return index permutations) ---
 
-// Boustrophedon (snake) ordering: row grouping + serpentine traversal + post-processing.
-std::vector<size_t> boustrophedon_core(const Points& centers);
+// Snake ordering: row grouping + serpentine traversal + post-processing.
+std::vector<size_t> snake_core(const Points& centers);
 
 // Convex hull peeling (onion peeling) with concave hulls.
 std::vector<size_t> convex_hull_peeling_core(const Points& centers);
@@ -117,9 +117,9 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers);
 
 // --- Production wrappers ---
 
-// Boustrophedon (snake-like) ordering.
-std::vector<const PrintInstance*> chain_print_object_instances_boustrophedon(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
-std::vector<const PrintInstance*> chain_print_object_instances_boustrophedon(const Print& print);
+// Snake ordering.
+std::vector<const PrintInstance*> chain_print_object_instances_snake(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
+std::vector<const PrintInstance*> chain_print_object_instances_snake(const Print& print);
 
 // Convex hull peeling (onion peeling).
 std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
