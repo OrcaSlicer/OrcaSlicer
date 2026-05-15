@@ -9,6 +9,7 @@
 #include "KDTreeIndirect.hpp"
 #include "MutablePriorityQueue.hpp"
 #include "Print.hpp"
+#include "GCode/TSPPostProcessing.hpp"
 
 #include <cmath>
 #include <cassert>
@@ -1076,7 +1077,7 @@ std::vector<size_t> chain_expolygons(const ExPolygons &input_exploy) {
 	return chain_points(points);
 }
 
-std::vector<size_t> chain_points(const Points &points, Point *start_near)
+std::vector<size_t> chain_points(const Points &points, const Point *start_near)
 {
 	auto segment_end_point = [&points](size_t idx, bool /* first_point */) -> const Point& { return points[idx]; };
 	std::vector<std::pair<size_t, bool>> ordered = chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, points.size(), start_near);
@@ -1084,7 +1085,16 @@ std::vector<size_t> chain_points(const Points &points, Point *start_near)
 	out.reserve(ordered.size());
 	for (auto &segment_and_reversal : ordered)
 		out.emplace_back(segment_and_reversal.first);
+
 	return out;
+}
+
+std::vector<size_t> chain_points_with_postprocessing(const Points &points, const Point *start_near)
+{
+	std::vector<size_t> path = chain_points(points, start_near);
+	tsp_remove_crossings(path, points);
+	tsp_2opt_improve(path, points);
+	return path;
 }
 
 #ifndef NDEBUG
@@ -1998,12 +2008,13 @@ std::vector<const PrintInstance*> chain_print_object_instances(const std::vector
 			instances.emplace_back(i, j);
 		}
 	}
-	auto segment_end_point = [&object_reference_points](size_t idx, bool /* first_point */) -> const Point& { return object_reference_points[idx]; };
-	std::vector<std::pair<size_t, bool>> ordered = chain_segments_greedy<Point, decltype(segment_end_point)>(segment_end_point, instances.size(), start_near);
+	// Order objects using nearest neighbor + post-processing (crossing removal + 2-opt).
+	std::vector<size_t> path = chain_points_with_postprocessing(object_reference_points, start_near);
+
 	std::vector<const PrintInstance*> out;
-	out.reserve(instances.size());
-	for (auto& segment_and_reversal : ordered) {
-		const std::pair<size_t, size_t>& inst = instances[segment_and_reversal.first];
+	out.reserve(path.size());
+	for (size_t idx : path) {
+		const std::pair<size_t, size_t>& inst = instances[idx];
 		out.emplace_back(&print_objects[inst.first]->instances()[inst.second]);
 	}
 	return out;

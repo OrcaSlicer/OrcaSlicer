@@ -254,10 +254,6 @@ set(lisbslic3r_sources
     GCode/ConvexHullPeeling.hpp
     GCode/Boustrophedon.cpp
     GCode/Boustrophedon.hpp
-    GCode/GridPath.cpp
-    GCode/GridPath.hpp
-    GCode/MinMaxEdge.cpp
-    GCode/MinMaxEdge.hpp
     GCode/BestOfStrategies.cpp
     GCode/BestOfStrategies.hpp
     GCode/WipeTower2.cpp
