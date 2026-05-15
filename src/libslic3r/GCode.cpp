@@ -16,9 +16,7 @@
 #include "ShortestPath.hpp"
 #include "GCode/ConvexHullPeeling.hpp"
 #include "GCode/Boustrophedon.hpp"
-#include "GCode/GridPath.hpp"
 #include "GCode/BestOfStrategies.hpp"
-#include "GCode/MinMaxEdge.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
 #include "ClipperUtils.hpp"
@@ -2803,14 +2801,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             : (print.config().print_order == PrintOrder::ConvexHullPeeling ? chain_print_object_instances_convex_hull_peeling(print)
             // Boustrophedon: snake-like row traversal + 2-opt
             : (print.config().print_order == PrintOrder::Boustrophedon ? chain_print_object_instances_boustrophedon(print)
-            // Grid Path: serpentine with L1 distance optimization, avoids diagonal moves
-            : (print.config().print_order == PrintOrder::GridPath ? chain_print_object_instances_grid_path(print)
             // Best of all: run every strategy, pick the shortest total path
             : (print.config().print_order == PrintOrder::BestOfStrategies ? chain_print_object_instances_best_of(print)
-            // Min-max edge: run every strategy, pick smallest max edge (tiebreak: shortest)
-            : (print.config().print_order == PrintOrder::MinMaxEdge ? chain_print_object_instances_min_max_edge(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print)))))));
+            : sort_object_instances_by_model_order(print)))));
 
 
 
@@ -5192,13 +5186,9 @@ LayerResult GCode::process_layer(
                             ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
                             : (print.config().print_order == PrintOrder::Boustrophedon
                                 ? chain_print_object_instances_boustrophedon(print_objects, &wt_pos)
-                                : (print.config().print_order == PrintOrder::GridPath
-                                    ? chain_print_object_instances_grid_path(print_objects, &wt_pos)
-                                    : (print.config().print_order == PrintOrder::BestOfStrategies
+                                : (print.config().print_order == PrintOrder::BestOfStrategies
                                     ? chain_print_object_instances_best_of(print_objects, &wt_pos)
-                                    : (print.config().print_order == PrintOrder::MinMaxEdge
-                                        ? chain_print_object_instances_min_max_edge(print_objects, &wt_pos)
-                                        : chain_print_object_instances(print_objects, &wt_pos)))));
+                                    : chain_print_object_instances(print_objects, &wt_pos)));
             }
 
             // Reverse a local copy; keep cached value intact for reuse.

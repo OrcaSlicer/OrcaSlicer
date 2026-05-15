@@ -2,9 +2,9 @@
 
 #include "BestOfStrategies.hpp"
 #include "../Print.hpp"
+#include "../ShortestPath.hpp"
 #include "ConvexHullPeeling.hpp"
 #include "Boustrophedon.hpp"
-#include "GridPath.hpp"
 
 #include <limits>
 
@@ -29,9 +29,9 @@ std::vector<const PrintInstance*> chain_print_object_instances_best_of(const std
 
     // Run all strategies.
     std::vector<std::vector<const PrintInstance*>> candidates;
+    candidates.push_back(chain_print_object_instances(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_convex_hull_peeling(print_objects, start_near));
     candidates.push_back(chain_print_object_instances_boustrophedon(print_objects, start_near));
-    candidates.push_back(chain_print_object_instances_grid_path(print_objects, start_near));
 
     // Pick the shortest.
     size_t best = 0;
