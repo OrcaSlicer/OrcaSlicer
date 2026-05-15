@@ -312,7 +312,6 @@ static t_config_enum_values s_keys_map_PrintOrder{
     { "default",     int(PrintOrder::Default) },
     { "as_obj_list", int(PrintOrder::AsObjectList)},
     { "best_of",       int(PrintOrder::BestOfStrategies)},
-    { "convex_hull", int(PrintOrder::ConvexHullPeeling)},
     { "snake", int(PrintOrder::Snake)},
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrintOrder)
@@ -1855,12 +1854,10 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("default");
     def->enum_values.push_back("as_obj_list");
     def->enum_values.push_back("best_of");
-    def->enum_values.push_back("convex_hull");
     def->enum_values.push_back("snake");
     def->enum_labels.push_back(L("Default"));
     def->enum_labels.push_back(L("As object list"));
     def->enum_labels.push_back(L("Best of all (shortest path)"));
-    def->enum_labels.push_back(L("Convex hull peeling"));
     def->enum_labels.push_back(L("Snake"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<PrintOrder>(PrintOrder::Default));

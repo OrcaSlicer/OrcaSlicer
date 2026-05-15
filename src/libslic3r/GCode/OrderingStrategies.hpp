@@ -110,9 +110,6 @@ std::vector<const PrintInstance*> chain_instances_with_core(
 // Snake ordering: row grouping + serpentine traversal + post-processing.
 std::vector<size_t> snake_core(const Points& centers);
 
-// Convex hull peeling (onion peeling) with concave hulls.
-std::vector<size_t> convex_hull_peeling_core(const Points& centers);
-
 #ifndef SLIC3R_TEST_HARNESS
 
 // --- Production wrappers ---
@@ -120,10 +117,6 @@ std::vector<size_t> convex_hull_peeling_core(const Points& centers);
 // Snake ordering.
 std::vector<const PrintInstance*> chain_print_object_instances_snake(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
 std::vector<const PrintInstance*> chain_print_object_instances_snake(const Print& print);
-
-// Convex hull peeling (onion peeling).
-std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
-std::vector<const PrintInstance*> chain_print_object_instances_convex_hull_peeling(const Print& print);
 
 // Best-of-strategies: run all strategies and return the shortest result.
 // Primary: shortest total path; secondary tiebreaker: smallest max edge.
