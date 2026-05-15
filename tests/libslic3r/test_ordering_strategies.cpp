@@ -3,12 +3,7 @@
 #define SLIC3R_TEST_HARNESS
 
 #include "libslic3r/Point.hpp"
-#include "libslic3r/GCode/TSPPostProcessing.hpp"
-#include "libslic3r/GCode/AngleSortCycle.hpp"
-#include "libslic3r/GCode/Boustrophedon.hpp"
-#include "libslic3r/GCode/ConvexHullPeeling.hpp"
-#include "libslic3r/GCode/GridPath.hpp"
-#include "libslic3r/GCode/MinMaxEdge.hpp"
+#include "libslic3r/GCode/OrderingStrategies.hpp"
 #include "libslic3r/Geometry.hpp"
 
 #include <algorithm>
@@ -177,12 +172,6 @@ TEST_CASE("tsp_max_edge_length finds longest edge", "[TSPPostProcessing]") {
 
 // --- Core Strategy Tests: Empty / Small Inputs ---
 
-TEST_CASE("angle_sort_core handles empty input", "[AngleSort]") {
-    Points centers;
-    auto path = angle_sort_core(centers);
-    REQUIRE(path.empty());
-}
-
 TEST_CASE("boustrophedon_core handles empty input", "[Boustrophedon]") {
     Points centers;
     auto path = boustrophedon_core(centers);
@@ -195,78 +184,41 @@ TEST_CASE("convex_hull_peeling_core handles empty input", "[ConvexHullPeeling]")
     REQUIRE(path.empty());
 }
 
-TEST_CASE("grid_path_core handles empty input", "[GridPath]") {
-    Points centers;
-    auto path = grid_path_core(centers);
-    REQUIRE(path.empty());
-}
-
-TEST_CASE("min_max_edge_core handles empty input", "[MinMaxEdge]") {
-    Points centers;
-    auto path = min_max_edge_core(centers);
-    REQUIRE(path.empty());
-}
-
 TEST_CASE("all strategies handle single point", "[Strategies]") {
     Points pts{{100, 200}};
-    CHECK(angle_sort_core(pts) == std::vector<size_t>{0});
     CHECK(boustrophedon_core(pts) == std::vector<size_t>{0});
     CHECK(convex_hull_peeling_core(pts) == std::vector<size_t>{0});
-    CHECK(grid_path_core(pts) == std::vector<size_t>{0});
-    CHECK(min_max_edge_core(pts) == std::vector<size_t>{0});
 }
 
 TEST_CASE("all strategies handle two points", "[Strategies]") {
     Points pts{{100, 200}, {300, 400}};
-    auto p1 = angle_sort_core(pts);
     auto p2 = boustrophedon_core(pts);
     auto p3 = convex_hull_peeling_core(pts);
-    auto p4 = grid_path_core(pts);
-    auto p5 = min_max_edge_core(pts);
 
-    REQUIRE(is_permutation(p1, 2));
     REQUIRE(is_permutation(p2, 2));
     REQUIRE(is_permutation(p3, 2));
-    REQUIRE(is_permutation(p4, 2));
-    REQUIRE(is_permutation(p5, 2));
 }
 
 // --- Core Strategy Tests: Grid Layout ---
-
-TEST_CASE("grid_path produces serpentine on grid", "[GridPath]") {
-    Points centers = make_grid_4x4();
-    auto path = grid_path_core(centers);
-
-    REQUIRE(is_permutation(path, centers.size()));
-    CHECK(!has_crossings(path, centers));
-}
 
 TEST_CASE("boustrophedon produces good path on grid", "[Boustrophedon]") {
     Points centers = make_grid_4x4();
     auto path = boustrophedon_core(centers);
 
     REQUIRE(is_permutation(path, centers.size()));
-    // Boustrophedon uses Euclidean 2-opt which may introduce crossings on grids.
+    CHECK(!has_crossings(path, centers));
 }
 
 // --- Core Strategy Tests: Collinear Points ---
 
-TEST_CASE("all strategies handle collinear points without crossing", "[Strategies]") {
+TEST_CASE("all strategies handle collinear points", "[Strategies]") {
     Points centers = make_linear_5();
 
-    auto p1 = angle_sort_core(centers);
     auto p2 = boustrophedon_core(centers);
     auto p3 = convex_hull_peeling_core(centers);
-    auto p4 = grid_path_core(centers);
 
-    REQUIRE(is_permutation(p1, centers.size()));
     REQUIRE(is_permutation(p2, centers.size()));
     REQUIRE(is_permutation(p3, centers.size()));
-    REQUIRE(is_permutation(p4, centers.size()));
-
-    // GridPath guarantees zero crossings on non-degenerate inputs.
-    // Collinear points are a degenerate case where segments_intersect
-    // returns true for overlapping collinear segments — that's expected.
 }
 
 // --- Core Strategy Tests: Ring Layout ---
@@ -274,18 +226,11 @@ TEST_CASE("all strategies handle collinear points without crossing", "[Strategie
 TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
     Points centers = make_ring_8();
 
-    auto p1 = angle_sort_core(centers);
     auto p2 = boustrophedon_core(centers);
     auto p3 = convex_hull_peeling_core(centers);
-    auto p4 = grid_path_core(centers);
 
-    REQUIRE(is_permutation(p1, centers.size()));
     REQUIRE(is_permutation(p2, centers.size()));
     REQUIRE(is_permutation(p3, centers.size()));
-    REQUIRE(is_permutation(p4, centers.size()));
-
-    // Angle sort should produce a clean ring with no crossings.
-    CHECK(!has_crossings(p1, centers));
 }
 
 // --- Core Strategy Tests: Random Layout ---
@@ -293,52 +238,11 @@ TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
 TEST_CASE("all strategies produce valid paths on random input", "[Strategies]") {
     Points centers = make_random_16();
 
-    auto p1 = angle_sort_core(centers);
     auto p2 = boustrophedon_core(centers);
     auto p3 = convex_hull_peeling_core(centers);
-    auto p4 = grid_path_core(centers);
-    auto p5 = min_max_edge_core(centers);
 
-    REQUIRE(is_permutation(p1, centers.size()));
     REQUIRE(is_permutation(p2, centers.size()));
     REQUIRE(is_permutation(p3, centers.size()));
-    REQUIRE(is_permutation(p4, centers.size()));
-    REQUIRE(is_permutation(p5, centers.size()));
-
-    // GridPath guarantees zero crossings.
-    CHECK(!has_crossings(p4, centers));
-}
-
-// --- Meta-Strategy Tests ---
-
-TEST_CASE("min_max_edge selects strategy with smallest max edge", "[MinMaxEdge]") {
-    Points centers = make_random_16();
-    auto path = min_max_edge_core(centers);
-
-    REQUIRE(is_permutation(path, centers.size()));
-
-    // Compare against individual strategies.
-    double best_max = tsp_max_edge_length(path, centers);
-
-    double chp_max = tsp_max_edge_length(convex_hull_peeling_core(centers), centers);
-    double as_max  = tsp_max_edge_length(angle_sort_core(centers), centers);
-    double bous_max = tsp_max_edge_length(boustrophedon_core(centers), centers);
-    double gp_max   = tsp_max_edge_length(grid_path_core(centers), centers);
-
-    // min_max_edge should be <= any individual strategy's max edge.
-    double tol = 1e-6;
-    CHECK((best_max <= chp_max + tol || best_max == Catch::Approx(chp_max)));
-    CHECK((best_max <= as_max + tol || best_max == Catch::Approx(as_max)));
-    CHECK((best_max <= bous_max + tol || best_max == Catch::Approx(bous_max)));
-    CHECK((best_max <= gp_max + tol || best_max == Catch::Approx(gp_max)));
-}
-
-TEST_CASE("min_max_edge tiebreaks by shortest total length", "[MinMaxEdge]") {
-    // With a symmetric layout, multiple strategies may have the same max edge.
-    Points centers = make_ring_8();
-    auto path = min_max_edge_core(centers);
-
-    REQUIRE(is_permutation(path, centers.size()));
 }
 
 // --- Quality Comparison Tests ---
@@ -354,12 +258,11 @@ TEST_CASE("convex_hull_peeling is near-optimal on structured input", "[ConvexHul
     REQUIRE(len < 2500000);
 }
 
-TEST_CASE("angle_sort produces simple polygon on random input", "[AngleSort]") {
+TEST_CASE("boustrophedon has no crossings on random input", "[Boustrophedon]") {
     Points centers = make_random_16();
-    auto path = angle_sort_core(centers);
+    auto path = boustrophedon_core(centers);
 
     REQUIRE(is_permutation(path, centers.size()));
-    // Angle sort + 2-opt should generally produce a non-crossing cycle.
     CHECK(!has_crossings(path, centers));
 }
 
@@ -371,15 +274,11 @@ TEST_CASE("strategies handle duplicate points", "[Strategies]") {
     pts.emplace_back(100, 200); // duplicate
     pts.emplace_back(300, 400);
 
-    auto p1 = angle_sort_core(pts);
     auto p2 = boustrophedon_core(pts);
     auto p3 = convex_hull_peeling_core(pts);
-    auto p4 = grid_path_core(pts);
 
-    REQUIRE(p1.size() == pts.size());
     REQUIRE(p2.size() == pts.size());
     REQUIRE(p3.size() == pts.size());
-    REQUIRE(p4.size() == pts.size());
 }
 
 TEST_CASE("strategies handle three points", "[Strategies]") {
@@ -388,13 +287,9 @@ TEST_CASE("strategies handle three points", "[Strategies]") {
     pts.emplace_back(100000, 0);
     pts.emplace_back(50000, 86602);
 
-    auto p1 = angle_sort_core(pts);
     auto p2 = boustrophedon_core(pts);
     auto p3 = convex_hull_peeling_core(pts);
-    auto p4 = grid_path_core(pts);
 
-    REQUIRE(is_permutation(p1, 3));
     REQUIRE(is_permutation(p2, 3));
     REQUIRE(is_permutation(p3, 3));
-    REQUIRE(is_permutation(p4, 3));
 }
