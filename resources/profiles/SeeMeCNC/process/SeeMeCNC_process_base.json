@@ -50,7 +50,7 @@
 	"flush_into_infill": "0",
 	"flush_into_objects": "0",
 	"flush_into_support": "1",
-	"fuzzy_skin": "disabled_fuzzy",
+	"fuzzy_skin": "none",
 	"fuzzy_skin_first_layer": "0",
 	"fuzzy_skin_mode": "displacement",
 	"fuzzy_skin_noise_type": "classic",
