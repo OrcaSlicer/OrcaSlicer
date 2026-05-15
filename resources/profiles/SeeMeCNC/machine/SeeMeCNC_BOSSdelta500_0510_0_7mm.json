@@ -68,36 +68,36 @@
 		"0"
 	],
 	"machine_end_gcode": [
-		";======= SEEMECNC BOSSDELTA 500 0510 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes — clears part immediately on a delta\n;======= END G-CODE ======="
+		";======= SEEMECNC BOSSDELTA 500 0510 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes \u2014 clears part immediately on a delta\n;======= END G-CODE ======="
 	],
 	"machine_load_filament_time": "4",
 	"machine_max_acceleration_e": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_extruding": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_retracting": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_travel": [
-		"2000",
-		"2000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_x": [
-		"2000",
-		"2000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_y": [
-		"2000",
-		"2000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_z": [
-		"2000",
-		"2000"
+		"5000",
+		"5000"
 	],
 	"machine_max_jerk_e": [
 		"15",
@@ -347,5 +347,22 @@
 	"type": "machine",
 	"instantiation": "true",
 	"model": "SeeMeCNC BOSSdelta 500 0510",
-	"thumbnail": "SeeMeCNC BOSSdelta 500 0510_cover.png"
+	"thumbnail": "SeeMeCNC BOSSdelta 500 0510_cover.png",
+	"filament_overrides": {
+		"SeeMeCNC PLA": {
+			"pressure_advance": "0.2286"
+		},
+		"SeeMeCNC PETG": {
+			"pressure_advance": "0.2857"
+		},
+		"SeeMeCNC PETG-CF": {
+			"pressure_advance": "0.2571"
+		},
+		"SeeMeCNC PA-CF": {
+			"pressure_advance": "0.2571"
+		},
+		"SeeMeCNC TPU": {
+			"pressure_advance": "0.4571"
+		}
+	}
 }

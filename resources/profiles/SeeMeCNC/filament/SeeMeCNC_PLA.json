@@ -16,10 +16,6 @@
 		"SeeMeCNC Artemis 0.5 nozzle",
 		"SeeMeCNC Artemis 0.7 nozzle",
 		"SeeMeCNC Artemis 1.0 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.4 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.5 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
-		"SeeMeCNC BOSSdelta 300 1.0 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.4 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.5 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
@@ -32,6 +28,10 @@
 		"SeeMeCNC BOSSdelta 500 0521 0.5 nozzle",
 		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 500 0521 1.0 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.4 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 1.0 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.4 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.5 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
@@ -198,7 +198,7 @@
 		"11"
 	],
 	"filament_notes": [
-		"Pressure Advance values tuned per nozzle size:\n  0.4mm nozzle: 0.4\n  0.5mm nozzle: 0.45\n  0.7mm nozzle: 0.55\n  1.0mm nozzle: 0.55\nRun OrcaSlicer PA calibration to fine-tune for your setup."
+		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.4mm nozzle: 0.4000\n  0.5mm nozzle: 0.3200\n  0.7mm nozzle: 0.2286\n  1.0mm nozzle: 0.1600\n\nRostockMAX v3.2 / v4:\n  0.4mm nozzle: 0.4789\n  0.5mm nozzle: 0.3831\n  0.7mm nozzle: 0.2736\n  1.0mm nozzle: 0.1915\n\nBOSSdelta 0505:\n  0.4mm nozzle: 0.5352\n  0.5mm nozzle: 0.4282\n  0.7mm nozzle: 0.3058\n  1.0mm nozzle: 0.2141\n\nBOSSdelta 0510:\n  0.4mm nozzle: 0.7887\n  0.5mm nozzle: 0.6310\n  0.7mm nozzle: 0.4507\n  1.0mm nozzle: 0.3155\n\nBOSSdelta 0521:\n  0.4mm nozzle: 1.3239\n  0.5mm nozzle: 1.0592\n  0.7mm nozzle: 0.7565\n  1.0mm nozzle: 0.5296\n\nRun OrcaSlicer PA calibration to fine-tune for your setup."
 	],
 	"filament_retract_before_wipe": [
 		"70%"
@@ -283,5 +283,8 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"55"
+	],
+	"retraction_length": [
+		"2"
 	]
 }

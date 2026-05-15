@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"name": "SeeMeCNC TPU 85A-95A",
+	"name": "SeeMeCNC TPU",
 	"from": "System",
 	"instantiation": "true",
 	"version": "2.3.2.60",
 	"filament_settings_id": [
-		"SeeMeCNC TPU 85A-95A"
+		"SeeMeCNC TPU"
 	],
 	"filament_id": "1a05187c-5b07-5e62-a618-8fbc86a83ba5",
 	"filament_vendor": [
@@ -13,10 +13,10 @@
 	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.7 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
 		"SeeMeCNC RostockMAX v4 0.7 nozzle"
 	],
@@ -79,7 +79,7 @@
 		"4"
 	],
 	"filament_notes": [
-		"Pressure Advance values tuned per nozzle size:\n  0.7mm nozzle: 0.8\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
+		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.7mm nozzle: 0.4571\n\nRostockMAX v3.2 / v4:\n  0.7mm nozzle: 0.5473\n\nBOSSdelta 0505:\n  0.7mm nozzle: 0.6117\n  \u26a0 Expect significant tuning required\n\nBOSSdelta 0510:\n  Not recommended for TPU.\n\nBOSSdelta 0521:\n  Not recommended for TPU.\n\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
 	],
 	"filament_retract_before_wipe": [
 		"0%"

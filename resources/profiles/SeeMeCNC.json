@@ -569,8 +569,8 @@
 			"sub_path": "filament/SeeMeCNC_PLA.json"
 		},
 		{
-			"name": "SeeMeCNC TPU 85A-95A",
-			"sub_path": "filament/SeeMeCNC_TPU_85A-95A.json"
+			"name": "SeeMeCNC TPU",
+			"sub_path": "filament/SeeMeCNC_TPU.json"
 		}
 	],
 	"machine_list": [

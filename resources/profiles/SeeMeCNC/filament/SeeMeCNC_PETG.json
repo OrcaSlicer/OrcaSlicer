@@ -16,10 +16,6 @@
 		"SeeMeCNC Artemis 0.5 nozzle",
 		"SeeMeCNC Artemis 0.7 nozzle",
 		"SeeMeCNC Artemis 1.0 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.4 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.5 nozzle",
-		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
-		"SeeMeCNC BOSSdelta 300 1.0 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.4 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.5 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
@@ -32,6 +28,10 @@
 		"SeeMeCNC BOSSdelta 500 0521 0.5 nozzle",
 		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 500 0521 1.0 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.4 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.5 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 1.0 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.4 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.5 nozzle",
 		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
@@ -180,10 +180,10 @@
 		"50"
 	],
 	"fan_max_speed": [
-		"50"
+		"30"
 	],
 	"fan_min_speed": [
-		"35"
+		"15"
 	],
 	"filament_cost": [
 		"30"
@@ -198,7 +198,7 @@
 		"8"
 	],
 	"filament_notes": [
-		"Pressure Advance values tuned per nozzle size:\n  0.4mm nozzle: 0.5\n  0.5mm nozzle: 0.55\n  0.7mm nozzle: 0.5\n  1.0mm nozzle: 0.6\nRun OrcaSlicer PA calibration to fine-tune for your setup."
+		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.4mm nozzle: 0.5000\n  0.5mm nozzle: 0.4000\n  0.7mm nozzle: 0.2857\n  1.0mm nozzle: 0.2000\n\nRostockMAX v3.2 / v4:\n  0.4mm nozzle: 0.5986\n  0.5mm nozzle: 0.4789\n  0.7mm nozzle: 0.3421\n  1.0mm nozzle: 0.2394\n\nBOSSdelta 0505:\n  0.4mm nozzle: 0.6690\n  0.5mm nozzle: 0.5352\n  0.7mm nozzle: 0.3823\n  1.0mm nozzle: 0.2676\n\nBOSSdelta 0510:\n  0.4mm nozzle: 0.9859\n  0.5mm nozzle: 0.7887\n  0.7mm nozzle: 0.5634\n  1.0mm nozzle: 0.3944\n\nBOSSdelta 0521:\n  0.4mm nozzle: 1.6549\n  0.5mm nozzle: 1.3239\n  0.7mm nozzle: 0.9457\n  1.0mm nozzle: 0.6620\n\nRun OrcaSlicer PA calibration to fine-tune for your setup."
 	],
 	"filament_retract_before_wipe": [
 		"70%"
@@ -258,10 +258,10 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"28"
+		"30"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"supertack_plate_temp": [
 		"70"
@@ -283,5 +283,17 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"70"
+	],
+	"fan_speedup_time": [
+		"30"
+	],
+	"dont_slow_down_outer_wall": [
+		"0"
+	],
+	"keep_fan_always_on": [
+		"0"
+	],
+	"retraction_length": [
+		"2"
 	]
 }
