@@ -6087,14 +6087,14 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Advanced");
     def->tooltip = L(
         "Determines the order of tool changes on each layer.\n"
-        "- Time Optimized: Starts with the last used extruder to minimize tool changes.\n"
+        "- Optimized: Starts with the last used extruder to minimize tool changes.\n"
         "- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
     );
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<ToolChangeOrderingType>::get_enum_values();
     def->enum_values.emplace_back("optimized");
     def->enum_values.emplace_back("cyclic");
-    def->enum_labels.emplace_back(L("Time Optimized"));
+    def->enum_labels.emplace_back(L("Optimized"));
     def->enum_labels.emplace_back(L("Cyclic"));
     def->set_default_value(new ConfigOptionEnum<ToolChangeOrderingType>(ToolChangeOrderingType::Optimized));
 
