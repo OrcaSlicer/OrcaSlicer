@@ -11,6 +11,7 @@
 #include "Widgets/Button.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/RoundedRectangle.hpp"
 #include <chrono>
 
 using namespace Slic3r;
@@ -19,9 +20,9 @@ using namespace Slic3r::GUI;
 static int _scale(const int val) { return val * Slic3r::GUI::wxGetApp().em_unit() / 10; }
 static int _ITEM_WIDTH() { return _scale(30); }
 #define MIN_DIALOG_WIDTH        FromDIP(400)
-#define SLIDER_WIDTH            FromDIP(200)
+#define SLIDER_WIDTH            FromDIP(220)
 #define SLIDER_HEIGHT           FromDIP(25)
-#define TEXT_CTRL_WIDTH         FromDIP(70)
+#define TEXT_CTRL_WIDTH         FromDIP(100)
 #define BUTTON_SIZE             wxSize(FromDIP(58), FromDIP(24))
 #define BUTTON_BORDER           FromDIP(int(400 - 58 * 2) / 8)
 #define SLIDER_SCALE(val)       ((val) / 0.001)
@@ -29,7 +30,7 @@ static int _ITEM_WIDTH() { return _scale(30); }
 #define SLIDER_SCALE_10(val)    ((val) / 0.01)
 #define SLIDER_UNSCALE_10(val)  ((val) * 0.01)
 #define LEFT_RIGHT_PADING       FromDIP(20)
-#define FONT_COLOR              wxColour("#6B6B6B")
+#define FONT_COLOR              wxColour("#262E30")
 
 wxDEFINE_EVENT(wxEVT_THREAD_DONE, wxCommandEvent);
 
@@ -85,9 +86,9 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     SetBackgroundColour(*wxWHITE);
 
     wxBoxSizer* bSizer = new wxBoxSizer(wxVERTICAL);
-    bSizer->SetMinSize(wxSize(MIN_DIALOG_WIDTH, -1));
+    //bSizer->SetMinSize(wxSize(MIN_DIALOG_WIDTH, -1));
 
-    auto  image_bitmap = create_scaled_bitmap("step_mesh_info", this, FromDIP(120));
+    //auto  image_bitmap = create_scaled_bitmap("step_mesh_info", this, FromDIP(120));
 
     // wxPanel* overlay_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, image_bitmap.GetSize(), wxTAB_TRAVERSAL);
     // overlay_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -114,23 +115,31 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     // bSizer->Add(overlay_panel, 0, wxALIGN_CENTER | wxALL, 10);
 
+    auto tip_frame = new RoundedRectangle(this, StateColor::darkModeColorFor(wxColour("#F1F1F1")), wxDefaultPosition, wxSize(-1,-1), 6, 0);
+
     wxBoxSizer* tips_sizer = new wxBoxSizer(wxVERTICAL);
-    wxStaticText* info = new wxStaticText(this, wxID_ANY, _L("Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."));
-    info->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    wxStaticText* info = new wxStaticText(tip_frame, wxID_ANY, _L("Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."));
+    info->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    info->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F1F1F1")));
+    info->SetFont(::Label::Body_14);
+    info->Wrap(FromDIP(450));
 
     // ORCA standardized HyperLink
-    HyperLink *tips = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/import_export#step");
-    tips->SetFont(::Label::Body_12);
- 
-    info->Wrap(FromDIP(400));
-    tips_sizer->Add(info, 0, wxALIGN_LEFT);
-    tips_sizer->Add(tips, 0, wxALIGN_LEFT);
-    bSizer->Add(tips_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
+    HyperLink *tips = new HyperLink(tip_frame, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/import_export#step");
+    tips->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#F1F1F1")));
+
+    tips_sizer->Add(info, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
+    tips_sizer->Add(tips, 0, wxALL, FromDIP(10));
+    
+    tip_frame->SetSizer(tips_sizer);
+    tip_frame->Layout();
+    bSizer->Add(tip_frame, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
 
     wxBoxSizer* linear_sizer = new wxBoxSizer(wxHORIZONTAL);
     //linear_sizer->SetMinSize(wxSize(MIN_DIALOG_WIDTH, -1));
     wxStaticText* linear_title = new wxStaticText(this,
                                                   wxID_ANY, _L("Linear Deflection") + ": ");
+    linear_title->SetFont(::Label::Body_14);
     linear_title->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
     linear_sizer->Add(linear_title, 0, wxALIGN_LEFT);
     linear_sizer->AddStretchSpacer(1);
@@ -142,7 +151,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     linear_sizer->Add(linear_slider, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(5));
 
     auto linear_input = new ::TextInput(this, m_linear_last, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(TEXT_CTRL_WIDTH, -1), wxTE_CENTER);
-    linear_input->GetTextCtrl()->SetFont(Label::Body_12);
+    linear_input->GetTextCtrl()->SetFont(Label::Body_14);
     linear_input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     linear_sizer->Add(linear_input, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(5));
     linear_input->Bind(wxEVT_KILL_FOCUS, ([this, linear_input](wxFocusEvent& e) {
@@ -179,11 +188,13 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
         e.Skip();
     }));
 
-    bSizer->Add(linear_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
+    bSizer->Add(linear_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
+    bSizer->AddSpacer(FromDIP(5));
 
     wxBoxSizer* angle_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* angle_title = new wxStaticText(this,
                                                   wxID_ANY, _L("Angle Deflection") + ": ");
+    angle_title->SetFont(::Label::Body_14);
     angle_title->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
     angle_sizer->Add(angle_title, 0, wxALIGN_LEFT);
     angle_sizer->AddStretchSpacer(1);
@@ -195,7 +206,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     angle_sizer->Add(angle_slider, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(5));
 
     auto angle_input = new ::TextInput(this, m_angle_last, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(TEXT_CTRL_WIDTH, -1), wxTE_CENTER);
-    angle_input->GetTextCtrl()->SetFont(Label::Body_12);
+    angle_input->GetTextCtrl()->SetFont(Label::Body_14);
     angle_input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     angle_sizer->Add(angle_input, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(5));
     angle_input->Bind(wxEVT_KILL_FOCUS, ([this, angle_input](wxFocusEvent& e) {
@@ -233,28 +244,32 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
         e.Skip();
     }));
 
-    bSizer->Add(angle_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
+    bSizer->Add(angle_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
     wxBoxSizer* check_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_split_compound_checkbox = new wxCheckBox(this, wxID_ANY, _L("Split compound and compsolid into multiple objects"), wxDefaultPosition, wxDefaultSize, 0);
+    m_split_compound_checkbox->SetFont(::Label::Body_14);
     m_split_compound_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
     m_split_compound_checkbox->SetValue(wxGetApp().app_config->get_bool("is_split_compound"));
     check_sizer->Add(m_split_compound_checkbox, 0, wxALIGN_LEFT);
-    bSizer->Add(check_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
+    bSizer->Add(check_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
 
     wxBoxSizer* mesh_face_number_sizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText *mesh_face_number_title = new wxStaticText(this, wxID_ANY, _L("Number of triangular facets") + ": ");
+    mesh_face_number_title->SetFont(::Label::Body_14);
     mesh_face_number_title->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
     mesh_face_number_text = new wxStaticText(this, wxID_ANY, "0");
+    mesh_face_number_text->SetFont(::Label::Body_14);
     mesh_face_number_text->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
     mesh_face_number_text->SetMinSize(wxSize(FromDIP(150), -1));
     mesh_face_number_sizer->Add(mesh_face_number_title, 0, wxALIGN_LEFT);
     mesh_face_number_sizer->Add(mesh_face_number_text, 0, wxALIGN_LEFT);
-    bSizer->Add(mesh_face_number_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
+    bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
 
     wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
     m_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
+    m_checkbox->SetFont(::Label::Body_14);
     m_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
     bSizer_button->Add(m_checkbox, 0, wxALIGN_LEFT | wxLEFT | wxALIGN_CENTER_VERTICAL, LEFT_RIGHT_PADING);
     bSizer_button->AddStretchSpacer(1);

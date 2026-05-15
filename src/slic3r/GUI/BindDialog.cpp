@@ -151,6 +151,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer_request->Add(ping_code_input, 0, wxLEFT, FromDIP(10));
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_request->AddStretchSpacer();
     sizer_request->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
     request_bind_panel->SetSizer(sizer_request);
     request_bind_panel->Layout();

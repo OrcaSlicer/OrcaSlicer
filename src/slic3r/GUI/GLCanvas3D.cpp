@@ -8179,6 +8179,9 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
     if (wxGetApp().show_3d_navigator()) {
         window_height_max -= (128 * f_scale + 5);
     }
+    else { // ORCA spacing for canvas menu
+        window_height_max -= (96 * f_scale + 5);
+    }
 
     // ORCA simplify and correct window size and margin calculations and get values from style
     ImGuiWrapper& imgui = *wxGetApp().imgui();

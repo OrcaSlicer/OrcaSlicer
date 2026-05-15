@@ -653,7 +653,8 @@ void BBLTopbar::OnFileToolItem(wxAuiToolBarEvent& evt)
     tb->SetToolSticky(evt.GetId(), true);
 
     if (!m_skip_popup_file_menu) {
-        GetParent()->PopupMenu(m_file_menu, wxPoint(FromDIP(1), this->GetSize().GetHeight() - 2));
+        auto rec = this->GetToolRect(ID_TOP_FILE_MENU);
+        GetParent()->PopupMenu(m_file_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
     }
     else {
         m_skip_popup_file_menu = false;
@@ -670,7 +671,8 @@ void BBLTopbar::OnDropdownToolItem(wxAuiToolBarEvent& evt)
     tb->SetToolSticky(evt.GetId(), true);
 
     if (!m_skip_popup_dropdown_menu) {
-        GetParent()->PopupMenu(&m_top_menu, wxPoint(FromDIP(1), this->GetSize().GetHeight() - 2));
+        auto rec = this->GetToolRect(ID_TOP_DROPDOWN_MENU);
+        GetParent()->PopupMenu(&m_top_menu, wxPoint(rec.GetLeft(), this->GetSize().GetHeight() - 2));
     }
     else {
         m_skip_popup_dropdown_menu = false;

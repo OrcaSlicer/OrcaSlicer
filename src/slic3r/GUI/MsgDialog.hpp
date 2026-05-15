@@ -71,7 +71,7 @@ struct MsgDialog : DPIDialog
 protected:
 	enum {
 		BORDER = 20,
-		LOGO_SPACING = 35,
+		LOGO_SPACING = 25,
 		LOGO_GAP = 20,
 		CONTENT_WIDTH = 242,
 		CONTENT_MAX_HEIGHT = 60,//TO
