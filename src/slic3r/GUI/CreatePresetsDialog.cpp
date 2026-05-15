@@ -1058,7 +1058,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
             }
         } else {
             if (m_filament_custom_vendor_input->GetTextCtrl()->GetValue().empty()) {
-                MessageDialog dlg(this, _L("Custom vendor is not input, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                MessageDialog dlg(this, _L("Custom vendor is missing, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                                   wxYES | wxYES_DEFAULT | wxCENTRE);
                 dlg.ShowModal();
                 return;
@@ -1130,7 +1130,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         if (preset_bundle->filaments.is_alias_exist(filament_preset_name)) {
             MessageDialog dlg(this,
                               wxString::Format(_L("The Filament name %s you created already exists.\n"
-                                                  "If you continue creating, the preset created will be displayed with its full name. Do you want to continue?"),
+                                                  "If you continue, the preset created will be displayed with its full name. Do you want to continue?"),
                                                from_u8(filament_preset_name)),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             if (wxID_YES != dlg.ShowModal()) { return; }
@@ -3378,9 +3378,30 @@ bool CreatePrinterPresetDialog::validate_input_valid()
 
     if (auto preset = wxGetApp().preset_bundle->printers.find_preset(custom_printer_name)) {
         if (preset->is_system) {
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                              wxYES | wxYES_DEFAULT | wxCENTRE);
-            dlg.ShowModal();
+            // ORCA offer switcing to existing preset to reduce confusion
+            std::string diameters;
+            auto printer_model = preset->config.opt_string("printer_model");
+            for (auto &preset : wxGetApp().preset_bundle->printers) {
+                if (preset.config.opt_string("printer_model") == printer_model)
+                    diameters += preset.config.opt_string("printer_variant") + "  ";
+            }
+            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+                                  + _L("\n\nAvailable nozzle profiles for this printer:")
+                                  + "\n" + diameters
+                                  + _L("\n\nChoose YES to switch existing preset:")
+                                  + "\n" + preset->name
+                              , wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info")
+                              , wxYES | wxYES_DEFAULT | wxNO | wxCENTRE);
+            if (dlg.ShowModal() == wxID_YES){
+                auto bundle = wxGetApp().preset_bundle;
+                bundle->printers.select_preset_by_name(preset->name, true);
+                bundle->update_compatible(PresetSelectCompatibleType::Always);
+                wxGetApp().load_current_presets();
+                wxGetApp().mainframe->update_side_preset_ui();
+                wxGetApp().sidebar().update_ui_from_settings();
+                wxGetApp().sidebar().update_all_preset_comboboxes();
+                EndModal(wxID_CANCEL);
+            }
             return false;
         }
     }

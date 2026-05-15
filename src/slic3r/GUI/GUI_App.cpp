@@ -35,6 +35,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/nowide/cstdio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/beast/core/detail/base64.hpp>
@@ -2842,7 +2843,7 @@ bool GUI_App::on_init_inner()
                 wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_str);
                 DownloadDialog dialog(this->mainframe,
                     tips,
-                    _L("The Orca Slicer needs an upgrade"),
+                    _L("OrcaSlicer needs an update"),
                     false,
                     wxCENTER | wxICON_INFORMATION);
                 dialog.SetExtendedMessage(description_text);
@@ -5781,7 +5782,10 @@ void GUI_App::reload_settings()
         load_pending_vendors();
         preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
         preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        mainframe->update_side_preset_ui();
+        if (is_main_thread_active())
+            mainframe->update_side_preset_ui();
+        else
+            CallAfter([this] { mainframe->update_side_preset_ui(); });
     }
 }
 
@@ -6022,8 +6026,10 @@ void GUI_App::load_pending_vendors()
         return;
 
     preset_bundle->apply_vendor_config(need_add_vendors, need_add_filaments, app_config, false);
-    app_config->save();
-
+    if (is_main_thread_active())
+        app_config->save();
+    else
+        CallAfter([this] { app_config->save(); });
     need_add_vendors.clear();
     need_add_filaments.clear();
 }
@@ -6507,36 +6513,29 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
         cancelFn = [this, dlg]() {
             return is_closing() || dlg->WasCanceled();
         };
-        finishFn = [this, userid = m_agent->get_user_id(), dlg, t = std::weak_ptr<int>(m_user_sync_token)](bool ok) {
-            CallAfter([=]{
-                dlg->Destroy();
-                if (ok && m_agent && t.lock() == m_user_sync_token && userid == m_agent->get_user_id()) reload_settings();
-            });
+        finishFn = [this, dlg](bool) {
+            CallAfter([=]{ dlg->Destroy(); });
         };
     }
     else {
-        finishFn = [this, userid = m_agent->get_user_id(), t = std::weak_ptr<int>(m_user_sync_token)](bool ok) {
-            CallAfter([=] {
-                if (ok && m_agent && t.lock() == m_user_sync_token && userid == m_agent->get_user_id()) reload_settings();
-            });
-        };
+        finishFn = [](bool) {}; // reload_settings() is now triggered from the background thread
         cancelFn = [this]() {
             return is_closing();
         };
     }
 
-    // Do a one-time scan for files that may be pending deletion (e.g., was deleted while not connected to internet)
-    // Scan for orphaned .info files on startup and add them to deletion queue
-    scan_orphaned_info_files();
-    process_delete_presets();
-
     Bind(EVT_UPDATE_PRESET_BUNDLE,&GUI_App::update_single_bundle,this);
 
     m_sync_update_thread = Slic3r::create_thread(
         [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
+            if (!m_agent) return;
+
+            // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
+            scan_orphaned_info_files();
+            process_delete_presets();
+
             // get setting list, update setting list
             std::string version = preset_bundle->get_vendor_profile_version(PresetBundle::ORCA_DEFAULT_BUNDLE).to_string();
-            if(!m_agent) return;
 
             // run check_and_fix_user_presets_syncinfo once before syncing to make sure all presets have correct sync_info
             // So that we can sync presets that are migrated from old version or users manually put preset files in preset folder
@@ -6561,8 +6560,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 }
             }, progressFn, cancelFn);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " get_setting_list2 ret = " << ret << " m_is_closing = " << m_is_closing;
-            
+
             finishFn(ret == 0);
+
+            if (ret == 0 && m_agent && !t.expired())
+                reload_settings();
 
             // For orca specific syncing
             auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());

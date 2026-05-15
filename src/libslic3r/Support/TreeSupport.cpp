@@ -1593,13 +1593,20 @@ void TreeSupport::generate_toolpaths()
                     }
                     else {
                         // base_areas
-                        Flow flow               = (layer_id == 0 && m_raft_layers == 0) ? m_object->print()->brim_flow() : support_flow;
+                        bool support_base_on_bed = (layer_id == 0 && m_raft_layers == 0);
+                        Flow flow = support_base_on_bed ? m_support_params.first_layer_flow : support_flow;
                         bool need_infill = with_infill;
                         if(m_object_config->support_base_pattern==smpDefault)
                             need_infill &= area_group.need_infill;
-                        std::shared_ptr<Fill> filler_support = std::shared_ptr<Fill>(Fill::new_from_type(layer_id == 0 ? ipConcentric : m_support_params.base_fill_pattern));
+                        // Orca: Use rectilinear for support base on the bed
+                        const InfillPattern base_fill_pattern = support_base_on_bed ? ipRectilinear : m_support_params.base_fill_pattern;
+                        std::shared_ptr<Fill> filler_support = std::shared_ptr<Fill>(Fill::new_from_type(base_fill_pattern));
                         filler_support->set_bounding_box(bbox_object);
-                        filler_support->spacing = support_spacing * support_density; // constant spacing to align support infill lines
+
+                        filler_support->spacing =
+                            support_base_on_bed ?
+                            flow.spacing() : // Orca: On the bed-contacting support base layer, use first-layer flow spacing directly.
+                            support_spacing * support_density; // constant spacing to align support infill lines
                         filler_support->angle = Geometry::deg2rad(object_config.support_angle.value);
 
                         Polygons loops = to_polygons(poly);
@@ -1639,7 +1646,7 @@ void TreeSupport::generate_toolpaths()
                     // strengthen lightnings while it may make support harder. decide to enable it or not. if yes, proper values for params are remained to be tested
                     auto& lightning_layer = generator->getTreesForLayer(printZ_to_lightninglayer[print_z]);
 
-                    Flow       flow  = (layer_id == 0 && m_raft_layers == 0) ? m_object->print()->brim_flow() :support_flow;
+                    Flow       flow  = (layer_id == 0 && m_raft_layers == 0) ? m_support_params.first_layer_flow : support_flow;
                     ExPolygons areas = offset_ex(ts_layer->base_areas, -flow.scaled_spacing());
 
                     for (auto& area : areas)
@@ -2340,6 +2347,31 @@ void TreeSupport::draw_circles()
 
                     base_areas  = std::move(new_base_areas);
                     floor_areas = std::move(new_floor_areas);
+                }
+
+                // Orca: Hybrid tree first-layer expansion belongs only to the normal-support
+                // part. area_poly is collected from ePolygon nodes above, which are the normal
+                // support nodes in Hybrid mode. Apply the expansion before area_groups and
+                // lslices are built so toolpaths and brim avoidance use the same footprint.
+                if (layer_nr == 0 && m_raft_layers == 0 && m_support_params.support_style == smsTreeHybrid &&
+                    m_object_config->raft_first_layer_expansion.value > 0.f) {
+                    ExPolygons expanded_base_areas;
+                    const float inflate_factor_1st_layer = float(scale_(m_object_config->raft_first_layer_expansion.value));
+                    Polygons trimming = offset(m_object->layers().front()->lslices, float(scale_(m_support_params.gap_xy_first_layer)),
+                                               SUPPORT_SURFACES_OFFSET_PARAMETERS);
+                    // Orca: Match normal support expansion: grow in steps and re-trim against the object each time.
+                    const int nsteps = std::max(5, int(ceil(inflate_factor_1st_layer / m_support_params.first_layer_flow.scaled_width())));
+                    const float step = inflate_factor_1st_layer / nsteps;
+                    for (const ExPolygon &expoly : ts_layer->base_areas) {
+                        if (overlaps({ expoly }, area_poly)) { // normal support in Hybrid mode
+                            Polygons expanded = to_polygons(expoly);
+                            for (int i = 0; i < nsteps; ++i)
+                                expanded = diff(expand(expanded, step), trimming);
+                            append(expanded_base_areas, union_ex(expanded));
+                        } else
+                            expanded_base_areas.emplace_back(expoly);
+                    }
+                    ts_layer->base_areas = std::move(expanded_base_areas);
                 }
 
                 auto &area_groups = ts_layer->area_groups;
@@ -3253,6 +3285,7 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
         obj_layer_zs.reserve(m_object->layer_count());
         for (const Layer *l : m_object->layers()) obj_layer_zs.emplace_back((float) l->print_z);
         z_heights[m_object->get_layer(0)->print_z] = m_object->get_layer(0)->height;
+        const coordf_t min_print_z = m_object->get_layer(0)->print_z;
         // Collect top contact layers
         for (int layer_nr = 1; layer_nr < contact_nodes.size(); layer_nr++) {
             if (!contact_nodes[layer_nr].empty()) {
@@ -3260,7 +3293,7 @@ std::vector<LayerHeightData> TreeSupport::plan_layer_heights()
                 coordf_t height = contact_nodes[layer_nr].front()->height;
                 // insertion will fail if there is already a key of print_z, so no need to check
                 bounds.insert({print_z, height});
-                bounds.insert({print_z - height, 0}); // the bottom_z of the layer
+                bounds.insert({std::max(min_print_z, print_z - height), 0}); // the bottom_z of the layer
             }
         }
 

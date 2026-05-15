@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-20 23:26+0800\n"
+"POT-Creation-Date: 2026-05-13 09:31-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -105,25 +105,37 @@ msgstr ""
 msgid "Support Painting"
 msgstr ""
 
-msgid "Ctrl+"
+msgid "Perform"
 msgstr ""
 
-msgid "Alt+"
+msgid "On highlighted overhangs only"
 msgstr ""
 
-msgid "Shift+"
+msgid "Erase all painting"
 msgstr ""
 
-msgid "Mouse wheel"
+msgid "Highlight overhang areas"
 msgstr ""
 
-msgid "Section view"
+msgid "Tool type"
+msgstr ""
+
+msgid "Gap fill"
 msgstr ""
 
 msgid "Reset direction"
 msgstr ""
 
-msgid "Pen size"
+msgid "Section view"
+msgstr ""
+
+msgid "Brush size"
+msgstr ""
+
+msgid "Smart fill angle"
+msgstr ""
+
+msgid "Gap area"
 msgstr ""
 
 msgid "Left mouse button"
@@ -141,28 +153,7 @@ msgstr ""
 msgid "Erase"
 msgstr ""
 
-msgid "Erase all painting"
-msgstr ""
-
-msgid "Highlight overhang areas"
-msgstr ""
-
-msgid "Gap fill"
-msgstr ""
-
-msgid "Perform"
-msgstr ""
-
-msgid "Gap area"
-msgstr ""
-
-msgid "Tool type"
-msgstr ""
-
-msgid "Smart fill angle"
-msgstr ""
-
-msgid "On highlighted overhangs only"
+msgid "Mouse wheel"
 msgstr ""
 
 msgid "Auto support threshold angle: "
@@ -208,13 +199,10 @@ msgstr ""
 msgid "Color Painting"
 msgstr ""
 
-msgid "Pen shape"
+msgid "Brush shape"
 msgstr ""
 
 msgid "Paint"
-msgstr ""
-
-msgid "Key 1~9"
 msgstr ""
 
 msgid "Choose filament"
@@ -241,9 +229,6 @@ msgstr ""
 msgid "Height range"
 msgstr ""
 
-msgid "Enter"
-msgstr ""
-
 msgid "Toggle Wireframe"
 msgstr ""
 
@@ -253,7 +238,10 @@ msgstr ""
 msgid "Remap"
 msgstr ""
 
-msgid "Cancel"
+msgid "Reset"
+msgstr ""
+
+msgid "Enter"
 msgstr ""
 
 msgid "Shortcut Key "
@@ -282,12 +270,6 @@ msgid "To:"
 msgstr ""
 
 msgid "Paint-on fuzzy skin"
-msgstr ""
-
-msgid "Brush size"
-msgstr ""
-
-msgid "Brush shape"
 msgstr ""
 
 msgid "Add fuzzy skin"
@@ -528,16 +510,13 @@ msgstr ""
 msgid "Drag"
 msgstr ""
 
+msgid "Move cut line"
+msgstr ""
+
 msgid "Draw cut line"
 msgstr ""
 
-msgid "Left click"
-msgstr ""
-
 msgid "Add connector"
-msgstr ""
-
-msgid "Right click"
 msgstr ""
 
 msgid "Remove connector"
@@ -579,13 +558,13 @@ msgstr ""
 msgid "Confirm connectors"
 msgstr ""
 
+msgid "Cancel"
+msgstr ""
+
 msgid "Flip cut plane"
 msgstr ""
 
 msgid "Groove change"
-msgstr ""
-
-msgid "Reset"
 msgstr ""
 
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
@@ -786,6 +765,9 @@ msgstr ""
 msgid "Horizontal text"
 msgstr ""
 
+msgid "Shift+"
+msgstr ""
+
 msgid "Mouse move up or down"
 msgstr ""
 
@@ -816,6 +798,9 @@ msgid "Leave emboss gizmo"
 msgstr ""
 
 msgid "Embossing actions"
+msgstr ""
+
+msgid "Position on surface"
 msgstr ""
 
 msgid "Emboss"
@@ -1401,7 +1386,7 @@ msgstr ""
 msgid "Center of circle"
 msgstr ""
 
-msgid "Select feature"
+msgid "Select"
 msgstr ""
 
 msgid "Select point"
@@ -1541,6 +1526,12 @@ msgstr ""
 msgid "Face and face assembly"
 msgstr ""
 
+msgid "Ctrl+"
+msgstr ""
+
+msgid "Alt+"
+msgstr ""
+
 msgid "Notice"
 msgstr ""
 
@@ -1574,7 +1565,7 @@ msgid ""
 "Configuration file \"%1%\" was loaded, but some values were not recognized."
 msgstr ""
 
-msgid "Based on PrusaSlicer and BambuStudio"
+msgid "Loading configuration"
 msgstr ""
 
 msgid "STEP files"
@@ -1689,14 +1680,11 @@ msgstr ""
 msgid "Remember my choice"
 msgstr ""
 
-msgid "Loading configuration"
-msgstr ""
-
 #, possible-c-format, possible-boost-format
 msgid "Click to download new version in default browser: %s"
 msgstr ""
 
-msgid "The Orca Slicer needs an upgrade"
+msgid "OrcaSlicer needs an update"
 msgstr ""
 
 msgid "This is the newest version."
@@ -1800,6 +1788,33 @@ msgstr ""
 msgid "Privacy Policy Update"
 msgstr ""
 
+#, possible-c-format, possible-boost-format
+msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgstr ""
+
+msgid "your default profile"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "a user profile (folder: \"%s\")"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid ""
+"Existing user presets were found in %s.\n"
+"Do you want to migrate them to your OrcaCloud profile?\n"
+"This will copy your presets so they are available under your new account."
+msgstr ""
+
+msgid "Migrate User Presets"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid ""
+"Failed to migrate user presets:\n"
+"%s"
+msgstr ""
+
 msgid ""
 "The number of user presets cached in the cloud has exceeded the upper limit, "
 "newly created user presets can only be used locally."
@@ -1808,7 +1823,33 @@ msgstr ""
 msgid "Sync user presets"
 msgstr ""
 
+msgid ""
+"The preset content is too large to sync to the cloud (exceeds 1MB). Please "
+"reduce the preset size by removing custom configurations or use it locally "
+"only."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s updated from %s to %s"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s has been downloaded."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Bundle %s is no longer available."
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Bundle %s access is unauthorized."
+msgstr ""
+
 msgid "Loading user preset"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "%s has been removed."
 msgstr ""
 
 msgid "Switching application language"
@@ -2038,6 +2079,18 @@ msgstr ""
 msgid "Change type"
 msgstr ""
 
+msgid "Negative Part"
+msgstr ""
+
+msgid "Support Blocker"
+msgstr ""
+
+msgid "Support Enforcer"
+msgstr ""
+
+msgid "Change part type"
+msgstr ""
+
 msgid "Set as an individual object"
 msgstr ""
 
@@ -2051,6 +2104,12 @@ msgid "Fill the remaining area of bed with copies of the selected object"
 msgstr ""
 
 msgid "Printable"
+msgstr ""
+
+msgid "Auto Drop"
+msgstr ""
+
+msgid "Automatically drops the selected object to the build plate"
 msgstr ""
 
 msgid "Fix model"
@@ -2135,10 +2194,10 @@ msgstr ""
 msgid "Restore to meters"
 msgstr ""
 
-msgid "Assemble the selected objects to an object with multiple parts"
+msgid "Assemble the selected objects into an object with multiple parts"
 msgstr ""
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr ""
 
 msgid "Mesh boolean"
@@ -2330,6 +2389,9 @@ msgstr ""
 msgid "Set Filament for selected items"
 msgstr ""
 
+msgid "Automatically snaps the selected object to the build plate"
+msgstr ""
+
 msgid "Unlock"
 msgstr ""
 
@@ -2498,15 +2560,6 @@ msgstr ""
 msgid "The type of the last solid object part is not to be changed."
 msgstr ""
 
-msgid "Negative Part"
-msgstr ""
-
-msgid "Support Blocker"
-msgstr ""
-
-msgid "Support Enforcer"
-msgstr ""
-
 msgid "Type:"
 msgstr ""
 
@@ -2608,7 +2661,7 @@ msgstr ""
 msgid "Brim"
 msgstr ""
 
-msgid "Object/Part Setting"
+msgid "Object/Part Settings"
 msgstr ""
 
 msgid "Reset parameter"
@@ -3235,18 +3288,26 @@ msgstr ""
 msgid "About %s"
 msgstr ""
 
-msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
-msgstr ""
-
-msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
-msgstr ""
-
-msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
+msgid ""
+"Open-source slicing stands on a tradition of collaboration and attribution. "
+"Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the "
+"foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio "
+"forked from PrusaSlicer, and SuperSlicer extended it with community-driven "
+"enhancements. Each project carried the work of its predecessors forward, "
+"crediting those who came before."
 msgstr ""
 
 msgid ""
-"Slic3r was created by Alessandro Ranellucci with the help of many other "
-"contributors."
+"OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStudio, "
+"SuperSlicer, and CuraSlicer. But it has since grown far beyond its origins — "
+"introducing advanced calibration tools, precise wall and seam control and "
+"hundreds of other features."
+msgstr ""
+
+msgid ""
+"Today, OrcaSlicer is the most widely used and actively developed open-source "
+"slicer in the 3D printing community. Many of its innovations have been "
+"adopted by other slicers, making it a driving force for the entire industry."
 msgstr ""
 
 msgid "Version"
@@ -3950,7 +4011,7 @@ msgid ""
 "Reset to 0."
 msgstr ""
 
-#, possible-c-format, possible-boost-format
+#, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4454,6 +4515,12 @@ msgstr ""
 msgid "Actual Speed"
 msgstr ""
 
+msgid "Acceleration"
+msgstr ""
+
+msgid "Jerk"
+msgstr ""
+
 msgid "Fan Speed"
 msgstr ""
 
@@ -4553,6 +4620,9 @@ msgstr ""
 msgid "mm/s"
 msgstr ""
 
+msgid "mm/s²"
+msgstr ""
+
 msgid "Flow rate"
 msgstr ""
 
@@ -4598,7 +4668,10 @@ msgstr ""
 msgid "Color: "
 msgstr ""
 
-msgid "Actual Speed: "
+msgid "Acceleration: "
+msgstr ""
+
+msgid "Jerk: "
 msgstr ""
 
 msgid "PA: "
@@ -4691,7 +4764,7 @@ msgstr ""
 msgid "Regroup filament"
 msgstr ""
 
-msgid "Tips"
+msgid "Wiki Guide"
 msgstr ""
 
 msgid "up to"
@@ -4716,6 +4789,12 @@ msgid "Speed (mm/s)"
 msgstr ""
 
 msgid "Actual Speed (mm/s)"
+msgstr ""
+
+msgid "Acceleration (mm/s²)"
+msgstr ""
+
+msgid "Jerk (mm/s)"
 msgstr ""
 
 msgid "Fan Speed (%)"
@@ -4746,6 +4825,9 @@ msgid "Cost"
 msgstr ""
 
 msgid "Filament change times"
+msgstr ""
+
+msgid "Tool changes"
 msgstr ""
 
 msgid "Color change"
@@ -4824,16 +4906,16 @@ msgstr ""
 msgid "Smoothing"
 msgstr ""
 
-msgid "Mouse wheel:"
-msgstr ""
-
 msgid "Increase/decrease edit area"
 msgstr ""
 
 msgid "Sequence"
 msgstr ""
 
-msgid "Object selection"
+msgid "Object Selection"
+msgstr ""
+
+msgid "Part Selection"
 msgstr ""
 
 msgid "number keys"
@@ -5016,6 +5098,9 @@ msgstr ""
 msgid "Paint Toolbar"
 msgstr ""
 
+msgid "part selection"
+msgstr ""
+
 msgid "Explosion Ratio"
 msgstr ""
 
@@ -5040,7 +5125,7 @@ msgstr ""
 msgid "Size:"
 msgstr ""
 
-#, possible-boost-format
+#, possible-c-format, possible-boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5269,7 +5354,7 @@ msgstr ""
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr ""
 
 msgid "Setup Wizard"
@@ -5540,6 +5625,9 @@ msgstr ""
 msgid "View"
 msgstr ""
 
+msgid "Preset Bundle"
+msgstr ""
+
 msgid "Help"
 msgstr ""
 
@@ -5552,34 +5640,13 @@ msgstr ""
 msgid "Pressure advance"
 msgstr ""
 
-msgid "Pass 1"
-msgstr ""
-
-msgid "Flow ratio test - Pass 1"
-msgstr ""
-
-msgid "Pass 2"
-msgstr ""
-
-msgid "Flow ratio test - Pass 2"
-msgstr ""
-
-msgid "YOLO (Recommended)"
-msgstr ""
-
-msgid "Orca YOLO flowratio calibration, 0.01 step"
-msgstr ""
-
-msgid "YOLO (perfectionist version)"
-msgstr ""
-
-msgid "Orca YOLO flowratio calibration, 0.005 step"
-msgstr ""
-
 msgid "Flow ratio"
 msgstr ""
 
-msgid "Retraction test"
+msgid "Flow Rate Calibration"
+msgstr ""
+
+msgid "Retraction"
 msgstr ""
 
 msgid "Cornering"
@@ -5600,10 +5667,7 @@ msgstr ""
 msgid "VFA"
 msgstr ""
 
-msgid "Tutorial"
-msgstr ""
-
-msgid "Calibration help"
+msgid "Calibration Guide"
 msgstr ""
 
 msgid "&Open G-code"
@@ -5704,7 +5768,7 @@ msgid "Filament Settings"
 msgstr ""
 
 msgid ""
-"Do you want to synchronize your personal data from Bambu Cloud?\n"
+"Do you want to synchronize your personal data from Orca Cloud?\n"
 "It contains the following information:\n"
 "1. The Process presets\n"
 "2. The Filament presets\n"
@@ -5721,6 +5785,11 @@ msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr ""
 
 msgid "The player is not loaded, please click \"play\" button to retry."
+msgstr ""
+
+msgid ""
+"The player is not loaded because the GStreamer GTK video sink is missing or "
+"failed to initialize."
 msgstr ""
 
 msgid "Please confirm if the printer is connected."
@@ -5834,9 +5903,6 @@ msgid "Download"
 msgstr ""
 
 msgid "Download selected files from printer."
-msgstr ""
-
-msgid "Select"
 msgstr ""
 
 msgid "Batch manage files."
@@ -6492,9 +6558,6 @@ msgstr ""
 msgid "New printer config available."
 msgstr ""
 
-msgid "Wiki Guide"
-msgstr ""
-
 msgid "Undo integration failed."
 msgstr ""
 
@@ -6562,6 +6625,12 @@ msgid "Exported successfully"
 msgstr ""
 
 msgid "Model file downloaded."
+msgstr ""
+
+msgid "Shared profiles may be available for this printer."
+msgstr ""
+
+msgid "Browse shared profiles"
 msgstr ""
 
 msgid "Serious warning:"
@@ -6756,7 +6825,7 @@ msgstr ""
 msgid "Objects"
 msgstr ""
 
-msgid "Show/Hide advanced parameters"
+msgid "Cycle settings visibility"
 msgstr ""
 
 msgid "Compare presets"
@@ -6868,14 +6937,6 @@ msgid ""
 msgstr ""
 
 msgid "Switch diameter"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Left nozzle: %smm"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Right nozzle: %smm"
 msgstr ""
 
 msgid "Configuration incompatible"
@@ -7012,10 +7073,25 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr ""
 
+msgid "Load 3MF"
+msgstr ""
+
+msgid "BambuStudio Project"
+msgstr ""
+
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr ""
 
-msgid "Load 3MF"
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
+msgstr ""
+
+msgid ""
+"The 3MF file was generated by an older version, loading geometry data only."
+msgstr ""
+
+msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
 msgstr ""
 
 msgid ""
@@ -7044,9 +7120,20 @@ msgid ""
 "your software."
 msgstr ""
 
+#, possible-c-format, possible-boost-format
 msgid ""
-"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
-"data only."
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Found unrecognized settings:"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid ""
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Some settings may not be fully compatible."
+msgstr ""
+
+msgid ""
+"The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
 msgstr ""
 
 msgid "Invalid values found in the 3MF:"
@@ -7121,6 +7208,9 @@ msgstr ""
 msgid "Object with multiple parts was detected"
 msgstr ""
 
+msgid "Auto-Drop"
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid ""
 "Connected printer is %s. It must match the project preset for printing.\n"
@@ -7129,6 +7219,9 @@ msgstr ""
 msgid ""
 "Do you want to sync the printer information and automatically switch the "
 "preset?"
+msgstr ""
+
+msgid "Tips"
 msgstr ""
 
 msgid "The file does not contain any geometry data."
@@ -7176,6 +7269,12 @@ msgid ""
 msgstr ""
 
 msgid "The selected object couldn't be split."
+msgstr ""
+
+msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgstr ""
+
+msgid "Object with floating parts was detected"
 msgstr ""
 
 msgid "Another export job is running."
@@ -7329,9 +7428,6 @@ msgstr ""
 
 msgid ""
 "No accelerations provided for calibration. Use default acceleration value "
-msgstr ""
-
-msgid "mm/s²"
 msgstr ""
 
 msgid "No speeds provided for calibration. Use default optimal speed "
@@ -7551,9 +7647,7 @@ msgstr ""
 msgid "Triangles: %1%\n"
 msgstr ""
 
-msgid ""
-"\"Fix Model\" feature is currently only on Windows. Please repair the model "
-"on Orca Slicer(windows) or CAD softwares."
+msgid "Use \"Fix Model\" to repair the mesh."
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -7709,6 +7803,20 @@ msgstr ""
 msgid "Show the splash screen during startup."
 msgstr ""
 
+msgid "Show shared profiles notification"
+msgstr ""
+
+msgid ""
+"Show a notification with a link to browse shared profiles when the selected "
+"printer is changed."
+msgstr ""
+
+msgid "Use window buttons on left side"
+msgstr ""
+
+msgid "(Requires restart)"
+msgstr ""
+
 msgid "Downloads folder"
 msgstr ""
 
@@ -7804,9 +7912,6 @@ msgstr ""
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
 "same time and manage multiple devices."
-msgstr ""
-
-msgid "(Requires restart)"
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -7934,14 +8039,26 @@ msgid "Stealth mode"
 msgstr ""
 
 msgid ""
-"This stops the transmission of data to Bambu's cloud services. Users who "
-"don't use BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
+"the transmission of data to Bambu's cloud services too. Users who don't use "
+"BBL machines or use LAN mode only can safely turn on this function."
 msgstr ""
 
 msgid "Network test"
 msgstr ""
 
 msgid "Test"
+msgstr ""
+
+msgid "Cloud Providers"
+msgstr ""
+
+msgid "Enable Bambu Cloud"
+msgstr ""
+
+msgid ""
+"Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu "
+"login section appears on the homepage."
 msgstr ""
 
 msgid "Update & sync"
@@ -8049,7 +8166,7 @@ msgstr ""
 msgid "Developer"
 msgstr ""
 
-msgid "Develop mode"
+msgid "Developer mode"
 msgstr ""
 
 msgid "Skip AMS blacklist check"
@@ -8199,6 +8316,9 @@ msgid "Unspecified"
 msgstr ""
 
 msgid "Project-inside presets"
+msgstr ""
+
+msgid "Bundle presets"
 msgstr ""
 
 msgid "System"
@@ -8703,6 +8823,12 @@ msgid ""
 "please wait for subsequent firmware support."
 msgstr ""
 
+msgid ""
+"The type of external filament is unknown or does not match with the filament "
+"type in the slicing file. Please make sure you have installed the correct "
+"filament in the external spool."
+msgstr ""
+
 msgid "Please refer to Wiki before use->"
 msgstr ""
 
@@ -9003,8 +9129,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 
 msgid ""
@@ -9118,9 +9244,6 @@ msgstr ""
 msgid "Travel speed"
 msgstr ""
 
-msgid "Acceleration"
-msgstr ""
-
 msgid "Jerk(XY)"
 msgstr ""
 
@@ -9151,6 +9274,9 @@ msgstr ""
 msgid "G-code output"
 msgstr ""
 
+msgid "Change extrusion role G-code"
+msgstr ""
+
 msgid "Post-processing Scripts"
 msgstr ""
 
@@ -9176,9 +9302,6 @@ msgid "Reserved keywords found"
 msgstr ""
 
 msgid "Setting Overrides"
-msgstr ""
-
-msgid "Retraction"
 msgstr ""
 
 msgid "Basic information"
@@ -9367,9 +9490,6 @@ msgstr ""
 msgid "Change filament G-code"
 msgstr ""
 
-msgid "Change extrusion role G-code"
-msgstr ""
-
 msgid "Pause G-code"
 msgstr ""
 
@@ -9382,10 +9502,24 @@ msgstr ""
 msgid "Normal"
 msgstr ""
 
-msgid "Resonance Avoidance"
+msgid "Resonance Compensation"
 msgstr ""
 
 msgid "Resonance Avoidance Speed"
+msgstr ""
+
+msgid "Frequency"
+msgstr ""
+
+msgid ""
+"The frequency of the anti-vibration signal will correspond to the natural "
+"frequency of the frame."
+msgstr ""
+
+msgid "Damping"
+msgstr ""
+
+msgid "Damping ratio for the input shaping filter."
 msgstr ""
 
 msgid "Speed limitation"
@@ -9485,6 +9619,45 @@ msgstr ""
 
 #, possible-boost-format
 msgid "Are you sure to %1% the selected preset?"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid ""
+" - %s:\n"
+"    %s first layer %d %s, other layers %d %s\n"
+"    %s max delta %d %s, current delta %d %s\n"
+msgstr ""
+
+msgid ""
+"Some first-layer and other-layer temperature pairs exceed safety limits.\n"
+msgstr ""
+
+msgid ""
+"\n"
+"Invalid pairs:\n"
+msgstr ""
+
+msgid ""
+"\n"
+"You can go back to edit values, or continue if this is intentional."
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Continue anyway?"
+msgstr ""
+
+msgid "Temperature Safety Check"
+msgstr ""
+
+msgid "Continue"
+msgstr ""
+
+msgid "Back"
+msgstr ""
+
+msgid "Don't warn again for this preset"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -9984,6 +10157,16 @@ msgid "Please choose the filament colour"
 msgstr ""
 
 msgid ""
+"Native Wayland liveview requires the GStreamer GTK video sink. Please "
+"install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+msgstr ""
+
+msgid ""
+"Failed to initialize the native Wayland GStreamer video sink. Please check "
+"your GStreamer GTK plugin installation."
+msgstr ""
+
+msgid ""
 "Windows Media Player is required for this task! Do you want to enable "
 "'Windows Media Player' for your operation system?"
 msgstr ""
@@ -10007,6 +10190,9 @@ msgid ""
 "Your system is missing H.264 codecs for GStreamer, which are required to "
 "play video. (Try installing the gstreamer1.0-plugins-bad or gstreamer1.0-"
 "libav packages, then restart Orca Slicer?)"
+msgstr ""
+
+msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
 msgstr ""
 
 msgid "Bambu Network plug-in not detected."
@@ -10180,10 +10366,10 @@ msgstr ""
 msgid "Zoom out"
 msgstr ""
 
-msgid "Switch between Prepare/Preview"
+msgid "Toggle printable for object/part"
 msgstr ""
 
-msgid "Toggle printable for object/part"
+msgid "Switch between Prepare/Preview"
 msgstr ""
 
 msgid "Plater"
@@ -10265,6 +10451,9 @@ msgid "A new Network plug-in (%s) is available. Do you want to install it?"
 msgstr ""
 
 msgid "New version of Orca Slicer"
+msgstr ""
+
+msgid "Check on Github"
 msgstr ""
 
 msgid "Skip this Version"
@@ -10408,49 +10597,14 @@ msgstr ""
 msgid "Extension Board"
 msgstr ""
 
-msgid "Saving objects into the 3MF failed."
-msgstr ""
-
-msgid "Only Windows 10 is supported."
-msgstr ""
-
-msgid "Failed to initialize the WinRT library."
-msgstr ""
-
-msgid "Exporting objects"
-msgstr ""
-
-msgid "Failed loading objects."
-msgstr ""
-
-msgid "Repairing object by Windows service"
-msgstr ""
-
-msgid "Repair failed."
-msgstr ""
-
-msgid "Loading repaired objects"
-msgstr ""
-
-msgid "Exporting 3MF file failed"
-msgstr ""
-
-msgid "Import 3MF file failed"
-msgstr ""
-
-msgid "Repaired 3MF file does not contain any object"
-msgstr ""
-
-msgid "Repaired 3MF file contains more than one object"
-msgstr ""
-
-msgid "Repaired 3MF file does not contain any volume"
-msgstr ""
-
-msgid "Repaired 3MF file contains more than one volume"
+#, possible-boost-format
+msgid "Split into %1% parts"
 msgstr ""
 
 msgid "Repair finished"
+msgstr ""
+
+msgid "Repair failed"
 msgstr ""
 
 msgid "Repair canceled"
@@ -10490,6 +10644,12 @@ msgid ""
 "faulty mesh"
 msgstr ""
 
+msgid "Process change extrusion role G-code"
+msgstr ""
+
+msgid "Filament change extrusion role G-code"
+msgstr ""
+
 msgid "No object can be printed. Maybe too small"
 msgstr ""
 
@@ -10511,6 +10671,17 @@ msgid "Generating G-code: layer %1%"
 msgstr ""
 
 msgid "Flush volumes matrix do not match to the correct size!"
+msgstr ""
+
+msgid "set_accel_and_jerk() is only supported by Klipper"
+msgstr ""
+
+msgid ""
+"Input shaping is not supported by Marlin < 2.1.2.\n"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+msgstr ""
+
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
 msgstr ""
 
 msgid "Grouping error: "
@@ -10662,29 +10833,19 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Selected nozzle temperatures are incompatible. Each filament's nozzle "
+"temperature must fall within the recommended nozzle temperature range of the "
+"other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr ""
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage. If you still want to print, you can enable the option in "
-"Preferences."
+"Invalid recommended nozzle temperature range. The lower bound must be lower "
+"than the upper bound."
 msgstr ""
 
 msgid ""
-"Printing different-temp filaments together may cause nozzle clogging or "
-"printer damage."
-msgstr ""
-
-msgid ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-
-msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"If you still want to print, you can enable the option in Preferences / "
+"Control / Slicing / Remove mixed temperature restriction."
 msgstr ""
 
 msgid "No extrusions under current settings."
@@ -10978,6 +11139,16 @@ msgid ""
 "The first layer will be shrunk by the elephant foot compensation value, then "
 "the next layers will be linearly shrunk less, up to the layer indicated by "
 "this value."
+msgstr ""
+
+msgid "Elephant foot layers density"
+msgstr ""
+
+msgid ""
+"Density of internal solid infill for Elephant foot layers compensation.\n"
+"The initial value for the second layer is set.\n"
+"Subsequent layers become linearly denser by the height specified in "
+"elefant_foot_compensation_layers."
 msgstr ""
 
 msgid ""
@@ -11676,6 +11847,18 @@ msgid ""
 "easily."
 msgstr ""
 
+msgid "Brim flow ratio"
+msgstr ""
+
+msgid ""
+"This factor affects the amount of material for brims.\n"
+"\n"
+"The actual brim flow used is calculated by multiplying this value by the "
+"filament flow ratio, and if set, the object's flow ratio.\n"
+"\n"
+"Note: The resulting value will not be affected by the first-layer flow ratio."
+msgstr ""
+
 msgid "Brim follows compensated outline"
 msgstr ""
 
@@ -11687,6 +11870,14 @@ msgid ""
 "\n"
 "If your current setup already works well, enabling it may be unnecessary and "
 "can cause the brim to fuse with upper layers."
+msgstr ""
+
+msgid "Combine brims"
+msgstr ""
+
+msgid ""
+"Combine multiple brims into one when they are close to each other. This can "
+"improve brim adhesion."
 msgstr ""
 
 msgid "Brim ears"
@@ -11789,6 +11980,18 @@ msgid "Activate air filtration"
 msgstr ""
 
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
+msgstr ""
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code during print."
+msgstr ""
+
+msgid "On completion"
+msgstr ""
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code after print "
+"completion."
 msgstr ""
 
 msgid ""
@@ -12084,12 +12287,11 @@ msgid "Wall loop direction"
 msgstr ""
 
 msgid ""
-"The direction which the wall loops are extruded when looking down from the "
-"top.\n"
-"\n"
-"By default all walls are extruded in counter-clockwise, unless Reverse on "
-"even is enabled. Set this to any option other than Auto will force the wall "
-"direction regardless of the Reverse on even.\n"
+"The direction which the contour wall loops are extruded when looking down "
+"from the top.\n"
+"Holes are printed in the opposite direction to the contour to maintain "
+"alignment with layers whose contour polygons are incomplete and change "
+"direction, also partially forming the contour of a hole.\n"
 "\n"
 "This option will be disabled if spiral vase mode is enabled."
 msgstr ""
@@ -12569,6 +12771,12 @@ msgid ""
 "tower to produce successive infill or sacrificial object extrusions reliably."
 msgstr ""
 
+msgid "Wipe tower cooling"
+msgstr ""
+
+msgid "Temperature drop before entering filament tower"
+msgstr ""
+
 msgid "Interface layer pre-extrusion distance"
 msgstr ""
 
@@ -12916,8 +13124,8 @@ msgid "mm/s² or %"
 msgstr ""
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 
 msgid ""
@@ -12929,6 +13137,14 @@ msgstr ""
 msgid ""
 "Acceleration of the first layer. Using a lower value can improve build plate "
 "adhesion."
+msgstr ""
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
 msgstr ""
 
 msgid "Enable accel_to_decel"
@@ -12975,6 +13191,11 @@ msgid "Jerk for travel."
 msgstr ""
 
 msgid ""
+"Travel jerk of first layer.\n"
+"The percentage value is relative to Travel Jerk."
+msgstr ""
+
+msgid ""
 "Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
@@ -13002,18 +13223,6 @@ msgstr ""
 msgid "Travel speed of the first layer."
 msgstr ""
 
-msgid "First layer travel acceleration"
-msgstr ""
-
-msgid "Travel acceleration of first layer."
-msgstr ""
-
-msgid "First layer travel jerk"
-msgstr ""
-
-msgid "Travel jerk of first layer."
-msgstr ""
-
 msgid "Number of slow layers"
 msgstr ""
 
@@ -13034,10 +13243,10 @@ msgstr ""
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 
 msgid "layer"
@@ -13199,7 +13408,9 @@ msgid ""
 "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
 "marble-like textures.\n"
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a "
-"random amount. Creates a patchwork texture."
+"random amount. Creates a patchwork texture.\n"
+"Ripple: Uniform ripple pattern that ripples left and right of the original "
+"path. Repeating pattern, woven appearance."
 msgstr ""
 
 msgid "Classic"
@@ -13215,6 +13426,9 @@ msgid "Ridged Multifractal"
 msgstr ""
 
 msgid "Voronoi"
+msgstr ""
+
+msgid "Ripple"
 msgstr ""
 
 msgid "Fuzzy skin feature size"
@@ -13239,6 +13453,43 @@ msgstr ""
 msgid ""
 "The decay rate for higher octaves of the coherent noise. Lower values will "
 "result in smoother noise."
+msgstr ""
+
+msgid "Number of ripples per layer"
+msgstr ""
+
+msgid "Controls how many full cycles of ripples will be added per layer."
+msgstr ""
+
+msgid "Ripple offset"
+msgstr ""
+
+msgid ""
+"Shifts the ripple phase forward along the print path by the specified "
+"percentage of a wavelength each layer period.\n"
+"- 0% keeps every layer identical.\n"
+"- 50% shifts the pattern by half a wavelength, effectively inverting the "
+"phase.\n"
+"- 100% shifts the pattern by a full wavelength, returning to the original "
+"phase.\n"
+"\n"
+"The shift is applied once every number of layers set by Layers between "
+"ripple offset, so layers within the same group are printed identically."
+msgstr ""
+
+msgid "Layers between ripple offset"
+msgstr ""
+
+msgid ""
+"Specifies how many consecutive layers share the same ripple phase before the "
+"offset is applied.\n"
+"For example:\n"
+"- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is "
+"shifted by the configured offset, then layer 3 returns to the base pattern, "
+"and so on.\n"
+"- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 "
+"to 6 are shifted by the configured offset, then layers 7 to 9 return to the "
+"base pattern, etc."
 msgstr ""
 
 msgid "Filter out tiny gaps"
@@ -13760,6 +14011,44 @@ msgstr ""
 msgid "Use a fixed absolute angle for ironing."
 msgstr ""
 
+msgid "Ironing expansion"
+msgstr ""
+
+msgid "Expand or contract the ironing area."
+msgstr ""
+
+msgid "Z contouring enabled"
+msgstr ""
+
+msgid "Enable Z-layer contouring (aka Z-layer anti-aliasing)."
+msgstr ""
+
+msgid "Minimize wall height angle"
+msgstr ""
+
+msgid ""
+"Reduce the height of top-surface perimeters to match the model edge height.\n"
+"Affects perimeters with a slope less than this angle (degrees).\n"
+"A reasonable value is 35. Set to 0 to disable."
+msgstr ""
+
+msgid "°"
+msgstr ""
+
+msgid "Don't alternate fill direction"
+msgstr ""
+
+msgid "Disable alternating fill direction when using Z contouring."
+msgstr ""
+
+msgid "Minimum z height"
+msgstr ""
+
+msgid ""
+"Minimum Z-layer height.\n"
+"Also controls the slicing plane."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 
@@ -13941,6 +14230,88 @@ msgstr ""
 msgid "Maximum speed of resonance avoidance."
 msgstr ""
 
+msgid "Emit input shaping"
+msgstr ""
+
+msgid ""
+"Override firmware input shaping settings.\n"
+"If disabled, firmware settings are used."
+msgstr ""
+
+msgid "Input shaper type"
+msgstr ""
+
+msgid ""
+"Choose the input shaper algorithm.\n"
+"Default uses the firmware default settings.\n"
+"Disable turns off input shaping in the firmware."
+msgstr ""
+
+msgid "MZV"
+msgstr ""
+
+msgid "ZV"
+msgstr ""
+
+msgid "ZVD"
+msgstr ""
+
+msgid "ZVDD"
+msgstr ""
+
+msgid "ZVDDD"
+msgstr ""
+
+msgid "EI"
+msgstr ""
+
+msgid "EI2"
+msgstr ""
+
+msgid "2HUMP_EI"
+msgstr ""
+
+msgid "EI3"
+msgstr ""
+
+msgid "3HUMP_EI"
+msgstr ""
+
+msgid "DAA"
+msgstr ""
+
+msgid "X"
+msgstr ""
+
+msgid ""
+"Resonant frequency for the X axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+
+msgid "Y"
+msgstr ""
+
+msgid ""
+"Resonant frequency for the Y axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+
+msgid ""
+"Damping ratio for the X axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+
+msgid ""
+"Damping ratio for the Y axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+
 msgid ""
 "Part cooling fan speed may be increased when auto cooling is enabled. This "
 "is the maximum speed for the part cooling fan."
@@ -14019,6 +14390,24 @@ msgid ""
 "cooling layers.\n"
 "Please enable auxiliary_fan in printer settings to use this feature. G-code "
 "command: M106 P2 S(0-255)"
+msgstr ""
+
+msgid "For the first"
+msgstr ""
+
+msgid "Set special auxiliary cooling fan for the first certain layers."
+msgstr ""
+
+msgid ""
+"Auxiliary fan speed will be ramped up linearly from layer \"For the first\" "
+"to maximum at layer \"Full fan speed at layer\".\n"
+"\"Full fan speed at layer\" will be ignored if lower than \"For the first\", "
+"in which case the fan will run at maximum allowed speed at layer \"For the "
+"first\" + 1."
+msgstr ""
+
+msgid ""
+"Special auxiliary cooling fan speed, effective only for the first x layers."
 msgstr ""
 
 msgid ""
@@ -14194,6 +14583,14 @@ msgid ""
 "environment variables."
 msgstr ""
 
+msgid "Change extrusion role G-code (process)"
+msgstr ""
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed. It runs after "
+"the machine and filament extrusion role G-code."
+msgstr ""
+
 msgid "Printer type"
 msgstr ""
 
@@ -14213,9 +14610,8 @@ msgid "Raft contact Z distance"
 msgstr ""
 
 msgid ""
-"Z gap between raft and object. "
-"If Support Top Z Distance is 0, this value is ignored and "
-"the object is printed in direct contact with the raft (no gap)."
+"Z gap between raft and object. If Support Top Z Distance is 0, this value is "
+"ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr ""
 
 msgid "Raft expansion"
@@ -14450,9 +14846,6 @@ msgstr ""
 msgid "Aligned back"
 msgstr ""
 
-msgid "Back"
-msgstr ""
-
 msgid "Random"
 msgstr ""
 
@@ -14570,8 +14963,8 @@ msgid "Role base wipe speed"
 msgstr ""
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -14993,9 +15386,9 @@ msgid "Bottom Z distance"
 msgstr ""
 
 msgid ""
-"Z gap between the object and the support bottom. "
-"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
-"is ignored and the support is printed in direct contact with the object (no gap)."
+"Z gap between the object and the support bottom. If Support Top Z Distance "
+"is 0 and the bottom has interface layers, this value is ignored and the "
+"support is printed in direct contact with the object (no gap)."
 msgstr ""
 
 msgid "Support/raft base"
@@ -15154,8 +15547,10 @@ msgid "Threshold angle"
 msgstr ""
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the "
-"threshold."
+"Support will be generated for overhangs whose slope angle is below the threshold. "
+"The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, "
+"while tree supports fall back to a default value of 30."
 msgstr ""
 
 msgid "Threshold overlap"
@@ -15290,8 +15685,8 @@ msgstr ""
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -15341,6 +15736,14 @@ msgid ""
 msgstr ""
 
 msgid "This G-code is inserted when the extrusion role is changed."
+msgstr ""
+
+msgid "Change extrusion role G-code (filament)"
+msgstr ""
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed for the active "
+"filament."
 msgstr ""
 
 msgid ""
@@ -15775,6 +16178,25 @@ msgid ""
 "above the default value of 0.5, or if single-wall top surfaces is enabled."
 msgstr ""
 
+msgid "Maximum wall resolution"
+msgstr ""
+
+msgid ""
+"This value determines the smallest wall line segment length in mm. The "
+"smaller you set this value, the more accurate and precise the walls will be."
+msgstr ""
+
+msgid "Maximum wall deviation"
+msgstr ""
+
+msgid ""
+"The maximum deviation allowed when reducing the resolution for the 'Maximum "
+"wall resolution' setting. If you increase this, the print will be less "
+"accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits "
+"'Maximum wall resolution', so if the two conflict, 'Maximum wall deviation' "
+"takes precedence."
+msgstr ""
+
 msgid "First layer minimum wall width"
 msgstr ""
 
@@ -16047,8 +16469,8 @@ msgid "Debug level"
 msgstr ""
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 
 msgid "Enable timelapse for print"
@@ -16459,6 +16881,9 @@ msgstr ""
 msgid "Generating infill toolpath"
 msgstr ""
 
+msgid "Z contouring"
+msgstr ""
+
 msgid "Detect overhangs for auto-lift"
 msgstr ""
 
@@ -16546,9 +16971,6 @@ msgstr ""
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr ""
 
-msgid "Flow Rate Calibration"
-msgstr ""
-
 msgid "Max Volumetric Speed Calibration"
 msgstr ""
 
@@ -16601,9 +17023,6 @@ msgid "Extra info"
 msgstr ""
 
 msgid "Flow Dynamics"
-msgstr ""
-
-msgid "Flow Rate"
 msgstr ""
 
 msgid "Max Volumetric Speed"
@@ -16832,7 +17251,7 @@ msgstr ""
 msgid "Please find the best line on your plate"
 msgstr ""
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr ""
 
 msgid "Input Value"
@@ -16954,9 +17373,10 @@ msgid "TPU is not supported for Flow Dynamics Auto-Calibration."
 msgstr ""
 
 msgid ""
-"Cannot print multiple filaments which have large difference of temperature "
-"together. Otherwise, the extruder and nozzle may be blocked or damaged "
-"during printing"
+"Selected nozzle temperatures are incompatible. For multi-material printing, "
+"each filament's nozzle temperature must be within the recommended nozzle "
+"temperature range of the other filaments. Otherwise, nozzle clogging or "
+"printer damage may occur."
 msgstr ""
 
 msgid "Sync AMS and nozzle information"
@@ -17209,9 +17629,6 @@ msgstr ""
 msgid "Fast Tower"
 msgstr ""
 
-msgid "Input shaper type"
-msgstr ""
-
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
 msgstr ""
@@ -17267,9 +17684,6 @@ msgid "Check firmware compatibility."
 msgstr ""
 
 msgid "Frequency: "
-msgstr ""
-
-msgid "Frequency"
 msgstr ""
 
 msgid "Damp"
@@ -17333,6 +17747,27 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
+msgstr ""
+
+msgid "Flow Ratio Calibration"
+msgstr ""
+
+msgid "Calibration Test Type"
+msgstr ""
+
+msgid "Pass 1 (Coarse)"
+msgstr ""
+
+msgid "Pass 2 (Fine)"
+msgstr ""
+
+msgid "YOLO (Recommended)"
+msgstr ""
+
+msgid "YOLO (Perfectionist)"
+msgstr ""
+
+msgid "Top Surface Pattern"
 msgstr ""
 
 msgid "Send G-code to printer host"
@@ -17537,7 +17972,7 @@ msgstr ""
 msgid "Vendor is not selected, please reselect vendor."
 msgstr ""
 
-msgid "Custom vendor is not input, please input custom vendor."
+msgid "Custom vendor is missing, please input custom vendor."
 msgstr ""
 
 msgid ""
@@ -17568,8 +18003,8 @@ msgstr ""
 #, possible-c-format, possible-boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. Do "
+"you want to continue?"
 msgstr ""
 
 msgid "Some existing presets have failed to be created, as follows:\n"
@@ -17581,8 +18016,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -18648,6 +19083,9 @@ msgstr ""
 msgid "Global settings"
 msgstr ""
 
+msgid "Video tutorial"
+msgstr ""
+
 msgid "(Sync with printer)"
 msgstr ""
 
@@ -18784,9 +19222,6 @@ msgid "This action cannot be undone. Continue?"
 msgstr ""
 
 msgid "Skipping objects."
-msgstr ""
-
-msgid "Continue"
 msgstr ""
 
 msgid "Select Filament"
@@ -19058,7 +19493,7 @@ msgid "Stack objects\nDid you know that you can stack objects as a whole one?"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
-msgid "Flush into support/objects/infill\nDid you know that you can save wasted filament by flushing it into support/objects/infill during filament change?"
+msgid "Flush into support/objects/infill\nDid you know that you can reduce wasted filament by flushing it into support/objects/infill during filament change?"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Improve strength]
