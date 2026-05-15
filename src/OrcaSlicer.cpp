@@ -1908,6 +1908,15 @@ int CLI::run(int argc, char **argv)
             if (type_iter != key_values.end()) {
                 config_type = type_iter->second;
             }
+            // User-saved presets (from == "User") often omit the "type" field.
+            // Infer it from the parent directory name ("machine"/"process"/"filament").
+            if (config_type.empty()) {
+                std::string parent = boost::filesystem::path(file).parent_path().filename().string();
+                if (parent == "machine" || parent == "process" || parent == "filament") {
+                    config_type = parent;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": inferred config type %1% from path for %2%") % config_type % file;
+                }
+            }
             if (config_type == "machine") {
                 //config.set("printer_settings_id", config_name, true);
                 //printer_inherits = config.option<ConfigOptionString>("inherits", true)->value;

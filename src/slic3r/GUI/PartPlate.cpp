@@ -2543,7 +2543,19 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 		// Orca: For sinking object, we use a more expensive algorithm so part below build plate won't be considered
 		if (plate_box.intersects(instance_box)) {
 			// TODO: FIXME: this does not take exclusion area into account
-            const BuildVolume build_volume(get_shape(), m_plater->build_volume().printable_height(), m_extruder_areas, m_extruder_heights);
+			// CLI has no Plater; fall back to the plate list's printer-driven Z
+			// (set by PartPlateList::reset_size from the active machine config).
+			double printable_h = 0.0;
+			if (m_plater) {
+				printable_h = m_plater->build_volume().printable_height();
+			} else if (m_partplate_list) {
+				int w = 0, d = 0, h = 0;
+				m_partplate_list->get_plate_size(w, d, h);
+				printable_h = static_cast<double>(h);
+			} else {
+				printable_h = static_cast<double>(m_height);
+			}
+			const BuildVolume build_volume(get_shape(), printable_h, m_extruder_areas, m_extruder_heights);
 			const auto state = instance->calc_print_volume_state(build_volume);
 			outside = state == ModelInstancePVS_Partly_Outside;
 		}
