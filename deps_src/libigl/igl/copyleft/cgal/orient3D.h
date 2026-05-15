@@ -17,12 +17,15 @@ namespace igl
   {
     namespace cgal
     {
-      // Inputs:
-      //   pa,pb,pc,pd  3D points.
-      // Output:
-      //   1 if pa,pb,pc,pd forms a tet of positive volume.
-      //   0 if pa,pb,pc,pd are coplanar.
-      //  -1 if pa,pb,pc,pd forms a tet of negative volume.
+      /// Tests whether a point is above, on, or below a plane.
+      ///
+      /// @param[in] pa 3D point on plane
+      /// @param[in] pb 3D point on plane
+      /// @param[in] pc 3D point on plane
+      /// @param[in] pd 3D point to test
+      ///  @return 1 if pa,pb,pc,pd forms a tet of positive volume.
+      ///   0 if pa,pb,pc,pd are coplanar.
+      ///  -1 if pa,pb,pc,pd forms a tet of negative volume.
       template <typename Scalar>
       IGL_INLINE short orient3D(
           const Scalar pa[3],

@@ -1,24 +1,24 @@
 {
-    "type": "filament",
-    "name": "Cubicon PLAi21 @base",
-    "inherits": "Cubicon PLA @base",
-    "filament_id": "P510cfa2",
-    "instantiation": "true",
-    "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle",
-        "Cubicon xCeler-Plus 0.4 nozzle"
-    ],
-    "default_filament_colour": "",
-    "filament_settings_id": [
-        "Cubicon PLAi21 @base"
-    ],
-    "filament_type": [
-        "PLA"
-    ],
-    "filament_vendor": [
-        "Cubicon"
-    ],
-    "temperature_vitrification": [
-        "45"
-    ]
+	"type": "filament",
+	"name": "Cubicon PLAi21 @base",
+	"inherits": "Cubicon PLA @base",
+	"filament_id": "P510cfa2",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-I 0.4 nozzle",
+		"Cubicon xCeler-Plus 0.4 nozzle"
+	],
+	"default_filament_colour": "",
+	"filament_settings_id": [
+		"Cubicon PLAi21 @base"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_vendor": [
+		"Cubicon"
+	],
+	"temperature_vitrification": [
+		"45"
+	]
 }

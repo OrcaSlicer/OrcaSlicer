@@ -1,0 +1,394 @@
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --border: #d8d8d8;
+  --border-strong: #e6e6e6;
+  --border-soft: #f0f0f0;
+  --col-sep: #e1e1e1;
+
+  --text: #1f2328;
+  --row-hover: #f7f9fb;
+  --row-selected: #eaf2ff;
+  --row-selected-outline: #b7d0ff;
+
+  --footer-bg: #fafafa;
+  --btn-bg: #ffffff;
+  --btn-border: #cccccc;
+  --btn-hover: #f0f0f0;
+
+  --ctx-bg: #ffffff;
+  --ctx-border: #cccccc;
+  --ctx-hover: #efefef;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* App layout: split content + footer */
+.app {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Split panes */
+.split {                                                                                                                                                                                                                                                                             
+    height: 100%;                                                                                                                                                                                                                                                                      
+    display: grid;                                                                                                                                                                                                                                                                     
+    grid-template-rows: auto minmax(0, 1.25fr) minmax(140px, 0.75fr);                                                                                                                                                                                                                  
+    gap: 8px;                                                                                                                                                                                                                                                                          
+    padding: 8px;                                                                                                                                                                                                                                                                      
+    box-sizing: border-box;                                                                                                                                                                                                                                                            
+    min-height: 0;                                                                                                                                                                                                                                                                     
+    overflow: hidden;                                                                                                                                                                                                                                                                  
+}
+
+.top-toolbar {                                                                                                                                                                                                                                                                       
+    display: flex;                                                                                                                                                                                                                                                                     
+    align-items: center;                                                                                                                                                                                                                                                               
+    justify-content: space-between;                                                                                                                                                                                                                                                    
+    gap: 12px;                                                                                                                                                                                                                                                                         
+    padding: 0 2px;                                                                                                                                                                                                                                                                    
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .toolbar-btn {                                                                                                                                                                                                                                                                       
+    min-width: 92px;                                                                                                                                                                                                                                                                   
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch {                                                                                                                                                                                                                                                                
+    display: inline-flex;                                                                                                                                                                                                                                                              
+    align-items: center;                                                                                                                                                                                                                                                               
+    gap: 10px;                                                                                                                                                                                                                                                                         
+    font-size: 13px;                                                                                                                                                                                                                                                                   
+    font-weight: 600;                                                                                                                                                                                                                                                                  
+    color: var(--text);                                                                                                                                                                                                                                                                
+    user-select: none;                                                                                                                                                                                                                                                                 
+    cursor: pointer;                                                                                                                                                                                                                                                                   
+    position: relative;                                                                                                                                                                                                                                                                
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input {                                                                                                                                                                                                                                                          
+    position: absolute;                                                                                                                                                                                                                                                                
+    opacity: 0;                                                                                                                                                                                                                                                                        
+    pointer-events: none;                                                                                                                                                                                                                                                              
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-label {                                                                                                                                                                                                                                                                 
+    white-space: nowrap;                                                                                                                                                                                                                                                               
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-slider {                                                                                                                                                                                                                                                                
+    position: relative;                                                                                                                                                                                                                                                                
+    width: 52px;                                                                                                                                                                                                                                                                       
+    height: 24px;                                                                                                                                                                                                                                                                      
+    flex: 0 0 52px;                                                                                                                                                                                                                                                                    
+    border-radius: 999px;                                                                                                                                                                                                                                                              
+    background: #b9b9b9;                                                                                                                                                                                                                                                               
+    transition: background 0.2s ease;                                                                                                                                                                                                                                                  
+    box-sizing: border-box;                                                                                                                                                                                                                                                            
+    overflow: hidden;                                                                                                                                                                                                                                                                  
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-slider::before {                                                                                                                                                                                                                                                        
+    content: "";                                                                                                                                                                                                                                                                       
+    position: absolute;                                                                                                                                                                                                                                                                
+    top: 2px;                                                                                                                                                                                                                                                                          
+    left: 2px;                                                                                                                                                                                                                                                                         
+    width: 20px;                                                                                                                                                                                                                                                                       
+    height: 20px;                                                                                                                                                                                                                                                                      
+    border-radius: 50%;                                                                                                                                                                                                                                                                
+    background: #ffffff;                                                                                                                                                                                                                                                               
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);                                                                                                                                                                                                                                         
+    transition: transform 0.2s ease;                                                                                                                                                                                                                                                   
+    z-index: 2;                                                                                                                                                                                                                                                                        
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-text {                                                                                                                                                                                                                                                                  
+    position: absolute;                                                                                                                                                                                                                                                                
+    top: 50%;                                                                                                                                                                                                                                                                          
+    transform: translateY(-50%);                                                                                                                                                                                                                                                       
+    font-size: 9px;                                                                                                                                                                                                                                                                    
+    font-weight: 700;                                                                                                                                                                                                                                                                  
+    line-height: 1;                                                                                                                                                                                                                                                                    
+    letter-spacing: 0.3px;                                                                                                                                                                                                                                                             
+    z-index: 1;                                                                                                                                                                                                                                                                        
+    pointer-events: none;                                                                                                                                                                                                                                                              
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-text-off {                                                                                                                                                                                                                                                              
+    right: 7px;                                                                                                                                                                                                                                                                        
+    color: #ffffff;                                                                                                                                                                                                                                                                    
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-text-on {                                                                                                                                                                                                                                                               
+    left: 7px;                                                                                                                                                                                                                                                                         
+    color: #ffffff;                                                                                                                                                                                                                                                                    
+    opacity: 0.55;                                                                                                                                                                                                                                                                     
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:checked + .auto-update-slider {                                                                                                                                                                                                                            
+    background: var(--main-color);                                                                                                                                                                                                                                                     
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:checked + .auto-update-slider::before {                                                                                                                                                                                                                    
+    transform: translateX(28px);                                                                                                                                                                                                                                                       
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:checked + .auto-update-slider .auto-update-text-on {                                                                                                                                                                                                       
+    opacity: 1;                                                                                                                                                                                                                                                                        
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:checked + .auto-update-slider .auto-update-text-off {                                                                                                                                                                                                      
+    opacity: 0.55;                                                                                                                                                                                                                                                                     
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:not(:checked) + .auto-update-slider .auto-update-text-on {                                                                                                                                                                                                 
+    opacity: 0.55;                                                                                                                                                                                                                                                                     
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:not(:checked) + .auto-update-slider .auto-update-text-off {                                                                                                                                                                                                
+    opacity: 1;                                                                                                                                                                                                                                                                        
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:focus-visible + .auto-update-slider {                                                                                                                                                                                                                      
+    outline: 2px solid var(--main-color);                                                                                                                                                                                                                                              
+    outline-offset: 2px;                                                                                                                                                                                                                                                               
+  }                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                       
+  .auto-update-switch input:disabled + .auto-update-slider {                                                                                                                                                                                                                           
+    opacity: 0.5;
+  }
+
+.pane {
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.hdr {
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 8px 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.top-cols { grid-template-columns: minmax(0, 2fr) 1fr 1fr 88px; }                                                                                                                                                                                                                                                                                              
+  .bot-cols { grid-template-columns: 2fr 1fr; }                                                                                                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                                                                                                                                                 
+  .top .row { grid-template-columns: minmax(0, 2fr) 1fr 1fr 88px; }                                                                                                                                                                                                                                                                                              
+  .bottom .row { grid-template-columns: 2fr 1fr; }
+
+.body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hdr > *,                                                                                                                                                                                                                                                                                                                                                      
+  .row > * {                                                                                                                                                                                                                                                                                                                                                     
+    min-width: 0;                                                                                                                                                                                                                                                                                                                                                
+    overflow: hidden;                                                                                                                                                                                                                                                                                                                                            
+    text-overflow: ellipsis;
+    white-space: nowrap;                                                                                                                                                                                                                                                                                                                                         
+    padding-right: 8px;                                                                                                                                                                                                                                                                                                                                          
+    border-right: 1px solid var(--col-sep);                                                                                                                                                                                                                                                                                                                      
+    box-sizing: border-box;                                                                                                                                                                                                                                                                                                                                      
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .hdr > *:last-child,                                                                                                                                                                                                                                                                                                                                           
+  .row > *:last-child {                                                                                                                                                                                                                                                                                                                                          
+    border-right: none;                                                                                                                                                                                                                                                                                                                                          
+    padding-right: 0;                                                                                                                                                                                                                                                                                                                                            
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-name-cell {                                                                                                                                                                                                                                                                                                                                            
+    display: flex;                                                                                                                                                                                                                                                                                                                                               
+    align-items: center;                                                                                                                                                                                                                                                                                                                                         
+    gap: 8px;                                                                                                                                                                                                                                                                                                                                                    
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-name-text {                                                                                                                                                                                                                                                                                                                                            
+    min-width: 0;                                                                                                                                                                                                                                                                                                                                                
+    overflow: hidden;                                                                                                                                                                                                                                                                                                                                            
+    text-overflow: ellipsis;                                                                                                                                                                                                                                                                                                                                     
+    white-space: nowrap;
+  }
+
+  .bundle-cloud-link {
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    text-underline-offset: 2px;
+  }
+
+  .bundle-cloud-link:hover,
+  .bundle-cloud-link:focus-visible {
+    color: inherit;
+    text-decoration: underline;
+  }
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-status-icon,                                                                                                                                                                                                                                                                                                                                           
+  .bundle-status-icon-spacer {                                                                                                                                                                                                                                                                                                                                   
+    flex: 0 0 14px;                                                                                                                                                                                                                                                                                                                                              
+    width: 14px;
+    height: 14px;                                                                                                                                                                                                                                                                                                                                                
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-status-icon {
+    display: inline-flex;                                                                                                                                                                                                                                                                                                                                        
+    align-items: center;                                                                                                                                                                                                                                                                                                                                         
+    justify-content: center;
+    border-radius: 50%;                                                                                                                                                                                                                                                                                                                                         
+    background: #f59e0b;                                                                                                                                                                                                                                                                                                                                         
+    color: #fff;                                                                                                                                                                                                                                                                                                                                                 
+    font-size: 10px;                                                                                                                                                                                                                                                                                                                                             
+    font-weight: 700;                                                                                                                                                                                                                                                                                                                                            
+    line-height: 14px;                                                                                                                                                                                                                                                                                                                                          
+  }                                                                                                                                                                                                                                                                                                                                                              
+
+  .bundle-status-icon-unauthorized {
+    background: #dc2626;
+  }
+
+  .bundle-status-icon-update {
+    background: var(--main-color);
+    font-size: 12px;
+  }
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-update-cell {                                                                                                                                                                                                                                                                                                                                         
+    display: flex;                                                                                                                                                                                                                                                                                                                                               
+    align-items: center;                                                                                                                                                                                                                                                                                                                                         
+    justify-content: flex-start;                                                                                                                                                                                                                                                                                                                                 
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-update-btn {                                                                                                                                                                                                                                                                                                                                           
+    box-sizing: border-box;                                                                                                                                                                                                                                                                                                                                      
+    min-width: 64px;                                                                                                                                                                                                                                                                                                                                             
+    height: 20px;                                                                                                                                                                                                                                                                                                                                                
+    line-height: 18px;                                                                                                                                                                                                                                                                                                                                           
+    padding: 0 8px;                                                                                                                                                                                                                                                                                                                                              
+    border-radius: 4px;
+    font-size: 11px;                                                                                                                                                                                                                                                                                                                                             
+    cursor: pointer;                                                                                                                                                                                                                                                                                                                                             
+    border: 1px solid transparent;                                                                                                                                                                                                                                                                                                                               
+  }                                                                                                                                                                                                                                                                                                                                                              
+
+  .bundle-update-btn.is-enabled {                                                                                                                                                                                                                                                                                                                                
+    background: var(--main-color);                                                                                                                                                                                                                                                                                                                               
+    color: var(--button-fg-light);                                                                                                                                                                                                                                                                                                                               
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-update-btn.is-enabled:hover {                                                                                                                                                                                                                                                                                                                          
+    background: var(--main-color-hover);                                                                                                                                                                                                                                                                                                                         
+  }                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                 
+  .bundle-update-btn.is-disabled {                                                                                                                                                                                                                                                                                                                               
+    background: var(--button-bg-disabled);                                                                                                                                                                                                                                                                                                                       
+    color: var(--button-fg-disabled);                                                                                                                                                                                                                                                                                                                            
+    cursor: not-allowed;                                                                                                                                                                                                                                                                                                                                         
+  }
+
+
+#topList,
+#bottomList {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Column separators + clipping */
+
+.row {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+
+.row:hover { background: var(--row-hover); }
+
+.row.selected {
+  background: var(--row-selected);
+  outline: 1px solid var(--row-selected-outline);
+}
+
+/* Footer styling
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  background: var(--footer-bg);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.footer-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.footer-btn:hover { background: var(--btn-hover); } */
+
+/* Context menu */
+.ctx {
+  position: fixed;
+  min-width: 180px;
+  background: var(--ctx-bg);
+  border: 1px solid var(--ctx-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.18);
+  padding: 4px;
+  z-index: 9999;
+}
+
+.ctx-item,
+.ctx-item-subscribed, .ctx-item-delete {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.ctx-item:hover,
+.ctx-item-subscribed:hover ,
+.ctx-item-delete:hover
+{ background: var(--ctx-hover); }
+
+.ctx-item[hidden],
+.ctx-item-subscribed[hidden] ,
+.ctx-item-delete[hidden]{
+  display: none;
+}
+
+#AcceptArea {
+  flex: 0 0 auto;
+}

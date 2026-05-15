@@ -28,11 +28,36 @@ appimage_is_elf_file() {
 
 appimage_list_direct_dependencies() {
     local target="$1"
-    local line dep
+    local line dep dep_name
+    declare -A needed=()
+
+    # Use objdump to identify the direct DT_NEEDED entries first. ldd reports the
+    # full runtime tree, which can accidentally pull transitive dependencies of the
+    # host GTK/pixbuf stack into the AppImage bundle.
+    while IFS= read -r dep_name; do
+        if [[ -n "$dep_name" ]]; then
+            needed["$dep_name"]=1
+        fi
+    done < <(objdump -p "$target" 2>/dev/null | awk '$1 == "NEEDED" { print $2 }')
+
+    if (( ${#needed[@]} == 0 )); then
+        return 0
+    fi
 
     while IFS= read -r line; do
+        dep_name=""
+        if [[ "$line" == *"=>"* ]]; then
+            dep_name="$(printf '%s\n' "$line" | awk '{print $1}')"
+        elif [[ "$line" =~ ^[[:space:]]/ ]]; then
+            dep_name="$(basename "$(printf '%s\n' "$line" | awk '{print $1}')")"
+        fi
+
+        if [[ -z "$dep_name" || -z "${needed[$dep_name]+x}" ]]; then
+            continue
+        fi
+
         if [[ "$line" == *"=> not found"* ]]; then
-            echo "MISSING:${line%% *}"
+            echo "MISSING:$dep_name"
             continue
         fi
 

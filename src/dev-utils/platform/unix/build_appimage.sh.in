@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 APPIMAGETOOLURL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 
 
 APP_IMAGE="@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage"
@@ -33,7 +35,10 @@ mkdir -p usr/share/applications
 cp com.orcaslicer.@SLIC3R_APP_KEY@.desktop usr/share/applications/
 
 mkdir -p usr/share/metainfo
-cp @CMAKE_CURRENT_SOURCE_DIR@/scripts/flatpak/com.orcaslicer.@SLIC3R_APP_KEY@.metainfo.xml usr/share/metainfo/
+cp "${REPO_ROOT}/scripts/flatpak/com.orcaslicer.@SLIC3R_APP_KEY@.metainfo.xml" \
+  "usr/share/metainfo/com.orcaslicer.@SLIC3R_APP_KEY@.metainfo.xml"
+cp "${REPO_ROOT}/scripts/flatpak/com.orcaslicer.@SLIC3R_APP_KEY@.metainfo.xml" \
+  "usr/share/metainfo/com.orcaslicer.@SLIC3R_APP_KEY@.appdata.xml"
 
 
 export ARCH=$(uname -m)

@@ -1,10 +1,14 @@
 {
-    "type": "filament",
-    "setting_id": "GFSN99",
-    "name": "QIDI PPS-GF @Qidi X-Plus 4 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "QIDI PPS-GF",
-    "pressure_advance": ["0.03"],
-	"compatible_printers": ["Qidi X-Plus 4 0.4 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSN99",
+	"name": "QIDI PPS-GF @Qidi X-Plus 4 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "QIDI PPS-GF",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Plus 4 0.4 nozzle"
+	]
 }

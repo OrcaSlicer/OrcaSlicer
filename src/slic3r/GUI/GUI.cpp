@@ -1,5 +1,6 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "ICloudServiceAgent.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
 
@@ -76,6 +77,12 @@ void break_to_debugger()
     if (IsDebuggerPresent())
         DebugBreak();
     #endif /* _WIN32 */
+}
+
+const std::string& shortkey_shift_prefix()
+{
+	static const std::string str = _u8L("Shift+");
+    return str;
 }
 
 const std::string& shortkey_ctrl_prefix()
@@ -516,15 +523,6 @@ void about()
 {
     AboutDialog dlg;
     dlg.ShowModal();
-}
-
-void login()
-{
-	//LoginDialog dlg;
-	//dlg.ShowModal();
-
-	ZUserLogin dlg;
-    dlg.run();
 }
 
 void desktop_open_datadir_folder()

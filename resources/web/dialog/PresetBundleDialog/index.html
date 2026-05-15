@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preset Bundle</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
+    <link rel="stylesheet" type="text/css" href="../css/common.css" />	
+    <!-- <link rel="stylesheet" type="text/css" href="23.css" /> -->
+    <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
+    <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../js/json2.js"></script>	
+    <script type="text/javascript" src="../../data/text.js"></script>	
+    <script type="text/javascript" src="../js/globalapi.js"></script>	
+    <script type="text/javascript" src="../js/common.js"></script>
+    <!-- <script type="text/javascript" src="./23.js"></script>	 -->
+     <script src="./index.js"></script>
+</head>
+<body onLoad="OnInit()">
+  <div class="app">                                                                                                                                                                                                                                                                    
+    <div class="split">                                                                                                                                                                                                                                                                
+      <div class="top-toolbar">                                                                                                                                                                                                                                                        
+        <button id="refresh_btn" class="ButtonStyleConfirm ButtonTypeChoice toolbar-btn">Refresh</button>                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                       
+        <!-- <label class="auto-update-switch" for="auto_update_toggle">                                                                                                                                                                                                                          
+          <span class="auto-update-label">Auto update</span>                                                                                                                                                                                                                                 
+          <input id="auto_update_toggle" type="checkbox" />                                                                                                                                                                                                                                  
+          <span class="auto-update-slider" aria-hidden="true">                                                                                                                                                                                                                               
+            <span class="auto-update-text auto-update-text-off">OFF</span>                                                                                                                                                                                                                   
+            <span class="auto-update-text auto-update-text-on">ON</span>                                                                                                                                                                                                                     
+          </span>                                                                                                                                                                                                                                                                            
+        </label>                                                                                                                                                                                                                                                                       -->
+      </div>                                                                                                                                                                                                                                                                           
+                                                                                                                                                                                                                                                                                       
+      <section class="pane top">                                                                                                                                                                                                                                                       
+        <div class="hdr top-cols">                                                                                                                                                                                                                                                     
+          <span>Name</span>                                                                                                                                                                                                                                                            
+          <span>Type</span>                                                                                                                                                                                                                                                            
+          <span>Version</span>                                                                                                                                                                                                                                                         
+          <span>Update</span>                                                                                                                                                                                                                                                          
+        </div>                                                                                                                                                                                                                                                                         
+        <div id="topList" class="body"></div>                                                                                                                                                                                                                                          
+      </section>                                                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                       
+      <section class="pane bottom">                                                                                                                                                                                                                                                    
+        <div class="hdr bot-cols">                                                                                                                                                                                                                                                     
+          <span>Name</span>                                                                                                                                                                                                                                                            
+          <span>Type</span>                                                                                                                                                                                                                                                            
+        </div>                                                                                                                                                                                                                                                                         
+        <div id="bottomList" class="body"></div>                                                                                                                                                                                                                                       
+      </section>                                                                                                                                                                                                                                                                       
+    </div>                                                                                                                                                                                                                                                                             
+  </div>
+
+  <!-- Footer -->
+    <div id="AcceptArea">
+      <div id="export_btn" class="ButtonStyleConfirm ButtonTypeChoice" hidden>Export Presets</div>
+      <div id="close_btn" class="ButtonStyleRegular ButtonTypeChoice">Close</div>
+    </div>
+
+  <!-- Context Menu -->
+  <div id="ctxMenu" class="ctx" hidden>
+    <button class="ctx-item" data-action="open_folder">Open folder in explorer</button>
+    <button id = "delete_btn" class="ctx-item-delete" data-action="delete_bundle" hidden>Delete bundle</button>
+    <button id = "unsubscribe_btn" class="ctx-item-subscribed" data-action="unsubscribe_bundle" hidden>Unsubscribe bundle</button>
+  </div>
+
+  
+</body>
+</html>

@@ -22,24 +22,21 @@ namespace igl
   {
     namespace cgal
     {
-      //  MESH_BOOLEAN Compute boolean csg operations on "solid", consistently
-      //  oriented meshes.
-      //
-      //  Inputs:
-      //    VA  #VA by 3 list of vertex positions of first mesh
-      //    FA  #FA by 3 list of triangle indices into VA
-      //    VB  #VB by 3 list of vertex positions of second mesh
-      //    FB  #FB by 3 list of triangle indices into VB
-      //    type  type of boolean operation
-      //  Outputs:
-      //    VC  #VC by 3 list of vertex positions of boolean result mesh
-      //    FC  #FC by 3 list of triangle indices into VC
-      //    J  #FC list of indices into [FA;FA.rows()+FB] revealing "birth" facet
-      //  Returns true if inputs induce a piecewise constant winding number
-      //  field and type is valid
-      //
-      //  See also: mesh_boolean_cork, intersect_other,
-      //  remesh_self_intersections
+      ///  Compute Boolean csg operations on "solid", consistently oriented
+      ///  meshes.
+      ///
+      ///  @param[in] VA  #VA by 3 list of vertex positions of first mesh
+      ///  @param[in] FA  #FA by 3 list of triangle indices into VA
+      ///  @param[in] VB  #VB by 3 list of vertex positions of second mesh
+      ///  @param[in] FB  #FB by 3 list of triangle indices into VB
+      ///  @param[in] type  type of boolean operation
+      ///  @param[out] VC  #VC by 3 list of vertex positions of boolean result mesh
+      ///  @param[out] FC  #FC by 3 list of triangle indices into VC
+      ///  @param[out] J  #FC list of indices into [FA;FA.rows()+FB] revealing "birth" facet
+      ///  @return true if inputs induce a piecewise constant winding number
+      ///  field and type is valid
+      ///
+      ///  \see mesh_boolean_cork, intersect_other, remesh_self_intersections
       template <
         typename DerivedVA,
         typename DerivedFA,
@@ -57,6 +54,8 @@ namespace igl
         Eigen::PlainObjectBase<DerivedVC > & VC,
         Eigen::PlainObjectBase<DerivedFC > & FC,
         Eigen::PlainObjectBase<DerivedJ > & J);
+      /// \overload
+      /// @param[in] type_str  string describing type of boolean operation see mesh_boolean_type_to_funcs
       template <
         typename DerivedVA,
         typename DerivedFA,
@@ -74,25 +73,12 @@ namespace igl
         Eigen::PlainObjectBase<DerivedVC > & VC,
         Eigen::PlainObjectBase<DerivedFC > & FC,
         Eigen::PlainObjectBase<DerivedJ > & J);
-      //
-      //  Inputs:
-      //    VA  #VA by 3 list of vertex positions of first mesh
-      //    FA  #FA by 3 list of triangle indices into VA
-      //    VB  #VB by 3 list of vertex positions of second mesh
-      //    FB  #FB by 3 list of triangle indices into VB
-      //    wind_num_op  function handle for filtering winding numbers from
-      //      tuples of integer values to [0,1] outside/inside values
-      //    keep  function handle for determining if a patch should be "kept"
-      //      in the output based on the winding number on either side
-      //  Outputs:
-      //    VC  #VC by 3 list of vertex positions of boolean result mesh
-      //    FC  #FC by 3 list of triangle indices into VC
-      //    J  #FC list of indices into [FA;FB] revealing "birth" facet
-      //  Returns true iff inputs induce a piecewise constant winding number
-      //    field
-      //
-      //  See also: mesh_boolean_cork, intersect_other,
-      //  remesh_self_intersections
+      ///  \overload
+      ///
+      ///  @param[in] wind_num_op  function handle for filtering winding numbers from
+      ///               tuples of integer values to [0,1] outside/inside values
+      ///  @param[in] keep  function handle for determining if a patch should be "kept"
+      ///      in the output based on the winding number on either side
       template <
         typename DerivedVA,
         typename DerivedFA,
@@ -111,26 +97,21 @@ namespace igl
           Eigen::PlainObjectBase<DerivedVC > & VC,
           Eigen::PlainObjectBase<DerivedFC > & FC,
           Eigen::PlainObjectBase<DerivedJ > & J);
-      //  MESH_BOOLEAN Variadic boolean operations
-      //
-      //  Inputs:
-      //    Vlist  k-long list of lists of mesh vertex positions
-      //    Flist  k-long list of lists of mesh face indices, so that Flist[i] indexes
-      //      vertices in Vlist[i]
-      //    wind_num_op  function handle for filtering winding numbers from
-      //      n-tuples of integer values to [0,1] outside/inside values
-      //    keep  function handle for determining if a patch should be "kept"
-      //      in the output based on the winding number on either side
-      //  Outputs:
-      //    VC  #VC by 3 list of vertex positions of boolean result mesh
-      //    FC  #FC by 3 list of triangle indices into VC
-      //    J  #FC list of indices into [Flist[0];Flist[1];...;Flist[k]]
-      //      revealing "birth" facet
-      //  Returns true iff inputs induce a piecewise constant winding number
-      //    field
-      //
-      //  See also: mesh_boolean_cork, intersect_other,
-      //  remesh_self_intersections
+      /// Variadic mesh Boolean operations
+      ///
+      /// @param[in] Vlist  k-long list of lists of mesh vertex positions
+      /// @param[in] Flist  k-long list of lists of mesh face indices, so that Flist[i] indexes
+      ///      vertices in Vlist[i]
+      /// @param[in] wind_num_op  function handle for filtering winding numbers from
+      ///      n-tuples of integer values to [0,1] outside/inside values
+      /// @param[in] keep  function handle for determining if a patch should be "kept"
+      ///      in the output based on the winding number on either side
+      /// @param[out] VC  #VC by 3 list of vertex positions of boolean result mesh
+      /// @param[out] FC  #FC by 3 list of triangle indices into VC
+      /// @param[out] J  #FC list of indices into [Flist[0];Flist[1];...;Flist[k]]
+      ///      revealing "birth" facet
+      /// @return true iff inputs induce a piecewise constant winding number
+      ///   field
       template <
         typename DerivedV,
         typename DerivedF,
@@ -145,6 +126,7 @@ namespace igl
           Eigen::PlainObjectBase<DerivedVC > & VC,
           Eigen::PlainObjectBase<DerivedFC > & FC,
           Eigen::PlainObjectBase<DerivedJ > & J);
+      /// \overload
       template <
         typename DerivedV,
         typename DerivedF,
@@ -158,24 +140,15 @@ namespace igl
           Eigen::PlainObjectBase<DerivedVC > & VC,
           Eigen::PlainObjectBase<DerivedFC > & FC,
           Eigen::PlainObjectBase<DerivedJ > & J);
-      // Given a merged mesh (V,F) and list of sizes of inputs
-      //
-      // Inputs:
-      //   V  #V by 3 list of merged mesh vertex positions
-      //   F  #F by 3 list of merged mesh face indices so that first sizes(0)
-      //     faces come from the first input, and the next sizes(1) faces come
-      //     from the second input, and so on.
-      //   sizes  #inputs list of sizes so that sizes(i) is the #faces in the
-      //     ith input
-      //    wind_num_op  function handle for filtering winding numbers from
-      //      tuples of integer values to [0,1] outside/inside values
-      //    keep  function handle for determining if a patch should be "kept"
-      //      in the output based on the winding number on either side
-      //  Outputs:
-      //    VC  #VC by 3 list of vertex positions of boolean result mesh
-      //    FC  #FC by 3 list of triangle indices into VC
-      //    J  #FC list of birth parent indices
-      // 
+      /// \overload
+      /// \brief Given a merged mesh (V,F) and list of sizes of inputs
+      ///
+      /// @param[in] V  #V by 3 list of merged mesh vertex positions
+      /// @param[in] F  #F by 3 list of merged mesh face indices so that first sizes(0)
+      ///     faces come from the first input, and the next sizes(1) faces come
+      ///     from the second input, and so on.
+      /// @param[in] sizes  #inputs list of sizes so that sizes(i) is the #faces in the
+      ///     ith input
       template <
         typename DerivedVV,
         typename DerivedFF,
@@ -192,17 +165,7 @@ namespace igl
           Eigen::PlainObjectBase<DerivedVC > & VC,
           Eigen::PlainObjectBase<DerivedFC > & FC,
           Eigen::PlainObjectBase<DerivedJ > & J);
-      //  Inputs:
-      //    VA  #VA by 3 list of vertex positions of first mesh
-      //    FA  #FA by 3 list of triangle indices into VA
-      //    VB  #VB by 3 list of vertex positions of second mesh
-      //    FB  #FB by 3 list of triangle indices into VB
-      //    type  type of boolean operation
-      //  Outputs:
-      //    VC  #VC by 3 list of vertex positions of boolean result mesh
-      //    FC  #FC by 3 list of triangle indices into VC
-      //  Returns true ff inputs induce a piecewise constant winding number
-      //    field and type is valid
+      /// \overload
       template <
         typename DerivedVA,
         typename DerivedFA,

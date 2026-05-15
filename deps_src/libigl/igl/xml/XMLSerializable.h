@@ -183,7 +183,7 @@ namespace igl
       initialized = false;
     }
 
-    IGL_INLINE XMLSerializable::XMLSerializable(const XMLSerializable& obj)
+    IGL_INLINE XMLSerializable::XMLSerializable(const XMLSerializable& /*obj*/)
     {
       initialized = false;
       objects.clear();
