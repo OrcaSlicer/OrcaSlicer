@@ -180,25 +180,16 @@ TEST_CASE("snake_core handles empty input", "[Snake]") {
     REQUIRE(path.empty());
 }
 
-TEST_CASE("convex_hull_peeling_core handles empty input", "[ConvexHullPeeling]") {
-    Points centers;
-    auto path = convex_hull_peeling_core(centers);
-    REQUIRE(path.empty());
-}
-
 TEST_CASE("all strategies handle single point", "[Strategies]") {
     Points pts{{100, 200}};
     CHECK(snake_core(pts) == std::vector<size_t>{0});
-    CHECK(convex_hull_peeling_core(pts) == std::vector<size_t>{0});
 }
 
 TEST_CASE("all strategies handle two points", "[Strategies]") {
     Points pts{{100, 200}, {300, 400}};
     auto p2 = snake_core(pts);
-    auto p3 = convex_hull_peeling_core(pts);
 
     REQUIRE(is_permutation(p2, 2));
-    REQUIRE(is_permutation(p3, 2));
 }
 
 // --- Core Strategy Tests: Grid Layout ---
@@ -217,10 +208,8 @@ TEST_CASE("all strategies handle collinear points", "[Strategies]") {
     Points centers = make_linear_5();
 
     auto p2 = snake_core(centers);
-    auto p3 = convex_hull_peeling_core(centers);
 
     REQUIRE(is_permutation(p2, centers.size()));
-    REQUIRE(is_permutation(p3, centers.size()));
 }
 
 // --- Core Strategy Tests: Ring Layout ---
@@ -229,10 +218,8 @@ TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
     Points centers = make_ring_8();
 
     auto p2 = snake_core(centers);
-    auto p3 = convex_hull_peeling_core(centers);
 
     REQUIRE(is_permutation(p2, centers.size()));
-    REQUIRE(is_permutation(p3, centers.size()));
 }
 
 // --- Core Strategy Tests: Random Layout ---
@@ -241,24 +228,11 @@ TEST_CASE("all strategies produce valid paths on random input", "[Strategies]") 
     Points centers = make_random_16();
 
     auto p2 = snake_core(centers);
-    auto p3 = convex_hull_peeling_core(centers);
 
     REQUIRE(is_permutation(p2, centers.size()));
-    REQUIRE(is_permutation(p3, centers.size()));
 }
 
 // --- Quality Comparison Tests ---
-
-TEST_CASE("convex_hull_peeling is near-optimal on structured input", "[ConvexHullPeeling]") {
-    Points centers = make_grid_4x4();
-    auto path = convex_hull_peeling_core(centers);
-    double len = euclidean_path_length(path, centers);
-
-    // On a 4x4 grid with spacing 100000, convex hull peeling wraps around
-    // the perimeter multiple times (onion layers), so path is longer than optimal.
-    REQUIRE(len > 300000);
-    REQUIRE(len < 2500000);
-}
 
 TEST_CASE("snake has no crossings on random input", "[Snake]") {
     Points centers = make_random_16();
@@ -277,10 +251,8 @@ TEST_CASE("strategies handle duplicate points", "[Strategies]") {
     pts.emplace_back(300, 400);
 
     auto p2 = snake_core(pts);
-    auto p3 = convex_hull_peeling_core(pts);
 
     REQUIRE(p2.size() == pts.size());
-    REQUIRE(p3.size() == pts.size());
 }
 
 TEST_CASE("strategies handle three points", "[Strategies]") {
@@ -290,8 +262,6 @@ TEST_CASE("strategies handle three points", "[Strategies]") {
     pts.emplace_back(50000, 86602);
 
     auto p2 = snake_core(pts);
-    auto p3 = convex_hull_peeling_core(pts);
 
     REQUIRE(is_permutation(p2, 3));
-    REQUIRE(is_permutation(p3, 3));
 }

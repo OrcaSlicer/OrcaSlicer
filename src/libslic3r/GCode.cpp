@@ -2754,14 +2754,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         print_object_instances_ordering =
             // By default, order object instances using a nearest neighbor search.
             (print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
-            // Convex hull peeling: onion-peel layers from outside in
-            : (print.config().print_order == PrintOrder::ConvexHullPeeling ? chain_print_object_instances_convex_hull_peeling(print)
             // Snake: serpentine row traversal + 2-opt
             : (print.config().print_order == PrintOrder::Snake ? chain_print_object_instances_snake(print)
             // Best of all: run every strategy, pick the shortest total path
             : (print.config().print_order == PrintOrder::BestOfStrategies ? chain_print_object_instances_best_of(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print)))));
+            : sort_object_instances_by_model_order(print))));
 
 
 
@@ -4979,13 +4977,11 @@ LayerResult GCode::process_layer(
                 // Compute fresh ordering and store in cache.
                 cache_entry.first = obj_ids;
                 cache_entry.second =
-                    print.config().print_order == PrintOrder::ConvexHullPeeling
-                            ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
-                            : (print.config().print_order == PrintOrder::Snake
-                                ? chain_print_object_instances_snake(print_objects, &wt_pos)
-                                : (print.config().print_order == PrintOrder::BestOfStrategies
-                                    ? chain_print_object_instances_best_of(print_objects, &wt_pos)
-                                    : chain_print_object_instances(print_objects, &wt_pos)));
+                    print.config().print_order == PrintOrder::Snake
+                            ? chain_print_object_instances_snake(print_objects, &wt_pos)
+                            : (print.config().print_order == PrintOrder::BestOfStrategies
+                                ? chain_print_object_instances_best_of(print_objects, &wt_pos)
+                                    : chain_print_object_instances(print_objects, &wt_pos));
             }
 
             // Reverse a local copy; keep cached value intact for reuse.

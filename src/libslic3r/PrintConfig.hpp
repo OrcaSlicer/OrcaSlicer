@@ -157,7 +157,6 @@ enum class PrintOrder
     Default,
     AsObjectList,
     BestOfStrategies,    // run all custom strategies, pick the shortest total path
-    ConvexHullPeeling,   // onion-peeling convex hull layers, outermost first
     Snake,               // snake-like row traversal (back-and-forth) + 2-opt
     Count,
 };
