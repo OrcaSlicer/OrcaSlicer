@@ -2756,8 +2756,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             (print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
             // Convex hull peeling: onion-peel layers from outside in
             : (print.config().print_order == PrintOrder::ConvexHullPeeling ? chain_print_object_instances_convex_hull_peeling(print)
-            // Boustrophedon: snake-like row traversal + 2-opt
-            : (print.config().print_order == PrintOrder::Boustrophedon ? chain_print_object_instances_boustrophedon(print)
+            // Snake: serpentine row traversal + 2-opt
+            : (print.config().print_order == PrintOrder::Snake ? chain_print_object_instances_snake(print)
             // Best of all: run every strategy, pick the shortest total path
             : (print.config().print_order == PrintOrder::BestOfStrategies ? chain_print_object_instances_best_of(print)
             // Otherwise same order as the object list
@@ -4981,8 +4981,8 @@ LayerResult GCode::process_layer(
                 cache_entry.second =
                     print.config().print_order == PrintOrder::ConvexHullPeeling
                             ? chain_print_object_instances_convex_hull_peeling(print_objects, &wt_pos)
-                            : (print.config().print_order == PrintOrder::Boustrophedon
-                                ? chain_print_object_instances_boustrophedon(print_objects, &wt_pos)
+                            : (print.config().print_order == PrintOrder::Snake
+                                ? chain_print_object_instances_snake(print_objects, &wt_pos)
                                 : (print.config().print_order == PrintOrder::BestOfStrategies
                                     ? chain_print_object_instances_best_of(print_objects, &wt_pos)
                                     : chain_print_object_instances(print_objects, &wt_pos)));
