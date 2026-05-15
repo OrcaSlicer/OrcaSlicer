@@ -20,6 +20,7 @@ public:
 private:
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
+    std::string        resolve_tray_info_idx(const std::string& tray_vendor, const std::string& tray_type) const;
 };
 
 } // namespace Slic3r

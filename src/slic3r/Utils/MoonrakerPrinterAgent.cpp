@@ -499,6 +499,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
                 tray_json["tray_info_idx"] = tray->tray_info_idx;
                 tray_json["tray_type"] = tray->tray_type;
+                if (!tray->tray_vendor.empty()) {
+                    tray_json["tray_sub_brands"] = tray->tray_vendor;
+                }
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
 
                 // Add temperature data if provided
