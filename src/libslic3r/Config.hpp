@@ -2742,7 +2742,7 @@ public:
     void save(const std::string &file) const;
 
     //BBS: add json support
-    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version, const std::string &type = std::string()) const;
 
 	// Set all the nullable values to nils.
     void null_nullables();

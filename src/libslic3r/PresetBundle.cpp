@@ -5313,7 +5313,7 @@ std::vector<std::string> PresetBundle::export_current_configs(const std::string 
             if (overwrite == 0 || overwrite == 2)
                 continue;
         }
-        preset->config.save_to_json(file, preset->name, "", preset->version.to_string());
+        preset->config.save_to_json(file, preset->name, "", preset->version.to_string(), Preset::get_type_string(preset->type));
         result.push_back(file);
     }
     return result;
