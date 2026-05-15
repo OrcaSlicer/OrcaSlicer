@@ -383,7 +383,8 @@ namespace Slic3r {
         std::string      sn;
         const auto       token = cc2_token();
         auto             http  = Http::get(make_cc2_info_url());
-
+        http.timeout_connect(10)
+            .timeout_max(15);
         http.header("X-Token", token);
         http.header("Accept", "application/json");
         http.on_error([&](std::string body, std::string error, unsigned status) {
@@ -980,7 +981,7 @@ namespace Slic3r {
         const std::string token        = cc2_token();
         const int         packageCount = static_cast<int>((size + MAX_UPLOAD_PACKAGE_LENGTH - 1) / MAX_UPLOAD_PACKAGE_LENGTH);
         auto              http         = Http::put2(url);
-        http.timeout_connect(60)
+        http.timeout_connect(30)
             .timeout_max(180);
 
         bool              res          = false;
