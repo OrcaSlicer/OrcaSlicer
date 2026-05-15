@@ -20,6 +20,7 @@ class ElegooLink : public OctoPrint
 public:
     ElegooLink(DynamicPrintConfig *config);
     ~ElegooLink() override = default;
+    static std::string get_print_host_webui(DynamicPrintConfig *config);
     const char* get_name() const override;
     virtual bool test(wxString &curl_msg) const override;
     wxString get_test_ok_msg() const override;
@@ -40,8 +41,6 @@ protected:
     virtual bool test_with_resolved_ip(wxString& curl_msg) const override;
     bool elegoo_test_with_resolved_ip(wxString& curl_msg) const;
 #endif
-
-    virtual std::string get_web_url() const override;
 private:
     bool elegoo_test(wxString& curl_msg) const;
     bool elegoo_cc2_test(wxString& curl_msg) const;

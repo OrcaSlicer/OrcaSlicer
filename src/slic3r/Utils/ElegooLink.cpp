@@ -79,6 +79,11 @@ namespace Slic3r {
             return ElegooPrinterType::CC;
         }
 
+        std::string get_cc2_token(const std::string& apikey)
+        {
+            return apikey.empty() ? ELEGOO_CC2_DEFAULT_TOKEN : apikey;
+        }
+
         bool parse_cc2_response(const std::string& body, std::string& error_message, std::string* serial_number = nullptr)
         {
             try {
@@ -305,9 +310,48 @@ namespace Slic3r {
 
     }
 
+    std::string ElegooLink::get_print_host_webui(DynamicPrintConfig* config)
+    {
+        if (config == nullptr)
+            return {};
+
+        std::string fallback_webui = config->opt_string("print_host_webui");
+        if (fallback_webui.empty())
+            fallback_webui = config->opt_string("print_host");
+        if (!fallback_webui.empty()) {
+            const bool has_http_scheme = boost::algorithm::istarts_with(fallback_webui, "http");
+            const bool has_file_scheme = boost::algorithm::istarts_with(fallback_webui, "file:");
+
+            if (!has_http_scheme && !has_file_scheme)
+                fallback_webui = "http://" + fallback_webui;
+        }
+
+        const std::string host = config->opt_string("print_host");
+        if (host.empty())
+            return fallback_webui;
+
+        if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
+            return fallback_webui;
+
+        std::string web_path = resources_dir() + "/plugins/elegoolink/web/lan_service_web/index.html";
+        std::replace(web_path.begin(), web_path.end(), '\\', '/');
+        web_path = "file://" + web_path;
+        web_path += "?access_code=" + get_cc2_token(config->opt_string("printhost_apikey"));
+        web_path += "&ip=" + get_host_from_url(host) + "&id=elegoo_123456";
+
+        const std::string lang = GUI::wxGetApp().current_language_code_safe().utf8_string();
+        if (!lang.empty())
+            web_path += "&lang=" + lang;
+
+        if (GUI::get_app_config()->get_bool("developer_mode"))
+            web_path += "&dev=true";
+
+        return web_path;
+    }
+
     std::string ElegooLink::cc2_token() const
     {
-        return m_apikey.empty() ? ELEGOO_CC2_DEFAULT_TOKEN : m_apikey;
+        return get_cc2_token(m_apikey);
     }
 
     std::string ElegooLink::make_cc2_info_url() const
@@ -358,44 +402,6 @@ namespace Slic3r {
             .perform_sync();
 
         return sn;
-    }
-
-    std::string ElegooLink::get_web_url() const
-    {
-        if(m_host.empty()){
-            return "";
-        }
-        if (classify_printer_model(m_printerModel) == ElegooPrinterType::CC2) {
-            std::string resourcesDir = resources_dir();
-            std::string webPath = resourcesDir + "/plugins/elegoolink/web/lan_service_web/index.html";
-            std::replace(webPath.begin(), webPath.end(), '\\', '/');
-            webPath = "file://" + webPath;
-            webPath += "?access_code=" + cc2_token() + "&ip=" + get_host_from_url(m_host) + "&id=elegoo_123456";
-
-            // Add current language parameter
-            std::string lang = GUI::wxGetApp().current_language_code_safe().utf8_string();
-            if (!lang.empty()) {
-                if (webPath.find("?") != std::string::npos) {
-                    webPath += "&lang=" + lang;
-                } else {
-                    webPath += "?lang=" + lang;
-                }
-            }
-
-            if(GUI::get_app_config()->get_bool("developer_mode")){
-                if(webPath.find("?") == std::string::npos)
-                {
-                    webPath = webPath + "?dev=true";
-                }
-                else
-                {
-                    webPath = webPath + "&dev=true";
-                }
-            }
-            return webPath;
-        } else {
-            return "";
-        }
     }
 
     bool ElegooLink::elegoo_test(wxString& msg) const{

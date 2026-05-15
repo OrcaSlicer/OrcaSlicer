@@ -31,6 +31,8 @@
 namespace Slic3r {
 namespace GUI {
 
+class PrinterWebViewHandler;
+
 
 class PrinterWebView : public wxPanel {
 public:
@@ -50,7 +52,7 @@ public:
     bool Show(bool show = true) override;
 
 private:
-    struct ElegooImpl;
+    friend class PrinterWebViewHandler;
 
     void SendAPIKey();
 
@@ -59,7 +61,7 @@ private:
     wxString m_apikey;
     bool m_apikey_sent;
     wxString m_url_deferred;
-    std::unique_ptr<ElegooImpl> m_elegooImpl;
+    std::unique_ptr<PrinterWebViewHandler> m_handler;
 
     // DECLARE_EVENT_TABLE()
 };
