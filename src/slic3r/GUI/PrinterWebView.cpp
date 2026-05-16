@@ -1,27 +1,36 @@
 #include "PrinterWebView.hpp"
 
 #include "I18N.hpp"
+#include "PrinterWebViewHandler.hpp"
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "libslic3r_version.h"
 
+#include <boost/filesystem/path.hpp>
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/toolbar.h>
-#include <wx/textdlg.h>
 
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <wx/webview.h>
 
-namespace pt = boost::property_tree;
+#ifdef __linux__
+#include <webkit2/webkit2.h>
+#endif
 
 namespace Slic3r {
 namespace GUI {
 
 PrinterWebView::PrinterWebView(wxWindow *parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+    , m_browser(nullptr)
+    , m_zoomFactor(100)
+    , m_apikey()
+    , m_apikey_sent(false)
+    , m_url_deferred()
+    , m_handler(std::make_unique<PrinterWebViewHandler>(*this))
  {
 
     wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
@@ -33,8 +42,18 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
         return;
     }
 
+#ifdef __linux__
+    auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
+    auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
+    auto wv_ctx = webkit_web_view_get_context(wv);
+    auto cookieManager = webkit_web_context_get_cookie_manager(wv_ctx);
+    webkit_cookie_manager_set_persistent_storage(cookieManager, cookiesPath.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+#endif
+
     m_browser->Bind(wxEVT_WEBVIEW_ERROR, &PrinterWebView::OnError, this);
     m_browser->Bind(wxEVT_WEBVIEW_LOADED, &PrinterWebView::OnLoaded, this);
+    m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PrinterWebView::OnNewWindow, this);
+    m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &PrinterWebView::OnScriptMessage, this);
 
     SetSizer(topsizer);
 
@@ -52,9 +71,6 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
     }
     */
 
-    //Zoom
-    m_zoomFactor = 100;
-
     //Connect the idle events
     Bind(wxEVT_CLOSE_WINDOW, &PrinterWebView::OnClose, this);
 
@@ -64,10 +80,17 @@ PrinterWebView::~PrinterWebView()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Start";
     SetEvtHandlerEnabled(false);
+    m_handler.reset();
+
+    // Destroy the webview
+    if(m_browser){
+        m_browser->Destroy();
+        m_browser = nullptr;
+    }
+
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " End";
 }
-
 
 void PrinterWebView::load_url(wxString& url, wxString apikey)
 {
@@ -77,9 +100,11 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
         return;
     m_apikey = apikey;
     m_apikey_sent = false;
+    m_handler = create_printer_webview_handler(*this);
 
     if (this->IsShown()) {
-        m_url_deferred.clear();
+        //ORCA: m_url_deferred will be cleared on load success
+        //m_url_deferred.clear();
         m_browser->LoadURL(url);
     } else {
         m_url_deferred = url;
@@ -92,7 +117,8 @@ bool PrinterWebView::Show(bool show)
 {
     if (show && !m_url_deferred.empty()) {
         m_browser->LoadURL(m_url_deferred);
-        m_url_deferred.clear();
+        //ORCA: m_url_deferred will be cleared on load success
+        //m_url_deferred.clear();
     }
     return wxPanel::Show(show);
 }
@@ -176,12 +202,34 @@ void PrinterWebView::OnError(wxWebViewEvent &evt)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": error loading page %1% %2% %3% %4%") %evt.GetURL() %evt.GetTarget() %e %evt.GetString();
 }
 
-void PrinterWebView::OnLoaded(wxWebViewEvent &evt)
+void PrinterWebView::OnLoaded(wxWebViewEvent& evt)
 {
     if (evt.GetURL().IsEmpty())
         return;
+    //ORCA: url loaded successfully, safe to clear
+    m_url_deferred.clear();
     SendAPIKey();
+  
+    if (m_handler != nullptr) {
+        m_handler->on_loaded(evt);
+        return;
+    }
 }
+
+void PrinterWebView::OnNewWindow(wxWebViewEvent& evt)
+{
+  const wxString url = evt.GetURL();
+  if (!url.empty())
+    wxLaunchDefaultBrowser(url);
+  evt.Veto();
+}
+
+void PrinterWebView::OnScriptMessage(wxWebViewEvent& evt)
+{
+  if (m_handler != nullptr)
+    m_handler->on_script_message(evt);
+}
+
 
 } // GUI
 } // Slic3r

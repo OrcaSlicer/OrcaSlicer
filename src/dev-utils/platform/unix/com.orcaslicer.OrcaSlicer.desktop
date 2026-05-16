@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=OrcaSlicer
+GenericName=3D Printing Software
+Icon=OrcaSlicer
+Exec=orca-slicer %U
+Terminal=false
+Type=Application
+PrefersNonDefaultGPU=true
+X-KDE-RunOnDiscreteGpu=true
+MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;x-scheme-handler/orcaslicer;model/step;
+Categories=Graphics;3DGraphics;Engineering;
+Keywords=3D;Printing;Slicer;slice;3D;printer;convert;gcode;stl;obj;amf;SLA
+StartupNotify=false
+StartupWMClass=orca-slicer

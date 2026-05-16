@@ -200,6 +200,7 @@ private:
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
+    void invalidate_plate_name_texture();
     void register_raycasters_for_picking(GLCanvas3D& canvas);
     int picking_id_component(int idx) const;
 
@@ -628,13 +629,12 @@ class PartPlateList : public ObjectBase
     void generate_icon_textures();
     void release_icon_textures();
 
-    void set_default_wipe_tower_pos_for_plate(int plate_idx);
-
     friend class cereal::access;
     friend class UndoRedo::StackImpl;
     friend class PartPlate;
 
 public:
+    void set_default_wipe_tower_pos_for_plate(int plate_idx, bool init_pos = false);
     class BedTextureInfo {
     public:
         class TexturePart {

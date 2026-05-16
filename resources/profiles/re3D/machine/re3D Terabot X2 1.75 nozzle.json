@@ -1,0 +1,28 @@
+{
+	"type": "machine",
+	"setting_id": "GM001",
+	"name": "re3D Terabot X2 1.75 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fgf_re3D_common",
+	"printer_model": "re3D Terabot X2",
+	"nozzle_diameter": [
+		"1.75"
+	],
+	"printable_area": [
+		"0x0",
+		"879x0",
+		"879x908",
+		"0x908"
+	],
+	"printable_height": "830",
+	"extruder_clearance_height_to_rod": "220",
+	"extruder_clearance_height_to_lid": "630",
+	"max_layer_height": [
+		"1.4"
+	],
+	"min_layer_height": [
+		"0.4"
+	],
+	"printer_variant": "1.75"
+}

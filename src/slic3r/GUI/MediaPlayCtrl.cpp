@@ -32,7 +32,8 @@ static std::map<int, std::string> error_messages = {
     {100, L("The player is not loaded, please click \"play\" button to retry.")},
     {101, L("The player is not loaded, please click \"play\" button to retry.")},
     {102, L("The player is not loaded, please click \"play\" button to retry.")},
-    {103, L("The player is not loaded, please click \"play\" button to retry.")}
+    {103, L("The player is not loaded, please click \"play\" button to retry.")},
+    {104, L("The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize.")}
 };
 
 namespace Slic3r {
@@ -264,7 +265,6 @@ void MediaPlayCtrl::Play()
         return;
     }
     m_failed_code = 0;
-    m_stop_requested.store(false, std::memory_order_relaxed);
     if (m_machine.empty()) {
         Stop(_L("Please confirm if the printer is connected."));
         return;
@@ -392,9 +392,7 @@ void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
         m_media_ctrl->InvalidateBestSize();
         m_button_play->SetIcon("media_play");
         boost::unique_lock lock(m_mutex);
-        m_stop_requested.store(true, std::memory_order_relaxed);
-        if (m_tasks.empty() || m_tasks.back() != "<stop>")
-            m_tasks.push_back("<stop>");
+        m_tasks.push_back("<stop>");
         m_cond.notify_all();
         if (!msg.IsEmpty())
             SetStatus(msg);
@@ -619,11 +617,9 @@ void MediaPlayCtrl::onStateChanged(wxMediaEvent &event)
         wxSize size = m_media_ctrl->GetVideoSize();
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::onStateChanged: size: " << size.x << "x" << size.y;
         m_failed_code = m_media_ctrl->GetLastError();
-        const bool stop_requested = m_stop_requested.load(std::memory_order_relaxed);
         if (size.GetWidth() >= 320) {
             m_last_state = state;
             m_failed_code = 0;
-            m_stop_requested.store(false, std::memory_order_relaxed);
             SetStatus(_L("Playing..."), false);
 
 
@@ -632,7 +628,7 @@ void MediaPlayCtrl::onStateChanged(wxMediaEvent &event)
             boost::unique_lock lock(m_mutex);
             m_tasks.push_back("<play>");
             m_cond.notify_all();
-        } else if (stop_requested || event.GetId()) {
+        } else if (event.GetId()) {
             if (m_failed_code == 0)
                 m_failed_code = 2;
             Stop();
@@ -713,9 +709,7 @@ void MediaPlayCtrl::media_proc()
             continue;
         }
         lock.unlock();
-        bool is_stop_task = false;
         if (url == "<stop>") {
-            is_stop_task = true;
             BOOST_LOG_TRIVIAL(info) <<  "MediaPlayCtrl: start stop";
             m_media_ctrl->Stop();
             BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: end stop";
@@ -734,9 +728,7 @@ void MediaPlayCtrl::media_proc()
         lock.lock();
         m_tasks.pop_front();
         wxMediaEvent theEvent(wxEVT_MEDIA_STATECHANGED, m_media_ctrl->GetId());
-        // For explicit stop tasks, post a normal-id event so loading->stopped transitions
-        // are handled as failures/teardown instead of being ignored as synthetic updates.
-        theEvent.SetId(is_stop_task ? m_media_ctrl->GetId() : 0);
+        theEvent.SetId(0);
         m_media_ctrl->GetEventHandler()->AddPendingEvent(theEvent);
     }
 }
@@ -847,6 +839,12 @@ void wxMediaCtrl2::DoSetSize(int x, int y, int width, int height, int sizeFlags)
     wxWindow::DoSetSize(x, y, width, height, sizeFlags);
 #else
     wxMediaCtrl::DoSetSize(x, y, width, height, sizeFlags);
+#endif
+#if defined(__LINUX__) && defined(__WXGTK__)
+    if (m_gtk_video_window) {
+        const wxSize client_size = GetClientSize();
+        m_gtk_video_window->SetSize(0, 0, client_size.GetWidth(), client_size.GetHeight());
+    }
 #endif
     if (sizeFlags & wxSIZE_USE_EXISTING) return;
     wxSize size = m_video_size;

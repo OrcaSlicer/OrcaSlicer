@@ -11,6 +11,7 @@
 #include "libslic3r/PrintConfig.hpp"
 
 #include <regex>
+#include <cstdint>
 #include <wx/numformatter.h>
 #include <wx/tooltip.h>
 #include <wx/notebook.h>
@@ -101,43 +102,79 @@ ThumbnailErrors validate_thumbnails_string(wxString& str, const wxString& def_ex
     return errors;
 }
 
+// Orca
 wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_option_key& id)
 {
     wxString tooltip = _(opt.tooltip);
 
-    if (tooltip.length() > 0) {
-        edit_tooltip(tooltip);
+    std::string opt_id = id;
+    auto hash_pos = opt_id.find("#");
+    if (hash_pos != std::string::npos) {
+        opt_id.replace(hash_pos, 1,"[");
+        opt_id += "]";
+    }
 
-        std::string opt_id = id;
-        auto hash_pos = opt_id.find("#");
-        if (hash_pos != std::string::npos) {
-            opt_id.replace(hash_pos, 1,"[");
-            opt_id += "]";
-        }
+    tooltip += (tooltip.empty() ? "" : "\n\n") + _(L("parameter name")) + ": " + opt_id;
 
-        tooltip += "\n\n" + _(L("parameter name")) + ": " + opt_id;
+    // Orca: 
+    // We can't use Orca's default values as-is because they sometimes depend on other values. 
+    // Parent preset configuration values will be used instead.
+    if (const Preset* print_parent_preset = wxGetApp().preset_bundle->prints.get_selected_preset_parent()) {
+        const DynamicPrintConfig& parent_config = print_parent_preset->config;
 
-        if (opt.type == coFloat || opt.type == coInt) {
+        if (!parent_config.has(opt_id))
+            return tooltip;
+
+        wxString side_text = from_u8(opt.sidetext);
+
+        // Orca: a small hack for `layers` side text: adding a space before it for better looking text
+        if (opt.sidetext == L("layers"))
+            side_text = " " + _(side_text);
+
+        if (opt.type == coFloat || opt.type == coInt || opt.type == coPercent || opt.type == coFloatOrPercent) {
             double default_value = 0.;
 
             if (opt.type == coFloat)
-                default_value = opt.get_default_value<ConfigOptionFloat>()->value;
+                default_value = parent_config.option<ConfigOptionFloat>(opt_id)->value;
             else if (opt.type == coInt)
-                default_value = opt.get_default_value<ConfigOptionInt>()->value;
+                default_value = parent_config.option<ConfigOptionInt>(opt_id)->value;
+            else if (opt.type == coPercent)
+                default_value = parent_config.option<ConfigOptionPercent>(opt_id)->value;
+            else if (opt.type == coFloatOrPercent) {
+                default_value = parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->value;
+                if (parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->percent)
+                    side_text = "%";
+                else if (!side_text.empty()) {
+                    static std::string postfix = " or %";
+                    auto postfix_pos = side_text.find(postfix);
+                    if (postfix_pos != std::string::npos)
+                        side_text.erase(postfix_pos, postfix.length());
+                }
+            }
 
-            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value));
+            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value)) + _(side_text);
 
             if (opt.min > -FLT_MAX && opt.max < FLT_MAX) {
                 tooltip += "\n" + _(L("Range")) + ": [" + 
-                    _(double_to_string(opt.min)) + ", " + 
-                    _(double_to_string(opt.max)) + "]";
+                    _(double_to_string(opt.min)) + _(side_text) + ", " + 
+                    _(double_to_string(opt.max)) + _(side_text) + "]";
             }
-        }
+        } else if (opt.type == coBool || opt.type == coString) {
+            std::string default_value = "";
 
-        return tooltip;
+            if (opt.type == coString)
+                default_value = parent_config.option<ConfigOptionString>(opt_id)->value;
+            else if (opt.type == coBool)
+                default_value = parent_config.option<ConfigOptionBool>(opt_id)->value ? "true" : "false";
+
+            tooltip += "\n\n" + _(L("Default")) + ": " +
+                (default_value.empty() ? _(L("Empty string")) : _(default_value) + _(side_text));
+        }
     }
 
-    return "";
+    edit_tooltip(tooltip);
+
+    return tooltip;
 }
 
 Field::~Field()
@@ -1590,18 +1627,45 @@ void Choice::set_value(const boost::any& value, bool change_event)
 	}
 	case coEnum:
     // BBS
-    case coEnums: {
+	case coEnums: {
 		int val = boost::any_cast<int>(value);
+		int selection = val;
 
-        // Support ThirdPartyPrinter
-        if (m_opt_id.compare("host_type") == 0 && val != 0 &&
-			m_opt.enum_values.size() > field->GetCount()) // for case, when PrusaLink isn't used as a HostType
-			val--;
-        if (m_opt_id == "top_surface_pattern" || m_opt_id == "bottom_surface_pattern" ||
-            m_opt_id == "internal_solid_infill_pattern" || m_opt_id == "sparse_infill_pattern" ||
-            m_opt_id == "support_base_pattern" || m_opt_id == "support_interface_pattern" ||
-            m_opt_id == "ironing_pattern" || m_opt_id == "support_ironing_pattern" ||
-            m_opt_id == "support_style" || m_opt_id == "curr_bed_type" || m_opt_id == "wipe_tower_wall_type")
+        if (m_opt_id == "input_shaping_type") {
+            if (field != nullptr) {
+                const unsigned int count = field->GetCount();
+                int match_index = -1;
+                for (unsigned int idx = 0; idx < count; ++idx) {
+                    if (void* data = field->GetClientData(idx)) {
+                        int stored = static_cast<int>(reinterpret_cast<uintptr_t>(data));
+                        if (stored == val) {
+                            match_index = static_cast<int>(idx);
+                            break;
+                        }
+                    }
+                }
+                if (match_index >= 0)
+                    selection = match_index;
+                else if (val >= 0 && val < static_cast<int>(count))
+                    selection = val;
+                else if (count > 0)
+                    selection = 0;
+                else
+                    selection = -1;
+            }
+        } else {
+            // Support ThirdPartyPrinter
+            if (m_opt_id.compare("host_type") == 0 && val != 0 &&
+                m_opt.enum_values.size() > field->GetCount()) // for case, when PrusaLink isn't used as a HostType
+                selection = val - 1;
+            else
+                selection = val;
+
+            if (m_opt_id == "top_surface_pattern" || m_opt_id == "bottom_surface_pattern" ||
+                m_opt_id == "internal_solid_infill_pattern" || m_opt_id == "sparse_infill_pattern" ||
+                m_opt_id == "support_base_pattern" || m_opt_id == "support_interface_pattern" ||
+                m_opt_id == "ironing_pattern" || m_opt_id == "support_ironing_pattern" ||
+                m_opt_id == "support_style" || m_opt_id == "curr_bed_type" || m_opt_id == "wipe_tower_wall_type")
 		{
 			std::string key;
 			const t_config_enum_values& map_names = *m_opt.enum_keys_map;
@@ -1613,15 +1677,16 @@ void Choice::set_value(const boost::any& value, bool change_event)
 
 			const std::vector<std::string>& values = m_opt.enum_values;
 			auto it = std::find(values.begin(), values.end(), key);
-			val = it == values.end() ? 0 : it - values.begin();
+			selection = it == values.end() ? 0 : static_cast<int>(it - values.begin());
 		}
+        }
         if (m_opt.nullable) {
             if (val != ConfigOptionEnumsGenericNullable::nil_value())
                 m_last_meaningful_value = value;
             else
-                val = -1;
+                selection = -1;
         }
-		field->SetSelection(val);
+		field->SetSelection(selection);
 		break;
 	}
 	default:
@@ -1688,6 +1753,17 @@ boost::any& Choice::get_value()
     {
         if (m_opt.nullable && field->GetSelection() == -1)
             m_value = ConfigOptionEnumsGenericNullable::nil_value();
+        else if (m_opt_id == "input_shaping_type")
+        {
+            int selection = field->GetSelection();
+            if (selection >= 0) {
+                if (void* data = field->GetClientData(selection))
+                    m_value = static_cast<int>(reinterpret_cast<uintptr_t>(data));
+                else
+                    m_value = selection;
+            } else
+                m_value = 0;
+        }
         else if (   m_opt_id == "top_surface_pattern" || m_opt_id == "bottom_surface_pattern" ||
                     m_opt_id == "internal_solid_infill_pattern" || m_opt_id == "sparse_infill_pattern" ||
                     m_opt_id == "support_base_pattern" || m_opt_id == "support_interface_pattern" ||
@@ -2272,7 +2348,7 @@ void SliderCtrl::BUILD()
 	m_textctrl->SetFont(Slic3r::GUI::wxGetApp().normal_font());
 	m_textctrl->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-	temp->Add(m_slider, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL, 0);
+	temp->Add(m_slider, 1, wxEXPAND, 0);
 	temp->Add(m_textctrl, 0, wxALIGN_CENTER_VERTICAL, 0);
 
 	m_slider->Bind(wxEVT_SLIDER, ([this](wxCommandEvent e) {

@@ -16,6 +16,7 @@ orcaslicer_add_cmake_project(OCCT
     #DEPENDS dep_Boost
     DEPENDS ${FREETYPE_PKG}
     CMAKE_ARGS
+        -DCMAKE_CXX_STANDARD=17
         -DBUILD_LIBRARY_TYPE=${library_build_type}
         -DUSE_TK=OFF
         -DUSE_TBB=OFF

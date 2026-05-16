@@ -1,5 +1,6 @@
 #include "GCodeWriter.hpp"
 #include "CustomGCode.hpp"
+#include "I18N.hpp"
 #include "PrintConfig.hpp"
 #include <algorithm>
 #include <iomanip>
@@ -30,7 +31,21 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
                            print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
-    m_max_acceleration = std::lrint(use_mach_limits ? print_config.machine_max_acceleration_extruding.values.front() : 0);
+    if (use_mach_limits) {
+        // For Klipper, SET_VELOCITY_LIMIT ACCEL= applies to all moves, so the effective cap
+        // is the minimum of the extruding limit and the per-axis X/Y limits.
+        // This ensures user-configured Motion Ability limits are honoured (#12244).
+        unsigned int extruding_limit = std::lrint(print_config.machine_max_acceleration_extruding.values.front());
+        if (print_config.gcode_flavor.value == gcfKlipper) {
+            unsigned int x_limit = std::lrint(print_config.machine_max_acceleration_x.values.front());
+            unsigned int y_limit = std::lrint(print_config.machine_max_acceleration_y.values.front());
+            if (x_limit > 0) extruding_limit = std::min(extruding_limit, x_limit);
+            if (y_limit > 0) extruding_limit = std::min(extruding_limit, y_limit);
+        }
+        m_max_acceleration = extruding_limit;
+    } else {
+        m_max_acceleration = 0;
+    }
     m_max_travel_acceleration = static_cast<unsigned int>(
         std::round((use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) ?
                        print_config.machine_max_acceleration_travel.values.front() :
@@ -253,6 +268,21 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
             jerk = m_max_jerk_y;
         
         gcode << "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=" << jerk;
+        
+    } else if (FLAVOR_IS(gcfRepetier)) {
+        // Repetier uses M207 for temporary Jerk and combines X/Y into a single 'X' parameter.
+        double jerk_xy = jerk;
+        
+        // Clamp against the X machine limit
+        if (m_max_jerk_x > 0 && jerk_xy > m_max_jerk_x)
+            jerk_xy = m_max_jerk_x;
+            
+        // Clamp against the Y machine limit as well to be safe
+        if (m_max_jerk_y > 0 && jerk_xy > m_max_jerk_y)
+            jerk_xy = m_max_jerk_y;
+            
+        // Output the lowest safe limit using ONLY the X parameter
+        gcode << "M207 X" << jerk_xy;
     } else {
         double jerk_x = jerk;
         double jerk_y = jerk;
@@ -264,7 +294,7 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
         
         gcode << "M205 X" << jerk_x << " Y" << jerk_y;
     }
-      
+    //the is_bbl check should be in the else statement above so that it doesn't inadverently added Z & E to klipper  
     if (m_is_bbl_printers)
         gcode << std::setprecision(2) << " Z" << m_max_jerk_z << " E" << m_max_jerk_e;
 
@@ -279,7 +309,7 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
 {
     // Only Klipper supports setting acceleration and jerk at the same time. Throw an error if we try to do this on other flavours.
     if(FLAVOR_IS_NOT(gcfKlipper))
-        throw std::runtime_error("set_accel_and_jerk() is only supported by Klipper");
+        throw std::runtime_error(_u8L("set_accel_and_jerk() is only supported by Klipper"));
 
     // Clamp the acceleration to the allowed maximum.
     if (m_max_acceleration > 0 && acceleration > m_max_acceleration)
@@ -321,7 +351,7 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
 
 std::string GCodeWriter::set_junction_deviation(double junction_deviation){
     std::ostringstream gcode;
-    if (FLAVOR_IS(gcfMarlinFirmware) && junction_deviation > 0 && m_max_junction_deviation > 0) {
+    if (FLAVOR_IS(gcfMarlinFirmware) && m_max_junction_deviation > 0 && junction_deviation > 0) {
         // Clamp the junction deviation to the allowed maximum.
         gcode << "M205 J";
         if (junction_deviation <= m_max_junction_deviation) {
@@ -351,74 +381,98 @@ std::string GCodeWriter::set_pressure_advance(double pa) const
             gcode << "SET_PRESSURE_ADVANCE ADVANCE=" << std::setprecision(4) << pa << "; Override pressure advance value\n";
         else if(FLAVOR_IS(gcfRepRapFirmware))
             gcode << ("M572 D0 S") << std::setprecision(4) << pa << "; Override pressure advance value\n";
+        else if (FLAVOR_IS(gcfRepetier))
+            // Repetier M233: X is quadratic (K), Y is linear (L).
+            // Applying the value to both parameters simultaneously.
+            gcode << "M233 X" << std::setprecision(4) << pa << " Y" << std::setprecision(4) << pa << " ; Override pressure advance value\n";
         else
             gcode << "M900 K" <<std::setprecision(4)<< pa << "; Override pressure advance value\n";
     }
     return gcode.str();
 }
 
+// Orca: input shaping support
 std::string GCodeWriter::set_input_shaping(char axis, float damp, float freq, std::string type) const
 {
-    if (FLAVOR_IS(gcfMarlinLegacy))
-        throw std::runtime_error("Input shaping is not supported by Marlin < 2.1.2.\nCheck your firmware version and update your G-code flavor to ´Marlin 2´");
-    if (freq < 0.0f || damp < 0.f || damp > 1.0f || (axis != 'X' && axis != 'Y' && axis != 'Z' && axis != 'A'))// A = all axis
-    {
-    throw std::runtime_error("Invalid input shaping parameters: freq=" + std::to_string(freq) + ", damp=" + std::to_string(damp));
+    bool disable = type == "Disable";
+    if (disable){
+        freq = 0.0f;
+        damp = 0.0f;
+        axis = 'A';
+        type = "Default";
+    } else if (freq < 0.0f || damp < 0.f || damp > 1.0f || (axis != 'X' && axis != 'Y' && axis != 'Z' && axis != 'A')) { // A = all axis
+        throw std::runtime_error("Invalid input shaping parameters: axis=" + std::string(1, axis) + ", freq=" + std::to_string(freq) + ", damp=" + std::to_string(damp));
     }
     std::ostringstream gcode;
-    if (FLAVOR_IS(gcfKlipper)) {
-        gcode << "SET_INPUT_SHAPER";
+    std::ostringstream params;
+    switch (this->config.gcode_flavor) {
+    case gcfKlipper: {
         if (!type.empty() && type != "Default") {
-                gcode << " SHAPER_TYPE=" << type;
+            params << " SHAPER_TYPE=" << type;
         }
         if (axis != 'A')
         {
             if (freq > 0.0f) {
-                gcode << " SHAPER_FREQ_" << axis << "=" << std::fixed << std::setprecision(2) << freq;
-            }
-            if (damp > 0.0f){
-                gcode  << " DAMPING_RATIO_" << axis << "=" << std::fixed << std::setprecision(3) << damp;
-            }
-        } else {
-            if (freq > 0.0f) {
-                gcode << " SHAPER_FREQ_X=" << std::fixed << std::setprecision(2) << freq << " SHAPER_FREQ_Y=" << std::fixed << std::setprecision(2) << freq;
+                params << " SHAPER_FREQ_" << axis << "=" << std::fixed << std::setprecision(2) << freq;
             }
             if (damp > 0.0f) {
-                gcode << " DAMPING_RATIO_X=" << std::fixed << std::setprecision(3) << damp << " DAMPING_RATIO_Y=" << std::fixed << std::setprecision(3) << damp;
+                params << " DAMPING_RATIO_" << axis << "=" << std::fixed << std::setprecision(3) << damp;
+            }
+        } else {
+            if (freq > 0.0f || disable) {
+                params << " SHAPER_FREQ_X=" << std::fixed << std::setprecision(2) << freq << " SHAPER_FREQ_Y=" << std::fixed << std::setprecision(2) << freq;
+            }
+            if (damp > 0.0f || disable) {
+                params << " DAMPING_RATIO_X=" << std::fixed << std::setprecision(3) << damp << " DAMPING_RATIO_Y=" << std::fixed << std::setprecision(3) << damp;
             }
         }
-    } else if (FLAVOR_IS(gcfRepRapFirmware)) {
-        gcode << "M593";
+        if (!params.str().empty()) {
+            gcode << "SET_INPUT_SHAPER" << params.str();
+        }
+        break;
+    }
+    case gcfRepRapFirmware: {
         if (!type.empty() && type != "Default" && type != "DAA") {
-            gcode << " P\"" << type << "\"";
+            params << " P\"" << type << "\"";
         }
-        if (freq > 0.0f) {
-            gcode << " F" << std::fixed << std::setprecision(2) << freq;
+        if (freq > 0.0f || disable) {
+            params << " F" << std::fixed << std::setprecision(2) << freq;
         }
-        if (damp > 0.0f){
-            gcode  << " S" << std::fixed << std::setprecision(3) << damp;
+        if (damp > 0.0f || disable) {
+            params << " S" << std::fixed << std::setprecision(3) << damp;
         }
-    } else if (FLAVOR_IS(gcfMarlinFirmware)) {
-        gcode << "M593";
-        if (axis != 'A')
-        {
-            gcode << " " << axis;
+        if (!params.str().empty()) {
+            gcode << "M593" << params.str();
         }
-        if (freq > 0.0f)
-        {
-            gcode << " F" << std::fixed << std::setprecision(2) << freq;
-        }
-        if (damp > 0.0f)
-        {
-            gcode << " D" << std::fixed << std::setprecision(3) << damp;
-        }
-    } else {
-        throw std::runtime_error("Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2");
+        break;
     }
-    if (GCodeWriter::full_gcode_comment){
-        gcode << " ; Override input shaping";
+    case gcfMarlinFirmware: {
+        if (axis != 'A') {
+            params << " " << axis;
+        }
+        if (freq > 0.0f || disable) {
+            params << " F" << std::fixed << std::setprecision(2) << freq;
+        }
+        if (damp > 0.0f || disable) {
+            params << " D" << std::fixed << std::setprecision(3) << damp;
+        }
+        if (!params.str().empty()) {
+            gcode << "M593" << params.str();
+        }
+        break;
     }
-    gcode << "\n";
+    case gcfMarlinLegacy: {
+        throw std::runtime_error(_u8L("Input shaping is not supported by Marlin < 2.1.2.\nCheck your firmware version and update your G-code flavor to ´Marlin 2´"));
+    }
+    default:
+        throw std::runtime_error(_u8L("Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"));
+    }
+    if (!gcode.str().empty()) {
+        if (GCodeWriter::full_gcode_comment) {
+            gcode << " ; Override input shaping";
+        }
+        gcode << "\n";
+    }
     return gcode.str();
 }
 
@@ -492,9 +546,20 @@ std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, boo
 
 std::string GCodeWriter::toolchange_prefix() const
 {
-    return config.manual_filament_change ? ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Manual_Tool_Change) + "T":
-           FLAVOR_IS(gcfMakerWare) ? "M135 T" :
-           FLAVOR_IS(gcfSailfish)  ? "M108 T" : "T";
+    std::string gcode = "T";
+    if (config.manual_filament_change)
+        gcode = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Manual_Tool_Change) + "T";
+    else {
+        if (m_is_bbl_printers)
+            gcode = "M1020 S";
+        else {
+            if (FLAVOR_IS(gcfMakerWare))
+                gcode = "M135 T";
+            else if (FLAVOR_IS(gcfSailfish))
+                gcode = "M108 T";
+        }
+    }
+    return gcode;
 }
 
 std::string GCodeWriter::toolchange(unsigned int filament_id)
@@ -509,12 +574,8 @@ std::string GCodeWriter::toolchange(unsigned int filament_id)
     // if we are running a single-extruder setup, just set the extruder and return nothing
     std::ostringstream gcode;
     if (this->multiple_extruders || (this->config.filament_diameter.values.size() > 1 && !is_bbl_printers())) {
-        // BBS
-        if (this->m_is_bbl_printers)
-            gcode << "M1020 S" << filament_id;
-        else
-            gcode << this->toolchange_prefix() << filament_id;
-        //BBS
+        // Orca: call toolchange_prefix() to get the correct command prefix based on the configuration and flavor.
+        gcode << this->toolchange_prefix() << filament_id;
         if (GCodeWriter::full_gcode_comment)
             gcode << " ; change extruder";
         gcode << "\n";
@@ -915,6 +976,11 @@ std::string GCodeWriter::extrude_arc_to_xy(const Vec2d& point, const Vec2d& cent
 
 std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment, bool force_no_extrusion)
 {
+    // Check if Z actually changes (at export precision) before emitting it.
+    // ZAA sloped extrusions call this for every segment, but many consecutive
+    // segments share the same quantized Z — emitting it every time is redundant.
+    bool z_changed = (GCodeG1Formatter::quantize_xyzf(point(2)) != GCodeG1Formatter::quantize_xyzf(m_pos(2)));
+
     m_pos = point;
     m_lifted = 0;
     if (!force_no_extrusion)
@@ -924,7 +990,10 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
     Vec3d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset, point(2) };
 
     GCodeG1Formatter w;
-    w.emit_xyz(point_on_plate);
+    if (z_changed)
+        w.emit_xyz(point_on_plate);
+    else
+        w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
     if (!force_no_extrusion)
         w.emit_e(filament()->E());
     //BBS

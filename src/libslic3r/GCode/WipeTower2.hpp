@@ -72,6 +72,8 @@ public:
     // WT2 doesn't currently compute a rib-origin compensation like WipeTower (m_rib_offset),
     // so expose a zero offset for consistency purposes (to maintain API parity).
     Vec2f get_rib_offset() const { return Vec2f::Zero(); }
+    float get_rib_width() const { return m_rib_width; }
+    float get_rib_length() const { return m_rib_length; }
 
 	// Switch to a next layer.
 	void set_layer(

@@ -200,7 +200,9 @@ class GLGizmoCut3D : public GLGizmoBase
 
     PartSelection m_part_selection;
 
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_cut;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_connector;
 
     enum class CutMode {
@@ -321,7 +323,7 @@ protected:
     void update_plane_model();
 
     void on_render_input_window(float x, float y, float bottom_limit) override;
-    void show_tooltip_information(float x, float y);
+    void render_tooltip_button(float x, float y);
 
     bool wants_enter_leave_snapshots() const override       { return true; }
     std::string get_gizmo_entering_text() const override    { return _u8L("Entering Cut gizmo"); }

@@ -43,6 +43,9 @@
 #include "Widgets/CheckBox.hpp" // ORCA
 
 class TabCtrl;
+class ModeSwitchButton;
+class SwitchButton;
+class MultiSwitchButton;
 
 namespace Slic3r {
 
@@ -53,6 +56,8 @@ namespace GUI {
 
 class TabPresetComboBox;
 class OG_CustomCtrl;
+
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
 
 // Single Tab page containing a{ vsizer } of{ optgroups }
 // package Slic3r::GUI::Tab::Page;
@@ -161,8 +166,6 @@ protected:
 
 	wxScrolledWindow*	m_page_view {nullptr};
 	//wxBoxSizer*			m_page_sizer {nullptr};
-
-    //ModeSizer*			m_mode_sizer {nullptr};
 
    	struct PresetDependencies {
 		Preset::Type type	  = Preset::TYPE_INVALID;
@@ -303,8 +306,9 @@ public:
     // 3. propagate changed configuration to the Plater when (m_update_cnt == 0) only
     int                 m_update_cnt = 0;
 
-    SwitchButton *m_mode_view = nullptr;
+	ModeSwitchButton *m_mode_view = nullptr;
     SwitchButton *m_extruder_switch = nullptr;
+    MultiSwitchButton *m_variant_combo = nullptr;
 
 public:
 	// BBS
@@ -417,6 +421,7 @@ public:
 
 	static bool validate_custom_gcode(const wxString& title, const std::string& gcode);
 	bool        validate_custom_gcodes();
+	bool        validate_filament_temperature_pairs();
     bool        validate_custom_gcodes_was_shown{ false };
     void        set_just_edit(bool just_edit);
 
@@ -426,6 +431,7 @@ public:
 
     void        update_extruder_variants(int extruder_id = -1);
     void        switch_excluder(int extruder_id = -1);
+    std::vector<wxString> generate_extruder_options();
 
 protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
@@ -437,6 +443,7 @@ protected:
 	// return true if cancelled
 	bool			tree_sel_change_delayed(wxCommandEvent& event);
 	void			on_presets_changed();
+	void			update_printer_agent_if_needed();
 	void			build_preset_description_line(ConfigOptionsGroup* optgroup);
 	void			update_preset_description_line();
 	void			update_frequently_changed_parameters();
@@ -444,6 +451,7 @@ protected:
     void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;
+    std::string m_last_sparse_infill_rotate_template_value;
     ConfigManipulation get_config_manipulation();
     friend class EditGCodeDialog;
 };
@@ -594,6 +602,7 @@ private:
 	bool		m_use_silent_mode = false;
 	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
 	bool		m_rebuild_kinematics_page = false;
+	void        update_input_shaper_menu(GCodeFlavor flavor);
 
 	ogStaticText*	m_fff_print_host_upload_description_line {nullptr};
 	ogStaticText*	m_sla_print_host_upload_description_line {nullptr};
@@ -631,6 +640,7 @@ public:
     void		update_fff();
     void		update_sla();
     void        update_pages(); // update m_pages according to printer technology
+	void        on_gcode_flavor_changed();
 	void		extruders_count_changed(size_t extruders_count);
 	PageShp		build_kinematics_page();
 	void		build_unregular_pages(bool from_initial_build = false);

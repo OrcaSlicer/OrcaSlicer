@@ -458,8 +458,14 @@ static void read_model_from_file(const std::string& input_file, Model& model)
         &is_bbl_3mf, &file_version, nullptr, nullptr, nullptr, plate_to_slice);
 
     model.add_default_instances();
-    for (auto object : model.objects)
-        object->ensure_on_bed();
+
+    const std::string extension      = fs::path(input_file).extension().string();
+    const bool        is_project_file = extension == ".3mf" || extension == ".3MF" || extension == ".amf" || extension == ".AMF";
+    for (auto object : model.objects) {
+        if (!is_project_file)
+            object->center_around_origin(false);
+        object->ensure_on_bed(is_project_file);
+    }
 }
 
 std::array<Vec3d, 4> get_cut_plane_points(const BoundingBoxf3 &bbox, const double &cut_height)
@@ -1004,7 +1010,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
         }
         js["filament_id"]     = filament_ids;
         js["printer_type"]    = obj_->printer_type;
-        NetworkAgent *agent   = GUI::wxGetApp().getAgent();
+        NetworkAgent* agent   = GUI::wxGetApp().getAgent();
         if (agent)
             agent->track_event("cali", js.dump());
     } catch (...) {}
@@ -1383,7 +1389,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
-            error_message = wxString::Format(_L("The nozzle diameter of %sextruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
 
@@ -1443,7 +1449,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
-            error_message = wxString::Format(_L("The nozzle diameter of %sextruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
 
@@ -1833,7 +1839,7 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
             ? (print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
                || print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
             : print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
-    print_job->could_emmc_print = obj_->is_support_print_with_emmc;
+    print_job->could_emmc_print = obj_->can_use_emmc_print();
     print_job->set_print_config(MachineBedTypeString[bed_type], true, false, false, false, true, false, 0, 0, 0);
     print_job->set_print_job_finished_event(wxGetApp().plater()->get_send_calibration_finished_event(), print_job->m_project_name);
 
@@ -1956,7 +1962,7 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
             ? (print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
                || print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
             : print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
-    print_job->could_emmc_print = obj_->is_support_print_with_emmc;
+    print_job->could_emmc_print = obj_->can_use_emmc_print();
     print_job->set_print_config(MachineBedTypeString[bed_type], true, true, false, false, true, false, 0, 1, 0);
     print_job->set_print_job_finished_event(wxGetApp().plater()->get_send_calibration_finished_event(), print_job->m_project_name);
 
