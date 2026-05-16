@@ -543,6 +543,7 @@ private:
         ImVec4     m_TextColor;
 
 		ImVec4     m_HyperTextColor;
+		ImVec4     m_HyperTextColorHover;
 
         ImVec4     m_ErrorColor;
         ImVec4     m_WarnColor;
