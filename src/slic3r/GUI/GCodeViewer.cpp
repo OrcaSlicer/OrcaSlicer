@@ -3773,7 +3773,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
 
     auto append_option_item = [this, append_item, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance](libvgcode::EOptionType type, std::vector<float> offsets) {
-        auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance](libvgcode::EOptionType option_type) -> std::array<std::string, 4> {
+        const bool full_layout = offsets.size() > 4;
+        auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance, full_layout](libvgcode::EOptionType option_type) -> std::array<std::string, 4> {
             libvgcode::EMoveType move_type;
             bool has_move_type = true;
             switch (option_type) {
@@ -3790,27 +3791,27 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
             const size_t move_type_idx = static_cast<size_t>(move_type);
             const float time = m_move_type_times[move_type_idx][current_time_mode];
-            const std::string time_text = time > 0.0f ? short_time(get_time_dhms(time)) : "";
-            const std::string percent_text = total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
-            const std::string distance_text = (option_type == libvgcode::EOptionType::Wipes || option_type == libvgcode::EOptionType::Retractions || option_type == libvgcode::EOptionType::Unretractions || option_type == libvgcode::EOptionType::Seams)
+            const std::string time_text = full_layout && time > 0.0f ? short_time(get_time_dhms(time)) : "";
+            const std::string percent_text = full_layout && total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
+            const std::string distance_text = full_layout && (option_type == libvgcode::EOptionType::Wipes || option_type == libvgcode::EOptionType::Retractions || option_type == libvgcode::EOptionType::Unretractions || option_type == libvgcode::EOptionType::Seams)
                 ? format_distance(m_move_type_distances[move_type_idx])
                 : "";
-            const std::string count_text = format_compact_count(m_move_type_counts[move_type_idx]);
+            const std::string count_text = full_layout ? format_compact_count(m_move_type_counts[move_type_idx]) : "";
 
             return { time_text, percent_text, distance_text, count_text };
         };
 
-        auto append_option_item_with_type = [this, offsets, append_item](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
+        auto append_option_item_with_type = [this, offsets, append_item, full_layout](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
             const std::string& time_text, const std::string& percent_text, const std::string& distance_text, const std::string& count_text) {
             std::vector<std::pair<std::string, float>> columns_offsets;
             columns_offsets.push_back({ label , offsets[0] });
-            if (!time_text.empty())
+            if (full_layout && !time_text.empty())
                 columns_offsets.push_back({ time_text, offsets[1] });
-            if (!percent_text.empty())
+            if (full_layout && !percent_text.empty())
                 columns_offsets.push_back({ percent_text, offsets[2] });
-            if (!distance_text.empty())
+            if (full_layout && !distance_text.empty())
                 columns_offsets.push_back({ distance_text, offsets[3] });
-            if (!count_text.empty())
+            if (full_layout && !count_text.empty())
                 columns_offsets.push_back({ count_text, distance_text.empty() ? offsets[3] : offsets[4] });
             append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
                 m_viewer.toggle_option_visibility(type);
