@@ -1016,7 +1016,7 @@ namespace Slic3r {
     #ifndef WIN32
         return upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
     #else
-        std::string host = get_host_from_url(m_host);
+        std::string host = get_host_from_url_no_port(m_host);
 
         // decide what to do based on m_host - resolve hostname or upload to ip
         std::vector<boost::asio::ip::address> resolved_addr;
