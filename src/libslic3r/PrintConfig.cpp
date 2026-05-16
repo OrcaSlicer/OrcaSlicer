@@ -2427,6 +2427,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<FilamentMapMode>(fmmAutoForFlush));
 
+    def = this->add("enable_filament_dynamic_map", coBool);
+    def->label = L("Enable filament dynamic map");
+    def->tooltip = L("Enable dynamic filament mapping during print.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("has_filament_switcher", coBool);
+    def->label = L("Has filament switcher");
+    def->tooltip = L("Printer has a filament switcher hardware (e.g., AMS).");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("filament_flush_temp", coInts);
     def->label = L("Flush temperature");
     def->tooltip = L("Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range.");
