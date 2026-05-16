@@ -113,17 +113,17 @@ bool PresetBundleDialog::CheckUpdateCloud()
     bool has_update = false;
     if (!wxGetApp().getAgent() || !wxGetApp().getAgent()->is_user_login())
         return false;
-    auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(wxGetApp().getAgent()->get_cloud_agent());
-    if (!orca_agent)
+    auto bundle_provider = wxGetApp().getAgent()->get_bundle_provider();
+    if (!bundle_provider)
         return false;
 
     BOOST_LOG_TRIVIAL(info) << "Preset Bundle Dialog: checking for bundle updates";
 
-    // Fetch all subscribed bundles from cloud
+    // Fetch all subscribed bundles via the active sync provider
     std::vector<std::pair<std::string, std::string>> subscribed_bundles;
     std::vector<std::string> notfound;
     std::vector<std::string> unauthorized;
-    int result = orca_agent->get_subscribed_bundles(&subscribed_bundles, notfound, unauthorized);
+    int result = bundle_provider->list_subscribed_bundles(&subscribed_bundles, notfound, unauthorized);
 
     if (result != 0) {
         BOOST_LOG_TRIVIAL(warning) << "Preset Bundle Dialog: failed to fetch subscribed bundles, result=" << result;
