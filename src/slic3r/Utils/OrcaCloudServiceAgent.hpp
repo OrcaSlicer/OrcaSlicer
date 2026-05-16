@@ -421,7 +421,7 @@ private:
     mutable std::mutex session_mutex;
 
     // Member variables - connection state
-    bool is_connected{false};
+    bool m_is_connected{false}; // renamed: clashes with the IPresetSyncProvider::is_connected() override
     bool enable_track{false};
     bool multi_machine_enabled{false};
 

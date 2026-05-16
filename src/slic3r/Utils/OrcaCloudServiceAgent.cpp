@@ -858,7 +858,7 @@ int OrcaCloudServiceAgent::connect_server()
     bool connected = (result == BAMBU_NETWORK_SUCCESS && http_code >= 200 && http_code < 300);
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
-        is_connected = connected;
+        m_is_connected = connected;
     }
 
     invoke_server_connected_callback(connected ? 0 : -1, http_code);
@@ -868,7 +868,7 @@ int OrcaCloudServiceAgent::connect_server()
 bool OrcaCloudServiceAgent::is_server_connected()
 {
     std::lock_guard<std::recursive_mutex> lock(state_mutex);
-    return is_connected;
+    return m_is_connected;
 }
 
 int OrcaCloudServiceAgent::refresh_connection()
