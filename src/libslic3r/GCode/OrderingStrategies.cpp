@@ -23,7 +23,7 @@ void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
     if (pn <= 2) return;
 
     // Best-first 2-opt: each pass finds the single best swap across all pairs,
-    // then applies it. Converges in far fewer passes than first-improving.
+    // then applies it.
     for (int pass = 0; max_passes <= 0 || pass < max_passes; ++pass) {
         size_t best_i = pn, best_j = pn;
         double best_gain = 0;
@@ -35,7 +35,7 @@ void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
 
             for (size_t j = i + 2; j < pn; ++j) {
                 size_t j_next = (j + 1) % pn;
-                if ((i == 0 && j_next == 0)) continue; // closing edge pair, skip
+                if (i == 0 && j_next == 0) continue; // reversing entire cycle is a no-op
 
                 const Vec2d& pj   = centers[path[j]].cast<double>();
                 const Vec2d& p_jn = centers[path[j_next]].cast<double>();

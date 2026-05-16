@@ -1,5 +1,4 @@
 // Print-object ordering strategies and shared TSP post-processing utilities.
-// All strategies, post-processing, and wrappers are consolidated into this single module.
 
 #ifndef slic3r_OrderingStrategies_hpp_
 #define slic3r_OrderingStrategies_hpp_

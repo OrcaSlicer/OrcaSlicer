@@ -1092,8 +1092,9 @@ std::vector<size_t> chain_points(const Points &points, const Point *start_near)
 std::vector<size_t> chain_points_with_postprocessing(const Points &points, const Point *start_near)
 {
 	std::vector<size_t> path = chain_points(points, start_near);
-	tsp_remove_crossings(path, points);
 	tsp_2opt_improve(path, points);
+	tsp_remove_crossings(path, points);
+	tsp_rotate_minimize_closing(path, points);
 	return path;
 }
 
