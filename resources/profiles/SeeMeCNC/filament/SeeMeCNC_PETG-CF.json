@@ -191,32 +191,11 @@
 	"filament_density": [
 		"1.32"
 	],
-	"filament_deretraction_speed": [
-		"60"
-	],
 	"filament_max_volumetric_speed": [
 		"7"
 	],
 	"filament_notes": [
 		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.4mm nozzle: 0.4500\n  0.5mm nozzle: 0.3600\n  0.7mm nozzle: 0.2571\n  1.0mm nozzle: 0.1800\n\nRostockMAX v3.2 / v4:\n  0.4mm nozzle: 0.5387\n  0.5mm nozzle: 0.4310\n  0.7mm nozzle: 0.3078\n  1.0mm nozzle: 0.2155\n\nBOSSdelta 0505:\n  0.4mm nozzle: 0.6021\n  0.5mm nozzle: 0.4817\n  0.7mm nozzle: 0.3441\n  1.0mm nozzle: 0.2408\n\nBOSSdelta 0510:\n  0.4mm nozzle: 0.8873\n  0.5mm nozzle: 0.7099\n  0.7mm nozzle: 0.5070\n  1.0mm nozzle: 0.3549\n\nBOSSdelta 0521:\n  0.4mm nozzle: 1.4894\n  0.5mm nozzle: 1.1915\n  0.7mm nozzle: 0.8511\n  1.0mm nozzle: 0.5958\n\nRun OrcaSlicer PA calibration to fine-tune for your setup."
-	],
-	"filament_retract_before_wipe": [
-		"70%"
-	],
-	"filament_retract_restart_extra": [
-		"0"
-	],
-	"filament_retract_when_changing_layer": [
-		"1"
-	],
-	"filament_retraction_length": [
-		"2"
-	],
-	"filament_retraction_minimum_travel": [
-		"2"
-	],
-	"filament_retraction_speed": [
-		"60"
 	],
 	"filament_type": [
 		"PETG-CF"
@@ -283,20 +262,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"70"
-	],
-	"filament_z_hop": [
-		"0.2"
-	],
-	"filament_z_hop_types": [
-		"Auto"
-	],
-	"filament_retract_lift_above": [
-		"0"
-	],
-	"filament_retract_lift_below": [
-		"0"
-	],
-	"filament_retract_lift_enforce": [
-		"All Surfaces"
 	]
 }
