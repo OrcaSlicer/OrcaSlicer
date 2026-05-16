@@ -184,6 +184,13 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
                 BOOST_LOG_TRIVIAL(info) << "Initialized third-party cloud agent: " << provider;
             }
         }
+
+        // Default preset sync provider: Orca (it implements IPresetSyncProvider).
+        // Replaced at runtime by GUI_App::reconfigure_profile_sync when the user
+        // picks WebDAV or Git in Preferences.
+        if (auto orca_sync = std::dynamic_pointer_cast<IPresetSyncProvider>(agent->get_cloud_agent())) {
+            agent->set_sync_provider(std::move(orca_sync));
+        }
     }
 
     return agent;
