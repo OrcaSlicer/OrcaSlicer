@@ -628,6 +628,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/BaseFileSyncProvider.hpp
     Utils/BaseFileSyncProvider.cpp
     Utils/WebDAVSyncProvider.hpp
+    Utils/GitSyncProvider.hpp
     Utils/IPrinterAgent.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
