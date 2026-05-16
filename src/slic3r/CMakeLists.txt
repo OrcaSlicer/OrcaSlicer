@@ -625,6 +625,9 @@ set(SLIC3R_GUI_SOURCES
     Utils/ICloudServiceAgent.hpp
     Utils/IPresetSyncProvider.hpp
     Utils/IBundleProvider.hpp
+    Utils/BaseFileSyncProvider.hpp
+    Utils/BaseFileSyncProvider.cpp
+    Utils/WebDAVSyncProvider.hpp
     Utils/IPrinterAgent.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
