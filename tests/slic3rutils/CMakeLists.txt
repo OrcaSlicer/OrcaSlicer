@@ -2,6 +2,8 @@ get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
     test_webdav_sync.cpp
+    test_appconfig_migration.cpp
+    test_basefilesync_provider.cpp
     )
 
 if (MSVC)

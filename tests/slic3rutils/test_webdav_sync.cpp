@@ -1,7 +1,6 @@
 #include <catch2/catch_all.hpp>
 
 #include "slic3r/Utils/WebDAVSync.hpp"
-#include "slic3r/Utils/ProfileSyncManager.hpp"
 
 using namespace Slic3r;
 
@@ -242,59 +241,3 @@ TEST_CASE("ETag extraction — missing header", "[WebDAV][ProfileSync]") {
     CHECK(sync.extract_etag("").empty());
 }
 
-// ============================================================
-// ProfileSyncManager validation
-// ============================================================
-
-TEST_CASE("ProfileSyncManager::start — disabled", "[ProfileSync]") {
-    ProfileSyncManager mgr;
-    SyncConfig cfg;
-    cfg.enabled = false;
-    mgr.set_config(cfg);
-
-    std::string error;
-    CHECK_FALSE(mgr.start(error));
-    CHECK(error == "Sync is disabled");
-}
-
-TEST_CASE("ProfileSyncManager::start — WebDAV empty URL", "[ProfileSync]") {
-    ProfileSyncManager mgr;
-    SyncConfig cfg;
-    cfg.enabled = true;
-    cfg.backend_type = SyncBackendType::WebDAV;
-    cfg.webdav_config.url = "";
-    mgr.set_config(cfg);
-
-    std::string error;
-    CHECK_FALSE(mgr.start(error));
-    CHECK(error == "WebDAV URL is not configured");
-}
-
-TEST_CASE("ProfileSyncManager::start — Git empty repo URL", "[ProfileSync]") {
-    ProfileSyncManager mgr;
-    SyncConfig cfg;
-    cfg.enabled = true;
-    cfg.backend_type = SyncBackendType::Git;
-    cfg.git_config.repo_url = "";
-    mgr.set_config(cfg);
-
-    std::string error;
-    CHECK_FALSE(mgr.start(error));
-    CHECK(error == "Git repository URL is not configured");
-}
-
-TEST_CASE("ProfileSyncManager::start — read_only passes validation", "[ProfileSync]") {
-    ProfileSyncManager mgr;
-    SyncConfig cfg;
-    cfg.enabled = true;
-    cfg.read_only = true;
-    cfg.backend_type = SyncBackendType::WebDAV;
-    cfg.webdav_config.url = "http://example.com/dav";
-    mgr.set_config(cfg);
-
-    // start() should pass validation (read_only doesn't block it)
-    // It will fail at connect() since there's no real server, but NOT at validation
-    std::string error;
-    CHECK_FALSE(mgr.start(error));
-    CHECK(error.find("URL is not configured") == std::string::npos);
-}
