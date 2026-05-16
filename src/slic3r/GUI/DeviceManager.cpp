@@ -493,6 +493,13 @@ bool MachineObject::is_series_p() const { return is_series_p(DevPrinterConfigUti
 bool MachineObject::is_series_x() const { return is_series_x(DevPrinterConfigUtil::get_printer_series_str(printer_type)); }
 bool MachineObject::is_series_o() const { return is_series_o(DevPrinterConfigUtil::get_printer_series_str(printer_type)); }
 
+bool MachineObject::can_use_emmc_print() const
+{
+    AppConfig* config = GUI::wxGetApp().app_config;
+    std::string disable_emmc_print = config ? config->get("disable_emmc_print") : "true";
+    return is_support_print_with_emmc && (disable_emmc_print == "0" || disable_emmc_print == "false");
+}
+
 std::string MachineObject::get_printer_series_str() const{ return DevPrinterConfigUtil::get_printer_series_str(printer_type);};
 
 void MachineObject::reload_printer_settings()
