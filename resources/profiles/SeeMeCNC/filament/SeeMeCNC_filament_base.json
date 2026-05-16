@@ -217,8 +217,5 @@
 	],
 	"volumetric_speed_coefficients": [
 		""
-	],
-	"retraction_length": [
-		"2"
 	]
 }

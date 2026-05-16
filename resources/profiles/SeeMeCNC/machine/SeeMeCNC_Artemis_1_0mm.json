@@ -347,22 +347,5 @@
 	"type": "machine",
 	"instantiation": "true",
 	"model": "SeeMeCNC Artemis 300",
-	"thumbnail": "SeeMeCNC Artemis 300_cover.png",
-	"filament_overrides": {
-		"SeeMeCNC PLA": {
-			"pressure_advance": "0.16"
-		},
-		"SeeMeCNC PETG": {
-			"pressure_advance": "0.2"
-		},
-		"SeeMeCNC PETG-CF": {
-			"pressure_advance": "0.18"
-		},
-		"SeeMeCNC PA-CF": {
-			"pressure_advance": "0.18"
-		},
-		"SeeMeCNC TPU": {
-			"pressure_advance": "0.32"
-		}
-	}
+	"thumbnail": "SeeMeCNC Artemis 300_cover.png"
 }

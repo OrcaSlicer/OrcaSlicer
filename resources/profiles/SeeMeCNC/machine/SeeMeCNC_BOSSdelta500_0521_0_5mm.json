@@ -347,22 +347,5 @@
 	"type": "machine",
 	"instantiation": "true",
 	"model": "SeeMeCNC BOSSdelta 500 0521",
-	"thumbnail": "SeeMeCNC BOSSdelta 500 0521_cover.png",
-	"filament_overrides": {
-		"SeeMeCNC PLA": {
-			"pressure_advance": "0.32"
-		},
-		"SeeMeCNC PETG": {
-			"pressure_advance": "0.4"
-		},
-		"SeeMeCNC PETG-CF": {
-			"pressure_advance": "0.36"
-		},
-		"SeeMeCNC PA-CF": {
-			"pressure_advance": "0.36"
-		},
-		"SeeMeCNC TPU": {
-			"pressure_advance": "0.64"
-		}
-	}
+	"thumbnail": "SeeMeCNC BOSSdelta 500 0521_cover.png"
 }

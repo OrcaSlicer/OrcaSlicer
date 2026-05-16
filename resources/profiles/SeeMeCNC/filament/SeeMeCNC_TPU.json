@@ -164,5 +164,20 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
+	],
+	"filament_z_hop": [
+		"0.2"
+	],
+	"filament_z_hop_types": [
+		"Auto"
+	],
+	"filament_retract_lift_above": [
+		"0"
+	],
+	"filament_retract_lift_below": [
+		"0"
+	],
+	"filament_retract_lift_enforce": [
+		"All Surfaces"
 	]
 }

@@ -347,22 +347,5 @@
 	"type": "machine",
 	"instantiation": "true",
 	"model": "SeeMeCNC RostockMAX v3.2",
-	"thumbnail": "SeeMeCNC RostockMAX v3.2_cover.png",
-	"filament_overrides": {
-		"SeeMeCNC PLA": {
-			"pressure_advance": "0.1915"
-		},
-		"SeeMeCNC PETG": {
-			"pressure_advance": "0.2394"
-		},
-		"SeeMeCNC PETG-CF": {
-			"pressure_advance": "0.2155"
-		},
-		"SeeMeCNC PA-CF": {
-			"pressure_advance": "0.2155"
-		},
-		"SeeMeCNC TPU": {
-			"pressure_advance": "0.3831"
-		}
-	}
+	"thumbnail": "SeeMeCNC RostockMAX v3.2_cover.png"
 }

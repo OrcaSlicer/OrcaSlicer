@@ -210,7 +210,7 @@
 		"1"
 	],
 	"filament_retraction_length": [
-		"6"
+		"2"
 	],
 	"filament_retraction_minimum_travel": [
 		"2"
@@ -284,16 +284,25 @@
 	"textured_plate_temp_initial_layer": [
 		"70"
 	],
-	"fan_speedup_time": [
-		"30"
-	],
 	"dont_slow_down_outer_wall": [
 		"0"
 	],
 	"keep_fan_always_on": [
 		"0"
 	],
-	"retraction_length": [
-		"2"
+	"filament_z_hop": [
+		"0.2"
+	],
+	"filament_z_hop_types": [
+		"Auto"
+	],
+	"filament_retract_lift_above": [
+		"0"
+	],
+	"filament_retract_lift_below": [
+		"0"
+	],
+	"filament_retract_lift_enforce": [
+		"All Surfaces"
 	]
 }
