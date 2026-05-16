@@ -1287,6 +1287,17 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     //BBS: move the id to the end of reset
     m_last_result_id = gcode_result.id;
     m_gcode_result = &gcode_result;
+    m_move_type_counts.fill(0);
+    for (auto& move_type_times : m_move_type_times)
+        move_type_times.fill(0.0f);
+    for (const GCodeProcessorResult::MoveVertex& move : gcode_result.moves) {
+        const size_t move_type = static_cast<size_t>(move.type);
+        if (move_type < m_move_type_counts.size()) {
+            ++m_move_type_counts[move_type];
+            for (size_t mode = 0; mode < move.time.size(); ++mode)
+                m_move_type_times[move_type][mode] += move.time[mode];
+        }
+    }
     m_only_gcode_in_preview = only_gcode;
 
     m_sequential_view.gcode_window.load_gcode(gcode_result.filename, gcode_result.lines_ends);
@@ -1449,6 +1460,18 @@ void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
 {
     m_loaded_as_preview = true;
 
+    m_move_type_counts.fill(0);
+    for (auto& move_type_times : m_move_type_times)
+        move_type_times.fill(0.0f);
+    for (const libvgcode::PathVertex& vertex : data.vertices) {
+        const size_t move_type = static_cast<size_t>(vertex.type);
+        if (move_type < m_move_type_counts.size()) {
+            ++m_move_type_counts[move_type];
+            for (size_t mode = 0; mode < vertex.times.size(); ++mode)
+                m_move_type_times[move_type][mode] += vertex.times[mode];
+        }
+    }
+
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::Skirt,                    { 127, 255, 127 });
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::ExternalPerimeter,        { 255, 255, 0 });
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::SupportMaterial,          { 127, 255, 127 });
@@ -1496,6 +1519,9 @@ void GCodeViewer::reset()
     m_extruders_count = 0;
     m_filament_diameters = std::vector<float>();
     m_filament_densities = std::vector<float>();
+    m_move_type_counts.fill(0);
+    for (auto& move_type_times : m_move_type_times)
+        move_type_times.fill(0.0f);
     m_print_statistics.reset();
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
     m_left_extruder_filament.clear();
@@ -3072,7 +3098,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     const PrintEstimatedStatistics::Mode& time_mode = m_print_statistics.modes[static_cast<size_t>(m_viewer.get_time_mode())];
     const libvgcode::EViewType curr_view_type = m_viewer.get_view_type();
     const int curr_view_type_i = static_cast<int>(curr_view_type);
-    bool show_estimated_time = time_mode.time > 0.0f && (curr_view_type == libvgcode::EViewType::FeatureType ||
+    const size_t current_time_mode = static_cast<size_t>(m_viewer.get_time_mode());
+    const float total_estimated_time = time_mode.time > 0.0f ? time_mode.time : m_viewer.get_estimated_time();
+    bool show_estimated_time = total_estimated_time > 0.0f && (curr_view_type == libvgcode::EViewType::FeatureType ||
         curr_view_type == libvgcode::EViewType::LayerTimeLinear || curr_view_type == libvgcode::EViewType::LayerTimeLogarithmic ||
         (curr_view_type == libvgcode::EViewType::ColorPrint && !time_mode.custom_gcode_times.empty()));
 
@@ -3085,6 +3113,39 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 pos_rect = ImGui::GetCursorScreenPos();
     float window_padding = 4.0f * m_scale;
+
+    auto format_compact_count = [](unsigned long long value) {
+        static constexpr const char* suffixes[] = { "", "K", "M", "B", "T", "P", "E" };
+        constexpr size_t suffix_count = sizeof(suffixes) / sizeof(suffixes[0]);
+
+        if (value < 1000)
+            return std::to_string(value);
+
+        size_t suffix_index = 0;
+        unsigned long long divisor = 1;
+        while (suffix_index + 1 < suffix_count && value / divisor >= 1000) {
+            divisor *= 1000;
+            ++suffix_index;
+        }
+
+        const unsigned long long whole = value / divisor;
+        const unsigned long long tenths = (value % divisor) * 10 / divisor;
+
+        std::string ret = std::to_string(whole);
+        if (tenths != 0)
+            ret += "." + std::to_string(tenths);
+        ret += suffixes[suffix_index];
+        return ret;
+    };
+
+    auto format_percent = [](float percent) {
+        if (percent == 0.0f)
+            return std::string("0");
+
+        char buffer[64];
+        percent > 0.001f ? ::sprintf(buffer, "%.1f", percent * 100.0f) : ::sprintf(buffer, "<0.1");
+        return std::string(buffer);
+    };
 
     // ORCA dont use background on top bar to give modern look
     //draw_list->AddRectFilled(ImVec2(pos_rect.x,pos_rect.y - ImGui::GetStyle().WindowPadding.y),
@@ -3297,14 +3358,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + _u8L("mm");
     };
 
-    auto role_time_and_percent = [this, time_mode](libvgcode::EGCodeExtrusionRole role) {
+    auto role_time_and_percent = [this, total_estimated_time](libvgcode::EGCodeExtrusionRole role) {
         const float time = m_viewer.get_extrusion_role_estimated_time(role);
-        return std::make_pair(time, time / time_mode.time);
+        return std::make_pair(time, total_estimated_time > 0.0f ? time / total_estimated_time : 0.0f);
     };
 
-    auto travel_time_and_percent = [this, time_mode]() {
+    auto travel_time_and_percent = [this, total_estimated_time]() {
         const float time = m_viewer.get_travels_estimated_time();
-        return std::make_pair(time, time / time_mode.time);
+        return std::make_pair(time, total_estimated_time > 0.0f ? time / total_estimated_time : 0.0f);
     };
 
     auto used_filament_per_role = [this, imperial_units](ExtrusionRole role) {
@@ -3556,25 +3617,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             }
             used_filaments_length.push_back(travel_distance);
 
-            auto format_compact_count = [](unsigned int value) {
-                static constexpr const char* suffixes[] = { "", "K", "M", "B", "T", "P", "E" };
-                constexpr size_t suffix_count = sizeof(suffixes) / sizeof(suffixes[0]);
-
-                if (value < 1000)
-                    return std::to_string(value);
-
-                size_t suffix_index = 0;
-                unsigned long long divisor = 1;
-                while (suffix_index + 1 < suffix_count && value / divisor >= 1000) {
-                    divisor *= 1000;
-                    ++suffix_index;
-                }
-
-                const unsigned long long whole = value / divisor;
-                const unsigned long long tenths = (value % divisor) * 10 / divisor;
-
-                return std::to_string(whole) + "." + std::to_string(tenths) + suffixes[suffix_index];
-            };
             travel_moves = format_compact_count(m_print_statistics.total_travel_moves);
             used_filaments_weight.push_back(travel_moves);
         }
@@ -3680,9 +3722,42 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     default: { break; }
     }
 
-    auto append_option_item = [this, append_item](libvgcode::EOptionType type, std::vector<float> offsets) {
-        auto append_option_item_with_type = [this, offsets, append_item](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible) {
-            append_item(EItemType::Rect, color, {{ label , offsets[0] }}, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
+    auto append_option_item = [this, append_item, current_time_mode, total_estimated_time, &format_compact_count, &format_percent](libvgcode::EOptionType type, std::vector<float> offsets) {
+        auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent](libvgcode::EOptionType option_type) -> std::array<std::string, 3> {
+            libvgcode::EMoveType move_type;
+            bool has_move_type = true;
+            switch (option_type) {
+            case libvgcode::EOptionType::Wipes:         { move_type = libvgcode::EMoveType::Wipe; break; }
+            case libvgcode::EOptionType::Retractions:   { move_type = libvgcode::EMoveType::Retract; break; }
+            case libvgcode::EOptionType::Unretractions: { move_type = libvgcode::EMoveType::Unretract; break; }
+            case libvgcode::EOptionType::Seams:         { move_type = libvgcode::EMoveType::Seam; break; }
+            case libvgcode::EOptionType::ToolChanges:   { move_type = libvgcode::EMoveType::ToolChange; break; }
+            default:                                    { has_move_type = false; break; }
+            }
+
+            if (!has_move_type)
+                return { "", "", "" };
+
+            const size_t move_type_idx = static_cast<size_t>(move_type);
+            const float time = m_move_type_times[move_type_idx][current_time_mode];
+            const std::string time_text = time > 0.0f ? short_time(get_time_dhms(time)) : "";
+            const std::string percent_text = total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
+            const std::string count_text = format_compact_count(m_move_type_counts[move_type_idx]);
+
+            return { time_text, percent_text, count_text };
+        };
+
+        auto append_option_item_with_type = [this, offsets, append_item](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
+            const std::string& time_text, const std::string& percent_text, const std::string& count_text) {
+            std::vector<std::pair<std::string, float>> columns_offsets;
+            columns_offsets.push_back({ label , offsets[0] });
+            if (!time_text.empty())
+                columns_offsets.push_back({ time_text, offsets[1] });
+            if (!percent_text.empty())
+                columns_offsets.push_back({ percent_text, offsets[2] });
+            if (!count_text.empty())
+                columns_offsets.push_back({ count_text, offsets[3] });
+            append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
                 });
@@ -3690,18 +3765,33 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool visible = m_viewer.is_option_visible(type);
         if (type == libvgcode::EOptionType::Travels) {
             //BBS: only display travel time in FeatureType view
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), _u8L("Travel"), visible);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), _u8L("Travel"), visible, "", "", "");
         }
-        else if (type == libvgcode::EOptionType::Seams)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Seams)), _u8L("Seams"), visible);
-        else if (type == libvgcode::EOptionType::Retractions)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Retractions)), _u8L("Retract"), visible);
-        else if (type == libvgcode::EOptionType::Unretractions)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Unretractions)), _u8L("Unretract"), visible);
-        else if (type == libvgcode::EOptionType::ToolChanges)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament Changes"), visible);
-        else if (type == libvgcode::EOptionType::Wipes)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible);
+        else if (type == libvgcode::EOptionType::Seams) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Seams)), _u8L("Seams"), visible,
+                option_values[0], option_values[1], option_values[2]);
+        }
+        else if (type == libvgcode::EOptionType::Retractions) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Retractions)), _u8L("Retract"), visible,
+                option_values[0], option_values[1], option_values[2]);
+        }
+        else if (type == libvgcode::EOptionType::Unretractions) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Unretractions)), _u8L("Unretract"), visible,
+                option_values[0], option_values[1], option_values[2]);
+        }
+        else if (type == libvgcode::EOptionType::ToolChanges) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament Changes"), visible,
+                option_values[0], option_values[1], option_values[2]);
+        }
+        else if (type == libvgcode::EOptionType::Wipes) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible,
+                option_values[0], option_values[1], option_values[2]);
+        }
     };
 
     const libvgcode::EViewType new_view_type = curr_view_type;
@@ -3977,16 +4067,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         imgui.text(_u8L("Filament change times") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%d", m_print_statistics.total_filament_changes);
-        imgui.text(buf);
+        imgui.text(format_compact_count(m_print_statistics.total_filament_changes));
 
         //display tool change times
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
         imgui.text(_u8L("Tool changes") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%d", m_print_statistics.total_extruder_changes);
-        imgui.text(buf);
+        imgui.text(format_compact_count(m_print_statistics.total_extruder_changes));
 
         //BBS display cost
         ImGui::Dummy({ window_padding, window_padding });
