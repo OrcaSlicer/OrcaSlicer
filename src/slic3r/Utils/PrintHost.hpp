@@ -63,6 +63,12 @@ public:
     // A print host usually does not support multiple printers, with the exception of Repetier server.
     virtual bool supports_multiple_printers() const { return false; }
     virtual std::string get_host() const = 0;
+    /**
+    * Get the serial number for connecting to the printer.
+    * For Elegoo CC2, the device details connection to the printer requires the serial number.
+    * Other print hosts do not need to implement this interface, and it returns an empty string by default.
+    */
+    virtual std::string get_sn() const { return ""; }
 
     // Support for Repetier server multiple groups & printers. Not supported by other print hosts.
     // Returns false if not supported. May throw HostNetworkError.
@@ -73,6 +79,7 @@ public:
     virtual bool get_storage(wxArrayString& /*storage_path*/, wxArrayString& /*storage_name*/) const { return false; }
 
     static PrintHost* get_print_host(DynamicPrintConfig *config);
+    static std::string get_print_host_webui(DynamicPrintConfig *config);
 
     //Support for cloud webui login
     virtual bool is_cloud() const { return false; }

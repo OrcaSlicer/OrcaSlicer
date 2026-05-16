@@ -20,14 +20,16 @@ class ElegooLink : public OctoPrint
 public:
     ElegooLink(DynamicPrintConfig *config);
     ~ElegooLink() override = default;
+    static std::string get_print_host_webui(DynamicPrintConfig *config);
     const char* get_name() const override;
     virtual bool test(wxString &curl_msg) const override;
     wxString get_test_ok_msg() const override;
     wxString get_test_failed_msg(wxString& msg) const override;
     bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
+    std::string get_sn() const override;
     bool has_auto_discovery() const override { return false; }
     bool can_test() const override { return true; }
-    PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint; }
+    PrintHostPostUploadActions get_post_upload_actions() const override;
 protected:
 #ifdef WIN32
     virtual bool upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const;
@@ -39,9 +41,9 @@ protected:
     virtual bool test_with_resolved_ip(wxString& curl_msg) const override;
     bool elegoo_test_with_resolved_ip(wxString& curl_msg) const;
 #endif
-
 private:
     bool elegoo_test(wxString& curl_msg) const;
+    bool elegoo_cc2_test(wxString& curl_msg) const;
     bool print(WebSocketClient&  client,
                std::string       timeLapse,
                std::string       heatedBedLeveling,
@@ -54,6 +56,12 @@ private:
                     ProgressFn        prorgess_fn,
                     ErrorFn           error_fn,
                     InfoFn            info_fn) const;
+    bool loopUploadCC2(std::string url,
+                       const std::string& host_header,
+                       PrintHostUpload    upload_data,
+                       ProgressFn         prorgess_fn,
+                       ErrorFn            error_fn,
+                       InfoFn             info_fn) const;
 
     bool uploadPart(Http &http,
                     std::string       md5,
@@ -66,6 +74,26 @@ private:
                     ProgressFn        prorgess_fn,
                     ErrorFn           error_fn,
                     InfoFn            info_fn) const;
+    bool uploadPartCC2(Http&                           http,
+                       const std::string&             host_header,
+                       const std::string&             token,
+                       const std::string&             md5,
+                       const boost::filesystem::path& path,
+                       const std::string&             filename,
+                       size_t                         filesize,
+                       size_t                         offset,
+                       size_t                         length,
+                       ProgressFn                     prorgess_fn,
+                       ErrorFn                        error_fn) const;
+
+    std::string cc2_token() const;
+    std::string make_cc2_info_url() const;
+    std::string make_cc2_upload_url() const;
+#ifdef WIN32
+    bool elegoo_cc2_test_with_resolved_ip(wxString& curl_msg) const;
+#endif
+
+    std::string m_printerModel;
 };
 }
 

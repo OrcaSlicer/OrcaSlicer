@@ -74,6 +74,40 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
     }
 }
 
+std::string PrintHost::get_print_host_webui(DynamicPrintConfig* config)
+{
+    if (config == nullptr)
+        return {};
+
+    std::string webui_url;
+    const auto* host_type_opt = config->option<ConfigOptionEnum<PrintHostType>>("host_type");
+    const auto  host_type     = host_type_opt != nullptr ? host_type_opt->value : htOctoPrint;
+
+    switch (host_type) {
+    case htElegooLink: {
+        webui_url = ElegooLink::get_print_host_webui(config);
+        break;
+    }
+    default: break;
+    }
+
+    if (webui_url.empty()) {
+        webui_url = config->opt_string("print_host_webui");
+        if (webui_url.empty())
+            webui_url = config->opt_string("print_host");
+        if (webui_url.empty())
+            return webui_url;
+    }
+
+    const bool has_http_scheme = boost::algorithm::istarts_with(webui_url, "http");
+    const bool has_file_scheme = boost::algorithm::istarts_with(webui_url, "file:");
+
+    if (!has_http_scheme && !has_file_scheme)
+        webui_url = "http://" + webui_url;
+
+    return webui_url;
+}
+
 wxString PrintHost::format_error(const std::string &body, const std::string &error, unsigned status) const
 {
     if (status != 0) {

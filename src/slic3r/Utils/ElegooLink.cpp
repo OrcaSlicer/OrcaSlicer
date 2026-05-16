@@ -11,6 +11,7 @@
 #include <boost/asio.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -57,6 +58,69 @@ namespace Slic3r {
 
 
     namespace {
+
+        constexpr const char* ELEGOO_CC2_DEFAULT_TOKEN = "123456";
+
+        enum class ElegooPrinterType {
+            Other,
+            CC,
+            CC2,
+        };
+
+        ElegooPrinterType classify_printer_model(const std::string& printer_model)
+        {
+            if (!boost::algorithm::starts_with(printer_model, "Elegoo Centauri"))
+                return ElegooPrinterType::Other;
+
+            const auto last_char = printer_model.find_last_not_of(" \t\r\n");
+            if (last_char != std::string::npos && printer_model[last_char] == '2')
+                return ElegooPrinterType::CC2;
+
+            return ElegooPrinterType::CC;
+        }
+
+        std::string get_cc2_token(const std::string& apikey)
+        {
+            return apikey.empty() ? ELEGOO_CC2_DEFAULT_TOKEN : apikey;
+        }
+
+        bool parse_cc2_response(const std::string& body, std::string& error_message, std::string* serial_number = nullptr)
+        {
+            try {
+                pt::ptree          root;
+                std::istringstream is(body);
+                pt::read_json(is, root);
+
+                const int error_code = root.get<int>("error_code", -1);
+                if (error_code != 0) {
+                    error_message = root.get<std::string>("message", "Printer returned an error");
+                    if (error_message.empty())
+                        error_message = "Printer returned an error";
+                    error_message += " (" + std::to_string(error_code) + ")";
+                    return false;
+                }
+
+                if (serial_number != nullptr) {
+                    const auto system_info = root.get_child_optional("system_info");
+                    if (!system_info) {
+                        error_message = "Missing system_info in response";
+                        return false;
+                    }
+
+                    const auto sn = system_info->get_optional<std::string>("sn");
+                    if (!sn || sn->empty()) {
+                        error_message = "Missing printer serial number in response";
+                        return false;
+                    }
+                    *serial_number = *sn;
+                }
+
+                return true;
+            } catch (const std::exception&) {
+                error_message = "Error parsing response";
+                return false;
+            }
+        }
 
         std::string get_host_from_url(const std::string& url_in)
         {
@@ -220,15 +284,126 @@ namespace Slic3r {
             return ret_val;
         }
 
+            std::string path_to_utf8(const boost::filesystem::path& path)
+            {
+        #ifdef WIN32
+                return boost::nowide::narrow(path.wstring());
+        #else
+                return path.string();
+        #endif
+            }
+
+            std::string filename_to_utf8(const boost::filesystem::path& path)
+            {
+        #ifdef WIN32
+                return boost::nowide::narrow(path.filename().wstring());
+        #else
+                return path.filename().string();
+        #endif
+            }
+
     } //namespace
 
 
     ElegooLink::ElegooLink(DynamicPrintConfig *config):
-    OctoPrint(config) {
+    OctoPrint(config), m_printerModel(config->opt_string("printer_model")) {
 
     }
 
+    std::string ElegooLink::get_print_host_webui(DynamicPrintConfig* config)
+    {
+        if (config == nullptr)
+            return {};
+
+        std::string fallback_webui = config->opt_string("print_host_webui");
+        if (fallback_webui.empty())
+            fallback_webui = config->opt_string("print_host");
+        if (!fallback_webui.empty()) {
+            const bool has_http_scheme = boost::algorithm::istarts_with(fallback_webui, "http");
+            const bool has_file_scheme = boost::algorithm::istarts_with(fallback_webui, "file:");
+
+            if (!has_http_scheme && !has_file_scheme)
+                fallback_webui = "http://" + fallback_webui;
+        }
+
+        const std::string host = config->opt_string("print_host");
+        if (host.empty())
+            return fallback_webui;
+
+        if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
+            return fallback_webui;
+
+        std::string web_path = resources_dir() + "/plugins/elegoolink/web/lan_service_web/index.html";
+        std::replace(web_path.begin(), web_path.end(), '\\', '/');
+        web_path = "file://" + web_path;
+        web_path += "?access_code=" + get_cc2_token(config->opt_string("printhost_apikey"));
+        web_path += "&ip=" + get_host_from_url(host) + "&id=elegoo_123456";
+
+        const std::string lang = GUI::wxGetApp().current_language_code_safe().utf8_string();
+        if (!lang.empty())
+            web_path += "&lang=" + lang;
+
+        if (GUI::get_app_config()->get_bool("developer_mode"))
+            web_path += "&dev=true";
+
+        return web_path;
+    }
+
+    std::string ElegooLink::cc2_token() const
+    {
+        return get_cc2_token(m_apikey);
+    }
+
+    std::string ElegooLink::make_cc2_info_url() const
+    {
+        return make_url("system/info?X-Token=" + escape_string(cc2_token()));
+    }
+
+    std::string ElegooLink::make_cc2_upload_url() const
+    {
+        return make_url("upload");
+    }
+
     const char* ElegooLink::get_name() const { return "ElegooLink"; }
+    PrintHostPostUploadActions ElegooLink::get_post_upload_actions() const
+    {
+        if (classify_printer_model(m_printerModel) == ElegooPrinterType::CC2) {
+            return PrintHostPostUploadAction::None;
+        } else {
+            return PrintHostPostUploadAction::StartPrint;
+        }
+    }
+
+    std::string ElegooLink::get_sn() const
+    {
+        if (classify_printer_model(m_printerModel) != ElegooPrinterType::CC2)
+            return "";
+
+        const char*      name  = get_name();
+        std::string      sn;
+        const auto       token = cc2_token();
+        auto             http  = Http::get(make_cc2_info_url());
+        http.timeout_connect(10)
+            .timeout_max(15);
+        http.header("X-Token", token);
+        http.header("Accept", "application/json");
+        http.on_error([&](std::string body, std::string error, unsigned status) {
+                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting CC2 device info for SN: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
+            })
+            .on_complete([&](std::string body, unsigned status) {
+                std::string error_message;
+                if (!parse_cc2_response(body, error_message, &sn)) {
+                    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse CC2 SN response, HTTP %2%, reason: %3%") % name % status % error_message;
+                    sn.clear();
+                }
+            })
+#ifdef WIN32
+            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+#endif // WIN32
+            .perform_sync();
+
+        return sn;
+    }
 
     bool ElegooLink::elegoo_test(wxString& msg) const{
 
@@ -268,11 +443,54 @@ namespace Slic3r {
         return res;
     }
     bool ElegooLink::test(wxString &curl_msg) const{
-        if(OctoPrint::test(curl_msg)){
-            return true;
+        switch (classify_printer_model(m_printerModel)) {
+        case ElegooPrinterType::Other:
+            return OctoPrint::test(curl_msg);
+        case ElegooPrinterType::CC2:
+            return elegoo_cc2_test(curl_msg);
+        case ElegooPrinterType::CC:
+            return elegoo_test(curl_msg);
         }
-        curl_msg="";
-        return elegoo_test(curl_msg);
+        return false;
+    }
+
+    bool ElegooLink::elegoo_cc2_test(wxString& msg) const
+    {
+        const char*  name  = get_name();
+        bool         res   = true;
+        const auto   token = cc2_token();
+        auto         url   = make_cc2_info_url();
+        auto         http  = Http::get(std::move(url));
+
+        http.header("X-Token", token);
+        http.header("Accept", "application/json");
+        http.on_error([&](std::string body, std::string error, unsigned status) {
+                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting CC2 device info: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
+                res = false;
+                if (status == 401 || status == 403)
+                    msg = format_error(body, "Invalid access code", status);
+                else
+                    msg = format_error(body, error.empty() ? "CC2 device not detected" : error, status);
+            })
+            .on_complete([&](std::string body, unsigned status) {
+                BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got CC2 device info: %2%") % name % body;
+                std::string error_message;
+                std::string serial_number;
+                if (!parse_cc2_response(body, error_message, &serial_number)) {
+                    res = false;
+                    msg = format_error(body, error_message.empty() ? "CC2 device not detected" : error_message, status);
+                    return;
+                }
+                res = true;
+            })
+#ifdef WIN32
+            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+            .on_ip_resolve([&](std::string address) {
+                msg = GUI::from_u8(address);
+            })
+#endif // WIN32
+            .perform_sync();
+        return res;
     }
 
 #ifdef WIN32
@@ -320,12 +538,53 @@ namespace Slic3r {
     }
     bool ElegooLink::test_with_resolved_ip(wxString& msg) const
     {
-        // Elegoo supports both otcoprint and Elegoo link
-        if (OctoPrint::test_with_resolved_ip(msg)) {
-            return true;
+        switch (classify_printer_model(m_printerModel)) {
+        case ElegooPrinterType::Other:
+            return OctoPrint::test_with_resolved_ip(msg);
+        case ElegooPrinterType::CC2:
+            return elegoo_cc2_test_with_resolved_ip(msg);
+        case ElegooPrinterType::CC:
+            return elegoo_test_with_resolved_ip(msg);
         }
-        msg = "";
-        return elegoo_test_with_resolved_ip(msg);
+        return false;
+    }
+
+    bool ElegooLink::elegoo_cc2_test_with_resolved_ip(wxString& msg) const
+    {
+        const char*  name        = get_name();
+        bool         res         = true;
+        const auto   token       = cc2_token();
+        auto         url         = substitute_host(make_cc2_info_url(), GUI::into_u8(msg));
+        std::string  host_header = get_host_from_url(m_host);
+        auto         http        = Http::get(url);
+        msg.Clear();
+
+        http.header("Host", host_header);
+        http.header("X-Token", token);
+        http.header("Accept", "application/json");
+        http.on_error([&](std::string body, std::string error, unsigned status) {
+                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting CC2 device info at %2% : %3%, HTTP %4%, body: `%5%`") % name % url %
+                                                error % status % body;
+                res = false;
+                if (status == 401 || status == 403)
+                    msg = format_error(body, "Invalid access code", status);
+                else
+                    msg = format_error(body, error.empty() ? "CC2 device not detected" : error, status);
+            })
+            .on_complete([&](std::string body, unsigned status) {
+                std::string error_message;
+                std::string serial_number;
+                if (!parse_cc2_response(body, error_message, &serial_number)) {
+                    res = false;
+                    msg = format_error(body, error_message.empty() ? "CC2 device not detected" : error_message, status);
+                    return;
+                }
+                res = true;
+            })
+            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+            .perform_sync();
+
+        return res;
     }
 #endif // WIN32
 
@@ -343,24 +602,30 @@ namespace Slic3r {
     #ifdef WIN32
     bool ElegooLink::upload_inner_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const
     {
-        wxString test_msg_or_host_ip = "";
+        const auto printer_type = classify_printer_model(m_printerModel);
+
+        if (printer_type == ElegooPrinterType::Other)
+            return OctoPrint::upload_inner_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
 
         info_fn(L"resolve", boost::nowide::widen(resolved_addr.to_string()));
-        // If test fails, test_msg_or_host_ip contains the error message.
-        // Otherwise on Windows it contains the resolved IP address of the host.
-        // Test_msg already contains resolved ip and will be cleared on start of test().
-        test_msg_or_host_ip          = GUI::from_u8(resolved_addr.to_string());
-        //Elegoo supports both otcoprint and Elegoo link
-        if(OctoPrint::test_with_resolved_ip(test_msg_or_host_ip)){
-            return OctoPrint::upload_inner_with_host(upload_data, prorgess_fn, error_fn, info_fn);
+
+        if (printer_type == ElegooPrinterType::CC2) {
+            wxString cc2_msg = GUI::from_u8(resolved_addr.to_string());
+            if (!elegoo_cc2_test_with_resolved_ip(cc2_msg)) {
+                error_fn(std::move(cc2_msg));
+                return false;
+            }
+
+            std::string url = substitute_host(make_cc2_upload_url(), resolved_addr.to_string());
+            info_fn(L"resolve", boost::nowide::widen(url));
+            return loopUploadCC2(url, get_host_from_url(m_host), std::move(upload_data), prorgess_fn, error_fn, info_fn);
         }
 
-        test_msg_or_host_ip = GUI::from_u8(resolved_addr.to_string());
-        if(!elegoo_test_with_resolved_ip(test_msg_or_host_ip)){
-            error_fn(std::move(test_msg_or_host_ip));
+        wxString legacy_msg = GUI::from_u8(resolved_addr.to_string());
+        if (!elegoo_test_with_resolved_ip(legacy_msg)) {
+            error_fn(std::move(legacy_msg));
             return false;
         }
-
 
         std::string url = substitute_host(make_url("uploadFile/upload"), resolved_addr.to_string());
         info_fn(L"resolve", boost::nowide::widen(url));
@@ -372,23 +637,46 @@ namespace Slic3r {
 
     bool ElegooLink::upload_inner_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
     {
-        // If test fails, test_msg_or_host_ip contains the error message.
-        // Otherwise on Windows it contains the resolved IP address of the host.
-        wxString test_msg_or_host_ip;
-        //Elegoo supports both otcoprint and Elegoo link
-        if(OctoPrint::test(test_msg_or_host_ip)){
-            return OctoPrint::upload_inner_with_host(upload_data, prorgess_fn, error_fn, info_fn);
+        const auto printer_type = classify_printer_model(m_printerModel);
+
+        if (printer_type == ElegooPrinterType::Other)
+            return OctoPrint::upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
+
+        if (printer_type == ElegooPrinterType::CC2) {
+            wxString cc2_msg;
+            if (!elegoo_cc2_test(cc2_msg)) {
+                error_fn(std::move(cc2_msg));
+                return false;
+            }
+
+            std::string url;
+#ifdef WIN32
+            if (m_host.find("https://") == 0 || cc2_msg.empty() || !GUI::get_app_config()->get_bool("allow_ip_resolve"))
+#endif // _WIN32
+            {
+                url = make_cc2_upload_url();
+            }
+#ifdef WIN32
+            else {
+                info_fn(L"resolve", cc2_msg);
+                url = substitute_host(make_cc2_upload_url(), GUI::into_u8(cc2_msg));
+                BOOST_LOG_TRIVIAL(info) << "CC2 upload address after ip resolve: " << url;
+            }
+#endif // _WIN32
+
+            return loopUploadCC2(url, get_host_from_url(m_host), std::move(upload_data), prorgess_fn, error_fn, info_fn);
         }
-        test_msg_or_host_ip="";
-        if(!elegoo_test(test_msg_or_host_ip)){
-            error_fn(std::move(test_msg_or_host_ip));
+
+        wxString legacy_msg;
+        if(!elegoo_test(legacy_msg)){
+            error_fn(std::move(legacy_msg));
             return false;
         }
 
         std::string url;
     #ifdef WIN32
         // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
-        if (m_host.find("https://") == 0 || test_msg_or_host_ip.empty() || !GUI::get_app_config()->get_bool("allow_ip_resolve"))
+        if (m_host.find("https://") == 0 || legacy_msg.empty() || !GUI::get_app_config()->get_bool("allow_ip_resolve"))
     #endif // _WIN32
         {
             // If https is entered we assume signed ceritificate is being used
@@ -403,8 +691,8 @@ namespace Slic3r {
             // This new address returns in "test_msg_or_host_ip" variable.
             // Solves troubles of uploades failing with name address.
             // in original address (m_host) replace host for resolved ip 
-            info_fn(L"resolve", test_msg_or_host_ip);
-            url = substitute_host(make_url("uploadFile/upload"), GUI::into_u8(test_msg_or_host_ip));
+            info_fn(L"resolve", legacy_msg);
+            url = substitute_host(make_url("uploadFile/upload"), GUI::into_u8(legacy_msg));
             BOOST_LOG_TRIVIAL(info) << "Upload address after ip resolve: " << url;
         }
     #endif // _WIN32
@@ -490,11 +778,11 @@ namespace Slic3r {
     bool ElegooLink::loopUpload(std::string url, PrintHostUpload upload_data, ProgressFn progress_fn, ErrorFn error_fn, InfoFn info_fn) const
     {
         const char* name               = get_name();
-        const auto  upload_filename = upload_data.upload_path.filename().string();
-        std::string source_path        = upload_data.source_path.string();
+        const auto  upload_filename = filename_to_utf8(upload_data.upload_path);
+        std::string source_path     = path_to_utf8(upload_data.source_path);
 
         // calc file size
-        std::ifstream   file(source_path, std::ios::binary | std::ios::ate);
+        boost::nowide::ifstream file(source_path, std::ios::binary | std::ios::ate);
         std::streamsize size = file.tellg();
         file.close();
         const std::string fileSize = std::to_string(size);
@@ -580,6 +868,146 @@ namespace Slic3r {
                 }
             }
         }
+        return res;
+    }
+
+    bool ElegooLink::uploadPartCC2(Http&                           http,
+                                   const std::string&             host_header,
+                                   const std::string&             token,
+                                   const std::string&             md5,
+                                   const boost::filesystem::path& path,
+                                   const std::string&             filename,
+                                   size_t                         filesize,
+                                   size_t                         offset,
+                                   size_t                         length,
+                                   ProgressFn                     prorgess_fn,
+                                   ErrorFn                        error_fn) const
+    {
+        const char* name = get_name();
+
+        boost::nowide::ifstream file(path, std::ios::binary);
+        if (!file.is_open()) {
+            error_fn(_L("Failed to open file for upload."));
+            return false;
+        }
+
+        file.seekg(static_cast<std::streamoff>(offset), std::ios::beg);
+        std::string chunk(length, '\0');
+        file.read(chunk.data(), static_cast<std::streamsize>(length));
+        if (!file && static_cast<size_t>(file.gcount()) != length) {
+            error_fn(_L("Failed to read file chunk for upload."));
+            return false;
+        }
+        chunk.resize(static_cast<size_t>(file.gcount()));
+
+        const size_t end_offset = offset + chunk.size() - 1;
+        const auto   range      = std::string("bytes ") + std::to_string(offset) + "-" + std::to_string(end_offset) + "/" + std::to_string(filesize);
+
+        bool result = false;
+        http.headers_reset();
+        if (!host_header.empty())
+            http.header("Host", host_header);
+        http.header("Accept", "application/json")
+            .header("Content-Type", "application/octet-stream")
+            .header("Content-Length", std::to_string(chunk.size()))
+            .header("Content-Range", range)
+            .header("X-File-Name", filename)
+            .header("X-File-MD5", md5)
+            .header("X-Token", token)
+            .set_post_body(chunk)
+            .on_complete([&](std::string body, unsigned status) {
+                BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: CC2 chunk uploaded: HTTP %2%: %3%") % name % status % body;
+                std::string error_message;
+                if (!parse_cc2_response(body, error_message)) {
+                    error_fn(format_error(body, error_message.empty() ? "CC2 upload failed" : error_message, status));
+                    return;
+                }
+                result = true;
+            })
+            .on_error([&](std::string body, std::string error, unsigned status) {
+                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error uploading CC2 chunk: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
+                if (status == 401 || status == 403)
+                    error_fn(format_error(body, "Invalid access code", status));
+                else
+                    error_fn(format_error(body, error.empty() ? "CC2 upload failed" : error, status));
+            })
+            .on_progress([&](Http::Progress progress, bool& cancel) {
+                if (progress.ultotal == progress.ulnow)
+                    return;
+                prorgess_fn(std::move(progress), cancel);
+                if (cancel)
+                    BOOST_LOG_TRIVIAL(info) << name << ": CC2 upload canceled";
+            })
+#ifdef WIN32
+            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+#endif
+            .perform_sync();
+
+        return result;
+    }
+
+    bool ElegooLink::loopUploadCC2(std::string           url,
+                                   const std::string&    host_header,
+                                   PrintHostUpload       upload_data,
+                                   ProgressFn            progress_fn,
+                                   ErrorFn               error_fn,
+                                   InfoFn                info_fn) const
+    {
+        BOOST_LOG_TRIVIAL(info) << get_name() << ": Uploading file to Elegoo CC2";
+        const auto  upload_filename = filename_to_utf8(upload_data.upload_path);
+        std::string source_path     = path_to_utf8(upload_data.source_path);
+        std::string md5;
+        bbl_calc_md5(source_path, md5);
+        std::transform(md5.begin(), md5.end(), md5.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+
+        boost::nowide::ifstream file(source_path, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            error_fn(_L("Failed to open file for upload."));
+            return false;
+        }
+
+        const std::streamsize size = file.tellg();
+        file.close();
+        if (size <= 0) {
+            error_fn(_L("The file is empty or could not be read."));
+            return false;
+        }
+
+        if (md5.empty()) {
+            error_fn(_L("Failed to calculate file checksum."));
+            return false;
+        }
+
+        const std::string token        = cc2_token();
+        const int         packageCount = static_cast<int>((size + MAX_UPLOAD_PACKAGE_LENGTH - 1) / MAX_UPLOAD_PACKAGE_LENGTH);
+        auto              http         = Http::put2(url);
+        http.timeout_connect(30)
+            .timeout_max(180);
+
+        bool              res          = false;
+        for (int i = 0; i < packageCount; ++i) {
+            const size_t offset = MAX_UPLOAD_PACKAGE_LENGTH * static_cast<size_t>(i);
+            size_t       length = MAX_UPLOAD_PACKAGE_LENGTH;
+            if (i == packageCount - 1 && size % MAX_UPLOAD_PACKAGE_LENGTH > 0)
+                length = static_cast<size_t>(size % MAX_UPLOAD_PACKAGE_LENGTH);
+
+            res = uploadPartCC2(
+                http, host_header, token, md5, source_path, upload_filename, static_cast<size_t>(size), offset, length,
+                [size, i, progress_fn](Http::Progress progress, bool& cancel) {
+                    const size_t uploaded = static_cast<size_t>(i) * MAX_UPLOAD_PACKAGE_LENGTH + progress.ulnow;
+                    Http::Progress merged(0, 0, static_cast<size_t>(size), std::min(static_cast<size_t>(size), uploaded), progress.buffer,
+                                          progress.upload_spd);
+                    progress_fn(merged, cancel);
+                },
+                error_fn);
+            if (!res)
+                break;
+        }
+
+        if (res && upload_data.post_action == PrintHostPostUploadAction::StartPrint)
+            BOOST_LOG_TRIVIAL(info) << get_name() << ": CC2 upload completed; start print is not supported.";
+
+        (void) info_fn;
         return res;
     }
 
