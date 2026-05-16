@@ -1,5 +1,7 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
+#include "slic3r/Utils/WebDAVSyncProvider.hpp"
+#include "slic3r/Utils/GitSyncProvider.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Init.hpp"
@@ -929,8 +931,13 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
     }
 
-    // ORCA: Initialize self-hosted profile sync
+    // ORCA: Initialize self-hosted profile sync (legacy ProfileSyncManager).
+    // Will be removed once reconfigure_profile_sync has fully replaced it.
     init_profile_sync();
+
+    // Install the active IPresetSyncProvider (Orca / WebDAV / Git) on m_agent
+    // based on the user's saved choice. Restarts background sync if auto is on.
+    reconfigure_profile_sync();
 
     // The extra CallAfter() is needed because of Mac, where this is the only way
     // to popup a modal dialog on start without screwing combo boxes.
@@ -7149,6 +7156,47 @@ void GUI_App::stop_sync_user_preset()
             m_sync_update_thread.join();
         else
             m_sync_update_thread.detach();
+    }
+}
+
+void GUI_App::reconfigure_profile_sync()
+{
+    if (!m_agent || !app_config) return;
+
+    // Tear down any running background sync.
+    stop_sync_user_preset();
+
+    const std::string provider = app_config->get("profile_sync_provider");
+
+    std::shared_ptr<IPresetSyncProvider> next;
+    if (provider == "orca" || provider.empty()) {
+        // Orca is owned by NetworkAgent's cloud-agent map; just re-expose it.
+        if (auto orca = std::dynamic_pointer_cast<IPresetSyncProvider>(m_agent->get_cloud_agent())) {
+            next = std::move(orca);
+        }
+    } else if (provider == "webdav") {
+        WebDAVConfig cfg;
+        cfg.url      = app_config->get("profile_sync_webdav_url");
+        cfg.username = app_config->get("profile_sync_webdav_user");
+        cfg.password = app_config->get("profile_sync_webdav_pass");
+        next = std::make_shared<WebDAVSyncProvider>(cfg);
+    } else if (provider == "git") {
+        GitSyncConfig cfg;
+        cfg.repo_url = app_config->get("profile_sync_git_url");
+        cfg.branch   = app_config->get("profile_sync_git_branch");
+        if (cfg.branch.empty()) cfg.branch = "main";
+        cfg.token    = app_config->get("profile_sync_git_token");
+        cfg.local_clone_path = (boost::filesystem::path(data_dir()) / "profile_sync_git").string();
+        next = std::make_shared<GitSyncProvider>(cfg);
+    } else if (provider == "disabled") {
+        next.reset();
+    }
+
+    m_agent->set_sync_provider(next);
+
+    if (next && app_config->get_bool("profile_sync_auto")) {
+        // Connect lazily; start_sync_user_preset will hit it on first iteration.
+        start_sync_user_preset();
     }
 }
 

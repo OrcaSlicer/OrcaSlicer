@@ -564,6 +564,12 @@ public:
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
 
+    // Build the active IPresetSyncProvider (Orca / WebDAV / Git) from the
+    // current AppConfig profile_sync_* keys and install it on m_agent.
+    // Called at startup and whenever the user picks a different provider in
+    // Preferences. Restarts the background sync thread when auto-sync is on.
+    void            reconfigure_profile_sync();
+
     // ORCA: Self-hosted profile sync
     void            init_profile_sync();
     void            start_profile_sync();

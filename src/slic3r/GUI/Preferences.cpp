@@ -1932,6 +1932,9 @@ void PreferencesDialog::create_items()
         combo->SetSelection(initial_provider_idx);
         combo->GetDropDown().Bind(wxEVT_COMBOBOX, [update_provider_visibility](wxCommandEvent& e) {
             if (*update_provider_visibility) (*update_provider_visibility)(e.GetSelection());
+            // Rebuild the active sync provider so the choice takes effect right
+            // away. Credentials changes still need a Sync Now / restart.
+            wxGetApp().reconfigure_profile_sync();
             e.Skip();
         });
     }
