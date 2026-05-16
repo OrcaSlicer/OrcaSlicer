@@ -2677,7 +2677,7 @@ std::string OrcaCloudServiceAgent::get_version()
 // Bundle Subscription Implementation
 // ============================================================================
 
-bool OrcaCloudServiceAgent::unsubscribe_bundle(const std::string& bundle_id)
+bool OrcaCloudServiceAgent::unsubscribe_bundle_orca(const std::string& bundle_id)
 {
     std::string path = std::string(ORCA_SUBSCRIPTIONS_PATH) + "/" + bundle_id;
     std::string response;
@@ -2841,6 +2841,188 @@ int OrcaCloudServiceAgent::get_shared_bundle(const std::string& bundle_id, std::
         BOOST_LOG_TRIVIAL(error) << "get_shared_bundle: JSON parse error: " << e.what();
         return -1;
     }
+}
+
+// ============================================================================
+// IPresetSyncProvider implementation -- thin adapters over the existing per-
+// preset REST API (sync_push / sync_pull / delete_setting). The unified
+// front-end (NetworkAgent::set_sync_provider) talks to these instead of the
+// provider-keyed ICloudServiceAgent methods.
+// ============================================================================
+
+std::string OrcaCloudServiceAgent::fingerprint() const
+{
+    std::lock_guard<std::mutex> lock(session_mutex);
+    return cloud_base_url + "|" + session.user_id;
+}
+
+bool OrcaCloudServiceAgent::is_configured() const
+{
+    return !cloud_base_url.empty();
+}
+
+int OrcaCloudServiceAgent::connect(std::string& error_out)
+{
+    int rc = connect_server();
+    if (rc != 0)
+        error_out = "OrcaCloud connect_server failed (code " + std::to_string(rc) + ")";
+    return rc;
+}
+
+bool OrcaCloudServiceAgent::is_connected()
+{
+    return is_server_connected();
+}
+
+static std::map<std::string, std::string> orca_json_to_value_map(const std::string& json_content)
+{
+    std::map<std::string, std::string> out;
+    try {
+        auto j = nlohmann::json::parse(json_content);
+        if (!j.is_object()) return out;
+        for (auto it = j.begin(); it != j.end(); ++it) {
+            if (it.value().is_string()) {
+                out[it.key()] = it.value().get<std::string>();
+            } else {
+                out[it.key()] = it.value().dump();
+            }
+        }
+    } catch (...) {
+        // leave out empty
+    }
+    return out;
+}
+
+PresetSyncResult OrcaCloudServiceAgent::push_preset(const std::string& preset_type,
+                                                    const std::string& preset_name,
+                                                    const std::string& json_content,
+                                                    const std::string& expected_etag)
+{
+    (void) preset_type;
+    PresetSyncResult result;
+    auto values = orca_json_to_value_map(json_content);
+
+    // The legacy API uses expected_etag = "" to mean "create new" and a non-empty
+    // remote_id (carried in expected_etag for our purposes) to mean "update".
+    unsigned int http_code = 0;
+    if (expected_etag.empty()) {
+        std::string new_id = request_setting_id(preset_name, &values, &http_code);
+        result.http_code   = static_cast<int>(http_code);
+        result.remote_id   = new_id;
+        if (new_id.empty()) {
+            result.error_message = "Orca: request_setting_id failed";
+        }
+    } else {
+        int rc = put_setting(expected_etag, preset_name, &values, &http_code);
+        result.http_code = static_cast<int>(http_code);
+        result.remote_id = expected_etag;
+        if (rc != 0) {
+            result.error_message = "Orca: put_setting failed";
+        }
+    }
+
+    auto ut_it = values.find(IOT_JSON_KEY_UPDATED_TIME);
+    if (ut_it != values.end()) {
+        try { result.updated_time = std::stoll(ut_it->second); } catch (...) {}
+    }
+    result.etag = result.remote_id;
+    return result;
+}
+
+PresetSyncResult OrcaCloudServiceAgent::pull_preset(const std::string& preset_type,
+                                                    const std::string& remote_id,
+                                                    std::string&       out_json)
+{
+    // Orca Cloud has no single-preset GET; bulk get_setting_list2 covers it.
+    // Callers should fall back to list_presets when this returns 501.
+    (void) preset_type; (void) remote_id; (void) out_json;
+    PresetSyncResult result;
+    result.http_code     = 501;
+    result.error_message = "Orca Cloud does not expose per-preset pull; use list_presets()";
+    return result;
+}
+
+int OrcaCloudServiceAgent::delete_preset(const std::string& preset_type,
+                                         const std::string& remote_id)
+{
+    (void) preset_type;
+    return delete_setting(remote_id);
+}
+
+int OrcaCloudServiceAgent::list_presets(const PresetListCallback& cb)
+{
+    auto chk = [&cb](std::map<std::string, std::string> info) -> bool {
+        std::string preset_type;
+        auto type_it = info.find(IOT_JSON_KEY_TYPE);
+        if (type_it != info.end()) preset_type = type_it->second;
+
+        std::string remote_id;
+        auto id_it = info.find(IOT_JSON_KEY_SETTING_ID);
+        if (id_it != info.end()) remote_id = id_it->second;
+
+        long long updated_time = 0;
+        auto ut_it = info.find(IOT_JSON_KEY_UPDATED_TIME);
+        if (ut_it != info.end()) {
+            try { updated_time = std::stoll(ut_it->second); } catch (...) {}
+        }
+
+        // Orca lacks a separate per-preset ETag; remote_id doubles as one.
+        if (cb) cb(preset_type, remote_id, remote_id, updated_time);
+        return true;
+    };
+    return get_setting_list2("", chk, nullptr, nullptr);
+}
+
+std::vector<PresetSyncConflict> OrcaCloudServiceAgent::take_pending_conflicts()
+{
+    // TODO: surface 409 from put_setting through this queue so the unified
+    // SyncMergeDialog kicks in for Orca too (currently last-write-wins).
+    return {};
+}
+
+int OrcaCloudServiceAgent::apply_conflict_resolution(
+    const PresetSyncConflict&            /*conflict*/,
+    const PresetSyncConflictResolution&  /*resolution*/)
+{
+    // Wired in a follow-up commit together with the put_setting enqueue path.
+    return 0;
+}
+
+// ============================================================================
+// IBundleProvider implementation -- forwards to the existing Orca bundle API.
+// ============================================================================
+
+int OrcaCloudServiceAgent::list_subscribed_bundles(
+    std::vector<std::pair<std::string, std::string>>* out_id_version,
+    std::vector<std::string>&                         out_notfound,
+    std::vector<std::string>&                         out_unauthorized)
+{
+    return get_subscribed_bundles(out_id_version, out_notfound, out_unauthorized);
+}
+
+int OrcaCloudServiceAgent::fetch_bundle(const std::string& bundle_id,
+                                        const std::string& /*version*/,
+                                        std::map<std::string, std::map<std::string, std::string>>* out_presets,
+                                        BundleMetadata*    out_metadata)
+{
+    // Orca always returns the latest published version; `version` is ignored.
+    return get_shared_bundle(bundle_id, out_presets, out_metadata);
+}
+
+int OrcaCloudServiceAgent::publish_local_bundle(
+    const BundleMetadata&                                            /*metadata*/,
+    const std::map<std::string, std::map<std::string, std::string>>& /*presets*/,
+    std::string&                                                     /*out_published_version*/)
+{
+    // Orca Cloud bundles are authored on cloud.orcaslicer.com; the client
+    // is read-only with respect to publishing. File-based providers (WebDAV/Git)
+    // implement real publishing.
+    return -1;
+}
+
+int OrcaCloudServiceAgent::unsubscribe_bundle(const std::string& bundle_id)
+{
+    return unsubscribe_bundle_orca(bundle_id) ? 0 : -1;
 }
 
 } // namespace Slic3r

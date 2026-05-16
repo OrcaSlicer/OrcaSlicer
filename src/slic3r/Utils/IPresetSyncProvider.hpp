@@ -89,7 +89,7 @@ public:
 
     virtual bool        is_configured() const = 0;
     virtual int         connect(std::string& error_out)        = 0;
-    virtual bool        is_connected()  const = 0;
+    virtual bool        is_connected() = 0; // not const: may touch state_mutex / refresh tokens
 
     // Per-preset operations.
     // expected_etag = last known etag for OCC. Empty string means "create new".
