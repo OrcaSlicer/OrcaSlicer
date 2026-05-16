@@ -164,11 +164,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
-	],
-	"filament_z_hop": [
-		"0.2"
-	],
-	"filament_z_hop_types": [
-		"Auto Lift"
 	]
 }
