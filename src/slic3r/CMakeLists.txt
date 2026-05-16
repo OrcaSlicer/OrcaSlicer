@@ -686,8 +686,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/WebDAVSync.cpp
     Utils/GitSync.hpp
     Utils/GitSync.cpp
-    Utils/ProfileSyncManager.hpp
-    Utils/ProfileSyncManager.cpp
     GUI/SyncConflictDialog.hpp
     GUI/SyncConflictDialog.cpp
     GUI/SyncMergeDialog.hpp

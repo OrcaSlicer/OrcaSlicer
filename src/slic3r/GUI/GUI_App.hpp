@@ -14,7 +14,6 @@
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/BBLCloudServiceAgent.hpp"
-#include "slic3r/Utils/ProfileSyncManager.hpp" // ORCA: self-hosted profile sync
 #include "slic3r/GUI/WebViewDialog.hpp"
 #include "slic3r/GUI/WebUserLoginDialog.hpp"
 #include "slic3r/GUI/BindDialog.hpp"
@@ -329,13 +328,6 @@ private:
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
     std::atomic<bool>    m_migration_retry_pending {false};
 
-    // ORCA: Self-hosted profile sync
-    std::unique_ptr<ProfileSyncManager> m_profile_sync_manager;
-    std::thread      m_profile_sync_manual_thread;
-    std::mutex       m_preset_sync_mutex;  // protects preset_bundle/app_config during sync
-    std::vector<SyncConflict>              m_deferred_conflicts;
-    std::chrono::steady_clock::time_point  m_deferred_conflicts_time;
-    std::mutex                             m_deferred_conflicts_mutex;
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -570,14 +562,6 @@ public:
     // Preferences. Restarts the background sync thread when auto-sync is on.
     void            reconfigure_profile_sync();
 
-    // ORCA: Self-hosted profile sync
-    void            init_profile_sync();
-    void            start_profile_sync();
-    void            stop_profile_sync();
-    void            trigger_profile_sync_now();
-    void            show_deferred_sync_conflicts();
-    void            check_and_warn_missing_synced_presets();
-    ProfileSyncManager* get_profile_sync_manager() { return m_profile_sync_manager.get(); }
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 
