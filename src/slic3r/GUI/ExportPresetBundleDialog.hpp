@@ -64,6 +64,10 @@ public:
     void RunScript(const wxString& s);
     void OnRequestPresets();
     void OnExportData(const wxString& path, const wxString& name, json data);
+    // Publish the user-selected printers / filaments / processes as a bundle to
+    // the active IBundleProvider (WebDAV / Git / Orca). `data` shape mirrors
+    // OnExportData's `data` (keys: machines / filaments / presets).
+    void OnPublishRemote(const wxString& name, json data);
 
 protected:
     bool m_seq_top_layer_only_changed{false};
