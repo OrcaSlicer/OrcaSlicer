@@ -115,6 +115,28 @@ void NetworkAgent::add_cloud_agent(const std::string& provider, std::shared_ptr<
     }
 }
 
+void NetworkAgent::set_sync_provider(std::shared_ptr<IPresetSyncProvider> provider)
+{
+    // Persist any pending state from the previous provider before swapping.
+    // Conflict queues are intentionally not migrated -- they are tied to a
+    // specific remote and would be meaningless against a different one.
+    if (m_sync_provider && m_sync_provider != provider) {
+        m_sync_provider->save_state();
+    }
+    m_sync_provider = std::move(provider);
+    if (m_sync_provider) {
+        m_sync_provider->load_state();
+    }
+}
+
+std::shared_ptr<IBundleProvider> NetworkAgent::get_bundle_provider() const
+{
+    if (!m_sync_provider) return nullptr;
+    // Recover the IBundleProvider face if the active provider implements it.
+    auto raw = std::dynamic_pointer_cast<IBundleProvider>(m_sync_provider);
+    return raw;
+}
+
 void NetworkAgent::set_printer_agent(std::shared_ptr<IPrinterAgent> printer_agent)
 {
     if (!printer_agent) {
