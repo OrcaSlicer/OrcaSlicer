@@ -96,7 +96,12 @@ protected:
     std::unique_ptr<SyncBackend>       m_backend;
     mutable std::mutex                 m_state_mutex;
     std::string                        m_state_fingerprint;
-    std::map<std::string, CachedEntry> m_state; // key = remote_id
+    std::map<std::string, CachedEntry> m_state;             // key = remote_id
+    // Bundles the user has explicitly hidden on this machine. file backends
+    // treat every bundle present in <prefix>bundles/ as available to all
+    // configured clients, so unsubscribe is local-only (the bundle stays on
+    // the server for other users).
+    std::vector<std::string>           m_hidden_bundles;
 
     mutable std::mutex                 m_conflicts_mutex;
     std::vector<PresetSyncConflict>    m_pending_conflicts;

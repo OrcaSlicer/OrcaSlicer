@@ -2,6 +2,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
+#include <algorithm>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <fstream>
@@ -136,6 +137,9 @@ void BaseFileSyncProvider::load_state()
                 m_state[rid] = std::move(ce);
             }
         }
+        if (auto it = j.find("hidden_bundles"); it != j.end() && it->is_array()) {
+            m_hidden_bundles = it->get<std::vector<std::string>>();
+        }
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "[" << provider_id()
             << "] failed to parse state file: " << e.what();
@@ -156,6 +160,7 @@ void BaseFileSyncProvider::save_state()
         };
     }
     j["files"] = std::move(files);
+    j["hidden_bundles"] = m_hidden_bundles;
 
     try {
         std::ofstream out(state_file_path());
@@ -377,38 +382,245 @@ int BaseFileSyncProvider::apply_conflict_resolution(
 }
 
 // ----------------------------------------------------------------------------
-// IBundleProvider -- default stubs. WebDAV/Git subclasses override after the
-// on-disk bundle layout is settled in a follow-up commit.
+// IBundleProvider -- on-disk layout below the backend prefix:
+//   <prefix>bundles/<bundle_id>/bundle_metadata.json
+//   <prefix>bundles/<bundle_id>/print/*.json
+//   <prefix>bundles/<bundle_id>/filament/*.json
+//   <prefix>bundles/<bundle_id>/printer/*.json
+// Unlike Orca Cloud, file backends do not have a per-user subscription list
+// server-side -- every bundle in <prefix>bundles/ is considered available
+// to every client configured against this remote. unsubscribe is local-only:
+// the bundle_id is added to m_hidden_bundles and filtered out of listing.
 // ----------------------------------------------------------------------------
 
-int BaseFileSyncProvider::list_subscribed_bundles(
-    std::vector<std::pair<std::string, std::string>>* /*out_id_version*/,
-    std::vector<std::string>&                         /*out_notfound*/,
-    std::vector<std::string>&                         /*out_unauthorized*/)
+static const char* BUNDLES_SUBDIR = "bundles";
+
+static std::string make_bundles_prefix(const SyncBackend* backend)
 {
-    return -1; // not yet implemented
+    std::string prefix = backend ? backend->remote_prefix() : std::string();
+    if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
+    return prefix + BUNDLES_SUBDIR + "/";
+}
+
+static nlohmann::json values_map_to_json(const std::map<std::string, std::string>& vm)
+{
+    nlohmann::json j = nlohmann::json::object();
+    for (auto& [k, v] : vm) j[k] = v;
+    return j;
+}
+
+static std::map<std::string, std::string> json_to_values_map(const nlohmann::json& j)
+{
+    std::map<std::string, std::string> out;
+    if (!j.is_object()) return out;
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        if (it.value().is_string()) out[it.key()] = it.value().get<std::string>();
+        else                        out[it.key()] = it.value().dump();
+    }
+    return out;
+}
+
+static nlohmann::json bundle_metadata_to_json(const BundleMetadata& m)
+{
+    nlohmann::json j;
+    j["id"]            = m.id;
+    j["name"]          = m.name;
+    j["version"]       = m.version;
+    j["description"]   = m.description;
+    j["author"]        = m.author;
+    j["imported_time"] = m.imported_time;
+    j["updated_time"]  = m.updated_time;
+    auto strip = [](const std::vector<std::string>& xs) {
+        nlohmann::json arr = nlohmann::json::array();
+        for (const auto& x : xs)
+            arr.push_back(boost::filesystem::path(x).filename().string());
+        return arr;
+    };
+    j["print_presets"]    = strip(m.print_presets);
+    j["filament_presets"] = strip(m.filament_presets);
+    j["printer_presets"]  = strip(m.printer_presets);
+    return j;
+}
+
+static bool bundle_metadata_from_json(const std::string& content, BundleMetadata& out)
+{
+    try {
+        auto j = nlohmann::json::parse(content);
+        if (j.contains("id"))             out.id           = j["id"].get<std::string>();
+        if (j.contains("name"))           out.name         = j["name"].get<std::string>();
+        if (j.contains("version"))        out.version      = j["version"].get<std::string>();
+        if (j.contains("description"))    out.description  = j["description"].get<std::string>();
+        if (j.contains("author"))         out.author       = j["author"].get<std::string>();
+        if (j.contains("imported_time"))  out.imported_time = j["imported_time"].get<long long>();
+        if (j.contains("updated_time"))   out.updated_time  = j["updated_time"].get<long long>();
+        if (j.contains("print_presets"))    out.print_presets    = j["print_presets"].get<std::vector<std::string>>();
+        if (j.contains("filament_presets")) out.filament_presets = j["filament_presets"].get<std::vector<std::string>>();
+        if (j.contains("printer_presets"))  out.printer_presets  = j["printer_presets"].get<std::vector<std::string>>();
+        return true;
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "bundle_metadata_from_json failed: " << e.what();
+        return false;
+    }
+}
+
+int BaseFileSyncProvider::list_subscribed_bundles(
+    std::vector<std::pair<std::string, std::string>>* out_id_version,
+    std::vector<std::string>&                         out_notfound,
+    std::vector<std::string>&                         out_unauthorized)
+{
+    if (!m_backend || !out_id_version) return -1;
+    out_id_version->clear();
+
+    std::vector<std::string> hidden;
+    {
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        hidden = m_hidden_bundles;
+    }
+
+    std::vector<RemoteFileInfo> entries;
+    std::string err;
+    if (!m_backend->list_files(make_bundles_prefix(m_backend.get()), entries, err)) {
+        BOOST_LOG_TRIVIAL(debug) << "[" << provider_id()
+            << "] list bundles failed (probably empty): " << err;
+        return 0; // empty is not an error
+    }
+
+    for (const auto& e : entries) {
+        if (!e.is_directory) continue;
+        // Last path segment is the bundle id.
+        auto pos = e.path.find_last_of('/');
+        std::string id = (pos == std::string::npos) ? e.path : e.path.substr(pos + 1);
+        if (id.empty()) continue;
+        if (std::find(hidden.begin(), hidden.end(), id) != hidden.end()) continue;
+
+        std::string meta_path = make_bundles_prefix(m_backend.get()) + id + "/bundle_metadata.json";
+        std::string body;
+        RemoteFileInfo info;
+        std::string dl_err;
+        SyncError sync_err = SyncError::None;
+        if (!m_backend->download_file(meta_path, body, info, dl_err, &sync_err)) {
+            if (sync_err == SyncError::NotFound)        out_notfound.push_back(id);
+            else if (sync_err == SyncError::AuthFailed) out_unauthorized.push_back(id);
+            continue;
+        }
+        BundleMetadata meta;
+        if (!bundle_metadata_from_json(body, meta)) continue;
+        out_id_version->emplace_back(id, meta.version);
+    }
+    return 0;
 }
 
 int BaseFileSyncProvider::fetch_bundle(
-    const std::string& /*bundle_id*/,
-    const std::string& /*version*/,
-    std::map<std::string, std::map<std::string, std::string>>* /*out_presets*/,
-    BundleMetadata*    /*out_metadata*/)
+    const std::string& bundle_id,
+    const std::string& /*version*/, // file backends store only the current version
+    std::map<std::string, std::map<std::string, std::string>>* out_presets,
+    BundleMetadata*    out_metadata)
 {
-    return -1;
+    if (!m_backend || bundle_id.empty()) return -1;
+
+    std::string base = make_bundles_prefix(m_backend.get()) + bundle_id + "/";
+
+    if (out_metadata) {
+        std::string body;
+        RemoteFileInfo info;
+        std::string err;
+        if (!m_backend->download_file(base + "bundle_metadata.json", body, info, err)) {
+            BOOST_LOG_TRIVIAL(warning) << "[" << provider_id()
+                << "] fetch_bundle: metadata missing for " << bundle_id << ": " << err;
+            return -1;
+        }
+        if (!bundle_metadata_from_json(body, *out_metadata)) return -1;
+        out_metadata->id = bundle_id;
+    }
+
+    if (!out_presets) return 0;
+
+    static const char* types[] = { "print", "filament", "printer" };
+    for (const char* type : types) {
+        std::vector<RemoteFileInfo> entries;
+        std::string err;
+        if (!m_backend->list_files(base + type, entries, err)) continue;
+        for (const auto& e : entries) {
+            if (e.is_directory) continue;
+            std::string filename;
+            auto pos = e.path.find_last_of('/');
+            filename = (pos == std::string::npos) ? e.path : e.path.substr(pos + 1);
+            if (filename.size() < 6 || filename.substr(filename.size() - 5) != ".json") continue;
+            std::string preset_name = filename.substr(0, filename.size() - 5);
+
+            std::string body;
+            RemoteFileInfo info;
+            std::string dl_err;
+            if (!m_backend->download_file(e.path, body, info, dl_err)) continue;
+
+            try {
+                auto j = nlohmann::json::parse(body);
+                (*out_presets)[preset_name] = json_to_values_map(j);
+            } catch (...) {}
+        }
+    }
+    return 0;
 }
 
 int BaseFileSyncProvider::publish_local_bundle(
-    const BundleMetadata&                                            /*metadata*/,
-    const std::map<std::string, std::map<std::string, std::string>>& /*presets*/,
-    std::string&                                                     /*out_published_version*/)
+    const BundleMetadata&                                            metadata,
+    const std::map<std::string, std::map<std::string, std::string>>& presets,
+    std::string&                                                     out_published_version)
 {
-    return -1;
+    if (!m_backend || metadata.id.empty()) return -1;
+
+    std::string base = make_bundles_prefix(m_backend.get()) + metadata.id + "/";
+    std::string err;
+    if (!m_backend->ensure_directory(base.substr(0, base.size() - 1), err)) return -1;
+
+    // Write metadata.
+    {
+        std::string body = bundle_metadata_to_json(metadata).dump(2);
+        std::string new_etag;
+        // No OCC on bundle publish -- author owns it.
+        if (!m_backend->upload_file(base + "bundle_metadata.json", body, "", new_etag, err)) {
+            BOOST_LOG_TRIVIAL(error) << "[" << provider_id()
+                << "] publish_local_bundle metadata upload failed: " << err;
+            return -1;
+        }
+    }
+
+    // Write presets grouped by type. The orchestrator decides which preset
+    // goes into which type subdir by setting its key inside `presets` as
+    // "<type>/<name>" -- we honour that prefix when present, otherwise fall
+    // back to "print/" so the bundle never has loose presets at the root.
+    for (auto& [key, values] : presets) {
+        std::string type = "print";
+        std::string name = key;
+        auto slash = key.find('/');
+        if (slash != std::string::npos) {
+            type = key.substr(0, slash);
+            name = key.substr(slash + 1);
+        }
+        std::string type_dir = base + type;
+        std::string dir_err;
+        if (!m_backend->ensure_directory(type_dir, dir_err)) continue;
+
+        std::string body = values_map_to_json(values).dump(2);
+        std::string new_etag;
+        std::string up_err;
+        m_backend->upload_file(type_dir + "/" + name + ".json", body, "", new_etag, up_err);
+    }
+
+    out_published_version = metadata.version;
+    return 0;
 }
 
-int BaseFileSyncProvider::unsubscribe_bundle(const std::string& /*bundle_id*/)
+int BaseFileSyncProvider::unsubscribe_bundle(const std::string& bundle_id)
 {
-    return -1;
+    if (bundle_id.empty()) return -1;
+    {
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        if (std::find(m_hidden_bundles.begin(), m_hidden_bundles.end(), bundle_id) == m_hidden_bundles.end())
+            m_hidden_bundles.push_back(bundle_id);
+    }
+    save_state();
+    return 0;
 }
 
 } // namespace Slic3r
