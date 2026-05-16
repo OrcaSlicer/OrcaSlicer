@@ -2976,8 +2976,23 @@ int OrcaCloudServiceAgent::list_presets(const PresetListCallback& cb)
 
 std::vector<PresetSyncConflict> OrcaCloudServiceAgent::take_pending_conflicts()
 {
-    // TODO: surface 409 from put_setting through this queue so the unified
-    // SyncMergeDialog kicks in for Orca too (currently last-write-wins).
+    // Intentionally always empty.
+    //
+    // Orca Cloud does optimistic concurrency through an `updated_time` token
+    // sent in every sync_push. When the server rejects an update (HTTP 409)
+    // it returns the latest server_version inline, and the upstream sync
+    // loop already handles the retry: GUI_App::sync_preset interprets 409
+    // as `sync_info = "hold"` (see GUI_App.cpp where it sets the hold flag),
+    // refreshes `updated_time` from the server response, then re-pushes on
+    // the next tick. There is no point in popping a merge dialog because
+    // both client and server already converged on the server's version --
+    // the user's local edits become the "next" version once the server
+    // timestamp catches up.
+    //
+    // File backends (WebDAV / Git) are different: there is no central LWW
+    // arbiter, two clients can edit the same file independently, and the
+    // ETag mismatch indicates a real divergence the user must resolve.
+    // That path uses BaseFileSyncProvider::take_pending_conflicts.
     return {};
 }
 
@@ -2985,7 +3000,7 @@ int OrcaCloudServiceAgent::apply_conflict_resolution(
     const PresetSyncConflict&            /*conflict*/,
     const PresetSyncConflictResolution&  /*resolution*/)
 {
-    // Wired in a follow-up commit together with the put_setting enqueue path.
+    // Companion no-op to take_pending_conflicts(): see comment there.
     return 0;
 }
 
