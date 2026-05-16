@@ -978,6 +978,51 @@ std::string Http::get_filename_from_url(const std::string &url)
 	return path_url.substr(start_pos + 1, path_url.length() - start_pos - 1);
 }
 
+std::string Http::get_host_from_url(const std::string &url_in, std::string *port)
+{
+    std::string url = url_in;
+    if (url.find("//") == std::string::npos)
+        url = "http://" + url;
+
+    if (port)
+        port->clear();
+    std::string out = url_in;
+    CURLU *hurl = curl_url();
+    if (hurl) {
+        CURLUcode rc = curl_url_set(hurl, CURLUPART_URL, url.c_str(), 0);
+        if (rc == CURLUE_OK) {
+            char *host;
+            rc = curl_url_get(hurl, CURLUPART_HOST, &host, 0);
+            if (rc == CURLUE_OK) {
+                out = host;
+                curl_free(host);
+                if (port) {
+                    char *pstr;
+                    rc = curl_url_get(hurl, CURLUPART_PORT, &pstr, 0);
+                    if (rc == CURLUE_OK && pstr) {
+                        *port = pstr;
+                        curl_free(pstr);
+                    }
+                }
+            } else
+                BOOST_LOG_TRIVIAL(error) << "Http::get_host_from_url: failed to get host from URL " << url;
+        } else
+            BOOST_LOG_TRIVIAL(error) << "Http::get_host_from_url: failed to parse URL " << url;
+        curl_url_cleanup(hurl);
+    } else
+        BOOST_LOG_TRIVIAL(error) << "Http::get_host_from_url: failed to allocate curl_url";
+    return out;
+}
+
+std::string Http::get_host_header_value(const std::string &url)
+{
+    std::string port;
+    std::string host = get_host_from_url(url, &port);
+    if (!port.empty())
+        host += ":" + port;
+    return host;
+}
+
 std::ostream& operator<<(std::ostream &os, const Http::Progress &progress)
 {
 	os << "Http::Progress("

@@ -185,7 +185,7 @@ std::string CrealityPrint::safe_filename(const std::string &filename) const
 void CrealityPrint::start_print(const std::string &filename) const
 {
     try {
-        std::string host = m_host;
+        std::string host = Http::get_host_from_url(m_host);
         auto const port = "9999";
 
         json j2 = {
