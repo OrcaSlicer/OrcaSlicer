@@ -17,10 +17,7 @@
 #include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
-// ORCA: self-hosted profile sync
-#include "slic3r/Utils/ProfileSyncManager.hpp"
-#include "slic3r/Utils/WebDAVSync.hpp"
-#include "slic3r/Utils/GitSync.hpp"
+#include "slic3r/Utils/IPresetSyncProvider.hpp"
 #include "DownloadProgressDialog.hpp"
 #include <memory>
 #include <functional>
@@ -988,8 +985,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetValue(app_config->get_bool(param));
     checkbox->SetToolTip(tip);
 
-    if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
-
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
 
     if(!secondary_title.IsEmpty()){
@@ -1011,20 +1006,10 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         //     wxGetApp().switch_staff_pick(pbool);
         // }
 
-        if (param == "sync_user_preset") {
-            bool sync = app_config->get("sync_user_preset") == "true" ? true : false;
-            if (sync) {
-                wxGetApp().start_sync_user_preset();
-            } else {
-                wxGetApp().stop_sync_user_preset();
-            }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
-        }
-        else if (param == "stealth_mode") {
+        if (param == "stealth_mode") {
             bool enabled = app_config->get_stealth_mode();
             if (enabled) wxGetApp().on_stealth_mode_enter();
-            if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
-            if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
+            if (m_bambu_cloud_checkbox) m_bambu_cloud_checkbox->Enable(!enabled);
         }
         else if (param == "hide_login_side_panel") {
             if (wxGetApp().mainframe && wxGetApp().mainframe->m_webview) {
@@ -1456,11 +1441,14 @@ void PreferencesDialog::create()
             m_pref_tabs->SetItemBold(i, i == selection);
             f_sizers[i]->Show(i == selection);
         }
-        // ORCA: Re-apply sync field visibility only when Online tab (index 2) is selected
+        // Re-apply sync field visibility only when Online tab (index 2) is selected.
         if (selection == 2 && m_sync_visibility_callback && *m_sync_visibility_callback) {
-            auto backend_str = app_config->get("selfhost_sync_backend");
-            int sel = backend_str.empty() ? 0 : std::atoi(backend_str.c_str());
-            (*m_sync_visibility_callback)(sel);
+            const std::string p = app_config->get("profile_sync_provider");
+            int idx = 0;
+            if      (p == "orca")   idx = 1;
+            else if (p == "webdav") idx = 2;
+            else if (p == "git")    idx = 3;
+            (*m_sync_visibility_callback)(idx);
         }
         Layout();
         Thaw();
@@ -1894,19 +1882,18 @@ void PreferencesDialog::create_items()
     auto item_bambu_cloud     = create_item_bambu_cloud(_L("Enable Bambu Cloud"), _L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
     g_sizer->Add(item_bambu_cloud);
 
+    if (app_config->get_stealth_mode()) {
+        if (m_bambu_cloud_checkbox) m_bambu_cloud_checkbox->Enable(false);
+    }
+
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
 
     auto item_stable_updates   = create_item_checkbox(_L("Check for stable updates only"), "", "check_stable_update_only");
     g_sizer->Add(item_stable_updates);
 
-    auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
-    g_sizer->Add(item_user_sync);
-
-    if (app_config->get_stealth_mode()) {
-        if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(false);
-        if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
-    }
+    //// ONLINE > Filament Sync Options
+    g_sizer->Add(create_item_title(_L("Filament Sync Options")), 1, wxEXPAND);
 
     auto item_filament_sync_mode = create_item_combobox(
         _L("Filament sync mode"),
@@ -1918,42 +1905,47 @@ void PreferencesDialog::create_items()
     auto item_system_sync      = create_item_checkbox(_L("Update built-in presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 
-    //// ORCA: ONLINE > Self-hosted Sync
-    g_sizer->Add(create_item_title(_L("Self-hosted Sync")), 1, wxEXPAND);
+    //// ONLINE > Profile Sync (unified Orca Cloud + WebDAV + Git)
+    g_sizer->Add(create_item_title(_L("Profile Sync")), 1, wxEXPAND);
 
-    // Deferred visibility callback — combobox is created before the fields it controls
-    auto update_sync_backend_visibility = std::make_shared<std::function<void(int)>>();
+    // Provider order matches indices below: 0 Disabled / 1 Orca / 2 WebDAV / 3 Git
+    const std::vector<std::string> provider_values = { "disabled", "orca", "webdav", "git" };
+    auto provider_to_index = [&provider_values](const std::string& v) {
+        for (size_t i = 0; i < provider_values.size(); ++i)
+            if (v == provider_values[i]) return static_cast<int>(i);
+        return 0;
+    };
 
-    auto item_sync_backend = create_item_combobox(
-        _L("Sync backend"),
-        _L("Choose sync backend for self-hosted profile synchronization"),
-        "selfhost_sync_backend",
-        {_L("Disabled"), _L("WebDAV"), _L("Git")},
-        [update_sync_backend_visibility](wxString sel) {
-            if (*update_sync_backend_visibility)
-                (*update_sync_backend_visibility)(wxAtoi(sel));
+    int initial_provider_idx = provider_to_index(app_config->get("profile_sync_provider"));
+    auto update_provider_visibility = std::make_shared<std::function<void(int)>>();
+
+    auto item_provider = create_item_combobox(
+        _L("Provider"),
+        _L("Choose where to synchronize your user presets."),
+        "profile_sync_provider",
+        { _L("Disabled"), _L("Orca Cloud"), _L("WebDAV"), _L("Git") },
+        provider_values);
+    g_sizer->Add(item_provider);
+
+    // Attach our own visibility/handler on top of the combobox the helper made.
+    if (auto* combo = dynamic_cast<::ComboBox*>(item_provider->GetItem(2)->GetWindow())) {
+        combo->SetSelection(initial_provider_idx);
+        combo->GetDropDown().Bind(wxEVT_COMBOBOX, [update_provider_visibility](wxCommandEvent& e) {
+            if (*update_provider_visibility) (*update_provider_visibility)(e.GetSelection());
+            e.Skip();
         });
-    g_sizer->Add(item_sync_backend);
-
-    // Read initial backend selection early so we can set correct visibility
-    // at creation time (deferred approaches like CallAfter crash on destroy).
-    int initial_sync_backend = 0;
-    {
-        auto backend_str = app_config->get("selfhost_sync_backend");
-        if (!backend_str.empty())
-            initial_sync_backend = std::atoi(backend_str.c_str());
     }
 
     // --- WebDAV fields grouped into one sizer ---
     auto item_webdav_url = create_item_input(
         _L("WebDAV URL"), _L(""), _L("URL of your WebDAV server (e.g. https://cloud.example.com/remote.php/dav/files/user/)"),
-        "selfhost_sync_webdav_url");
+        "profile_sync_webdav_url");
     auto item_webdav_user = create_item_input(
         _L("WebDAV username"), _L(""), _L("Username for WebDAV authentication"),
-        "selfhost_sync_webdav_user");
+        "profile_sync_webdav_user");
     auto item_webdav_pass = create_item_input(
         _L("WebDAV password"), _L(""), _L("Password for WebDAV authentication"),
-        "selfhost_sync_webdav_pass");
+        "profile_sync_webdav_pass");
 
     auto* webdav_sizer = new wxBoxSizer(wxVERTICAL);
     webdav_sizer->Add(item_webdav_url,  0, wxEXPAND);
@@ -1964,13 +1956,13 @@ void PreferencesDialog::create_items()
     // --- Git fields grouped into one sizer ---
     auto item_git_url = create_item_input(
         _L("Git repository URL"), _L(""), _L("URL of the Git repository (HTTPS or SSH)"),
-        "selfhost_sync_git_url");
+        "profile_sync_git_url");
     auto item_git_branch = create_item_input(
         _L("Git branch"), _L("main"), _L("Branch to sync with"),
-        "selfhost_sync_git_branch");
+        "profile_sync_git_branch");
     auto item_git_token = create_item_input(
         _L("Git access token (optional)"), _L(""), _L("Personal access token for private repositories. Leave empty for public repos (read-only)."),
-        "selfhost_sync_git_token");
+        "profile_sync_git_token");
 
     auto* git_sizer = new wxBoxSizer(wxVERTICAL);
     git_sizer->Add(item_git_url,    0, wxEXPAND);
@@ -1978,154 +1970,99 @@ void PreferencesDialog::create_items()
     git_sizer->Add(item_git_token,  0, wxEXPAND);
     g_sizer->Add(git_sizer, 0, wxEXPAND);
 
-    // --- Read-only checkbox (visible when backend is enabled) ---
-    auto item_readonly = create_item_checkbox(
-        _L("Read-only (receive changes only)"),
-        _L("Only download presets from the server, never upload local changes. Use this on machines that should follow a master instance."),
-        "selfhost_sync_readonly");
-    g_sizer->Add(item_readonly);
-
-    // --- Always review remote changes checkbox ---
-    auto item_always_review = create_item_checkbox(
-        _L("Always review remote changes"),
-        _L("Show a merge dialog even when only the remote copy has changed, letting you pick which fields to accept."),
-        "selfhost_sync_always_review");
-    g_sizer->Add(item_always_review);
-
-    // Get actual widgets from sizers for Git token → read-only interaction
-    // Sizer layout: [spacer, title, widget, ...]
-    auto* readonly_checkbox = dynamic_cast<::CheckBox*>(item_readonly->GetItem(2)->GetWindow());
-    auto* git_token_input   = dynamic_cast<::TextInput*>(item_git_token->GetItem(2)->GetWindow());
-
-    // Lambda to enforce read-only when Git backend has no token
-    auto update_readonly_for_git = [this, readonly_checkbox, git_token_input](int backend_sel) {
-        if (!readonly_checkbox) return;
-        if (backend_sel == 2 && git_token_input) {
-            // Git backend
-            bool token_empty = git_token_input->GetTextCtrl()->GetValue().IsEmpty();
-            if (token_empty) {
-                readonly_checkbox->SetValue(true);
-                readonly_checkbox->Enable(false);
-                app_config->set_bool("selfhost_sync_readonly", true);
-                app_config->save();
-            } else {
-                readonly_checkbox->Enable(true);
-            }
-        } else if (backend_sel != 0) {
-            // WebDAV or other — always allow toggling
-            readonly_checkbox->Enable(true);
-        }
-    };
-
-    // Bind token text change to update read-only state
-    if (git_token_input) {
-        git_token_input->GetTextCtrl()->Bind(wxEVT_TEXT, [this, update_readonly_for_git](wxCommandEvent&) {
-            auto backend_str = app_config->get("selfhost_sync_backend");
-            int sel = backend_str.empty() ? 0 : std::atoi(backend_str.c_str());
-            update_readonly_for_git(sel);
-        });
-    }
-
-    // --- Common sync options (visible when backend is enabled) ---
-    auto item_selfhost_presets = create_item_checkbox(
-        _L("Sync presets (Printer/Filament/Process)"), _L("Synchronize user presets via self-hosted backend"),
-        "selfhost_sync_presets");
-
-    auto item_selfhost_appconfig = create_item_checkbox(
-        _L("Sync application settings"), _L("Synchronize application preferences"),
-        "selfhost_sync_appconfig");
-
-    auto item_selfhost_projects = create_item_checkbox(
-        _L("Sync .3mf projects"), _L("Synchronize project files"),
-        "selfhost_sync_projects");
+    // --- Common options (visible whenever a provider is selected) ---
+    auto item_auto_sync = create_item_checkbox(
+        _L("Auto sync"),
+        _L("Sync automatically in the background. Disable to only sync when you press Sync Now."),
+        "profile_sync_auto");
 
     auto item_sync_interval = create_item_combobox(
         _L("Auto-sync interval"),
-        _L("How often to automatically synchronize. Manual means only when you click Sync."),
-        "selfhost_sync_interval",
-        {_L("Manual"), _L("5 minutes"), _L("15 minutes"), _L("30 minutes"), _L("1 hour")});
+        _L("How often the background sync runs. Ignored when Auto sync is off."),
+        "profile_sync_interval_sec",
+        { _L("5 minutes"), _L("15 minutes"), _L("30 minutes"), _L("1 hour") },
+        std::vector<std::string>{ "300", "900", "1800", "3600" });
+
+    auto item_readonly = create_item_checkbox(
+        _L("Read-only (receive changes only)"),
+        _L("Only download presets from the remote, never upload local changes. Useful on follower machines."),
+        "profile_sync_read_only");
+
+    auto item_always_review = create_item_checkbox(
+        _L("Always review remote changes"),
+        _L("Show the merge dialog even when only the remote copy has changed, so you can choose per field."),
+        "profile_sync_always_review");
+
+    auto item_bundles_local = create_item_checkbox(
+        _L("Sync local bundles"),
+        _L("Publish bundles you author from this machine to the remote, alongside individual presets."),
+        "profile_sync_bundles_local");
+
+    auto item_bundles_sub = create_item_checkbox(
+        _L("Subscribe to remote bundles"),
+        _L("Pull shared preset bundles published on the remote."),
+        "profile_sync_bundles_sub");
 
     auto item_test_sync = create_item_button(
         _L("Test connection"), _L("Test"), "",
-        _L("Test the connection to the sync backend"),
+        _L("Test the connection to the active provider"),
         []() {
             auto* app = &wxGetApp();
-            auto* mgr = app->get_profile_sync_manager();
-            if (!mgr) return;
-
-            wxWindow* dlg_parent = wxGetActiveWindow();
-            if (!dlg_parent) dlg_parent = wxTheApp->GetTopWindow();
-
-            mgr->load_config_from_appconfig(*app->app_config);
-            std::string error;
-            std::unique_ptr<Slic3r::SyncBackend> sync_backend;
-
-            SyncConfig cfg = mgr->get_config();
-            if (!cfg.enabled) {
-                wxMessageBox(_L("Sync is disabled. Select a backend first."), _L("Self-hosted Sync"), wxOK | wxICON_WARNING, dlg_parent);
+            wxWindow* parent = wxGetActiveWindow();
+            if (!parent) parent = wxTheApp->GetTopWindow();
+            auto* agent = app->getAgent();
+            if (!agent) return;
+            auto sp = agent->get_sync_provider();
+            if (!sp || !sp->is_configured()) {
+                wxMessageBox(_L("No provider configured."), _L("Profile Sync"), wxOK | wxICON_WARNING, parent);
                 return;
             }
-
-            if (cfg.backend_type == SyncBackendType::WebDAV) {
-                if (cfg.webdav_config.url.empty()) {
-                    wxMessageBox(_L("Please enter a WebDAV URL."), _L("Self-hosted Sync"), wxOK | wxICON_WARNING, dlg_parent);
-                    return;
-                }
-                sync_backend = std::make_unique<WebDAVSync>(cfg.webdav_config);
-            } else {
-                if (cfg.git_config.repo_url.empty()) {
-                    wxMessageBox(_L("Please enter a Git repository URL."), _L("Self-hosted Sync"), wxOK | wxICON_WARNING, dlg_parent);
-                    return;
-                }
-                sync_backend = std::make_unique<GitSync>(cfg.git_config);
-            }
-
-            if (sync_backend->test_connection(error)) {
-                wxMessageBox(_L("Connection successful!"), _L("Self-hosted Sync"), wxOK | wxICON_INFORMATION, dlg_parent);
-            } else {
-                wxMessageBox(_L("Connection failed: ") + wxString::FromUTF8(error), _L("Self-hosted Sync"), wxOK | wxICON_ERROR, dlg_parent);
-            }
+            std::string err;
+            if (sp->connect(err) == 0)
+                wxMessageBox(_L("Connection successful!"), _L("Profile Sync"), wxOK | wxICON_INFORMATION, parent);
+            else
+                wxMessageBox(_L("Connection failed: ") + wxString::FromUTF8(err),
+                             _L("Profile Sync"), wxOK | wxICON_ERROR, parent);
         });
 
     auto item_sync_now = create_item_button(
         _L("Sync now"), _L("Sync"), "",
-        _L("Trigger an immediate synchronization"),
+        _L("Trigger an immediate sync of user presets"),
         []() {
             auto* app = &wxGetApp();
-            app->trigger_profile_sync_now();
+            app->stop_sync_user_preset();
+            app->start_sync_user_preset(true);
         });
 
     auto* sync_common_sizer = new wxBoxSizer(wxVERTICAL);
-    sync_common_sizer->Add(item_selfhost_presets,   0, wxEXPAND);
-    sync_common_sizer->Add(item_selfhost_appconfig, 0, wxEXPAND);
-    sync_common_sizer->Add(item_selfhost_projects,  0, wxEXPAND);
-    sync_common_sizer->Add(item_sync_interval,      0, wxEXPAND);
-    sync_common_sizer->Add(item_test_sync,          0, wxEXPAND);
-    sync_common_sizer->Add(item_sync_now,           0, wxEXPAND);
+    sync_common_sizer->Add(item_auto_sync,      0, wxEXPAND);
+    sync_common_sizer->Add(item_sync_interval,  0, wxEXPAND);
+    sync_common_sizer->Add(item_readonly,       0, wxEXPAND);
+    sync_common_sizer->Add(item_always_review,  0, wxEXPAND);
+    sync_common_sizer->Add(item_bundles_local,  0, wxEXPAND);
+    sync_common_sizer->Add(item_bundles_sub,    0, wxEXPAND);
+    sync_common_sizer->Add(item_test_sync,      0, wxEXPAND);
+    sync_common_sizer->Add(item_sync_now,       0, wxEXPAND);
     g_sizer->Add(sync_common_sizer, 0, wxEXPAND);
 
-    // --- Visibility callback ---
-    *update_sync_backend_visibility = [this, g_sizer, webdav_sizer, git_sizer, item_readonly, item_always_review, sync_common_sizer, update_readonly_for_git](int sel) {
+    // --- Visibility callback (provider index: 0 disabled / 1 orca / 2 webdav / 3 git) ---
+    *update_provider_visibility = [this, g_sizer, webdav_sizer, git_sizer, sync_common_sizer](int sel) {
+        const bool show_webdav = (sel == 2);
+        const bool show_git    = (sel == 3);
+        const bool show_common = (sel != 0);
         m_parent->Freeze();
-        show_sizer_children(webdav_sizer, sel == 1);
-        show_sizer_children(git_sizer, sel == 2);
-        show_sizer_children(item_readonly, sel != 0);
-        show_sizer_children(item_always_review, sel != 0);
-        show_sizer_children(sync_common_sizer, sel != 0);
-        g_sizer->Show(webdav_sizer, sel == 1);
-        g_sizer->Show(git_sizer, sel == 2);
-        g_sizer->Show(item_readonly, sel != 0);
-        g_sizer->Show(item_always_review, sel != 0);
-        g_sizer->Show(sync_common_sizer, sel != 0);
-        update_readonly_for_git(sel);
+        show_sizer_children(webdav_sizer, show_webdav);
+        show_sizer_children(git_sizer,    show_git);
+        show_sizer_children(sync_common_sizer, show_common);
+        g_sizer->Show(webdav_sizer, show_webdav);
+        g_sizer->Show(git_sizer,    show_git);
+        g_sizer->Show(sync_common_sizer, show_common);
         m_parent->Layout();
         m_parent->FitInside();
         m_parent->Thaw();
     };
-    m_sync_visibility_callback = update_sync_backend_visibility;
-
-    // Apply initial readonly state for Git backend
-    update_readonly_for_git(initial_sync_backend);
+    m_sync_visibility_callback = update_provider_visibility;
+    (*update_provider_visibility)(initial_provider_idx);
 
     auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
                                                       _L("Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"),

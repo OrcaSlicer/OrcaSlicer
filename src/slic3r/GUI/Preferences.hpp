@@ -68,7 +68,6 @@ public:
     ::CheckBox * m_developer_mode_ckeckbox   = {nullptr};
     ::CheckBox * m_internal_developer_mode_ckeckbox = {nullptr};
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
-    ::CheckBox * m_sync_user_preset_checkbox = {nullptr};
     ::CheckBox * m_bambu_cloud_checkbox      = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
@@ -80,7 +79,7 @@ public:
     wxString m_iot_environment_def;
 
     std::vector<wxFlexGridSizer*> f_sizers;
-    std::shared_ptr<std::function<void(int)>> m_sync_visibility_callback; // ORCA: self-hosted sync
+    std::shared_ptr<std::function<void(int)>> m_sync_visibility_callback; // Profile Sync section
 
     wxBoxSizer *create_item_title(wxString title);
     wxBoxSizer *create_item_label(wxString label, const wxString tooltip = "", const wxString wiki_url = "");
