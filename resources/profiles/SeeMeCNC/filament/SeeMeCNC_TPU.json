@@ -79,7 +79,7 @@
 		"4"
 	],
 	"filament_notes": [
-		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.7mm nozzle: 0.4571\n\nRostockMAX v3.2 / v4:\n  0.7mm nozzle: 0.5473\n\nBOSSdelta 0505:\n  0.7mm nozzle: 0.6117\n  \u26a0 Expect significant tuning required\n\nBOSSdelta 0510:\n  Not recommended for TPU.\n\nBOSSdelta 0521:\n  Not recommended for TPU.\n\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
+		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.7mm nozzle: 0.4571\n\nRostockMAX v3.2 / v4:\n  0.7mm nozzle: 0.5473\n\nBOSSdelta 0505:\n  0.7mm nozzle: 0.6117\n  ⚠ Expect significant tuning required\n\nBOSSdelta 0510:\n  Not recommended for TPU.\n\nBOSSdelta 0521:\n  Not recommended for TPU.\n\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
 	],
 	"filament_retract_before_wipe": [
 		"0%"
@@ -169,15 +169,6 @@
 		"0.2"
 	],
 	"filament_z_hop_types": [
-		"Auto"
-	],
-	"filament_retract_lift_above": [
-		"0"
-	],
-	"filament_retract_lift_below": [
-		"0"
-	],
-	"filament_retract_lift_enforce": [
-		"All Surfaces"
+		"Auto Lift"
 	]
 }
