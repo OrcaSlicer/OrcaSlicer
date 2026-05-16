@@ -935,6 +935,17 @@ void GUI_App::post_init()
     // based on the user's saved choice. Restarts background sync if auto is on.
     reconfigure_profile_sync();
 
+    // Drain provider conflict queue every 5 s and walk the user through the
+    // merge dialog for each preset conflict. Leaks intentionally -- the timer
+    // lives as long as the process.
+    {
+        auto* conflict_timer = new wxTimer();
+        conflict_timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+            this->poll_sync_conflicts();
+        });
+        conflict_timer->Start(5000);
+    }
+
     // The extra CallAfter() is needed because of Mac, where this is the only way
     // to popup a modal dialog on start without screwing combo boxes.
     // This is ugly but I honestly found no better way to do it.
@@ -7193,6 +7204,87 @@ void GUI_App::reconfigure_profile_sync()
         // Connect lazily; start_sync_user_preset will hit it on first iteration.
         start_sync_user_preset();
     }
+}
+
+void GUI_App::poll_sync_conflicts()
+{
+    if (!m_agent) return;
+    auto sp = m_agent->get_sync_provider();
+    if (!sp) return;
+
+    auto conflicts = sp->take_pending_conflicts();
+    if (conflicts.empty()) return;
+
+    for (const auto& pc : conflicts) {
+        // Translate the provider-agnostic conflict into the legacy SyncConflict
+        // shape SyncMergeDialog already understands. We don't need every field
+        // -- the dialog reads preset_type, local_content, remote_content.
+        SyncConflict legacy;
+        legacy.path           = pc.remote_id + ".json";
+        legacy.local_content  = pc.local_json;
+        legacy.remote_content = pc.remote_json;
+        legacy.local_time     = 0;
+        legacy.remote_time    = 0;
+        legacy.remote_etag.clear();
+        if      (pc.preset_type == "filament") legacy.preset_type = Preset::Type::TYPE_FILAMENT;
+        else if (pc.preset_type == "printer")  legacy.preset_type = Preset::Type::TYPE_PRINTER;
+        else                                    legacy.preset_type = Preset::Type::TYPE_PRINT;
+
+        wxWindow* parent = wxGetActiveWindow();
+        if (!parent) parent = mainframe ? static_cast<wxWindow*>(mainframe) : wxTheApp->GetTopWindow();
+
+        SyncMergeDialog dlg(parent, legacy);
+        if (!dlg.has_visible_diffs()) continue;
+        if (dlg.ShowModal() != wxID_OK) continue;
+
+        const auto res = dlg.get_result();
+        PresetSyncConflictResolution resolution;
+        std::string apply_json;
+        switch (res.resolution) {
+            case ConflictResolution::KeepLocal:
+                resolution.choice = PresetSyncConflictChoice::KeepLocal;
+                apply_json        = pc.local_json;
+                break;
+            case ConflictResolution::KeepRemote:
+                resolution.choice = PresetSyncConflictChoice::KeepRemote;
+                apply_json        = pc.remote_json;
+                break;
+            case ConflictResolution::Merge:
+                resolution.choice      = PresetSyncConflictChoice::Merge;
+                resolution.merged_json = res.merged_content;
+                apply_json             = res.merged_content;
+                break;
+            case ConflictResolution::Skip:
+            default:
+                resolution.choice = PresetSyncConflictChoice::Skip;
+                break;
+        }
+        sp->apply_conflict_resolution(pc, resolution);
+
+        // Write the chosen content to disk (KeepRemote / Merge) so the local
+        // preset matches what the sync state believes is the remote version.
+        if (resolution.choice == PresetSyncConflictChoice::KeepRemote ||
+            resolution.choice == PresetSyncConflictChoice::Merge) {
+            boost::filesystem::path p = boost::filesystem::path(data_dir())
+                                        / "user" / "default" / pc.preset_type
+                                        / (pc.preset_name + ".json");
+            try {
+                boost::filesystem::create_directories(p.parent_path());
+                std::ofstream out(p.string());
+                out << apply_json;
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "poll_sync_conflicts: write "
+                    << p.string() << " failed: " << e.what();
+            }
+        }
+        // Re-push the chosen content (KeepLocal / Merge) so the remote moves
+        // back in sync with what we now consider authoritative.
+        if (resolution.choice == PresetSyncConflictChoice::KeepLocal ||
+            resolution.choice == PresetSyncConflictChoice::Merge) {
+            sp->push_preset(pc.preset_type, pc.preset_name, apply_json, pc.remote_id, "");
+        }
+    }
+    sp->save_state();
 }
 
 

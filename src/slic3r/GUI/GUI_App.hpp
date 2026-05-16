@@ -562,6 +562,10 @@ public:
     // Preferences. Restarts the background sync thread when auto-sync is on.
     void            reconfigure_profile_sync();
 
+    // Periodically drains the active provider's conflict queue and walks the
+    // user through SyncMergeDialog for each preset conflict.
+    void            poll_sync_conflicts();
+
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 
