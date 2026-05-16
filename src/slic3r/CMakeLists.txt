@@ -623,6 +623,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/NetworkAgentFactory.hpp
     Utils/NetworkAgentFactory.cpp
     Utils/ICloudServiceAgent.hpp
+    Utils/IPresetSyncProvider.hpp
+    Utils/IBundleProvider.hpp
     Utils/IPrinterAgent.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
