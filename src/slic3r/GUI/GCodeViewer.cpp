@@ -43,6 +43,7 @@
 
 #include <array>
 #include <algorithm>
+#include <cmath>
 #include <chrono>
 
 
@@ -1313,12 +1314,17 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
         move_type_times.fill(0.0f);
+    m_move_type_distances.fill(0.0f);
     for (const GCodeProcessorResult::MoveVertex& move : gcode_result.moves) {
         const size_t move_type = static_cast<size_t>(move.type);
         if (move_type < m_move_type_counts.size()) {
             ++m_move_type_counts[move_type];
             for (size_t mode = 0; mode < move.time.size(); ++mode)
                 m_move_type_times[move_type][mode] += move.time[mode];
+            if (move.type == EMoveType::Retract || move.type == EMoveType::Unretract)
+                m_move_type_distances[move_type] += std::fabs(move.delta_extruder);
+            else
+                m_move_type_distances[move_type] += move.travel_dist;
         }
     }
     m_only_gcode_in_preview = only_gcode;
@@ -1486,12 +1492,23 @@ void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
         move_type_times.fill(0.0f);
-    for (const libvgcode::PathVertex& vertex : data.vertices) {
+    m_move_type_distances.fill(0.0f);
+    const size_t normal_time_mode_idx = static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal);
+    for (size_t i = 0; i < data.vertices.size(); ++i) {
+        const libvgcode::PathVertex& vertex = data.vertices[i];
         const size_t move_type = static_cast<size_t>(vertex.type);
         if (move_type < m_move_type_counts.size()) {
             ++m_move_type_counts[move_type];
             for (size_t mode = 0; mode < vertex.times.size(); ++mode)
                 m_move_type_times[move_type][mode] += vertex.times[mode];
+            if (vertex.type == libvgcode::EMoveType::Retract || vertex.type == libvgcode::EMoveType::Unretract) {
+                m_move_type_distances[move_type] += std::fabs(vertex.feedrate) * vertex.times[normal_time_mode_idx];
+            } else if (i > 0) {
+                const float dx = vertex.position[0] - data.vertices[i - 1].position[0];
+                const float dy = vertex.position[1] - data.vertices[i - 1].position[1];
+                const float dz = vertex.position[2] - data.vertices[i - 1].position[2];
+                m_move_type_distances[move_type] += std::sqrt(dx * dx + dy * dy + dz * dz);
+            }
         }
     }
 
@@ -1545,6 +1562,7 @@ void GCodeViewer::reset()
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
         move_type_times.fill(0.0f);
+    m_move_type_distances.fill(0.0f);
     m_print_statistics.reset();
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
     m_left_extruder_filament.clear();
@@ -3394,6 +3412,18 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return std::make_pair(time, total_estimated_time > 0.0f ? time / total_estimated_time : 0.0f);
     };
 
+    auto format_distance = [imperial_units](float distance_mm) {
+        char buffer[64];
+        if (imperial_units) {
+            ::sprintf(buffer, "%.2fin", distance_mm / GizmoObjectManipulation::in_to_mm);
+        } else if (std::fabs(distance_mm) < 1000.0f) {
+            ::sprintf(buffer, "%.0fmm", distance_mm);
+        } else {
+            ::sprintf(buffer, "%.2fm", distance_mm / 1000.0f);
+        }
+        return std::string(buffer);
+    };
+
     auto used_filament_per_role = [this, imperial_units](ExtrusionRole role) {
         auto it = m_print_statistics.used_filaments_per_role.find(role);
         if (it == m_print_statistics.used_filaments_per_role.end())
@@ -3633,13 +3663,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             percents.push_back(travel_percent);
 
             // Set travel distance and moves for the Travel row Usage columns
-            if (m_print_statistics.total_travel_distance > 0.0f) {
-                ::sprintf(buffer, imperial_units ? "%.2fin" : "%.2fm", m_print_statistics.total_travel_distance / 1000.0f);
-                travel_distance = buffer;
-            } else {
-                ::sprintf(buffer, "0.00m");
-                travel_distance = buffer;
-            }
+            travel_distance = format_distance(m_print_statistics.total_travel_distance);
             used_filaments_length.push_back(travel_distance);
 
             travel_moves = format_compact_count(m_print_statistics.total_travel_moves);
@@ -3748,8 +3772,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     default: { break; }
     }
 
-    auto append_option_item = [this, append_item, current_time_mode, total_estimated_time, &format_compact_count, &format_percent](libvgcode::EOptionType type, std::vector<float> offsets) {
-        auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent](libvgcode::EOptionType option_type) -> std::array<std::string, 3> {
+    auto append_option_item = [this, append_item, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance](libvgcode::EOptionType type, std::vector<float> offsets) {
+        auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance](libvgcode::EOptionType option_type) -> std::array<std::string, 4> {
             libvgcode::EMoveType move_type;
             bool has_move_type = true;
             switch (option_type) {
@@ -3762,27 +3786,32 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             }
 
             if (!has_move_type)
-                return { "", "", "" };
+                return { "", "", "", "" };
 
             const size_t move_type_idx = static_cast<size_t>(move_type);
             const float time = m_move_type_times[move_type_idx][current_time_mode];
             const std::string time_text = time > 0.0f ? short_time(get_time_dhms(time)) : "";
             const std::string percent_text = total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
+            const std::string distance_text = (option_type == libvgcode::EOptionType::Wipes || option_type == libvgcode::EOptionType::Retractions || option_type == libvgcode::EOptionType::Unretractions || option_type == libvgcode::EOptionType::Seams)
+                ? format_distance(m_move_type_distances[move_type_idx])
+                : "";
             const std::string count_text = format_compact_count(m_move_type_counts[move_type_idx]);
 
-            return { time_text, percent_text, count_text };
+            return { time_text, percent_text, distance_text, count_text };
         };
 
         auto append_option_item_with_type = [this, offsets, append_item](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
-            const std::string& time_text, const std::string& percent_text, const std::string& count_text) {
+            const std::string& time_text, const std::string& percent_text, const std::string& distance_text, const std::string& count_text) {
             std::vector<std::pair<std::string, float>> columns_offsets;
             columns_offsets.push_back({ label , offsets[0] });
             if (!time_text.empty())
                 columns_offsets.push_back({ time_text, offsets[1] });
             if (!percent_text.empty())
                 columns_offsets.push_back({ percent_text, offsets[2] });
+            if (!distance_text.empty())
+                columns_offsets.push_back({ distance_text, offsets[3] });
             if (!count_text.empty())
-                columns_offsets.push_back({ count_text, offsets[3] });
+                columns_offsets.push_back({ count_text, distance_text.empty() ? offsets[3] : offsets[4] });
             append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
@@ -3791,32 +3820,32 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool visible = m_viewer.is_option_visible(type);
         if (type == libvgcode::EOptionType::Travels) {
             //BBS: only display travel time in FeatureType view
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), _u8L("Travel"), visible, "", "", "");
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), _u8L("Travel"), visible, "", "", "", "");
         }
         else if (type == libvgcode::EOptionType::Seams) {
             const auto option_values = option_stats(type);
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Seams)), _u8L("Seams"), visible,
-                option_values[0], option_values[1], option_values[2]);
+                option_values[0], option_values[1], option_values[2], option_values[3]);
         }
         else if (type == libvgcode::EOptionType::Retractions) {
             const auto option_values = option_stats(type);
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Retractions)), _u8L("Retract"), visible,
-                option_values[0], option_values[1], option_values[2]);
+                option_values[0], option_values[1], option_values[2], option_values[3]);
         }
         else if (type == libvgcode::EOptionType::Unretractions) {
             const auto option_values = option_stats(type);
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Unretractions)), _u8L("Unretract"), visible,
-                option_values[0], option_values[1], option_values[2]);
+                option_values[0], option_values[1], option_values[2], option_values[3]);
         }
         else if (type == libvgcode::EOptionType::ToolChanges) {
             const auto option_values = option_stats(type);
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament Changes"), visible,
-                option_values[0], option_values[1], option_values[2]);
+                option_values[0], option_values[1], option_values[2], option_values[3]);
         }
         else if (type == libvgcode::EOptionType::Wipes) {
             const auto option_values = option_stats(type);
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible,
-                option_values[0], option_values[1], option_values[2]);
+                option_values[0], option_values[1], option_values[2], option_values[3]);
         }
     };
 

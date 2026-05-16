@@ -187,6 +187,7 @@ private:
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
     std::array<std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)>, static_cast<size_t>(EMoveType::Count)> m_move_type_times{};
+    std::array<float, static_cast<size_t>(EMoveType::Count)> m_move_type_distances{};
     //BBS: add only gcode mode
     bool m_only_gcode_in_preview {false};
 
