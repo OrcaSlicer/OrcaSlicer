@@ -94,7 +94,7 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Filament");
     else if (view_type == libvgcode::EViewType::LayerTimeLinear)
         return _u8L("Layer Time");
-else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
+    else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
         return _u8L("Layer Time (log)");
 // ORCA: Add Pressure Advance visualization support
     else if (view_type == libvgcode::EViewType::PressureAdvance)
@@ -122,6 +122,29 @@ static int find_close_layer_idx(const std::vector<double> &zs, double &z, double
         if (std::min(dist_l, dist_h) < eps) { return (dist_l < dist_h) ? int(it_l - zs.begin()) : int(it_h - zs.begin()); }
     }
     return -1;
+}
+
+static std::string format_compact_weight(double value_in_grams, bool imperial_units)
+{
+    char buffer[64];
+    if (imperial_units) {
+        ::sprintf(buffer, "%.2f oz", value_in_grams / GizmoObjectManipulation::oz_to_g);
+        return buffer;
+    }
+
+    const double abs_value = value_in_grams < 0.0 ? -value_in_grams : value_in_grams;
+    const char* unit = "g";
+    double scaled_value = abs_value;
+    if (scaled_value >= 1000000.0) {
+        scaled_value /= 1000000.0;
+        unit = "t";
+    } else if (scaled_value >= 1000.0) {
+        scaled_value /= 1000.0;
+        unit = "kg";
+    }
+
+    ::sprintf(buffer, "%s%.2f%s", value_in_grams < 0.0 ? "-" : "", scaled_value, unit);
+    return buffer;
 }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
@@ -2702,39 +2725,42 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
                 columns_offsets.push_back({ std::to_string(it->first + 1), offsets[_u8L("Filament")]});
 
                 char buf[64];
-                double unit_conver = imperial_units ? GizmoObjectManipulation::oz_to_g : 1.0;
-
                 float column_sum_m = 0.0f;
                 float column_sum_g = 0.0f;
                 if (displayed_columns & ColumnData::Model) {
+                    const std::string weight_text = format_compact_weight(model_used_filaments_g_all_plates[i], imperial_units);
                     if ((displayed_columns & ~ColumnData::Model) > 0)
-                        ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", model_used_filaments_m_all_plates[i], weight_text.c_str());
                     else
-                        ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Model")] });
                     column_sum_m += model_used_filaments_m_all_plates[i];
                     column_sum_g += model_used_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::Support) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m_all_plates[i], support_used_filaments_g_all_plates[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(support_used_filaments_g_all_plates[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", support_used_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Support")] });
                     column_sum_m += support_used_filaments_m_all_plates[i];
                     column_sum_g += support_used_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::Flushed) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m_all_plates[i], flushed_filaments_g_all_plates[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(flushed_filaments_g_all_plates[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", flushed_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Flushed")] });
                     column_sum_m += flushed_filaments_m_all_plates[i];
                     column_sum_g += flushed_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::WipeTower) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m_all_plates[i], wipe_tower_used_filaments_g_all_plates[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(wipe_tower_used_filaments_g_all_plates[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", wipe_tower_used_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Tower")] });
                     column_sum_m += wipe_tower_used_filaments_m_all_plates[i];
                     column_sum_g += wipe_tower_used_filaments_g_all_plates[i];
                 }
                 if ((displayed_columns & ~ColumnData::Model) > 0) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
+                    const std::string weight_text = format_compact_weight(column_sum_g, imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", column_sum_m, weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Total")] });
                 }
 
@@ -3183,9 +3209,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         case EItemType::Line: {
             draw_list->AddLine({ pos.x + 1, pos.y + icon_size + 2 }, { pos.x + icon_size - 1, pos.y + 4 }, ImGuiWrapper::to_ImU32(color), 3.0f);
             break;
+        }
         case EItemType::None:
             break;
-        }
         }
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.0 * m_scale, 6.0 * m_scale));
@@ -3591,8 +3617,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 auto [model_used_filament_m, model_used_filament_g] = used_filament_per_role(convert(role));
                 ::sprintf(buffer, imperial_units ? "%.2fin" : "%.2fm", model_used_filament_m); // ORCA dont use spacing between value and unit
                 used_filaments_length.push_back(buffer);
-                ::sprintf(buffer, imperial_units ? "%.2foz" : "%.2fg", model_used_filament_g); // ORCA dont use spacing between value and unit
-                used_filaments_weight.push_back(buffer);
+                used_filaments_weight.push_back(format_compact_weight(model_used_filament_g, imperial_units));
             }
         }
 
@@ -3687,7 +3712,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     {
         std::vector<std::string> total_filaments;
         char buffer[64];
-        ::sprintf(buffer, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", ps.total_used_filament / /*1000*/koef, ps.total_weight / unit_conver);
+        const std::string total_weight_text = format_compact_weight(ps.total_weight, imperial_units);
+        ::sprintf(buffer, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", ps.total_used_filament / /*1000*/koef, total_weight_text.c_str());
         total_filaments.push_back(buffer);
 
 
@@ -3924,7 +3950,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         size_t i = 0;
         const std::vector<uint8_t>& used_extruders_ids = m_viewer.get_used_extruders_ids();
         for (uint8_t extruder_id : used_extruders_ids) {
-            ::sprintf(buf, imperial_units ? "%.2f in    %.2f g" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i]);
+            const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
+            ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
@@ -3937,7 +3964,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         char buf[64];
         imgui.text(_u8L("Total") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "%.2f in / %.2f oz" : "%.2f m / %.2f g", ps.total_used_filament / koef, ps.total_weight / unit_conver);
+        const std::string total_weight_text = format_compact_weight(ps.total_weight, imperial_units);
+        ::sprintf(buf, imperial_units ? "%.2f in / %s" : "%.2f m / %s", ps.total_used_filament / koef, total_weight_text.c_str());
         imgui.text(buf);
 
         ImGui::Dummy({window_padding, window_padding});
@@ -3983,34 +4011,39 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 float column_sum_m = 0.0f;
                 float column_sum_g = 0.0f;
                 if (displayed_columns & ColumnData::Model) {
+                    const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
                     if ((displayed_columns & ~ColumnData::Model) > 0)
-                        ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", model_used_filaments_m[i], weight_text.c_str());
                     else
-                        ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Model")] });
                     column_sum_m += model_used_filaments_m[i];
                     column_sum_g += model_used_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::Support) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m[i], support_used_filaments_g[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(support_used_filaments_g[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", support_used_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Support")] });
                     column_sum_m += support_used_filaments_m[i];
                     column_sum_g += support_used_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::Flushed) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m[i], flushed_filaments_g[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(flushed_filaments_g[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", flushed_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Flushed")]});
                     column_sum_m += flushed_filaments_m[i];
                     column_sum_g += flushed_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::WipeTower) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m[i], wipe_tower_used_filaments_g[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(wipe_tower_used_filaments_g[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", wipe_tower_used_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Tower")] });
                     column_sum_m += wipe_tower_used_filaments_m[i];
                     column_sum_g += wipe_tower_used_filaments_g[i];
                 }
                 if ((displayed_columns & ~ColumnData::Model) > 0) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
+                    const std::string weight_text = format_compact_weight(column_sum_g, imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", column_sum_m, weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
                 }
 
@@ -4036,27 +4069,32 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             std::vector<std::pair<std::string, float>> columns_offsets;
             columns_offsets.push_back({ _u8L("Total"), color_print_offsets[_u8L("Filament")]});
             if (displayed_columns & ColumnData::Model) {
+                const std::string weight_text = format_compact_weight(total_model_used_filament_g, imperial_units);
                 if ((displayed_columns & ~ColumnData::Model) > 0)
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_model_used_filament_m, weight_text.c_str());
                 else
-                    ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
+                    ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", total_model_used_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Model")] });
             }
             if (displayed_columns & ColumnData::Support) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_support_used_filament_m, total_support_used_filament_g / unit_conver);
+                const std::string weight_text = format_compact_weight(total_support_used_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_support_used_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Support")] });
             }
             if (displayed_columns & ColumnData::Flushed) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_flushed_filament_m, total_flushed_filament_g / unit_conver);
+                const std::string weight_text = format_compact_weight(total_flushed_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_flushed_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Flushed")] });
             }
             if (displayed_columns & ColumnData::WipeTower) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_wipe_tower_used_filament_m, total_wipe_tower_used_filament_g / unit_conver);
+                const std::string weight_text = format_compact_weight(total_wipe_tower_used_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_wipe_tower_used_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Tower")] });
             }
             if ((displayed_columns & ~ColumnData::Model) > 0) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m + total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m,
-                    (total_model_used_filament_g + total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g) / unit_conver);
+                const std::string weight_text = format_compact_weight(total_model_used_filament_g + total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_model_used_filament_m + total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m,
+                    weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
             }
             append_item(EItemType::None, libvgcode::convert(tool_colors[0]), columns_offsets);
@@ -4201,8 +4239,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 imgui.text(buffer);
 
                 ImGui::SameLine(offsets[3]);
-                ::sprintf(buffer, "%.2f g", used_filament.second);
-                imgui.text(buffer);
+                imgui.text(format_compact_weight(used_filament.second, imperial_units));
             }
         };
 
@@ -4527,8 +4564,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "  %.2f oz" : "  %.2f g", ps.total_weight / unit_conver);
-        imgui.text(buf);
+        imgui.text("  " + format_compact_weight(ps.total_weight, imperial_units));
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         imgui.text(model_filament_str + ":");
@@ -4538,8 +4574,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef - exlude_m);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "  %.2f oz" : "  %.2f g", (ps.total_weight - exlude_g) / unit_conver);
-        imgui.text(buf);
+        imgui.text("  " + format_compact_weight(ps.total_weight - exlude_g, imperial_units));
         //BBS: display cost of filaments
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
