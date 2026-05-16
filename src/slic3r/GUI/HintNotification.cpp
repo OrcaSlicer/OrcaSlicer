@@ -115,7 +115,8 @@ namespace {
 			ConfigOptionMode config_mode = wxGetApp().get_mode();
 			if (config_mode == ConfigOptionMode::comSimple)        return (tag == "simple" ? TagCheckAffirmative : TagCheckNegative);
 			else if (config_mode == ConfigOptionMode::comAdvanced) return (tag == "advanced" ? TagCheckAffirmative : TagCheckNegative);
-			//else if (config_mode == ConfigOptionMode::comDevelop)   return (tag == "develop" ? TagCheckAffirmative : TagCheckNegative);
+			else if (config_mode == ConfigOptionMode::comExpert || config_mode == ConfigOptionMode::comDevelop)
+				return (tag == "expert" ? TagCheckAffirmative : TagCheckNegative);
 		}
 		return TagCheckNotCompatible;
 	}

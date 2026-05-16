@@ -37,7 +37,7 @@ typedef std::pair<coordf_t, coordf_t>               t_layer_height_range;
 typedef std::map<t_layer_height_range, ModelConfig> t_layer_config_ranges;
 
 // Manifold mesh may contain self-intersections, so we want to always allow fixing the mesh.
-#define FIX_THROUGH_NETFABB_ALWAYS 1
+#define FIX_THROUGH_CGAL_ALWAYS 1
 
 namespace GUI {
 struct ObjectVolumeID {
@@ -413,7 +413,9 @@ public:
     bool fix_cut_selection(wxDataViewItemArray &sels);
 
     ModelVolume* get_selected_model_volume();
+#if 0 // ORCA: disabled alongside definition in GUI_ObjectList.cpp (see #if 0 block there)
     void change_part_type();
+#endif
 	void set_volume_type(ModelVolumeType new_type);
     ModelVolumeType get_selected_volume_type();
 
@@ -428,7 +430,7 @@ public:
     void instances_to_separated_objects(const int obj_idx);
     void split_instances();
     void rename_item();
-    void fix_through_netfabb();
+    void fix_through_cgal();
     void simplify();
     void smooth_mesh();
     void update_item_error_icon(const int obj_idx, int vol_idx) const ;

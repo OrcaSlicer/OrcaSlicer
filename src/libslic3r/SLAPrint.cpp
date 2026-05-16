@@ -184,7 +184,7 @@ std::vector<ObjectID> SLAPrint::print_object_ids() const
     return out;
 }
 
-SLAPrint::ApplyStatus SLAPrint::apply(const Model &model, DynamicPrintConfig config)
+SLAPrint::ApplyStatus SLAPrint::apply(const Model &model, DynamicPrintConfig config, bool extruder_applied)
 {
 #ifdef _DEBUG
     check_model_ids_validity(model);

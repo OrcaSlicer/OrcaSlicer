@@ -69,6 +69,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) {
@@ -190,6 +191,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
     auto language = app_config->get(param);
     m_current_language_selected = -1;
     std::vector<wxString>::iterator iter;
@@ -354,6 +356,7 @@ wxBoxSizer *PreferencesDialog::create_item_region_combobox(wxString title, wxStr
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
     m_sizer_combox->Add(combobox, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
 
     std::vector<wxString>::iterator iter;
@@ -433,6 +436,7 @@ wxBoxSizer *PreferencesDialog::create_item_loglevel_combobox(wxString title, wxS
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
+    combobox->GetDropDown().SetUseContentWidth(true);
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) { combobox->Append(*iter); }
@@ -924,6 +928,8 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     checkbox->SetValue(app_config->get_bool(param));
     checkbox->SetToolTip(tip);
 
+    if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
+
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
     m_sizer_checkbox->Add(checkbox      , 0, wxALIGN_CENTER | wxRIGHT | wxLEFT, FromDIP(5));
 
@@ -954,6 +960,12 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().stop_sync_user_preset();
             }
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: " << (sync ? "true" : "false");
+        }
+        else if (param == "stealth_mode") {
+            bool enabled = app_config->get_stealth_mode();
+            if (enabled) wxGetApp().on_stealth_mode_enter();
+            if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
+            if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
 
         #ifdef __WXMSW__
@@ -1004,11 +1016,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
         if (param == "developer_mode") {
             m_developer_mode_def = app_config->get("developer_mode");
-            if (m_developer_mode_def == "true") {
-                Slic3r::GUI::wxGetApp().save_mode(comDevelop);
-            } else {
-                Slic3r::GUI::wxGetApp().save_mode(comAdvanced);
-            }
+            Slic3r::GUI::wxGetApp().update_mode();
         }
 
         // webview  dump_vedio
@@ -1360,6 +1368,14 @@ void PreferencesDialog::create_items()
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
 
+    auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
+    g_sizer->Add(item_shared_profiles);
+
+#ifdef __linux__
+    auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
+    g_sizer->Add(item_window_button_pos);
+#endif
+
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);
 
@@ -1524,7 +1540,7 @@ void PreferencesDialog::create_items()
     auto item_region           = create_item_region_combobox(_L("Login region"), "");
     g_sizer->Add(item_region);
  
-    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This stops the transmission of data to Bambu's cloud services. Users who don't use BBL machines or use LAN mode only can safely turn on this function."), "stealth_mode");
+    auto item_stealth_mode     = create_item_checkbox(_L("Stealth mode"), _L("This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops the transmission of data to Bambu's cloud services too. Users who don't use BBL machines or use LAN mode only can safely turn on this function."), "stealth_mode");
     g_sizer->Add(item_stealth_mode);
 
     auto item_network_test     = create_item_button(_L("Network test"), _L("Test") + " " + dots, "", _L("Open Network Test"), []() {
@@ -1532,6 +1548,46 @@ void PreferencesDialog::create_items()
         dlg.ShowModal();
     });
     g_sizer->Add(item_network_test);
+
+    //// ONLINE > Cloud Providers
+    g_sizer->Add(create_item_title(_L("Cloud Providers")), 1, wxEXPAND);
+
+    {
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+        auto text = new wxStaticText(m_parent, wxID_ANY, _L("Enable Bambu Cloud"),
+            wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+        text->SetForegroundColour(DESIGN_GRAY900_COLOR);
+        text->SetFont(::Label::Body_14);
+        text->SetToolTip(_L("Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu login section appears on the homepage."));
+        text->Wrap(DESIGN_TITLE_SIZE.x);
+
+        auto cb = new ::CheckBox(m_parent);
+        m_bambu_cloud_checkbox = cb;
+        cb->SetValue(app_config->has_cloud_provider(BBL_CLOUD_PROVIDER));
+        cb->SetToolTip(text->GetToolTipText());
+
+        cb->Bind(wxEVT_TOGGLEBUTTON, [this, cb](wxCommandEvent &e) {
+            e.Skip(); // let CheckBox::update() refresh the bitmap
+            if (cb->GetValue()) {
+                app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+            } else {
+                app_config->remove_cloud_provider(BBL_CLOUD_PROVIDER);
+            }
+            app_config->save();
+
+            // Update homepage visibility immediately
+            auto *mainframe = wxGetApp().mainframe;
+            if (mainframe && mainframe->m_webview)
+                mainframe->m_webview->SendCloudProvidersInfo();
+        });
+
+        sizer->Add(text, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
+        sizer->Add(cb, 0, wxALIGN_CENTER | wxRIGHT | wxLEFT, FromDIP(5));
+
+        g_sizer->Add(sizer);
+    }
 
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
@@ -1541,6 +1597,11 @@ void PreferencesDialog::create_items()
 
     auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
     g_sizer->Add(item_user_sync);
+
+    if (app_config->get_stealth_mode()) {
+        if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(false);
+        if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(false);
+    }
 
     auto item_system_sync      = create_item_checkbox(_L("Update built-in Presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
@@ -1727,7 +1788,7 @@ void PreferencesDialog::create_items()
     //// DEVELOPER > Settings
     g_sizer->Add(create_item_title(_L("Settings")), 1, wxEXPAND);
 
-    auto item_develop_mode     = create_item_checkbox(_L("Develop mode"), "", "developer_mode");
+    auto item_develop_mode     = create_item_checkbox(_L("Developer mode"), "", "developer_mode");
     g_sizer->Add(item_develop_mode);
 
     auto item_ams_blacklist    = create_item_checkbox(_L("Skip AMS blacklist check"), "", "skip_ams_blacklist_check");

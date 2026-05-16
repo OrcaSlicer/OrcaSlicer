@@ -259,6 +259,7 @@ void KBShortcutsDialog::fill_shortcuts()
             { "E", L("Gizmo brim ears") },
             { "I", L("Zoom in") },
             { "O", L("Zoom out") },
+            { "V", L("Toggle printable for object/part") },
             { L("Tab"), L("Switch between Prepare/Preview") },
 
         };

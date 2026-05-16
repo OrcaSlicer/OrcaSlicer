@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Artillery",
 	"bed_model": "artillery_hornet_buildplate_model.stl",
-	"bed_texture": "artillery_hornet_buildplate_texture.png",
+	"bed_texture": "artillery_hornet_buildplate_texture.svg",
 	"hotend_model": "",
 	"default_materials": "Artillery Generic ABS;Artillery Generic PLA;Artillery Generic PLA-CF;Artillery Generic PETG;Artillery Generic TPU;Artillery Generic ASA"
 }

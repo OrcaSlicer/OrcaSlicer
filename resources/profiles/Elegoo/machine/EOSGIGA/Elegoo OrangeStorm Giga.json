@@ -4,7 +4,7 @@
 	"model_id": "Elegoo-OrangeStorm-Giga",
 	"nozzle_diameter": "0.4;0.6;0.8;1.0",
 	"bed_model": "elegoo_orangestorm_giga_buildplate_model.stl",
-	"bed_texture": "elegoo_orangestorm_giga_buildplate_texture.png",
+	"bed_texture": "elegoo_orangestorm_giga_buildplate_texture.svg",
 	"machine_tech": "FFF",
 	"family": "Elegoo",
 	"hotend_model": "",

@@ -124,7 +124,7 @@ namespace igl
       {
         std::cerr << "File not found!" << std::endl;
         doc->PrintError();
-        doc = NULL;
+        delete doc;
       }
       else
       {
@@ -154,7 +154,6 @@ namespace igl
       const tinyxml2::XMLElement* child = element->FirstChildElement(name.c_str());
       if(child != NULL)
       {
-        bool isBinary = false;
         const tinyxml2::XMLAttribute* attr = child->FindAttribute("binary");
         if(attr != NULL)
         {
@@ -186,7 +185,7 @@ namespace igl
       }
   
       template <typename T>
-      IGL_INLINE typename std::enable_if<std::is_fundamental<T>::value>::type deserialize(T& obj,const tinyxml2::XMLDocument* doc,const tinyxml2::XMLElement* element,const std::string& name)
+      IGL_INLINE typename std::enable_if<std::is_fundamental<T>::value>::type deserialize(T& obj,const tinyxml2::XMLDocument* /*doc*/,const tinyxml2::XMLElement* element,const std::string& name)
       {
         const tinyxml2::XMLElement* child = element->FirstChildElement(name.c_str());
         if(child != NULL)
@@ -207,7 +206,7 @@ namespace igl
         child->SetAttribute("val",obj.c_str());
       }
   
-      IGL_INLINE void deserialize(std::string& obj,const tinyxml2::XMLDocument* doc,const tinyxml2::XMLElement* element,const std::string& name)
+      IGL_INLINE void deserialize(std::string& obj,const tinyxml2::XMLDocument* /*doc*/,const tinyxml2::XMLElement* element,const std::string& name)
       {
         const tinyxml2::XMLElement* child = element->FirstChildElement(name.c_str());
         if(child != NULL)
@@ -454,7 +453,7 @@ namespace igl
       }
       template<typename T,int R,int C,int P,int MR,int MC>
       IGL_INLINE void deserialize(
-        const tinyxml2::XMLDocument* doc,
+        const tinyxml2::XMLDocument* /*doc*/,
         const tinyxml2::XMLElement* element,
         const std::string& name,
         const std::function<void(const std::string &,T &)> & from_string,
@@ -564,7 +563,7 @@ namespace igl
       }
   
       template<typename T,int P,typename I>
-      IGL_INLINE void deserialize(Eigen::SparseMatrix<T,P,I>& obj,const tinyxml2::XMLDocument* doc,const tinyxml2::XMLElement* element,const std::string& name)
+      IGL_INLINE void deserialize(Eigen::SparseMatrix<T,P,I>& obj,const tinyxml2::XMLDocument* /*doc*/,const tinyxml2::XMLElement* element,const std::string& name)
       {
         const tinyxml2::XMLElement* child = element->FirstChildElement(name.c_str());
         bool initialized = false;
@@ -589,7 +588,6 @@ namespace igl
               mats << matTemp;
   
               std::vector<Eigen::Triplet<T,I> > triplets;
-              int r=0;
               std::string val;
   
               // for each line
@@ -612,7 +610,6 @@ namespace igl
   
                 triplets.push_back(Eigen::Triplet<T,I>(row,col,value));
   
-                r++;
               }
   
               obj.setFromTriplets(triplets.begin(),triplets.end());
