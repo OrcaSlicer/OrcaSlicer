@@ -170,12 +170,6 @@
 	"filament_vendor": [
 		"SeeMeCNC"
 	],
-	"filament_wipe": [
-		"1"
-	],
-	"filament_wipe_distance": [
-		"1"
-	],
 	"idle_temperature": [
 		"0"
 	],
