@@ -11,16 +11,14 @@
 #endif
 
 #include <algorithm>
+#include <limits>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
 
 // --- Path improvement (operate on index vectors into `centers`) ---
 
-// Standard 2-opt: repeatedly reverse segments that reduce total path length.
-// `max_passes` limits full-scan iterations (0 = unlimited). Default is 10 passes,
-// which captures >99% of possible improvement while preventing O(n²) blow-up
-// on pathological inputs.
 void tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_passes = 10);
 
 // Crossing removal: reverse any segment pair whose edges geometrically cross.
