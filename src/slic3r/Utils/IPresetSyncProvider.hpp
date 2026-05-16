@@ -92,10 +92,14 @@ public:
     virtual bool        is_connected() = 0; // not const: may touch state_mutex / refresh tokens
 
     // Per-preset operations.
-    // expected_etag = last known etag for OCC. Empty string means "create new".
+    // remote_id     - identifier on the remote. Empty -> create new (provider
+    //                 synthesizes one and returns it in PresetSyncResult).
+    // expected_etag - OCC token captured from a previous push/pull. Ignored
+    //                 by providers that don't do per-item OCC (Orca).
     virtual PresetSyncResult push_preset(const std::string& preset_type,
                                          const std::string& preset_name,
                                          const std::string& json_content,
+                                         const std::string& remote_id,
                                          const std::string& expected_etag) = 0;
 
     virtual PresetSyncResult pull_preset(const std::string& preset_type,

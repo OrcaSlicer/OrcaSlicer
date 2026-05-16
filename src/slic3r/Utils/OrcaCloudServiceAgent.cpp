@@ -2896,16 +2896,17 @@ static std::map<std::string, std::string> orca_json_to_value_map(const std::stri
 PresetSyncResult OrcaCloudServiceAgent::push_preset(const std::string& preset_type,
                                                     const std::string& preset_name,
                                                     const std::string& json_content,
-                                                    const std::string& expected_etag)
+                                                    const std::string& remote_id,
+                                                    const std::string& /*expected_etag*/)
 {
     (void) preset_type;
     PresetSyncResult result;
     auto values = orca_json_to_value_map(json_content);
 
-    // The legacy API uses expected_etag = "" to mean "create new" and a non-empty
-    // remote_id (carried in expected_etag for our purposes) to mean "update".
+    // Orca doesn't expose per-item ETags; OCC happens through updated_time
+    // inside values_map. Empty remote_id -> create, non-empty -> update.
     unsigned int http_code = 0;
-    if (expected_etag.empty()) {
+    if (remote_id.empty()) {
         std::string new_id = request_setting_id(preset_name, &values, &http_code);
         result.http_code   = static_cast<int>(http_code);
         result.remote_id   = new_id;
@@ -2913,9 +2914,9 @@ PresetSyncResult OrcaCloudServiceAgent::push_preset(const std::string& preset_ty
             result.error_message = "Orca: request_setting_id failed";
         }
     } else {
-        int rc = put_setting(expected_etag, preset_name, &values, &http_code);
+        int rc = put_setting(remote_id, preset_name, &values, &http_code);
         result.http_code = static_cast<int>(http_code);
-        result.remote_id = expected_etag;
+        result.remote_id = remote_id;
         if (rc != 0) {
             result.error_message = "Orca: put_setting failed";
         }

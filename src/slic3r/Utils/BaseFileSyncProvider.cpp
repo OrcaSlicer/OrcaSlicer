@@ -174,6 +174,7 @@ void BaseFileSyncProvider::save_state()
 PresetSyncResult BaseFileSyncProvider::push_preset(const std::string& preset_type,
                                                    const std::string& preset_name,
                                                    const std::string& json_content,
+                                                   const std::string& /*remote_id*/,
                                                    const std::string& expected_etag)
 {
     PresetSyncResult result;
@@ -181,6 +182,19 @@ PresetSyncResult BaseFileSyncProvider::push_preset(const std::string& preset_typ
         result.http_code = 500;
         result.error_message = "no backend";
         return result;
+    }
+
+    // remote_id for file backends is fully determined by (type, name); the
+    // parameter is informational only. ETag is what carries OCC.
+    const std::string canonical_id = preset_type + "/" + preset_name;
+
+    // If the caller did not provide an etag, fall back to the cached one so
+    // legacy code paths (NetworkAgent::put_setting) still get OCC for free.
+    std::string etag_to_send = expected_etag;
+    if (etag_to_send.empty()) {
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        if (auto it = m_state.find(canonical_id); it != m_state.end())
+            etag_to_send = it->second.etag;
     }
 
     std::string remote_path = remote_path_for(preset_type, preset_name);
@@ -194,19 +208,34 @@ PresetSyncResult BaseFileSyncProvider::push_preset(const std::string& preset_typ
 
     SyncError sync_err = SyncError::None;
     std::string new_etag;
-    bool ok = m_backend->upload_file(remote_path, json_content, expected_etag,
+    bool ok = m_backend->upload_file(remote_path, json_content, etag_to_send,
                                      new_etag, err, &sync_err);
 
     if (ok) {
-        result.http_code   = 200;
-        result.remote_id   = preset_type + "/" + preset_name;
-        result.etag        = new_etag;
-        result.updated_time = 0; // file backends fill this from list_files
+        // Publish staged changes to the remote before recording success. No-op
+        // for live backends (WebDAV already wrote to the server); commits+pushes
+        // for Git, which otherwise would only stage the file in the local clone.
+        // If the flush fails we must NOT update the cached etag/base_hash --
+        // doing so would mark the preset as synced while the remote never
+        // received it, and the next cycle would skip re-pushing it.
+        std::string flush_err;
+        if (!m_backend->flush(flush_err)) {
+            result.http_code     = 500;
+            result.error_message = "flush: " + flush_err;
+            return result;
+        }
 
-        std::lock_guard<std::mutex> lock(m_state_mutex);
-        auto& ce = m_state[result.remote_id];
-        ce.etag      = new_etag;
-        ce.base_hash = sha256_hex(json_content);
+        result.http_code   = 200;
+        result.remote_id   = canonical_id;
+        result.etag        = new_etag;
+        result.updated_time = 0;
+
+        {
+            std::lock_guard<std::mutex> lock(m_state_mutex);
+            auto& ce = m_state[canonical_id];
+            ce.etag      = new_etag;
+            ce.base_hash = sha256_hex(json_content);
+        }
         return result;
     }
 
@@ -216,17 +245,21 @@ PresetSyncResult BaseFileSyncProvider::push_preset(const std::string& preset_typ
         std::string remote_content, dl_err;
         RemoteFileInfo info;
         if (m_backend->download_file(remote_path, remote_content, info, dl_err)) {
+            // Refresh the cached etag to the current remote version. The merge
+            // resolution path (GUI_App::poll_sync_conflicts) re-pushes with an
+            // empty expected_etag, which falls back to this cached value; if it
+            // kept the stale (already-rejected) etag, the forced re-push would
+            // 412 again and loop the conflict dialog every tick.
+            {
+                std::lock_guard<std::mutex> lock(m_state_mutex);
+                m_state[canonical_id].etag = info.etag;
+            }
             PresetSyncConflict conflict;
             conflict.preset_type = preset_type;
             conflict.preset_name = preset_name;
             conflict.local_json  = json_content;
             conflict.remote_json = remote_content;
-            conflict.remote_id   = preset_type + "/" + preset_name;
-            {
-                std::lock_guard<std::mutex> lk(m_state_mutex);
-                if (auto it = m_state.find(conflict.remote_id); it != m_state.end())
-                    conflict.base_json = ""; // we don't keep the base body, only hash
-            }
+            conflict.remote_id   = canonical_id;
             std::lock_guard<std::mutex> lk(m_conflicts_mutex);
             m_pending_conflicts.push_back(std::move(conflict));
         }
@@ -306,6 +339,11 @@ int BaseFileSyncProvider::delete_preset(const std::string& preset_type,
     {
         std::lock_guard<std::mutex> lock(m_state_mutex);
         m_state.erase(remote_id);
+    }
+    std::string flush_err;
+    if (!m_backend->flush(flush_err)) {
+        BOOST_LOG_TRIVIAL(warning) << "[" << provider_id()
+            << "] flush after delete_preset(" << remote_id << ") failed: " << flush_err;
     }
     return 0;
 }
@@ -605,6 +643,14 @@ int BaseFileSyncProvider::publish_local_bundle(
         std::string new_etag;
         std::string up_err;
         m_backend->upload_file(type_dir + "/" + name + ".json", body, "", new_etag, up_err);
+    }
+
+    // Commit & push the whole bundle in one shot (no-op for WebDAV).
+    std::string flush_err;
+    if (!m_backend->flush(flush_err)) {
+        BOOST_LOG_TRIVIAL(error) << "[" << provider_id()
+            << "] publish_local_bundle flush failed: " << flush_err;
+        return -1;
     }
 
     out_published_version = metadata.version;

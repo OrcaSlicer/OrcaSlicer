@@ -23,6 +23,7 @@ public:
     std::map<std::string, Entry> files;   // remote_path -> content/etag
     int                          flush_calls{0};
     bool                         connected{true};
+    bool                         flush_should_fail{false};
 
     bool connect(std::string&) override { connected = true; return true; }
     void disconnect() override { connected = false; }
@@ -88,7 +89,12 @@ public:
     std::string     display_name() const override { return "fake"; }
     std::string     fingerprint() const override { return "fake"; }
 
-    bool flush(std::string&) override { ++flush_calls; return true; }
+    bool flush(std::string& err) override
+    {
+        if (flush_should_fail) { err = "flush failed"; return false; }
+        ++flush_calls;
+        return true;
+    }
 
 private:
     int m_etag_counter{0};
@@ -132,6 +138,28 @@ TEST_CASE("BaseFileSyncProvider delete flushes", "[ProfileSync][BaseFileSync]") 
     CHECK(rc == 0);
     CHECK(raw->files.count("presets/print/P.json") == 0);
     CHECK(raw->flush_calls == before + 1);
+}
+
+// ============================================================
+// A failed flush (e.g. Git push rejected) must surface as 500 and
+// must NOT leave the provider believing the preset was synced --
+// otherwise the next cycle would skip re-pushing it. A later push,
+// once the remote is reachable, must go through.
+// ============================================================
+
+TEST_CASE("BaseFileSyncProvider push surfaces flush failure and stays retryable", "[ProfileSync][BaseFileSync]") {
+    auto         backend = std::make_unique<FakeBackend>();
+    FakeBackend* raw     = backend.get();
+    FakeProvider provider(std::move(backend));
+
+    raw->flush_should_fail = true;
+    auto failed = provider.push_preset("print", "P", R"({"v":"1"})", "", "");
+    CHECK(failed.http_code == 500);
+
+    raw->flush_should_fail = false;
+    auto ok = provider.push_preset("print", "P", R"({"v":"2"})", "", "");
+    CHECK(ok.http_code == 200);
+    CHECK(raw->files["presets/print/P.json"].content == R"({"v":"2"})");
 }
 
 // ============================================================

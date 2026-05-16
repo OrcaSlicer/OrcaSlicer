@@ -43,6 +43,7 @@ public:
     PresetSyncResult push_preset(const std::string& preset_type,
                                  const std::string& preset_name,
                                  const std::string& json_content,
+                                 const std::string& remote_id,
                                  const std::string& expected_etag) override;
     PresetSyncResult pull_preset(const std::string& preset_type,
                                  const std::string& remote_id,
