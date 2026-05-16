@@ -3556,15 +3556,26 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             }
             used_filaments_length.push_back(travel_distance);
 
-            // Perhaps use m_statistics.travel_segments_count instead of m_print_statistics.total_travel_moves?
-            // m_statistics.travel_segments_count is only available when ENABLE_GCODE_VIEWER_STATISTICS is defined
-            if (m_print_statistics.total_travel_moves > 0) {
-               ::sprintf(buffer, "%d seg", m_print_statistics.total_travel_moves);
-                travel_moves = buffer;
-            } else {
-                ::sprintf(buffer, "0 seg");
-                travel_moves = buffer;
-            }
+            auto format_compact_count = [](unsigned int value) {
+                static constexpr const char* suffixes[] = { "", "K", "M", "B", "T", "P", "E" };
+                constexpr size_t suffix_count = sizeof(suffixes) / sizeof(suffixes[0]);
+
+                if (value < 1000)
+                    return std::to_string(value);
+
+                size_t suffix_index = 0;
+                unsigned long long divisor = 1;
+                while (suffix_index + 1 < suffix_count && value / divisor >= 1000) {
+                    divisor *= 1000;
+                    ++suffix_index;
+                }
+
+                const unsigned long long whole = value / divisor;
+                const unsigned long long tenths = (value % divisor) * 10 / divisor;
+
+                return std::to_string(whole) + "." + std::to_string(tenths) + suffixes[suffix_index];
+            };
+            travel_moves = format_compact_count(m_print_statistics.total_travel_moves);
             used_filaments_weight.push_back(travel_moves);
         }
 
