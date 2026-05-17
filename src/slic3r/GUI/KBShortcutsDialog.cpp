@@ -211,8 +211,8 @@ void KBShortcutsDialog::fill_shortcuts()
         
         // Retrieve mouse actions from config and map to MouseAction
         std::map<std::string, std::string> mouse_actions;
-        mouse_actions["1"] = "Pan View";
-        mouse_actions["2"] = "Rotate View";
+        mouse_actions["1"] = L("Pan View");
+        mouse_actions["2"] = L("Rotate View");
 
         Shortcuts plater_shortcuts = {
             { L("Left mouse button"), mouse_actions[wxGetApp().app_config->get("left_mouse_drag_action").c_str()]},
