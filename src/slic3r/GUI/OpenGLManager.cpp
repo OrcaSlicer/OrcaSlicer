@@ -5,6 +5,7 @@
 #include "I18N.hpp"
 #include "3DScene.hpp"
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Platform.hpp"
 
 #include <glad/gl.h>
@@ -408,6 +409,13 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
 
 wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
 {
+    int antialiasing_samples = 4;
+    if (const AppConfig* app_config = get_app_config(); app_config != nullptr) {
+        const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
+        if (value == "0" || value == "2" || value == "4" || value == "8" || value == "16")
+            antialiasing_samples = ::atoi(value.c_str());
+    }
+
     int attribList[] = {
         WX_GL_RGBA,
         WX_GL_DOUBLEBUFFER,
@@ -421,19 +429,26 @@ wxGLCanvas* OpenGLManager::create_wxglcanvas(wxWindow& parent)
         WX_GL_DEPTH_SIZE, 		24,
         //BBS: turn on stencil buffer for outline
         WX_GL_STENCIL_SIZE,     8,
-        WX_GL_SAMPLE_BUFFERS, 	GL_TRUE,
-        WX_GL_SAMPLES, 			4,
+        WX_GL_SAMPLE_BUFFERS, 	antialiasing_samples > 0 ? GL_TRUE : GL_FALSE,
+	    WX_GL_SAMPLES, 			antialiasing_samples,
         0
     };
 
-    if (s_multisample == EMultisampleState::Unknown) {
+    constexpr int sample_buffers_value_idx = 15;
+    constexpr int samples_value_idx        = 17;
+
+    if (antialiasing_samples <= 0)
+        s_multisample = EMultisampleState::Disabled;
+    else if (s_multisample == EMultisampleState::Unknown) {
         detect_multisample(attribList);
 //        // debug output
 //        std::cout << "Multisample " << (can_multisample() ? "enabled" : "disabled") << std::endl;
     }
 
-    if (! can_multisample())
-        attribList[12] = 0;
+    if (! can_multisample()) {
+        attribList[sample_buffers_value_idx] = GL_FALSE;
+        attribList[samples_value_idx] = 0;
+    }
 
     wxGLCanvas* canvas = new wxGLCanvas(&parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS);
     // The GL canvas paints its entire surface, so background erasing is unnecessary.

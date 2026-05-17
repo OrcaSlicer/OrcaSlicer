@@ -48,6 +48,8 @@ std::pair<bool, std::string> GLShadersManager::init()
     valid &= append_shader("flat_clip", { prefix + "flat_clip.vs", prefix + "flat_clip.fs" });
     // basic shader for textures, used to render textures
     valid &= append_shader("flat_texture", { prefix + "flat_texture.vs", prefix + "flat_texture.fs" });
+    // used to apply post-processing antialiasing in screen space
+    valid &= append_shader("fxaa", { prefix + "fxaa.vs", prefix + "fxaa.fs" });
     // used to render 3D scene background
     valid &= append_shader("background", { prefix + "background.vs", prefix + "background.fs" });
 #if SLIC3R_OPENGL_ES
