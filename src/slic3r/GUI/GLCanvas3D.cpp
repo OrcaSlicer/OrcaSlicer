@@ -14,6 +14,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Tesselate.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
 #include "GLShader.hpp"
@@ -1202,6 +1203,11 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 
 GLCanvas3D::~GLCanvas3D()
 {
+    if (m_fxaa_texture_id != 0 && _set_current()) {
+        glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
+        m_fxaa_texture_id = 0;
+    }
+
     reset_volumes();
 
     m_sel_plate_toolbar.del_all_item();
@@ -2082,8 +2088,15 @@ void GLCanvas3D::render(bool only_init)
     if (m_picking_enabled && m_rectangle_selection.is_dragging())
         m_rectangle_selection.render(*this);
 
+    if (_is_fxaa_enabled())
+        _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
     // draw overlays
     _render_overlays();
+
+    const int current_fps = m_render_stats.get_fps_and_reset_if_needed();
+    if (_is_fps_overlay_enabled())
+        _render_fps_overlay(current_fps);
 
     if (wxGetApp().plater()->is_render_statistic_dialog_visible()) {
         ImGui::ShowMetricsWindow();
@@ -2092,7 +2105,7 @@ void GLCanvas3D::render(bool only_init)
         imgui.begin(std::string("Render statistics"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
         imgui.text("FPS (SwapBuffers() calls per second):");
         ImGui::SameLine();
-        imgui.text(std::to_string(m_render_stats.get_fps_and_reset_if_needed()));
+        imgui.text(std::to_string(current_fps));
         ImGui::Separator();
         imgui.text("Compressed textures:");
         ImGui::SameLine();
@@ -3193,6 +3206,22 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     // during the render launched by the refresh the value may be set again
     wxGetApp().imgui()->reset_requires_extra_frame();
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+
+    const int fps_cap = _get_effective_fps_cap();
+    if (fps_cap > 0) {
+        const auto now = std::chrono::steady_clock::now();
+        const auto min_frame_time = std::chrono::duration<double>(1.0 / static_cast<double>(fps_cap));
+        const auto elapsed = now - m_last_frame_start_time;
+        if (elapsed < min_frame_time) {
+            const int wait_ms = std::max(1, static_cast<int>(std::ceil(std::chrono::duration<double, std::milli>(min_frame_time - elapsed).count())));
+            schedule_extra_frame(wait_ms);
+            evt.RequestMore();
+            return;
+        }
+
+        // Pace by frame-start interval so rendering time is part of the target budget.
+        m_last_frame_start_time = now;
+    }
 
     _refresh_if_shown_on_screen();
 
@@ -7420,6 +7449,105 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
 
     m_hover_volume_idxs.assign(idxs.begin(), idxs.end());
     _update_volumes_hover_state();
+}
+
+bool GLCanvas3D::_is_fxaa_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_FXAA_ENABLED);
+}
+
+int GLCanvas3D::_get_effective_fps_cap() const
+{
+    if (wxGetApp().app_config == nullptr)
+        return 0;
+
+    int fps_cap = 0;
+    try {
+        fps_cap = std::stoi(wxGetApp().app_config->get(SETTING_OPENGL_FPS_CAP));
+    }
+    catch (...) {
+        fps_cap = 0;
+    }
+
+    fps_cap = std::max(0, std::min(fps_cap, 240));
+
+    return fps_cap;
+}
+
+bool GLCanvas3D::_is_fps_overlay_enabled() const
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY);
+}
+
+void GLCanvas3D::_render_fps_overlay(int fps) const
+{
+    if (fps < 0)
+        return;
+
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    const float margin = 10.0f * get_scale();
+    const ImVec2 display_size = ImGui::GetIO().DisplaySize;
+    ImGui::SetNextWindowPos(ImVec2(display_size.x - margin, margin), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.35f);
+    imgui.begin(
+        std::string("###fps_overlay"),
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoInputs);
+    imgui.text(std::string("FPS: ") + std::to_string(fps));
+    imgui.end();
+}
+
+void GLCanvas3D::_render_fxaa_pass(unsigned int width, unsigned int height)
+{
+    if (width == 0 || height == 0)
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("fxaa");
+    if (shader == nullptr)
+        return;
+
+    if (m_fxaa_texture_id == 0) {
+        glsafe(::glGenTextures(1, &m_fxaa_texture_id));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    }
+
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
+    if (m_fxaa_texture_size[0] != width || m_fxaa_texture_size[1] != height) {
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+        m_fxaa_texture_size = { width, height };
+    }
+
+    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glDisable(GL_BLEND));
+    glsafe(::glClear(GL_COLOR_BUFFER_BIT));
+
+    shader->start_using();
+    shader->set_uniform("view_model_matrix", Transform3d::Identity());
+    shader->set_uniform("projection_matrix", Transform3d::Identity());
+    shader->set_uniform("uniform_texture", 0);
+    shader->set_uniform("inv_tex_size", Vec2f(1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height)));
+
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
+    m_background.render();
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    shader->stop_using();
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
 void GLCanvas3D::_render_background()

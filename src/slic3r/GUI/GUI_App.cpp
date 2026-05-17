@@ -7553,6 +7553,13 @@ void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::strin
 
 void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_option)
 {
+    static constexpr const char* opengl_fxaa_setting_key = "opengl_fxaa_enabled";
+    static constexpr const char* opengl_fps_cap_setting_key = "opengl_fps_cap";
+    static constexpr const char* opengl_show_fps_overlay_setting_key = "opengl_show_fps_overlay";
+    const std::string previous_opengl_fxaa = app_config->get(opengl_fxaa_setting_key);
+    const std::string previous_opengl_fps_cap = app_config->get(opengl_fps_cap_setting_key);
+    const std::string previous_opengl_show_fps_overlay = app_config->get(opengl_show_fps_overlay_setting_key);
+
     bool need_recreate_gui = false;
     std::string pending_language;
     {
@@ -7589,6 +7596,14 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
             }
 #endif // _WIN32
         }
+    }
+
+    const bool opengl_fxaa_changed = app_config->get(opengl_fxaa_setting_key) != previous_opengl_fxaa;
+    const bool opengl_fps_cap_changed = app_config->get(opengl_fps_cap_setting_key) != previous_opengl_fps_cap;
+    const bool opengl_show_fps_overlay_changed = app_config->get(opengl_show_fps_overlay_setting_key) != previous_opengl_show_fps_overlay;
+    if ((opengl_fxaa_changed || opengl_fps_cap_changed || opengl_show_fps_overlay_changed) && !need_recreate_gui && this->plater_ != nullptr) {
+        this->plater_->set_current_canvas_as_dirty();
+        this->plater_->get_current_canvas3D()->force_set_focus();
     }
 
     if (!pending_language.empty()) {
