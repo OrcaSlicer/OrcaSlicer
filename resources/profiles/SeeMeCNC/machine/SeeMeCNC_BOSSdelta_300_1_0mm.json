@@ -68,36 +68,36 @@
 		"0"
 	],
 	"machine_end_gcode": [
-		";======= SEEMECNC BOSSDELTA 300 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes — clears part immediately on a delta\n;======= END G-CODE ======="
+		";======= SEEMECNC BOSSDELTA 300 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes - clears part immediately on a delta\n;======= END G-CODE ======="
 	],
 	"machine_load_filament_time": "4",
 	"machine_max_acceleration_e": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_extruding": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_retracting": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_travel": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_x": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_y": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_acceleration_z": [
-		"3000",
-		"3000"
+		"5000",
+		"5000"
 	],
 	"machine_max_jerk_e": [
 		"15",
@@ -123,12 +123,12 @@
 		"25"
 	],
 	"machine_max_speed_x": [
-		"200",
-		"200"
+		"300",
+		"300"
 	],
 	"machine_max_speed_y": [
-		"200",
-		"200"
+		"300",
+		"300"
 	],
 	"machine_max_speed_z": [
 		"200",
@@ -347,6 +347,5 @@
 	"type": "machine",
 	"instantiation": "true",
 	"model": "SeeMeCNC BOSSdelta 300",
-	"thumbnail": "SeeMeCNC BOSSdelta 300_cover.png",
-	"filament_overrides": []
+	"thumbnail": "SeeMeCNC BOSSdelta 300_cover.png"
 }

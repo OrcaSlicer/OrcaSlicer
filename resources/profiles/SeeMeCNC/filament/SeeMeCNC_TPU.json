@@ -72,32 +72,11 @@
 	"filament_density": [
 		"1.22"
 	],
-	"filament_deretraction_speed": [
-		"120"
-	],
 	"filament_max_volumetric_speed": [
 		"4"
 	],
 	"filament_notes": [
-		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.7mm nozzle: 0.4571\n\nRostockMAX v3.2 / v4:\n  0.7mm nozzle: 0.5473\n\nBOSSdelta 0505:\n  0.7mm nozzle: 0.6117\n  ⚠ Expect significant tuning required\n\nBOSSdelta 0510:\n  Not recommended for TPU.\n\nBOSSdelta 0521:\n  Not recommended for TPU.\n\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
-	],
-	"filament_retract_before_wipe": [
-		"0%"
-	],
-	"filament_retract_restart_extra": [
-		"0.5"
-	],
-	"filament_retract_when_changing_layer": [
-		"0"
-	],
-	"filament_retraction_length": [
-		"20"
-	],
-	"filament_retraction_minimum_travel": [
-		"15"
-	],
-	"filament_retraction_speed": [
-		"120"
+		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.7mm nozzle: 0.4571\n\nRostockMAX v3.2 / v4:\n  0.7mm nozzle: 0.5473\n\nBOSSdelta 0505:\n  0.7mm nozzle: 0.6117\n  \u26a0 Expect significant tuning required\n\nBOSSdelta 0510:\n  Not recommended for TPU.\n\nBOSSdelta 0521:\n  Not recommended for TPU.\n\nRun OrcaSlicer PA calibration to fine-tune for your setup.\n\nNote: TPU profiles are designed for 0.7mm nozzles only."
 	],
 	"filament_type": [
 		"TPU"
@@ -164,5 +143,41 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
+	],
+	"filament_retraction_length": [
+		"20"
+	],
+	"filament_retraction_speed": [
+		"120"
+	],
+	"filament_deretraction_speed": [
+		"120"
+	],
+	"filament_retraction_minimum_travel": [
+		"15"
+	],
+	"filament_retract_restart_extra": [
+		"0.5"
+	],
+	"filament_retract_before_wipe": [
+		"0%"
+	],
+	"filament_retract_when_changing_layer": [
+		"0"
+	],
+	"filament_z_hop": [
+		"0"
+	],
+	"filament_z_hop_types": [
+		"Normal Lift"
+	],
+	"filament_retract_lift_above": [
+		"0"
+	],
+	"filament_retract_lift_below": [
+		"0"
+	],
+	"filament_retract_lift_enforce": [
+		"All Surfaces"
 	]
 }

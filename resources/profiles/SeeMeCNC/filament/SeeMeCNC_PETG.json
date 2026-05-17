@@ -262,11 +262,5 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"70"
-	],
-	"dont_slow_down_outer_wall": [
-		"0"
-	],
-	"keep_fan_always_on": [
-		"0"
 	]
 }

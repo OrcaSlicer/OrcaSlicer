@@ -100,9 +100,6 @@
 	"filament_loading_speed_start": [
 		"3"
 	],
-	"filament_long_retractions_when_cut": [
-		"nil"
-	],
 	"filament_minimal_purge_on_wipe_tower": [
 		"15"
 	],
@@ -120,9 +117,6 @@
 	],
 	"filament_ramming_parameters": [
 		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
-	],
-	"filament_retraction_distances_when_cut": [
-		"nil"
 	],
 	"filament_shrink": [
 		"100%"
@@ -176,9 +170,6 @@
 	"ironing_fan_speed": [
 		"-1"
 	],
-	"long_retractions_when_ec": [
-		"0"
-	],
 	"overhang_fan_speed": [
 		"100"
 	],
@@ -187,9 +178,6 @@
 	],
 	"required_nozzle_HRC": [
 		"0"
-	],
-	"retraction_distances_when_ec": [
-		"10"
 	],
 	"support_material_interface_fan_speed": [
 		"-1"
