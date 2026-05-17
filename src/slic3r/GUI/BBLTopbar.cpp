@@ -58,7 +58,7 @@ CenteredTitle::CenteredTitle(wxWindow* parent)
         wxRect   rect       = GetClientRect();
         wxString ellipsized = wxControl::Ellipsize(m_title, dc, wxELLIPSIZE_END, wxMax(0, rect.GetWidth() - FromDIP(8)));
 
-        int y = rect.y + (rect.height - textHeight) / 2;
+        int y = rect.y + (rect.height - textHeight) / 2 + 1;
         int x = rect.x + ((ellipsized != m_title)                      // is ellipsized
             ? FromDIP(4)                                               // align to left when clipped
             : (rect.width - dc.GetTextExtent(m_title).GetWidth()) / 2); // centered when has available space
@@ -115,15 +115,14 @@ void BBLTopbarArt::DrawBackground(wxDC& dc, wxWindow* wnd, const wxRect& rect)
 void BBLTopbarArt::DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& item, const wxRect& rect)
 {
     int textWidth = 0, textHeight = 0;
+    wxFontMetrics fm;
 
     if (m_flags & wxAUI_TB_TEXT)
     {
         dc.SetFont(m_font);
-        int tx, ty;
-
-        dc.GetTextExtent(wxT("ABCDHgj"), &tx, &textHeight);
-        textWidth = 0;
-        dc.GetTextExtent(item.GetLabel(), &textWidth, &ty);
+        fm = dc.GetFontMetrics();
+        textHeight = fm.ascent + fm.descent;
+        dc.GetTextExtent(item.GetLabel(), &textWidth, nullptr);
     }
 
     int bmpX = 0, bmpY = 0;
@@ -158,9 +157,7 @@ void BBLTopbarArt::DrawButton(wxDC& dc, wxWindow* wnd, const wxAuiToolBarItem& i
             (bmpSize.y / 2);
 
         textX = bmpX + wnd->FromDIP(3) + bmpSize.x;
-        textY = rect.y +
-            (rect.height / 2) -
-            (textHeight / 2);
+        textY = bmpY + bmpSize.y / 2 - textHeight / 2 - fm.externalLeading + 1;
     }
 
 
@@ -228,7 +225,9 @@ BBLTopbar::BBLTopbar(wxWindow* pwin, wxFrame* parent)
 
 void BBLTopbar::Init(wxFrame* parent) 
 {
-    SetArtProvider(new BBLTopbarArt());
+    auto* art = new BBLTopbarArt();
+    art->SetFont(Label::Body_12);
+    SetArtProvider(art);
     m_frame = parent;
     m_skip_popup_file_menu = false;
     m_skip_popup_dropdown_menu = false;
@@ -321,6 +320,7 @@ void BBLTopbar::Init(wxFrame* parent)
     //this->AddStretchSpacer(1);
 
     m_title_ctrl = new CenteredTitle(this);
+    m_title_ctrl->SetFont(Label::Body_12);
     wxAuiToolBarItem* title_item = this->AddControl(m_title_ctrl, "");
     title_item->SetProportion(1); 
 
