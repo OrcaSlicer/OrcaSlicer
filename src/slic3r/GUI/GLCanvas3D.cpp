@@ -2043,9 +2043,9 @@ void GLCanvas3D::render(bool only_init)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
         if (!no_partplate) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
-        _render_cast_shadows_on_plate(camera.get_view_matrix(), camera.get_projection_matrix());
-
+        
         //BBS: add outline logic
+        _render_cast_shadows_on_plate(camera.get_view_matrix(), camera.get_projection_matrix());
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
         _render_sla_slices();
         _render_selection();
@@ -9122,7 +9122,6 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Shadows")),
-            m_canvas_type != ECanvasType::CanvasAssembleView && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
             cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS),
             [this, &cfg]{
                 cfg->set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, !cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS));
