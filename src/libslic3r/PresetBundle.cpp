@@ -2614,6 +2614,9 @@ void PresetBundle::update_selections(AppConfig &config)
             break;
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
+
+    update_filament_count();
+
     std::vector<std::string> filament_colors;
     auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
     if (!f_colors.empty()) {
@@ -2754,6 +2757,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
             break;
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
+
+    update_filament_count();
 
     // Load data from AppConfig to ProjectConfig when Studio is initialized.
     std::vector<std::string> filament_colors;
@@ -3777,6 +3782,18 @@ int PresetBundle::get_printer_extruder_count() const
     int count = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
     return count;
+}
+
+void PresetBundle::update_filament_count()
+{
+    if (printers.get_edited_preset().printer_technology() != ptFFF)
+        return;
+    const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
+    if (filament_presets.size() >= num_extruders)
+        return;
+    filament_presets.resize(num_extruders, filament_presets.empty()
+        ? filaments.first_visible().name
+        : filament_presets.back());
 }
 
 bool PresetBundle::support_different_extruders()
