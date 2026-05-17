@@ -5897,7 +5897,7 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         }
     }
 
-    if (description == "perimeter" && loop.role() == erExternalPerimeter) {
+    if (description == "perimeter") {
         m_processor.result().print_statistics.total_seam_gap_distance += static_cast<float>(seam_gap_distance_mm);
         m_processor.result().print_statistics.total_seam_scarf_distance += static_cast<float>(seam_scarf_distance_mm);
     }
