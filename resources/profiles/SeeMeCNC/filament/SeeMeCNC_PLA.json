@@ -177,13 +177,13 @@
 		"55"
 	],
 	"fan_cooling_layer_time": [
-		"100"
+		"60"
 	],
 	"fan_max_speed": [
 		"100"
 	],
 	"fan_min_speed": [
-		"100"
+		"60"
 	],
 	"filament_cost": [
 		"30"
@@ -237,7 +237,7 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"30"
+		"15"
 	],
 	"slow_down_min_speed": [
 		"8"
