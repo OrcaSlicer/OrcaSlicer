@@ -177,13 +177,13 @@
 		"70"
 	],
 	"fan_cooling_layer_time": [
-		"50"
+		"65"
 	],
 	"fan_max_speed": [
-		"30"
+		"45"
 	],
 	"fan_min_speed": [
-		"15"
+		"20"
 	],
 	"filament_cost": [
 		"30"
@@ -237,10 +237,10 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"30"
+		"45"
 	],
 	"slow_down_min_speed": [
-		"20"
+		"12"
 	],
 	"supertack_plate_temp": [
 		"70"

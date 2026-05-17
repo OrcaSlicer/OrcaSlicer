@@ -177,7 +177,7 @@
 		"90"
 	],
 	"fan_cooling_layer_time": [
-		"40"
+		"55"
 	],
 	"fan_max_speed": [
 		"35"
@@ -237,10 +237,10 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"28"
+		"40"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"8"
 	],
 	"supertack_plate_temp": [
 		"35"

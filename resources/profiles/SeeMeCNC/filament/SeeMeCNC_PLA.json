@@ -159,7 +159,7 @@
 	"compatible_prints_condition": "",
 	"inherits": "SeeMeCNC filament base",
 	"close_fan_the_first_x_layers": [
-		"3"
+		"5"
 	],
 	"cool_plate_temp": [
 		"60"
@@ -177,13 +177,13 @@
 		"55"
 	],
 	"fan_cooling_layer_time": [
-		"4"
+		"100"
 	],
 	"fan_max_speed": [
-		"100"
+		"90"
 	],
 	"fan_min_speed": [
-		"100"
+		"90"
 	],
 	"filament_cost": [
 		"30"
@@ -192,7 +192,7 @@
 		"1.24"
 	],
 	"filament_max_volumetric_speed": [
-		"11"
+		"12"
 	],
 	"filament_notes": [
 		"Pressure Advance starting values by machine and nozzle size:\nArtemis / BOSSdelta 300:\n  0.4mm nozzle: 0.4000\n  0.5mm nozzle: 0.3200\n  0.7mm nozzle: 0.2286\n  1.0mm nozzle: 0.1600\n\nRostockMAX v3.2 / v4:\n  0.4mm nozzle: 0.4789\n  0.5mm nozzle: 0.3831\n  0.7mm nozzle: 0.2736\n  1.0mm nozzle: 0.1915\n\nBOSSdelta 0505:\n  0.4mm nozzle: 0.5352\n  0.5mm nozzle: 0.4282\n  0.7mm nozzle: 0.3058\n  1.0mm nozzle: 0.2141\n\nBOSSdelta 0510:\n  0.4mm nozzle: 0.7887\n  0.5mm nozzle: 0.6310\n  0.7mm nozzle: 0.4507\n  1.0mm nozzle: 0.3155\n\nBOSSdelta 0521:\n  0.4mm nozzle: 1.3239\n  0.5mm nozzle: 1.0592\n  0.7mm nozzle: 0.7565\n  1.0mm nozzle: 0.5296\n\nRun OrcaSlicer PA calibration to fine-tune for your setup."
@@ -210,7 +210,7 @@
 		"55"
 	],
 	"internal_bridge_fan_speed": [
-		"-1"
+		"100"
 	],
 	"nozzle_temperature": [
 		"190"
@@ -225,22 +225,22 @@
 		"195"
 	],
 	"overhang_fan_threshold": [
-		"25%"
+		"50%"
 	],
 	"pressure_advance": [
 		"0.4"
 	],
 	"reduce_fan_stop_start_freq": [
-		"0"
+		"1"
 	],
 	"slow_down_for_layer_cooling": [
 		"1"
 	],
 	"slow_down_layer_time": [
-		"8"
+		"4"
 	],
 	"slow_down_min_speed": [
-		"15"
+		"10"
 	],
 	"supertack_plate_temp": [
 		"35"
@@ -262,5 +262,8 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"55"
+	],
+	"keep_fan_always_on": [
+		"1"
 	]
 }
