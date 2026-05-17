@@ -192,6 +192,13 @@ private:
     int 	    m_last_selected_column = -1;
 #endif /* __MSW__ */
 
+#ifdef __WXOSX__
+    bool m_starting_filament_editor = false;
+    wxDataViewItem m_filament_editor_item { nullptr };
+    bool is_live_model_item(wxDataViewItem item) const;
+    void start_filament_editor(wxDataViewItem item);
+#endif // __WXOSX__
+
 #if 0
     SettingsFactory::Bundle m_freq_settings_fff;
     SettingsFactory::Bundle m_freq_settings_sla;
