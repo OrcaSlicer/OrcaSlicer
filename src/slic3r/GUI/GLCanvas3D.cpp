@@ -7511,9 +7511,7 @@ bool GLCanvas3D::_is_ssao_enabled() const
 {
     if (wxGetApp().app_config == nullptr)
         return false;
-    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO))
-        return false;
-    return wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
+    return wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
 }
 
 int GLCanvas3D::_get_effective_fps_cap() const
@@ -9113,7 +9111,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Ambient Occlusion")),
-            m_canvas_type != ECanvasType::CanvasAssembleView && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
+            m_canvas_type != ECanvasType::CanvasAssembleView,
             cfg->get_bool(SETTING_OPENGL_PHONG_SSAO),
             [this, &cfg]{
                 cfg->set_bool(SETTING_OPENGL_PHONG_SSAO, !cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
@@ -9122,6 +9120,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Shadows")),
+            m_canvas_type != ECanvasType::CanvasAssembleView,
             cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS),
             [this, &cfg]{
                 cfg->set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, !cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS));
