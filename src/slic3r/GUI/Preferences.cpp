@@ -1556,6 +1556,13 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_shading_model);
 
+    auto item_phong_ssao = create_item_checkbox(
+        _L("Phong: SSAO"),
+        _L("Enables a lightweight ambient occlusion effect when using Phong shading."),
+        SETTING_OPENGL_PHONG_SSAO
+    );
+    g_sizer->Add(item_phong_ssao);
+
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
 

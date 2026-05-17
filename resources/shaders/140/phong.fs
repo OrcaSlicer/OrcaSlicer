@@ -63,6 +63,7 @@ uniform PrintVolumeDetection print_volume;
 
 uniform float z_far;
 uniform float z_near;
+uniform bool enable_ssao;
 
 in vec3 clipping_planes_dots;
 in float color_clip_plane_dot;
@@ -120,6 +121,20 @@ float DetectSilho(vec2 fragCoord)
         );
 }
 
+float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
+{
+    vec3 normal_dx = dFdx(normal);
+    vec3 normal_dy = dFdy(normal);
+    float normal_variation = clamp(length(normal_dx) + length(normal_dy), 0.0, 1.0);
+
+    float depth_gradient = clamp(length(vec2(dFdx(eye_pos.z), dFdy(eye_pos.z))) * 0.8, 0.0, 1.0);
+
+    float cavity = clamp(normal_variation * 0.70 + depth_gradient * 0.60, 0.0, 1.0);
+    float cavity_mask = smoothstep(0.25, 0.75, cavity);
+    float ao_strength = pow(cavity, 1.15) * cavity_mask;
+    return clamp(1.0 - ao_strength * 0.90, 0.25, 1.0);
+}
+
 void main()
 {
     if (any(lessThan(clipping_planes_dots, ZERO)))
@@ -171,6 +186,8 @@ void main()
     diffuse += NdotL_front * LIGHT_FRONT_DIFFUSE;
     vec3 half_front = normalize(LIGHT_FRONT_DIR + view_dir);
     specular += LIGHT_FRONT_SPECULAR * pow(max(dot(normal, half_front), 0.0), LIGHT_FRONT_SHININESS);
+
+    // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
     if (is_outline) {
         vec4 shaded_color = vec4(vec3(specular) + color.rgb * diffuse, color.a);

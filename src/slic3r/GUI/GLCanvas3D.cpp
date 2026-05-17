@@ -2103,6 +2103,9 @@ void GLCanvas3D::render(bool only_init)
     if (m_picking_enabled && m_rectangle_selection.is_dragging())
         m_rectangle_selection.render(*this);
 
+    if (_is_ssao_enabled())
+        _render_ssao_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
+
     if (_is_fxaa_enabled())
         _render_fxaa_pass(static_cast<unsigned int>(cnv_size.get_width()), static_cast<unsigned int>(cnv_size.get_height()));
 
@@ -7502,6 +7505,15 @@ bool GLCanvas3D::_is_fxaa_enabled() const
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_FXAA_ENABLED);
 }
 
+bool GLCanvas3D::_is_ssao_enabled() const
+{
+    if (wxGetApp().app_config == nullptr)
+        return false;
+    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO))
+        return false;
+    return wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
+}
+
 int GLCanvas3D::_get_effective_fps_cap() const
 {
     if (wxGetApp().app_config == nullptr)
@@ -7588,6 +7600,73 @@ void GLCanvas3D::_render_fxaa_pass(unsigned int width, unsigned int height)
     glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glBindTexture(GL_TEXTURE_2D, m_fxaa_texture_id));
     m_background.render();
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    shader->stop_using();
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+}
+
+void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
+{
+    if (width == 0 || height == 0)
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("ssao");
+    if (shader == nullptr)
+        return;
+
+    if (m_ssao_color_texture_id == 0)
+        glsafe(::glGenTextures(1, &m_ssao_color_texture_id));
+    if (m_ssao_depth_texture_id == 0)
+        glsafe(::glGenTextures(1, &m_ssao_depth_texture_id));
+
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+
+    if (m_ssao_texture_size[0] != width || m_ssao_texture_size[1] != height) {
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        m_ssao_texture_size = { { width, height } };
+    }
+
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
+    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glDisable(GL_BLEND));
+
+    shader->start_using();
+    shader->set_uniform("view_model_matrix", Transform3d::Identity());
+    shader->set_uniform("projection_matrix", Transform3d::Identity());
+    shader->set_uniform("color_texture", 0);
+    shader->set_uniform("depth_texture", 1);
+    shader->set_uniform("inv_tex_size", Vec2f(1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height)));
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("z_near", camera.get_near_z());
+    shader->set_uniform("z_far", camera.get_far_z());
+
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
+    glsafe(::glActiveTexture(GL_TEXTURE1));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+    m_background.render();
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
     shader->stop_using();
 
@@ -7765,6 +7844,9 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     bool                 partly_inside_enable = canvas_type == ECanvasType::CanvasAssembleView ? false : true;
     if (shader != nullptr) {
         shader->start_using();
+
+        const bool phong_ssao = wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
+        shader->set_uniform("enable_ssao", phong_ssao);
 
         const Size&   cvn_size = get_canvas_size();
         {
