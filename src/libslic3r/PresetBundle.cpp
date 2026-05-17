@@ -2605,29 +2605,95 @@ void PresetBundle::update_selections(AppConfig &config)
     // Load it even if the current printer technology is SLA.
     // The possibly excessive filament names will be later removed with this->update_multi_material_filament_presets()
     // once the FFF technology gets selected.
-    this->filament_presets = { filaments.get_selected_preset_name() };
-    for (unsigned int i = 1; i < 1000; ++ i) {
-        char name[64];
-        sprintf(name, "filament_%02u", i);
-        auto f_name = config.get_printer_setting(initial_printer_profile_name, name);
-        if (f_name.empty())
-            break;
-        this->filament_presets.emplace_back(remove_ini_suffix(f_name));
+    
+    // BBS: If we have project filament config, preserve the count and presets from the project
+    // instead of loading from AppConfig. However, only if the printer supports multi-filament.
+    if (m_has_project_filament_config && m_project_filament_count > 0) {
+        // Check if the new printer supports multiple filaments:
+        // Either has multiple extruders, or is single extruder with multi-material (AMS/MMU)
+        const Preset& printer_preset = printers.get_edited_preset();
+        const ConfigOptionFloats* nozzle_opt = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+        const ConfigOptionBool* semm_opt = printer_preset.config.option<ConfigOptionBool>("single_extruder_multi_material");
+        size_t extruder_count = nozzle_opt ? nozzle_opt->values.size() : 1;
+        bool is_single_extruder_multi_material = semm_opt ? semm_opt->value : false;
+        bool supports_multi_filament = (extruder_count > 1) || is_single_extruder_multi_material;
+        
+        if (supports_multi_filament && m_project_filament_count > 1) {
+            // Restore project filament presets - keep the original names and count
+            this->filament_presets = m_project_filament_presets;
+            
+            // For multi-extruder printers, cap at the number of physical extruders
+            // For SEMM printers (single extruder multi-material), no hard cap
+            size_t max_filaments = is_single_extruder_multi_material ? m_project_filament_count : extruder_count;
+            if (this->filament_presets.size() > max_filaments) {
+                this->filament_presets.resize(max_filaments);
+            } else if (this->filament_presets.size() < m_project_filament_count && this->filament_presets.size() < max_filaments) {
+                this->filament_presets.resize(std::min(m_project_filament_count, max_filaments), filaments.get_selected_preset_name());
+            }
+        } else {
+            // Printer doesn't support multi-material, use only the first filament from project
+            this->filament_presets = { m_project_filament_presets.empty() ? filaments.get_selected_preset_name() : m_project_filament_presets[0] };
+        }
+    } else {
+        // Normal flow: load from AppConfig
+        this->filament_presets = { filaments.get_selected_preset_name() };
+        for (unsigned int i = 1; i < 1000; ++ i) {
+            char name[64];
+            sprintf(name, "filament_%02u", i);
+            auto f_name = config.get_printer_setting(initial_printer_profile_name, name);
+            if (f_name.empty())
+                break;
+            this->filament_presets.emplace_back(remove_ini_suffix(f_name));
+        }
     }
-    std::vector<std::string> filament_colors;
-    auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
-    if (!f_colors.empty()) {
-        boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
+    
+    // If we have project filament config active, preserve project colors instead of loading from AppConfig
+    if (m_has_project_filament_config && !m_project_filament_colours.empty()) {
+        // Check if printer supports multiple filaments to determine how many colors to restore
+        const Preset& printer_preset = printers.get_edited_preset();
+        const ConfigOptionFloats* nozzle_opt = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+        const ConfigOptionBool* semm_opt = printer_preset.config.option<ConfigOptionBool>("single_extruder_multi_material");
+        size_t extruder_count = nozzle_opt ? nozzle_opt->values.size() : 1;
+        bool is_single_extruder_multi_material = semm_opt ? semm_opt->value : false;
+        bool supports_multi_filament = (extruder_count > 1) || is_single_extruder_multi_material;
+        
+        std::vector<std::string> preserved_colors;
+        if (supports_multi_filament && m_project_filament_count > 1) {
+            // Restore all project colors
+            preserved_colors = m_project_filament_colours;
+        } else {
+            // Only restore the first color for non-multi-material printers
+            preserved_colors = { m_project_filament_colours.empty() ? "#26A69A" : m_project_filament_colours[0] };
+        }
+        preserved_colors.resize(filament_presets.size(), "#26A69A");
+        project_config.option<ConfigOptionStrings>("filament_colour")->values = preserved_colors;
+    } else {
+        std::vector<std::string> filament_colors;
+        auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
+        if (!f_colors.empty()) {
+            boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
+        }
+        filament_colors.resize(filament_presets.size(), "#26A69A");
+        project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
     }
-    filament_colors.resize(filament_presets.size(), "#26A69A");
-    project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
 
-    std::vector<std::string> multi_filament_colors;
-    if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
-        boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
+    // Get the current filament colors (either preserved from project or loaded from config)
+    std::vector<std::string> current_filament_colors = project_config.option<ConfigOptionStrings>("filament_colour")->values;
+
+    // Handle multi-filament colors - also preserve from project if available
+    if (m_has_project_filament_config) {
+        // Keep multi-colors as they are (already set from project) or resize to match
+        std::vector<std::string> current_multi_colors = project_config.option<ConfigOptionStrings>("filament_multi_colour")->values;
+        current_multi_colors.resize(filament_presets.size(), "#26A69A");
+        project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = current_multi_colors;
+    } else {
+        std::vector<std::string> multi_filament_colors;
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
+            boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
+        }
+        if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = current_filament_colors;
+        else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
     }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
 
     std::vector<std::string> filament_color_types;
     if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
@@ -2636,7 +2702,7 @@ void PresetBundle::update_selections(AppConfig &config)
     filament_color_types.resize(filament_presets.size(), "1");
     project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
 
-    std::vector<int> filament_maps(filament_colors.size(), 1);
+    std::vector<int> filament_maps(current_filament_colors.size(), 1);
     project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
 
     std::vector<std::string> extruder_ams_count_str;
@@ -2745,31 +2811,93 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // Load it even if the current printer technology is SLA.
     // The possibly excessive filament names will be later removed with this->update_multi_material_filament_presets()
     // once the FFF technology gets selected.
-    this->filament_presets = { filaments.get_selected_preset_name() };
-    for (unsigned int i = 1; i < 1000; ++ i) {
-        char name[64];
-        sprintf(name, "filament_%02u", i);
-        auto f_name = config.get_printer_setting(initial_printer_profile_name, name);
-        if (f_name.empty())
-            break;
-        this->filament_presets.emplace_back(remove_ini_suffix(f_name));
+    
+    // BBS: If we have project filament config, preserve the count and presets from the project
+    // instead of loading from AppConfig. However, only if the printer supports multi-filament.
+    if (m_has_project_filament_config && m_project_filament_count > 0) {
+        // Check if the new printer supports multiple filaments:
+        // Either has multiple extruders, or is single extruder with multi-material (AMS/MMU)
+        const Preset& printer_preset = printers.get_edited_preset();
+        const ConfigOptionFloats* nozzle_opt = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+        const ConfigOptionBool* semm_opt = printer_preset.config.option<ConfigOptionBool>("single_extruder_multi_material");
+        size_t extruder_count = nozzle_opt ? nozzle_opt->values.size() : 1;
+        bool is_single_extruder_multi_material = semm_opt ? semm_opt->value : false;
+        bool supports_multi_filament = (extruder_count > 1) || is_single_extruder_multi_material;
+        
+        if (supports_multi_filament && m_project_filament_count > 1) {
+            // Restore project filament presets - keep the original names and count
+            this->filament_presets = m_project_filament_presets;
+            
+            // For multi-extruder printers, cap at the number of physical extruders
+            // For SEMM printers (single extruder multi-material), no hard cap
+            size_t max_filaments = is_single_extruder_multi_material ? m_project_filament_count : extruder_count;
+            if (this->filament_presets.size() > max_filaments) {
+                this->filament_presets.resize(max_filaments);
+            } else if (this->filament_presets.size() < m_project_filament_count && this->filament_presets.size() < max_filaments) {
+                this->filament_presets.resize(std::min(m_project_filament_count, max_filaments), filaments.get_selected_preset_name());
+            }
+        } else {
+            // Printer doesn't support multi-material, use only the first filament from project
+            this->filament_presets = { m_project_filament_presets.empty() ? filaments.get_selected_preset_name() : m_project_filament_presets[0] };
+        }
+    } else {
+        // Normal flow: load from AppConfig
+        this->filament_presets = { filaments.get_selected_preset_name() };
+        for (unsigned int i = 1; i < 1000; ++ i) {
+            char name[64];
+            sprintf(name, "filament_%02u", i);
+            auto f_name = config.get_printer_setting(initial_printer_profile_name, name);
+            if (f_name.empty())
+                break;
+            this->filament_presets.emplace_back(remove_ini_suffix(f_name));
+        }
     }
 
-    // Load data from AppConfig to ProjectConfig when Studio is initialized.
-    std::vector<std::string> filament_colors;
-    auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
-    if (!f_colors.empty()) {
-        boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
+    // BBS: If we have project-embedded filament config, preserve the project colors 
+    // instead of loading from AppConfig. This handles the case where a 3MF is loaded
+    // and the user switches printers - the project colors should be preserved.
+    if (m_has_project_filament_config && !m_project_filament_colours.empty()) {
+        // Check if printer supports multiple filaments to determine how many colors to restore
+        const Preset& printer_preset = printers.get_edited_preset();
+        const ConfigOptionFloats* nozzle_opt = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+        const ConfigOptionBool* semm_opt = printer_preset.config.option<ConfigOptionBool>("single_extruder_multi_material");
+        size_t extruder_count = nozzle_opt ? nozzle_opt->values.size() : 1;
+        bool is_single_extruder_multi_material = semm_opt ? semm_opt->value : false;
+        bool supports_multi_filament = (extruder_count > 1) || is_single_extruder_multi_material;
+        
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Preserving project filament colors across printer change";
+        std::vector<std::string> filament_colors;
+        if (supports_multi_filament && m_project_filament_count > 1) {
+            // Restore all project colors
+            filament_colors = m_project_filament_colours;
+        } else {
+            // Only restore the first color for non-multi-filament printers
+            filament_colors = { m_project_filament_colours.empty() ? "#26A69A" : m_project_filament_colours[0] };
+        }
+        filament_colors.resize(filament_presets.size(), "#26A69A");
+        project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
+    } else {
+        // Load data from AppConfig to ProjectConfig when Studio is initialized.
+        std::vector<std::string> filament_colors;
+        // Load from AppConfig or use defaults - don't check project_config here as it may be stale
+        auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
+        if (!f_colors.empty()) {
+            boost::algorithm::split(filament_colors, f_colors, boost::algorithm::is_any_of(","));
+        }
+        filament_colors.resize(filament_presets.size(), "#26A69A");
+        project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
+        
+        // Load multi-filament colors from AppConfig
+        std::vector<std::string> multi_filament_colors;
+        if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
+            boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
+        }
+        if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
+        else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
     }
-    filament_colors.resize(filament_presets.size(), "#26A69A");
-    project_config.option<ConfigOptionStrings>("filament_colour")->values = filament_colors;
-
-    std::vector<std::string> multi_filament_colors;
-    if (config.has_printer_setting(initial_printer_profile_name, "filament_multi_colors")) {
-        boost::algorithm::split(multi_filament_colors, config.get_printer_setting(initial_printer_profile_name, "filament_multi_colors"), boost::algorithm::is_any_of(","));
-    }
-    if (multi_filament_colors.size() == 0) project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = filament_colors;
-    else project_config.option<ConfigOptionStrings>("filament_multi_colour")->values = multi_filament_colors;
+    
+    // Get current filament colors for sizing other arrays
+    const std::vector<std::string>& current_filament_colors = project_config.option<ConfigOptionStrings>("filament_colour")->values;
 
     std::vector<std::string> filament_color_types;
     if (config.has_printer_setting(initial_printer_profile_name, "filament_color_types")) {
@@ -2778,7 +2906,7 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     filament_color_types.resize(filament_presets.size(), "1");
     project_config.option<ConfigOptionStrings>("filament_colour_type")->values = filament_color_types;
 
-    std::vector<int> filament_maps(filament_colors.size(), 1);
+    std::vector<int> filament_maps(current_filament_colors.size(), 1);
     project_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
 
     std::vector<std::string> extruder_ams_count_str;

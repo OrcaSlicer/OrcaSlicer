@@ -6381,6 +6381,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                             preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
 
+                            // BBS: Save project filament colors to preserve them across printer changes
+                            q->reset_project_dirty_initial_presets();
+
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
                                 BedType bed_type = (BedType)bed_type_opt->getInt();
@@ -6448,7 +6451,31 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             // For exporting from the amf/3mf we shouldn't check printer_presets for the containing information about "Print Host upload"
                             // BBS: add preset combo box re-active logic
                             // currently found only needs re-active here
+                            
+                            // BBS: Save project filament colors and presets BEFORE load_current_presets overwrites them
+                            // This enables color preservation across printer switches
+                            std::vector<std::string> project_filament_colors;
+                            std::vector<std::string> project_filament_preset_names;
+                            if (ConfigOptionStrings* colors = preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")) {
+                                project_filament_colors = colors->values;
+                            }
+                            project_filament_preset_names = preset_bundle->filament_presets;
+                            
+                            // Set the project filament config flag to preserve colors across future printer switches
+                            preset_bundle->set_project_filament_config(project_filament_colors, project_filament_preset_names);
+                            
                             wxGetApp().load_current_presets(false, false);
+                            
+                            // BBS: Restore project filament colors AFTER load_current_presets
+                            // The set_project_filament_config call above handles future switches,
+                            // but we also need to restore immediately since load_current_presets may have changed them
+                            if (!project_filament_colors.empty()) {
+                                // Resize to match current filament count
+                                project_filament_colors.resize(preset_bundle->filament_presets.size(), "#26A69A");
+                                preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values = project_filament_colors;
+                                BOOST_LOG_TRIVIAL(info) << "Restored project filament colors after load_current_presets";
+                            }
+                            
                             // Update filament colors for the MM-printer profile in the full config
                             // to avoid black (default) colors for Extruders in the ObjectList,
                             // when for extruder colors are used filament colors
@@ -7535,6 +7562,8 @@ void Plater::priv::reset(bool apply_presets_change)
     wxGetApp().sidebar().printer_combox()->clear_selected_dev_id();
     //BBS: reset all project embedded presets
     wxGetApp().preset_bundle->reset_project_embedded_presets();
+    // BBS: Clear project filament config since we're creating a new project
+    wxGetApp().preset_bundle->clear_project_filament_config();
     if (apply_presets_change)
         wxGetApp().apply_keeped_preset_modifications();
     else

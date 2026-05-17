@@ -337,6 +337,31 @@ public:
     // and they are being used by slicing core.
     DynamicPrintConfig          project_config;
 
+    // BBS: Track whether we have project-embedded filament configuration that should be preserved
+    // across printer changes. When true, load_selections() will not overwrite filament colors.
+    bool                        m_has_project_filament_config = false;
+    // Store the project's original filament colors to preserve across printer switches
+    std::vector<std::string>    m_project_filament_colours;
+    // Store the project's original filament presets to preserve across printer switches
+    std::vector<std::string>    m_project_filament_presets;
+    // Store the project's original filament count to preserve across printer switches
+    size_t                      m_project_filament_count = 0;
+    
+    // Set when loading a 3MF with embedded filament config, cleared on new project
+    void set_project_filament_config(const std::vector<std::string>& colors, const std::vector<std::string>& presets) {
+        m_has_project_filament_config = true;
+        m_project_filament_colours = colors;
+        m_project_filament_presets = presets;
+        m_project_filament_count = presets.size();
+    }
+    void clear_project_filament_config() {
+        m_has_project_filament_config = false;
+        m_project_filament_colours.clear();
+        m_project_filament_presets.clear();
+        m_project_filament_count = 0;
+    }
+    bool has_project_filament_config() const { return m_has_project_filament_config; }
+
     // There will be an entry for each system profile loaded,
     // and the system profiles will point to the VendorProfile instances owned by PresetBundle::vendors.
     VendorMap                   vendors;
