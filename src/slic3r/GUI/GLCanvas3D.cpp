@@ -8922,6 +8922,25 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this]{wxGetApp().toggle_show_outline();}
         );
 
+        create_menu_item( _utf8(L("Reflections")),
+            m_canvas_type != ECanvasType::CanvasAssembleView,
+            cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
+            [this, &cfg]{
+                const bool enabled = cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
+                cfg->set(SETTING_OPENGL_SHADING_MODEL, enabled ? "gouraud" : "phong");
+                cfg->save();
+            }
+        );
+
+        create_menu_item( _utf8(L("Ambient Occlusion")),
+            m_canvas_type != ECanvasType::CanvasAssembleView && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
+            cfg->get_bool(SETTING_OPENGL_PHONG_SSAO),
+            [this, &cfg]{
+                cfg->set_bool(SETTING_OPENGL_PHONG_SSAO, !cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
+                cfg->save();
+            }
+        );
+
         ImGui::Separator();
 
         create_menu_item( _utf8(L("Perspective")),
