@@ -535,12 +535,20 @@ void GLGizmoSimplify::apply_simplify() {
 
     auto plater = wxGetApp().plater();
     plater->take_snapshot(GUI::format("Simplify %1%", m_volume->name));
-    plater->clear_before_change_mesh(object_idx);
+    const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
+    if (!keep_painting) {
+        plater->clear_before_change_mesh(object_idx);
+    }
 
     ModelVolume* mv = get_model_volume(selection, wxGetApp().model());
     assert(mv == m_volume);
 
+    // Save paint
+    std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ? mv->save_painting() :
+                                                                                    std::optional<TriangleSelector::SavedPainting>{};
     mv->set_mesh(std::move(*m_state.result));
+    // Remap paint
+    mv->restore_painting(saved_painting);
     m_state.result.reset();
     mv->calculate_convex_hull();
     mv->invalidate_convex_hull_2d();
