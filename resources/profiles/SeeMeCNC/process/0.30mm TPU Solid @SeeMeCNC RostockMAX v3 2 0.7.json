@@ -52,5 +52,18 @@
     "travel_jerk": "15",
     "travel_speed": "250",
     "wall_loops": "3",
-    "xy_hole_compensation": "0"
+    "xy_hole_compensation": "0",
+    "seam_slope_type": "external",
+    "seam_slope_conditional": "1",
+    "seam_slope_entire_loop": "0",
+    "seam_slope_steps": "10",
+    "scarf_joint_speed": "100%",
+    "scarf_joint_flow_ratio": "1",
+    "seam_slope_inner_walls": "0",
+    "seam_slope_min_length": "20",
+    "seam_slope_start_height": "0",
+    "role_based_wipe_speed": "1",
+    "wipe_speed": "80%",
+    "wipe_on_loops": "1",
+    "wipe_before_external_loop": "1"
 }
