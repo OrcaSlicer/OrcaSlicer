@@ -9101,7 +9101,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Reflections")),
-            m_canvas_type != ECanvasType::CanvasAssembleView,
+            m_canvas_type == ECanvasType::CanvasView3D,
             cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
             [this, &cfg]{
                 const bool enabled = cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
@@ -9120,7 +9120,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Shadows")),
-            m_canvas_type != ECanvasType::CanvasAssembleView,
+            m_canvas_type == ECanvasType::CanvasView3D,
             cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS),
             [this, &cfg]{
                 cfg->set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, !cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS));
