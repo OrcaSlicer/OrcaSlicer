@@ -6435,6 +6435,7 @@ int CLI::run(int argc, char **argv)
             glfwGetVersion(&gl_major, &gl_minor, &gl_verbos);
             BOOST_LOG_TRIVIAL(info) << boost::format("opengl version %1%.%2%.%3%")%gl_major %gl_minor %gl_verbos;
 
+            bool thumbnail_opengl_ready = false;
             glfwSetErrorCallback(glfw_callback);
             int ret = glfwInit();
             if (ret == GLFW_FALSE) {
@@ -6463,13 +6464,22 @@ int CLI::run(int argc, char **argv)
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
                 if (window == NULL)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window" << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Failed to create GLFW window; skipping thumbnail rendering for CLI export" << std::endl;
                 }
-                else
+                else {
                     glfwMakeContextCurrent(window);
+                    thumbnail_opengl_ready = true;
+                }
             }
 
             //opengl manager related logic
+            if (!thumbnail_opengl_ready) {
+                BOOST_LOG_TRIVIAL(error) << "OpenGL context unavailable; skip thumbnail generating" << std::endl;
+                need_create_thumbnail_group = false;
+                need_create_no_light_group = false;
+                need_create_top_group = false;
+            }
+            else
             {
                 GUI::OpenGLManager opengl_mgr;
                 bool opengl_valid = opengl_mgr.init_gl(false);
