@@ -5806,8 +5806,8 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    def = this->add("always_travel_to_wipe_tower", coBool);
-    def->label = L("Always travel to wipe tower");
+    def = this->add("tool_change_on_wipe_tower", coBool);
+    def->label = L("Tool change on wipe tower");
     def->tooltip = L("Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). "
                      "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
                      "By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, "
