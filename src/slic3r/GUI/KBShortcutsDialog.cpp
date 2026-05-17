@@ -211,6 +211,7 @@ void KBShortcutsDialog::fill_shortcuts()
         
         // Retrieve mouse actions from config and map to MouseAction
         std::map<std::string, std::string> mouse_actions;
+        mouse_actions["0"] = L("None");
         mouse_actions["1"] = L("Pan View");
         mouse_actions["2"] = L("Rotate View");
 
