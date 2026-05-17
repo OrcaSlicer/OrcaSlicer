@@ -1541,6 +1541,21 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+    //// GRAPHICS > Shader
+    g_sizer->Add(create_item_title(_L("Shader")), 1, wxEXPAND);
+
+    auto item_shading_model = create_item_combobox(
+        _L("Shader"),
+        _L("Select 3D viewport shading model.\n"
+           "Gouraud: faster, per-vertex lighting.\n"
+           "Phong: smoother, per-fragment lighting.\n\n"
+           "Takes effect immediately."),
+        SETTING_OPENGL_SHADING_MODEL,
+        {_L("Gouraud"), _L("Phong")},
+        {"gouraud", "phong"}
+    );
+    g_sizer->Add(item_shading_model);
+
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
 
@@ -1566,17 +1581,6 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fxaa);
 
-    auto item_shading_model = create_item_combobox(
-        _L("Shader"),
-        _L("Select 3D viewport shading model.\n"
-           "Gouraud: faster, per-vertex lighting.\n"
-           "Phong: smoother, per-fragment lighting.\n\n"
-           "Takes effect immediately."),
-        SETTING_OPENGL_SHADING_MODEL,
-        {_L("Gouraud"), _L("Phong")},
-        {"gouraud", "phong"}
-    );
-    g_sizer->Add(item_shading_model);
 
     //// GRAPHICS > FPS
     g_sizer->Add(create_item_title(_L("FPS")), 1, wxEXPAND);
