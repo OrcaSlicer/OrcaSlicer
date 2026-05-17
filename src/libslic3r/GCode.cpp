@@ -1161,10 +1161,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         const bool is_ramming       = (gcodegen.config().single_extruder_multi_material) ||
                                 (!gcodegen.config().single_extruder_multi_material &&
                                  gcodegen.config().filament_multitool_ramming.get_at(tcr.initial_tool));
+        // Orca: user-facing override (Printer Settings > Wipe tower > "Tool change on wipe tower").
+        // Forces the toolhead to travel over the wipe tower before issuing Tx even on multi-toolhead
+        // printers without ramming, where Orca would otherwise emit Tx in place (potentially over the part).
+        const bool tool_change_on_wipe_tower = gcodegen.config().tool_change_on_wipe_tower.value;
         const bool should_travel_to_tower = !tcr.priming && (tcr.force_travel     // wipe tower says so
                                                              || !needs_toolchange // this is just finishing the tower with no toolchange
                                                              || will_go_down // Make sure to move to prime tower before moving down
-                                                             || is_ramming);
+                                                             || is_ramming
+                                                             || tool_change_on_wipe_tower);
 
         if (should_travel_to_tower || gcodegen.m_need_change_layer_lift_z) {
             // FIXME: It would be better if the wipe tower set the force_travel flag for all toolchanges,
