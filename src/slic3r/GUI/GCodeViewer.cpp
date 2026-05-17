@@ -3793,7 +3793,11 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 return { "", "", "", "" };
 
             const size_t move_type_idx = static_cast<size_t>(move_type);
-            const float time = m_move_type_times[move_type_idx][current_time_mode];
+            float time = m_move_type_times[move_type_idx][current_time_mode];
+            if (option_type == libvgcode::EOptionType::ToolChanges) {
+                // Toolchange delays are injected via synchronize() and are not attributed to ToolChange move vertices.
+                time = m_print_statistics.total_filament_load_time + m_print_statistics.total_filament_unload_time + m_print_statistics.total_tool_change_time;
+            }
             const std::string time_text = full_layout && time > 0.0f ? short_time(get_time_dhms(time)) : "";
             const std::string percent_text = full_layout && total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
             const float seam_distance = m_print_statistics.total_seam_gap_distance + m_print_statistics.total_seam_scarf_distance;
