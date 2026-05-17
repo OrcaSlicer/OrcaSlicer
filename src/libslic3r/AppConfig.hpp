@@ -34,6 +34,7 @@ using namespace nlohmann;
 #define SETTING_OPENGL_FXAA_ENABLED "opengl_fxaa_enabled"
 #define SETTING_OPENGL_FPS_CAP "opengl_fps_cap"
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
+#define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"

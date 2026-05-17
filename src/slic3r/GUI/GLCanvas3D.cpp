@@ -7756,7 +7756,11 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     else
         m_volumes.set_show_sinking_contours(!m_gizmos.is_hiding_instances());
 
-    GLShaderProgram* shader = wxGetApp().get_shader("gouraud");
+    const std::string shading_model = wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL);
+    const std::string shader_name = (shading_model == "phong") ? "phong" : "gouraud";
+    GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
+    if (shader == nullptr && shader_name != "gouraud")
+        shader = wxGetApp().get_shader("gouraud");
     ECanvasType canvas_type = this->m_canvas_type;
     bool                 partly_inside_enable = canvas_type == ECanvasType::CanvasAssembleView ? false : true;
     if (shader != nullptr) {
