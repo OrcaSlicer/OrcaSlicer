@@ -262,6 +262,9 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 
+    if (get(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS).empty())
+        set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, false);
+
     if (get(SETTING_OPENGL_PHONG_SSAO).empty())
         set_bool(SETTING_OPENGL_PHONG_SSAO, false);
 

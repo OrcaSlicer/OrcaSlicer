@@ -2039,14 +2039,16 @@ void GLCanvas3D::render(bool only_init)
     /* view3D render*/
     int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
     if (m_canvas_type == ECanvasType::CanvasView3D) {
-        //BBS: add outline logic
-        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
-        _render_sla_slices();
-        _render_selection();
         if (!no_partplate)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
         if (!no_partplate) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
+        _render_cast_shadows_on_plate(camera.get_view_matrix(), camera.get_projection_matrix());
+
+        //BBS: add outline logic
+        _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
+        _render_sla_slices();
+        _render_selection();
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
     }
     /* preview render */
@@ -7765,6 +7767,184 @@ void GLCanvas3D::_render_platelist(const Transform3d& view_matrix, const Transfo
     wxGetApp().plater()->get_partplate_list().render(view_matrix, projection_matrix, bottom, only_current, only_body, hover_id, render_cali, show_grid);
 }
 
+void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix)
+{
+    // Check if shadow rendering is enabled in configuration
+    if (wxGetApp().app_config == nullptr)
+        return;
+    if (wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) != "phong")
+        return;
+    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
+        return;
+    if (m_volumes.empty())
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    // Fixed light direction (pointing downward at an angle)
+    // Drive shadow direction from current view angle: define light in eye-space,
+    // then transform it to world-space with inverse view rotation.
+    const Vec3d light_dir_eye = Vec3d(-0.4574957, 0.4574957, 0.7624929).normalized();
+    const Matrix3d view_rot = view_matrix.matrix().block<3, 3>(0, 0);
+    const Vec3d light_dir_to_light = (view_rot.transpose() * light_dir_eye).normalized();
+    const Vec3d ray_dir = -light_dir_to_light;  // Direction of shadow projection
+    
+    if (std::abs(ray_dir.z()) < 1e-6)
+        return;
+
+    // Shadow projection matrix - flattens geometry onto Z=0 plane along light direction
+    Matrix4d shadow_proj = Matrix4d::Identity();
+    shadow_proj(0, 2) = -ray_dir.x() / ray_dir.z();
+    shadow_proj(1, 2) = -ray_dir.y() / ray_dir.z();
+    shadow_proj(2, 0) = 0.0;
+    shadow_proj(2, 1) = 0.0;
+    shadow_proj(2, 2) = 0.0;
+    shadow_proj(2, 3) = 0.01;  // Bias to prevent shadow acne
+
+    // Save OpenGL state
+    GLint prev_depth_func = GL_LESS;
+    glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &prev_depth_func));
+    GLboolean prev_depth_mask = GL_TRUE;
+    glsafe(::glGetBooleanv(GL_DEPTH_WRITEMASK, &prev_depth_mask));
+    GLint prev_stencil_mask = 0xFF;
+    glsafe(::glGetIntegerv(GL_STENCIL_WRITEMASK, &prev_stencil_mask));
+    GLboolean prev_stencil_test = GL_FALSE;
+    glsafe(::glGetBooleanv(GL_STENCIL_TEST, &prev_stencil_test));
+
+    // ============================================================
+    // PASS 0: Create stencil mask for the build plate (value = 1)
+    // ============================================================
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glClearStencil(0));
+    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+    
+    glsafe(::glStencilFunc(GL_ALWAYS, 1, 0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+    
+    glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    
+    shader->start_using();
+    shader->set_uniform("projection_matrix", projection_matrix);
+    
+    // Draw the build plate
+    if (const BuildVolume& build_volume = m_bed.build_volume(); build_volume.valid()) {
+        GLModel plate_mask;
+        GLModel::Geometry mask;
+        mask.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+        
+        if (build_volume.type() == BuildVolume_Type::Rectangle) {
+            const BoundingBox3Base<Vec3d> bb = build_volume.bounding_volume();
+            mask.reserve_vertices(4);
+            mask.reserve_indices(6);
+            mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.min.y(), 0.0f));
+            mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.min.y(), 0.0f));
+            mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.max.y(), 0.0f));
+            mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.max.y(), 0.0f));
+            mask.add_triangle(0, 1, 2);
+            mask.add_triangle(0, 2, 3);
+        } else if (build_volume.type() == BuildVolume_Type::Circle) {
+            const Vec2f c = Vec2f(unscaled<float>(build_volume.circle().center.x()), unscaled<float>(build_volume.circle().center.y()));
+            const float r = unscaled<float>(build_volume.circle().radius);
+            const int segments = 64;
+            mask.reserve_vertices(segments + 1);
+            mask.reserve_indices(segments * 3);
+            mask.add_vertex(Vec3f(c.x(), c.y(), 0.0f));
+            for (int i = 0; i < segments; ++i) {
+                const float a = (2.0f * float(PI) * float(i)) / float(segments);
+                mask.add_vertex(Vec3f(c.x() + r * std::cos(a), c.y() + r * std::sin(a), 0.0f));
+            }
+            for (int i = 0; i < segments; ++i) {
+                const unsigned int i1 = 1 + i;
+                const unsigned int i2 = 1 + ((i + 1) % segments);
+                mask.add_triangle(0, i1, i2);
+            }
+        }
+        
+        if (mask.vertices_count() > 0 && mask.indices_count() > 0) {
+            plate_mask.init_from(std::move(mask));
+            shader->set_uniform("view_model_matrix", view_matrix);
+            plate_mask.render(shader);
+        }
+    }
+    
+    // ============================================================
+    // PASS 1: Project object shadows onto plate (increment stencil to 2)
+    // ============================================================
+    // Only render where plate exists (stencil == 1), then increment to 2
+    glsafe(::glStencilFunc(GL_EQUAL, 1, 0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_INCR));
+    
+    glsafe(::glDepthMask(GL_FALSE));
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glDepthFunc(GL_ALWAYS));  // Shadows don't need depth testing
+    glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glPolygonOffset(-2.0f, -2.0f));
+    glsafe(::glDisable(GL_CULL_FACE));
+    
+    // Render projected shadow geometry
+    for (GLVolume* volume : m_volumes.volumes) {
+        if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+            continue;
+        
+        // CRITICAL FIX: Apply shadow projection in object's local space, then to world, then to view
+        // This ensures shadows are cast from the object's actual position
+        Matrix4d world_matrix = volume->world_matrix().matrix();
+        
+        // Project the shadow - this flattens the geometry onto Z=0 in WORLD space
+        Matrix4d shadow_world_matrix = shadow_proj * world_matrix;
+        
+        // Transform to view space for rendering
+        Matrix4d view_shadow_matrix = view_matrix.matrix() * shadow_world_matrix;
+        
+        shader->set_uniform("view_model_matrix", view_shadow_matrix);
+        shader->set_uniform("projection_matrix", projection_matrix);
+        
+        volume->model.render(shader);
+    }
+    
+    // ============================================================
+    // PASS 2: Draw shadow color where stencil == 2
+    // ============================================================
+    glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+    glsafe(::glStencilFunc(GL_EQUAL, 2, 0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+    glsafe(::glStencilMask(0x00));
+    
+    glsafe(::glDepthFunc(GL_ALWAYS));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    
+    // Draw shadow fill
+    shader->set_uniform("view_model_matrix", Transform3d::Identity());
+    shader->set_uniform("projection_matrix", Transform3d::Identity());
+    
+    const ColorRGBA shadow_fill_color(0.0f, 0.0f, 0.0f, 0.4f);  // Darker shadow for visibility
+    const ColorRGBA prev_bg_color = m_background.get_geometry().color;
+    m_background.set_color(shadow_fill_color);
+    m_background.render(shader);
+    m_background.set_color(prev_bg_color);
+    
+    shader->stop_using();
+    
+    // ============================================================
+    // RESTORE STATE
+    // ============================================================
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glDepthMask(prev_depth_mask));
+    glsafe(::glDepthFunc(prev_depth_func));
+    glsafe(::glEnable(GL_CULL_FACE));
+    glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glDisable(GL_BLEND));
+    
+    if (!prev_stencil_test)
+        glsafe(::glDisable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(prev_stencil_mask));
+}
+
 void GLCanvas3D::_render_plane() const
 {
     ;//TODO render assemble plane
@@ -8937,6 +9117,15 @@ void GLCanvas3D::_render_canvas_toolbar()
             cfg->get_bool(SETTING_OPENGL_PHONG_SSAO),
             [this, &cfg]{
                 cfg->set_bool(SETTING_OPENGL_PHONG_SSAO, !cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
+                cfg->save();
+            }
+        );
+
+        create_menu_item( _utf8(L("Shadows")),
+            m_canvas_type != ECanvasType::CanvasAssembleView && cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
+            cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS),
+            [this, &cfg]{
+                cfg->set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, !cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS));
                 cfg->save();
             }
         );
