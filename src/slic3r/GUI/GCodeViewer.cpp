@@ -1316,6 +1316,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         move_type_times.fill(0.0f);
     m_move_type_distances.fill(0.0f);
     for (const GCodeProcessorResult::MoveVertex& move : gcode_result.moves) {
+        if (move.internal_only)
+            continue;
+
         const size_t move_type = static_cast<size_t>(move.type);
         if (move_type < m_move_type_counts.size()) {
             ++m_move_type_counts[move_type];
