@@ -1,5 +1,6 @@
 #include "vertex_array.h"
-#include <igl/opengl/report_gl_error.h>
+#include "report_gl_error.h"
+#include "../IGL_ASSERT.h"
 
 template <
   typename DerivedV,
@@ -41,7 +42,7 @@ IGL_INLINE void igl::opengl::vertex_array(
   const auto size_FScalar = sizeof(typename DerivedF::Scalar);
   glBufferData(GL_ARRAY_BUFFER,size_VScalar*V.size(),V.data(),GL_STATIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eab_id);
-  assert(sizeof(GLuint) == size_FScalar && "F type does not match GLuint");
+  IGL_ASSERT(sizeof(GLuint) == size_FScalar && "F type does not match GLuint");
   glBufferData(
     GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*F.size(), F.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(

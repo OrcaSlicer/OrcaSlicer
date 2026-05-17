@@ -14,6 +14,7 @@ find_package(libnoise REQUIRED)
 add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)
+    add_subdirectory(glad)
     # imgui, imguizmo, and hidapi are now included from deps_src
     add_subdirectory(libvgcode)
 
@@ -30,20 +31,30 @@ if (SLIC3R_GUI)
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
-        if (SLIC3R_WX_STABLE)
-            find_package(wxWidgets 3.0 REQUIRED COMPONENTS base core adv html gl aui net media webview)
-        else ()
-            find_package(wxWidgets 3.1 REQUIRED COMPONENTS base core adv html gl aui net media webview)
-        endif ()
+        find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core adv html gl aui net media webview)
     else ()
-        find_package(wxWidgets 3.1 REQUIRED COMPONENTS html adv gl core base webview aui net media)
+        find_package(wxWidgets 3.3 CONFIG REQUIRED COMPONENTS html adv gl core base webview aui net media)
     endif ()
 
     if(UNIX)
         message(STATUS "wx-config path: ${wxWidgets_CONFIG_EXECUTABLE}")
     endif()
 
-    include(${wxWidgets_USE_FILE})
+    if(wxWidgets_USE_FILE)
+        include(${wxWidgets_USE_FILE})
+    endif()
+
+    if(APPLE AND TARGET wx::wxgl)
+        # Newer wxWidgets CMake exports may inject the macOS OpenGL framework
+        # as a quoted file path inside wx::wxgl, which Ninja then treats as a
+        # missing input file. Orca links OpenGL explicitly elsewhere, so strip
+        # these broken pseudo-paths from the imported target.
+        get_target_property(_wx_gl_libs wx::wxgl INTERFACE_LINK_LIBRARIES)
+        if(_wx_gl_libs)
+            list(FILTER _wx_gl_libs EXCLUDE REGEX "framework OpenGL")
+            set_target_properties(wx::wxgl PROPERTIES INTERFACE_LINK_LIBRARIES "${_wx_gl_libs}")
+        endif()
+    endif()
 
     find_package(JPEG QUIET)
 

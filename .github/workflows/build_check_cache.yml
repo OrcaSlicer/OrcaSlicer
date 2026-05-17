@@ -28,7 +28,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          lfs: 'true'
+          lfs: 'false'
         
       - name: set outputs
         id: set_outputs

@@ -7,12 +7,23 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #ifndef IGL_STR_H
 #define IGL_STR_H
-// http://stackoverflow.com/a/2433143/148668
 #include <string>
 #include <sstream>
-// Suppose you have a function:
-//   void func(std::string c);
-// Then you can write:
-//   func(STR("foo"<<1<<"bar"));
+/// Convert a stream of things to std:;string
+///
+/// Suppose you have a function:
+/// \code{cpp}
+/// void func(std::string s);
+/// \endcode
+/// Then you can write:
+/// \code{cpp}
+///   func(C_STR("foo"<<1<<"bar"));
+/// \endcode
+/// which is equivalent to:
+/// \code{cpp}
+///   func("foo1bar");
+/// \endcode
+///
+// http://stackoverflow.com/a/2433143/148668
 #define STR(X) static_cast<std::ostringstream&>(std::ostringstream().flush() << X).str()
 #endif 

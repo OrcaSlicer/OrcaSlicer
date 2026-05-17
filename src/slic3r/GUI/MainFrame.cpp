@@ -46,6 +46,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "BindDialog.hpp"
 #include "../Utils/MacDarkMode.hpp"
+#include "../Utils/PrintHost.hpp"
 
 #include <fstream>
 #include <string_view>
@@ -118,7 +119,7 @@ public:
 
     ResizeEdgePanel(MainFrame* frame, Edge edge)
         : wxPanel(frame, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                  wxBORDER_NONE | wxTRANSPARENT_WINDOW)
+                  wxBORDER_NONE)
         , m_frame(frame)
         , m_edge(edge)
     {
@@ -308,6 +309,17 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     m_edge_bottom = new ResizeEdgePanel(this, ResizeEdgePanel::Bottom);
     m_edge_left   = new ResizeEdgePanel(this, ResizeEdgePanel::Left);
     m_edge_right  = new ResizeEdgePanel(this, ResizeEdgePanel::Right);
+#endif
+
+#ifdef __WXMSW__
+    if (HWND hWnd = GetHandle(); hWnd != nullptr) {
+        LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+        if ((style & WS_CAPTION) != 0) {
+            SetWindowLongPtr(hWnd, GWL_STYLE, style & ~WS_CAPTION);
+            SetWindowPos(hWnd, nullptr, 0, 0, 0, 0,
+                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+    }
 #endif
 
     if (!wxGetApp().app_config->has("user_mode")) {
@@ -524,7 +536,7 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     update_layout();
     sizer->SetSizeHints(this);
 
-#ifdef WIN32
+    #ifdef __WXMSW__
     // SetMaximize causes the window to overlap the taskbar, due to the fact this window has wxMAXIMIZE_BOX off
     // https://forums.wxwidgets.org/viewtopic.php?t=50634
     // Fix it here
@@ -542,7 +554,10 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
         Move(pos + wxPoint{borderThickness.left, borderThickness.top});
         e.Skip();
     });
-#endif // WIN32
+
+#endif // __WXMSW__
+ 
+
     // BBS
     Fit();
 
@@ -605,6 +620,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     #endif
 
         MarkdownTip::ExitTip();
+        // Prevent queued selection/UI refresh work from running as normal during reset.
+        wxGetApp().set_closing(true);
 
         m_plater->reset();
         this->shutdown();
@@ -777,7 +794,7 @@ void MainFrame::bind_diff_dialog()
 }
 
 
-#ifdef __WIN32__
+#ifdef __WXMSW__
 
 // Orca: Fix maximized window overlaps taskbar when taskbar auto hide is enabled (#8085)
 // Adopted from https://gist.github.com/MortenChristiansen/6463580
@@ -855,26 +872,31 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
     its wParam value is TRUE and the return value is 0 */
     case WM_NCCALCSIZE:
         if (wParam) {
-            /* Detect whether window is maximized or not. We don't need to change the resize border when win is
-             *  maximized because all resize borders are gone automatically */
             WINDOWPLACEMENT wPos;
             // GetWindowPlacement fail if this member is not set correctly.
             wPos.length = sizeof(wPos);
             GetWindowPlacement(hWnd, &wPos);
+            NCCALCSIZE_PARAMS *sz = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
+            RECT borderThickness;
+            SetRectEmpty(&borderThickness);
+            // Use & ~WS_CAPTION to get only the border thickness, not the caption height.
+            // wxWidgets 3.3 adds WS_CAPTION when wxMINIMIZE_BOX/wxMAXIMIZE_BOX/wxCLOSE_BOX is set,
+            // but we use a custom titlebar so we must exclude the caption from NC area calculations.
+            AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, NULL);
+            borderThickness.left *= -1;
+            borderThickness.top *= -1;
             if (wPos.showCmd != SW_SHOWMAXIMIZED) {
-                RECT borderThickness;
-                SetRectEmpty(&borderThickness);
-                AdjustWindowRectEx(&borderThickness, GetWindowLongPtr(hWnd, GWL_STYLE) & ~WS_CAPTION, FALSE, NULL);
-                borderThickness.left *= -1;
-                borderThickness.top *= -1;
-                NCCALCSIZE_PARAMS *sz = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
                 // Add 1 pixel to the top border to make the window resizable from the top border
-                sz->rgrc[0].top += 1; // borderThickness.top;
-                sz->rgrc[0].left += borderThickness.left;
-                sz->rgrc[0].right -= borderThickness.right;
-                sz->rgrc[0].bottom -= borderThickness.bottom;
-                return 0;
+                sz->rgrc[0].top += 1;
+            } else {
+                // When maximized, Windows extends the window beyond the screen by the border thickness.
+                // Strip the full border overshoot so the client area matches the work area.
+                sz->rgrc[0].top += borderThickness.top;
             }
+            sz->rgrc[0].left += borderThickness.left;
+            sz->rgrc[0].right -= borderThickness.right;
+            sz->rgrc[0].bottom -= borderThickness.bottom;
+            return 0;
         }
         break;
 
@@ -1802,8 +1824,10 @@ wxBoxSizer* MainFrame::create_side_tools()
     m_slice_select = eSlicePlate;
     m_print_select = ePrintPlate;
 
-    auto slice_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize,wxTRANSPARENT_WINDOW);
-    auto print_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize,wxTRANSPARENT_WINDOW);
+    auto slice_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize);
+    auto print_panel = new wxPanel(this,wxID_ANY,wxDefaultPosition,wxDefaultSize);
+    slice_panel->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#3B4446")));
+    print_panel->SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#3B4446")));
 
     m_slice_btn = new SideButton(slice_panel, _L("Slice plate"), "");
     m_slice_option_btn = new SideButton(slice_panel, "", "sidebutton_dropdown", 0, 14);
@@ -2336,6 +2360,11 @@ void MainFrame::update_side_button_style()
     m_print_option_btn->SetExtraSize(wxSize(FromDIP(10), FromDIP(10)));
     m_print_option_btn->SetIconOffset(FromDIP(2));
     m_print_option_btn->SetMinSize(wxSize(FromDIP(24), FromDIP(24)));
+
+    // Keep panel backgrounds in sync with SideButton's darkModeColorFor(#3B4446) bottom strip
+    auto bg = StateColor::darkModeColorFor(wxColour("#3B4446"));
+    m_slice_btn->GetParent()->SetBackgroundColour(bg);
+    m_print_btn->GetParent()->SetBackgroundColour(bg);
 }
 
 void MainFrame::update_slice_print_status(SlicePrintEventType event, bool can_slice, bool can_print)
@@ -2511,7 +2540,7 @@ static wxMenu* generate_help_menu()
     wxMenu* helpMenu = new wxMenu();
 
     // shortcut key
-    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of the keyboard shortcuts"),
+    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of keyboard shortcuts"),
         [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(); });
     // Show Beginner's Tutorial
     append_menu_item(helpMenu, wxID_ANY, _L("Setup Wizard"), _L("Setup Wizard"), [](wxCommandEvent &) {wxGetApp().ShowUserGuide();});
@@ -3215,6 +3244,15 @@ void MainFrame::init_menubar_as_editor()
             wxGetApp().open_preferences();
         },
         "", nullptr, []() { return true; }, this);
+
+        append_menu_item(
+        m_topbar->GetTopMenu(), wxID_ANY, _L("Preset Bundle") + "\t", "",
+        [this](wxCommandEvent &) {
+            // Orca: Use GUI_App::open_preferences instead of direct call so windows associations are updated on exit
+            wxGetApp().open_presetbundledialog();
+            plater()->get_current_canvas3D()->force_set_focus();
+        },
+        "", nullptr, []() { return true; }, this);
     //m_topbar->AddDropDownMenuItem(preference_item);
     //m_topbar->AddDropDownMenuItem(printer_item);
     //m_topbar->AddDropDownMenuItem(language_item);
@@ -3250,26 +3288,18 @@ void MainFrame::init_menubar_as_editor()
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
-    // Flow rate (with submenu)
-    auto flowrate_menu = new wxMenu();
-    append_menu_item(
-        flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow ratio test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
+    // Flow rate (Wizard Dialog)
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
+        [this](wxCommandEvent&) {
+            if (!m_plater) return;
+            if (!m_flow_rate_calib_dlg)
+                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
+            m_flow_rate_calib_dlg->ShowModal();
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow ratio test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    flowrate_menu->AppendSeparator();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowratio calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowratio calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    m_topbar->GetCalibMenu()->AppendSubMenu(flowrate_menu, _L("Flow ratio"));
 
-    // Retraction test
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction test"), _L("Retraction test"),
+    // Retraction
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction"), _L("Retraction"),
         [this](wxCommandEvent&) {
             if (!m_retraction_calib_dlg)
                 m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
@@ -3318,18 +3348,20 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // help
-    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Tutorial"), _L("Calibration help"),
-        [this](wxCommandEvent&) {
-            std::string url = "https://www.orcaslicer.com/wiki/Calibration";
-            if (const std::string country_code = wxGetApp().app_config->get_country_code(); country_code == "CN") {
-                // Use gitee mirror for China users
-                url = "https://gitee.com/n0isyfox/orca-slicer-docs/wikis/%E6%A0%A1%E5%87%86/%E6%89%93%E5%8D%B0%E5%8F%82%E6%95%B0%E6%A0%A1%E5%87%86";
-            }
-            wxLaunchDefaultBrowser(url, wxBROWSER_NEW_WINDOW);
-        }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"), [this](wxCommandEvent &)
+                     { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr, [this]()
+                     {return m_plater->is_view3D_shown();; }, this);
 
 #else
+    // On Mac, the Apple menu ignores non-standard custom items, so add Preset Bundle to the File menu
+    fileMenu->AppendSeparator();
+    append_menu_item(
+        fileMenu, wxID_ANY, _L("Preset Bundle"), "",
+        [this](wxCommandEvent &) {
+            wxGetApp().open_presetbundledialog();
+            plater()->get_current_canvas3D()->force_set_focus();
+        },
+        "", nullptr, []() { return true; }, this);
     m_menubar->Append(fileMenu, wxString::Format("&%s", _L("File")));
     if (editMenu)
         m_menubar->Append(editMenu, wxString::Format("&%s", _L("Edit")));
@@ -3369,25 +3401,18 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flowrate (with submenu)
-    auto flowrate_menu = new wxMenu();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow ratio test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow ratio test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_submenu(calib_menu,flowrate_menu,wxID_ANY,_L("Flow ratio"),_L("Flow ratio"),"",
-                   [this]() {return m_plater->is_view3D_shown();; });
-    flowrate_menu->AppendSeparator();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowratio calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowratio calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
+    // ORCA: Flow rate (Wizard Dialog)
+    append_menu_item(calib_menu, wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
+        [this](wxCommandEvent&) {
+            if (!m_plater) return;
+            if (!m_flow_rate_calib_dlg)
+                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
+            m_flow_rate_calib_dlg->ShowModal();
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
-    // Retraction test
-    append_menu_item(calib_menu, wxID_ANY, _L("Retraction test"), _L("Retraction test"),
+    // Retraction
+    append_menu_item(calib_menu, wxID_ANY, _L("Retraction"), _L("Retraction"),
         [this](wxCommandEvent&) {
             if (!m_retraction_calib_dlg)
                 m_retraction_calib_dlg = new Retraction_Test_Dlg((wxWindow*)this, wxID_ANY, m_plater);
@@ -3435,8 +3460,8 @@ void MainFrame::init_menubar_as_editor()
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     // help
-    append_menu_item(calib_menu, wxID_ANY, _L("Tutorial"), _L("Calibration help"),
-        [this](wxCommandEvent&) { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/Calibration", wxBROWSER_NEW_WINDOW); }, "", nullptr,
+    append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
+        [this](wxCommandEvent&) { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     m_menubar->Append(calib_menu,wxString::Format("&%s", _L("Calibration")));
@@ -3639,7 +3664,7 @@ void MainFrame::load_config_file()
  //       return;
     wxFileDialog dlg(this, _L("Select profile to load:"),
         !m_last_config.IsEmpty() ? get_dir_name(m_last_config) : wxGetApp().app_config->get_last_dir(),
-        "config.json", "Config files (*.json;*.zip;*.orca_printer;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_filament", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
+        "config.json", "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
      wxArrayString files;
     if (dlg.ShowModal() != wxID_OK)
         return;
@@ -3656,11 +3681,16 @@ void MainFrame::load_config_file()
             int           ids[]{wxID_NO, wxID_YES, wxID_NOTOALL, wxID_YESTOALL};
             return std::find(ids, ids + 4, res) - ids;
         },
-        ForwardCompatibilitySubstitutionRule::Enable);
+        ForwardCompatibilitySubstitutionRule::Enable,
+        *wxGetApp().app_config);
     if (!cfiles.empty()) {
         wxGetApp().app_config->update_config_dir(get_dir_name(cfiles.back()));
         wxGetApp().load_current_presets();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " presets has been import,and size is" << cfiles.size();
+        NetworkAgent* agent = wxGetApp().getAgent();
+        if (agent) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " user is: " << agent->get_user_id();
+        }
     }
     wxGetApp().preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
     update_side_preset_ui();
@@ -4133,15 +4163,12 @@ void MainFrame::load_printer_url()
         return;
 
     auto     cfg = preset_bundle.printers.get_edited_preset().config;
-    wxString url = cfg.opt_string("print_host_webui").empty() ? cfg.opt_string("print_host") : cfg.opt_string("print_host_webui");
+    wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
     wxString apikey;
     const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
     if (cfg.has("printhost_apikey") && (host_type == htPrusaLink || host_type == htPrusaConnect))
         apikey = cfg.opt_string("printhost_apikey");
     if (!url.empty()) {
-        if (!url.Lower().starts_with("http"))
-            url = wxString::Format("http://%s", url);
-
         load_printer_url(url, apikey);
     }
 }
@@ -4207,7 +4234,7 @@ void MainFrame::update_side_preset_ui()
 void MainFrame::on_select_default_preset(SimpleEvent& evt)
 {
     MessageDialog dialog(this,
-                    _L("Do you want to synchronize your personal data from Bambu Cloud?\n"
+                    _L("Do you want to synchronize your personal data from Orca Cloud?\n"
                         "It contains the following information:\n"
                         "1. The Process presets\n"
                         "2. The Filament presets\n"
@@ -4340,3 +4367,4 @@ void SettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 } // GUI
 } // Slic3r
+

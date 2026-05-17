@@ -1,12 +1,20 @@
 {
-    "type": "filament",
-    "setting_id": "GFSA04",
-    "name": "Generic PC @Qidi Q2C 0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "Generic PC@Q2C-Series",
-    "filament_flow_ratio": ["0.94"],
-    "filament_max_volumetric_speed": ["1"],
-    "pressure_advance": ["0.04"],
-	"compatible_printers": ["Qidi Q2C 0.2 nozzle"]
+	"type": "filament",
+	"setting_id": "GFSA04",
+	"name": "Generic PC @Qidi Q2C 0.2 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Generic PC@Q2C-Series",
+	"filament_flow_ratio": [
+		"0.94"
+	],
+	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
 }

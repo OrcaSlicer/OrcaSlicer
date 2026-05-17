@@ -1,7 +1,7 @@
 #include "GLGizmoCut.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <algorithm>
 
@@ -12,11 +12,12 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include "imgui/imgui_internal.h"
 #include "slic3r/GUI/Field.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
-#include "FixModelByWin10.hpp"
+#include "FixModelByCgal.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -1186,16 +1187,21 @@ bool GLGizmoCut3D::on_init()
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     const wxString alt   = GUI::shortkey_alt_prefix();
-    const wxString shift = _L("Shift+");
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_shortcuts_cut.push_back(std::make_pair(shift + _L("Drag"), _L("Draw cut line")));
+    m_shortcuts_cut = {
+        {_L("Drag"),                        _L("Move cut line")},
+        {shift + _L("Drag"),                _L("Draw cut line")}
+    };
 
-    m_shortcuts_connector.push_back(std::make_pair(_L("Left click"),         _L("Add connector")));
-    m_shortcuts_connector.push_back(std::make_pair(_L("Right click"),        _L("Remove connector")));
-    m_shortcuts_connector.push_back(std::make_pair(_L("Drag"),               _L("Move connector")));
-    m_shortcuts_connector.push_back(std::make_pair(shift + _L("Left click"), _L("Add connector to selection")));
-    m_shortcuts_connector.push_back(std::make_pair(alt   + _L("Left click"), _L("Remove connector from selection")));
-    m_shortcuts_connector.push_back(std::make_pair(ctrl  + "A",              _L("Select all connectors")));
+    m_shortcuts_connector = {
+        {_L("Left mouse button"),           _L("Add connector")},
+        {_L("Right mouse button"),          _L("Remove connector")},
+        {_L("Drag"),                        _L("Move connector")},
+        {shift + _L("Left mouse button"),   _L("Add connector to selection")},
+        {alt + _L("Left mouse button"),     _L("Remove connector from selection")},
+        {ctrl + "A",                        _L("Select all connectors")},
+    };
 
     return true;
 }
@@ -1902,7 +1908,7 @@ GLGizmoCut3D::PartSelection::PartSelection(const ModelObject* mo, const Transfor
     // split to parts
     for (int id = int(volumes.size())-1; id >= 0; id--)
         if (volumes[id]->is_splittable())
-            volumes[id]->split(1);
+            volumes[id]->split(1, false); // No need to remap paint here, we do it later in perform_by_contour
 
     m_parts.clear();
     for (const ModelVolume* volume : volumes) {
@@ -2313,8 +2319,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(x, get_cur_y);
+    render_tooltip_button(x, y);
 
     float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
@@ -2757,7 +2762,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
     float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(x, get_cur_y);
+    render_tooltip_button(x, get_cur_y);
 
     float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
@@ -2917,43 +2922,11 @@ void GLGizmoCut3D::on_render_input_window(float x, float y, float bottom_limit)
         render_debug_input_window(x);
 }
 
-void GLGizmoCut3D::show_tooltip_information(float x, float y)
+void GLGizmoCut3D::render_tooltip_button(float x, float y)
 {
-    auto &shortcuts = m_connectors_editing ? m_shortcuts_connector : m_shortcuts_cut;
+    auto& shortcuts = m_connectors_editing ? m_shortcuts_connector : m_shortcuts_cut;
 
-    float                      caption_max = 0.f;
-    for (const auto &short_cut : shortcuts) {
-        caption_max = std::max(caption_max, m_imgui->calc_text_size(short_cut.first).x);
-    }
-
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 35.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &short_cut : shortcuts)
-            draw_text_with_caption(short_cut.first + ": ", short_cut.second);
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcuts, x, y);
 }
 
 bool GLGizmoCut3D::is_outside_of_cut_contour(size_t idx, const CutConnectors& connectors, const Vec3d cur_pos)
@@ -3348,6 +3321,7 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
 
         wxBusyCursor wait;
 
+        const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
         ModelObjectCutAttributes attributes = only_if(has_connectors ? true : m_keep_upper, ModelObjectCutAttribute::KeepUpper) |
                                               only_if(has_connectors ? true : m_keep_lower, ModelObjectCutAttribute::KeepLower) |
                                               only_if(has_connectors ? false : m_keep_as_parts, ModelObjectCutAttribute::KeepAsParts) |
@@ -3356,19 +3330,19 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                                               only_if(m_rotate_upper, ModelObjectCutAttribute::FlipUpper) |
                                               only_if(m_rotate_lower, ModelObjectCutAttribute::FlipLower) |
                                               only_if(dowels_count > 0, ModelObjectCutAttribute::CreateDowels) |
-                                              only_if(!has_connectors && !cut_with_groove && cut_mo->cut_id.id().invalid(), ModelObjectCutAttribute::InvalidateCutInfo);
+                                              only_if(!has_connectors && !cut_with_groove && cut_mo->cut_id.id().invalid(), ModelObjectCutAttribute::InvalidateCutInfo) |
+                                              only_if(keep_painting, ModelObjectCutAttribute::KeepPaint);
 
         // update cut_id for the cut object in respect to the attributes
         update_object_cut_id(cut_mo->cut_id, attributes, dowels_count);
 
         Cut cut(cut_mo, instance_idx, get_cut_matrix(selection), attributes);
-        const ModelObjectPtrs& new_objects = cut_by_contour    ? cut.perform_by_contour(m_part_selection.get_cut_parts(), dowels_count):
+        const ModelObjectPtrs& new_objects = cut_by_contour    ? cut.perform_by_contour(mo, m_part_selection.get_cut_parts(), dowels_count):
                                              cut_with_groove   ? cut.perform_with_groove(m_groove, m_rotation_m) :
                                                                  cut.perform_with_plane();
 
         // fix_non_manifold_edges
-#ifdef HAS_WIN10SDK
-        if (is_windows10()) {
+        {
             bool is_showed_dialog = false;
             bool user_fix_model   = false;
             for (size_t i = 0; i < new_objects.size(); i++) {
@@ -3390,12 +3364,12 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                         // model_name     failing reason
                         std::vector<std::pair<std::string, std::string>> failed_models;
                         auto                                             plater = wxGetApp().plater();
-                        auto fix_and_update_progress = [this, plater](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
+                        auto fix_and_update_progress = [this, plater, keep_painting](ModelObject *model_object, const int vol_idx, const string &model_name, ProgressDialog &progress_dlg,
                                                                       std::vector<std::string> &succes_models, std::vector<std::pair<std::string, std::string>> &failed_models) {
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
                             std::string res;
-                            if (!fix_model_by_win10_sdk_gui(*model_object, vol_idx, progress_dlg, msg, res)) return false;
+                            if (!fix_model_with_cgal_gui(*model_object, vol_idx, progress_dlg, msg, res, keep_painting)) return false;
                             return true;
                         };
                         ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater), wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
@@ -3408,7 +3382,6 @@ void GLGizmoCut3D::perform_cut(const Selection& selection)
                 }
             }
         }
- #endif
         check_objects_after_cut(new_objects);
 
         // save cut_id to post update synchronization

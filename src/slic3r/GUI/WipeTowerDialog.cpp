@@ -366,7 +366,7 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
 WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxDialog(parent, wxID_ANY, _(L("Flushing volumes for filament change")),
     wxDefaultPosition, wxDefaultSize,
-    wxDEFAULT_DIALOG_STYLE ),
+    wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
     m_max_flush_volume(max_flush_volume)
 {
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
@@ -404,7 +404,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";
-    wxString filepath_str = wxString::FromUTF8(filepath.string());
+    wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
         wxString url = wxFileSystem::FileNameToURL(fn);

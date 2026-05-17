@@ -14,20 +14,18 @@ namespace igl
 {
   namespace copyleft
   {
-    // RESOLVE_INTERSECTIONS Given a list of possible intersecting segments with
-    // endpoints, split segments to overlap only at endpoints
-    //
-    // Inputs:
-    //   V  #V by 2 list of vertex positions
-    //   E  #E by 2 list of segment indices into V
-    // Outputs:
-    //   VI  #VI by 2 list of output vertex positions, copies of V are always
-    //     the first #V vertices
-    //   EI  #EI by 2 list of segment indices into V, #EI ≥ #E
-    //   J  #EI list of indices into E revealing "parent segments"
-    //   IM  #VI list of indices into VV of unique vertices.
     namespace cgal
     {
+    /// Given a list of possible intersecting segments with endpoints, split
+    /// segments to overlap only at endpoints
+    ///
+    /// @param[in] V  #V by 2 list of vertex positions
+    /// @param[in] E  #E by 2 list of segment indices into V
+    /// @param[out] VI  #VI by 2 list of output vertex positions, copies of V are always
+    ///               the first #V vertices
+    /// @param[out] EI  #EI by 2 list of segment indices into V, #EI ≥ #E
+    /// @param[out] J  #EI list of indices into E revealing "parent segments"
+    /// @param[out] IM  #VI list of indices into VV of unique vertices.
       template <
         typename DerivedV, 
         typename DerivedE, 
@@ -36,8 +34,8 @@ namespace igl
         typename DerivedJ,
         typename DerivedIM>
       IGL_INLINE void resolve_intersections(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedE> & E,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedE> & E,
         Eigen::PlainObjectBase<DerivedVI> & VI,
         Eigen::PlainObjectBase<DerivedEI> & EI,
         Eigen::PlainObjectBase<DerivedJ> & J,

@@ -94,7 +94,7 @@ void CopyrightsDialog::fill_entries()
         { "Eigen3",                                         "",      "http://eigen.tuxfamily.org" },
         { "Expat",                                          "",      "http://www.libexpat.org" },
         { "fast_float",                                     "",      "https://github.com/fastfloat/fast_float" },
-        { "GLEW (The OpenGL Extension Wrangler Library)",   "",      "http://glew.sourceforge.net" },
+        { "GLAD (Multi-Language GL Loader-Generator)",       "",      "https://github.com/Dav1dde/glad" },
         { "GLFW",                                           "",      "https://www.glfw.org" },
         { "GNU gettext",                                    "",      "https://www.gnu.org/software/gettext" },
         { "ImGUI",                                          "",      "https://github.com/ocornut/imgui" },
@@ -248,12 +248,7 @@ AboutDialog::AboutDialog()
         wxStaticText* credits_string = new wxStaticText(this, wxID_ANY, wxString::Format("Build %s", std::string(GIT_COMMIT_HASH)), wxDefaultPosition, wxDefaultSize);
         credits_string->SetFont(_build_string_font);
         wxFont version_font = GetFont();
-        #ifdef __WXMSW__
-			version_font.SetPointSize(version_font.GetPointSize()-1);
-        #else
-            version_font.SetPointSize(11);
-        #endif
-        version_font.SetPointSize(20);
+        version_font = version_font.Scaled(1.85f); // SetPointSize(20) not works on macOS because it uses a 72 PPI reference
         version->SetFont(version_font);
         version->SetForegroundColour(wxColour("#949494"));
         credits_string->SetForegroundColour(wxColour("#949494"));
@@ -293,7 +288,8 @@ AboutDialog::AboutDialog()
                     find_txt += text_list[i][o];
                     count_txt += text_list[i][o];
                 } else {
-                    find_txt += std::string("\n") + text_list[i][o];
+                    find_txt += "\n";
+                    find_txt += text_list[i][o];
                     count_txt = text_list[i][o];
                 }
             }

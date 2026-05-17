@@ -783,7 +783,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     printingstage_horizontal_sizer->Add(m_printing_stage_value, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
     printingstage_horizontal_sizer->Add(m_question_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
     printingstage_vertical_sizer->Add(printingstage_horizontal_sizer, 0, wxALIGN_CENTER_VERTICAL, 0);
-    printingstage_vertical_sizer->Add(m_printing_stage_underline, 0, wxEXPAND |wxALIGN_TOP, 0);
+    printingstage_vertical_sizer->Add(m_printing_stage_underline, 0, wxEXPAND, 0);
     m_printing_stage_panel->SetSizer(printingstage_vertical_sizer);
 
     // Orca: display the end time of the print
@@ -2122,7 +2122,7 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     });
 
 
-    sizer_box->Add(steps_sizer, 0, wxEXPAND | wxALIGN_LEFT | wxTOP, FromDIP(5));
+    sizer_box->Add(steps_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
     sizer_box->Add(m_button_retry, 0, wxLEFT, FromDIP(28));
     sizer_box->Add(0, 0, 0, wxTOP, FromDIP(5));
     m_filament_load_box->SetBackgroundColour(*wxWHITE);

@@ -98,7 +98,7 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
 }
 
 static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perimeter_generator, const PerimeterGeneratorLoops &loops, ThickPolylines &thin_walls,
-    bool &steep_overhang_contour, bool &steep_overhang_hole)
+    bool &steep_overhang_contour, bool &steep_overhang_hole, bool reverse_thin_wall_hole)
 {
     // loops is an arrayref of ::Loop objects
     // turn each one into an ExtrusionLoop object
@@ -206,7 +206,8 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             // Reapply the nearest point search for starting point.
             // We allow polyline reversal because Clipper may have randomly reversed polylines during clipping.
             if(paths.empty()) continue;
-            chain_and_reorder_extrusion_paths(paths, &paths.front().first_point());
+            Point start_pt = Point(paths.front().first_point().x(), paths.front().first_point().y());
+            chain_and_reorder_extrusion_paths(paths, &start_pt);
         } else {
             if (overhangs_reverse && perimeter_generator.layer_id > perimeter_generator.object_config->raft_layers) {
                 // Always reverse if detect overhang wall is not enabled
@@ -216,7 +217,7 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
 
             ExtrusionPath path(role);
             //BBS.
-            path.polyline = polygon.split_at_first_point();
+            path.polyline = Polyline3(polygon.split_at_first_point());
             path.mm3_per_mm = extrusion_mm3_per_mm;
             path.width = extrusion_width;
             path.height     = (float)perimeter_generator.layer_height;
@@ -248,12 +249,24 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
         } else {
             const PerimeterGeneratorLoop &loop = loops[idx.first];
             assert(thin_walls.empty());
-            ExtrusionEntityCollection children = traverse_loops(perimeter_generator, loop.children, thin_walls, steep_overhang_contour, steep_overhang_hole);
+            const bool reverse_children_thin_wall_hole = loops.size() == 1 && loop.is_contour && loop.children.size() == 1 &&
+                                                         (!loop.children.front().is_contour) && loop.children.front().children.empty();
+            ExtrusionEntityCollection children = traverse_loops(perimeter_generator, loop.children, thin_walls, steep_overhang_contour,
+                                                                steep_overhang_hole, reverse_children_thin_wall_hole);
             out.entities.reserve(out.entities.size() + children.entities.size() + 1);
             ExtrusionLoop *eloop = static_cast<ExtrusionLoop*>(coll.entities[idx.first]);
             coll.entities[idx.first] = nullptr;
 
-            eloop->make_counter_clockwise();
+            if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) == (loop.is_contour || reverse_thin_wall_hole))
+                eloop->make_counter_clockwise();
+            else
+                eloop->make_clockwise();
+
+            // Orca: Reverse print order for thin wall holes.
+            if (reverse_thin_wall_hole) {
+                std::reverse(out.entities.begin(), out.entities.end());
+            }
+
             eloop->inset_idx = loop.depth;
             if (loop.is_contour) {
                 out.append(std::move(children.entities));
@@ -429,7 +442,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     Polylines be_clipped;
 
                     for (const ExtrusionPath &p : it.second) {
-                        be_clipped.emplace_back(std::move(p.polyline));
+                        be_clipped.emplace_back(p.polyline.to_polyline());
                     }
 
                     BoundingBox extrusion_bboxs = get_extents(be_clipped);
@@ -463,11 +476,13 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     };
                     std::unordered_map<Point, PointInfo, PointHash> point_occurrence;
                     for (const ExtrusionPath& path : paths) {
-                        ++point_occurrence[path.polyline.first_point()].occurrence;
-                        ++point_occurrence[path.polyline.last_point()].occurrence;
+                        Point first_p = path.polyline.first_point().to_point();
+                        Point last_p  = path.polyline.last_point().to_point();
+                        ++point_occurrence[first_p].occurrence;
+                        ++point_occurrence[last_p].occurrence;
                         if (path.role() == erOverhangPerimeter) {
-                            point_occurrence[path.polyline.first_point()].is_overhang = true;
-                            point_occurrence[path.polyline.last_point()].is_overhang = true;
+                            point_occurrence[first_p].is_overhang = true;
+                            point_occurrence[last_p].is_overhang = true;
                         }
                     }
 
@@ -511,7 +526,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
-                extrusion_loop.make_counter_clockwise();
+                if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
+                    (pg_extrusion.is_contour || pg_extrusions.size() == 2))
+                    extrusion_loop.make_counter_clockwise();
+                else
+                    extrusion_loop.make_clockwise();  
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
@@ -519,8 +538,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 assert(extrusion_loop.paths.front().first_point() == extrusion_loop.paths.back().last_point());
-
                 extrusion_coll.append(std::move(extrusion_loop));
+                // Orca: Reverse the order of paths for thin wall holes. We define thin wall hole as a hole with only one perimeter.
+                const bool thin_wall_hole = !pg_extrusion.is_contour && pg_extrusions.size() == 2;
+                if (thin_wall_hole && perimeter_generator.config->wall_sequence != WallSequence::OuterInner)
+                    std::reverse(extrusion_coll.entities.begin(), extrusion_coll.entities.end());
             }
             else {
                 // Because we are processing one ExtrusionLine all ExtrusionPaths should form one connected path.
@@ -655,11 +677,17 @@ bool paths_touch(const ExtrusionPath &path_one, const ExtrusionPath &path_two, d
 {
     AABBTreeLines::LinesDistancer<Line> lines_two{path_two.as_polyline().lines()};
     for (size_t pt_idx = 0; pt_idx < path_one.polyline.size(); pt_idx++) {
-        if (lines_two.distance_from_lines<false>(path_one.polyline.points[pt_idx]) < limit_distance) { return true; }
+        Point pt = path_one.polyline.points[pt_idx].to_point();
+        if (lines_two.distance_from_lines<false>(pt) < limit_distance) {
+            return true;
+        }
     }
     AABBTreeLines::LinesDistancer<Line> lines_one{path_one.as_polyline().lines()};
     for (size_t pt_idx = 0; pt_idx < path_two.polyline.size(); pt_idx++) {
-        if (lines_one.distance_from_lines<false>(path_two.polyline.points[pt_idx]) < limit_distance) { return true; }
+        Point pt = path_two.polyline.points[pt_idx].to_point();
+        if (lines_one.distance_from_lines<false>(pt) < limit_distance) {
+            return true;
+        }
     }
     return false;
 }
@@ -1013,7 +1041,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
                 // polyline)
                 bool first_overhang_is_closed_and_anchored =
                     (overhang_region.front().first_point() == overhang_region.front().last_point() &&
-                     !intersection_pl(overhang_region.front().polyline, optimized_lower_slices).empty());
+                     !intersection_pl(overhang_region.front().polyline.to_polyline(), optimized_lower_slices).empty());
                      
                 auto is_anchored = [&lower_layer_aabb_tree](const ExtrusionPath &path) {
                     return lower_layer_aabb_tree.distance_from_lines<true>(path.first_point()) <= 0 ||
@@ -1025,7 +1053,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
                     size_t min_dist_idx = 0;
                     double min_dist = std::numeric_limits<double>::max();
                     for (size_t i = 0; i < overhang_region.front().polyline.size(); i++) {
-                        Point p = overhang_region.front().polyline[i];
+                        Point p = overhang_region.front().polyline.points[i].to_point();
                         if (double d = lower_layer_aabb_tree.distance_from_lines<true>(p) < min_dist) {
                             min_dist = d;
                             min_dist_idx = i;
@@ -1106,7 +1134,7 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
                 }
                 
                 if (need_reverse && !isExternal) {
-                    eloop->make_clockwise();
+                    eloop->reverse();
                 }
             }
         }
@@ -1414,18 +1442,17 @@ void PerimeterGenerator::process_classic()
             // at this point, all loops should be in contours[0]
             bool steep_overhang_contour = false;
             bool steep_overhang_hole    = false;
-            const WallDirection wall_direction = config->wall_direction;
-            if (wall_direction != WallDirection::Auto) {
-                // Skip steep overhang detection if wall direction is specified
+            if (!config->overhang_reverse) {
+                // Skip steep overhang detection no reverse is specified
                 steep_overhang_contour = true;
                 steep_overhang_hole    = true;
             }
-            ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole);
+            ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole, false);
             // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
-            if (wall_direction != WallDirection::CounterClockwise) {
+            if (config->overhang_reverse) {
                 reorient_perimeters(entities, steep_overhang_contour, steep_overhang_hole,
                                     // Reverse internal only if the wall direction is auto
-                                    this->config->overhang_reverse_internal_only && wall_direction == WallDirection::Auto);
+                                    this->config->overhang_reverse_internal_only);
             }
 
             // if brim will be printed, reverse the order of perimeters so that
@@ -1544,9 +1571,9 @@ void PerimeterGenerator::process_classic()
         } // for each loop of an island
 
         // fill gaps
-        if (! gaps.empty()) {
-            // collapse
-            double min = 0.2 * perimeter_width * (1 - INSET_OVERLAP_TOLERANCE);
+        if (! gaps.empty()) { // collapse
+            // ORCA: Use the smaller width as the lower bound to avoid overestimating safe overlap
+            double min = 0.2 * std::min(perimeter_width, ext_perimeter_width) * (1 - INSET_OVERLAP_TOLERANCE);
             double max = 2. * perimeter_spacing;
             ExPolygons gaps_ex = diff_ex(
                 //FIXME offset2 would be enough and cheaper.
@@ -1711,8 +1738,12 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
             //compute our unsupported surface
             ExPolygons unsupported = diff_ex(last, *this->lower_slices, ApplySafetyOffset::Yes);
             if (!unsupported.empty()) {
-                //remove small overhangs
-                ExPolygons unsupported_filtered = offset2_ex(unsupported, double(-perimeter_spacing), double(perimeter_spacing));
+                // remove small overhangs (when using chbFilled we need to be less aggressive in removing small overhangs,
+                // to avoid affecting bridging detection.)
+                const int  outset_divisor       = this->config->counterbore_hole_bridging.value == chbFilled ? 2 : 1;
+                ExPolygons unsupported_filtered = offset2_ex(unsupported, double(-perimeter_spacing),
+                                                             double(perimeter_spacing) / outset_divisor);
+
                 if (!unsupported_filtered.empty()) {
                     //to_draw.insert(to_draw.end(), last.begin(), last.end());
                     //extract only the useful part of the lower layer. The safety offset is really needed here.
@@ -1755,7 +1786,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     }
                                 }
                                 unsupported_filtered = intersection_ex(last,
-                                                                       offset2_ex(unsupported_filtered, double(-perimeter_spacing / 2), double(bridged_infill_margin + perimeter_spacing / 2)));
+                                                                       offset_ex(unsupported_filtered, 0.5 * double(bridged_infill_margin)));
                                 if (this->config->counterbore_hole_bridging.value == chbFilled) {
                                     for (ExPolygon& expol : unsupported_filtered) {
                                         //check if the holes won't be covered by the upper layer
@@ -1807,6 +1838,12 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 }
                                 //TODO: add other polys as holes inside this one (-margin)
                             } else if (/*this->config->counterbore_hole_bridging.value == chbBridgesOverhangs || */this->config->counterbore_hole_bridging.value == chbBridges) {
+                                // Partially bridged counterbore handling should not rewrite generic bridge islands
+                                // because by doing so regular bridges will lose their overhang-wall perimeters.
+                                if (surface->expolygon.holes.empty()) {
+                                    unsupported_filtered.clear(); // "Partially bridged" only applies to hole-bearing bridge islands. 
+                                    continue;
+                                }
                                 //simplify to avoid most of artefacts from printing lines.
                                 ExPolygons bridgeable_simplified;
                                 for (ExPolygon& poly : bridgeable) {
@@ -1851,6 +1888,20 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     unbridgeable = offset_ex(unbridgeable, ext_perimeter_width + offset_to_do, ClipperLib::jtSquare);
                                     bridges_temp = diff_ex(bridges_temp, unbridgeable);
                                     unsupported_filtered = offset_ex(bridges_temp, offset_to_do);
+                                    unsupported_filtered = intersection_ex(unsupported_filtered, reference);
+
+                                    // Normalize anchor size for partial bridges:
+                                    // derive the bridge core first, then add a fixed overlap into support.
+                                    const coordf_t anchor_overlap = bridged_infill_margin;
+                                    ExPolygons bridge_core = diff_ex(unsupported_filtered, support, ApplySafetyOffset::Yes);
+                                    if (bridge_core.empty()) {
+                                        bridge_core = unsupported_filtered;
+                                    }
+                                    ExPolygons anchor_overlap_area = intersection_ex(
+                                        offset_ex(bridge_core, anchor_overlap),
+                                        support,
+                                        ApplySafetyOffset::Yes);
+                                    unsupported_filtered = union_ex(bridge_core, anchor_overlap_area);
                                     unsupported_filtered = intersection_ex(unsupported_filtered, reference);
                                 // } else {
                                 //     ExPolygons unbridgeable = intersection_ex(unsupported, diff_ex(unsupported_filtered, offset_ex(bridgeable_simplified, ext_perimeter_width / 2)));
@@ -2444,18 +2495,15 @@ void PerimeterGenerator::process_arachne()
         
         bool steep_overhang_contour = false;
         bool steep_overhang_hole    = false;
-        const WallDirection wall_direction = config->wall_direction;
-        if (wall_direction != WallDirection::Auto) {
-            // Skip steep overhang detection if wall direction is specified
+        if (!config->overhang_reverse) {
+            // Skip steep overhang detection no reverse is specified
             steep_overhang_contour = true;
             steep_overhang_hole    = true;
         }
         if (ExtrusionEntityCollection extrusion_coll = traverse_extrusions(*this, ordered_extrusions, steep_overhang_contour, steep_overhang_hole); !extrusion_coll.empty()) {
-            // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
-            if (wall_direction != WallDirection::CounterClockwise) {
+            if (config->overhang_reverse) {
                 reorient_perimeters(extrusion_coll, steep_overhang_contour, steep_overhang_hole,
-                                    // Reverse internal only if the wall direction is auto
-                                    this->config->overhang_reverse_internal_only && wall_direction == WallDirection::Auto);
+                                    this->config->overhang_reverse_internal_only);
             }
             this->loops->append(extrusion_coll);
         }

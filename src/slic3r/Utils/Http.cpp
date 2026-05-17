@@ -570,6 +570,21 @@ Http& Http::header(std::string name, const std::string &value)
 	return *this;
 }
 
+Http& Http::headers_reset()
+{
+	if (!p) { return *this; }
+
+	::curl_slist_free_all(p->headerlist);
+	p->headerlist = nullptr;
+	p->headerlist = curl_slist_append(p->headerlist, "Expect:");
+
+	std::lock_guard<std::mutex> l(g_mutex);
+	for (auto it = extra_headers.begin(); it != extra_headers.end(); ++it)
+		this->header(it->first, it->second);
+
+	return *this;
+}
+
 Http& Http::remove_header(std::string name)
 {
 	if (p) {
@@ -605,6 +620,16 @@ Http& Http::ca_file(const std::string &name)
 		::curl_easy_setopt(p->curl, CURLOPT_CAINFO, name.c_str());
 	}
 
+	return *this;
+}
+
+Http& Http::tls_verify(bool enable)
+{
+	if (p) {
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYPEER, enable ? 1L : 0L);
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_VERIFYHOST, enable ? 2L : 0L);
+		::curl_easy_setopt(p->curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+	}
 	return *this;
 }
 

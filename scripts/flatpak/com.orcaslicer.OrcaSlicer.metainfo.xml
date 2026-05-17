@@ -2,9 +2,6 @@
 <component type="desktop">
     <id>com.orcaslicer.OrcaSlicer</id>
     <launchable type="desktop-id">com.orcaslicer.OrcaSlicer.desktop</launchable>
-    <provides>
-        <id>com.orcaslicer.OrcaSlicer.desktop</id>
-    </provides>
     <name>OrcaSlicer</name>
     <summary>Get even more perfect prints!</summary>
     <developer id="com.orcaslicer">
@@ -27,11 +24,11 @@
     </recommends>
     <screenshots>
         <screenshot type="default">
-            <image>https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/scripts/flatpak/images/1.png</image>
+            <image>https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/v2.3.2/scripts/flatpak/images/1.png</image>
             <caption>A model ready to be sliced on a buildplate.</caption>
         </screenshot>
         <screenshot>
-            <image>https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/scripts/flatpak/images/2.png</image>
+            <image>https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/v2.3.2/scripts/flatpak/images/2.png</image>
             <caption>A calibration test ready to be printed out.</caption>
         </screenshot>
     </screenshots>
@@ -42,17 +39,14 @@
         <p>Key features include advanced calibration tools, adaptive layer heights, tree supports,
             multi-material support, and an intuitive interface for both beginners and experts.
             OrcaSlicer also provides built-in network printing capabilities for compatible printers.</p>
-        <p>Originally forked from Bambu Studio and PrusaSlicer, OrcaSlicer builds on a strong
-            foundation with community-driven improvements and optimizations for print quality
-            and reliability.</p>
     </description>
     <branding>
         <color type="primary" scheme_preference="light">#009688</color>
         <color type="primary" scheme_preference="dark">#00695C</color>
     </branding>
     <releases>
-        <release version="2.3.2-rc" date="2025-03-01">
-            <url type="details">https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/v2.3.2-rc</url>
+        <release version="2.3.2" date="2025-03-23">
+            <url type="details">https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/v2.3.2</url>
             <description>
                 <p>See the release page for detailed changelog.</p>
             </description>

@@ -1,5 +1,6 @@
 #include "HMS.hpp"
 
+#include "GUI.hpp"
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
@@ -241,7 +242,7 @@ int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string 
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ofstream json_file(encode_path(dir_str.c_str()));
     if (json_file.is_open()) {
-        json_file << std::setw(4) << save_json << std::endl;
+        json_file << save_json.dump(1, '\t') << std::endl;
         json_file.close();
         return 0;
     }
@@ -567,7 +568,7 @@ wxImage HMSQuery::query_image_from_local(const wxString& image_name)
             {
                 const fs::path& image_path = entry.path();
                 const fs::path& image_name = fs::relative(image_path, local_img_dir);
-                m_hms_local_images[image_name.string()] = wxImage(wxString::FromUTF8(image_path.string()));
+                m_hms_local_images[from_path(image_name)] = wxImage(from_path(image_path));
             }
         }
     }

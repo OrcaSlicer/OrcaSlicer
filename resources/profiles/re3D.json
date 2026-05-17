@@ -1,0 +1,158 @@
+{
+	"name": "re3D",
+	"version": "02.01.01.10",
+	"force_update": "0",
+	"description": "re3D configurations",
+	"machine_model_list": [
+		{
+			"name": "re3D Gigabot 4",
+			"sub_path": "machine/re3D Gigabot 4.json"
+		},
+		{
+			"name": "re3D Gigabot 4 XLT",
+			"sub_path": "machine/re3D Gigabot 4 XLT.json"
+		},
+		{
+			"name": "re3D Terabot 4",
+			"sub_path": "machine/re3D Terabot 4.json"
+		},
+		{
+			"name": "re3D Gigabot X2",
+			"sub_path": "machine/re3D Gigabot X2.json"
+		},
+		{
+			"name": "re3D Gigabot X2 XLT",
+			"sub_path": "machine/re3D Gigabot X2 XLT.json"
+		},
+		{
+			"name": "re3D Terabot X2",
+			"sub_path": "machine/re3D Terabot X2.json"
+		}
+	],
+	"process_list": [
+		{
+			"name": "fdm_process_common",
+			"sub_path": "process/fdm_process_common.json"
+		},
+		{
+			"name": "fdm_process_re3D_common",
+			"sub_path": "process/fdm_process_re3D_common.json"
+		},
+		{
+			"name": "fgf_process_re3D_common",
+			"sub_path": "process/fgf_process_re3D_common.json"
+		},
+		{
+			"name": "0.2mm Fine @re3D fdm 0.4",
+			"sub_path": "process/0.2mm Fine @re3D fdm 0.4.json"
+		},
+		{
+			"name": "0.26mm Standard @re3D fdm 0.4",
+			"sub_path": "process/0.26mm Standard @re3D fdm 0.4.json"
+		},
+		{
+			"name": "0.32mm Draft @re3D fdm 0.4",
+			"sub_path": "process/0.32mm Draft @re3D fdm 0.4.json"
+		},
+		{
+			"name": "0.2mm Standard @re3D fdm 0.8",
+			"sub_path": "process/0.2mm Standard @re3D fdm 0.8.json"
+		},
+		{
+			"name": "0.4mm Draft @re3D fdm 0.8",
+			"sub_path": "process/0.4mm Draft @re3D fdm 0.8.json"
+		},
+		{
+			"name": "1.0mm Standard @re3D fgf 1.75",
+			"sub_path": "process/1.0mm Standard @re3D fgf 1.75.json"
+		}
+	],
+	"filament_list": [
+		{
+			"name": "fdm_filament_common",
+			"sub_path": "filament/fdm_filament_common.json"
+		},
+		{
+			"name": "fdm_filament_pet",
+			"sub_path": "filament/fdm_filament_pet.json"
+		},
+		{
+			"name": "fdm_filament_pla",
+			"sub_path": "filament/fdm_filament_pla.json"
+		},
+		{
+			"name": "fdm_filament_pc",
+			"sub_path": "filament/fdm_filament_pc.json"
+		},
+		{
+			"name": "re3D Greengate rPETG",
+			"sub_path": "filament/re3D Greengate rPETG.json"
+		},
+		{
+			"name": "re3D PC",
+			"sub_path": "filament/re3D PC.json"
+		},
+		{
+			"name": "re3D PETG",
+			"sub_path": "filament/re3D PETG.json"
+		},
+		{
+			"name": "re3D PLA",
+			"sub_path": "filament/re3D PLA.json"
+		},
+		{
+			"name": "re3D rPP",
+			"sub_path": "filament/re3D rPP.json"
+		}
+	],
+	"machine_list": [
+		{
+			"name": "fdm_machine_common",
+			"sub_path": "machine/fdm_machine_common.json"
+		},
+		{
+			"name": "fdm_re3D_common",
+			"sub_path": "machine/fdm_re3D_common.json"
+		},
+		{
+			"name": "fgf_re3D_common",
+			"sub_path": "machine/fgf_re3D_common.json"
+		},
+		{
+			"name": "re3D Gigabot 4 0.4 nozzle",
+			"sub_path": "machine/re3D Gigabot 4 0.4 nozzle.json"
+		},
+		{
+			"name": "re3D Gigabot 4 0.8 nozzle",
+			"sub_path": "machine/re3D Gigabot 4 0.8 nozzle.json"
+		},
+		{
+			"name": "re3D Gigabot 4 XLT 0.4 nozzle",
+			"sub_path": "machine/re3D Gigabot 4 XLT 0.4 nozzle.json"
+		},
+		{
+			"name": "re3D Gigabot 4 XLT 0.8 nozzle",
+			"sub_path": "machine/re3D Gigabot 4 XLT 0.8 nozzle.json"
+		},
+		{
+			"name": "re3D Terabot 4 0.4 nozzle",
+			"sub_path": "machine/re3D Terabot 4 0.4 nozzle.json"
+		},
+		{
+			"name": "re3D Terabot 4 0.8 nozzle",
+			"sub_path": "machine/re3D Terabot 4 0.8 nozzle.json"
+		},
+		{
+			"name": "re3D Gigabot X2 1.75 nozzle",
+			"sub_path": "machine/re3D Gigabot X2 1.75 nozzle.json"
+		},
+		{
+			"name": "re3D Gigabot X2 XLT 1.75 nozzle",
+			"sub_path": "machine/re3D Gigabot X2 XLT 1.75 nozzle.json"
+		},
+		{
+			"name": "re3D Terabot X2 1.75 nozzle",
+			"sub_path": "machine/re3D Terabot X2 1.75 nozzle.json"
+		}
+	]
+}

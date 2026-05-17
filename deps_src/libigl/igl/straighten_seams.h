@@ -6,30 +6,26 @@
 
 namespace igl
 {
-  // STRAIGHTEN_SEAMS Given a obj-style mesh with (V,F) defining the geometric
-  // surface of the mesh and (VT,FT) defining the
-  // parameterization/texture-mapping of the mesh in the uv-domain, find all
-  // seams and boundaries in the texture-mapping and "straighten" them,
-  // remapping vertices along the boundary and in the interior. This will be
-  // careful to consistently straighten multiple seams in the texture-mesh
-  // corresponding to the same edge chains in the surface-mesh. 
-  //
-  // [UT] = straighten_seams(V,F,VT,FT)
-  //
-  // Inputs:
-  //  V  #V by 3 list of vertices
-  //  F  #F by 3 list of triangle indices
-  //  VT  #VT by 2 list of texture coordinates
-  //  FT  #F by 3 list of triangle texture coordinates
-  //  Optional:
-  //    'Tol'  followed by Ramer-Douglas-Peucker tolerance as a fraction of the
-  //      curves bounding box diagonal (see dpsimplify)
-  // Outputs:
-  //   UE  #UE by 2 list of indices into VT of coarse output polygon edges
-  //   UT  #VT by 3 list of new texture coordinates
-  //   OT  #OT by 2 list of indices into VT of boundary edges 
-  //
-  // See also: simplify_curve, dpsimplify
+  /// Given a obj-style mesh with (V,F) defining the geometric surface of the
+  /// mesh and (VT,FT) defining the parameterization/texture-mapping of the mesh
+  /// in the uv-domain, find all seams and boundaries in the texture-mapping and
+  /// "straighten" them, remapping vertices along the boundary and in the
+  /// interior. This will be careful to consistently straighten multiple seams
+  /// in the texture-mesh corresponding to the same edge chains in the
+  /// surface-mesh. 
+  ///
+  ///
+  /// @param[in] V  #V by 3 list of vertices
+  /// @param[in] F  #F by 3 list of triangle indices
+  /// @param[in] VT  #VT by 2 list of texture coordinates
+  /// @param[in] FT  #F by 3 list of triangle texture coordinates
+  /// @param[in] tol  followed by Ramer-Douglas-Peucker tolerance as a fraction
+  ///   of the curves bounding box diagonal (see dpsimplify)
+  /// @param[out] UE  #UE by 2 list of indices into VT of coarse output polygon edges
+  /// @param[out] UT  #VT by 3 list of new texture coordinates
+  /// @param[out] OT  #OT by 2 list of indices into VT of boundary edges 
+  ///
+  /// \see ramer_douglas_peucker
   template <
     typename DerivedV,
     typename DerivedF,
