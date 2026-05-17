@@ -3793,8 +3793,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             const float time = m_move_type_times[move_type_idx][current_time_mode];
             const std::string time_text = full_layout && time > 0.0f ? short_time(get_time_dhms(time)) : "";
             const std::string percent_text = full_layout && total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
+            const float seam_distance = m_print_statistics.total_seam_gap_distance + m_print_statistics.total_seam_scarf_distance;
+            const float distance = (option_type == libvgcode::EOptionType::Seams && seam_distance > 0.0f) ? seam_distance : m_move_type_distances[move_type_idx];
             const std::string distance_text = full_layout && (option_type == libvgcode::EOptionType::Wipes || option_type == libvgcode::EOptionType::Retractions || option_type == libvgcode::EOptionType::Unretractions || option_type == libvgcode::EOptionType::Seams)
-                ? format_distance(m_move_type_distances[move_type_idx])
+                ? format_distance(distance)
                 : "";
             const std::string count_text = full_layout ? format_compact_count(m_move_type_counts[move_type_idx]) : "";
 

@@ -80,6 +80,8 @@ class Print;
         unsigned int                                        total_extruder_changes;
         float                                               total_travel_distance;
         unsigned int                                        total_travel_moves;
+        float                                               total_seam_gap_distance;
+        float                                               total_seam_scarf_distance;
 
         PrintEstimatedStatistics() { reset(); }
 
@@ -99,6 +101,8 @@ class Print;
             total_extruder_changes = 0;
             total_travel_distance = 0.0f;
             total_travel_moves = 0;
+            total_seam_gap_distance = 0.0f;
+            total_seam_scarf_distance = 0.0f;
         }
     };
 
