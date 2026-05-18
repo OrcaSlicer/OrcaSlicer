@@ -290,8 +290,8 @@ class GLCanvas3D
         bool is_enabled() const { return m_enabled; }
         void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
-        void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
-        void render_overlay(const GLCanvas3D& canvas);
+        void render_variable_layer_height_dialog(GLCanvas3D& canvas);
+        void render_overlay(GLCanvas3D& canvas);
         void render_volumes(const GLCanvas3D& canvas, const GLVolumeCollection& volumes);
 
         void adjust_layer_height_profile();

@@ -349,6 +349,7 @@ public:
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
     static const ImVec4 COL_MODIFIED;
+    static const ImVec4 COL_WARNING;
 
     //BBS
     static void on_change_color_mode(bool is_dark);
