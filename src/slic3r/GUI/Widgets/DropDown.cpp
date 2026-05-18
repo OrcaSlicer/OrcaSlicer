@@ -167,6 +167,30 @@ bool DropDown::HasDismissLongTime()
         (now - dismissTime).total_milliseconds() >= 20;
 }
 
+void DropDown::Popup(wxWindow *focus)
+{
+#ifdef __WXGTK__
+    if (!mainDropDown && m_widget) {
+        // Data-view cell editors can receive focus before wxGTK infers a
+        // native popup parent, so provide the current toplevel explicitly.
+        GtkWindow *transient_parent = nullptr;
+        for (wxWindow *win = GetParent(); win; win = win->GetParent()) {
+            GtkWidget *widget = static_cast<GtkWidget *>(win->GetHandle());
+            if (!widget)
+                continue;
+            GtkWidget *top = gtk_widget_get_toplevel(widget);
+            if (GTK_IS_WINDOW(top)) {
+                transient_parent = GTK_WINDOW(top);
+                break;
+            }
+        }
+        if (transient_parent)
+            gtk_window_set_transient_for(GTK_WINDOW(m_widget), transient_parent);
+    }
+#endif
+    PopupWindow::Popup(focus);
+}
+
 void DropDown::paintEvent(wxPaintEvent& evt)
 {
     // depending on your system you may need to look at double-buffered dcs
@@ -554,7 +578,8 @@ void DropDown::messureSize()
     wxWindow::SetSize(szContent);
 #ifdef __WXGTK__
     // Gtk has a wrapper window for popup widget
-    gtk_window_resize (GTK_WINDOW (m_widget), szContent.x, szContent.y);
+    if (szContent.x > 0 && szContent.y > 0)
+        gtk_window_resize (GTK_WINDOW (m_widget), szContent.x, szContent.y);
 #endif
     if (!groups.empty() && subDropDown == nullptr) {
         subDropDown = new DropDown(items);

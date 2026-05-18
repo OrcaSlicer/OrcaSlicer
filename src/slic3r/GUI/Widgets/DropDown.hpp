@@ -105,6 +105,8 @@ public:
 
     bool HasDismissLongTime();
 
+    void Popup(wxWindow *focus = nullptr) override;
+
 protected:
     void Dismiss() override;
 
