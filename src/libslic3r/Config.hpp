@@ -2746,7 +2746,10 @@ public:
     void save(const std::string &file) const;
 
     //BBS: add json support
-    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    //ORCA: optional `type` is emitted as the BBL_JSON_KEY_TYPE field so the CLI loader can resolve preset type
+    //      without depending on the directory layout. Empty type (default) preserves prior behavior for callers
+    //      that don't have a meaningful Preset::Type (e.g. project_settings, Physical_Printer, bundle metadata).
+    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version, const std::string &type = std::string()) const;
 
 	// Set all the nullable values to nils.
     void null_nullables();
