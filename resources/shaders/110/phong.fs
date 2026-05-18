@@ -6,6 +6,7 @@ const vec3 LightBlue = vec3(0.73, 1.0, 1.0);
 const float EPSILON = 0.0001;
 
 #define INTENSITY_CORRECTION 0.6
+#define PHONG_BRIGHTNESS     1.12
 
 // normalized values for (-0.6/1.31, 0.6/1.31, 1./1.31)
 const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
@@ -186,7 +187,8 @@ void main()
     // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
     if (is_outline) {
-        vec4 shaded_color = vec4(vec3(specular) + color.rgb * diffuse, color.a);
+        vec3 shaded_rgb = (vec3(specular) + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+        vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
         vec2 fragCoord = gl_FragCoord.xy;
         float s = DetectSilho(fragCoord);
         for(int i=1;i<=INFLATE; i++)
@@ -198,8 +200,8 @@ void main()
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
-        gl_FragColor = vec4(0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * diffuse, color.a);
+        gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
 #endif
     else
-        gl_FragColor = vec4(vec3(specular) + color.rgb * diffuse, color.a);
+        gl_FragColor = vec4(clamp((vec3(specular) + color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
 }
