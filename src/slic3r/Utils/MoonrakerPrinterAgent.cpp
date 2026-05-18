@@ -97,9 +97,35 @@ std::string normalize_filament_name_for_match(const std::string& input)
     if (const auto suffix_pos = normalized.find(" @"); suffix_pos != std::string::npos) {
         normalized = normalized.substr(0, suffix_pos);
     }
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-    return normalized;
+    // Remove non-name symbols (e.g. trademark signs) while preserving separators
+    // commonly used in filament names.
+    std::string cleaned;
+    cleaned.reserve(normalized.size());
+    for (unsigned char c : normalized) {
+        if (std::isalnum(c) || c == '-' || c == '+' || c == '/' || std::isspace(c)) {
+            cleaned.push_back(static_cast<char>(std::toupper(c)));
+        } else {
+            cleaned.push_back(' ');
+        }
+    }
+
+    // Collapse repeated whitespace.
+    std::string collapsed;
+    collapsed.reserve(cleaned.size());
+    bool prev_space = true;
+    for (unsigned char c : cleaned) {
+        if (std::isspace(c)) {
+            if (!prev_space) {
+                collapsed.push_back(' ');
+            }
+            prev_space = true;
+        } else {
+            collapsed.push_back(static_cast<char>(c));
+            prev_space = false;
+        }
+    }
+    boost::trim(collapsed);
+    return collapsed;
 }
 
 bool filament_name_match_relaxed(const std::string& wanted, const std::string& candidate)
@@ -138,7 +164,9 @@ std::vector<std::string> vendor_match_candidates(std::string vendor)
     return candidates;
 }
 
-std::string filament_id_by_name(const Slic3r::PresetCollection& filaments, const std::string& filament_name)
+std::string filament_id_by_name(const Slic3r::PresetCollection& filaments,
+                                const std::string&             filament_name,
+                                const std::vector<std::string>& vendor_filters = {})
 {
     if (filament_name.empty()) {
         BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher received empty filament name";
@@ -146,8 +174,17 @@ std::string filament_id_by_name(const Slic3r::PresetCollection& filaments, const
     }
 
     const std::string wanted = normalize_filament_name_for_match(filament_name);
+    std::vector<std::string> normalized_vendor_filters;
+    normalized_vendor_filters.reserve(vendor_filters.size());
+    for (const auto& vendor_filter : vendor_filters) {
+        const std::string normalized_vendor = normalize_filament_name_for_match(vendor_filter);
+        if (!normalized_vendor.empty()) {
+            normalized_vendor_filters.push_back(normalized_vendor);
+        }
+    }
+
     BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher lookup requested='" << filament_name
-                             << "' normalized='" << wanted << "'";
+                             << "' normalized='" << wanted << "' vendor_filters=" << normalized_vendor_filters.size();
     for (size_t i = 0; i < filaments.size(); ++i) {
         const auto& preset = filaments.preset(i);
         if (!preset.is_visible || !preset.is_compatible || preset.filament_id.empty()) {
@@ -155,6 +192,21 @@ std::string filament_id_by_name(const Slic3r::PresetCollection& filaments, const
                                      << "' visible=" << preset.is_visible << " compatible=" << preset.is_compatible
                                      << " filament_id_empty=" << preset.filament_id.empty();
             continue;
+        }
+        if (!normalized_vendor_filters.empty()) {
+            const std::string preset_vendor = normalize_filament_name_for_match(preset.config.opt_string("filament_vendor", 0u));
+            bool vendor_match = false;
+            for (const auto& vendor_filter : normalized_vendor_filters) {
+                if (preset_vendor == vendor_filter) {
+                    vendor_match = true;
+                    break;
+                }
+            }
+            if (!vendor_match) {
+                BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher skip preset='" << preset.name
+                                         << "' reason=vendor_filter_miss preset_vendor='" << preset_vendor << "'";
+                continue;
+            }
         }
         const std::string candidate = normalize_filament_name_for_match(preset.name);
         BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher compare preset='" << preset.name
@@ -907,7 +959,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
                 }
                 for (const auto& vendor_candidate : vendor_candidates) {
                     const std::string requested = vendor_candidate + " " + suffix;
-                    std::string match_id = filament_id_by_name(bundle->filaments, requested);
+                    std::string match_id = filament_id_by_name(bundle->filaments, requested, vendor_candidates);
                     if (!match_id.empty()) {
                         return match_id;
                     }
@@ -921,7 +973,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
                 tray.tray_info_idx = match_with_vendor_prefix(tray.tray_type);
             }
             if (tray.tray_info_idx.empty() && !lane_name.empty()) {
-                tray.tray_info_idx = filament_id_by_name(bundle->filaments, lane_name);
+                tray.tray_info_idx = filament_id_by_name(bundle->filaments, lane_name, vendor_candidates);
             }
             if (tray.tray_info_idx.empty()) {
                 tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
