@@ -760,11 +760,23 @@ public:
         }
     }
 
+    const std::string& line_at(size_t idx) const
+    {
+        return m_lines[idx].line;
+    }
+
+    size_t lines_size() const
+    {
+        return m_lines.size();
+    }
+
     // Insert the gcode lines required by the command cmd by backtracing into the cache
-    void insert_lines(const Backtrace&                                                    backtrace,
+    bool insert_lines(const Backtrace&                                                    backtrace,
                       const std::string&                                                  cmd,
                       std::function<std::string(unsigned int, const std::vector<float>&)> line_inserter,
-                      std::function<std::string(const std::string&)>                      line_replacer)
+                      std::function<std::string(const std::string&)>                      line_replacer,
+                      std::function<bool(size_t)>                                         allow_insert = nullptr,
+                      bool                                                               force_insert_last = false)
     {
         // Orca: find start pos by seaching G28/G29/PRINT_START/START_PRINT commands
         auto is_start_pos = [](const std::string& curr_cmd) {
@@ -775,6 +787,21 @@ public:
         const float time_step           = backtrace.time_step();
         size_t      rev_it_dist         = 0;    // distance from the end of the cache of the starting point of the backtrace
         float       last_time_insertion = 0.0f; // used to avoid inserting two lines at the same time
+        auto inside_toolchange_block = [this](size_t idx) -> bool {
+            if (m_lines.empty() || idx >= m_lines.size())
+                return false;
+            // Find last START/END marker before or at idx; inside if last marker is START.
+            for (size_t i = idx + 1; i-- > 0;) {
+                const std::string &line = m_lines[i].line;
+                if (line.find("CP TOOLCHANGE START") != std::string::npos)
+                    return true;
+                if (line.find("CP TOOLCHANGE END") != std::string::npos)
+                    return false;
+            }
+            return false;
+        };
+
+        bool inserted = false;
         for (int i = 0; i < backtrace.steps; ++i) {
             const float backtrace_time_i = (i + 1) * time_step;
             const float time_threshold_i = m_times[Normal] - backtrace_time_i;
@@ -796,6 +823,23 @@ public:
 
             // insert the line for the current step
             if (rev_it != m_lines.rend() && rev_it != start_rev_it && rev_it->times[Normal] != last_time_insertion) {
+                // Avoid inserting inside wipe-tower toolchange blocks.
+                // If the selected point is inside a block, move to the nearest
+                // earlier line outside the block instead of dropping preheat.
+                size_t idx = m_lines.size() - 1 - size_t(std::distance(m_lines.rbegin(), rev_it));
+                if (inside_toolchange_block(idx)) {
+                    size_t adjusted_idx = idx;
+                    while (adjusted_idx > 0 && inside_toolchange_block(adjusted_idx))
+                        --adjusted_idx;
+                    if (inside_toolchange_block(adjusted_idx))
+                        continue;
+                    const size_t adjusted_rev_dist = m_lines.size() - 1 - adjusted_idx;
+                    rev_it = m_lines.rbegin() + adjusted_rev_dist;
+                    idx = adjusted_idx;
+                }
+                if (allow_insert && !allow_insert(idx)) {
+                    continue;
+                }
                 last_time_insertion = rev_it->times[Normal];
                 std::vector<float> time_diffs;
                 time_diffs.push_back(m_times[Normal] - last_time_insertion);
@@ -814,8 +858,39 @@ public:
                 }
 
                 ++m_added_lines_counter;
+                inserted = true;
             }
         }
+
+        if (!inserted && force_insert_last) {
+            for (size_t idx = 0; idx < m_lines.size(); ++idx) {
+                if (inside_toolchange_block(idx))
+                    continue;
+                if (allow_insert && !allow_insert(idx))
+                    continue;
+
+                const LineData &data = m_lines[idx];
+                std::vector<float> time_diffs;
+                time_diffs.push_back(m_times[Normal] - data.times[Normal]);
+                if (!m_machines[Stealth].g1_times_cache.empty())
+                    time_diffs.push_back(m_times[Stealth] - data.times[Stealth]);
+                const std::string out_line = line_inserter(1, time_diffs);
+                const size_t rev_it_dist = m_lines.size() - idx;
+                m_lines.insert(m_lines.begin() + idx, {out_line, data.times});
+#ifndef NDEBUG
+                m_statistics.add_line(out_line.length());
+#endif // NDEBUG
+                m_size += out_line.length();
+                for (auto map_it = m_gcode_lines_map.rbegin(); map_it != m_gcode_lines_map.rbegin() + rev_it_dist - 1; ++map_it) {
+                    ++map_it->second;
+                }
+                ++m_added_lines_counter;
+                inserted = true;
+                break;
+            }
+        }
+
+        return inserted;
     }
 
     // write to file:
@@ -1254,12 +1329,138 @@ void GCodeProcessor::run_post_process()
                     if (m_print != nullptr)
                         m_print->active_step_add_warning(PrintStateBase::WarningLevel::CRITICAL, warning);
                 }
+                auto parse_tool_from_line = [](const std::string& line, int& tool) -> bool {
+                    std::string cmd = GCodeReader::GCodeLine::extract_cmd(line);
+                    if (cmd.empty())
+                        return false;
+                    if (cmd[0] == 'T') {
+                        unsigned int id = 0;
+                        auto ret = std::from_chars(cmd.data() + 1, cmd.data() + cmd.size(), id);
+                        if (ret.ec == std::errc()) {
+                            tool = static_cast<int>(id);
+                            return true;
+                        }
+                        return false;
+                    }
+                    if (cmd == "M1020") {
+                        size_t pos = line.find('S');
+                        if (pos == std::string::npos)
+                            return false;
+                        size_t start = pos + 1;
+                        size_t end = line.find_first_not_of("0123456789", start);
+                        if (end == start)
+                            return false;
+                        int value = 0;
+                        auto ret = std::from_chars(line.data() + start,
+                                                  line.data() + (end == std::string::npos ? line.size() : end),
+                                                  value);
+                        if (ret.ec == std::errc()) {
+                            tool = value;
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                const size_t line_count = export_line.lines_size();
+                int override_temp = -1;
+                {
+                    if (line_count > 0) {
+                        size_t start_idx = 0;
+                        bool in_block = false;
+                        for (size_t i = line_count; i-- > 0;) {
+                            const std::string &line = export_line.line_at(i);
+                            if (line.find("CP TOOLCHANGE END") != std::string::npos)
+                                break;
+                            if (line.find("CP TOOLCHANGE START") != std::string::npos) {
+                                start_idx = i;
+                                in_block = true;
+                                break;
+                            }
+                        }
+                        if (in_block) {
+                            int base_temp = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
+                                                             m_filament_nozzle_temp_first_layer[tool_number]);
+                            for (size_t i = start_idx; i < line_count; ++i) {
+                                const std::string &line = export_line.line_at(i);
+                                if (GCodeReader::GCodeLine::cmd_is(line, "M109")) {
+                                    GCodeReader::GCodeLine gline;
+                                    GCodeReader reader;
+                                    reader.parse_line(line, [&gline](GCodeReader& reader, const GCodeReader::GCodeLine& l) { gline = l; });
+                                    float s_val = 0.f;
+                                    if (gline.has_value('S', s_val)) {
+                                        float t_val = -1.f;
+                                        if (gline.has_value('T', t_val)) {
+                                            if (int(t_val) != tool_number)
+                                                continue;
+                                        }
+                                        int temp = int(std::round(s_val));
+                                        if (temp != base_temp)
+                                            override_temp = temp;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Do not insert preheat into header/thumbnail blocks or before start-init commands.
+                size_t min_insert_idx = 0;
+                {
+                    if (line_count > 0) {
+                        auto is_start_pos = [](const std::string& curr_cmd) {
+                            return boost::iequals(curr_cmd, "G28") || boost::iequals(curr_cmd, "G29") || boost::iequals(curr_cmd, "PRINT_START") ||
+                                   boost::iequals(curr_cmd, "START_PRINT");
+                        };
+                        for (size_t i = 0; i < line_count; ++i) {
+                            const std::string &line = export_line.line_at(i);
+                            if (line.find("HEADER_BLOCK_END") != std::string::npos)
+                                min_insert_idx = std::max(min_insert_idx, i);
+                            if (line.find("THUMBNAIL_BLOCK_END") != std::string::npos)
+                                min_insert_idx = std::max(min_insert_idx, i);
+
+                            std::string cmd = GCodeReader::GCodeLine::extract_cmd(line);
+                            if (is_start_pos(cmd))
+                                min_insert_idx = std::max(min_insert_idx, i);
+                        }
+                    }
+                }
+
+                auto allow_insert = [&export_line, tool_number, min_insert_idx, line_count, &parse_tool_from_line](size_t idx) -> bool {
+                    if (idx <= min_insert_idx)
+                        return false;
+                    if (idx >= line_count)
+                        return true;
+                    for (size_t i = idx + 1; i-- > 0;) {
+                        const std::string &line = export_line.line_at(i);
+                        int active_tool = -1;
+                        if (parse_tool_from_line(line, active_tool))
+                            return active_tool != tool_number;
+                    }
+                    return true;
+                };
+
+                // Skip preheat insertion if this T command doesn't change the active tool.
+                {
+                    if (line_count > 0) {
+                        int last_tool = -1;
+                        for (size_t i = line_count; i-- > 0;) {
+                            const std::string &line = export_line.line_at(i);
+                            if (parse_tool_from_line(line, last_tool))
+                                break;
+                        }
+                        if (last_tool != -1 && last_tool == tool_number)
+                            return;
+                    }
+                }
+
                 export_line.insert_lines(
                     backtrace, cmd,
                     // line inserter
-                    [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
-                        const int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
+                    [tool_number, override_temp, this](unsigned int id, const std::vector<float>& time_diffs) {
+                        const int base_temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
                                                                          m_filament_nozzle_temp_first_layer[tool_number]);
+                        const int temperature = override_temp > 0 ? override_temp : base_temperature;
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
                         /**
@@ -1302,7 +1503,11 @@ void GCodeProcessor::run_post_process()
                             }
                         }
                         return line;
-                    }
+                    },
+                    allow_insert,
+                    // If backtracing can't find a valid insertion point (e.g. dense recurring toolchanges),
+                    // still force one at the earliest safe line after init/header/thumbnail blocks.
+                    true
                 );
             }
         }
