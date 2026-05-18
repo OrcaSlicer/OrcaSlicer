@@ -7,7 +7,7 @@
 
 uniform sampler2D color_texture;
 uniform sampler2D depth_texture;
-uniform sampler2D normal_texture;   
+uniform vec2 inv_tex_size;
 uniform float z_near;
 uniform float z_far;
 
@@ -22,57 +22,41 @@ float linearize_depth(float depth)
 
 void main()
 {
-    ivec2 pixel = ivec2(gl_FragCoord.xy);
-    float center_depth = linearize_depth(texelFetch(depth_texture, pixel, 0).r);
-    
-    // Sample normal buffer (stored as RGB in 0-1 range, convert to -1 to 1)
-    vec3 normal_center = texelFetch(normal_texture, pixel, 0).rgb * 2.0 - 1.0;
-    normal_center = normalize(normal_center);
-    
-    // Calculate upward-facing factor
-    // Assumes Z-up coordinate system (typical for 3D printing)
-    float up_factor = clamp(normal_center.z * 1.5, 0.0, 1.0);  // Boosted for better response
-    
-    // Alternative if using Y-up: float up_factor = clamp(normal_center.y * 1.5, 0.0, 1.0);
+    float center_depth = linearize_depth(texture(depth_texture, tex_coord).r);
+
+    // Derive a flatness/up proxy from depth gradient (no normal texture required).
+    float depth_px = linearize_depth(texture(depth_texture, clamp(tex_coord + vec2(inv_tex_size.x, 0.0), vec2(0.001), vec2(0.999))).r);
+    float depth_nx = linearize_depth(texture(depth_texture, clamp(tex_coord - vec2(inv_tex_size.x, 0.0), vec2(0.001), vec2(0.999))).r);
+    float depth_py = linearize_depth(texture(depth_texture, clamp(tex_coord + vec2(0.0, inv_tex_size.y), vec2(0.001), vec2(0.999))).r);
+    float depth_ny = linearize_depth(texture(depth_texture, clamp(tex_coord - vec2(0.0, inv_tex_size.y), vec2(0.001), vec2(0.999))).r);
+    float depth_grad = length(vec2(depth_px - depth_nx, depth_py - depth_ny));
+    float up_factor = 1.0 - smoothstep(0.002, 0.03, depth_grad);
     
     // Adaptive radius in pixel space
-    int radius = int(mix(2.0, 5.0, center_depth / z_far));
+    float radius = mix(2.0, 5.0, center_depth / z_far);
     
     // Optimized sampling pattern
-    const ivec2 offsets[12] = ivec2[](
-        ivec2(1, 0),  ivec2(-1, 0),  ivec2(0, 1),  ivec2(0, -1),
-        ivec2(1, 1),  ivec2(-1, 1),  ivec2(1, -1), ivec2(-1, -1),
-        ivec2(2, 0),  ivec2(-2, 0),  ivec2(0, 2),  ivec2(0, -2)
+    const vec2 offsets[12] = vec2[](
+        vec2(1.0, 0.0),  vec2(-1.0, 0.0),  vec2(0.0, 1.0),  vec2(0.0, -1.0),
+        vec2(1.0, 1.0),  vec2(-1.0, 1.0),  vec2(1.0, -1.0), vec2(-1.0, -1.0),
+        vec2(2.0, 0.0),  vec2(-2.0, 0.0),  vec2(0.0, 2.0),  vec2(0.0, -2.0)
     );
     
     float occlusion = 0.0;
     int valid_samples = 0;
     
     for (int i = 0; i < 12; i++) {
-        ivec2 sample_pixel = pixel + offsets[i] * radius;
-        
-        if (sample_pixel.x < 0 || sample_pixel.y < 0) 
-            continue;
-        
-        float sample_depth = linearize_depth(texelFetch(depth_texture, sample_pixel, 0).r);
-        
-        // Sample normal at neighbor
-        vec3 normal_sample = texelFetch(normal_texture, sample_pixel, 0).rgb * 2.0 - 1.0;
-        
-        // Direction from center to sample in screen space
-        vec2 dir_2d = normalize(vec2(sample_pixel - pixel));
-        
-        // Reduce occlusion when normals are similar (planar surfaces)
-        float normal_similarity = dot(normal_center, normal_sample);
-        float planar_factor = smoothstep(0.7, 0.95, normal_similarity);
+        vec2 uv = clamp(tex_coord + offsets[i] * inv_tex_size * radius, vec2(0.001), vec2(0.999));
+        float sample_depth = linearize_depth(texture(depth_texture, uv).r);
         
         float depth_diff = max(0.0, center_depth - sample_depth);
         float threshold = 0.02 * (0.5 + center_depth / z_far);
         float contribution = smoothstep(0.001, threshold, depth_diff);
         
-        // Reduce contribution on planar surfaces and top areas
+        // Reduce contribution on flatter/top-like areas
         float top_factor = 1.0 - up_factor * 0.6;  // 60% less occlusion on tops
-        contribution *= (1.0 - planar_factor * 0.5) * top_factor;
+        float planar_factor = smoothstep(0.0, 0.02, depth_grad);
+        contribution *= (0.7 + planar_factor * 0.3) * top_factor;
         
         occlusion += contribution;
         valid_samples++;
