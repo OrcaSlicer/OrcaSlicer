@@ -6,7 +6,6 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -247,11 +246,7 @@ void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_he
     if (!m_visible)
         return;
 
-    const bool reflections = wxGetApp().app_config != nullptr &&
-        wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
-    GLShaderProgram* shader = wxGetApp().get_shader(reflections ? "phong" : "gouraud_light");
-    if (shader == nullptr)
-        shader = wxGetApp().get_shader("gouraud_light");
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
     if (shader == nullptr)
         return;
 
@@ -2489,11 +2484,7 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
         //if (!m_shells.visible || m_shells.volumes.empty())
         return;
 
-    const bool reflections = wxGetApp().app_config != nullptr &&
-        wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
-    GLShaderProgram* shader = wxGetApp().get_shader(reflections ? "phong" : "gouraud_light");
-    if (shader == nullptr)
-        shader = wxGetApp().get_shader("gouraud_light");
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
     if (shader == nullptr)
         return;
 
