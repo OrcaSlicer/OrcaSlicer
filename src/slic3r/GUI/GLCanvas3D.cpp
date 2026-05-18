@@ -9136,7 +9136,7 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this]{wxGetApp().toggle_show_outline();}
         );
 
-        create_menu_item( _utf8(L("Realistic view")),
+        create_menu_item( _utf8(L("Realistic View")),
             true,
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
             [this, &cfg]{
