@@ -730,6 +730,8 @@ public:
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
+    GLModel m_plate_shadow_mask;
+    std::string m_plate_shadow_mask_key;
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();

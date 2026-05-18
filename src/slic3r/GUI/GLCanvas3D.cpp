@@ -1231,7 +1231,9 @@ GLCanvas3D::~GLCanvas3D()
             glsafe(::glDeleteTextures(1, &m_ssao_depth_texture_id));
             m_ssao_depth_texture_id = 0;
         }
+        m_plate_shadow_mask.reset();
     }
+    m_plate_shadow_mask_key.clear();
 
     reset_volumes();
 
@@ -7836,44 +7838,64 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     shader->start_using();
     shader->set_uniform("projection_matrix", projection_matrix);
     
-    // Draw the build plate
+    // Draw the build plate (cached model to avoid per-frame uploads)
     if (const BuildVolume& build_volume = m_bed.build_volume(); build_volume.valid()) {
-        GLModel plate_mask;
-        GLModel::Geometry mask;
-        mask.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
-        
-        if (build_volume.type() == BuildVolume_Type::Rectangle) {
-            const BoundingBox3Base<Vec3d> bb = build_volume.bounding_volume();
-            mask.reserve_vertices(4);
-            mask.reserve_indices(6);
-            mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.min.y(), 0.0f));
-            mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.min.y(), 0.0f));
-            mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.max.y(), 0.0f));
-            mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.max.y(), 0.0f));
-            mask.add_triangle(0, 1, 2);
-            mask.add_triangle(0, 2, 3);
-        } else if (build_volume.type() == BuildVolume_Type::Circle) {
-            const Vec2f c = Vec2f(unscaled<float>(build_volume.circle().center.x()), unscaled<float>(build_volume.circle().center.y()));
-            const float r = unscaled<float>(build_volume.circle().radius);
-            const int segments = 64;
-            mask.reserve_vertices(segments + 1);
-            mask.reserve_indices(segments * 3);
-            mask.add_vertex(Vec3f(c.x(), c.y(), 0.0f));
-            for (int i = 0; i < segments; ++i) {
-                const float a = (2.0f * float(PI) * float(i)) / float(segments);
-                mask.add_vertex(Vec3f(c.x() + r * std::cos(a), c.y() + r * std::sin(a), 0.0f));
+        const std::string mask_key = build_volume.type() == BuildVolume_Type::Rectangle
+            ? (boost::format("rect|%1$.5f|%2$.5f|%3$.5f|%4$.5f")
+                % build_volume.bounding_volume().min.x()
+                % build_volume.bounding_volume().min.y()
+                % build_volume.bounding_volume().max.x()
+                % build_volume.bounding_volume().max.y()).str()
+            : (build_volume.type() == BuildVolume_Type::Circle
+                ? (boost::format("circle|%1$.5f|%2$.5f|%3$.5f")
+                    % unscaled<double>(build_volume.circle().center.x())
+                    % unscaled<double>(build_volume.circle().center.y())
+                    % unscaled<double>(build_volume.circle().radius)).str()
+                : std::string("invalid"));
+
+        if (mask_key != m_plate_shadow_mask_key) {
+            m_plate_shadow_mask.reset();
+            m_plate_shadow_mask_key = mask_key;
+
+            GLModel::Geometry mask;
+            mask.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+
+            if (build_volume.type() == BuildVolume_Type::Rectangle) {
+                const BoundingBox3Base<Vec3d> bb = build_volume.bounding_volume();
+                mask.reserve_vertices(4);
+                mask.reserve_indices(6);
+                mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.min.y(), 0.0f));
+                mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.min.y(), 0.0f));
+                mask.add_vertex(Vec3f((float)bb.max.x(), (float)bb.max.y(), 0.0f));
+                mask.add_vertex(Vec3f((float)bb.min.x(), (float)bb.max.y(), 0.0f));
+                mask.add_triangle(0, 1, 2);
+                mask.add_triangle(0, 2, 3);
             }
-            for (int i = 0; i < segments; ++i) {
-                const unsigned int i1 = 1 + i;
-                const unsigned int i2 = 1 + ((i + 1) % segments);
-                mask.add_triangle(0, i1, i2);
+            else if (build_volume.type() == BuildVolume_Type::Circle) {
+                const Vec2f c = Vec2f(unscaled<float>(build_volume.circle().center.x()), unscaled<float>(build_volume.circle().center.y()));
+                const float r = unscaled<float>(build_volume.circle().radius);
+                const int segments = 64;
+                mask.reserve_vertices(segments + 1);
+                mask.reserve_indices(segments * 3);
+                mask.add_vertex(Vec3f(c.x(), c.y(), 0.0f));
+                for (int i = 0; i < segments; ++i) {
+                    const float a = (2.0f * float(PI) * float(i)) / float(segments);
+                    mask.add_vertex(Vec3f(c.x() + r * std::cos(a), c.y() + r * std::sin(a), 0.0f));
+                }
+                for (int i = 0; i < segments; ++i) {
+                    const unsigned int i1 = 1 + i;
+                    const unsigned int i2 = 1 + ((i + 1) % segments);
+                    mask.add_triangle(0, i1, i2);
+                }
             }
+
+            if (mask.vertices_count() > 0 && mask.indices_count() > 0)
+                m_plate_shadow_mask.init_from(std::move(mask));
         }
-        
-        if (mask.vertices_count() > 0 && mask.indices_count() > 0) {
-            plate_mask.init_from(std::move(mask));
+
+        if (m_plate_shadow_mask.is_initialized()) {
             shader->set_uniform("view_model_matrix", view_matrix);
-            plate_mask.render(shader);
+            m_plate_shadow_mask.render(shader);
         }
     }
     
