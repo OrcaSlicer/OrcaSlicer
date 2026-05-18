@@ -318,5 +318,12 @@
     "travel_jerk": "15",
     "initial_layer_speed": "30",
     "outer_wall_acceleration": "1000",
-    "outer_wall_line_width": "0.4"
+    "outer_wall_line_width": "105%",
+    "line_width": "105%",
+    "initial_layer_line_width": "125%",
+    "inner_wall_line_width": "112%",
+    "top_surface_line_width": "112%",
+    "sparse_infill_line_width": "112%",
+    "internal_solid_infill_line_width": "105%",
+    "support_line_width": "105%"
 }
