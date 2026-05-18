@@ -1465,6 +1465,7 @@ bool OrcaCloudServiceAgent::load_refresh_token(std::string& out_token)
                 if (payload.rfind("v2:", 0) == 0) {
                     auto delim = payload.find(':', 3);
                     if (delim == std::string::npos) {
+                        BOOST_LOG_TRIVIAL(warning) << "payload missing delim ':'.";
                         integrity_ok = false;
                     } else {
                         std::string stored_hmac = payload.substr(3, delim - 3);
