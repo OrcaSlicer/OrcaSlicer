@@ -7770,8 +7770,6 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     // Check if shadow rendering is enabled in configuration
     if (wxGetApp().app_config == nullptr)
         return;
-    if (wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL) != "phong")
-        return;
     if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
         return;
     if (m_volumes.empty())
