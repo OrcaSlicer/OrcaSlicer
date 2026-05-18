@@ -7617,22 +7617,21 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
     if (shader == nullptr)
         return;
 
-    if (m_ssao_color_texture_id == 0)
-        glsafe(::glGenTextures(1, &m_ssao_color_texture_id));
-    if (m_ssao_depth_texture_id == 0)
-        glsafe(::glGenTextures(1, &m_ssao_depth_texture_id));
-
-    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-
-    glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    if (m_ssao_color_texture_id == 0) {
+         glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+     }
+     if (m_ssao_depth_texture_id == 0) {
+         glsafe(::glGenTextures(1, &m_ssao_depth_texture_id));
+         glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+     }
 
     if (m_ssao_texture_size[0] != width || m_ssao_texture_size[1] != height) {
         glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
