@@ -330,6 +330,8 @@ public:
 
     size_t hash() const throw() override { return std::hash<T>{}(this->value); }
 
+    // Warning mitigation: Indicate that virtual serialize() is not forgotten
+    using ConfigOption::serialize;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->value); }
@@ -752,6 +754,8 @@ public:
         return modified;
     }
 
+    // Warning mitigation: Indicate that virtual serialize() is not forgotten
+    using ConfigOptionVectorBase::serialize;
 private:
 	friend class cereal::access;
 	template<class Archive> void serialize(Archive & ar) { ar(this->values); }
