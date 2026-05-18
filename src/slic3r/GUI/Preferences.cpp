@@ -1544,13 +1544,6 @@ void PreferencesDialog::create_items()
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic view")), 1, wxEXPAND);
 
-    auto item_realistic_mode = create_item_checkbox(
-        _L("Enable realistic view"),
-        _L("Enables realistic rendering mode in the 3D canvas."),
-        SETTING_OPENGL_REALISTIC_MODE
-    );
-    g_sizer->Add(item_realistic_mode);
-
     auto item_realistic_phong = create_item_checkbox(
         _L("Phong shading"),
         _L("Uses Phong shading inside realistic view.")
