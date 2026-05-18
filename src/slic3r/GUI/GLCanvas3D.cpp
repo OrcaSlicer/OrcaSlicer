@@ -7638,7 +7638,7 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
         glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
         glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr));
         m_ssao_texture_size = { { width, height } };
     }
 
