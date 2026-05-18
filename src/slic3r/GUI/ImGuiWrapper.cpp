@@ -185,6 +185,7 @@ const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG        = { 250 / 255.f, 250 / 255.f, 2
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG_DARK   = { 57  / 255.f, 60  / 255.f, 66  / 255.f, 1.f }; // ORCA color matches with toolbar_background_dark.png
 const ImVec4 ImGuiWrapper::COL_ORCA              = to_ImVec4(ColorRGBA::ORCA());
 const ImVec4 ImGuiWrapper::COL_MODIFIED          = { 253.f / 255.f, 111.f / 255.f, 40.f / 255.f, 1}; // ORCA same color with m_color_label_modified
+const ImVec4 ImGuiWrapper::COL_WARNING           = to_ImVec4(ColorRGB::WARNING());
 
 int ImGuiWrapper::TOOLBAR_WINDOW_FLAGS = ImGuiWindowFlags_AlwaysAutoResize
                                  | ImGuiWindowFlags_NoMove
@@ -871,8 +872,8 @@ bool ImGuiWrapper::button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::Button(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -884,8 +885,8 @@ bool ImGuiWrapper::bbl_button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::BBLButton(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -1055,7 +1056,7 @@ void ImGuiWrapper::text(const wxString &label)
 
 void ImGuiWrapper::warning_text(const char *label)
 {
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(ColorRGB::WARNING()));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::COL_WARNING);
     this->text(label);
     ImGui::PopStyleColor();
 }
