@@ -45,7 +45,6 @@
     "travel_speed": "220",
     "wall_loops": "3",
     "xy_hole_compensation": "0",
-    "seam_slope_type": "external",
     "seam_slope_conditional": "1",
     "seam_slope_entire_loop": "0",
     "seam_slope_steps": "10",

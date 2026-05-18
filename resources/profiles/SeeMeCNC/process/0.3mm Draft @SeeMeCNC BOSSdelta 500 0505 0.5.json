@@ -51,7 +51,6 @@
     "internal_solid_infill_acceleration": "2000",
     "initial_layer_acceleration": "500",
     "travel_acceleration": "2000",
-    "seam_slope_type": "external",
     "seam_slope_conditional": "1",
     "seam_slope_entire_loop": "0",
     "seam_slope_steps": "10",
