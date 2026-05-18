@@ -7930,11 +7930,11 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     
     const ColorRGBA shadow_fill_color(0.0f, 0.0f, 0.0f, 0.4f);  // Darker shadow for visibility
     const ColorRGBA prev_bg_color = m_background.get_geometry().color;
-     m_background.set_color(shadow_fill_color);
-     shader->set_uniform("uniform_color", shadow_fill_color);
-     m_background.render(shader);
-     m_background.set_color(prev_bg_color);
-     shader->set_uniform("uniform_color", prev_bg_color);
+    m_background.set_color(shadow_fill_color);
+    shader->set_uniform("uniform_color", shadow_fill_color);
+    m_background.render(shader);
+    m_background.set_color(prev_bg_color);
+    shader->set_uniform("uniform_color", prev_bg_color);
     
     shader->stop_using();
     
