@@ -246,12 +246,7 @@ void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_he
     if (!m_visible)
         return;
 
-    const bool use_phong = wxGetApp().app_config != nullptr &&
-        wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
-        wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
-    GLShaderProgram* shader = wxGetApp().get_shader(use_phong ? "phong" : "gouraud_light");
-    if (shader == nullptr)
-        shader = wxGetApp().get_shader("gouraud_light");
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
     if (shader == nullptr)
         return;
 
@@ -2489,12 +2484,7 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
         //if (!m_shells.visible || m_shells.volumes.empty())
         return;
 
-    const bool use_phong = wxGetApp().app_config != nullptr &&
-        wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
-        wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
-    GLShaderProgram* shader = wxGetApp().get_shader(use_phong ? "phong" : "gouraud_light");
-    if (shader == nullptr)
-        shader = wxGetApp().get_shader("gouraud_light");
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
     if (shader == nullptr)
         return;
 
