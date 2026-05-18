@@ -1784,7 +1784,8 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
     std::string url = api_base_url + path;
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: GET " << url;
 
-    ensure_token_fresh("http_get_" + path);
+    if (!ensure_token_fresh("http_get_" + path))
+        BOOST_LOG_TRIVIAL(warning) << "ensure_token_fresh returned false";
 
     struct HttpResult {
         bool success{false};
@@ -1816,8 +1817,9 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
                 })
                 .on_error([&](std::string body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -1885,8 +1887,9 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = resp_body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -1954,8 +1957,9 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = resp_body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -2020,8 +2024,9 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = resp_body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = resp_body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -2102,7 +2107,7 @@ bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string
             })
             .on_error([&](std::string body, std::string error, unsigned resp_status) {
                 success   = false;
-                status    = resp_status;
+                status    = resp_status == 0 ? 404 : resp_status;
                 resp_body = body;
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
             })
@@ -2172,7 +2177,7 @@ bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::s
             })
             .on_error([&](std::string body, std::string error, unsigned resp_status) {
                 success   = false;
-                status    = resp_status;
+                status    = resp_status == 0 ? 404 : resp_status;
                 resp_body = body;
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP (auth) error - " << error;
             })
