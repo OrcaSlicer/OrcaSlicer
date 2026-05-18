@@ -1218,9 +1218,19 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
 
 GLCanvas3D::~GLCanvas3D()
 {
-    if (m_fxaa_texture_id != 0 && _set_current()) {
-        glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
-        m_fxaa_texture_id = 0;
+    if (_set_current()) {
+        if (m_fxaa_texture_id != 0) {
+            glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
+            m_fxaa_texture_id = 0;
+        }
+        if (m_ssao_color_texture_id != 0) {
+            glsafe(::glDeleteTextures(1, &m_ssao_color_texture_id));
+            m_ssao_color_texture_id = 0;
+        }
+        if (m_ssao_depth_texture_id != 0) {
+            glsafe(::glDeleteTextures(1, &m_ssao_depth_texture_id));
+            m_ssao_depth_texture_id = 0;
+        }
     }
 
     reset_volumes();
@@ -7618,6 +7628,7 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
         return;
 
     if (m_ssao_color_texture_id == 0) {
+        glsafe(::glGenTextures(1, &m_ssao_color_texture_id));
          glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_color_texture_id));
          glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
          glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
