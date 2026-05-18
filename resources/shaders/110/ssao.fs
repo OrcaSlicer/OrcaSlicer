@@ -82,7 +82,7 @@ void main()
     
     // Boost brightness on top surfaces (optional)
     float brightness_boost = 1.0 + up_factor * 0.15;  // 15% extra brightness on top
-    ambient_occlusion = pow(ambient_occlusion, 1.1) * brightness_boost;
+    ambient_occlusion = pow(ambient_occlusion, 2.2) * brightness_boost;
     ambient_occlusion = clamp(ambient_occlusion, 0.45, 1.05);
     
     gl_FragColor = vec4(base * ambient_occlusion, 1.0);
