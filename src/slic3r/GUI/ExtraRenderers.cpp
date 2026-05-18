@@ -324,9 +324,18 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
     else
         c_editor->SetSelection(atoi(data.GetText().c_str()) - 1);
 
-    // Open the dropdown immediately when the editor is focused.
     c_editor->Bind(wxEVT_SET_FOCUS, [c_editor](wxFocusEvent& evt) {
+#ifdef __WXGTK__
+        // On wxGTK the data-view editor may receive focus before its native
+        // window is mapped. Opening the popup one event later avoids creating
+        // the GTK popup without a valid toplevel parent.
+        c_editor->CallAfter([c_editor]() {
+            if (c_editor->IsShownOnScreen())
+                c_editor->ForceDropdownOpen();
+        });
+#else
         c_editor->ForceDropdownOpen();
+#endif
         evt.Skip(); 
     });
 
@@ -391,5 +400,4 @@ wxSize TextRenderer::GetSize() const
 {
     return GetTextExtent(m_value);
 }
-
 
