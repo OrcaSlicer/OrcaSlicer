@@ -1566,7 +1566,6 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fxaa);
 
-
     //// GRAPHICS > FPS
     g_sizer->Add(create_item_title(_L("FPS")), 1, wxEXPAND);
 
