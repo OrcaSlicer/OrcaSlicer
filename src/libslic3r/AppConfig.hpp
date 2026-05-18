@@ -36,7 +36,6 @@ using namespace nlohmann;
 #define SETTING_OPENGL_SHOW_FPS_OVERLAY "opengl_show_fps_overlay"
 #define SETTING_OPENGL_REALISTIC_MODE "opengl_realistic_mode"
 #define SETTING_OPENGL_REALISTIC_PHONG "opengl_realistic_phong"
-#define SETTING_OPENGL_SHADING_MODEL "opengl_shading_model"
 #define SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS "opengl_phong_basic_plate_shadows"
 #define SETTING_OPENGL_PHONG_SSAO "opengl_phong_ssao"
 

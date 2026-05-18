@@ -79,7 +79,7 @@ vec3 getBackfaceColor(vec3 fill) {
     return (brightness > 0.75) ? vec3(0.11, 0.165, 0.208) : vec3(0.988, 0.988, 0.988);
 }
 
-// Silhouette edge detection & rendering algorithem by leoneruggiero
+// Silhouette edge detection & rendering algorithm by leoneruggiero
 // https://www.shadertoy.com/view/DslXz2
 #define INFLATE 1
 

@@ -7641,8 +7641,8 @@ void GLCanvas3D::_render_ssao_pass(unsigned int width, unsigned int height)
      if (m_ssao_depth_texture_id == 0) {
          glsafe(::glGenTextures(1, &m_ssao_depth_texture_id));
          glsafe(::glBindTexture(GL_TEXTURE_2D, m_ssao_depth_texture_id));
-         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
          glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
          glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
      }
@@ -8059,7 +8059,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     if (shader != nullptr) {
         shader->start_using();
 
-        const bool phong_ssao = wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
+        const bool phong_ssao = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
         shader->set_uniform("enable_ssao", phong_ssao);
 
         const Size&   cvn_size = get_canvas_size();
