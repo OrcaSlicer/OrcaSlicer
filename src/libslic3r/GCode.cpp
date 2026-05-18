@@ -111,7 +111,7 @@ static bool is_multi_nozzle_printer(const FullPrintConfig &config)
                        [](int v) { return v > 1; });
 }
 
-static bool is_bambu_h2d_printer(const FullPrintConfig &config)
+static bool is_bambu_h2d_printer(const PrintConfig &config)
 {
     return config.printer_model.value == "Bambu Lab H2D" ||
            config.printer_model.value == "Bambu Lab H2D Pro";
@@ -407,7 +407,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         unsigned int filament_id = gcodegen.writer().filament()->id();
         const bool is_h2d_printer = is_bambu_h2d_printer(gcodegen.config());
         int tool_id = is_h2d_printer ?
-            hotend_id_for_temperature_gcode(gcodegen.config(), (int) gcodegen.get_extruder_id(filament_id)) :
+            hotend_id_for_temperature_gcode(gcodegen.config(), (int) gcodegen.writer().filament()->extruder_id()) :
             (int) filament_id;
         const auto& filament_idle_temp = gcodegen.config().idle_temperature;
         if (filament_idle_temp.get_at(filament_id) == 0) {
@@ -442,7 +442,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         unsigned int filament_id = gcodegen.writer().filament()->id();
         const bool is_h2d_printer = is_bambu_h2d_printer(gcodegen.config());
         int tool_id = is_h2d_printer ?
-            hotend_id_for_temperature_gcode(gcodegen.config(), (int) gcodegen.get_extruder_id(filament_id)) :
+            hotend_id_for_temperature_gcode(gcodegen.config(), (int) gcodegen.writer().filament()->extruder_id()) :
             (int) filament_id;
         return is_h2d_printer ?
             GCodeWriter::set_temperature(this->_get_temp(gcodegen), gcodegen.config().gcode_flavor, true, tool_id) :
