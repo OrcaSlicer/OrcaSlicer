@@ -554,7 +554,8 @@ void DropDown::messureSize()
     wxWindow::SetSize(szContent);
 #ifdef __WXGTK__
     // Gtk has a wrapper window for popup widget
-    gtk_window_resize (GTK_WINDOW (m_widget), szContent.x, szContent.y);
+    if (szContent.x > 0 && szContent.y > 0)
+        gtk_window_resize (GTK_WINDOW (m_widget), szContent.x, szContent.y);
 #endif
     if (!groups.empty() && subDropDown == nullptr) {
         subDropDown = new DropDown(items);
