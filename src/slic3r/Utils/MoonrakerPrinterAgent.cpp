@@ -571,7 +571,18 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
-    // Try Happy Hare first (more widely adopted, supports more filament changers)
+    // Try Moonraker filament data (more generic, supports any filament changer
+    // software that reports lane data to Moonraker like AFC and recent Happy
+    // Hare as of Feb 15, 2026)
+    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
+                                << (max_lane_index + 1) << " lanes";
+        int ams_count = (max_lane_index + 4) / 4;
+        build_ams_payload(ams_count, max_lane_index, trays);
+        return true;
+    }
+
+    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
     if (fetch_hh_filament_info(trays, max_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
@@ -580,17 +591,8 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         return true;
     }
 
-    // Fallback to AFC
-    if (fetch_afc_filament_info(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected AFC with "
-                                << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
     // No MMU detected - this is normal for printers without MMU, not an error
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor AFC)";
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected (neither HH nor Moonraker)";
     return false;
 }
 
@@ -721,10 +723,10 @@ std::string MoonrakerPrinterAgent::normalize_color_value(const std::string& colo
     return normalized;
 }
 
-// Fetch filament info from Armored Turtle AFC
-bool MoonrakerPrinterAgent::fetch_afc_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index)
+// Fetch filament info from moonraker database
+bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index)
 {
-    // Fetch AFC lane data from Moonraker database
+    // Fetch lane data from Moonraker database
     std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
 
     std::string response_body;
@@ -754,19 +756,19 @@ bool MoonrakerPrinterAgent::fetch_afc_filament_info(std::vector<AmsTrayData>& tr
         .perform_sync();
 
     if (!success) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Failed to fetch lane data: " << http_error;
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Failed to fetch lane data: " << http_error;
         return false;
     }
 
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Invalid JSON response";
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Invalid JSON response";
         return false;
     }
 
     // Expected structure: { "result": { "namespace": "lane_data", "value": { "lane1": {...}, ... } } }
     if (!json.contains("result") || !json["result"].contains("value") || !json["result"]["value"].is_object()) {
-        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_afc_filament_info: Unexpected JSON structure or no lane_data found";
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Unexpected JSON structure or no lane_data found";
         return false;
     }
 
@@ -812,7 +814,7 @@ bool MoonrakerPrinterAgent::fetch_afc_filament_info(std::vector<AmsTrayData>& tr
     }
 
     if (trays.empty()) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_afc_filament_info: No AFC lanes found";
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: No lanes found";
         return false;
     }
 

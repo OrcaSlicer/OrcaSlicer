@@ -11,15 +11,13 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Construct a triangle mesh of a cylinder (without caps)
-  //
-  // Inputs:
-  //   axis_devisions  number of vertices _around the cylinder_
-  //   height_devisions  number of vertices _up the cylinder_
-  // Outputs:
-  //   V  #V by 3 list of mesh vertex positions
-  //   F  #F by 3 list of triangle indices into V
-  //
+  /// Construct a triangle mesh of a cylinder (without caps)
+  ///
+  /// @param[in] axis_devisions  number of vertices _around the cylinder_
+  /// @param[in] height_devisions  number of vertices _up the cylinder_
+  /// @param[out] V  #V by 3 list of mesh vertex positions
+  /// @param[out] F  #F by 3 list of triangle indices into V
+  ///
   template <typename DerivedV, typename DerivedF>
   IGL_INLINE void cylinder(
     const int axis_devisions,

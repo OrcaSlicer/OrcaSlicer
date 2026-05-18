@@ -1,0 +1,16 @@
+{
+	"type": "machine",
+	"name": "LH Stinger MMU 0.4 nozzle",
+	"inherits": "fdm_lh_mmu_common",
+	"from": "system",
+	"setting_id": "LHS_m01_mmu_04",
+	"instantiation": "true",
+	"printer_model": "LH Stinger MMU",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"default_filament_profile": [
+		"LHS PLA"
+	],
+	"printer_variant": "0.4"
+}

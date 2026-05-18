@@ -2,8 +2,9 @@
 
 set -e
 set -o pipefail
+SECONDS=0
 
-while getopts ":dpa:snt:xbc:1Th" opt; do
+while getopts ":dpa:snt:xbc:i:1Tuh" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -34,21 +35,29 @@ while getopts ":dpa:snt:xbc:1Th" opt; do
     c )
         export BUILD_CONFIG="$OPTARG"
         ;;
+    i )
+        export CMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH:+$CMAKE_IGNORE_PREFIX_PATH;}$OPTARG"
+        ;;
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
         ;;
     T )
         export BUILD_TESTS="1"
         ;;
+    u )
+        export BUILD_TARGET="universal"
+        ;;
     h ) echo "Usage: ./build_release_macos.sh [-d]"
         echo "   -d: Build deps only"
         echo "   -a: Set ARCHITECTURE (arm64 or x86_64 or universal)"
         echo "   -s: Build slicer only"
+        echo "   -u: Build universal app only (requires existing arm64 and x86_64 app bundles)"
         echo "   -n: Nightly build"
         echo "   -t: Specify minimum version of the target platform, default is 11.3"
         echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode"
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
+        echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
         echo "   -1: Use single job for building"
         echo "   -T: Build and run tests"
         exit 0
@@ -89,6 +98,10 @@ if [ -z "$OSX_DEPLOYMENT_TARGET" ]; then
   export OSX_DEPLOYMENT_TARGET="11.3"
 fi
 
+if [ -z "$CMAKE_IGNORE_PREFIX_PATH" ]; then
+  export CMAKE_IGNORE_PREFIX_PATH="/opt/local:/usr/local:/opt/homebrew"
+fi
+
 CMAKE_VERSION=$(cmake --version | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
 if [ "$CMAKE_VERSION" -ge 4 ] 2>/dev/null; then
   export CMAKE_POLICY_VERSION_MINIMUM=3.5
@@ -104,6 +117,7 @@ echo " - BUILD_CONFIG: $BUILD_CONFIG"
 echo " - BUILD_TARGET: $BUILD_TARGET"
 echo " - CMAKE_GENERATOR: $SLICER_CMAKE_GENERATOR for Slicer, $DEPS_CMAKE_GENERATOR for deps"
 echo " - OSX_DEPLOYMENT_TARGET: $OSX_DEPLOYMENT_TARGET"
+echo " - CMAKE_IGNORE_PREFIX_PATH: $CMAKE_IGNORE_PREFIX_PATH"
 echo
 
 # if which -s brew; then
@@ -147,6 +161,7 @@ function build_deps() {
                         -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                         -DCMAKE_OSX_ARCHITECTURES:STRING="${_ARCH}" \
                         -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
+                        -DCMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH}" \
                         ${CMAKE_POLICY_COMPAT}
                 fi
                 cmake --build . --config "$BUILD_CONFIG" --target deps
@@ -188,6 +203,7 @@ function build_slicer() {
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
                     -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
+                    -DCMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH}" \
                     ${CMAKE_POLICY_COMPAT}
             fi
             cmake --build . --config "$BUILD_CONFIG" --target "$SLICER_BUILD_TARGET"
@@ -249,48 +265,54 @@ function build_slicer() {
     done
 }
 
+function lipo_dir() {
+    local universal_dir="$1"
+    local x86_64_dir="$2"
+
+    # Find all Mach-O files in the universal (arm64-based) copy and lipo them
+    while IFS= read -r -d '' f; do
+        local rel="${f#"$universal_dir"/}"
+        local x86="$x86_64_dir/$rel"
+        if [ -f "$x86" ]; then
+            echo "  lipo: $rel"
+            lipo -create "$f" "$x86" -output "$f.tmp"
+            mv "$f.tmp" "$f"
+        else
+            echo "  warning: no x86_64 counterpart for $rel, keeping arm64 only"
+        fi
+    done < <(find "$universal_dir" -type f -print0 | while IFS= read -r -d '' candidate; do
+        if file "$candidate" | grep -q "Mach-O"; then
+            printf '%s\0' "$candidate"
+        fi
+    done)
+}
+
 function build_universal() {
     echo "Building universal binary..."
 
     PROJECT_BUILD_DIR="$PROJECT_DIR/build/$ARCH"
-    
-    # Create universal binary
-    echo "Creating universal binary..."
-    # PROJECT_BUILD_DIR="$PROJECT_DIR/build_Universal"
+    ARM64_APP="$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer.app"
+    X86_64_APP="$PROJECT_DIR/build/x86_64/OrcaSlicer/OrcaSlicer.app"
+
     mkdir -p "$PROJECT_BUILD_DIR/OrcaSlicer"
     UNIVERSAL_APP="$PROJECT_BUILD_DIR/OrcaSlicer/OrcaSlicer.app"
     rm -rf "$UNIVERSAL_APP"
-    cp -R "$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer.app" "$UNIVERSAL_APP"
-    
-    # Get the binary path inside the .app bundle
-    BINARY_PATH="Contents/MacOS/OrcaSlicer"
-    
-    # Create universal binary using lipo
-    lipo -create \
-        "$PROJECT_DIR/build/x86_64/OrcaSlicer/OrcaSlicer.app/$BINARY_PATH" \
-        "$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer.app/$BINARY_PATH" \
-        -output "$UNIVERSAL_APP/$BINARY_PATH"
-        
-    echo "Universal binary created at $UNIVERSAL_APP"
-    
+    cp -R "$ARM64_APP" "$UNIVERSAL_APP"
+
+    echo "Creating universal binaries for OrcaSlicer.app..."
+    lipo_dir "$UNIVERSAL_APP" "$X86_64_APP"
+    echo "Universal OrcaSlicer.app created at $UNIVERSAL_APP"
+
     # Create universal binary for profile validator if it exists
-    if [ -f "$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ] && \
-       [ -f "$PROJECT_DIR/build/x86_64/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
-        echo "Creating universal binary for OrcaSlicer_profile_validator..."
+    ARM64_VALIDATOR="$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer_profile_validator.app"
+    X86_64_VALIDATOR="$PROJECT_DIR/build/x86_64/OrcaSlicer/OrcaSlicer_profile_validator.app"
+    if [ -d "$ARM64_VALIDATOR" ] && [ -d "$X86_64_VALIDATOR" ]; then
+        echo "Creating universal binaries for OrcaSlicer_profile_validator.app..."
         UNIVERSAL_VALIDATOR_APP="$PROJECT_BUILD_DIR/OrcaSlicer/OrcaSlicer_profile_validator.app"
         rm -rf "$UNIVERSAL_VALIDATOR_APP"
-        cp -R "$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer_profile_validator.app" "$UNIVERSAL_VALIDATOR_APP"
-        
-        # Get the binary path inside the profile validator .app bundle
-        VALIDATOR_BINARY_PATH="Contents/MacOS/OrcaSlicer_profile_validator"
-        
-        # Create universal binary using lipo
-        lipo -create \
-            "$PROJECT_DIR/build/x86_64/OrcaSlicer/OrcaSlicer_profile_validator.app/$VALIDATOR_BINARY_PATH" \
-            "$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer_profile_validator.app/$VALIDATOR_BINARY_PATH" \
-            -output "$UNIVERSAL_VALIDATOR_APP/$VALIDATOR_BINARY_PATH"
-            
-        echo "Universal binary for OrcaSlicer_profile_validator created at $UNIVERSAL_VALIDATOR_APP"
+        cp -R "$ARM64_VALIDATOR" "$UNIVERSAL_VALIDATOR_APP"
+        lipo_dir "$UNIVERSAL_VALIDATOR_APP" "$X86_64_VALIDATOR"
+        echo "Universal OrcaSlicer_profile_validator.app created at $UNIVERSAL_VALIDATOR_APP"
     fi
 }
 
@@ -305,16 +327,22 @@ case "${BUILD_TARGET}" in
     slicer)
         build_slicer
         ;;
+    universal)
+        build_universal
+        ;;
     *)
-        echo "Unknown target: $BUILD_TARGET. Available targets: deps, slicer, all."
+        echo "Unknown target: $BUILD_TARGET. Available targets: deps, slicer, universal, all."
         exit 1
         ;;
 esac
 
-if [ "$ARCH" = "universal" ] && [ "$BUILD_TARGET" != "deps" ]; then
+if [ "$ARCH" = "universal" ] && { [ "$BUILD_TARGET" = "all" ] || [ "$BUILD_TARGET" = "slicer" ]; }; then
     build_universal
 fi
 
 if [ "1." == "$PACK_DEPS". ]; then
     pack_deps
 fi
+
+elapsed=$SECONDS
+printf "\nBuild completed in %dh %dm %ds\n" $((elapsed/3600)) $((elapsed%3600/60)) $((elapsed%60))

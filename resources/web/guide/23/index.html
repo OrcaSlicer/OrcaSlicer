@@ -87,6 +87,7 @@
 					<option value="2">Unchecked</option>
 				</select>
 			</div>
+			<div class="list-item-count"></div>
 			<div class="cbr-filter-btns">
 				<span class="cbr-filter-mode-filter  trans">Select filtered</span>
 				<span class="cbr-filter-mode-visible trans">Select visible</span>
@@ -107,7 +108,7 @@
 	<div id="CFilament_Btn_Area">
 		<div class="ButtonStyleConfirm ButtonTypeWindow trans" tid="t111" onClick="OnClickCustomFilamentAdd()">Create New</div>
 	</div>
-    <div id="CFilament_List" class="ZScrol">
+    <div id="CFilament_List" class="thin-scroll">
 	</div>
 </div>
 	
@@ -228,6 +229,8 @@
 		}
 	
         list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
+
+		UpdateStats();
 	});
 	addClearBtnEvents(filterBar);
 

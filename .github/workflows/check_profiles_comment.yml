@@ -1,0 +1,46 @@
+name: Post profile check comment
+
+# NOTE: The workflow name in the 'workflows' filter below must match the 'name'
+# field in check_profiles.yml exactly. If that name changes, update it here too.
+on:
+  workflow_run:
+    workflows: ["Check profiles"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+
+jobs:
+  post_comment:
+    name: Post PR comment
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: Download artifact
+        id: download
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: profile-check-results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Post comment on PR
+        if: ${{ steps.download.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ ! -f pr_number.txt ] || [ ! -f pr_comment.md ]; then
+            echo "No comment artifact found, skipping."
+            exit 0
+          fi
+
+          PR_NUMBER=$(cat pr_number.txt)
+          if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Invalid PR number: $PR_NUMBER"
+            exit 1
+          fi
+
+          gh pr comment "$PR_NUMBER" --body-file pr_comment.md

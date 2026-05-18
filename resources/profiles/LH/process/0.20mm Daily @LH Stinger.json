@@ -1,0 +1,12 @@
+{
+	"type": "process",
+	"name": "0.20mm Daily @LH Stinger",
+	"inherits": "fdm_process_lh_common",
+	"from": "system",
+	"setting_id": "LHS_P_daily",
+	"instantiation": "true",
+	"compatible_printers": [
+		"LH Stinger 0.4 nozzle",
+		"LH Stinger MMU 0.4 nozzle"
+	]
+}

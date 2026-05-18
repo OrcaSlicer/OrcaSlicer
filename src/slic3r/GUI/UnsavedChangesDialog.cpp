@@ -25,6 +25,7 @@
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/HyperLink.hpp"
 
 using boost::optional;
 
@@ -959,6 +960,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_button->Add(checkbox_sizer, 0, wxLEFT, FromDIP(22));
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
+    if (dependent_presets != nullptr) {
+        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
+        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+    }
+
     m_sizer_button->Add(0, 0, 1, 0, 0);
 
      // Add Buttons
@@ -1002,6 +1008,32 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
     // "Save" button
     if (ActionButtons::SAVE & m_buttons) add_btn(&m_save_btn, m_save_btn_id, "save", Action::Save, _L("Save"), false);
+
+    if (dependent_presets != nullptr) {
+        const wxString previous_profile = from_u8(dependent_presets->get_edited_preset().name);
+        const wxString new_profile      = new_selected_preset.empty() ? _L("the new profile") : from_u8(new_selected_preset);
+
+        if (m_discard_btn) {
+            m_discard_btn->SetToolTip(format_wxstr(
+                _L("Switch to\n\"%1%\"\ndiscarding any changes made in\n\"%2%\"."),
+                new_profile,
+                previous_profile));
+        }
+
+        if (m_transfer_btn) {
+            m_transfer_btn->SetToolTip(format_wxstr(
+                _L("All \"New Value\" settings modified in\n\"%1%\"\nwill be transferred to\n\"%2%\"."),
+                previous_profile,
+                new_profile));
+        }
+
+        if (m_save_btn) {
+            m_save_btn->SetToolTip(format_wxstr(
+                _L("All \"New Value\" settings are saved in\n\"%1%\"\nand \"%2%\" will open without any changes."),
+                previous_profile,
+                new_profile));
+        }
+    }
 
     /* ScalableButton *cancel_btn = new ScalableButton(this, wxID_CANCEL, "cross", _L("Cancel"), wxDefaultSize, wxDefaultPosition, wxBORDER_DEFAULT, true, 24);
       buttons->Add(cancel_btn, 1, wxLEFT | wxRIGHT, 5);
@@ -1087,7 +1119,7 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
         // for system/default/external presets we should take an edited name
         //BBS: add project embedded preset logic and refine is_external
         bool save_to_project = false;
-        if (preset.is_system || preset.is_default) {
+        if (!preset.can_overwrite()) {
         //if (preset.is_system || preset.is_default || preset.is_external) {
             SavePresetDialog save_dlg(this, preset.type);
             if (save_dlg.ShowModal() != wxID_OK) {
@@ -1114,7 +1146,7 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
             if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
                 const Preset& preset = tab->get_presets()->get_edited_preset();
                 //BBS: add project embedded preset logic and refine is_external
-                if (preset.is_system || preset.is_default)
+                if (!preset.can_overwrite())
                 //if (preset.is_system || preset.is_default || preset.is_external)
                     types_for_save.emplace_back(preset.type);
 
@@ -1661,13 +1693,14 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         //m_tree->model->AddPreset(type, from_u8(presets->get_edited_preset().name), old_pt);
 
         // Collect dirty options.
-        const bool deep_compare = (type == Preset::TYPE_PRINTER || type == Preset::TYPE_SLA_MATERIAL);
+        const bool deep_compare = (type == Preset::TYPE_PRINTER ||
+                                   type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
         auto dirty_options = presets->current_dirty_options(deep_compare);
 
         // process changes of extruders count
         if (type == Preset::TYPE_PRINTER && old_pt == ptFFF &&
             old_config.opt<ConfigOptionFloats>("nozzle_diameter")->values.size() != new_config.opt<ConfigOptionFloats>("nozzle_diameter")->values.size()) {
-            wxString local_label = _L("Extruders count");
+            wxString local_label = _L("Extruder count");
             wxString old_val = from_u8((boost::format("%1%") % old_config.opt<ConfigOptionFloats>("nozzle_diameter")->values.size()).str());
             wxString new_val = from_u8((boost::format("%1%") % new_config.opt<ConfigOptionFloats>("nozzle_diameter")->values.size()).str());
 
@@ -1682,11 +1715,15 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         }
 
         for (const std::string& opt_key : dirty_options) {
-            const Search::Option& option = searcher.get_option(opt_key, type);
-            if (option.opt_key() != opt_key) {
-                // When founded option isn't the correct one.
-                // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
-                // because of they don't exist in searcher
+            const std::string lookup_key = get_pure_opt_key(opt_key);
+            Search::Option option = searcher.get_option(lookup_key, type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                option = searcher.get_option(opt_key, get_full_label(opt_key, new_config), type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key) {
+                // When the found option is not the requested one.
+                // This can happen for dirty_options such as:
+                // "default_print_profile", "printer_model", "printer_settings_id",
+                // because they do not exist in the searcher.
                 continue;
             }
 
@@ -1919,8 +1956,8 @@ void DiffPresetDialog::create_tree()
     m_tree = new DiffViewCtrl(this, wxSize(em_unit() * 65, em_unit() * 40));
     m_tree->AppendToggleColumn_(L"\u2714", DiffModel::colToggle, wxLinux ? 9 : 6);
     m_tree->AppendBmpTextColumn("",                      DiffModel::colIconText, 35);
-    m_tree->AppendBmpTextColumn("Left Preset Value", DiffModel::colOldValue, 15);
-    m_tree->AppendBmpTextColumn("Right Preset Value",DiffModel::colNewValue, 15);
+    m_tree->AppendBmpTextColumn(_L("Left Preset Value"), DiffModel::colOldValue, 15);
+    m_tree->AppendBmpTextColumn(_L("Right Preset Value"),DiffModel::colNewValue, 15);
     m_tree->Hide();
     m_tree->GetColumn(DiffModel::colToggle)->SetHidden(true);
 }
@@ -2190,7 +2227,8 @@ void DiffPresetDialog::update_tree()
         }
 
         // Collect dirty options.
-        const bool deep_compare = (type == Preset::TYPE_PRINTER || type == Preset::TYPE_SLA_MATERIAL);
+        const bool deep_compare = (type == Preset::TYPE_PRINTER ||
+                                   type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
         auto dirty_options = type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
                              left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size() < right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size() ?
                              presets->dirty_options(right_preset, left_preset, deep_compare) :
@@ -2214,32 +2252,39 @@ void DiffPresetDialog::update_tree()
         m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
 
         const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
+        auto get_category_icon = [&category_icon_map](const wxString& key) {
+            auto it = category_icon_map.find(key);
+            return it != category_icon_map.end() ? it->second : std::string();
+        };
 
         // process changes of extruders count
         if (type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
             left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size() != right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()) {
-            wxString local_label = _L("Extruders count");
+            wxString local_label = _L("Extruder count");
             wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
             wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
 
-            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val, category_icon_map.at("Basic information"));
+            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val,
+                get_category_icon("Basic information"));
         }
 
         for (const std::string& opt_key : dirty_options) {
             wxString left_val = get_string_value(opt_key, left_config);
             wxString right_val = get_string_value(opt_key, right_congig);
 
-            Search::Option option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
-            if (option.opt_key() != opt_key) {
-                // temporary solution, just for testing
-                m_tree->Append(opt_key, type, "Undef category", "Undef group", opt_key, left_val, right_val, "undefined"); // ORCA: use low resolution compatible icon
-                // When founded option isn't the correct one.
-                // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
-                // because of they don't exist in searcher
+            const std::string lookup_key = get_pure_opt_key(opt_key);
+            Search::Option option = searcher.get_option(lookup_key, type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key) {
+                // When the found option is not the requested one.
+                // This can happen for dirty_options such as:
+                // "default_print_profile", "printer_model", "printer_settings_id",
+                // because they do not exist in the searcher.
                 continue;
             }
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
-                left_val, right_val, category_icon_map.at(option.category));
+                left_val, right_val, get_category_icon(option.category));
         }
     }
 

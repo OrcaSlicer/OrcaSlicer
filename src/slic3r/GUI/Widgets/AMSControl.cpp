@@ -134,7 +134,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_panel_option_right->SetMaxSize(wxSize(FromDIP(180), -1));
 
     /*option left*/
-    m_button_auto_refill = new Button(m_panel_option_left, _L("Auto-refill"));
+    m_button_auto_refill = new Button(m_panel_option_left, _L("Auto Refill"));
     m_button_auto_refill->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_button_ams_setting_normal = ScalableBitmap(this, "ams_setting_normal", 24);
@@ -1078,7 +1078,7 @@ void AMSControl::createAmsPanel(wxSimplebook *parent, int &idx, std::vector<AMSi
             else{
                 auto ext_image = new AMSExtImage(book_panel, pos, m_total_ext_count, false);
                 book_sizer->Add(ams1, 0, wxLEFT, FromDIP(30));
-                book_sizer->Add(ext_image, 0, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(30));
+                book_sizer->Add(ext_image, 0, wxEXPAND | wxLEFT, FromDIP(30));
                 ext_image->setTotalExtNum(series_name, printer_type, total_ext_num);
                 m_ext_image_list[infos[0].ams_id] = ext_image;
             }

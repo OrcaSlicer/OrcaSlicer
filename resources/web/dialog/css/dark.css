@@ -1,0 +1,100 @@
+:root {
+  --bg: #1b1f24;
+  --panel: #242a31;
+  --border: #3a424d;
+  --border-strong: #3a424d;
+  --border-soft: #313843;
+  --col-sep: #3a424d;
+
+  --text: #e6ebf0;
+  --row-hover: #2b3340;
+  --row-selected: #244945;
+  --row-selected-outline: #00bfa5;
+
+  --footer-bg: #20262d;
+  --btn-bg: #2a313a;
+  --btn-border: #4b5664;
+  --btn-hover: #333c47;
+
+  --ctx-bg: #2a313a;
+  --ctx-border: #4b5664;
+  --ctx-hover: #3a4451;
+}
+
+*
+{
+	color: #efeff0;
+	border-color: #B9B9BC;
+}
+
+body
+{
+	background-color:#2D2D31; /* ORCA match background color */
+	color: #efeff0;
+}
+
+.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    background-color: #939594;
+}
+
+.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        background: #161817;
+}
+
+#Title div
+{
+	color: #009688;
+}
+
+.search>input[type=text]{
+	background-color:#2D2D31;
+}
+
+/*---Checkboxes ORCA---*/
+input[type=checkbox]{
+	background-color:#2D2D31;
+	border-color:#4A4A51;
+}
+
+input[type=checkbox]:checked{
+	background-color:#009688;
+}
+
+/*-------Text------*/
+
+.TextS1
+{
+
+}
+
+.TextS2
+{
+	color:#B9B9BC;
+}
+
+/*---Policy---*/
+.TextArea1
+{
+	background-color: #4A4A51;
+	color: #BEBEC0;
+}
+
+/*----Region---*/
+.RegionItem:hover
+{
+	background-color:#4C4C55;
+}
+
+.RegionSelected:hover
+{
+	background-color:#009688;
+	color: #fff;	
+}
+
+/*----Menu----*/
+#Title div.TitleUnselected
+{
+	color: #BEBEC0;
+}
+
+

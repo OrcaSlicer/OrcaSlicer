@@ -86,6 +86,9 @@ bool ObjectSettings::update_settings_list()
     m_settings_list_sizer->Clear(true);
     m_og_settings.resize(0);
 
+    if (wxGetApp().is_closing())
+        return false;
+
     auto objects_ctrl   = wxGetApp().obj_list();
     auto objects_model  = wxGetApp().obj_list()->GetModel();
     auto config         = wxGetApp().obj_list()->config();

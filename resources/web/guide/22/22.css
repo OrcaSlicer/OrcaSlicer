@@ -179,6 +179,11 @@
 	margin: 3px;
 }
 
+.list-item-count {
+	color:var(--fg-color-label);
+	margin-left:10px
+}
+
 .cbr-filter-btns {
 	display: flex;
 	margin: 5px 5px 5px auto;
