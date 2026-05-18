@@ -87,7 +87,7 @@ void main()
 
         // Additional brightness boost for upward-facing surfaces
         float brightness_boost = 1.0 + up_factor * 0.2;
-        ao_factor = pow(ao_factor, 2.2) * brightness_boost;
+        ao_factor = pow(ao_factor, 1.1) * brightness_boost;
 
         occlusion = clamp(ao_factor, 0.45, 1.05);
     } else {
