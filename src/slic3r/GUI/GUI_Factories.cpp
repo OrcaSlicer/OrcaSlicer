@@ -1644,17 +1644,6 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
             []() { return true; }, m_parent);
     }
 
-    if (init) {
-        append_menu_item(
-            menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
-                plater()->sidebar().delete_filament(-2); }, "", nullptr,
-            []() {
-                return plater()->sidebar().combos_filament().size() > 1
-                    // Orca: only show delete filament option for SEMM machines unless is BBL
-                    && Sidebar::should_show_SEMM_buttons();
-            }, m_parent);
-    }
-
     const int item_id = menu->FindItem(_L("Merge with"));
     if (item_id != wxNOT_FOUND)
         menu->Destroy(item_id);
@@ -1675,6 +1664,20 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     }
     append_submenu(menu, sub_menu, wxID_ANY, _L("Merge with"), "", "",
         [filaments_cnt]() { return filaments_cnt > 1; }, m_parent);
+
+    // ORCA use delete item on end of menu to prevent accidental clicks. clicking to submenus(merge) already not allowed by OS
+    const int delete_id = menu->FindItem(_L("Delete"));
+    if (delete_id != wxNOT_FOUND)
+        menu->Destroy(delete_id);
+    
+    append_menu_item(
+        menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
+            plater()->sidebar().delete_filament(-2); }, "", nullptr,
+        []() {
+            return plater()->sidebar().combos_filament().size() > 1
+                // Orca: only show delete filament option for SEMM machines unless is BBL
+                && Sidebar::should_show_SEMM_buttons();
+        }, m_parent);
 }
 
 //BBS: add part plate related logic
