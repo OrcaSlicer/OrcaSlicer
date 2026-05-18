@@ -12,6 +12,9 @@ uniform vec2 inv_tex_size;
 uniform float z_near;
 uniform float z_far;
 
+const float AO_BLEND_STRENGTH = 0.8;
+const float GAMMA = 2.2;
+
 varying vec2 tex_coord;
 
 float linearize_depth(float depth)
@@ -82,8 +85,14 @@ void main()
     
     // Boost brightness on top surfaces (optional)
     float brightness_boost = 1.0 + up_factor * 0.15;  // 15% extra brightness on top
-    ambient_occlusion = pow(ambient_occlusion, 2.2) * brightness_boost;
+    ambient_occlusion = pow(ambient_occlusion, 1.1) * brightness_boost;
     ambient_occlusion = clamp(ambient_occlusion, 0.45, 1.05);
     
-    gl_FragColor = vec4(base * ambient_occlusion, 1.0);
+    float blended_occlusion = mix(1.0, ambient_occlusion, AO_BLEND_STRENGTH);
+
+    // Apply AO in approximate linear space to avoid crushing mid tones.
+    vec3 base_linear = pow(max(base, vec3(0.0)), vec3(GAMMA));
+    base_linear *= blended_occlusion;
+    vec3 base_out = pow(max(base_linear, vec3(0.0)), vec3(1.0 / GAMMA));
+    gl_FragColor = vec4(base_out, 1.0);
 }

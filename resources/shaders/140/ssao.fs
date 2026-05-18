@@ -11,6 +11,9 @@ uniform sampler2D normal_texture;
 uniform float z_near;
 uniform float z_far;
 
+const float AO_BLEND_STRENGTH = 0.8;
+const float GAMMA = 2.2;
+
 in vec2 tex_coord;
 out vec4 frag_color;
 
@@ -87,7 +90,7 @@ void main()
 
         // Additional brightness boost for upward-facing surfaces
         float brightness_boost = 1.0 + up_factor * 0.2;
-        ao_factor = pow(ao_factor, 2.2) * brightness_boost;
+        ao_factor = pow(ao_factor, 1.1) * brightness_boost;
 
         occlusion = clamp(ao_factor, 0.45, 1.05);
     } else {
@@ -95,5 +98,11 @@ void main()
     }
 
     vec3 color = texture(color_texture, tex_coord).rgb;
-    frag_color = vec4(color * occlusion, 1.0);
+    float blended_occlusion = mix(1.0, occlusion, AO_BLEND_STRENGTH);
+
+    // Apply AO in approximate linear space to avoid crushing mid tones.
+    vec3 color_linear = pow(max(color, vec3(0.0)), vec3(GAMMA));
+    color_linear *= blended_occlusion;
+    vec3 color_out = pow(max(color_linear, vec3(0.0)), vec3(1.0 / GAMMA));
+    frag_color = vec4(color_out, 1.0);
 }
