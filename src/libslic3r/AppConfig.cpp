@@ -259,6 +259,12 @@ void AppConfig::set_defaults()
     if (get(SETTING_OPENGL_SHOW_FPS_OVERLAY).empty())
         set_bool(SETTING_OPENGL_SHOW_FPS_OVERLAY, false);
 
+    if (get(SETTING_OPENGL_REALISTIC_MODE).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
+
+    if (get(SETTING_OPENGL_REALISTIC_PHONG).empty())
+        set_bool(SETTING_OPENGL_REALISTIC_PHONG, true);
+
     if (get(SETTING_OPENGL_SHADING_MODEL).empty())
         set(SETTING_OPENGL_SHADING_MODEL, "gouraud");
 

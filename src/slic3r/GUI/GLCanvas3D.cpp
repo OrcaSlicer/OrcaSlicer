@@ -7523,7 +7523,8 @@ bool GLCanvas3D::_is_ssao_enabled() const
 {
     if (wxGetApp().app_config == nullptr)
         return false;
-    return wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
+    return wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE) &&
+           wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
 }
 
 int GLCanvas3D::_get_effective_fps_cap() const
@@ -7781,6 +7782,8 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
 {
     // Check if shadow rendering is enabled in configuration
     if (wxGetApp().app_config == nullptr)
+        return;
+    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE))
         return;
     if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
         return;
@@ -8045,8 +8048,9 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
     else
         m_volumes.set_show_sinking_contours(!m_gizmos.is_hiding_instances());
 
-    const std::string shading_model = wxGetApp().app_config->get(SETTING_OPENGL_SHADING_MODEL);
-    const std::string shader_name = (shading_model == "phong") ? "phong" : "gouraud";
+    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+    const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
+    const std::string shader_name = (realistic_mode && realistic_phong) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
     if (shader == nullptr && shader_name != "gouraud")
         shader = wxGetApp().get_shader("gouraud");
@@ -9132,30 +9136,11 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this]{wxGetApp().toggle_show_outline();}
         );
 
-        create_menu_item( _utf8(L("Reflections")),
-            m_canvas_type == ECanvasType::CanvasView3D,
-            cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong",
-            [this, &cfg]{
-                const bool enabled = cfg->get(SETTING_OPENGL_SHADING_MODEL) == "phong";
-                cfg->set(SETTING_OPENGL_SHADING_MODEL, enabled ? "gouraud" : "phong");
-                cfg->save();
-            }
-        );
-
-        create_menu_item( _utf8(L("Ambient Occlusion")),
+        create_menu_item( _utf8(L("Realistic mode")),
             m_canvas_type != ECanvasType::CanvasAssembleView,
-            cfg->get_bool(SETTING_OPENGL_PHONG_SSAO),
+            cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
             [this, &cfg]{
-                cfg->set_bool(SETTING_OPENGL_PHONG_SSAO, !cfg->get_bool(SETTING_OPENGL_PHONG_SSAO));
-                cfg->save();
-            }
-        );
-
-        create_menu_item( _utf8(L("Shadows")),
-            m_canvas_type == ECanvasType::CanvasView3D,
-            cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS),
-            [this, &cfg]{
-                cfg->set_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS, !cfg->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS));
+                cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
                 cfg->save();
             }
         );
