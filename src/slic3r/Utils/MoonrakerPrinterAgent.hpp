@@ -92,6 +92,7 @@ protected:
         int         slot_index = 0;      // 0-based slot index
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
+        std::string tray_sub_brands;     // Human-readable filament name
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
         std::string tray_info_idx;       // Setting ID (optional)
         int         bed_temp = 0;        // Optional
@@ -99,7 +100,7 @@ protected:
     };
 
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays, int active_lane_index = -1);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
@@ -161,7 +162,7 @@ private:
                                    uint64_t generation);
 
     // System-specific filament fetch methods
-    bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index, int& active_lane_index);
     bool fetch_moonraker_filament_data(std::vector<AmsTrayData>& trays, int& max_lane_index);
 
     // JSON helper methods

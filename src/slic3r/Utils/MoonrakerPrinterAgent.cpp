@@ -4,6 +4,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceCore/DevFirmware.h"
@@ -86,6 +87,88 @@ std::string map_moonraker_state(std::string state)
         return "FAILED";
     }
     return "IDLE";
+}
+
+std::string normalize_filament_name_for_match(const std::string& input)
+{
+    std::string normalized = input;
+    boost::trim(normalized);
+    // Ignore profile suffixes like " @0.4 nozzle" for name matching.
+    if (const auto suffix_pos = normalized.find(" @"); suffix_pos != std::string::npos) {
+        normalized = normalized.substr(0, suffix_pos);
+    }
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    return normalized;
+}
+
+bool filament_name_match_relaxed(const std::string& wanted, const std::string& candidate)
+{
+    if (wanted == candidate) {
+        return true;
+    }
+
+    // Allow lane names with trailing color descriptors, e.g.:
+    // "ELEGOO RAPID PETG GREY" -> "ELEGOO RAPID PETG".
+    if (!candidate.empty() && boost::starts_with(wanted, candidate + " ")) {
+        return true;
+    }
+    return false;
+}
+
+std::vector<std::string> vendor_match_candidates(std::string vendor)
+{
+    std::vector<std::string> candidates;
+    boost::trim(vendor);
+    if (vendor.empty()) {
+        return candidates;
+    }
+
+    candidates.push_back(vendor);
+
+    // Also try first token (e.g. "Bambu Lab" -> "Bambu") without hardcoded aliases.
+    const auto first_space = vendor.find_first_of(" \t");
+    if (first_space != std::string::npos) {
+        std::string first = vendor.substr(0, first_space);
+        boost::trim(first);
+        if (!first.empty() && !boost::iequals(first, vendor)) {
+            candidates.push_back(first);
+        }
+    }
+    return candidates;
+}
+
+std::string filament_id_by_name(const Slic3r::PresetCollection& filaments, const std::string& filament_name)
+{
+    if (filament_name.empty()) {
+        BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher received empty filament name";
+        return "";
+    }
+
+    const std::string wanted = normalize_filament_name_for_match(filament_name);
+    BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher lookup requested='" << filament_name
+                             << "' normalized='" << wanted << "'";
+    for (size_t i = 0; i < filaments.size(); ++i) {
+        const auto& preset = filaments.preset(i);
+        if (!preset.is_visible || !preset.is_compatible || preset.filament_id.empty()) {
+            BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher skip preset='" << preset.name
+                                     << "' visible=" << preset.is_visible << " compatible=" << preset.is_compatible
+                                     << " filament_id_empty=" << preset.filament_id.empty();
+            continue;
+        }
+        const std::string candidate = normalize_filament_name_for_match(preset.name);
+        BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: filament matcher compare preset='" << preset.name
+                                 << "' normalized='" << candidate << "' filament_id='" << preset.filament_id << "'";
+        if (filament_name_match_relaxed(wanted, candidate)) {
+            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: filament matcher matched requested='" << filament_name
+                                    << "' normalized='" << wanted << "' to preset='" << preset.name
+                                    << "' filament_id='" << preset.filament_id << "'";
+            return preset.filament_id;
+        }
+    }
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: filament matcher found no match for requested='" << filament_name
+                            << "' normalized='" << wanted << "'";
+    return "";
 }
 
 } // namespace
@@ -448,7 +531,7 @@ int MoonrakerPrinterAgent::set_queue_on_main_fn(QueueOnMainFn fn)
     return BAMBU_NETWORK_SUCCESS;
 }
 
-void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays)
+void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays, int active_lane_index)
 {
 
     // Look up MachineObject via DeviceManager
@@ -499,6 +582,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
                 tray_json["tray_info_idx"] = tray->tray_info_idx;
                 tray_json["tray_type"] = tray->tray_type;
+                tray_json["tray_sub_brands"] = tray->tray_sub_brands.empty() ? tray->tray_type : tray->tray_sub_brands;
                 tray_json["tray_color"] = normalize_color_value(tray->tray_color);
 
                 // Add temperature data if provided
@@ -530,6 +614,11 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     ams_json["ams"] = ams_array;
     ams_json["ams_exist_bits"] = ams_exist_ss.str();
     ams_json["tray_exist_bits"] = tray_exist_ss.str();
+    if (active_lane_index >= 0) {
+        const std::string active_lane = std::to_string(active_lane_index);
+        ams_json["tray_now"] = active_lane;
+        ams_json["tray_tar"] = active_lane;
+    }
 
     // Wrap in the expected structure for ParseV1_0
     nlohmann::json print_json = nlohmann::json::object();
@@ -537,6 +626,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
 
     // Call the parser to populate DevFilaSystem
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
+    ExtderSystemParser::ParseV1_0(print_json, obj->GetExtderSystem());
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
 
     // Set printer_type so update_sync_status() can match it against the preset's printer type.
@@ -570,6 +660,7 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
+    int active_lane_index = -1;
 
     // Try Moonraker filament data (more generic, supports any filament changer
     // software that reports lane data to Moonraker like AFC and recent Happy
@@ -578,16 +669,16 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
         int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        build_ams_payload(ams_count, max_lane_index, trays, active_lane_index);
         return true;
     }
 
     // Attempt Happy Hare first (more widely adopted, supports more filament changers)
-    if (fetch_hh_filament_info(trays, max_lane_index)) {
+    if (fetch_hh_filament_info(trays, max_lane_index, active_lane_index)) {
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
         int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
+        build_ams_payload(ams_count, max_lane_index, trays, active_lane_index);
         return true;
     }
 
@@ -801,13 +892,51 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.slot_index = lane_index;
         tray.tray_color = safe_json_string(lane_obj, "color");
         tray.tray_type = safe_json_string(lane_obj, "material");
+        const std::string lane_name = safe_json_string(lane_obj, "name");
+        const std::string lane_vendor = safe_json_string(lane_obj, "vendor_name");
+        tray.tray_sub_brands = lane_name;
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        if (bundle) {
+            const auto vendor_candidates = vendor_match_candidates(lane_vendor);
+            auto match_with_vendor_prefix = [&](const std::string& suffix) -> std::string {
+                if (suffix.empty()) {
+                    return "";
+                }
+                for (const auto& vendor_candidate : vendor_candidates) {
+                    const std::string requested = vendor_candidate + " " + suffix;
+                    std::string match_id = filament_id_by_name(bundle->filaments, requested);
+                    if (!match_id.empty()) {
+                        return match_id;
+                    }
+                }
+                return "";
+            };
+
+            // Prefer the most specific lane identity first, then broader vendor/material mapping.
+            tray.tray_info_idx = match_with_vendor_prefix(lane_name);
+            if (tray.tray_info_idx.empty()) {
+                tray.tray_info_idx = match_with_vendor_prefix(tray.tray_type);
+            }
+            if (tray.tray_info_idx.empty() && !lane_name.empty()) {
+                tray.tray_info_idx = filament_id_by_name(bundle->filaments, lane_name);
+            }
+            if (tray.tray_info_idx.empty()) {
+                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+            }
+            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: lane='" << lane_key
+                                    << "' index=" << lane_index << " material='" << tray.tray_type
+                                    << "' vendor='" << lane_vendor << "' vendor_candidates=" << vendor_candidates.size()
+                                    << "' name='" << lane_name
+                                    << "' mapped_by='preset_bundle' tray_info_idx='" << tray.tray_info_idx << "'";
+        } else {
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
+            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: lane='" << lane_key
+                                    << "' index=" << lane_index << " material='" << tray.tray_type
+                                    << "' mapped_by='generic_fallback' tray_info_idx='" << tray.tray_info_idx << "'";
+        }
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -822,7 +951,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
 }
 
 // Fetch filament info from Happy Hare MMU
-bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index)
+bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& trays, int& max_lane_index, int& active_lane_index)
 {
     // Query Happy Hare MMU status
     std::string url = join_url(device_info.base_url, "/printer/objects/query?mmu");
@@ -894,8 +1023,18 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
     // Get arrays
     const auto& gate_status = mmu.contains("gate_status") ? mmu["gate_status"] : nlohmann::json::array();
     const auto& gate_material = mmu.contains("gate_material") ? mmu["gate_material"] : nlohmann::json::array();
+    const auto& gate_filament_name = mmu.contains("gate_filament_name") ? mmu["gate_filament_name"] : nlohmann::json::array();
     const auto& gate_color = mmu.contains("gate_color") ? mmu["gate_color"] : nlohmann::json::array();
     const auto& gate_temperature = mmu.contains("gate_temperature") ? mmu["gate_temperature"] : nlohmann::json::array();
+    const int active_gate = safe_json_int(mmu, "gate");
+    active_lane_index = active_gate;
+    std::string active_filament_name;
+    if (mmu.contains("active_filament") && mmu["active_filament"].is_object()) {
+        active_filament_name = safe_json_string(mmu["active_filament"], "filament_name");
+        if (active_filament_name.empty()) {
+            active_filament_name = safe_json_string(mmu["active_filament"], "material");
+        }
+    }
 
     if (!gate_status.is_array() || !gate_material.is_array() ||
         !gate_color.is_array() || !gate_temperature.is_array()) {
@@ -916,8 +1055,13 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
 
         // Extract gate data
         std::string material = safe_array_string(gate_material, gate_idx);
+        std::string filament_name = safe_array_string(gate_filament_name, gate_idx);
         std::string color = safe_array_string(gate_color, gate_idx);
         int nozzle_temp = safe_array_int(gate_temperature, gate_idx);
+        // For the active gate, prefer active_filament from MMU state.
+        if (gate_idx == active_gate && !active_filament_name.empty()) {
+            filament_name = active_filament_name;
+        }
 
         // Skip if no material type (empty gate)
         if (material.empty()) {
@@ -927,15 +1071,21 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         AmsTrayData tray;
         tray.slot_index = gate_idx;
         tray.tray_type = material;
+        tray.tray_sub_brands = filament_name;
         tray.tray_color = color;
         tray.nozzle_temp = nozzle_temp;
         tray.bed_temp = 0;  // HH doesn't provide bed temp in gate arrays
         tray.has_filament = true;
 
         auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        if (bundle) {
+            tray.tray_info_idx = filament_id_by_name(bundle->filaments, filament_name);
+            if (tray.tray_info_idx.empty()) {
+                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+            }
+        } else {
+            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
+        }
 
         max_lane_index = std::max(max_lane_index, gate_idx);
         trays.push_back(tray);
