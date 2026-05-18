@@ -34,9 +34,6 @@
     "default_filament_colour": [
         ""
     ],
-    "dont_slow_down_outer_wall": [
-        "1"
-    ],
     "during_print_exhaust_fan_speed": [
         "60"
     ],
