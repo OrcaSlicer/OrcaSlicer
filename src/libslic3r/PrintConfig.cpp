@@ -3725,7 +3725,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
 
     // ORCA: minimum non-zero part cooling fan speed.
-    def = this->add("pct_fan_min_pwm", coInt);
+    def = this->add("part_cooling_fan_min_pwm", coInt);
     def->label = L("Minimum non-zero part cooling fan speed");
     def->tooltip = L("Some part-cooling fans cannot start spinning when commanded below a certain PWM duty cycle. "
                      "When set above 0, any non-zero part-cooling fan command will be raised to at least this percentage "
