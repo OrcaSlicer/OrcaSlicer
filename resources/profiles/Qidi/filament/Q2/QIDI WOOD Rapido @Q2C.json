@@ -48,10 +48,40 @@
 	"pressure_advance": [
 		"0.044"
 	],
+	"cool_plate_temp": [
+		"45"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"supertack_plate_temp": [
+		"45"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
 	"supertack_plate_temp_initial_layer": [
 		"45"
 	],
-	"supertack_plate_temp": [
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_cool_plate_temp_initial_layer": [
 		"45"
 	],
 	"temperature_vitrification": [
