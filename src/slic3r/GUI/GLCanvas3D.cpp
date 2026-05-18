@@ -9137,7 +9137,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         );
 
         create_menu_item( _utf8(L("Realistic view")),
-            m_canvas_type != ECanvasType::CanvasAssembleView,
+            true,
             cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
             [this, &cfg]{
                 cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
