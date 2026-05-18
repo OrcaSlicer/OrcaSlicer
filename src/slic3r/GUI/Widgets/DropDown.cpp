@@ -564,11 +564,6 @@ void DropDown::messureSize()
         subDropDown->use_content_width = true;
         subDropDown->Create(GetParent());
 #ifdef __WXGTK__
-        // Orca:  Keep the wx parent as the combobox so wxPopupTransientWindow installs
-        // its capture handlers on the main dropdown, but make the native GTK
-        // popup transient for the currently open popup to satisfy Wayland's
-        // xdg-shell rule that a popup's parent must be the topmost mapped popup.
-        gtk_window_set_transient_for(GTK_WINDOW(subDropDown->GetHandle()), GTK_WINDOW(GetHandle()));
         // Orca: On Wayland, while the sub holds an xdg_popup grab, motion events for
         // the cursor over main may not be delivered (Mutter drops motion
         // outside the grabbing surface). Poll on idle and synthesize a
@@ -636,8 +631,11 @@ void DropDown::autoPosition()
         // may exceed
         auto drect = wxDisplay(GetParent()).GetGeometry();
         if (GetPosition().y + size.y + 10 > drect.GetBottom()) {
+            int available_height = drect.GetBottom() - GetPosition().y - 10;
+            if (available_height < rowSize.y * 2)
+                return;
             if (use_content_width && count <= 15) size.x += 6;
-            size.y = drect.GetBottom() - GetPosition().y - 10;
+            size.y = available_height;
             wxWindow::SetSize(size);
             if (selection >= 0) {
                 if (offset.y + rowSize.y * (selection + 1) > size.y)
@@ -727,6 +725,13 @@ void DropDown::mouseMove(wxMouseEvent &event)
             drop.group  = items[-index - 2].group_key;
             drop.need_sync = true;
             drop.messureSize();
+#ifdef __WXGTK__
+            // wxGTK wraps popup contents in a native GtkWindow. Make the submenu
+            // transient for the currently mapped parent popup window before
+            // positioning/showing it, so wlroots/Hyprland sees the topmost parent.
+            if (m_widget && drop.m_widget)
+                gtk_window_set_transient_for(GTK_WINDOW(drop.m_widget), GTK_WINDOW(m_widget));
+#endif
             drop.autoPosition();
             drop.paintNow();
             if (!drop.IsShown())
