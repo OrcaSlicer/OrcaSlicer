@@ -1542,7 +1542,7 @@ void PreferencesDialog::create_items()
     g_sizer->AddGrowableCol(0, 1);
 
     //// GRAPHICS > Realistic view
-    g_sizer->Add(create_item_title(_L("Realistic view")), 1, wxEXPAND);
+    g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
     auto item_realistic_phong = create_item_checkbox(
         _L("Phong shading"),
