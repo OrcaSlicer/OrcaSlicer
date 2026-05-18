@@ -109,6 +109,9 @@ private:
     void set_volume_by_selection();
     void reset_volume();
 
+    bool is_changed_from_default_style();
+    void reset_to_default_style();
+
     // create volume from text - main functionality
     bool process(bool make_snapshot = true);
     void close();

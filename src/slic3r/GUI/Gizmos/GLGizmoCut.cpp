@@ -2369,7 +2369,10 @@ void GLGizmoCut3D::apply_selected_connectors(std::function<void(size_t idx)> app
 void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, float x, float y, float bottom_limit)
 {
     // Connectors section
-
+        
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+    
     ImGui::Separator();
 
     // WIP : Auto : Need to implement
@@ -2447,26 +2450,24 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
 
     ImGui::Separator();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
     render_tooltip_button(x, y);
 
-    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
-
     ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Confirm connectors"), _L("Cancel")});
+    GLGizmoUtils::push_orca_button_style();
     if (m_imgui->button(_L("Confirm connectors"))) {
         unselect_all_connectors();
         set_connectors_editing(false);
     }
+    GLGizmoUtils::pop_orca_button_style();
 
-    ImGui::SameLine(m_label_width + m_editing_window_width - m_imgui->calc_text_size(_L("Cancel")).x - m_imgui->get_style_scaling() * 8);
-
+    ImGui::SameLine();
     if (m_imgui->button(_L("Cancel"))) {
         reset_connectors();
         set_connectors_editing(false);
     }
 
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 }
 
 void GLGizmoCut3D::render_build_size()
@@ -2846,10 +2847,14 @@ void GLGizmoCut3D::render_snap_specific_input(const std::string& label, const wx
 
 void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, float x, float y, float bottom_limit)
 {
-//    if (m_mode == size_t(CutMode::cutPlanar)) {
+    const bool has_connectors = !connectors.empty();
+    const bool is_cut_plane_init = m_rotation_m.isApprox(Transform3d::Identity()) && m_bb_center.isApprox(m_plane_center);
+
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+    
     CutMode mode = CutMode(m_mode);
     if (mode == CutMode::cutPlanar || mode == CutMode::cutTongueAndGroove) {
-        const bool has_connectors = !connectors.empty();
 
         m_imgui->disabled_begin(has_connectors);
         if (render_cut_mode_combo())
@@ -2864,7 +2869,6 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
         render_move_center_input(Z);
         ImGui::SameLine();
 
-        const bool is_cut_plane_init = m_rotation_m.isApprox(Transform3d::Identity()) && m_bb_center.isApprox(m_plane_center);
         m_imgui->disabled_begin(is_cut_plane_init);
             std::string act_name = _u8L("Reset cutting plane");
             if (render_reset_button("cut_plane", act_name)) {
@@ -2873,25 +2877,12 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
             }
         m_imgui->disabled_end();
 
-//        render_flip_plane_button();
-
         if (mode == CutMode::cutPlanar) {
-            add_vertical_scaled_interval(0.75f);
+            ImGui::Separator();
 
             m_imgui->disabled_begin(!m_keep_upper || !m_keep_lower || m_keep_as_parts || (m_part_selection.valid() && m_part_selection.is_one_object()));
                 if (m_imgui->button(has_connectors ? _L("Edit connectors") : _L("Add connectors")))
                     set_connectors_editing(true);
-            m_imgui->disabled_end();
-
-            ImGui::SameLine(1.5f * m_control_width);
-
-            m_imgui->disabled_begin(is_cut_plane_init && !has_connectors);
-                act_name = _u8L("Reset cut");
-                if (m_imgui->button(wxString::FromUTF8(act_name), _L("Reset cutting plane and remove connectors"))) {
-                    Plater::TakeSnapshot snapshot(wxGetApp().plater(), act_name, UndoRedo::SnapshotType::GizmoAction);
-                    reset_cut_plane();
-                    reset_connectors();
-                }
             m_imgui->disabled_end();
         }
         else if (mode == CutMode::cutTongueAndGroove) {
@@ -2978,21 +2969,35 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
     }
 
     ImGui::Separator();
+    
+    render_tooltip_button(x, y);
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    render_tooltip_button(x, get_cur_y);
-
-    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+    if (mode == CutMode::cutPlanar) {
+        ImGui::SameLine();
+        m_imgui->disabled_begin(is_cut_plane_init && !has_connectors);
+        if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset Cut", UndoRedo::SnapshotType::GizmoAction);
+            reset_cut_plane();
+            reset_connectors();
+        }
+        m_imgui->disabled_end();
+    }
 
     ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Perform cut"), _L("Cancel")});
     m_imgui->disabled_begin(!can_perform_cut());
-        if(m_imgui->button(_L("Perform cut")))
-            perform_cut(m_parent.get_selection());
+    GLGizmoUtils::push_orca_button_style();
+    if(m_imgui->button(_L("Perform cut")))
+        perform_cut(m_parent.get_selection());
+    GLGizmoUtils::pop_orca_button_style();
     m_imgui->disabled_end();
 
-    ImGui::PopStyleVar(2);
+    ImGui::SameLine();
+    if (m_imgui->button(_L("Cancel"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 }
 
 void GLGizmoCut3D::validate_connector_settings()
@@ -3095,7 +3100,16 @@ void GLGizmoCut3D::init_input_window_data(CutConnectors &connectors)
 
 void GLGizmoCut3D::render_input_window_warning() const
 {
-    if (! m_invalid_connectors_idxs.empty()) {
+    const bool invalid_connector_warning = !m_invalid_connectors_idxs.empty();
+    const bool keep_after_cut_warning    = !m_keep_upper && !m_keep_lower;
+    const bool invalid_contour_warning   = !has_valid_contour();
+    const bool invalid_groove_warning    = !has_valid_groove();
+
+    if (invalid_connector_warning || keep_after_cut_warning || invalid_contour_warning || invalid_groove_warning) {
+        ImGui::Separator();
+    }
+
+    if (invalid_connector_warning) {
         wxString out = /*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Invalid connectors detected") + ":";
         if (m_info_stats.outside_cut_contour > size_t(0))
             out += "\n - " + format_wxstr(_L_PLURAL("%1$d connector is out of cut contour", "%1$d connectors are out of cut contour", m_info_stats.outside_cut_contour),
@@ -3105,14 +3119,14 @@ void GLGizmoCut3D::render_input_window_warning() const
                                            m_info_stats.outside_bb);
         if (m_info_stats.is_overlap)
             out += "\n - " + _L("Some connectors are overlapped");
-        m_imgui->text(out);
+        m_imgui->warning_text(out);
     }
-    if (!m_keep_upper && !m_keep_lower)
-        m_imgui->text(/*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Select at least one object to keep after cutting."));
-    if (!has_valid_contour())
-        m_imgui->text(/*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Cut plane is placed out of object"));
-    else if (!has_valid_groove())
-        m_imgui->text(/*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Cut plane with groove is invalid"));
+    if (keep_after_cut_warning)
+        m_imgui->warning_text(/*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Select at least one object to keep after cutting."));
+    if (invalid_contour_warning)
+        m_imgui->warning_text(/*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Cut plane is placed out of object"));
+    else if (invalid_groove_warning)
+        m_imgui->warning_text(/*wxString(ImGui::WarningMarkerSmall)*/ _L("Warning") + ": " + _L("Cut plane with groove is invalid"));
 }
 
 void GLGizmoCut3D::on_render_input_window(float x, float y, float bottom_limit)

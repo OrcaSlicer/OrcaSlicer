@@ -104,20 +104,24 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
     }
     show_selection_ui();
     show_face_face_assembly_common();
+
     ImGui::Separator();
     show_face_face_assembly_senior();
     show_distance_xyz_ui();
-    render_input_window_warning(m_same_model_object);
+
     ImGui::Separator();
-
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    
-    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
-
     float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
-    ImGui::PopStyleVar(2);
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    render_input_window_warning(m_same_model_object);
 
     if (last_feature != m_curr_feature || last_mode != m_mode || last_selected_features != m_selected_features) {
         // the dialog may have changed its size, ask for an extra frame to render it properly
@@ -127,20 +131,39 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
         m_imgui->set_requires_extra_frame();
     }
     m_last_active_item_imgui = m_current_active_imgui_id;
+    
     GizmoImguiEnd();
     // Orca
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     ImGuiWrapper::pop_toolbar_style();
 }
 
 void GLGizmoAssembly::render_input_window_warning(bool same_model_object)
 {
-    if (wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D) {
-        if (m_hit_different_volumes.size() == 2) {
-            if (same_model_object == false) {
-                m_imgui->warning_text(_L("Warning") + ": " +
-               _L("It is recommended to assemble the objects first,\nbecause the objects is restriced to bed \nand only parts can be lifted."));
-            }
+    const bool same_mesh_warning        = m_hit_different_volumes.size() == 1;
+    const bool wrong_feature_warning    = m_selected_wrong_feature_waring_tip;
+    const bool not_assembled_warning    = m_hit_different_volumes.size() == 2 && same_model_object == false &&
+                                        wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D;
+
+    if (same_mesh_warning || not_assembled_warning || wrong_feature_warning) {
+        ImGui::Separator();
+    }
+
+    if (same_mesh_warning) {
+        m_imgui->warning_text(_L("Warning: please select two different meshes."));
+    }
+    if (wrong_feature_warning) {
+        if (m_assembly_mode == AssemblyMode::FACE_FACE) {
+            m_imgui->warning_text(_L("Warning: please select Plane's feature."));
+        } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
+            m_imgui->warning_text(_L("Warning: please select Point's or Circle's feature."));
         }
+    }
+    if (not_assembled_warning) {
+        m_imgui->warning_text(
+            _L("Warning") + ": " +
+            _L("It is recommended to assemble the objects first,\nbecause the objects is restriced to bed \nand only parts can be lifted.")
+        );
     }
 }
 

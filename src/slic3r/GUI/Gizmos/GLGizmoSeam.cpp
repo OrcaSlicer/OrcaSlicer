@@ -41,7 +41,7 @@ bool GLGizmoSeam::on_init()
     m_desc["enforce"]          = _L("Enforce seam");
     m_desc["block"]            = _L("Block seam");
     m_desc["remove"]           = _L("Erase");
-    m_desc["remove_all"]       = _L("Erase all painting");
+    m_desc["remove_all"]       = _L("Erase all");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");
 
@@ -140,6 +140,8 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     wchar_t old_tool = m_current_tool;
     //BBS
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
@@ -256,14 +258,10 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 
     ImGui::Separator();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
 
-    float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
-
     ImGui::SameLine();
-
+    m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_seam_painted() == false);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject         *mo  = m_c->selection_info()->model_object();
@@ -278,7 +276,15 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         update_model_object();
         m_parent.set_as_dirty();
     }
-    ImGui::PopStyleVar(2);
+    m_imgui->disabled_end();
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     GizmoImguiEnd();
 
     //BBS
