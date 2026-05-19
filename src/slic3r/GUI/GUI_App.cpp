@@ -100,6 +100,9 @@
 #include "Mouse3DController.hpp"
 #include "RemovableDriveManager.hpp"
 #include "InstanceCheck.hpp"
+#ifdef __APPLE__
+#include "DeepLinkHandlerMac.h"
+#endif
 #include "NotificationManager.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
@@ -2547,6 +2550,12 @@ std::string get_system_info()
 bool GUI_App::on_init_inner()
 {
     wxLog::SetActiveTarget(new wxBoostLog());
+
+#ifdef __APPLE__
+    // Override wxWidgets' kAEGetURL handler so orcaslicer:// deep links keep
+    // working after the wxWidgets 3.3.2 upgrade on macOS (#13119).
+    register_mac_deep_link_handler();
+#endif
 #if BBL_RELEASE_TO_PUBLIC
     wxLog::SetLogLevel(wxLOG_Message);
 #endif
