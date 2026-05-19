@@ -62,9 +62,11 @@
 	"sparse_infill_line_width": "0.4",
 	"internal_solid_infill_line_width": "0.4",
 	"support_line_width": "0.4",
-	"sparse_infill_speed": "120",
-	"internal_solid_infill_speed": "100",
+	"sparse_infill_speed": "70",
+	"internal_solid_infill_speed": "70",
 	"gap_infill_speed": "35",
 	"small_perimeter_speed": "50%",
-	"small_perimeter_min_length": "0"
+	"support_speed": "70",
+	"seam_position": "aligned",
+	"small_perimeter_threshold": "0"
 }
