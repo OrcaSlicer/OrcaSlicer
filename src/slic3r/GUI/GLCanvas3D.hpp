@@ -290,8 +290,8 @@ class GLCanvas3D
         bool is_enabled() const { return m_enabled; }
         void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
-        void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
-        void render_overlay(const GLCanvas3D& canvas);
+        void render_variable_layer_height_dialog(GLCanvas3D& canvas);
+        void render_overlay(GLCanvas3D& canvas);
         void render_volumes(const GLCanvas3D& canvas, const GLVolumeCollection& volumes);
 
         void adjust_layer_height_profile();
@@ -1038,8 +1038,11 @@ public:
     void on_set_focus(wxFocusEvent& evt);
     void force_set_focus();
 
-    bool is_camera_rotate(const wxMouseEvent& evt, const bool buttonsSwapped) const;
-    bool is_camera_pan(const wxMouseEvent& evt, const bool buttonsSwapped) const;
+    enum class MouseButton { None, Left, Middle, Right };
+    enum class MouseAction { None, Pan, Rotation };
+    bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;

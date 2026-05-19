@@ -100,6 +100,9 @@
 #include "Mouse3DController.hpp"
 #include "RemovableDriveManager.hpp"
 #include "InstanceCheck.hpp"
+#ifdef __APPLE__
+#include "DeepLinkHandlerMac.h"
+#endif
 #include "NotificationManager.hpp"
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
@@ -1900,6 +1903,7 @@ void GUI_App::init_networking_callbacks()
             }
             if (return_code == 5) {
                 GUI::wxGetApp().CallAfter([this, provider = event.provider] {
+                    BOOST_LOG_TRIVIAL(info) << "logout: login expired";
                     this->request_user_logout(provider);
                     MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
                     if (msg_dlg.ShowModal() == wxOK) {
@@ -2546,6 +2550,12 @@ std::string get_system_info()
 bool GUI_App::on_init_inner()
 {
     wxLog::SetActiveTarget(new wxBoostLog());
+
+#ifdef __APPLE__
+    // Override wxWidgets' kAEGetURL handler so orcaslicer:// deep links keep
+    // working after the wxWidgets 3.3.2 upgrade on macOS (#13119).
+    register_mac_deep_link_handler();
+#endif
 #if BBL_RELEASE_TO_PUBLIC
     wxLog::SetLogLevel(wxLOG_Message);
 #endif
@@ -4526,7 +4536,8 @@ std::string GUI_App::handle_web_request(std::string cmd)
             }
             else if (command_str.compare("homepage_logout") == 0) {
                 CallAfter([this] {
-                    wxGetApp().request_user_logout();
+                    BOOST_LOG_TRIVIAL(info) << "logout: homepage_logout";
+                    request_user_logout();
                 });
             }
             else if (command_str.compare("get_orca_login_info") == 0) {
@@ -4539,18 +4550,22 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 CallAfter([this] { request_login(true, BBL_CLOUD_PROVIDER); });
             }
             else if (command_str.compare("homepage_bambu_logout") == 0) {
-                CallAfter([this] { request_user_logout(BBL_CLOUD_PROVIDER); });
+                CallAfter([this] {
+                    BOOST_LOG_TRIVIAL(info) << "logout: homepage_bambu_logout";
+                    request_user_logout(BBL_CLOUD_PROVIDER);
+                });
             }
             else if (command_str.compare("homepage_orca_login_or_register") == 0) {
                 CallAfter([this] { request_login(true, ORCA_CLOUD_PROVIDER); });
             }
             else if (command_str.compare("homepage_orca_logout") == 0) {
-                CallAfter([this] { request_user_logout(ORCA_CLOUD_PROVIDER); });
+                CallAfter([this] {
+                    BOOST_LOG_TRIVIAL(info) << "logout: homepage_orca_logout";
+                    request_user_logout(ORCA_CLOUD_PROVIDER);
+                });
             }
             else if (command_str.compare("homepage_modeldepot") == 0) {
-                CallAfter([this] {
-                    wxGetApp().open_mall_page_dialog();
-                });
+                CallAfter([this] { open_mall_page_dialog(); });
             }
             else if (command_str.compare("homepage_newproject") == 0) {
                 this->request_open_project("<new>");
@@ -4826,6 +4841,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     if (status == 401) {
         if (m_agent) {
             if (m_agent->is_user_login(provider)) {
+                BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
                 this->request_user_logout(provider);
 
                 if (!m_show_http_errpr_msgdlg) {
@@ -5599,6 +5615,7 @@ void GUI_App::show_check_privacy_dlg(wxCommandEvent& evt)
     privacy_dlg.Bind(EVT_PRIVACY_UPDATE_CANCEL, [this, provider](wxCommandEvent &e) {
             app_config->set_bool("privacy_update_checked", false);
             if (m_agent) {
+                BOOST_LOG_TRIVIAL(info) << "logout: Privacy update dialog cancelled.";
                 m_agent->user_logout(false, provider);
                 post_logout_to_webview(provider);
             }
@@ -6766,6 +6783,7 @@ void GUI_App::stop_sync_user_preset()
 void GUI_App::on_stealth_mode_enter()
 {
     stop_sync_user_preset();
+    BOOST_LOG_TRIVIAL(info) << "logout: on_stealth_mode_enter";
     request_user_logout(ORCA_CLOUD_PROVIDER);
     request_user_logout(BBL_CLOUD_PROVIDER);
     if (mainframe && mainframe->m_webview) {

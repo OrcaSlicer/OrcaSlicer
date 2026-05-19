@@ -62,16 +62,21 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
 
     m_shortcuts_move = {
         {alt + _L("Left mouse button"),     _L("Part selection")},
-        {shift + _L("Left mouse button"),   _L("Fixed step drag")}
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
     };
 
     m_shortcuts_rotate = {
-        {alt + _L("Left mouse button"),     _L("Part selection")}};
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 
     m_shortcuts_scale = {
         {alt + _L("Left mouse button"),     _L("Part selection")},
         {shift + _L("Left mouse button"),   _L("Fixed step drag")},
-        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")}};
+        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 }
 
 void GizmoObjectManipulation::UpdateAndShow(const bool show)
@@ -860,13 +865,25 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         }
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
-    
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_move, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
+    }
 
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1052,14 +1069,26 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (!focued_on_text  && !absolute_focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
 
+    ImGui::Spacing(); // needed after Text
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_rotate, x, y);
+    
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
+    }
 
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
 
     // BBS
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1214,7 +1243,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (display_size.x() > 0 && display_size.y() > 0 && display_size.z() > 0) {
         m_buffered_size = display_size;
     }
-    ImGui::Separator();
+
     ImGui::AlignTextToFramePadding();
     bool is_avoid_one_update{false};
     if (combox_changed) {
@@ -1286,8 +1315,18 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
     if (!focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
+    
+    ImGui::Separator();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_scale, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
+    }
 
     m_last_active_item = current_active_id;
 
@@ -1295,6 +1334,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     imgui_wrapper->end();
 
     //BBS
+    ImGui::PopStyleVar(1);
     ImGuiWrapper::pop_toolbar_style();
 }
 
