@@ -133,6 +133,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "fan_cooling_layer_time",
         "full_fan_speed_layer",
         "fan_kickstart",
+        "part_cooling_fan_min_pwm",
         "fan_speedup_overhangs",
         "fan_speedup_time",
         "filament_colour",

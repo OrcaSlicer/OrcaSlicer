@@ -3724,6 +3724,28 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    // ORCA: minimum non-zero part cooling fan speed.
+    def = this->add("part_cooling_fan_min_pwm", coInt);
+    def->label = L("Minimum non-zero part cooling fan speed");
+    def->tooltip = L("Some part-cooling fans cannot start spinning when commanded below a certain PWM duty cycle. "
+                     "When set above 0, any non-zero part-cooling fan command will be raised to at least this percentage "
+                     "so the fan reliably starts. A fan command of 0 (fan off) is always honoured exactly. "
+                     "This clamp is applied after every other fan calculation (first-layer ramp, layer-time interpolation, "
+                     "overhang/bridge/support-interface/ironing overrides), so scaling still operates within the range "
+                     "[this value, 100%]."
+                     "\nIf your firmware already disables the fan below a threshold (for example Klipper's "
+                     "[fan] off_below: 0.10 shuts the fan off whenever the commanded duty cycle is below 10%), "
+                     "this option and the firmware threshold should ideally be set to the same value. Matching them "
+                     "(e.g. off_below: 0.10 in Klipper and 10% here) guarantees the slicer never emits a non-zero "
+                     "value that the firmware would silently drop, and the fan never receives a value below the one "
+                     "you know it can actually spool at."
+                     "\nSet to 0 to deactivate.");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
 
     def = this->add("time_cost", coFloat);
     def->label = L("Time cost");
