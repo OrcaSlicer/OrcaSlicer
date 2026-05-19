@@ -752,7 +752,9 @@ target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo mini
 
 
 if (MSVC)
-    target_link_libraries(libslic3r_gui Setupapi.lib)
+    # Iphlpapi/Ws2_32 are required by the vendored mjansson/mdns library
+    # (GetAdaptersAddresses + Winsock2) used by CrealityHostDiscovery.
+    target_link_libraries(libslic3r_gui Setupapi.lib Iphlpapi.lib Ws2_32.lib)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     FIND_LIBRARY(WAYLAND_SERVER_LIBRARIES NAMES wayland-server)
     FIND_LIBRARY(WAYLAND_EGL_LIBRARIES    NAMES wayland-egl)
