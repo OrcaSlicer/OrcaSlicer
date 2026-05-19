@@ -325,7 +325,7 @@ SelectMachinePopup::SelectMachinePopup(wxWindow *parent)
 
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_LIST_SIZE, wxHSCROLL | wxVSCROLL);
-    m_scrolledWindow->SetBackgroundColour(*wxWHITE);
+    m_scrolledWindow->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_scrolledWindow->SetMinSize(SELECT_MACHINE_LIST_SIZE);
     m_scrolledWindow->SetScrollRate(0, 5);
     auto m_sizxer_scrolledWindow = new wxBoxSizer(wxVERTICAL);
@@ -465,7 +465,7 @@ bool SelectMachinePopup::Show(bool show) {
 wxWindow *SelectMachinePopup::create_title_panel(wxString text)
 {
     auto m_panel_title_own = new wxWindow(m_scrolledWindow, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_ITEM_SIZE, wxTAB_TRAVERSAL);
-    m_panel_title_own->SetBackgroundColour(*wxWHITE);
+    m_panel_title_own->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
     wxBoxSizer *m_sizer_title_own = new wxBoxSizer(wxHORIZONTAL);
 
@@ -993,6 +993,7 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
 PinCodePanel::PinCodePanel(wxWindow* parent, int type, wxWindowID winid /*= wxID_ANY*/, const wxPoint& pos /*= wxDefaultPosition*/, const wxSize& size /*= wxDefaultSize*/)
  {
      wxPanel::Create(parent, winid, pos);
+     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
      Bind(wxEVT_PAINT, &PinCodePanel::OnPaint, this);
      SetSize(SELECT_MACHINE_ITEM_SIZE);
      SetMaxSize(SELECT_MACHINE_ITEM_SIZE);

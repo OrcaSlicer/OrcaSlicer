@@ -27,6 +27,7 @@ uiDeviceUpdateVersion::uiDeviceUpdateVersion(wxWindow* parent,
                                              long style /*= wxTAB_TRAVERSAL*/)
      : wxPanel(parent, id, pos, size, style)
 {
+    SetBackgroundColour(*wxWHITE);
     CreateWidgets();
 }
 

@@ -517,7 +517,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_split_options->Add(m_split_options_line, 1, wxALIGN_CENTER, 0);
 
     m_options_other = new wxPanel(m_scroll_area);
-
+    m_options_other->SetBackgroundColour(m_colour_def_color);
 
     auto option_timelapse = new PrintOption(m_options_other, _L("Timelapse"), wxEmptyString, ops_no_auto, "timelapse");
 
@@ -566,6 +566,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     option_nozzle_offset_cali_cali->Hide();
 
     m_simplebook   = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2, 0);
+    m_simplebook->SetBackgroundColour(m_colour_def_color);
     m_simplebook->SetMinSize(SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2);
     m_simplebook->SetMaxSize(SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2);
 
