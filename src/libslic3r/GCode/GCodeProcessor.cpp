@@ -2030,6 +2030,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 
     m_disable_m73 = config.disable_m73;
 
+    m_custom_prepare_time = static_cast<float>(config.machine_custom_prepare_time.value);
+
     const ConfigOptionFloat* initial_layer_print_height = config.option<ConfigOptionFloat>("initial_layer_print_height");
     if (initial_layer_print_height != nullptr)
         m_first_layer_height = std::abs(initial_layer_print_height->value);
@@ -2263,6 +2265,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     if (machine_tool_change_time != nullptr)
         m_time_processor.machine_tool_change_time = static_cast<float>(machine_tool_change_time->value);
 
+    const ConfigOptionFloat* machine_custom_prepare_time = config.option<ConfigOptionFloat>("machine_custom_prepare_time");
+    if (machine_custom_prepare_time != nullptr)
+        m_custom_prepare_time = static_cast<float>(machine_custom_prepare_time->value);
+
     if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfKlipper) {
         const ConfigOptionFloats* machine_max_acceleration_x = config.option<ConfigOptionFloats>("machine_max_acceleration_x");
         if (machine_max_acceleration_x != nullptr)
@@ -2453,6 +2459,7 @@ void GCodeProcessor::reset()
     m_g1_line_id = 0;
     m_layer_id = 0;
     m_cp_color.reset();
+    m_custom_prepare_time = 0.0f;
 
     m_producer = EProducer::Unknown;
 
@@ -2630,7 +2637,11 @@ float GCodeProcessor::get_time(PrintEstimatedStatistics::ETimeMode mode) const
 
 float GCodeProcessor::get_prepare_time(PrintEstimatedStatistics::ETimeMode mode) const
 {
-    return (mode < PrintEstimatedStatistics::ETimeMode::Count) ? m_time_processor.machines[static_cast<size_t>(mode)].prepare_time : 0.0f;
+    if (mode >= PrintEstimatedStatistics::ETimeMode::Count)
+        return 0.0f;
+    if (m_custom_prepare_time > 0.0f)
+        return m_custom_prepare_time;
+    return m_time_processor.machines[static_cast<size_t>(mode)].prepare_time;
 }
 
 std::string GCodeProcessor::get_time_dhm(PrintEstimatedStatistics::ETimeMode mode) const

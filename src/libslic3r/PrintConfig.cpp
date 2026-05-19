@@ -3733,6 +3733,17 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    def = this->add("machine_custom_prepare_time", coFloat);
+    def->label = L("Custom prepare time");
+    def->tooltip = L("Override the prepare time (heating, homing, etc.) used in print time estimation. "
+                     "Set this when your start G-code is minimal (e.g. Klipper PRINT_START macro) and the "
+                     "actual preparation happens in the printer firmware or macros. Set to 0 to use the time "
+                     "computed from the start G-code.");
+    def->sidetext = L("s");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     // Orca: may remove this option later
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");

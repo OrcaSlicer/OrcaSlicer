@@ -817,6 +817,7 @@ class Print;
         float m_preheat_time;
         int m_preheat_steps;
         bool m_disable_m73;
+        float m_custom_prepare_time;
 
         enum class EProducer
         {

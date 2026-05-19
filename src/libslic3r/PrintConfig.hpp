@@ -1349,7 +1349,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
 
-    ((ConfigOptionFloat,               time_cost)) 
+    ((ConfigOptionFloat,               time_cost))
+    ((ConfigOptionFloat,               machine_custom_prepare_time))
     ((ConfigOptionString,              layer_change_gcode))
     ((ConfigOptionString,              time_lapse_gcode))
     ((ConfigOptionString,              wrapping_detection_gcode))
