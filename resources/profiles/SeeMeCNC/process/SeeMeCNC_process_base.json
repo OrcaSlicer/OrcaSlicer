@@ -338,6 +338,5 @@
 	"bridge_speed": "30",
 	"outer_wall_jerk": "5",
 	"xy_hole_compensation": "0",
-	"enable_arc_fitting": "1",
-	"dont_slow_down_outer_wall": "0"
+	"enable_arc_fitting": "1"
 }
