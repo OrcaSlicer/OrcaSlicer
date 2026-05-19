@@ -56,12 +56,12 @@ namespace GUI {
      "Justmaker",             "Keene Village Plastics",  "Kexcelled",              "LDO",                    "MakerBot",
      "MatterHackers",         "MIKA3D",                  "NinjaTek",               "Nobufil",                "Novamaker",
      "OVERTURE",              "OVVNYXE",                 "Polymaker",              "Priline",                "Printed Solid",
-     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "re3D",
-     "Re-pet3D",              "Recreus",                 "Regen",                  "RatRig",                 "Sain SMART",             
-     "SliceWorx",             "Snapmaker",               "SnoLabs",                "Spectrum",               "SUNLU",                  
-     "TTYT3D",                "Tianse",                  "UltiMaker",              "Valment",                "Verbatim",               
-     "VO3D",                  "Voxelab",                 "VOXELPLA",               "YOOPAI",                 "Yousu",                  
-     "Ziro",                  "Zyltech"};
+     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "Re-pet3D",
+     "Recreus",               "Regen",                   "RatRig",                 "Sain SMART",             "SliceWorx",
+     "Snapmaker",             "SnoLabs",                 "Spectrum",               "SUNLU",                  "TTYT3D",
+     "Tianse",                "UltiMaker",               "Valment",                "Verbatim",               "VO3D",
+     "Voxelab",               "VOXELPLA",                "YOOPAI",                 "Yousu",                  "Ziro", 
+     "Zyltech"};
      
 static const std::vector<std::string> filament_types = {"PLA",    "rPLA",  "PLA+",      "PLA Tough", "PETG",  "ABS",    "ASA",    "FLEX",   "HIPS",   "PA",     "PACF",
                                                         "NYLON",  "PVA",   "PVB",       "PC",        "PCABS", "PCTG",   "PCCF",   "PHA",    "PP",     "PEI",    "PET",
@@ -84,7 +84,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
     {{"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
      {"Anycubic",          {"Anycubic i3 Mega S",    "Anycubic Chiron",       "Anycubic Vyper",        "Anycubic Kobra",        "Anycubic Kobra Max",
                             "Anycubic Kobra Plus",   "Anycubic 4Max Pro",     "Anycubic 4Max Pro 2",   "Anycubic Kobra 2",      "Anycubic Kobra 2 Plus",
-                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra 3 Max", "Anycubic Kobra S1", "Anycubic Predator", }},
+                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra S1", "Anycubic Predator", }},
      {"Artillery",         {"Artillery Sidewinder X1",      "Artillery Genius",             "Artillery Genius Pro",         "Artillery Sidewinder X2",      "Artillery Hornet",
                             "Artillery Sidewinder X3 Pro",  "Artillery Sidewinder X3 Plus", "Artillery Sidewinder X4 Pro",  "Artillery Sidewinder X4 Plus"}},
      {"Bambulab",          {"Bambu Lab X1 Carbon", "Bambu Lab X1",        "Bambu Lab X1E",       "Bambu Lab P1P",       "Bambu Lab P1S",
@@ -109,7 +109,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "Elegoo Neptune 3 Max",    "Elegoo Neptune 4 Pro",    "Elegoo Neptune 4",        "Elegoo Neptune 4 Max",    "Elegoo Neptune 4 Plus",
                             "Elegoo OrangeStorm Giga"}},
      {"Flashforge",        {"Flashforge Adventurer 5M",       "Flashforge Adventurer 5M Pro",   "Flashforge AD5X",                "Flashforge Adventurer 3 Series", "Flashforge Adventurer 4 Series",
-                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s", "Flashforge Artemis"}},
+                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s"}},
      {"FLSun",             {"FLSun Q5",               "FLSun QQ-S Pro",         "FLSun Super Racer (SR)", "FLSun V400",             "FLSun T1",
                             "FLSun S1"}},
      {"FlyingBear",        {"FlyingBear Reborn3", "FlyingBear S1",      "FlyingBear Ghost 6"}},
@@ -138,7 +138,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "RatRig V-Core 4 IDEX 400",             "RatRig V-Core 4 IDEX 400 COPY MODE",   "RatRig V-Core 4 IDEX 400 MIRROR MODE", "RatRig V-Core 4 IDEX 500",             "RatRig V-Core 4 IDEX 500 COPY MODE",
                             "RatRig V-Core 4 IDEX 500 MIRROR MODE"}},
      {"re3D",              {"re3D Gigabot 4",                       "re3D Gigabot 4 XLT",                   "re3D Terabot 4",
-                            "re3D Gigabot X2",                      "re3D Gigabot X2 XLT",                  "re3D Terabot X2"}},
+                            "re3D GigabotX 2",                      "re3D GigabotX 2 XLT",                  "re3D TerabotX 2"}},
      {"RolohaunDesign",    {"Rook MK1 LDO"}},
      {"SecKit",            {"SecKit SK-Tank", "Seckit Go3"}},
      {"Snapmaker",         {"Snapmaker J1",                 "Snapmaker A250",               "Snapmaker A350",               "Snapmaker A250 Dual",          "Snapmaker A350 Dual",
@@ -248,7 +248,8 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
+            m_presets.set_sync_info_and_save(need_delete_preset->name, need_delete_preset->setting_id, "delete", 0);
+            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
@@ -1058,7 +1059,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
             }
         } else {
             if (m_filament_custom_vendor_input->GetTextCtrl()->GetValue().empty()) {
-                MessageDialog dlg(this, _L("Custom vendor is missing, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                MessageDialog dlg(this, _L("Custom vendor is not input, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                                   wxYES | wxYES_DEFAULT | wxCENTRE);
                 dlg.ShowModal();
                 return;
@@ -1130,7 +1131,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         if (preset_bundle->filaments.is_alias_exist(filament_preset_name)) {
             MessageDialog dlg(this,
                               wxString::Format(_L("The Filament name %s you created already exists.\n"
-                                                  "If you continue, the preset created will be displayed with its full name. Do you want to continue?"),
+                                                  "If you continue creating, the preset created will be displayed with its full name. Do you want to continue?"),
                                                from_u8(filament_preset_name)),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             if (wxID_YES != dlg.ShowModal()) { return; }
@@ -3378,30 +3379,9 @@ bool CreatePrinterPresetDialog::validate_input_valid()
 
     if (auto preset = wxGetApp().preset_bundle->printers.find_preset(custom_printer_name)) {
         if (preset->is_system) {
-            // ORCA offer switcing to existing preset to reduce confusion
-            std::string diameters;
-            auto printer_model = preset->config.opt_string("printer_model");
-            for (auto &preset : wxGetApp().preset_bundle->printers) {
-                if (preset.config.opt_string("printer_model") == printer_model)
-                    diameters += preset.config.opt_string("printer_variant") + "  ";
-            }
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
-                                  + _L("\n\nAvailable nozzle profiles for this printer:")
-                                  + "\n" + diameters
-                                  + _L("\n\nChoose YES to switch existing preset:")
-                                  + "\n" + preset->name
-                              , wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info")
-                              , wxYES | wxYES_DEFAULT | wxNO | wxCENTRE);
-            if (dlg.ShowModal() == wxID_YES){
-                auto bundle = wxGetApp().preset_bundle;
-                bundle->printers.select_preset_by_name(preset->name, true);
-                bundle->update_compatible(PresetSelectCompatibleType::Always);
-                wxGetApp().load_current_presets();
-                wxGetApp().mainframe->update_side_preset_ui();
-                wxGetApp().sidebar().update_ui_from_settings();
-                wxGetApp().sidebar().update_all_preset_comboboxes();
-                EndModal(wxID_CANCEL);
-            }
+            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                              wxYES | wxYES_DEFAULT | wxCENTRE);
+            dlg.ShowModal();
             return false;
         }
     }
@@ -4368,7 +4348,7 @@ void ExportConfigsDialog::data_init()
 
             const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
             for (const Preset &filament_preset : filament_presets) {
-                if (!filament_preset.is_user()) continue;
+                if (filament_preset.is_system || filament_preset.is_default || filament_preset.is_project_embedded) continue;
                 if (filament_preset.is_compatible) {
                     Preset *new_filament_preset = new Preset(filament_preset);
                     m_filament_presets[preset_name].push_back(new_filament_preset);
@@ -4377,7 +4357,7 @@ void ExportConfigsDialog::data_init()
 
             const std::deque<Preset> &process_presets = preset_bundle.prints.get_presets();
             for (const Preset &process_preset : process_presets) {
-                if (!process_preset.is_user()) continue;
+                if (process_preset.is_system || process_preset.is_default || process_preset.is_project_embedded) continue;
                 if (process_preset.is_compatible) {
                     Preset *new_prpcess_preset = new Preset(process_preset);
                     m_process_presets[preset_name].push_back(new_prpcess_preset);
@@ -4391,7 +4371,7 @@ void ExportConfigsDialog::data_init()
     }
     const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
     for (const Preset &filament_preset : filament_presets) {
-        if (!filament_preset.can_overwrite()) continue;
+        if (filament_preset.is_system || filament_preset.is_default) continue;
         Preset *new_filament_preset = new Preset(filament_preset);
         const Preset *base_filament_preset = preset_bundle.filaments.get_preset_base(*new_filament_preset);
 

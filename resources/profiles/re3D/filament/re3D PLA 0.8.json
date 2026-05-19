@@ -1,0 +1,26 @@
+﻿{
+    "type":  "filament",
+    "name":  "re3D PLA 0.8",
+    "from":  "system",
+    "instantiation":  "true",
+    "inherits":  "fdm_filament_pla",
+    "filament_id":  "GFL99",
+    "setting_id":  "re3d_pla_08",
+    "filament_settings_id":  [
+                                 "re3D PLA 0.8"
+                             ],
+    "compatible_printers":  [
+                                "re3D Gigabot 4 0.8 nozzle",
+                                "re3D Gigabot 4 XLT 0.8 nozzle",
+                                "re3D Terabot 4 0.8 nozzle"
+                            ],
+    "filament_vendor":  [
+                            "re3D"
+                        ],
+    "filament_cost":  "",
+    "filament_start_gcode":  "",
+    "filament_end_gcode":  "",
+    "filament_retraction_length":  "",
+    "additional_cooling_fan_speed":  "",
+    "close_fan_the_first_x_layers":  ""
+}

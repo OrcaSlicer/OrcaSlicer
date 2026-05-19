@@ -1,0 +1,14 @@
+{
+    "type": "machine",
+    "name": "fdm_re3D_gigabot4_xlt_common",
+    "instantiation": "false",
+    "inherits": "fdm_re3D_gigabot4_common",
+    "printer_model": "re3D Gigabot 4 XLT",
+    "printable_height": "900",
+    "printable_area": [
+        "0x0",
+        "590x0",
+        "590x760",
+        "0x760"
+    ]
+}

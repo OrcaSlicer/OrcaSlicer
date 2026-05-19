@@ -1,0 +1,14 @@
+{
+    "type": "machine",
+    "name": "fgf_re3D_gigabotx2_xlt_common",
+    "instantiation": "false",
+    "inherits": "fgf_re3D_gigabotx2_common",
+    "model_id": "re3D GBX2 XLT",
+    "printer_model": "re3D GigabotX 2 XLT",
+    "printable_area": [
+        "0x0",
+        "552x0",
+        "552x740",
+        "0x740"
+    ]
+}
