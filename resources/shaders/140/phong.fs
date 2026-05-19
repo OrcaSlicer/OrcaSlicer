@@ -173,8 +173,8 @@ vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
     float fresnel = pow(1.0 - max(dot(normal, view_dir), 0.0), 1.0);
     float facing = smoothstep(-0.4, 0.6, reflect_light.z);
     
-    float intensity = window_light * bars * (0.50 + 0.50 * fresnel) * facing;
-    intensity = clamp(intensity, 0.0, 0.85);
+    float intensity = window_light * bars * (0.25 + 0.25 * fresnel) * facing;
+    intensity = clamp(intensity, 0.0, 0.45);
     
     return vec3(intensity);
 }
