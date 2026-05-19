@@ -68,5 +68,5 @@
 	"small_perimeter_speed": "50%",
 	"support_speed": "70",
 	"seam_position": "aligned",
-	"small_perimeter_threshold": "0"
+	"small_perimeter_threshold": "10"
 }
