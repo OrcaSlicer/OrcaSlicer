@@ -351,7 +351,7 @@
 		"55"
 	],
 	"fan_cooling_layer_time": [
-		"30"
+		"8"
 	],
 	"fan_max_speed": [
 		"100"
@@ -399,7 +399,7 @@
 		"195"
 	],
 	"overhang_fan_threshold": [
-		"25%"
+		"50%"
 	],
 	"pressure_advance": [
 		"0.4"
@@ -411,7 +411,7 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"100"
+		"30"
 	],
 	"slow_down_min_speed": [
 		"20"
