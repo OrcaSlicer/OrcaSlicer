@@ -1,0 +1,48 @@
+{
+    "type": "filament",
+    "filament_id": "E1006",
+    "setting_id": "GFSA04",
+    "name": "eSUN PLA-HS @Creality K2 Plus 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pla",
+    "additional_cooling_fan_speed": "80",
+    "cool_plate_temp": "50",
+    "cool_plate_temp_initial_layer": "50",
+    "customized_plate_temp": "50",
+    "customized_plate_temp_initial_layer": "50",
+    "epoxy_resin_plate_temp": "40",
+    "epoxy_resin_plate_temp_initial_layer": "40",
+    "fan_cooling_layer_time": "100",
+    "fan_min_speed": "100",
+    "filament_cost": "25",
+    "filament_density": "1.25",
+    "filament_flow_ratio": "0.95",
+    "filament_max_volumetric_speed": "18",
+    "filament_retract_before_wipe": "100",
+    "filament_retraction_length": "1.2",
+    "filament_start_gcode": [
+        ";filament start gcode\n{if !multicolor_method}\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}\n\n{if(initial_extruder != current_extruder || position[2] > first_layer_height)}\n{if (position[2] +0.4  < printable_height) }\nG2 Z{position[2]  + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X205 Y345 F20000\nG1 Z{position[2] } F1200\n{else}\nG1 X205 Y345 F20000\n{endif}\n{endif}\n{endif}"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "filament_vendor": [
+        "eSUN"
+    ],
+    "hot_plate_temp": "50",
+    "hot_plate_temp_initial_layer": "50",
+    "nozzle_temperature": "220",
+    "nozzle_temperature_initial_layer": "220",
+    "overhang_fan_threshold": "50%",
+    "pressure_advance": "0.04",
+    "reduce_fan_stop_start_freq": "1",
+    "slow_down_layer_time": "6",
+    "slow_down_min_speed": "20",
+    "textured_plate_temp": "50",
+    "textured_plate_temp_initial_layer": "50",
+    "compatible_printers": [
+        "Creality K2 Plus 0.4 nozzle"
+    ],
+    "default_filament_colour": "\"\""
+}
