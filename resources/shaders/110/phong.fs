@@ -21,6 +21,7 @@ const vec3 LIGHT_FRONT_DIR = vec3(0.6985074, 0.1397015, 0.6985074);
 #define LIGHT_FRONT_SHININESS 64.0
 
 #define INTENSITY_AMBIENT    0.22
+#define WINDOW_REFLECTION_INTENSITY 0.55
 
 struct PrintVolumeDetection
 {
@@ -132,6 +133,44 @@ float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
     return clamp(1.0 - ao_strength * 0.90, 0.25, 1.0);
 }
 
+float soft_box(vec2 p, vec2 center, vec2 half_size, float blur)
+{
+    vec2 d = abs(p - center) - half_size;
+    float dist = max(d.x, d.y);
+    return 1.0 - smoothstep(0.0, blur, dist);
+}
+
+vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
+{
+    const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
+    
+    vec3 light_dir = normalize(LIGHT_TOP_DIR);
+    vec3 reflect_light = normalize(reflect(-light_dir, normal));
+    
+    vec2 uv = (reflect_light.xy / (1.0 + max(reflect_light.z, 0.3))) * 2.2;
+    
+    float pane1 = soft_box(uv, vec2(-0.42, -0.25), vec2(0.30, 0.26), 0.05);
+    float pane2 = soft_box(uv, vec2(0.42, -0.25), vec2(0.30, 0.26), 0.05);
+    float pane3 = soft_box(uv, vec2(-0.42, 0.30), vec2(0.30, 0.26), 0.05);
+    float pane4 = soft_box(uv, vec2(0.42, 0.30), vec2(0.30, 0.26), 0.05);
+    
+    float window_light = pane1 + pane2 + pane3 + pane4;
+    
+    float bar_h1 = 1.0 - soft_box(uv, vec2(0.0, 0.02), vec2(1.2, 0.045), 0.035);
+    float bar_h2 = 1.0 - soft_box(uv, vec2(0.0, -0.52), vec2(1.2, 0.045), 0.035);
+    float bar_v1 = 1.0 - soft_box(uv, vec2(-0.80, 0.02), vec2(0.045, 1.1), 0.035);
+    float bar_v2 = 1.0 - soft_box(uv, vec2(0.80, 0.02), vec2(0.045, 1.1), 0.035);
+    
+    float bars = clamp(bar_h1 * bar_h2 * bar_v1 * bar_v2, 0.0, 1.0);
+    
+    float fresnel = pow(1.0 - max(dot(normal, view_dir), 0.0), 1.0);
+    float facing = smoothstep(-0.4, 0.6, reflect_light.z);
+    
+    float intensity = window_light * bars * (0.50 + 0.50 * fresnel) * facing;
+    
+    return vec3(intensity);
+}
+
 void main()
 {
     if (any(lessThan(clipping_planes_dots, ZERO)))
@@ -183,11 +222,12 @@ void main()
     diffuse += NdotL_front * LIGHT_FRONT_DIFFUSE;
     vec3 half_front = normalize(LIGHT_FRONT_DIR + view_dir);
     specular += LIGHT_FRONT_SPECULAR * pow(max(dot(normal, half_front), 0.0), LIGHT_FRONT_SHININESS);
+    vec3 window_reflection = compute_window_reflection(normal, view_dir);
 
     // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
     if (is_outline) {
-        vec3 shaded_rgb = (vec3(specular) + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
         vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
         vec2 fragCoord = gl_FragCoord.xy;
         float s = DetectSilho(fragCoord);
@@ -200,8 +240,8 @@ void main()
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
-        gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
 #endif
     else
-        gl_FragColor = vec4(clamp((vec3(specular) + color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        gl_FragColor = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
 }
