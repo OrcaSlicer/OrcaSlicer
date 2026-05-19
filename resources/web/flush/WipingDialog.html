@@ -148,29 +148,6 @@
         display: inline-block;
       }
 
-      select {
-        padding: 6px 9px;
-        border: 1px solid #dbdbdb;
-        border-radius: 3px;
-        font-size: 12px;
-        cursor: pointer;
-        appearance: auto;
-        background-color: white;
-        color: black;
-      }
-
-      select option {
-        background-color: white;
-        color: black;
-      }
-
-      select:hover,
-      select:focus {
-        outline: none;
-        border-color: #26A69A;
-        background-color: #edfaf2;
-      }
-
       .button-container {
         display: flex;
         justify-content: center;
@@ -243,11 +220,6 @@
         position: sticky;
         z-index: 11;
       }
-      body.dark-mode select {
-        background-color: #2d2d31;
-        color: white;
-        border-color: #4c4c55;
-      }
 
       body.dark-mode .warning-text {
         color: #f44336;
@@ -281,13 +253,16 @@
         >
           Re-Calculate
       </div>
-        <select
-          id="extruders"
-          onchange="handleExtruderSelect(document.getElementById('extruders').value)"
-        >
-          <option value="left" id="extruder_label_0">Left Nozzle</option>
-          <option value="right" id="extruder_label_1">Right Nozzle</option>
-        </select>
+        <div class="ComboBox">
+          <div class="arrow-icon"></div>
+          <select
+            id="extruders"
+            onchange="handleExtruderSelect(document.getElementById('extruders').value)"
+          >
+            <option value="left" id="extruder_label_0">Left Nozzle</option>
+            <option value="right" id="extruder_label_1">Right Nozzle</option>
+          </select>
+        </div>
       </div>
 
       <div class="scroll-container">

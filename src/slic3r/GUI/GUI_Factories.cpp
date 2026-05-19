@@ -98,22 +98,63 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                   }}
 };
 
-std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::PART_CATEGORY_SETTINGS=
-{
-    { L("Quality"), {{"ironing_type", "",8},{"ironing_flow", "",9},{"ironing_spacing", "",10},{"ironing_inset", "", 11},{"bridge_flow", "",11},{"make_overhang_printable", "",11},{"bridge_density", "", 1}
-                    }},
-    { L("Strength"), {{"wall_loops", "",1},{"top_shell_layers", L("Top Solid Layers"),1},{"top_shell_thickness", L("Top Minimum Shell Thickness"),1},{"top_surface_density", L("Top Surface Density"),1},
-                    {"bottom_shell_layers", L("Bottom Solid Layers"),1}, {"bottom_shell_thickness", L("Bottom Minimum Shell Thickness"),1},{"bottom_surface_density", L("Bottom Surface Density"),1},
-                    {"sparse_infill_density", "",1},{"sparse_infill_pattern", "",1},{"lateral_lattice_angle_1", "",1},{"lateral_lattice_angle_2", "",1},{"infill_overhang_angle", "",1},{"infill_anchor", "",1},{"infill_anchor_max", "",1},{"top_surface_pattern", "",1},{"bottom_surface_pattern", "",1}, {"internal_solid_infill_pattern", "",1},
-                    {"align_infill_direction_to_model", "", 1},
-                    {"extra_solid_infills", "", 1},
-                    {"infill_combination", "",1}, {"infill_combination_max_layer_height", "",1}, {"infill_wall_overlap", "",1},{"top_bottom_infill_wall_overlap", "",1}, {"solid_infill_direction", "",1}, {"infill_direction", "",1}, {"bridge_angle", "",1}, {"internal_bridge_angle", "",1}, {"minimum_sparse_infill_area", "",1}
-                    }},
-    { L("Speed"), {{"outer_wall_speed", "",1},{"inner_wall_speed", "",2},{"sparse_infill_speed", "",3},{"top_surface_speed", "",4}, {"internal_solid_infill_speed", "",5},
-                    {"enable_overhang_speed", "",6}, {"overhang_1_4_speed", "",7}, {"overhang_2_4_speed", "",8}, {"overhang_3_4_speed", "",9}, {"overhang_4_4_speed", "",10},
-                    {"bridge_speed", "",11}, {"gap_infill_speed", "",12}, {"internal_bridge_speed", "", 13}
-                    }}
-};
+std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATEGORY_SETTINGS =
+    {{L("Quality"),
+      {{"ironing_type", "", 8},
+       {"ironing_flow", "", 9},
+       {"ironing_spacing", "", 10},
+       {"ironing_inset", "", 11},
+       {"bridge_flow", "", 11},
+       {"make_overhang_printable", "", 11},
+       {"bridge_density", "", 1},
+       {"ironing_expansion", "", 14},
+       {"zaa_enabled", "", 1},
+       {"zaa_minimize_perimeter_height", "", 2},
+       {"zaa_dont_alternate_fill_direction", "", 3},
+       {"zaa_min_z", "", 4}}},
+     {L("Strength"),
+      {{"wall_loops", "", 1},
+       {"top_shell_layers", L("Top Solid Layers"), 1},
+       {"top_shell_thickness", L("Top Minimum Shell Thickness"), 1},
+       {"top_surface_density", L("Top Surface Density"), 1},
+       {"bottom_shell_layers", L("Bottom Solid Layers"), 1},
+       {"bottom_shell_thickness", L("Bottom Minimum Shell Thickness"), 1},
+       {"bottom_surface_density", L("Bottom Surface Density"), 1},
+       {"sparse_infill_density", "", 1},
+       {"sparse_infill_pattern", "", 1},
+       {"lateral_lattice_angle_1", "", 1},
+       {"lateral_lattice_angle_2", "", 1},
+       {"infill_overhang_angle", "", 1},
+       {"infill_anchor", "", 1},
+       {"infill_anchor_max", "", 1},
+       {"top_surface_pattern", "", 1},
+       {"bottom_surface_pattern", "", 1},
+       {"internal_solid_infill_pattern", "", 1},
+       {"align_infill_direction_to_model", "", 1},
+       {"extra_solid_infills", "", 1},
+       {"infill_combination", "", 1},
+       {"infill_combination_max_layer_height", "", 1},
+       {"infill_wall_overlap", "", 1},
+       {"top_bottom_infill_wall_overlap", "", 1},
+       {"solid_infill_direction", "", 1},
+       {"infill_direction", "", 1},
+       {"bridge_angle", "", 1},
+       {"internal_bridge_angle", "", 1},
+       {"minimum_sparse_infill_area", "", 1}}},
+     {L("Speed"),
+      {{"outer_wall_speed", "", 1},
+       {"inner_wall_speed", "", 2},
+       {"sparse_infill_speed", "", 3},
+       {"top_surface_speed", "", 4},
+       {"internal_solid_infill_speed", "", 5},
+       {"enable_overhang_speed", "", 6},
+       {"overhang_1_4_speed", "", 7},
+       {"overhang_2_4_speed", "", 8},
+       {"overhang_3_4_speed", "", 9},
+       {"overhang_4_4_speed", "", 10},
+       {"bridge_speed", "", 11},
+       {"gap_infill_speed", "", 12},
+       {"internal_bridge_speed", "", 13}}}};
 
 std::vector<std::string> SettingsFactory::get_options(const bool is_part)
 {
@@ -1192,7 +1233,7 @@ void MenuFactory::append_menu_items_convert_unit(wxMenu* menu)
 
 void MenuFactory::append_menu_item_merge_to_multipart_object(wxMenu* menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Assemble"), _L("Assemble the selected objects to an object with multiple parts"),
+    append_menu_item(menu, wxID_ANY, _L("Assemble"), _L("Assemble the selected objects into an object with multiple parts"),
         [](wxCommandEvent&) { obj_list()->merge(true); }, "", menu,
         []() { return obj_list()->can_merge_to_multipart_object(); }, m_parent);
 }
@@ -1200,7 +1241,7 @@ void MenuFactory::append_menu_item_merge_to_multipart_object(wxMenu* menu)
 void MenuFactory::append_menu_item_merge_to_single_object(wxMenu* menu)
 {
     menu->AppendSeparator();
-    append_menu_item(menu, wxID_ANY, _L("Assemble"), _L("Assemble the selected objects to an object with single part"),
+    append_menu_item(menu, wxID_ANY, _L("Assemble"), _L("Assemble the selected objects into an object with single part"),
         [](wxCommandEvent&) { obj_list()->merge(false); }, "", menu,
         []() { return obj_list()->can_merge_to_single_object(); }, m_parent);
 }
@@ -1603,17 +1644,6 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
             []() { return true; }, m_parent);
     }
 
-    if (init) {
-        append_menu_item(
-            menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
-                plater()->sidebar().delete_filament(-2); }, "", nullptr,
-            []() {
-                return plater()->sidebar().combos_filament().size() > 1
-                    // Orca: only show delete filament option for SEMM machines unless is BBL
-                    && Sidebar::should_show_SEMM_buttons();
-            }, m_parent);
-    }
-
     const int item_id = menu->FindItem(_L("Merge with"));
     if (item_id != wxNOT_FOUND)
         menu->Destroy(item_id);
@@ -1634,6 +1664,20 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
     }
     append_submenu(menu, sub_menu, wxID_ANY, _L("Merge with"), "", "",
         [filaments_cnt]() { return filaments_cnt > 1; }, m_parent);
+
+    // ORCA use delete item on end of menu to prevent accidental clicks. clicking to submenus(merge) already not allowed by OS
+    const int delete_id = menu->FindItem(_L("Delete"));
+    if (delete_id != wxNOT_FOUND)
+        menu->Destroy(delete_id);
+    
+    append_menu_item(
+        menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
+            plater()->sidebar().delete_filament(-2); }, "", nullptr,
+        []() {
+            return plater()->sidebar().combos_filament().size() > 1
+                // Orca: only show delete filament option for SEMM machines unless is BBL
+                && Sidebar::should_show_SEMM_buttons();
+        }, m_parent);
 }
 
 //BBS: add part plate related logic
