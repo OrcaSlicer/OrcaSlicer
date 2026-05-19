@@ -1754,46 +1754,47 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             };
             std::string warning_key;
 
+            const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
+            const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
+
             // check jerk
-            if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
-                m_default_object_config.inner_wall_jerk == 1) {
-               warning->string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
-               if (m_default_object_config.outer_wall_jerk == 1)
-                    warning_key = "outer_wall_jerk";
-               else if (m_default_object_config.inner_wall_jerk == 1)
-                    warning_key = "inner_wall_jerk";
-               else
-                    warning_key = "default_jerk";
+            if (!ignore_jerk_validation) {
+                if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
+                    m_default_object_config.inner_wall_jerk == 1) {
+                   warning->string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
+                   if (m_default_object_config.outer_wall_jerk == 1)
+                        warning_key = "outer_wall_jerk";
+                   else if (m_default_object_config.inner_wall_jerk == 1)
+                        warning_key = "inner_wall_jerk";
+                   else
+                        warning_key = "default_jerk";
 
-               warning->opt_key = warning_key;
-            }
+                   warning->opt_key = warning_key;
+                }
 
-            if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
-               std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
-                                                         "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
-               const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
-               warning_key.clear();
-               if (m_default_object_config.default_jerk > 0)
-                    warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
-               if (!warning_key.empty()) {
-                    warning->string = L(
-                        "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\nOrca will "
-                        "automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\nYou can adjust the "
-                        "maximum jerk setting in your printer's configuration to get higher speeds.");
-                    warning->opt_key = warning_key;
-               }
+                if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
+                   std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
+                                                             "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
+                   const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
+                   warning_key.clear();
+                   warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
+                   if (!warning_key.empty()) {
+                        warning->string = L(
+                            "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
+                            "Orca will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
+                            "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
+                        warning->opt_key = warning_key;
+                   }
+                }
             }
 
             // Check junction deviation
-            const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
             // Orca: Only marlin FW supports max junction deviation. Dont display warning if firmware is not supporting it.
             const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
             if (warning_key.empty() && m_default_object_config.default_junction_deviation.value > max_junction_deviation && support_max_junction_deviation) {
-                warning->string  = L( "Junction deviation setting exceeds the printer's maximum value "
-                                      "(machine_max_junction_deviation).\nOrca will "
-                                      "automatically cap the junction deviation to ensure it doesn't surpass the printer's "
-                                      "capabilities.\nYou can adjust the "
-                                      "machine_max_junction_deviation value in your printer's configuration to get higher limits.");
+                warning->string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
+                                      "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
+                                      "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
                 warning->opt_key = warning_key;
             }
             
