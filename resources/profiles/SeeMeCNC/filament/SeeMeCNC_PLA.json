@@ -411,10 +411,10 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"5"
+		"30"
 	],
 	"slow_down_min_speed": [
-		"20"
+		"15"
 	],
 	"supertack_plate_temp": [
 		"35"

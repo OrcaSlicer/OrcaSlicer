@@ -65,5 +65,6 @@
 	"sparse_infill_speed": "120",
 	"internal_solid_infill_speed": "100",
 	"gap_infill_speed": "35",
-	"small_perimeter_speed": "50%"
+	"small_perimeter_speed": "50%",
+	"small_perimeter_min_length": "0"
 }

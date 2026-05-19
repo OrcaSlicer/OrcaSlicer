@@ -339,5 +339,5 @@
 	"outer_wall_jerk": "5",
 	"xy_hole_compensation": "0",
 	"enable_arc_fitting": "1",
-	"small_perimeter_min_length": "1"
+	"small_perimeter_min_length": "0"
 }
