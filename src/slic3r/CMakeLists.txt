@@ -56,6 +56,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/BitmapComboBox.hpp
     GUI/BonjourDialog.cpp
     GUI/BonjourDialog.hpp
+    GUI/CrealityDiscoveryDialog.cpp
+    GUI/CrealityDiscoveryDialog.hpp
     GUI/calib_dlg.cpp
     GUI/calib_dlg.hpp
     GUI/Calibration.cpp
@@ -578,6 +580,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/CrealityPrint.hpp
     Utils/CrealityPrintAgent.cpp
     Utils/CrealityPrintAgent.hpp
+    Utils/CrealityHostDiscovery.cpp
+    Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
     Utils/ElegooLink.cpp
@@ -661,6 +665,10 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/mdns/mdns.h
+    Utils/mdns/mdns.c
+    Utils/mdns/cxmdns.h
+    Utils/mdns/cxmdns.cpp
 )
 
 add_subdirectory(GUI/DeviceCore)
