@@ -375,7 +375,7 @@
 		"PLA"
 	],
 	"full_fan_speed_layer": [
-		"4"
+		"3"
 	],
 	"hot_plate_temp": [
 		"55"
@@ -411,10 +411,10 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"5"
+		"15"
 	],
 	"slow_down_min_speed": [
-		"15"
+		"20"
 	],
 	"supertack_plate_temp": [
 		"35"
