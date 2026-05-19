@@ -23,6 +23,91 @@
 namespace Slic3r {
 namespace GUI {
 
+#ifdef __linux__
+// Workaround for crash in WebKitGTK when loading Fluidd < v1.37.0 or Mainsail < v2.16.1.
+// Their bundled vue-resize component detects container resizes by inserting
+//   <object aria-hidden="true" tabindex="-1" type="text/html" data="about:blank">
+// inside a <div class="resize-observer">. The very insertion of that <object> into the DOM
+// corrupts the heap in WebKitGTK's AcceleratedBackingStore and segfaults.
+//
+// This hook patches Node.prototype.appendChild/insertBefore and *only* swaps the child
+// when BOTH conditions hold:
+//   1. The parent has class "resize-observer" (vue-resize's wrapper div), AND
+//   2. The child is an <object> with vue-resize's exact attribute signature.
+// Any other appendChild/insertBefore call passes through untouched, so PDF/plugin/embed
+// <object> uses elsewhere on the page are not affected.
+//
+// The swap replaces the <object> with a hidden <div> shim that exposes a synthetic
+// contentDocument.defaultView (an EventTarget), and bridges a ResizeObserver on the
+// parent to fire 'resize' events on that fake view -- which is exactly what vue-resize's
+// addResizeHandlers listens to. The synthetic 'load' event fires after insertion so
+// vue-resize wires up its handlers normally.
+//
+// See: https://github.com/OrcaSlicer/OrcaSlicer/issues/7210
+static void inject_vue_resize_workaround(wxWebView *webView)
+{
+    webView->AddUserScript(
+        "(function() {"
+        "  'use strict';"
+        "  function isVueResizeObject(el) {"
+        "    return el && el.tagName === 'OBJECT'"
+        "        && el.type === 'text/html'"
+        "        && el.getAttribute('aria-hidden') === 'true'"
+        "        && el.getAttribute('tabindex') === '-1';"
+        "  }"
+        "  function isResizeObserverParent(p) {"
+        "    return p && p.classList && p.classList.contains('resize-observer');"
+        "  }"
+        "  function makeShim(orig, parentForRO) {"
+        "    var shim = document.createElement('div');"
+        "    shim.setAttribute('aria-hidden', 'true');"
+        "    shim.setAttribute('tabindex', '-1');"
+        "    shim.style.display = 'none';"
+        "    var fakeWin = document.createElement('div');"
+        "    Object.defineProperty(shim, 'contentDocument', {"
+        "      configurable: true,"
+        "      get: function() { return { defaultView: fakeWin }; }"
+        "    });"
+        "    Object.defineProperty(shim, 'contentWindow', {"
+        "      configurable: true,"
+        "      get: function() { return fakeWin; }"
+        "    });"
+        "    if (typeof orig.onload === 'function') { shim.onload = orig.onload; }"
+        "    queueMicrotask(function() {"
+        "      if (parentForRO && typeof ResizeObserver !== 'undefined') {"
+        "        var ro = new ResizeObserver(function() {"
+        "          fakeWin.dispatchEvent(new Event('resize'));"
+        "        });"
+        "        ro.observe(parentForRO);"
+        "      }"
+        "      if (typeof shim.onload === 'function') {"
+        "        try { shim.onload(new Event('load')); } catch (e) {}"
+        "      }"
+        "      shim.dispatchEvent(new Event('load'));"
+        "    });"
+        "    return shim;"
+        "  }"
+        "  var origAppend = Node.prototype.appendChild;"
+        "  Node.prototype.appendChild = function(child) {"
+        "    if (isResizeObserverParent(this) && isVueResizeObject(child)) {"
+        "      return origAppend.call(this, makeShim(child, this));"
+        "    }"
+        "    return origAppend.call(this, child);"
+        "  };"
+        "  var origInsertBefore = Node.prototype.insertBefore;"
+        "  Node.prototype.insertBefore = function(child, ref) {"
+        "    if (isResizeObserverParent(this) && isVueResizeObject(child)) {"
+        "      return origInsertBefore.call(this, makeShim(child, this), ref);"
+        "    }"
+        "    return origInsertBefore.call(this, child, ref);"
+        "  };"
+        "  console.log('[vr-fix] vue-resize WebKitGTK patch active');"
+        "})();",
+        wxWEBVIEW_INJECT_AT_DOCUMENT_START
+    );
+}
+#endif
+
 PrinterWebView::PrinterWebView(wxWindow *parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
     , m_browser(nullptr)
@@ -43,6 +128,8 @@ PrinterWebView::PrinterWebView(wxWindow *parent)
     }
 
 #ifdef __linux__
+    inject_vue_resize_workaround(m_browser);
+
     auto cookiesPath = boost::filesystem::path(data_dir() + "/cache/cookies.db");
     auto wv = static_cast<WebKitWebView*>(m_browser->GetNativeBackend());
     auto wv_ctx = webkit_web_view_get_context(wv);
@@ -165,6 +252,10 @@ void PrinterWebView::SendAPIKey()
 )",
                                        m_apikey);
     m_browser->RemoveAllUserScripts();
+#ifdef __linux__
+    // Re-inject the vue-resize/WebKitGTK workaround that RemoveAllUserScripts just cleared.
+    inject_vue_resize_workaround(m_browser);
+#endif
 
     m_browser->AddUserScript(script);
     m_browser->Reload();
