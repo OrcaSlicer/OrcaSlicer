@@ -167,6 +167,30 @@ bool DropDown::HasDismissLongTime()
         (now - dismissTime).total_milliseconds() >= 20;
 }
 
+void DropDown::Popup(wxWindow *focus)
+{
+#ifdef __WXGTK__
+    if (!mainDropDown && m_widget) {
+        // Data-view cell editors can receive focus before wxGTK infers a
+        // native popup parent, so provide the current toplevel explicitly.
+        GtkWindow *transient_parent = nullptr;
+        for (wxWindow *win = GetParent(); win; win = win->GetParent()) {
+            GtkWidget *widget = static_cast<GtkWidget *>(win->GetHandle());
+            if (!widget)
+                continue;
+            GtkWidget *top = gtk_widget_get_toplevel(widget);
+            if (GTK_IS_WINDOW(top)) {
+                transient_parent = GTK_WINDOW(top);
+                break;
+            }
+        }
+        if (transient_parent)
+            gtk_window_set_transient_for(GTK_WINDOW(m_widget), transient_parent);
+    }
+#endif
+    PopupWindow::Popup(focus);
+}
+
 void DropDown::paintEvent(wxPaintEvent& evt)
 {
     // depending on your system you may need to look at double-buffered dcs
@@ -554,7 +578,8 @@ void DropDown::messureSize()
     wxWindow::SetSize(szContent);
 #ifdef __WXGTK__
     // Gtk has a wrapper window for popup widget
-    gtk_window_resize (GTK_WINDOW (m_widget), szContent.x, szContent.y);
+    if (szContent.x > 0 && szContent.y > 0)
+        gtk_window_resize (GTK_WINDOW (m_widget), szContent.x, szContent.y);
 #endif
     if (!groups.empty() && subDropDown == nullptr) {
         subDropDown = new DropDown(items);
@@ -564,11 +589,6 @@ void DropDown::messureSize()
         subDropDown->use_content_width = true;
         subDropDown->Create(GetParent());
 #ifdef __WXGTK__
-        // Orca:  Keep the wx parent as the combobox so wxPopupTransientWindow installs
-        // its capture handlers on the main dropdown, but make the native GTK
-        // popup transient for the currently open popup to satisfy Wayland's
-        // xdg-shell rule that a popup's parent must be the topmost mapped popup.
-        gtk_window_set_transient_for(GTK_WINDOW(subDropDown->GetHandle()), GTK_WINDOW(GetHandle()));
         // Orca: On Wayland, while the sub holds an xdg_popup grab, motion events for
         // the cursor over main may not be delivered (Mutter drops motion
         // outside the grabbing surface). Poll on idle and synthesize a
@@ -636,8 +656,11 @@ void DropDown::autoPosition()
         // may exceed
         auto drect = wxDisplay(GetParent()).GetGeometry();
         if (GetPosition().y + size.y + 10 > drect.GetBottom()) {
+            int available_height = drect.GetBottom() - GetPosition().y - 10;
+            if (available_height < rowSize.y * 2)
+                return;
             if (use_content_width && count <= 15) size.x += 6;
-            size.y = drect.GetBottom() - GetPosition().y - 10;
+            size.y = available_height;
             wxWindow::SetSize(size);
             if (selection >= 0) {
                 if (offset.y + rowSize.y * (selection + 1) > size.y)
@@ -727,6 +750,13 @@ void DropDown::mouseMove(wxMouseEvent &event)
             drop.group  = items[-index - 2].group_key;
             drop.need_sync = true;
             drop.messureSize();
+#ifdef __WXGTK__
+            // wxGTK wraps popup contents in a native GtkWindow. Make the submenu
+            // transient for the currently mapped parent popup window before
+            // positioning/showing it, so wlroots/Hyprland sees the topmost parent.
+            if (m_widget && drop.m_widget)
+                gtk_window_set_transient_for(GTK_WINDOW(drop.m_widget), GTK_WINDOW(m_widget));
+#endif
             drop.autoPosition();
             drop.paintNow();
             if (!drop.IsShown())

@@ -1230,8 +1230,15 @@ void GCodeProcessor::run_post_process()
         }
     };
 
+    // Orca: track the current layer during the post-processing pass so that preheat M104s emitted
+    // for tool changes on the first layer use the correct first-layer temperature. The member
+    // m_layer_id is populated during the analysis pass and ends at the total layer count, so it
+    // cannot be used here — it would always select the "other layers" temperature for multi-layer
+    // prints.
+    unsigned int current_layer_id = 0;
+
     // add lines M104 to exported gcode
-    auto process_line_T = [this, &export_line](const std::string& gcode_line, const size_t g1_lines_counter, const ExportLines::Backtrace& backtrace) {
+    auto process_line_T = [this, &export_line, &current_layer_id](const std::string& gcode_line, const size_t g1_lines_counter, const ExportLines::Backtrace& backtrace) {
         const std::string cmd = GCodeReader::GCodeLine::extract_cmd(gcode_line);
 
         int tool_number = -1;
@@ -1257,8 +1264,13 @@ void GCodeProcessor::run_post_process()
                 export_line.insert_lines(
                     backtrace, cmd,
                     // line inserter
-                    [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
-                        const int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
+                    [tool_number, this, &current_layer_id](unsigned int id, const std::vector<float>& time_diffs) {
+                        // Orca: use the locally-tracked layer index (current_layer_id) rather than
+                        // the stale m_layer_id from the analysis pass. current_layer_id == 0 means
+                        // we haven't reached the first ;LAYER_CHANGE marker yet (e.g. tool change
+                        // inside start gcode); == 1 means we are inside the first printed layer.
+                        // Both cases should use the first-layer nozzle temperature.
+                        const int temperature = int(current_layer_id > 1 ? m_filament_nozzle_temp[tool_number] :
                                                                          m_filament_nozzle_temp_first_layer[tool_number]);
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
@@ -1351,6 +1363,19 @@ void GCodeProcessor::run_post_process()
                 if (eol) {
                     ++line_id;
                     const unsigned int internal_g1_lines_counter = export_line.update(gcode_line, line_id, g1_lines_counter);
+                    // Orca: track the current layer for preheat temperature selection.
+                    // The line is ";" + reserved_tag(Layer_Change) + EOL; match it independent of
+                    // BBL vs. compatible flavor (which differ in the tag text).
+                    if (gcode_line.size() > 1 && gcode_line.front() == ';') {
+                        std::string_view tag_line(gcode_line);
+                        // strip trailing CR/LF
+                        while (!tag_line.empty() && (tag_line.back() == '\n' || tag_line.back() == '\r'))
+                            tag_line.remove_suffix(1);
+                        // strip leading ';'
+                        tag_line.remove_prefix(1);
+                        if (tag_line == reserved_tag(ETags::Layer_Change))
+                            ++current_layer_id;
+                    }
                     // replace placeholder lines
                     bool processed = process_placeholders(gcode_line);
                     if (processed)
