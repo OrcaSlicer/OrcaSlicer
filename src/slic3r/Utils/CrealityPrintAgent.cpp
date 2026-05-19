@@ -27,6 +27,8 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
     return false;
 }
 
+} // namespace
+
 // Score visible compatible filament presets against the CFS spool metadata and
 // return the best-matching filament_id. Scoring:
 //   +20  preset name contains brand_name as a substring
@@ -38,10 +40,10 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
 // Requires the preset's declared filament_type to equal the spool's base type
 // (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
 // Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
-std::string match_filament_preset(const PresetCollection& filaments,
-                                  const std::string&      vendor,
-                                  const std::string&      brand_name,
-                                  const std::string&      base_type)
+std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& filaments,
+                                                      const std::string&      vendor,
+                                                      const std::string&      brand_name,
+                                                      const std::string&      base_type)
 {
     auto to_lower = [](std::string s) {
         for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
@@ -112,8 +114,6 @@ std::string match_filament_preset(const PresetCollection& filaments,
     return matches.front().preset->filament_id;
 }
 
-} // namespace
-
 CrealityPrintAgent::CrealityPrintAgent(std::string log_dir)
     : MoonrakerPrinterAgent(std::move(log_dir))
 {
@@ -131,8 +131,6 @@ AgentInfo CrealityPrintAgent::get_agent_info_static()
 
 std::string CrealityPrintAgent::normalize_filament_type(const std::string& filament_type)
 {
-    // Strip subtype suffixes ("PLA Silk", "PLA+", "ABS Pro") to base type so the
-    // preset_bundle->filaments.filament_id_by_type() lookup succeeds.
     static const std::vector<std::string> bases = {
         "PETG", "PET", "PLA", "ABS", "ASA", "TPU", "PC", "PA", "PVA", "HIPS"
     };
