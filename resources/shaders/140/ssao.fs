@@ -36,7 +36,7 @@ void main()
     // Alternative if using Y-up: float up_factor = clamp(normal_center.y * 1.5, 0.0, 1.0);
 
     // Adaptive radius in pixel space
-    int radius = int(mix(2.0, 5.0, center_depth / z_far));
+    int radius = int(mix(2.0, 4.0, center_depth / z_far));
 
     // Optimized sampling pattern
     const ivec2 offsets[12] = ivec2[](
