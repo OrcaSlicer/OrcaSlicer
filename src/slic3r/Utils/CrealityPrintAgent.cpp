@@ -32,11 +32,14 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
 // Score visible compatible filament presets against the CFS spool metadata and
 // return the best-matching filament_id. Scoring:
 //   +20  preset name contains brand_name as a substring
-//        (e.g. "Hyper PLA" in "Creality Hyper PLA @K2 (Harky)")
+//        (e.g. "Hyper PLA" in "Hyper PLA @Creality K2 0.4 nozzle")
 //   +10  preset name contains the vendor substring (e.g. "Creality")
-//   Tiebreak: prefer user-edited presets over system presets — the K2 owner
-//   typically copies the system base and tweaks PA / temps for their box,
-//   so their copy is the better fit than the pristine system entry.
+//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies. Brand-
+//   specific system presets carry their own filament_id; user copies of
+//   generic presets inherit a generic filament_id from their parent, so
+//   preferring the user copy can collapse a brand-specific match back to
+//   "Generic PLA" via the inherited id. Plus: this code targets upstream
+//   OrcaSlicer where shipping the user's local tuning would be wrong.
 // Requires the preset's declared filament_type to equal the spool's base type
 // (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
 // Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
@@ -101,7 +104,7 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
     std::sort(matches.begin(), matches.end(),
               [](const Match& a, const Match& b) {
                   if (a.score   != b.score)   return a.score > b.score;
-                  if (a.is_user != b.is_user) return a.is_user;
+                  if (a.is_user != b.is_user) return !a.is_user; // prefer system over user
                   return false;
               });
 

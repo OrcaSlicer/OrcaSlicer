@@ -3743,12 +3743,13 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
 // existing PresetBundle::sync_ams_list machinery so the filament combo widgets
 // get the same correct rebuild as BBL printers.
 //
-// PresetBundle::sync_ams_list resolves each tray's filament_id only against
-// system *base* presets (get_preset_base(f) == &f), so user-edited copies of
-// system presets (the typical K-series workflow — copy "Creality Generic PLA
-// @K2-all" and tune PA/temps for one's specific spool) are collapsed back to
-// the system base. We replay the user-copy assignment after sync_ams_list
-// returns to preserve the matcher's preference.
+// PresetBundle::sync_ams_list resolves each tray's filament_id against system
+// bases (get_preset_base(f) == &f). Combined with the matcher's system-over-
+// user tiebreaker, this lands us on the brand-specific shipped preset for the
+// loaded spool (e.g. "Hyper PLA @Creality K2 0.4 nozzle") rather than a
+// generic-inheriting user copy. We do not override post-sync — local user
+// customisations should be applied by the user via the dropdown, not silently
+// substituted in.
 void Sidebar::sync_filaments_from_creality_cfs()
 {
     auto* preset_bundle = wxGetApp().preset_bundle;
@@ -3826,31 +3827,10 @@ void Sidebar::sync_filaments_from_creality_cfs()
     constexpr int kMainExtruder = 0x10000;
     std::map<int, DynamicPrintConfig> new_filament_ams_list;
 
-    // Side table of user-copy preset names per filament index. PresetBundle::sync_ams_list
-    // collapses filament_id back to the SYSTEM base preset name; we replay the user copy
-    // assignment after it returns to preserve the matcher's preference.
-    std::map<int, std::string> user_preset_overrides;
-
     for (const auto& s : slots) {
         const std::string normalized_type = CrealityPrintAgent::normalize_filament_type(s.filament_type);
         const std::string matched_id = CrealityPrintAgent::match_filament_preset(
             filaments, s.vendor, s.brand_name, normalized_type);
-
-        // Find the best user copy with the matched filament_id, if any. The matcher
-        // already biases toward user copies for scoring; this re-finds the best user
-        // copy by filament_id so we can override after sync_ams_list.
-        const Preset* best_user = nullptr;
-        if (!matched_id.empty()) {
-            for (const auto& p : filaments.get_presets()) {
-                if (!p.is_visible || !p.is_compatible) continue;
-                if (p.filament_id != matched_id) continue;
-                if (p.is_system || p.is_default) continue;
-                if (!best_user) {
-                    best_user = &p;
-                    break; // first user copy wins; matcher's scoring tiebreak already ran
-                }
-            }
-        }
 
         DynamicPrintConfig tray_config;
         tray_config.set_key_value("filament_id", new ConfigOptionStrings{matched_id});
@@ -3871,20 +3851,10 @@ void Sidebar::sync_filaments_from_creality_cfs()
         const int map_key = kMainExtruder + slot_in_filament_array;
         new_filament_ams_list.emplace(map_key, std::move(tray_config));
 
-        if (best_user) {
-            user_preset_overrides[slot_in_filament_array] = best_user->name;
-            BOOST_LOG_TRIVIAL(warning)
-                << "sync_filaments_from_creality_cfs: slot " << slot_in_filament_array
-                << " spool {" << s.vendor << " " << s.brand_name << " (" << normalized_type
-                << ")} -> filament_id=\"" << matched_id
-                << "\" user-override=\"" << best_user->name << "\"";
-        } else {
-            BOOST_LOG_TRIVIAL(warning)
-                << "sync_filaments_from_creality_cfs: slot " << slot_in_filament_array
-                << " spool {" << s.vendor << " " << s.brand_name << " (" << normalized_type
-                << ")} -> filament_id=\"" << matched_id
-                << "\" (no user copy; system base will be used)";
-        }
+        BOOST_LOG_TRIVIAL(warning)
+            << "sync_filaments_from_creality_cfs: slot " << slot_in_filament_array
+            << " spool {" << s.vendor << " " << s.brand_name << " (" << normalized_type
+            << ")} -> filament_id=\"" << matched_id << "\"";
     }
 
     preset_bundle->filament_ams_list = new_filament_ams_list;
@@ -3907,16 +3877,7 @@ void Sidebar::sync_filaments_from_creality_cfs()
         return;
     }
 
-    // Override system-base names with the user copies the matcher preferred.
     auto& filament_presets = preset_bundle->filament_presets;
-    for (const auto& [slot_idx, user_name] : user_preset_overrides) {
-        if (slot_idx >= 0 && slot_idx < int(filament_presets.size())) {
-            BOOST_LOG_TRIVIAL(warning)
-                << "sync_filaments_from_creality_cfs: overriding slot " << slot_idx
-                << " from \"" << filament_presets[slot_idx] << "\" to \"" << user_name << "\"";
-            filament_presets[slot_idx] = user_name;
-        }
-    }
 
     // Mirror the BBL post-sync refresh sequence.
     wxGetApp().plater()->on_filament_count_change(n);
