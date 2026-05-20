@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA-CF",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"filament_id": "GFL98",

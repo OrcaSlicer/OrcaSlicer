@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA High Speed @Hi-all",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "Creality Generic PLA @Hi-all",
 	"from": "system",
 	"setting_id": "GFSL95_00",

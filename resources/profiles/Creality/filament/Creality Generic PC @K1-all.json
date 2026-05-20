@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PC @K1-all",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "Creality Generic PC",
 	"from": "system",
 	"setting_id": "GFSC99_06",

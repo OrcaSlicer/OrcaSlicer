@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA High Speed @Ender-3V3-all",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "Creality Generic PLA @Ender-3V3-all",
 	"from": "system",
 	"setting_id": "GFSL95_00",

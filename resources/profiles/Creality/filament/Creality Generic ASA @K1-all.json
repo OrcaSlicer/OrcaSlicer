@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ASA @K1-all",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "Creality Generic ASA",
 	"from": "system",
 	"setting_id": "GFSA04_00",

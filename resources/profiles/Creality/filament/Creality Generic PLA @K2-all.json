@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA @K2-all",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "Creality Generic PLA",
 	"from": "system",
 	"setting_id": "GFSL99_00",
