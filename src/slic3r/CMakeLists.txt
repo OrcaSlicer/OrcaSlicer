@@ -669,10 +669,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
-    Utils/mdns/mdns.h
-    Utils/mdns/mdns.c
-    Utils/mdns/cxmdns.h
-    Utils/mdns/cxmdns.cpp
 )
 
 add_subdirectory(GUI/DeviceCore)
@@ -762,13 +758,11 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
 
 
 if (MSVC)
-    # Iphlpapi/Ws2_32 are required by the vendored mjansson/mdns library
-    # (GetAdaptersAddresses + Winsock2) used by CrealityHostDiscovery.
-    target_link_libraries(libslic3r_gui Setupapi.lib Iphlpapi.lib Ws2_32.lib)
+    target_link_libraries(libslic3r_gui Setupapi.lib)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     FIND_LIBRARY(WAYLAND_SERVER_LIBRARIES NAMES wayland-server)
     FIND_LIBRARY(WAYLAND_EGL_LIBRARIES    NAMES wayland-egl)

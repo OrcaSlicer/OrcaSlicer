@@ -1,5 +1,5 @@
 #include "CrealityHostDiscovery.hpp"
-#include "mdns/cxmdns.h"
+#include "cxmdns.h"
 #include "Http.hpp"
 
 #include <boost/log/trivial.hpp>
