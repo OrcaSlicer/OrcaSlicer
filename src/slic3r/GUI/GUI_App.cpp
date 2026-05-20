@@ -787,9 +787,20 @@ void GUI_App::post_init()
         mainframe->select_tab(size_t(MainFrame::tp3DEditor));
         plater_->select_view_3D("3D");
         //BBS init the opengl resource here
-//#ifdef __linux__
-        if (plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen()&&plater_->canvas3D()->make_current_for_postinit()) {
-//#endif
+        if (!plater_->canvas3D()->get_wxglcanvas()->IsShownOnScreen() ||
+            !plater_->canvas3D()->make_current_for_postinit()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": glcontext not ready, postpone init";
+            plater_->canvas3D()->enable_render(true);
+            plater_->canvas3D()->set_as_dirty();
+#ifdef __linux__
+            // Wayland/EGL may not have committed the GL surface yet; ask the
+            // idle loop to retry post_init when the canvas is actually mapped.
+            // Without this, GL function pointers stay null and the first
+            // Preview focus crashes in Camera::apply_viewport.
+            m_post_initialized = false;
+            return;
+#endif
+        } else {
             Size canvas_size = plater_->canvas3D()->get_canvas_size();
             wxGetApp().imgui()->set_display_size(static_cast<float>(canvas_size.get_width()), static_cast<float>(canvas_size.get_height()));
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", start to init opengl";
@@ -809,14 +820,7 @@ void GUI_App::post_init()
                 plater_->canvas3D()->render(false);
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", finished rendering a first frame for test";
             }
-//#ifdef __linux__
         }
-        else {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << "Found glcontext not ready, postpone the init";
-            plater_->canvas3D()->enable_render(true);
-            plater_->canvas3D()->set_as_dirty();
-        }
-//#endif
         if (is_editor())
             mainframe->select_tab(size_t(0));
         if (app_config->get("default_page") == "1")
