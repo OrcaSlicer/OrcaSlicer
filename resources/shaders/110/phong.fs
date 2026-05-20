@@ -6,12 +6,12 @@ const vec3 LightBlue = vec3(0.73, 1.0, 1.0);
 const float EPSILON = 0.0001;
 
 #define INTENSITY_CORRECTION 0.6
-#define PHONG_BRIGHTNESS     1.12
+#define PHONG_BRIGHTNESS     1.0
 
 // normalized values for (-0.6/1.31, 0.6/1.31, 1./1.31)
 const vec3 LIGHT_TOP_DIR = vec3(-0.4574957, 0.4574957, 0.7624929);
 #define LIGHT_TOP_DIFFUSE    (0.8 * INTENSITY_CORRECTION)
-#define LIGHT_TOP_SPECULAR   (1.10 * INTENSITY_CORRECTION)
+#define LIGHT_TOP_SPECULAR   (0.8 * INTENSITY_CORRECTION)
 #define LIGHT_TOP_SHININESS  128.0
 
 // normalized values for (1./1.43, 0.2/1.43, 1./1.43)

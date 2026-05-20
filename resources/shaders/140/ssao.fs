@@ -70,9 +70,8 @@ void main()
         float threshold = 0.02 * (0.5 + center_depth / z_far);
         float contribution = smoothstep(0.001, threshold, depth_diff);
 
-        // Reduce contribution on planar surfaces and top areas
-        float top_factor = 1.0 - up_factor * 0.6;  // 60% less occlusion on tops
-        contribution *= (1.0 - planar_factor * 0.5) * top_factor;
+        // Reduce contribution on planar surfaces 
+        contribution *= (1.0 - planar_factor * 0.5);
 
         occlusion += contribution;
         valid_samples++;

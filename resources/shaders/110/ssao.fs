@@ -34,12 +34,8 @@ void main()
     float up_factor = max(0.0, normal_center.z);  // Assuming Z is up axis
     // Alternative: if Y is up, use normal_center.y
     
-    // Enhance brightness on top surfaces (reduce AO effect)
-    // Top surfaces get only 30% of AO, bottom surfaces get 100%
-    float highlight_protection = mix(1.0, 0.3, up_factor);
-    
     // Adaptive sampling radius
-    float radius = mix(1.5, 4.0, depth_center / z_far);
+    float radius = mix(2.0, 4.0, depth_center / z_far);
     
     vec2 offsets[8];
     offsets[0] = vec2( 1.0,  0.0);
@@ -72,8 +68,8 @@ void main()
     if (valid_samples > 0)
         occlusion /= float(valid_samples);
     
-    // Apply highlight protection - flatter/top-like surfaces get less darkening
-    float ao_intensity = 0.55 * highlight_protection;
+    // flatter/top-like surfaces get less darkening
+    float ao_intensity = 0.55;
     float ambient_occlusion = 1.0 - occlusion * ao_intensity;
     
     // Different min values for top vs bottom surfaces
