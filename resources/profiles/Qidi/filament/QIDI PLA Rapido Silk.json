@@ -37,5 +37,23 @@
 		"Qidi X-Smart 3 0.4 nozzle",
 		"Qidi X-Plus 3 0.4 nozzle",
 		"Qidi X-Max 3 0.4 nozzle"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"hot_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
 	]
 }

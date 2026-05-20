@@ -84,5 +84,35 @@
 	"hot_plate_temp": [
 		"90"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"cool_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp": [
+		"90"
+	],
+	"supertack_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"textured_cool_plate_temp": [
+		"80"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"80"
+	]
 }

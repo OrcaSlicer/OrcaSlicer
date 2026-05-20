@@ -45,9 +45,6 @@
 	"filament_max_volumetric_speed": [
 		"12"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
 	"compatible_printers": [
 		"Qidi X-Plus 4 0.8 nozzle"
 	]

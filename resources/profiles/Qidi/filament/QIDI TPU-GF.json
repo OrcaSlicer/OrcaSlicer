@@ -45,12 +45,6 @@
 	"temperature_vitrification": [
 		"30"
 	],
-	"hot_plate_temp_initial_layer": [
-		"35"
-	],
-	"hot_plate_temp": [
-		"35"
-	],
 	"compatible_printers": [
 		"Qidi X-Smart 3 0.4 nozzle",
 		"Qidi X-Plus 3 0.4 nozzle",

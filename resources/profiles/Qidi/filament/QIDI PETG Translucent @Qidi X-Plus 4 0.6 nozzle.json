@@ -12,9 +12,6 @@
 	"filament_settings_id": [
 		"QIDI PETG Translucent @Qidi X-Plus 4 0.6 nozzle"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
 	"compatible_printers": [
 		"Qidi X-Plus 4 0.6 nozzle"
 	]

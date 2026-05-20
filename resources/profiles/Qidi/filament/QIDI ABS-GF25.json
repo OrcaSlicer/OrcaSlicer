@@ -36,12 +36,6 @@
 	"chamber_temperature": [
 		"55"
 	],
-	"hot_plate_temp_initial_layer": [
-		"100"
-	],
-	"hot_plate_temp": [
-		"100"
-	],
 	"overhang_fan_speed": [
 		"100"
 	],

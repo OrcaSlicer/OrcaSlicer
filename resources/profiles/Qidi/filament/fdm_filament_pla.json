@@ -20,7 +20,7 @@
 		"20"
 	],
 	"cool_plate_temp": [
-		"60"
+		"45"
 	],
 	"eng_plate_temp": [
 		"60"
@@ -31,8 +31,11 @@
 	"textured_plate_temp": [
 		"60"
 	],
+	"supertack_plate_temp": [
+		"45"
+	],
 	"cool_plate_temp_initial_layer": [
-		"60"
+		"45"
 	],
 	"eng_plate_temp_initial_layer": [
 		"60"
@@ -42,6 +45,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"45"
 	],
 	"nozzle_temperature_initial_layer": [
 		"210"
@@ -96,5 +102,11 @@
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
 	]
 }

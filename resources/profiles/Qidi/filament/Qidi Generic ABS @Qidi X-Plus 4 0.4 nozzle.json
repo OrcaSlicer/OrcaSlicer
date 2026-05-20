@@ -18,12 +18,6 @@
 	"pressure_advance": [
 		"0.03"
 	],
-	"hot_plate_temp": [
-		"90"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
-	],
 	"nozzle_temperature": [
 		"250"
 	],

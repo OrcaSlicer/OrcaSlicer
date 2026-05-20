@@ -25,12 +25,6 @@
 	"slow_down_layer_time": [
 		"8"
 	],
-	"hot_plate_temp_initial_layer": [
-		"55"
-	],
-	"hot_plate_temp": [
-		"55"
-	],
 	"compatible_printers": [
 		"Qidi X-Plus 4 0.4 nozzle"
 	]
