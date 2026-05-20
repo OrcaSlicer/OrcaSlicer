@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "GFSA04",

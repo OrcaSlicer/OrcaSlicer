@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic TPU @Hi-all",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "Creality Generic TPU",
 	"from": "system",
 	"setting_id": "GFU99_CREALITY_00",

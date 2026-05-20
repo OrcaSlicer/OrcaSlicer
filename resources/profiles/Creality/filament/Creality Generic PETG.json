@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PETG",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "GFSA04",

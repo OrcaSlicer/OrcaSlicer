@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ABS",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "GFSA04",

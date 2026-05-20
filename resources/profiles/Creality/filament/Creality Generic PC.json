@@ -1,6 +1,9 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PC",
+	"filament_vendor": [
+		"Creality"
+	],
 	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"filament_id": "GFC99",
