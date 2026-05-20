@@ -3481,14 +3481,64 @@ void Sidebar::load_ams_list(MachineObject* obj)
 
 void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
 {
-    // K-series Creality CFS hosts don't bind a MachineObject (that's a BBL
-    // cloud-connected-printer concept), so the dispatch below would early-return.
-    // Route to the explicit-pull CFS sync instead.
+    // K-series Creality CFS hosts don't bind a MachineObject (BBL cloud-printer
+    // concept), so the dispatch below would early-return. Delegate to
+    // CrealityPrintAgent which queries CFS state and populates filament_ams_list
+    // directly, then surface the result here as the appropriate dialog + refresh.
     if (auto* preset_bundle = wxGetApp().preset_bundle) {
-        const auto* opt = preset_bundle->printers.get_edited_preset().config
-                              .option<ConfigOptionEnum<PrintHostType>>("host_type");
-        if (opt && opt->value == htCrealityPrint) {
-            sync_filaments_from_creality_cfs();
+        const auto& printer_cfg   = preset_bundle->printers.get_edited_preset().config;
+        const auto* host_type_opt = printer_cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
+        if (host_type_opt && host_type_opt->value == htCrealityPrint) {
+            wxBusyCursor cursor;
+            auto result = CrealityPrintAgent::sync_filaments_into_ams_list(printer_cfg, preset_bundle);
+            using R = CrealityPrintAgent::CFSAmsListResult;
+            switch (result.status) {
+            case R::NotCfsCapable: {
+                MessageDialog dlg(this,
+                    _L("This printer is not a CFS-capable K-series board, or could not be reached at its configured IP."),
+                    _L("Sync filaments from CFS"), wxOK);
+                dlg.ShowModal();
+                return;
+            }
+            case R::QueryFailed: {
+                MessageDialog dlg(this,
+                    _L("Could not read CFS slot information from the printer.") + "\n" + from_u8(result.detail),
+                    _L("Sync filaments from CFS"), wxOK);
+                dlg.ShowModal();
+                return;
+            }
+            case R::EmptySlots: {
+                MessageDialog dlg(this,
+                    _L("No loaded filament slots detected on the CFS."),
+                    _L("Sync filaments from CFS"), wxOK);
+                dlg.ShowModal();
+                return;
+            }
+            case R::NoMatches: {
+                MessageDialog dlg(this,
+                    _L("CFS slots were read but no compatible filament presets resolved. "
+                       "Enable the relevant filament profiles via the Filaments tickbox in printer settings."),
+                    _L("Sync filaments from CFS"), wxOK);
+                dlg.ShowModal();
+                return;
+            }
+            case R::Success:
+                break;  // fall through to UI refresh below
+            }
+
+            // Mirror the BBL post-sync refresh sequence.
+            auto& filament_presets = preset_bundle->filament_presets;
+            wxGetApp().plater()->on_filament_count_change(result.applied_filament_count);
+            for (auto& c : p->combos_filament)
+                c->update();
+            update_filaments_area_height();
+            Layout();
+            wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(filament_presets[0]);
+            preset_bundle->export_selections(*wxGetApp().app_config);
+            update_dynamic_filament_list();
+
+            BOOST_LOG_TRIVIAL(warning)
+                << "Sidebar::sync_ams_list: CFS sync applied " << result.applied_filament_count << " slot(s)";
             return;
         }
     }
@@ -3733,165 +3783,6 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
 }
 
-// Explicit-pull filament sync for Creality K-series printers with CFS.
-//
-// We can't reuse the BBL path (sync_ams_list above) because it requires a
-// MachineObject bound to the device, which is a cloud-connected-printer concept
-// that doesn't apply to LAN Moonraker-style hosts like the K2. Instead, we query
-// the CFS over the K2's port-9999 WebSocket directly (using the CrealityPrint
-// helper added in upstream PR #13291), then route the slot data through the
-// existing PresetBundle::sync_ams_list machinery so the filament combo widgets
-// get the same correct rebuild as BBL printers.
-//
-// PresetBundle::sync_ams_list resolves each tray's filament_id against system
-// bases (get_preset_base(f) == &f). Combined with the matcher's system-over-
-// user tiebreaker, this lands us on the brand-specific shipped preset for the
-// loaded spool (e.g. "Hyper PLA @Creality K2 0.4 nozzle") rather than a
-// generic-inheriting user copy. We do not override post-sync — local user
-// customisations should be applied by the user via the dropdown, not silently
-// substituted in.
-void Sidebar::sync_filaments_from_creality_cfs()
-{
-    auto* preset_bundle = wxGetApp().preset_bundle;
-    if (!preset_bundle)
-        return;
-
-    const auto& printer_cfg = preset_bundle->printers.get_edited_preset().config;
-    const auto* host_type_opt = printer_cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
-    if (!host_type_opt || host_type_opt->value != htCrealityPrint) {
-        BOOST_LOG_TRIVIAL(warning)
-            << "sync_filaments_from_creality_cfs: host_type is not crealityprint";
-        return;
-    }
-
-    wxBusyCursor cursor;
-
-    // Build a minimal config for the CrealityPrint helper. We can't pass
-    // printer_cfg directly because its option set is wider than CrealityPrint's
-    // constructor expects.
-    DynamicPrintConfig cfg;
-    cfg.set_key_value("print_host",                  new ConfigOptionString(printer_cfg.opt_string("print_host")));
-    cfg.set_key_value("print_host_webui",            new ConfigOptionString(printer_cfg.opt_string("print_host_webui")));
-    cfg.set_key_value("printhost_cafile",            new ConfigOptionString(printer_cfg.opt_string("printhost_cafile")));
-    cfg.set_key_value("printhost_port",              new ConfigOptionString(printer_cfg.opt_string("printhost_port")));
-    cfg.set_key_value("printhost_apikey",            new ConfigOptionString(printer_cfg.opt_string("printhost_apikey")));
-    cfg.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(printer_cfg.opt_bool("printhost_ssl_ignore_revoke")));
-
-    CrealityPrint host(&cfg);
-    if (!host.supports_multi_color_print()) {
-        BOOST_LOG_TRIVIAL(warning)
-            << "sync_filaments_from_creality_cfs: " << host.model_name()
-            << " is not CFS-capable";
-        MessageDialog dlg(this,
-            _L("This printer is not a CFS-capable K-series board, or could not be reached at its configured IP."),
-            _L("Sync filaments from CFS"), wxOK);
-        dlg.ShowModal();
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(warning)
-        << "sync_filaments_from_creality_cfs: querying CFS slots on " << host.model_name();
-
-    const std::string response = host.query_boxes_info();
-
-    std::vector<CrealityPrintAgent::CFSSlot> slots;
-    int         box_count = 0;
-    std::string parse_err;
-    if (!CrealityPrintAgent::parse_cfs_response(response, slots, box_count, parse_err)) {
-        BOOST_LOG_TRIVIAL(warning)
-            << "sync_filaments_from_creality_cfs: CFS query failed (" << parse_err << ")";
-        MessageDialog dlg(this,
-            _L("Could not read CFS slot information from the printer.") + "\n" + parse_err,
-            _L("Sync filaments from CFS"), wxOK);
-        dlg.ShowModal();
-        return;
-    }
-
-    if (slots.empty()) {
-        MessageDialog dlg(this,
-            _L("No loaded filament slots detected on the CFS."),
-            _L("Sync filaments from CFS"), wxOK);
-        dlg.ShowModal();
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(warning)
-        << "sync_filaments_from_creality_cfs: " << box_count << " CFS box(es), "
-        << slots.size() << " loaded slot(s)";
-
-    auto& filaments = preset_bundle->filaments;
-
-    // Build filament_ams_list — same shape as Sidebar::build_filament_ams_list produces
-    // for BBL printers, consumed by PresetBundle::sync_ams_list.
-    // Map key encodes (extruder, ams_id, slot_id) — main extruder uses the 0x10000 prefix.
-    constexpr int kMainExtruder = 0x10000;
-    std::map<int, DynamicPrintConfig> new_filament_ams_list;
-
-    for (const auto& s : slots) {
-        const std::string normalized_type = CrealityPrintAgent::normalize_filament_type(s.filament_type);
-        const std::string matched_id = CrealityPrintAgent::match_filament_preset(
-            filaments, s.vendor, s.brand_name, normalized_type);
-
-        DynamicPrintConfig tray_config;
-        tray_config.set_key_value("filament_id", new ConfigOptionStrings{matched_id});
-        tray_config.set_key_value("tag_uid", new ConfigOptionStrings{std::string()});
-        tray_config.set_key_value("ams_id", new ConfigOptionStrings{std::to_string(s.box_id)});
-        tray_config.set_key_value("slot_id", new ConfigOptionStrings{std::to_string(s.slot_id)});
-        tray_config.set_key_value("filament_type", new ConfigOptionStrings{normalized_type});
-        const std::string tray_name = std::string(1, char('A' + s.box_id)) + std::to_string(s.slot_id + 1);
-        tray_config.set_key_value("tray_name", new ConfigOptionStrings{tray_name});
-        tray_config.set_key_value("filament_colour", new ConfigOptionStrings{s.color_hex.empty() ? std::string("#FFFFFF") : s.color_hex});
-        tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
-        tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{std::string("0")});
-        tray_config.set_key_value("filament_exist", new ConfigOptionBools{true});
-        tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{false});
-        tray_config.set_key_value("filament_is_support", new ConfigOptionBools{false});
-
-        const int slot_in_filament_array = s.box_id * 4 + s.slot_id;
-        const int map_key = kMainExtruder + slot_in_filament_array;
-        new_filament_ams_list.emplace(map_key, std::move(tray_config));
-
-        BOOST_LOG_TRIVIAL(warning)
-            << "sync_filaments_from_creality_cfs: slot " << slot_in_filament_array
-            << " spool {" << s.vendor << " " << s.brand_name << " (" << normalized_type
-            << ")} -> filament_id=\"" << matched_id << "\"";
-    }
-
-    preset_bundle->filament_ams_list = new_filament_ams_list;
-
-    std::vector<std::pair<DynamicPrintConfig*, std::string>> unknowns;
-    std::map<int, AMSMapInfo>                                empty_maps;
-    MergeFilamentInfo                                        merge_info;
-    auto n = preset_bundle->sync_ams_list(unknowns, false /*use_map*/, empty_maps,
-                                          false /*enable_append*/, merge_info, false /*color_only*/);
-
-    BOOST_LOG_TRIVIAL(warning)
-        << "sync_filaments_from_creality_cfs: PresetBundle::sync_ams_list returned " << n;
-
-    if (n == 0) {
-        MessageDialog dlg(this,
-            _L("CFS slots were read but no compatible filament presets resolved. "
-               "Enable the relevant filament profiles via the Filaments tickbox in printer settings."),
-            _L("Sync filaments from CFS"), wxOK);
-        dlg.ShowModal();
-        return;
-    }
-
-    auto& filament_presets = preset_bundle->filament_presets;
-
-    // Mirror the BBL post-sync refresh sequence.
-    wxGetApp().plater()->on_filament_count_change(n);
-    for (auto& c : p->combos_filament)
-        c->update();
-    update_filaments_area_height();
-    Layout();
-    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(filament_presets[0]);
-    preset_bundle->export_selections(*wxGetApp().app_config);
-    update_dynamic_filament_list();
-
-    BOOST_LOG_TRIVIAL(warning)
-        << "sync_filaments_from_creality_cfs: applied " << n << " slot(s)";
-}
 
 bool Sidebar::should_show_SEMM_buttons()
 {

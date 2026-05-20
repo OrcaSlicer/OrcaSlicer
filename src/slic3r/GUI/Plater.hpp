@@ -193,11 +193,6 @@ public:
     void load_ams_list(MachineObject* obj);
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
     void sync_ams_list(bool is_from_big_sync_btn = false);
-    // Explicit-pull filament sync for Creality K-series hosts (host_type=crealityprint).
-    // The BBL-style sync_ams_list path requires a bound MachineObject which is never
-    // created for LAN Moonraker hosts. sync_ams_list dispatches here when host_type
-    // is crealityprint, but the function is also usable on its own.
-    void sync_filaments_from_creality_cfs();
     bool sync_extruder_list();
     bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
     void update_sync_status(const MachineObject* obj);
