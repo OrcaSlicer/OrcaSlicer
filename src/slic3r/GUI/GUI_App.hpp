@@ -321,6 +321,7 @@ private:
 
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
+    std::atomic<bool>    m_restart_sync_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -530,6 +531,7 @@ public:
     void            sync_preset(Preset* preset);
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
+    void            restart_sync_user_preset();
     void            on_stealth_mode_enter();
 
     // Bundle subscription sync
