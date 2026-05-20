@@ -3271,6 +3271,25 @@ void MainFrame::init_menubar_as_editor()
             plater()->get_current_canvas3D()->force_set_focus();
         },
         "", nullptr, []() { return true; }, this);
+
+    append_menu_item(
+        m_topbar->GetTopMenu(), wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+        [this](wxCommandEvent&) {
+            if (!wxGetApp().is_user_login()) {
+                MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
+                    _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                info_dlg.ShowModal();
+                return;
+            }
+            if (m_plater)
+                m_plater->get_notification_manager()->push_notification(
+                    into_u8(_L("Syncing presets from cloud\u2026")));
+            wxGetApp().restart_sync_user_preset();
+        }, "", nullptr,
+        [this]() {
+            return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
+        }, this);
+
     //m_topbar->AddDropDownMenuItem(preference_item);
     //m_topbar->AddDropDownMenuItem(printer_item);
     //m_topbar->AddDropDownMenuItem(language_item);
