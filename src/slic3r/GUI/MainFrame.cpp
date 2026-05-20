@@ -2791,8 +2791,7 @@ void MainFrame::init_menubar_as_editor()
                 if (m_plater)
                     m_plater->get_notification_manager()->push_notification(
                         into_u8(_L("Syncing presets from cloud\u2026")));
-                wxGetApp().stop_sync_user_preset();
-                wxGetApp().start_sync_user_preset(true);
+                wxGetApp().restart_sync_user_preset();
             }, "", nullptr,
             [this]() {
                 return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
