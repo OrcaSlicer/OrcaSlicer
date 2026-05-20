@@ -21,7 +21,7 @@
 	"initial_layer_speed": "25",
 	"inner_wall_speed": "80",
 	"layer_height": "0.25",
-	"outer_wall_acceleration": "1000",
+	"outer_wall_acceleration": "600",
 	"outer_wall_jerk": "5",
 	"outer_wall_speed": "60",
 	"precise_z_height": "0",
