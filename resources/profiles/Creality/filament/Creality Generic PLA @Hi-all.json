@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA @Hi-all",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "Creality Generic PLA",
 	"from": "system",
 	"setting_id": "GFSL99_00",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_max_volumetric_speed": [
 		"18"
 	],

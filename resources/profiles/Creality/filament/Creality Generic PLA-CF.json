@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA-CF",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"filament_id": "GFL98",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_flow_ratio": [
 		"0.95"
 	],

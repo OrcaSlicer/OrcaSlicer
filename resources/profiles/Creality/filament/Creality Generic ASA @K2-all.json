@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ASA @K2-all",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "Creality Generic ASA",
 	"from": "system",
 	"setting_id": "GFSA04_00",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_flow_ratio": [
 		"0.95"
 	],

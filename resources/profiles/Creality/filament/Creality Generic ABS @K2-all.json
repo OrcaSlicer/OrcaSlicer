@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ABS @K2-all",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "Creality Generic ABS",
 	"from": "system",
 	"setting_id": "GFSA04_CREALITY_00",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_flow_ratio": [
 		"0.95"
 	],

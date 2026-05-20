@@ -1,14 +1,14 @@
 {
 	"type": "filament",
 	"name": "Creality Generic ASA",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "GFSA04",
 	"filament_id": "GFB98",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_flow_ratio": [
 		"0.926"
 	],
