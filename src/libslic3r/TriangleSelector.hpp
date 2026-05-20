@@ -287,6 +287,26 @@ public:
         template<class Archive> void serialize(Archive &ar) { ar(triangles_to_split, bitstream, used_states); }
     };
 
+    // Backward-compatible container used by model code to preserve painting
+    // data across mesh replacement/splitting operations.
+    struct SavedPainting {
+        TriangleMesh           mesh;
+        TriangleSplittingData  supported;
+        TriangleSplittingData  seam;
+        TriangleSplittingData  mmu;
+        TriangleSplittingData  fuzzy;
+    };
+
+    // Remap painting data from source mesh to target mesh using spatial mapping.
+    // `target_transform` should transform the target mesh into source's coordinate space.
+    // If `existing_painting` is present, the result combines existing and remapped data.
+    static TriangleSplittingData remap_painting(
+        const indexed_triangle_set& source_its,
+        const TriangleSplittingData& source_painting,
+        const indexed_triangle_set& target_its,
+        const Transform3d& target_transform,
+        const std::optional<std::reference_wrapper<const TriangleSplittingData>>& existing_painting);
+
     std::pair<std::vector<Vec3i32>, std::vector<Vec3i32>> precompute_all_neighbors() const;
     void precompute_all_neighbors_recursive(int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated, std::vector<Vec3i32> &neighbors_out, std::vector<Vec3i32> &neighbors_normal_out) const;
 

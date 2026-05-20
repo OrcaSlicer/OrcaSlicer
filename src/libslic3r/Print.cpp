@@ -17,7 +17,7 @@
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
-#include "FilamentMixer.hpp"
+#include "filament_mixer.h"
 #include "Model.hpp"
 #include "format.hpp"
 #include <float.h>

@@ -56,8 +56,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/WebView.hpp
     GUI/Widgets/ErrorMsgStaticText.cpp
     GUI/Widgets/ErrorMsgStaticText.hpp
-    GUI/Widgets/MultiNozzleSync.hpp
-    GUI/Widgets/MultiNozzleSync.cpp
     GUI/MixedFilamentDialog.cpp
     GUI/MixedFilamentDialog.hpp
     GUI/AboutDialog.cpp

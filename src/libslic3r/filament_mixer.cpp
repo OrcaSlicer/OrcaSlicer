@@ -6,7 +6,7 @@
 #include <sstream>
 #include <numeric>
 
-#include "FilamentMixerModel.hpp"
+#include "filament_mixer_model.h"
 #include "LocalesUtils.hpp"
 
 namespace Slic3r {

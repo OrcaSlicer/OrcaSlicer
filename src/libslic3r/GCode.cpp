@@ -6701,6 +6701,49 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         gcode += m_writer.set_jerk_xy(jerk);
     }
 
+    // Calculate effective extrusion length per distance unit (e_per_mm).
+    double filament_flow_ratio = FILAMENT_CONFIG(filament_flow_ratio);
+    // Effective flow = geometric volume * print flow ratio * filament flow ratio * role-based flow ratios.
+    auto _mm3_per_mm = path.mm3_per_mm * this->config().print_flow_ratio;
+    _mm3_per_mm *= filament_flow_ratio;
+
+    if (path.role() == erTopSolidInfill) {
+        _mm3_per_mm *= m_config.top_solid_infill_flow_ratio;
+    } else if (path.role() == erBottomSurface) {
+        _mm3_per_mm *= m_config.bottom_solid_infill_flow_ratio;
+    } else if (path.role() == erInternalBridgeInfill) {
+        _mm3_per_mm *= m_config.internal_bridge_flow;
+    } else if (path.role() == erBrim) {
+        _mm3_per_mm *= m_config.brim_flow_ratio;
+    } else if (sloped) {
+        _mm3_per_mm *= m_config.scarf_joint_flow_ratio;
+    }
+
+    if (m_config.set_other_flow_ratios) {
+        if (path.role() == erExternalPerimeter) {
+            _mm3_per_mm *= m_config.outer_wall_flow_ratio;
+        } else if (path.role() == erPerimeter) {
+            _mm3_per_mm *= m_config.inner_wall_flow_ratio;
+        } else if (path.role() == erOverhangPerimeter) {
+            _mm3_per_mm *= m_config.overhang_flow_ratio;
+        } else if (path.role() == erInternalInfill) {
+            _mm3_per_mm *= m_config.sparse_infill_flow_ratio;
+        } else if (path.role() == erSolidInfill) {
+            _mm3_per_mm *= m_config.internal_solid_infill_flow_ratio;
+        } else if (path.role() == erGapFill) {
+            _mm3_per_mm *= m_config.gap_fill_flow_ratio;
+        } else if (path.role() == erSupportMaterial) {
+            _mm3_per_mm *= m_config.support_flow_ratio;
+        } else if (path.role() == erSupportMaterialInterface) {
+            _mm3_per_mm *= m_config.support_interface_flow_ratio;
+        }
+
+        // Additionally, adjust for first layer (except brims and skirts).
+        if (this->on_first_layer() && (path.role() != erBrim && path.role() != erSkirt)) {
+            _mm3_per_mm *= m_config.first_layer_flow_ratio;
+        }
+    }
+
     float effective_height = path.height;
     if (m_sub_layer_flow_ratio > 0.0) {
         _mm3_per_mm *= m_sub_layer_flow_ratio;
