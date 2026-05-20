@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Creality Sermoon V1 Pro",
+    "nozzle_diameter": "0.4",
+    "bed_model": "creality_k1_buildplate_model.stl",
+    "default_bed_type": "Cool Plate",
+    "bed_texture": "",
+    "family": "Creality",
+    "hotend_model": "",
+    "machine_tech": "FFF",
+    "model_id": "Creality_Sermoon_V1_Pro",
+    "default_materials": "CR-TPU;CR-PETG;Generic ABS;CR-PLA;Hyper PLA"
+}
