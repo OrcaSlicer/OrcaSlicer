@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "FILL3D PETG CF @System",
+	"from": "system",
+	"setting_id": "FILL3D007SYS",
+	"instantiation": "true",
+	"inherits": "FILL3D PETG CF @base",
+	"compatible_printers": []
+}

@@ -71,6 +71,7 @@ body
 
 #LeftBoard
 {
+	display: none;  /* shown by cloud_providers_info from backend */
 	border-right-width: 1px;
 	border-right-style: solid;
 	width:262px;

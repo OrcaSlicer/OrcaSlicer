@@ -46,3 +46,12 @@ ctest --test-dir ./tests/fff_print
 - **Cross-platform** — all changes must work on Windows, macOS, and Linux
 - Profile/format changes need version migration handling
 - Dependencies built separately in `deps/build/`, then linked to main app
+
+## Code review focus areas
+
+- Changes must not cause regressions in existing functionality, defaults, profiles, or project compatibility.
+- Features gated by options must not affect existing behavior when those options are disabled.
+- Changes should follow the existing code style and architecture. Architectural changes should be justified in code comments and the PR description.
+- Add helper functions or utilities only when existing code cannot reasonably be reused. Avoid duplication.
+- Keep code concise and clear. Manually simplify AI generated bloated codes before review.
+- Include targeted tests or documented verification for behavior changes, especially in slicing logic, profiles, formats, and GUI defaults.

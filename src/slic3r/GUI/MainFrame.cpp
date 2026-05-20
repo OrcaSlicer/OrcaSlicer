@@ -46,6 +46,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "BindDialog.hpp"
 #include "../Utils/MacDarkMode.hpp"
+#include "../Utils/PrintHost.hpp"
 
 #include <fstream>
 #include <string_view>
@@ -2539,7 +2540,7 @@ static wxMenu* generate_help_menu()
     wxMenu* helpMenu = new wxMenu();
 
     // shortcut key
-    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of the keyboard shortcuts"),
+    append_menu_item(helpMenu, wxID_ANY, _L("Keyboard Shortcuts") + sep + "&?", _L("Show the list of keyboard shortcuts"),
         [](wxCommandEvent&) { wxGetApp().keyboard_shortcuts(); });
     // Show Beginner's Tutorial
     append_menu_item(helpMenu, wxID_ANY, _L("Setup Wizard"), _L("Setup Wizard"), [](wxCommandEvent &) {wxGetApp().ShowUserGuide();});
@@ -2777,6 +2778,24 @@ void MainFrame::init_menubar_as_editor()
             []() { return true; }, this);
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
+
+        fileMenu->AppendSeparator();
+        append_menu_item(fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+            [this](wxCommandEvent&) {
+                if (!wxGetApp().is_user_login()) {
+                    MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
+                        _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                    info_dlg.ShowModal();
+                    return;
+                }
+                if (m_plater)
+                    m_plater->get_notification_manager()->push_notification(
+                        into_u8(_L("Syncing presets from cloud\u2026")));
+                wxGetApp().restart_sync_user_preset();
+            }, "", nullptr,
+            [this]() {
+                return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
+            }, this);
 
         fileMenu->AppendSeparator();
 
@@ -4162,15 +4181,12 @@ void MainFrame::load_printer_url()
         return;
 
     auto     cfg = preset_bundle.printers.get_edited_preset().config;
-    wxString url = cfg.opt_string("print_host_webui").empty() ? cfg.opt_string("print_host") : cfg.opt_string("print_host_webui");
+    wxString url = from_u8(PrintHost::get_print_host_webui(&cfg));
     wxString apikey;
     const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
     if (cfg.has("printhost_apikey") && (host_type == htPrusaLink || host_type == htPrusaConnect))
         apikey = cfg.opt_string("printhost_apikey");
     if (!url.empty()) {
-        if (!url.Lower().starts_with("http"))
-            url = wxString::Format("http://%s", url);
-
         load_printer_url(url, apikey);
     }
 }

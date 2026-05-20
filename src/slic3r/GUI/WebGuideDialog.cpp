@@ -4,6 +4,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/iostreams/detail/select.hpp>
+#include <boost/log/trivial.hpp>
 #include <string.h>
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -516,7 +517,9 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                 if (agent) {
                     agent->set_country_code(country_code);
                     if (wxGetApp().is_user_login()) {
-                        agent->user_logout();
+                        BOOST_LOG_TRIVIAL(info) << "logout: user_logout on user_guide_finish";
+                        // agent->user_logout();
+                        wxGetApp().request_user_logout();
                     }
                 }
             }
@@ -525,6 +528,11 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
 
             if (InstallNetplugin)
                 GUI::wxGetApp().CallAfter([] { GUI::wxGetApp().ShowDownNetPluginDlg(); });
+        }
+        else if (strCmd == "user_guide_create_printer") {
+            this->EndModal(wxID_CANCEL);
+            this->Close();
+            GUI::wxGetApp().CallAfter([this] {GUI::wxGetApp().sidebar().create_printer_preset();});
         }
         else if (strCmd == "user_guide_cancel") {
             this->EndModal(wxID_CANCEL);
