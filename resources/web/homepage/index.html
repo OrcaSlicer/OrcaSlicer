@@ -24,11 +24,14 @@
 	<div id="LoginArea">
 
 	<!-- Orca Login Section -->
-	<div id="OrcaLoginSection">
-		<div id="OrcaLogin1">
-			<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
-			<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
-		</div>
+	<div id="OrcaSectionLabel" class="AccountSectionLabel trans" tid="orca7">Orca Cloud Account</div>
+
+		<div id="OrcaLoginSection">
+			<div id="OrcaLogin1">
+				<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
+				<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
+				<div id="OrcaStatusText" class="AccountStatusText trans" tid="orca8">Not signed in</div>
+			</div>
 
 		<div id="OrcaLogin2">
 			<div>
@@ -41,12 +44,15 @@
 
 	<!-- Bambu Cloud Section -->
 	<div id="BambuCloudSection">
+		<div id="BambuSectionLabel" class="AccountSectionLabel trans" tid="orca9">Bambu Cloud Account</div>
+
 		<div id="BambuCloudHeader" onClick="ToggleBambuSection()">
 			<svg class="bambu-chevron" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
 				<path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 			<span class="trans" tid="orca6">Bambu Cloud</span>
 			<span class="bambu-status-dot"></span>
+			<span id="BambuStatusText" class="AccountStatusText trans" tid="orca10">Not connected</span>
 		</div>
 
 		<div id="BambuCloudBody">

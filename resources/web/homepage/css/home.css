@@ -80,13 +80,29 @@ body
 
 #LoginArea
 {
-	min-height: 180px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	flex-wrap: nowrap;
 	position: relative;
 	width:262px;
+}
+
+.AccountSectionLabel
+{
+	font-size: 13px;
+	font-weight: 600;
+	color: #A8A8A8;
+	padding: 16px 20px 6px;
+	width: 262px;
+	box-sizing: border-box;
+}
+
+.AccountStatusText
+{
+	font-size: 12px;
+	color: #A8A8A8;
+	margin-top: 8px;
 }
 
 #OrcaLoginSection
