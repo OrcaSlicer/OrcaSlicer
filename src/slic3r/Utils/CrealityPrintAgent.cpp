@@ -197,14 +197,27 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
             continue;
 
         for (const auto& mat : box["materials"]) {
-            if (mat.value("state", 0) != 1) continue; // empty slot
+            // CFS slot state encoding observed across K2 family firmwares:
+            //   * K2 (base) / K2 Pro    : 0 = empty, 1 = loaded.
+            //   * K2 Plus (1.1.5.5/CFS 1.4.2 onwards): 0 = empty,
+            //                                          1 = loaded AND currently
+            //                                              selected as the active
+            //                                              spool for printing,
+            //                                          2 = loaded but not selected.
+            // We treat anything non-zero as loaded. Belt-and-braces: also skip
+            // entries that look blank (no vendor and no type) regardless of state.
+            const int s_state = mat.value("state", 0);
+            const std::string s_vendor = mat.value("vendor", std::string());
+            const std::string s_type   = mat.value("type",   std::string());
+            if (s_state == 0)                       continue; // explicitly empty
+            if (s_vendor.empty() && s_type.empty()) continue; // blank entry — likely empty under a different state encoding
 
             CFSSlot s;
             s.box_id        = cfs_index;
             s.slot_id       = mat.value("id",     0);
-            s.vendor        = mat.value("vendor", "");
+            s.vendor        = s_vendor;
             s.brand_name    = mat.value("name",   "");
-            s.filament_type = mat.value("type",   "");
+            s.filament_type = s_type;
             s.color_hex     = mat.value("color",  "#FFFFFF");
 
             // Creality reports colour as "#0RRGGBB" (8 chars with a leading zero
