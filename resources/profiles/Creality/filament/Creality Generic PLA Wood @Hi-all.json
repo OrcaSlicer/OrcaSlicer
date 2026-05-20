@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PLA Wood @Hi-all",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "Creality Generic PLA @Hi-all",
 	"from": "system",
 	"setting_id": "GFSL96_00",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_flow_ratio": [
 		"0.88"
 	],

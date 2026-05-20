@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PA-CF @K2-all",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "Creality Generic PA-CF",
 	"from": "system",
 	"setting_id": "GFSN99_01",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"nozzle_temperature_initial_layer": [
 		"280"
 	],

@@ -1,13 +1,13 @@
 {
 	"type": "filament",
 	"name": "Creality Generic PETG @Ender-3V3-all",
-	"filament_vendor": [
-		"Creality"
-	],
 	"inherits": "Creality Generic PETG",
 	"from": "system",
 	"setting_id": "GFSG99_00",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Creality"
+	],
 	"filament_max_volumetric_speed": [
 		"9"
 	],
