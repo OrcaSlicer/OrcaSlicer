@@ -3563,6 +3563,8 @@ static void append_clipped_polygon(indexed_triangle_set &out, const std::vector<
     if (polygon.size() < 3)
         return;
 
+    // Preview meshes may contain many clipped fragments, so grow geometrically
+    // instead of reserving the exact next size for every appended polygon.
     auto reserve_geometric = [](auto &container, size_t wanted) {
         if (wanted <= container.capacity())
             return;
@@ -3586,6 +3588,9 @@ static void append_clipped_polygon(indexed_triangle_set &out, const std::vector<
 
 bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region, indexed_triangle_set *intersection_mesh) const
 {
+    // With no output mesh this is a fast yes/no test and returns on the first
+    // hit. With an output mesh it collects all clipped fragments for the red
+    // GUI intersection preview.
     if (intersection_mesh != nullptr)
         intersection_mesh->clear();
 

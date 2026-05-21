@@ -1294,6 +1294,8 @@ void PartPlate::update_exclusion_volume_preview_models()
                 if (instance_box.max.z() < region.z_min || instance_box.min.z() > region.z_max)
                     continue;
 
+                // The preview path intentionally requests the full clipped mesh.
+                // Boolean-only placement checks call this without an output mesh.
                 indexed_triangle_set region_intersections;
                 if (instance->intersects_bed_exclude_region(region, &region_intersections) && !region_intersections.empty())
                     its_merge(intersection_triangles, region_intersections);
