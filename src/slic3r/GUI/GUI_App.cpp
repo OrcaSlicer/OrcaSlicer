@@ -4846,17 +4846,23 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     if (status == 401) {
         if (m_agent) {
             if (m_agent->is_user_login(provider)) {
-                BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
-                this->request_user_logout(provider);
+                if (std::chrono::steady_clock::now() - m_last_401_error_time > 30s) {
+                    BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
+                    this->request_user_logout(provider);
 
-                if (!m_show_http_error_msgdlg) {
-                    MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
-                    m_show_http_error_msgdlg = true;
-                    auto modal_result = msg_dlg.ShowModal();
-                    if (modal_result == wxOK || modal_result == wxCLOSE) {
-                        m_show_http_error_msgdlg = false;
-                        return;
+                    if (!m_show_http_error_msgdlg) {
+                        MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
+                        m_show_http_error_msgdlg = true;
+                        auto modal_result        = msg_dlg.ShowModal();
+                        if (modal_result == wxOK || modal_result == wxCLOSE) {
+                            m_show_http_error_msgdlg = false;
+                            return;
+                        }
                     }
+
+                    m_last_401_error_time = std::chrono::steady_clock::now();
+                } else {
+                    BOOST_LOG_TRIVIAL(warning) << "401 encountered within grace period, suppressing logout";
                 }
             }
         }
@@ -4930,6 +4936,10 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
     int online_login = evt.GetInt();
     std::string provider = evt.GetString().ToStdString();
     if (provider.empty()) provider = ORCA_CLOUD_PROVIDER;
+
+    // Reset 401 grace period so transient token-propagation 401s
+    // during login warmup don't trigger immediate logout.
+    m_last_401_error_time = std::chrono::steady_clock::now();
 
     m_agent->connect_server();
     // get machine list
