@@ -5604,6 +5604,11 @@ void GLCanvas3D::set_cursor(ECursorType type)
 
 void GLCanvas3D::mouse_up_cleanup()
 {
+    if (m_mouse.dragging) {
+        if (PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+            plate->invalidate_exclusion_volume_preview();
+    }
+
     m_moving = false;
     m_camera_movement = false;
     m_mouse.drag.move_volume_idx = -1;

@@ -139,6 +139,8 @@ private:
     GLModel m_active_exclusion_volume_prisms;
     GLModel m_exclusion_volume_intersection_triangles;
     std::string m_exclusion_volume_preview_cache_key;
+    bool m_exclusion_volume_preview_dirty { true };
+    bool m_exclusion_volume_intersections_cleared { false };
     GLModel m_logo_triangles;
     GLModel m_gridlines;
     GLModel m_gridlines_bolder;
@@ -392,6 +394,7 @@ public:
     //check whether instance is outside the plate or not
     bool check_outside(int obj_id, int instance_id, BoundingBoxf3* bounding_box = nullptr);
     void clear_exclusion_volume_intersections();
+    void invalidate_exclusion_volume_preview();
 
     //judge whether instance is intesected with plate or not
     bool intersect_instance(int obj_id, int instance_id, BoundingBoxf3* bounding_box = nullptr);
@@ -571,6 +574,8 @@ public:
 
         for (std::vector<std::pair<int, int>>::iterator it = instances_outside.begin(); it != instances_outside.end(); ++it)
             instance_outside_set.insert(std::pair(it->first, it->second));
+
+        invalidate_exclusion_volume_preview();
     }
     template<class Archive> void save(Archive& ar) const {
         std::vector<std::pair<int, int>>	objects_and_instances;

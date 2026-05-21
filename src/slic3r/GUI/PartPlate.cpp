@@ -1203,6 +1203,10 @@ std::string PartPlate::exclusion_volume_preview_cache_key(const std::vector<BedE
 
 void PartPlate::update_exclusion_volume_preview_models()
 {
+    if (!m_exclusion_volume_preview_dirty)
+        return;
+    m_exclusion_volume_preview_dirty = false;
+
     const DynamicPrintConfig *config = m_plater != nullptr ? m_plater->config() : nullptr;
     if (config == nullptr) {
         m_exclusion_volume_preview_cache_key.clear();
@@ -1210,14 +1214,16 @@ void PartPlate::update_exclusion_volume_preview_models()
         m_exclusion_volume_border_triangles.reset();
         m_active_exclusion_volume_prisms.reset();
         m_exclusion_volume_intersection_triangles.reset();
+        m_exclusion_volume_intersections_cleared = false;
         return;
     }
 
     std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(*config);
     const std::string cache_key = exclusion_volume_preview_cache_key(regions);
-    if (cache_key == m_exclusion_volume_preview_cache_key)
+    if (cache_key == m_exclusion_volume_preview_cache_key && !m_exclusion_volume_intersections_cleared)
         return;
     m_exclusion_volume_preview_cache_key = cache_key;
+    m_exclusion_volume_intersections_cleared = false;
 
     m_exclusion_volume_floor_triangles.reset();
     m_exclusion_volume_border_triangles.reset();
@@ -1355,6 +1361,12 @@ void PartPlate::render_exclusion_volume_intersections()
 void PartPlate::clear_exclusion_volume_intersections()
 {
     m_exclusion_volume_intersection_triangles.reset();
+    m_exclusion_volume_intersections_cleared = true;
+}
+
+void PartPlate::invalidate_exclusion_volume_preview()
+{
+    m_exclusion_volume_preview_dirty = true;
 }
 
 
@@ -2857,6 +2869,7 @@ void PartPlate::clear(bool clear_sliced_result)
 {
 	obj_to_instance_set.clear();
 	instance_outside_set.clear();
+    invalidate_exclusion_volume_preview();
 	if (clear_sliced_result) {
 		m_ready_for_slice = true;
 		update_slice_result_valid_state(false);
@@ -2936,6 +2949,7 @@ void PartPlate::set_pos_and_size(Vec3d& origin, int width, int depth, double hei
 	m_width = width;
 	m_depth = depth;
 	m_height = height;
+    invalidate_exclusion_volume_preview();
 
 	if (with_instance_move && m_plater)
 		m_plater->mark_plate_toolbar_image_dirty();
@@ -3056,6 +3070,7 @@ void PartPlate::set_print(PrintBase* print, GCodeResult* result, int index)
 		m_print_index = index;
 
 	m_print->set_plate_origin(m_origin);
+    invalidate_exclusion_volume_preview();
 
 	return;
 }
@@ -3294,6 +3309,7 @@ int PartPlate::add_instance(int obj_id, int instance_id, bool move_position, Bou
 	std::pair<int, int> pair(obj_id, instance_id);
 
     obj_to_instance_set.insert(pair);
+    invalidate_exclusion_volume_preview();
 
 	BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": plate_id %1%, add instance obj_id %2%, instance_id %3%, move_position %4%") % m_plate_index % obj_id % instance_id % move_position;
 
@@ -3336,6 +3352,7 @@ int PartPlate::remove_instance(int obj_id, int instance_id)
 	it = obj_to_instance_set.find(std::pair(obj_id, instance_id));
 	if (it != obj_to_instance_set.end()) {
 		obj_to_instance_set.erase(it);
+        invalidate_exclusion_volume_preview();
 		BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":plate_id %1%, found obj_id %2%, instance_id %3%") % m_plate_index % obj_id % instance_id;
 		result = 0;
 	}
@@ -3395,6 +3412,7 @@ void PartPlate::translate_all_instance(Vec3d position)
             }
         }
     }
+    invalidate_exclusion_volume_preview();
     return;
 }
 
@@ -3429,6 +3447,7 @@ void PartPlate::duplicate_all_instance(unsigned int dup_count, bool need_skip, s
                 for ( size_t new_instance_id = 0; new_instance_id < newObj->instances.size(); new_instance_id++ )
                 {
                     obj_to_instance_set.emplace(std::pair(new_obj_id, new_instance_id));
+                    invalidate_exclusion_volume_preview();
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": duplicate object into plate: index_pair [%1%,%2%], obj_id %3%") % new_obj_id % new_instance_id % newObj->id().id;
                 }
             }
@@ -3472,6 +3491,7 @@ void PartPlate::update_instance_exclude_status(int obj_id, int instance_id, Boun
 	std::set<std::pair<int, int>>::iterator it;
 
 	outside = check_outside(obj_id, instance_id, bounding_box);
+    invalidate_exclusion_volume_preview();
 
 	it = instance_outside_set.find(std::pair(obj_id, instance_id));
 	if (it == instance_outside_set.end()) {
@@ -3499,6 +3519,7 @@ void PartPlate::update_object_index(int obj_idx_removed, int obj_idx_max)
 	}
 	obj_to_instance_set.clear();
 	obj_to_instance_set = temp_set;
+    invalidate_exclusion_volume_preview();
 
 	//update the instance_outside_set
 	temp_set.clear();
@@ -3754,6 +3775,8 @@ void PartPlate::generate_exclude_polygon(ExPolygon &exclude_polygon)
 
 bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, const std::vector<Pointfs>& extruder_areas, const std::vector<double>& extruder_heights, Vec2d position, float height_to_lid, float height_to_rod)
 {
+    invalidate_exclusion_volume_preview();
+
 	Pointfs new_shape, new_exclude_areas;
 	m_extruder_heights = extruder_heights;
 	for (const Vec2d& p : shape) {
@@ -5185,6 +5208,7 @@ int PartPlateList::duplicate_plate(int index)
         // go over the instances and pair with the object
         for (size_t new_instance_id = 0; new_instance_id < object_copy->instances.size(); new_instance_id++){
             new_plate->obj_to_instance_set.emplace(std::pair(new_obj_id, new_instance_id));
+            new_plate->invalidate_exclusion_volume_preview();
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": duplicate object into plate: index_pair [%1%,%2%], obj_id %3%") % new_obj_id % new_instance_id % object_copy->id().id;
         }
     }
