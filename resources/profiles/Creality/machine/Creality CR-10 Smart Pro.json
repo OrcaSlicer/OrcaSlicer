@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality CR-10 Smart Pro",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_CR_10_Smart_Pro",
-    "default_materials": "CR-PETG;CR-TPU;Ender-PLA;Generic ABS"
+    "default_materials": "CR-PETG;CR-TPU;Ender-PLA;Generic ABS",
+    "from": "system"
 }

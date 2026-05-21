@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality K1C 2025_CFS-C",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_K1C_2025_CFS_C",
-    "default_materials": "Hyper PLA-CF;Generic PLA-CF;Generic ASA;Generic ABS;CR-ABS;Generic PETG;Hyper PETG;Generic TPU;Generic PLA;Generic PLA-Silk;CR-Silk;Hyper ABS;CR-PLA;CR-PETG;Hyper PLA;HP-TPU"
+    "default_materials": "Hyper PLA-CF;Generic PLA-CF;Generic ASA;Generic ABS;CR-ABS;Generic PETG;Hyper PETG;Generic TPU;Generic PLA;Generic PLA-Silk;CR-Silk;Hyper ABS;CR-PLA;CR-PETG;Hyper PLA;HP-TPU",
+    "from": "system"
 }

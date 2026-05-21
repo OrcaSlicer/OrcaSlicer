@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-5 S1",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_5_S1",
-    "default_materials": "Hyper PLA;CR-PETG;HP-ASA;CR-ABS;HP-TPU;CR-PLA"
+    "default_materials": "Hyper PLA;CR-PETG;HP-ASA;CR-ABS;HP-TPU;CR-PLA",
+    "from": "system"
 }

@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality CR-30",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_CR_30",
-    "default_materials": "Hyper PLA"
+    "default_materials": "Hyper PLA",
+    "from": "system"
 }

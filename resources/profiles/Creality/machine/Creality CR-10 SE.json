@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality CR-10 SE",
     "nozzle_diameter": "0.8;0.6;0.4;0.2",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_CR_10_SE",
-    "default_materials": "Generic PLA-Silk;CR-PETG;Generic TPU;Generic ABS;Generic PLA;Hyper PLA"
+    "default_materials": "Generic PLA-Silk;CR-PETG;Generic TPU;Generic ABS;Generic PLA;Hyper PLA",
+    "from": "system"
 }

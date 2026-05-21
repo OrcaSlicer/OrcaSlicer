@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-5 Max",
     "nozzle_diameter": "0.8;0.6;0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_5_Max",
-    "default_materials": "Generic PETG;Generic PLA-Silk;Generic PLA;Hyper PLA-CF;Hyper PLA;Hyper ABS;HP-TPU;HP-ASA;CR-Silk;CR-PLA;CR-PETG;CR-Nylon;CR-ABS;Hyper PETG;Generic TPU;Generic ABS;Generic PLA-CF;Generic ASA"
+    "default_materials": "Generic PETG;Generic PLA-Silk;Generic PLA;Hyper PLA-CF;Hyper PLA;Hyper ABS;HP-TPU;HP-ASA;CR-Silk;CR-PLA;CR-PETG;CR-Nylon;CR-ABS;Hyper PETG;Generic TPU;Generic ABS;Generic PLA-CF;Generic ASA",
+    "from": "system"
 }

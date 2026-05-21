@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality CR-6 Max",
     "nozzle_diameter": "0.8;0.6;0.4;0.2",
@@ -8,5 +8,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_CR_6_Max",
-    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS",
+    "from": "system"
 }

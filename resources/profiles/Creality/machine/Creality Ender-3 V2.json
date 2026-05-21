@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-3 V2",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_3_V2",
-    "default_materials": "CR-TPU;CR-PETG;CR-PLA;Generic ABS"
+    "default_materials": "CR-TPU;CR-PETG;CR-PLA;Generic ABS",
+    "from": "system"
 }

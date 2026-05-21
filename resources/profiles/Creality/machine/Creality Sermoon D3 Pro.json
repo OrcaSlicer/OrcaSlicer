@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Sermoon D3 Pro",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Sermoon_D3_Pro",
-    "default_materials": "Hyper PLA-CF;CR-PETG;Hyper PLA;CR-ABS"
+    "default_materials": "Hyper PLA-CF;CR-PETG;Hyper PLA;CR-ABS",
+    "from": "system"
 }

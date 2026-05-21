@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Sermoon V1",
     "model_id": "Creality_Sermoon_V1",
@@ -11,5 +11,6 @@
         "Spiral Lift"
     ],
     "hotend_model": "",
-    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS;Creality Generic TPU"
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS;Creality Generic TPU",
+    "from": "system"
 }

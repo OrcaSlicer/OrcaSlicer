@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Sonic_Ender-5 S1",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Sonic_Ender_5_S1",
-    "default_materials": "HP-ASA;HP-TPU;CR-PETG;CR-ABS;CR-PLA;Hyper PLA"
+    "default_materials": "HP-ASA;HP-TPU;CR-PETG;CR-ABS;CR-PLA;Hyper PLA",
+    "from": "system"
 }

@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-3 V4",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_3_V4",
-    "default_materials": "Generic TPU;Hyper PLA-CF;Generic PLA-CF;Generic ABS;Hyper PETG;Generic PLA;Generic PETG;Generic PLA-Silk;Hyper ABS;CR-Silk;Hyper PLA;CR-PLA;CR-PETG"
+    "default_materials": "Generic TPU;Hyper PLA-CF;Generic PLA-CF;Generic ABS;Hyper PETG;Generic PLA;Generic PETG;Generic PLA-Silk;Hyper ABS;CR-Silk;Hyper PLA;CR-PLA;CR-PETG",
+    "from": "system"
 }

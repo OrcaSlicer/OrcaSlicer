@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-3 Neo",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_3_Neo",
-    "default_materials": "Generic PETG;Generic ABS;Generic PLA"
+    "default_materials": "Generic PETG;Generic ABS;Generic PLA",
+    "from": "system"
 }

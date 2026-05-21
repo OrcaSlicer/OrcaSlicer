@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-3 Max",
     "nozzle_diameter": "0.4",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_3_Max",
-    "default_materials": "Generic PLA;Generic PETG;Generic ABS"
+    "default_materials": "Generic PLA;Generic PETG;Generic ABS",
+    "from": "system"
 }

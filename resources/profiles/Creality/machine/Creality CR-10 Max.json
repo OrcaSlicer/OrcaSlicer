@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality CR-10 Max",
     "model_id": "Creality_CR-10_Max",
@@ -8,5 +8,6 @@
     "bed_model": "creality_cr10max_buildplate_model.stl",
     "bed_texture": "creality_cr10max_buildplate_texture.svg",
     "hotend_model": "",
-    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS",
+    "from": "system"
 }

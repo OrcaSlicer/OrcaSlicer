@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality Ender-3 V3 SE",
     "nozzle_diameter": "0.8;0.6;0.4;0.2",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_Ender_3_V3_SE",
-    "default_materials": "Hyper PLA;Generic TPU;Generic PETG;CR-PLA;Soleyin Ultra PLA"
+    "default_materials": "Hyper PLA;Generic TPU;Generic PETG;CR-PLA;Soleyin Ultra PLA",
+    "from": "system"
 }

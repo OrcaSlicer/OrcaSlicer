@@ -1,4 +1,4 @@
-{
+﻿{
     "type": "machine_model",
     "name": "Creality K2",
     "nozzle_diameter": "0.8;0.6;0.4;0.2",
@@ -9,5 +9,6 @@
     "hotend_model": "",
     "machine_tech": "FFF",
     "model_id": "Creality_K2",
-    "default_materials": "Generic PLA-CF;Generic PLA;Generic PETG;Generic PLA-Silk;Hyper PETG;CR-Silk;ENDER FAST PLA;Hyper PLA-CF;Hyper PLA;Hyper ABS;HP-TPU;CR-PLA;CR-PETG;CR-ABS;Generic ASA;Generic ABS"
+    "default_materials": "Generic PLA-CF;Generic PLA;Generic PETG;Generic PLA-Silk;Hyper PETG;CR-Silk;ENDER FAST PLA;Hyper PLA-CF;Hyper PLA;Hyper ABS;HP-TPU;CR-PLA;CR-PETG;CR-ABS;Generic ASA;Generic ABS",
+    "from": "system"
 }
