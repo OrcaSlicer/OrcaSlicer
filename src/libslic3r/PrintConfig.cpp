@@ -13064,25 +13064,20 @@ bool has_bed_exclusion_volume_syntax(const ConfigOptionPoints& bed_exclude_area)
 
 Polygons get_bed_excluded_area(const PrintConfig& cfg)
 {
-    if (is_bed_exclusion_volume_syntax(cfg.bed_exclude_area.serialize()))
-        return {};
     const std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(cfg);
-    if (std::any_of(regions.begin(), regions.end(), [](const BedExcludeRegion &region) {
-        return region.from_3d_config && region.has_z_range;
-    }))
-        return {};
+    Polygons excluded_polygons;
+    excluded_polygons.reserve(regions.size());
 
-    const Pointfs exclude_area_points = cfg.bed_exclude_area.values;
+    for (const BedExcludeRegion &region : regions) {
+        if (region.has_z_range && region.z_min > EPSILON)
+            continue;
+        if (region.z_max <= EPSILON)
+            continue;
 
-    Polygon exclude_poly;
-    for (int i = 0; i < exclude_area_points.size(); i++) {
-        auto pt = exclude_area_points[i];
-        exclude_poly.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
+        excluded_polygons.emplace_back(region.polygon);
     }
 
-    exclude_poly.make_counter_clockwise();
-
-    return {exclude_poly};
+    return excluded_polygons;
 }
 
 Polygon get_bed_shape_with_excluded_area(const PrintConfig& cfg, bool use_share)
