@@ -14,6 +14,7 @@
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include <libvgcode/include/Types.hpp>
 
+#include <array>
 #include <cstdint>
 #include <float.h>
 #include <set>
@@ -184,6 +185,9 @@ private:
     unsigned int m_last_result_id{ 0 };
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
+    std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
+    std::array<std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)>, static_cast<size_t>(EMoveType::Count)> m_move_type_times{};
+    std::array<float, static_cast<size_t>(EMoveType::Count)> m_move_type_distances{};
     //BBS: add only gcode mode
     bool m_only_gcode_in_preview {false};
 
