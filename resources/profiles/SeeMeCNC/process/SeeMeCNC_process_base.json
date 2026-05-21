@@ -83,7 +83,7 @@
     "initial_layer_jerk": "4",
     "initial_layer_min_bead_width": "85%",
     "initial_layer_travel_speed": "100%",
-    "inner_wall_acceleration": "1000",
+    "inner_wall_acceleration": "3000",
     "inner_wall_flow_ratio": "0.97",
     "inner_wall_jerk": "8",
     "interface_shells": "0",
@@ -165,7 +165,7 @@
     "raft_first_layer_expansion": "2",
     "raft_layers": "0",
     "reduce_crossing_wall": "0",
-    "reduce_infill_retraction": "0",
+    "reduce_infill_retraction": "1",
     "resolution": "0.012",
     "role_based_wipe_speed": "1",
     "scarf_angle_threshold": "155",
@@ -194,7 +194,6 @@
     "skirt_type": "combined",
     "slice_closing_radius": "0",
     "slicing_mode": "regular",
-    "slow_down_layers": "3",
     "slowdown_for_curled_perimeters": "1",
     "small_area_infill_flow_compensation": "0",
     "small_area_infill_flow_compensation_model": [
@@ -313,10 +312,10 @@
         "70"
     ],
     "xy_contour_compensation": "0",
-    "top_surface_acceleration": "1000",
-    "travel_jerk": "14",
+    "top_surface_acceleration": "1500",
+    "travel_jerk": "8",
     "initial_layer_speed": "45",
-    "outer_wall_acceleration": "600",
+    "outer_wall_acceleration": "1500",
     "outer_wall_line_width": "0.4",
     "line_width": "0.4",
     "initial_layer_line_width": "0.44",
@@ -341,5 +340,6 @@
     "enable_arc_fitting": "1",
     "description": "SeeMeCNC configurations",
     "top_surface_flow_ratio": "0.97",
-    "travel_speed": "300"
+    "travel_speed": "150",
+    "slow_down_layers": "3"
 }
