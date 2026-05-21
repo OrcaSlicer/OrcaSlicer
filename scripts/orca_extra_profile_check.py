@@ -360,6 +360,50 @@ CONFLICT_KEYS = [
     ['extruder_clearance_radius', 'extruder_clearance_max_radius'],
 ]
 
+VECTOR_KEYS = {
+    "filament_type",
+}
+
+def check_vector_type_keys(profiles_dir, vendor_name):
+    """
+    Check that properties expected to be vectors (JSON arrays) are not stored as scalars.
+    For example, `filament_type` must be a list like ["PA-CF"], not a string "PA-CF".
+
+    Parameters:
+        profiles_dir (Path): Base profiles directory
+        vendor_name (str): Vendor name
+
+    Returns:
+        int: Number of errors found
+    """
+    error_count = 0
+    vendor_path = profiles_dir / vendor_name
+
+    if not vendor_path.exists():
+        return 0
+
+    for file_path in vendor_path.rglob("*.json"):
+        try:
+            with open(file_path, "r", encoding="UTF-8") as fp:
+                data = json.load(fp)
+        except Exception as e:
+            print_error(f"Error processing {file_path.relative_to(profiles_dir)}: {e}")
+            error_count += 1
+            continue
+
+        if not isinstance(data, dict):
+            continue
+
+        for key in VECTOR_KEYS:
+            if key in data and not isinstance(data[key], list):
+                print_error(
+                    f"'{key}' must be an array in {file_path.relative_to(profiles_dir)}, "
+                    f"got {type(data[key]).__name__}: {data[key]!r}"
+                )
+                error_count += 1
+
+    return error_count
+
 def check_conflict_keys(profiles_dir, vendor_name):
     """
     Check for keys that could not be specified at the same time,
@@ -447,6 +491,8 @@ def main():
         new_errors, new_warnings = check_conflict_keys(profiles_dir, vendor_name)
         errors_found += new_errors
         warnings_found += new_warnings
+
+        errors_found += check_vector_type_keys(profiles_dir, vendor_name)
 
         errors_found += check_filament_id(vendor_name, vendor_path / "filament")
         checked_vendor_count += 1

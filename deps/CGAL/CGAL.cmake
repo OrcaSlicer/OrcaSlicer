@@ -9,7 +9,7 @@ orcaslicer_add_cmake_project(
     # For whatever reason, this keeps downloading forever (repeats downloads if finished)
     URL      https://github.com/CGAL/cgal/releases/download/v5.6.3/CGAL-5.6.3.zip
     URL_HASH SHA256=5d577acb4a9918ccb960491482da7a3838f8d363aff47e14d703f19fd84733d4
-    DEPENDS dep_Boost dep_GMP dep_MPFR
+    DEPENDS dep_Boost dep_Eigen dep_GMP dep_MPFR
 )
 
 include(GNUInstallDirs)

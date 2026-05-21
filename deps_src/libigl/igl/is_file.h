@@ -10,14 +10,14 @@
 #include "igl_inline.h"
 namespace igl
 {
-  // Act like php's is_file function
-  // http://php.net/manual/en/function.is-file.php
-  // Tells whether the given filename is a regular file.
-  // Input:
-  //   filename  Path to the file. If filename is a relative filename, it will
-  //     be checked relative to the current working directory. 
-  // Returns TRUE if the filename exists and is a regular file, FALSE
-  // otherwise.
+  /// Tells whether the given filename is a regular file.
+  /// Act like php's is_file function
+  /// http://php.net/manual/en/function.is-file.php
+  ///
+  /// @param[in] filename  Path to the file. If filename is a relative filename, it will
+  ///     be checked relative to the current working directory. 
+  /// @return TRUE if the filename exists and is a regular file, FALSE
+  /// otherwise.
   IGL_INLINE bool is_file(const char * filename);
 
 }

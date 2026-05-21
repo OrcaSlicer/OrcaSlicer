@@ -51,20 +51,44 @@
 	"pressure_advance": [
 		"0.044"
 	],
-	"supertack_plate_temp_initial_layer": [
+	"cool_plate_temp": [
 		"45"
 	],
-	"supertack_plate_temp": [
-		"45"
-	],
-	"temperature_vitrification": [
-		"45"
-	],
-	"hot_plate_temp_initial_layer": [
+	"eng_plate_temp": [
 		"55"
 	],
 	"hot_plate_temp": [
 		"55"
+	],
+	"supertack_plate_temp": [
+		"45"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
+		"55"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"45"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"temperature_vitrification": [
+		"45"
 	],
 	"compatible_printers": []
 }

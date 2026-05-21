@@ -51,30 +51,6 @@
 	"nozzle_temperature": [
 		"235"
 	],
-	"cool_plate_temp": [
-		"70"
-	],
-	"eng_plate_temp": [
-		"70"
-	],
-	"hot_plate_temp": [
-		"70"
-	],
-	"textured_plate_temp": [
-		"70"
-	],
-	"cool_plate_temp_initial_layer": [
-		"70"
-	],
-	"eng_plate_temp_initial_layer": [
-		"70"
-	],
-	"hot_plate_temp_initial_layer": [
-		"70"
-	],
-	"textured_plate_temp_initial_layer": [
-		"70"
-	],
 	"filament_vendor": [
 		"Generic"
 	],
