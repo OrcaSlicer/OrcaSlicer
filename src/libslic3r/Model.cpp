@@ -3563,12 +3563,18 @@ static void append_clipped_polygon(indexed_triangle_set &out, const std::vector<
     if (polygon.size() < 3)
         return;
 
+    auto reserve_geometric = [](auto &container, size_t wanted) {
+        if (wanted <= container.capacity())
+            return;
+        container.reserve(std::max(wanted, std::max<size_t>(16, container.capacity() * 2)));
+    };
+
     const int base = int(out.vertices.size());
-    out.vertices.reserve(out.vertices.size() + polygon.size());
+    reserve_geometric(out.vertices, out.vertices.size() + polygon.size());
     for (const Vec3d &point : polygon)
         out.vertices.emplace_back(point.cast<float>());
 
-    out.indices.reserve(out.indices.size() + polygon.size() - 2);
+    reserve_geometric(out.indices, out.indices.size() + polygon.size() - 2);
     for (size_t i = 1; i + 1 < polygon.size(); ++i) {
         stl_triangle_vertex_indices tri;
         tri << base, base + int(i), base + int(i + 1);
