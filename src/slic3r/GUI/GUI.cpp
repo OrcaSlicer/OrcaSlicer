@@ -240,8 +240,6 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 		case coPoints:{
 			if (opt_key == "bed_exclude_area" && boost::any_cast<std::string>(&value) != nullptr) {
 				config.option<ConfigOptionPoints>(opt_key)->deserialize(boost::any_cast<std::string>(value));
-				if (config.has("bed_exclude_area_3d"))
-					config.set_key_value("bed_exclude_area_3d", new ConfigOptionString());
 				break;
 			}
 			if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area" ) {
@@ -249,8 +247,6 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 				if (opt_key == "bed_exclude_area") {
 					ConfigOptionPoints normalized(boost::any_cast<std::vector<Vec2d>>(value));
 					config.option<ConfigOptionPoints>(opt_key)->deserialize(normalized.serialize());
-					if (config.has("bed_exclude_area_3d"))
-						config.set_key_value("bed_exclude_area_3d", new ConfigOptionString());
 				}
 				break;
 			}

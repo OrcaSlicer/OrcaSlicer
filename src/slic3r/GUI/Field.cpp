@@ -689,7 +689,8 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
     case coPoints: {
         std::vector<Vec2d> out_values;
         str.Replace(" ", wxEmptyString, true);
-        const bool bed_exclusion_volume_syntax = m_opt_id == "bed_exclude_area" && str.Find("..") != wxNOT_FOUND && str.Find(";") != wxNOT_FOUND;
+        const bool bed_exclusion_volume_syntax = m_opt_id == "bed_exclude_area" &&
+            (str.Find("|") != wxNOT_FOUND || (str.Find("..") != wxNOT_FOUND && str.Find(";") != wxNOT_FOUND));
         const wxString raw_str = str;
         if (bed_exclusion_volume_syntax) {
             wxString points;
@@ -697,11 +698,9 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             while (regions.HasMoreTokens()) {
                 wxString region = regions.GetNextToken();
                 const int sep = region.Find(";");
-                if (sep == wxNOT_FOUND)
-                    continue;
                 if (! points.empty())
                     points += ",";
-                points += region.Mid(sep + 1);
+                points += sep == wxNOT_FOUND ? region : region.Mid(sep + 1);
             }
             str = points;
         }

@@ -885,14 +885,6 @@ void PrintConfigDef::init_common_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0) });
 
-    def = this->add("bed_exclude_area_3d", coString);
-    def->label = L("Bed exclusion volume");
-    def->tooltip = L("Z-limited unprintable volumes. Use: \"ZMIN..ZMAX;XxY,XxY,...\". Separate multiple regions with \"|\". "
-        "Missing Z bounds default to the bed surface or printable height.");
-    def->mode = comAdvanced;
-    def->gui_type = ConfigOptionDef::GUIType::one_string;
-    def->set_default_value(new ConfigOptionString());
-
     def = this->add("bed_custom_texture", coString);
     def->label = L("Bed custom texture");
     def->mode = comAdvanced;
@@ -12879,7 +12871,7 @@ namespace {
 
 static bool is_bed_exclusion_volume_syntax(const std::string &value)
 {
-    return value.find("..") != std::string::npos && value.find(';') != std::string::npos;
+    return value.find('|') != std::string::npos || (value.find("..") != std::string::npos && value.find(';') != std::string::npos);
 }
 
 static bool parse_double_token(const std::string &text, double &out)
@@ -13044,14 +13036,13 @@ static std::vector<BedExcludeRegion> get_bed_excluded_regions_impl(
 std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig& cfg)
 {
     const ConfigOptionPoints *legacy = cfg.opt<ConfigOptionPoints>("bed_exclude_area");
-    const ConfigOptionString *regions = cfg.opt<ConfigOptionString>("bed_exclude_area_3d");
     const ConfigOptionFloat *height = cfg.opt<ConfigOptionFloat>("printable_height");
     const std::string bed_exclude_area = legacy != nullptr ? legacy->serialize() : std::string{};
     const bool volume_syntax = is_bed_exclusion_volume_syntax(bed_exclude_area);
 
     return get_bed_excluded_regions_impl(
         volume_syntax || legacy == nullptr ? Pointfs{} : legacy->values,
-        volume_syntax ? bed_exclude_area : (regions != nullptr ? regions->value : std::string{}),
+        volume_syntax ? bed_exclude_area : std::string{},
         height != nullptr ? height->value : 0.0);
 }
 
@@ -13062,7 +13053,7 @@ std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig& cfg)
 
     return get_bed_excluded_regions_impl(
         volume_syntax ? Pointfs{} : cfg.bed_exclude_area.values,
-        volume_syntax ? bed_exclude_area : cfg.bed_exclude_area_3d.value,
+        volume_syntax ? bed_exclude_area : std::string{},
         cfg.printable_height.value);
 }
 

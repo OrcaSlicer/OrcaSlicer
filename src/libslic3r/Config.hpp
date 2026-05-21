@@ -1603,22 +1603,20 @@ public:
             m_serialized_override.clear();
         }
 
-        const bool has_z_volume_syntax = str.find("..") != std::string::npos && str.find(';') != std::string::npos;
-        if (has_z_volume_syntax && ! append)
+        const bool has_extended_bed_exclusion_syntax = str.find('|') != std::string::npos || (str.find("..") != std::string::npos && str.find(';') != std::string::npos);
+        if (has_extended_bed_exclusion_syntax && ! append)
             m_serialized_override = str;
 
         std::string points_str = str;
-        if (has_z_volume_syntax) {
+        if (has_extended_bed_exclusion_syntax) {
             std::ostringstream points;
             std::istringstream regions(str);
             std::string region;
             while (std::getline(regions, region, '|')) {
                 const size_t sep = region.find(';');
-                if (sep == std::string::npos)
-                    continue;
                 if (points.tellp() > 0)
                     points << ",";
-                points << region.substr(sep + 1);
+                points << (sep == std::string::npos ? region : region.substr(sep + 1));
             }
             points_str = points.str();
         }

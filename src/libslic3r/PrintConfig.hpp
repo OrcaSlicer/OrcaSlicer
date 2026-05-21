@@ -1753,7 +1753,6 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionStrings,            parallel_printheads_bed_exclude_areas))
     //BBS: add bed_exclude_area
     ((ConfigOptionPoints,             bed_exclude_area))
-    ((ConfigOptionString,             bed_exclude_area_3d))
     ((ConfigOptionPoints,             head_wrap_detect_zone))
     // BBS
     ((ConfigOptionString,             bed_custom_texture))
