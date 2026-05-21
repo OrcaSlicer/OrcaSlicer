@@ -4874,11 +4874,11 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     if (provider == ORCA_CLOUD_PROVIDER && status >= 400 && code != HttpErrorVersionLimited) {
         wxString msg;
         if (!error.empty()) {
-            msg = wxString::Format(_L("API error (HTTP %u): %s"), status, wxString::FromUTF8(error));
+            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u): %s"), status, wxString::FromUTF8(error));
         } else {
-            msg = wxString::Format(_L("API error (HTTP %u)"), status);
+            msg = wxString::Format(_L("Failed to connect to OrcaCloud.\nPlease check your network connectivity\n(HTTP %u)"), status);
         }
-
+        
         if (app_config->get_bool("developer_mode")) {
             // Use notification manager if ImGui is ready; fall back to wxMessageBox on Linux
             // where ImGui may not be initialized until the user switches to the Prepare tab.
@@ -4893,7 +4893,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
 
         if (!m_is_error_shown) {
             m_is_error_shown = true;
-            wxMessageBox(msg, _L("Orca Cloud API Error"), wxOK | wxICON_ERROR, wxGetApp().mainframe);
+            wxMessageBox(msg, _L("Cloud Error"), wxOK | wxICON_ERROR, wxGetApp().mainframe);
         }
     }
 }
