@@ -68,7 +68,7 @@
 		"Bowden Standard"
 	],
 	"filament_flow_ratio": [
-		"1"
+		"0.98"
 	],
 	"filament_flush_temp": [
 		"0"

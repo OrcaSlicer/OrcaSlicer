@@ -269,5 +269,8 @@
 	],
 	"keep_fan_always_on": [
 		"0"
+	],
+	"filament_flow_ratio": [
+		"0.98"
 	]
 }

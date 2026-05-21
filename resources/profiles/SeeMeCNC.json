@@ -2,7 +2,7 @@
 	"name": "SeeMeCNC",
 	"version": "1.0.0.6",
 	"force_update": "1",
-	"description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers (fixed default_print_profile names)",
+	"description": "SeeMeCNC configurations",
 	"machine_model_list": [
 		{
 			"name": "SeeMeCNC Artemis 300",
