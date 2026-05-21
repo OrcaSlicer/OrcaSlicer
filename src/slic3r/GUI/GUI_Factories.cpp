@@ -580,10 +580,14 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                 std::vector<boost::filesystem::path> input_files;
                 bool                                 is_stringhell = false;
                 std::string                          file_name     = item;
+                bool                                 arrange_after_import = false;
                 if (file_name == L("Orca Cube"))
                     file_name = "OrcaCube_v2.3mf";
                 else if (file_name == L("Colourful Orca"))
+                {
                     file_name = "Colourful_Orca.3mf";
+                    arrange_after_import = true;
+                }
                 else if (file_name == L("Orca Tolerance Test"))
                     file_name = "OrcaToleranceTest.drc";
                 else if (file_name == L("3DBenchy"))
@@ -603,6 +607,10 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                     return;
                 input_files.push_back((boost::filesystem::path(Slic3r::resources_dir()) / "handy_models" / file_name));
                 plater()->load_files(input_files, LoadStrategy::LoadModel);
+                if (arrange_after_import) {
+                    plater()->set_prepare_state(Job::PREPARE_STATE_MENU);
+                    plater()->arrange();
+                }
 
                 // Suggest to change settings for stringhell
                 // This serves as mini tutorial for new users
