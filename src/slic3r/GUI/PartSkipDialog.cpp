@@ -824,7 +824,7 @@ bool PartSkipDialog::IsAllChecked()
     return true;
 }
 
-bool PartSkipDialog::IsAllCancled()
+bool PartSkipDialog::IsAllCanceled()
 {
     for (auto &[part_id, part_state] : m_parts_state) {
         if (part_state == PartState::psChecked) return false;
@@ -851,7 +851,7 @@ void PartSkipDialog::OnAllCheckbox(wxCommandEvent &event)
 
 void PartSkipDialog::UpdateApplyButtonStatus()
 {
-    if (IsAllCancled()) {
+    if (IsAllCanceled()) {
         m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("Nothing selected"));
         m_enable_apply_btn = false;
