@@ -5,7 +5,7 @@
 	"name": "CR-PETG @Creality K2 0.8 nozzle",
 	"from": "system",
 	"instantiation": "true",
-	"inherits": "fdm_filament_petg",
+	"inherits": "fdm_filament_pet",
 	"activate_air_filtration": "0",
 	"activate_chamber_temp_control": "1",
 	"additional_cooling_fan_speed": "0",
