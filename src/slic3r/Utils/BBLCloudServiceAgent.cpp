@@ -50,7 +50,10 @@ std::map<std::string, std::string> BBLCloudServiceAgent::get_extra_header()
 {
     std::map<std::string, std::string> extra_headers;
     extra_headers.emplace("X-BBL-Client-Type", "slicer");
-    extra_headers.emplace("X-BBL-Client-Name", SLIC3R_APP_NAME);
+
+    // Unable to get camera live view when the printer is connected to cloud for H2D
+    extra_headers.emplace("X-BBL-Client-Name", "BambuStudio");
+
     extra_headers.emplace("X-BBL-Client-Version", GUI::wxGetApp().get_bbl_client_version());
 #if defined(__WINDOWS__)
 #ifdef _M_X64
