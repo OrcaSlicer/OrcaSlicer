@@ -4803,7 +4803,7 @@ void GUI_App::handle_http_error(unsigned int status, std::string body, const std
 void GUI_App::on_http_error(wxCommandEvent &evt)
 {
     int status = evt.GetInt();
-    std::string provider = ORCA_CLOUD_PROVIDER;
+    std::string provider = "";
     std::string body_str;
 
     // Extract provider and body from event data
@@ -4845,7 +4845,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     // request login
     if (status == 401) {
         if (m_agent) {
-            if (m_agent->is_user_login(provider)) {
+            if (!provider.empty() && m_agent->is_user_login(provider)) {
                 if (std::chrono::steady_clock::now() - m_last_401_error_time > 30s) {
                     BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
                     this->request_user_logout(provider);
