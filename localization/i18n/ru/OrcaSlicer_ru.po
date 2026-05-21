@@ -18646,11 +18646,15 @@ msgstr "Максимальный угол"
 # поддержки при этом будут использовать угол по умолчанию (30°)" ВНИМАНИЕ:
 # последнее предложение – особенность PR
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the "
-"threshold."
+"Support will be generated for overhangs whose slope angle is below the threshold. "
+"The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, "
+"while tree supports fall back to a default value of 30."
 msgstr ""
-"Генерировать поддержки для поверхностей, угол нависания которых "
-"(относительно стола) меньше указанного тут значения."
+"Создавать поддержки для поверхностей с указанным или более острым углом нависания над столом. "
+"С понижением угла повышается допустимый наклон поверхности для печати без поддержки.\n"
+"Примечание: используйте 0° для переключения обычных поддержек в режим обнаружения нависаний по проценту выноса линии. "
+"Древовидные поддержки при этом будут использовать угол по умолчанию (30°)"
 
 # ??? Порог перекрытия периметров
 msgid "Threshold overlap"

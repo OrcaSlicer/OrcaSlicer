@@ -117,7 +117,7 @@ void set_logging_level(unsigned int level)
     // Orca: force at info or lower level logging for pre-release builds.
     // Note: not setting to debug or trace as they might affect long time usage especially with BBL printers.
     const std::string version = SoftFever_VERSION;
-    if (level > (unsigned int) boost::log::trivial::info &&
+    if (level < (unsigned int) boost::log::trivial::info &&
         (boost::algorithm::icontains(version, "dev") || boost::algorithm::icontains(version, "alpha") ||
          boost::algorithm::icontains(version, "beta"))) {
         logSeverity = boost::log::trivial::info;

@@ -47,6 +47,7 @@
 	"machine_unload_filament_time": "28",
 	"nozzle_type": "hardened_steel",
 	"scan_first_layer": "1",
+	"support_air_filtration": "1",
 	"upward_compatible_machine": [],
 	"gcode_flavor": "klipper",
 	"change_filament_gcode": "M600",

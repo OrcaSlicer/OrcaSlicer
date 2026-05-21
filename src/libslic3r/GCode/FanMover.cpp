@@ -230,7 +230,10 @@ void FanMover::_remove_slow_fan(int16_t min_speed, float past_sec) {
 
 std::string FanMover::_set_fan(int16_t speed) {
     //const Tool* tool = m_writer.get_tool(m_currrent_extruder < 20 ? m_currrent_extruder : 0);
-    return GCodeWriter::set_fan(m_writer.config.gcode_flavor.value, speed);
+    // ORCA: apply the per-printer non-zero fan PWM floor so reposted fan commands respect the clamp too.
+    const int floor_pct = m_writer.config.part_cooling_fan_min_pwm.value;
+    const unsigned int part_cooling_fan_min_pwm = floor_pct > 0 ? static_cast<unsigned int>(floor_pct) : 0u;
+    return GCodeWriter::set_fan(m_writer.config.gcode_flavor.value, speed, part_cooling_fan_min_pwm);
 }
 
 

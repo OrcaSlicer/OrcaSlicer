@@ -1648,6 +1648,29 @@ bool CalibrationPresetPage::is_blocking_printing()
     return false;
 }
 
+bool CalibrationPresetPage::is_nozzle_info_synced() const
+{
+    if (!curr_obj || !curr_obj->is_info_ready())
+        return false;
+
+
+    for (const DevExtder& extruder : curr_obj->GetExtderSystem()->GetExtruders()) {
+        const int extruder_id = extruder.GetExtId();
+
+        if (!curr_obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(extruder_id, get_nozzle_diameter(extruder_id)))
+            return false;
+
+        if (curr_obj->is_nozzle_flow_type_supported()) {
+            if (extruder.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE)
+                return false;
+            if (int(extruder.GetNozzleFlowType()) - 1 != int(get_nozzle_volume_type(extruder_id)))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 void CalibrationPresetPage::update_sync_button_status()
 {
     auto set_status = [this](bool synced) {
@@ -1664,53 +1687,7 @@ void CalibrationPresetPage::update_sync_button_status()
         }
     };
 
-    if (!curr_obj || !curr_obj->is_info_ready()) {
-        set_status(false);
-        return;
-    }
-
-    struct CaliNozzleInfo
-    {
-        float nozzle_diameter{0.4f};
-        int   nozzle_volume_type{0};
-
-        bool operator==(const CaliNozzleInfo &other) const
-        {
-            return abs(nozzle_diameter - other.nozzle_diameter) < EPSILON
-                && nozzle_volume_type == other.nozzle_volume_type;
-        }
-    };
-
-    if (curr_obj->is_multi_extruders()) {
-        std::vector<CaliNozzleInfo> machine_obj_nozzle_infos;
-        machine_obj_nozzle_infos.resize(2);
-        for (const DevExtder& extruder : curr_obj->GetExtderSystem()->GetExtruders()) {
-            machine_obj_nozzle_infos[extruder.GetExtId()].nozzle_diameter = extruder.GetNozzleDiameter();
-            machine_obj_nozzle_infos[extruder.GetExtId()].nozzle_volume_type = int(extruder.GetNozzleFlowType()) - 1;
-        }
-
-        std::vector<CaliNozzleInfo> cali_nozzle_infos;
-        cali_nozzle_infos.resize(2);
-        for (size_t extruder_id = 0; extruder_id < 2; ++extruder_id) {
-            cali_nozzle_infos[extruder_id].nozzle_diameter = get_nozzle_diameter(extruder_id);
-            cali_nozzle_infos[extruder_id].nozzle_volume_type = int(get_nozzle_volume_type(extruder_id));
-        }
-
-        if (machine_obj_nozzle_infos == cali_nozzle_infos) {
-            set_status(true);
-        }
-        else {
-            set_status(false);
-        }
-    }
-    else {
-        if (abs(curr_obj->GetExtderSystem()->GetNozzleDiameter(0) - get_nozzle_diameter(0)) < EPSILON) {
-            set_status(true);
-        }
-        else {
-            set_status(false);
-        }
-    }
+    set_status(is_nozzle_info_synced());
 }
 
 void CalibrationPresetPage::update_show_status()

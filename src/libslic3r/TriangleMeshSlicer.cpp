@@ -2348,7 +2348,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
     IntersectionLines  upper_lines, lower_lines;
     std::vector<int>   upper_slice_vertices, lower_slice_vertices;
     std::vector<Vec3i32> facets_edge_ids = its_face_edge_ids(mesh);
-    std::map<int, Vec3f> section_vertices_map;
+    std::map<int, Vec3f> section_vertices_map; // vertices on the cut plane
 
     for (int facet_idx = 0; facet_idx < int(mesh.indices.size()); ++ facet_idx) {
         const stl_triangle_vertex_indices &facet = mesh.indices[facet_idx];
