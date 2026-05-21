@@ -68,7 +68,7 @@
 		"Bowden Standard"
 	],
 	"filament_flow_ratio": [
-		"1"
+		"0.98"
 	],
 	"filament_flush_temp": [
 		"0"
@@ -354,10 +354,10 @@
 		"100"
 	],
 	"fan_max_speed": [
-		"100"
+		"80"
 	],
 	"fan_min_speed": [
-		"100"
+		"30"
 	],
 	"filament_cost": [
 		"30"
@@ -411,7 +411,7 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"15"
+		"10"
 	],
 	"slow_down_min_speed": [
 		"20"
@@ -443,5 +443,6 @@
 	"shrink_ratio": [
 		"1",
 		"1"
-	]
+	],
+	"description": "SeeMeCNC configurations"
 }

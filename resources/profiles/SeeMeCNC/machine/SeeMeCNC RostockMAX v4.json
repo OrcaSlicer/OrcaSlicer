@@ -11,5 +11,6 @@
 	"thumbnail": "SeeMeCNC RostockMAX v4_cover.png",
 	"machine_load_filament_time": "4",
 	"machine_unload_filament_time": "4",
-	"model_id": "SEEMECNC_ROSTOCKMAX_V4"
+	"model_id": "SEEMECNC_ROSTOCKMAX_V4",
+	"description": "SeeMeCNC configurations"
 }

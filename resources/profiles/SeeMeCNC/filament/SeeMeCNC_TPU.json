@@ -121,7 +121,7 @@
 		"20"
 	],
 	"slow_down_min_speed": [
-		"10"
+		"20"
 	],
 	"supertack_plate_temp": [
 		"35"
@@ -179,5 +179,15 @@
 	],
 	"filament_retract_lift_enforce": [
 		"All Surfaces"
+	],
+	"description": "SeeMeCNC configurations",
+	"overhang_fan_speed": [
+		"30"
+	],
+	"keep_fan_always_on": [
+		"0"
+	],
+	"filament_flow_ratio": [
+		"0.98"
 	]
 }
