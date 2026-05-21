@@ -29,8 +29,8 @@
     "detect_overhang_wall": "1",
     "dont_filter_internal_bridges": "disabled",
     "draft_shield": "disabled",
-    "elefant_foot_compensation": "0.15",
-    "elefant_foot_compensation_layers": "1",
+    "elefant_foot_compensation": "0",
+    "elefant_foot_compensation_layers": "0",
     "enable_extra_bridge_layer": "disabled",
     "enable_overhang_speed": "1",
     "enable_prime_tower": "1",
@@ -312,10 +312,10 @@
         "70"
     ],
     "xy_contour_compensation": "0",
-    "top_surface_acceleration": "1500",
-    "travel_jerk": "8",
-    "initial_layer_speed": "45",
-    "outer_wall_acceleration": "1500",
+    "top_surface_acceleration": "1000",
+    "travel_jerk": "14",
+    "initial_layer_speed": "35",
+    "outer_wall_acceleration": "600",
     "outer_wall_line_width": "0.4",
     "line_width": "0.4",
     "initial_layer_line_width": "0.44",
@@ -341,5 +341,6 @@
     "description": "SeeMeCNC configurations",
     "top_surface_flow_ratio": "0.97",
     "travel_speed": "150",
-    "slow_down_layers": "3"
+    "slow_down_layers": "3",
+    "travel_speed": "150",
 }
