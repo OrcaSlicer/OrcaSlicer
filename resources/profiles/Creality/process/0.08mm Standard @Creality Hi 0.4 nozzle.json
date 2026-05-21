@@ -197,7 +197,7 @@
     "support_xy_overrides_z": "xy_overrides_z",
     "thick_bridges": "0",
     "thick_internal_bridges": "1",
-    "timelapse_type": "-1",
+    "timelapse_type": "0",
     "top_shell_layers": "10",
     "top_shell_thickness": "1",
     "top_solid_infill_flow_ratio": "1",
