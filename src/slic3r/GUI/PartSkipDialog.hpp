@@ -153,7 +153,7 @@ private:
     void UpdateDialogUI();
     void UpdateApplyButtonStatus();
     bool IsAllChecked();
-    bool IsAllCancled();
+    bool IsAllCanceled();
 
     void OnRetryButton(wxCommandEvent &event);
     void OnAllCheckbox(wxCommandEvent &event);

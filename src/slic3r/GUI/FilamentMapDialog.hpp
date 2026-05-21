@@ -60,7 +60,7 @@ public:
     void set_modal_btn_labels(const wxString& left_label, const wxString& right_label);
 private:
     void on_ok(wxCommandEvent &event);
-    void on_cancle(wxCommandEvent &event);
+    void on_cancel(wxCommandEvent &event);
     void on_switch_mode(wxCommandEvent &event);
     void on_checkbox(wxCommandEvent &event);
 

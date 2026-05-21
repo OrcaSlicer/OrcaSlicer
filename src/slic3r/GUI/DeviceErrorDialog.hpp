@@ -43,7 +43,7 @@ public:
 
         RETRY_PROBLEM_SOLVED = 34,
         STOP_DRYING = 35,
-        CANCLE = 37,
+        CANCEL = 37,
         REMOVE_CLOSE_BTN = 39, // special case, do not show close button
         PROCEED = 41,
 
