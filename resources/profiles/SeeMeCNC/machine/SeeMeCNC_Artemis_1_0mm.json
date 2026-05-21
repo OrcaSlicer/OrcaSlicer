@@ -338,7 +338,7 @@
 	"wrapping_detection_layers": "20",
 	"wrapping_exclude_area": [],
 	"z_hop": [
-		"0.2"
+		"0.4"
 	],
 	"z_hop_types": [
 		"Auto Lift"
@@ -347,5 +347,6 @@
 	"type": "machine",
 	"instantiation": "true",
 	"model": "SeeMeCNC Artemis 300",
-	"thumbnail": "SeeMeCNC Artemis 300_cover.png"
+	"thumbnail": "SeeMeCNC Artemis 300_cover.png",
+	"description": "SeeMeCNC configurations"
 }
