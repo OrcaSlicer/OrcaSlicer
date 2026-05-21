@@ -15,28 +15,23 @@
 
 namespace igl 
 {
-  // Read a mesh from an ascii wrl file, filling in vertex positions and face
-  // indices of the first model. Mesh may have faces of any number of degree
-  //
-  // Templates:
-  //   Scalar  type for positions and vectors (will be read as double and cast
-  //     to Scalar)
-  //   Index  type for indices (will be read as int and cast to Index)
-  // Inputs:
-  //  str  path to .wrl file
-  // Outputs:
-  //   V  double matrix of vertex positions  #V by 3
-  //   F  #F list of face indices into vertex positions
-  // Returns true on success, false on errors
+  /// Read a mesh from an ascii wrl file, filling in vertex positions and face
+  /// indices of the first model. Mesh may have faces of any number of degree
+  ///
+  /// @tparam Scalar  type for positions and vectors (will be read as double and cast
+  ///     to Scalar)
+  /// @tparam Index  type for indices (will be read as int and cast to Index)
+  /// @param[in] str  path to .wrl file
+  /// @param[out] V  double matrix of vertex positions  #V by 3
+  /// @param[out] F  #F list of face indices into vertex positions
+  /// @return true on success, false on errors
   template <typename Scalar, typename Index>
   IGL_INLINE bool readWRL(
     const std::string wrl_file_name, 
     std::vector<std::vector<Scalar > > & V,
     std::vector<std::vector<Index > > & F);
-  // Inputs:
-  //   wrl_file  pointer to already opened .wrl file 
-  // Outputs:
-  //   wrl_file  closed file
+  /// \overload
+  /// @param[in,out] wrl_file  pointer to already opened .wrl file  (will be closed)
   template <typename Scalar, typename Index>
   IGL_INLINE bool readWRL(
     FILE * wrl_file,

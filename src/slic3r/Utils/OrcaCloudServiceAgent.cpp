@@ -74,6 +74,32 @@ constexpr const char* SECRET_STORE_SERVICE = "OrcaSlicer/Auth";
 constexpr const char* SECRET_STORE_USER    = "orca_refresh_token";
 constexpr std::chrono::seconds TOKEN_REFRESH_SKEW{900}; // 15 minutes
 
+// Return a JSON field only when it is present as a string. Missing or non-string values normalize to empty.
+std::string get_json_string_field(const json& j, const std::string& key)
+{
+    if (j.contains(key) && j[key].is_string()) {
+        return j[key].get<std::string>();
+    }
+    return "";
+}
+
+// Resolve the human-facing UI label from provider metadata.
+std::string resolve_display_name(
+    const std::string& display_name,
+    const std::string& nickname,
+    const std::string& full_name,
+    const std::string& name,
+    const std::string& username)
+{
+    // Providers and payload shapes do not all use the same display-name field.
+    // Fallback sequence: display_name -> nickname -> full_name -> name
+    if (!display_name.empty()) return display_name;
+    if (!nickname.empty()) return nickname;
+    if (!full_name.empty()) return full_name;
+    if (!name.empty()) return name;
+    return username;
+}
+
 std::string generate_uuid_for_setting_id(const std::string& name, const std::string& user_id = "")
 {
     if (name.empty()) {
@@ -1439,6 +1465,7 @@ bool OrcaCloudServiceAgent::load_refresh_token(std::string& out_token)
                 if (payload.rfind("v2:", 0) == 0) {
                     auto delim = payload.find(':', 3);
                     if (delim == std::string::npos) {
+                        BOOST_LOG_TRIVIAL(warning) << "payload missing delim ':'.";
                         integrity_ok = false;
                     } else {
                         std::string stored_hmac = payload.substr(3, delim - 3);
@@ -1667,47 +1694,43 @@ bool OrcaCloudServiceAgent::set_user_session(const std::string& token,
 
 bool OrcaCloudServiceAgent::set_user_session(const json& session_json, bool notify_login)
 {
-    auto safe_str = [](const json& j, const std::string& key) -> std::string {
-        if (j.contains(key) && j[key].is_string()) return j[key].get<std::string>();
-        return "";
-    };
-
-    std::string access_token = safe_str(session_json, "access_token");
+    std::string access_token = get_json_string_field(session_json, "access_token");
     if (access_token.empty()) {
-        access_token = safe_str(session_json, "token");
+        access_token = get_json_string_field(session_json, "token");
     }
-    std::string refresh_token = safe_str(session_json, "refresh_token");
+    std::string refresh_token = get_json_string_field(session_json, "refresh_token");
 
     std::string user_id, username, nickname, avatar;
     if (session_json.contains("user") && session_json["user"].is_object()) {
         // Nested format (Orca cloud / GoTrue response)
         const auto& user = session_json["user"];
-        user_id = safe_str(user, "id");
+        user_id = get_json_string_field(user, "id");
+
         if (user.contains("user_metadata") && user["user_metadata"].is_object()) {
-
             const auto& meta = user["user_metadata"];
-            username = safe_str(meta, "username"); // Orca Cloud's unique username 
+            username = get_json_string_field(meta, "username"); // Orca Cloud's unique username
 
-            nickname = safe_str(meta, "display_name"); // Orca Cloud's primary display name field
-            // Fallback to different name from different providers if display_name is not set
-            if (nickname.empty())
-                nickname = safe_str(meta, "full_name");
-            if (nickname.empty())
-                nickname = safe_str(meta, "name");
-            if (nickname.empty())
-                nickname = username;
-
-            avatar = safe_str(meta, "avatar_url");
+            // Orca Cloud's primary display name field is display_name.
+            // Fallback to different names from different providers if display_name is not set.
+            nickname = resolve_display_name(
+                get_json_string_field(meta, "display_name"),
+                get_json_string_field(meta, "nickname"),
+                get_json_string_field(meta, "full_name"),
+                get_json_string_field(meta, "name"),
+                username);
+            avatar = get_json_string_field(meta, "avatar_url");
         }
     } else {
         // Flat format (WebView direct token flow)
-        user_id = safe_str(session_json, "user_id");
-        username = safe_str(session_json, "username");
-        nickname = safe_str(session_json, "display_name");
-        if(nickname.empty())
-            nickname = safe_str(session_json, "nickname");
-            
-        avatar = safe_str(session_json, "avatar");
+        user_id = get_json_string_field(session_json, "user_id");
+        username = get_json_string_field(session_json, "username");
+        nickname = resolve_display_name(
+            get_json_string_field(session_json, "display_name"),
+            get_json_string_field(session_json, "nickname"),
+            get_json_string_field(session_json, "full_name"),
+            get_json_string_field(session_json, "name"),
+            username);
+        avatar = get_json_string_field(session_json, "avatar");
     }
 
     if (access_token.empty() || user_id.empty()) {
@@ -1761,7 +1784,8 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
     std::string url = api_base_url + path;
     BOOST_LOG_TRIVIAL(trace) << "OrcaCloudServiceAgent: GET " << url;
 
-    ensure_token_fresh("http_get_" + path);
+    if (!ensure_token_fresh("http_get_" + path))
+        BOOST_LOG_TRIVIAL(warning) << "ensure_token_fresh returned false";
 
     struct HttpResult {
         bool success{false};
@@ -1793,8 +1817,9 @@ int OrcaCloudServiceAgent::http_get(const std::string& path, std::string* respon
                 })
                 .on_error([&](std::string body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -1862,8 +1887,9 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = resp_body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -1931,8 +1957,9 @@ int OrcaCloudServiceAgent::http_put(const std::string& path, const std::string& 
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = resp_body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -1997,8 +2024,9 @@ int OrcaCloudServiceAgent::http_delete(const std::string& path, std::string* res
                 })
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
-                    result.status = resp_status;
-                    result.body = resp_body;
+                    result.status  = resp_status == 0 ? 404 : resp_status;
+                    result.body    = resp_body;
+                    BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
                 .perform_sync();
@@ -2079,7 +2107,7 @@ bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string
             })
             .on_error([&](std::string body, std::string error, unsigned resp_status) {
                 success   = false;
-                status    = resp_status;
+                status    = resp_status == 0 ? 404 : resp_status;
                 resp_body = body;
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
             })
@@ -2149,7 +2177,7 @@ bool OrcaCloudServiceAgent::http_post_auth(const std::string& path, const std::s
             })
             .on_error([&](std::string body, std::string error, unsigned resp_status) {
                 success   = false;
-                status    = resp_status;
+                status    = resp_status == 0 ? 404 : resp_status;
                 resp_body = body;
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP (auth) error - " << error;
             })

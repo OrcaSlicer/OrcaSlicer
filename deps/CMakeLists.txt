@@ -172,7 +172,7 @@ if (APPLE)
 endif ()
 
 
-# On developer machines, it can be enabled to speed up compilation and suppress warnings coming from IGL. 
+# On developer machines, it can be enabled to speed up compilation and suppress warnings coming from IGL.
 # FIXME:
 # Enabling this option is not safe. IGL will compile itself with its own version of Eigen while
 # Slic3r compiles with a different version which will cause runtime errors.
@@ -184,7 +184,7 @@ message(STATUS "OrcaSlicer deps debug build: ${DEP_DEBUG}")
 
 find_package(Git REQUIRED)
 
-# The default command line for patching. Only works for newer 
+# The default command line for patching. Only works for newer
 set(PATCH_CMD ${GIT_EXECUTABLE} apply --verbose --ignore-space-change --whitespace=fix)
 
 if (NOT _is_multi AND NOT CMAKE_BUILD_TYPE)
@@ -286,7 +286,7 @@ else()
             ${P_ARGS_CMAKE_ARGS}
        ${P_ARGS_UNPARSED_ARGUMENTS}
        BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release -- ${_build_j}
-       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release 
+       INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
     )
 
 endif()
@@ -494,6 +494,14 @@ else()
     include(MPFR/MPFR.cmake)
 endif()
 
+find_package(Eigen3 QUIET)
+if(Eigen3_FOUND AND SYS_LIB_EIGEN)
+    message(STATUS "Using Eigen from system.")
+    add_library(dep_Eigen INTERFACE)
+else()
+    message(STATUS "Using Eigen from source.")
+    include(Eigen/Eigen.cmake)
+endif()
 include(CGAL/CGAL.cmake)
 
 find_package(NLopt QUIET)
@@ -509,9 +517,11 @@ include(libnoise/libnoise.cmake)
 
 include(Draco/Draco.cmake)
 
-# we don't want to load a "wrong" openssl when loading curl
-# so, just don't even bother 
-# ...i think this is how it works? change if wrong
+
+# I *think* 1.1 is used for *just* md5 hashing?
+# 3.1 has everything in the right place, but the md5 funcs used are deprecated
+# a grep across the repo shows it is used for other things
+# TODO: update openssl and everything that uses <openssl/md5.h>
 set(OPENSSL_PKG "")
 find_package(OpenSSL QUIET)
 if(OPENSSL_FOUND AND SYS_LIB_OPENSSL)
@@ -523,6 +533,9 @@ else()
     set(OPENSSL_PKG dep_OpenSSL)
 endif()
 
+# we don't want to load a "wrong" openssl when loading curl
+# so, just don't even bother
+# ...i think this is how it works? change if wrong
 set(CURL_PKG "")
 find_package(CURL QUIET)
 if(CURL_FOUND AND SYS_LIB_CURL AND NOT OPENSSL_PKG) # if we're using a custom OpenSSL, we need to build Curl as well to link against it
@@ -568,7 +581,7 @@ if(Freetype_FOUND AND SYS_LIB_FREETYPE)
 else()
     message(STATUS "Using FreeType from source.")
     include(FREETYPE/FREETYPE.cmake)
-    set(FREETYPE_PKG "dep_FREETYPE") 
+    set(FREETYPE_PKG "dep_FREETYPE")
 endif()
 
 execute_process(
@@ -616,6 +629,7 @@ set(_dep_list
     dep_OpenVDB
     dep_OpenCSG
     dep_OpenCV
+    dep_Eigen
     dep_CGAL
     dep_GLFW
     dep_OCCT

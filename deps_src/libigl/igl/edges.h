@@ -10,23 +10,39 @@
 #include "igl_inline.h"
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 namespace igl
 {
-  // Constructs a list of unique edges represented in a given mesh (V,F)
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Inputs:
-  //   F  #F by 3 list of mesh faces (must be triangles)
-  //   or
-  //   T  #T x 4  matrix of indices of tet corners
-  // Outputs:
-  //   E #E by 2 list of edges in no particular order
-  //
-  // See also: adjacency_matrix
+  /// Constructs a list of unique edges represented in a given mesh (V,F)
+  ///
+  /// @param[in] F  #F by (3|4) list of mesh simplex indices
+  /// @param[out] E #E by 2 list of edges in no particular order
+  ///
+  /// \see adjacency_matrix
   template <typename DerivedF, typename DerivedE>
   IGL_INLINE void edges(
     const Eigen::MatrixBase<DerivedF> & F, 
+    Eigen::PlainObjectBase<DerivedE> & E);
+  /// Constructs a list of unique edges represented in a given polygon mesh.
+  ///
+  /// @param[in] I  #I vectorized list of polygon corner indices into rows of some matrix V
+  /// @param[in] C  #polygons+1 list of cumulative polygon sizes so that C(i+1)-C(i) =
+  ///     size of the ith polygon, and so I(C(i)) through I(C(i+1)-1) are the
+  ///     indices of the ith polygon
+  /// @param[out] E #E by 2 list of edges in no particular order
+  template <typename DerivedI, typename DerivedC, typename DerivedE>
+  IGL_INLINE void edges(
+    const Eigen::MatrixBase<DerivedI> & I,
+    const Eigen::MatrixBase<DerivedC> & C,
+    Eigen::PlainObjectBase<DerivedE> & E);
+  /// Constructs a list of unique edges represented in a given adjacency matrix.
+  ///
+  /// @param[in] A  #V by #V symmetric adjacency matrix
+  /// @param[out] E  #E by 2 list of edges in no particular order
+  template <typename T, typename DerivedE>
+  IGL_INLINE void edges(
+    const Eigen::SparseMatrix<T> & A,
     Eigen::PlainObjectBase<DerivedE> & E);
 }
 

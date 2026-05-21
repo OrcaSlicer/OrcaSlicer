@@ -5,6 +5,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r_version.h"
 
 #include <wx/sizer.h>
@@ -371,7 +372,97 @@ void ZUserLogin::OnScriptMessage(wxWebViewEvent &evt)
         {
             m_AutotestToken = j["data"]["token"];
         }
-        if (strCmd == "user_login") {
+        if (strCmd == "user_ticket_login") {
+            auto* agent = wxGetApp().getAgent();
+            if (!agent || !m_cloud_agent || !j.contains("data") || !j["data"].is_object() || !j["data"].contains("ticket")) {
+                wxMessageBox(_L("Login failed. Please try again."), _L("Login"), wxICON_WARNING);
+                return;
+            }
+
+            const auto  provider = m_cloud_agent->get_id();
+            std::string ticket   = j["data"]["ticket"].get<std::string>();
+
+            unsigned int token_http_code = 0;
+            std::string  token_body;
+            int          token_result = agent->get_my_token(ticket, &token_http_code, &token_body, provider);
+            if (token_result != 0) {
+                BOOST_LOG_TRIVIAL(warning) << "embedded_login: get_my_token failed, http_code=" << token_http_code;
+                wxMessageBox(_L("Login failed. Please try again."), _L("Login"), wxICON_WARNING);
+                return;
+            }
+
+            std::string access_token;
+            std::string refresh_token;
+            std::string expires_in_str;
+            std::string refresh_expires_in_str;
+            try {
+                json token_j = json::parse(token_body);
+                if (token_j.contains("accessToken"))
+                    access_token = token_j["accessToken"].get<std::string>();
+                if (token_j.contains("refreshToken"))
+                    refresh_token = token_j["refreshToken"].get<std::string>();
+                if (token_j.contains("expiresIn"))
+                    expires_in_str = std::to_string(token_j["expiresIn"].get<double>());
+                if (token_j.contains("refreshExpiresIn"))
+                    refresh_expires_in_str = std::to_string(token_j["refreshExpiresIn"].get<double>());
+            } catch (...) {
+                wxMessageBox(_L("Login failed. Please try again."), _L("Login"), wxICON_WARNING);
+                return;
+            }
+
+            if (access_token.empty()) {
+                wxMessageBox(_L("Login failed. Please try again."), _L("Login"), wxICON_WARNING);
+                return;
+            }
+
+            unsigned int profile_http_code = 0;
+            std::string  profile_body;
+            int          profile_result = agent->get_my_profile(access_token, &profile_http_code, &profile_body, provider);
+            if (profile_result != 0) {
+                BOOST_LOG_TRIVIAL(warning) << "embedded_login: get_my_profile failed, http_code=" << profile_http_code;
+                wxMessageBox(_L("Login failed. Please try again."), _L("Login"), wxICON_WARNING);
+                return;
+            }
+
+            std::string user_id;
+            std::string user_name;
+            std::string user_account;
+            std::string user_avatar;
+            try {
+                json user_j = json::parse(profile_body);
+                if (user_j.contains("uidStr"))
+                    user_id = user_j["uidStr"].get<std::string>();
+                if (user_j.contains("name"))
+                    user_name = user_j["name"].get<std::string>();
+                if (user_j.contains("avatar"))
+                    user_avatar = user_j["avatar"].get<std::string>();
+                if (user_j.contains("account"))
+                    user_account = user_j["account"].get<std::string>();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(warning) << "embedded_login: profile JSON parse failed";
+            }
+
+            json login_j;
+            login_j["command"]                   = "user_login";
+            login_j["data"]["autotest_token"]    = m_AutotestToken;
+            login_j["data"]["refresh_token"]     = refresh_token;
+            login_j["data"]["token"]             = access_token;
+            login_j["data"]["expires_in"]        = expires_in_str;
+            login_j["data"]["refresh_expires_in"] = refresh_expires_in_str;
+            login_j["data"]["user"]["uid"]       = user_id;
+            login_j["data"]["user"]["name"]      = user_name;
+            login_j["data"]["user"]["account"]   = user_account;
+            login_j["data"]["user"]["avatar"]    = user_avatar;
+            std::string message_json = login_j.dump();
+
+            // End modal dialog first to unblock event loop before processing callbacks
+            EndModal(wxID_OK);
+
+            // Handle message after modal dialog ends to avoid deadlock
+            // Use wxTheApp->CallAfter to ensure it runs after modal loop exits
+            wxTheApp->CallAfter([message_json, provider]() { wxGetApp().handle_script_message(message_json, provider); });
+        }
+        else if (strCmd == "user_login") {
             j["data"]["autotest_token"] = m_AutotestToken;
             std::string message_json = j.dump();
 

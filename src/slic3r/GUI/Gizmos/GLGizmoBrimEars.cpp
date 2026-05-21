@@ -48,19 +48,22 @@ bool GLGizmoBrimEars::on_init()
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
     const wxString alt  = GUI::shortkey_alt_prefix();
 
-    m_desc["head_diameter"]    = _L("Head diameter");
-    m_desc["max_angle"]        = _L("Max angle");
-    m_desc["detection_radius"] = _L("Detection radius");
-    m_desc["remove_selected"]  = _L("Remove selected points");
-    m_desc["remove_all"]       = _L("Remove all");
-    m_desc["auto_generate"]    = _L("Auto-generate points");
-    m_desc["section_view"]     = _L("Section view");
+    m_desc["head_diameter"]         = _L("Head diameter");
+    m_desc["max_angle"]             = _L("Max angle");
+    m_desc["detection_radius"]      = _L("Detection radius");
+    m_desc["remove"]                = _L("Remove");
+    m_desc["remove_selected"]       = _L("Selected");
+    m_desc["remove_all"]            = _L("All");
+    m_desc["create"]                = _L("Create");
+    m_desc["auto_generate"]         = _L("Auto-generate");
+    m_desc["auto-generate-tooltip"] = _L("Generate brim ears using Max angle and Detection radius");
+    m_desc["section_view"]          = _L("Section view");
 
     m_shortcuts = {
-        {_L("Left mouse button"),   _L("Add a brim ear")},
-        {_L("Right mouse button"),  _L("Delete a brim ear")},
-        {ctrl + _L("Mouse wheel"),  _L("Adjust head diameter")},
-        {alt + _L("Mouse wheel"),   _L("Adjust section view")},
+        {_L("Left mouse button"),   _L("Add or Select")},
+        {_L("Right mouse button"),  _L("Remove")},
+        {ctrl + _L("Mouse wheel"),  m_desc["head_diameter"]},
+        {alt + _L("Mouse wheel"),   m_desc["section_view"]},
     };
 
     return true;
@@ -545,6 +548,15 @@ void GLGizmoBrimEars::delete_selected_points()
     update_model_object();
 }
 
+bool GLGizmoBrimEars::has_selected_points() const
+{
+    for (const auto& entry : m_editing_cache) {
+        if (entry.selected)
+            return true;
+    }
+    return false;
+}
+
 void GLGizmoBrimEars::on_dragging(const UpdateData& data)
 {
     if (m_hover_id != -1) {
@@ -634,21 +646,21 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     y                 = std::min(y, bottom_limit - win_h);
     GizmoImguiSetNextWIndowPos(x, y, ImGuiCond_Always, 0.0f, 0.0f);
 
-    const float currt_scale = m_parent.get_scale();
-    ImGuiWrapper::push_toolbar_style(currt_scale);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0 * currt_scale, 5.0 * currt_scale));
-    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 4.0f * currt_scale);
+    const float f_scale = m_parent.get_scale();
+    ImGuiWrapper::push_toolbar_style(f_scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
     GizmoImguiBegin(get_name(),
                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     float                 space_size      = m_imgui->get_style_scaling() * 8;
-    std::vector<wxString> text_list       = {m_desc["head_diameter"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"]};
+    std::vector<wxString> text_list       = {m_desc["head_diameter"], m_desc["max_angle"], m_desc["detection_radius"], m_desc["clipping_of_view"],
+                                             m_desc["create"], m_desc["remove"]};
     float                 widest_text     = m_imgui->find_widest_text(text_list);
     float                 caption_size    = widest_text + space_size + ImGui::GetStyle().WindowPadding.x;
     float                 input_text_size = m_imgui->scaled(10.0f);
     float                 button_size     = ImGui::GetFrameHeight();
 
-    float list_width      = input_text_size + ImGui::GetStyle().ScrollbarSize + 2 * currt_scale;
+    float list_width      = input_text_size + ImGui::GetStyle().ScrollbarSize + 2 * f_scale;
 
     const float slider_icon_width = m_imgui->get_slider_icon_size().x;
     const float slider_width      = list_width - space_size;
@@ -662,12 +674,12 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         if (last_y != y) last_y = y;
     }
 
-    ImGui::AlignTextToFramePadding();
 
     // Following is a nasty way to:
     //  - save the initial value of the slider before one starts messing with it
     //  - keep updating the head radius during sliding so it is continuosly refreshed in 3D scene
     //  - take correct undo/redo snapshot after the user is done with moving the slider
+    ImGui::AlignTextToFramePadding();
     float initial_value = m_new_point_head_diameter;
     m_imgui->text(m_desc["head_diameter"]);
     ImGui::SameLine(caption_size);
@@ -684,8 +696,10 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##head_diameter_input", &m_new_point_head_diameter, 0.05f, 0.0f, 0.0f, "%.1f");
-    ImGui::AlignTextToFramePadding();
 
+    ImGui::Separator();
+
+    ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["max_angle"]);
     ImGui::SameLine(caption_size);
     ImGui::PushItemWidth(slider_width);
@@ -693,8 +707,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##max_angle_input", &m_max_angle, 0.05f, 0.0f, 180.0f, "%.1f");
-    ImGui::AlignTextToFramePadding();
 
+    ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["detection_radius"]);
     ImGui::SameLine(caption_size);
     ImGui::PushItemWidth(slider_width);
@@ -702,8 +716,37 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##detection_radius_input", &m_detection_radius, 0.05f, 0.0f, static_cast<float>(m_detection_radius_max), "%.1f");
+        
     ImGui::Separator();
 
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(m_desc["create"]);
+    ImGui::SameLine(caption_size);
+    if (m_imgui->button(m_desc["auto_generate"], m_desc["auto-generate-tooltip"])) {
+        auto_generate();
+    }
+
+    ImGui::AlignTextToFramePadding();
+    m_imgui->text(m_desc["remove"]);
+    ImGui::SameLine(caption_size);
+    m_imgui->disabled_begin(has_selected_points() == false);
+    if (m_imgui->button(m_desc["remove_selected"])) {
+        delete_selected_points();
+    }
+    m_imgui->disabled_end();
+    ImGui::SameLine();
+    m_imgui->disabled_begin(m_editing_cache.empty());
+    if (m_imgui->button(m_desc["remove_all"])) {
+        if (m_editing_cache.size() > 0) {
+            select_point(AllPoints);
+            delete_selected_points();
+        }
+    }
+    m_imgui->disabled_end();
+        
+    ImGui::Separator();
+
+    ImGui::AlignTextToFramePadding();
     float clp_dist = float(m_c->object_clipper()->get_position());
     m_imgui->text(m_desc["section_view"]);
     ImGui::SameLine(caption_size);
@@ -712,79 +755,72 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     bool b_clp_dist_input = ImGui::BBLDragFloat("##section_view_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true); }
-    ImGui::Separator();
-
-    // ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-
-    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
-    if (m_imgui->button(m_desc["auto_generate"])) { auto_generate(); }
-
-    if (m_imgui->button(m_desc["remove_selected"])) { delete_selected_points(); }
-    float font_size = ImGui::GetFontSize();
-    //ImGui::Dummy(ImVec2(font_size * 1, font_size * 1.3));
-    ImGui::SameLine();
-    if (m_imgui->button(m_desc["remove_all"])) {
-        if (m_editing_cache.size() > 0) {
-            select_point(AllPoints);
-            delete_selected_points();
-        }
+    if (slider_clp_dist || b_clp_dist_input) {
+        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, true);
     }
-    ImGui::PopStyleVar(1);
 
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
+    ImGui::Separator();
 
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
 
-    if (glb_cfg.opt_enum<BrimType>("brim_type") != btPainted) {
-        ImGui::SameLine();
-        auto link_text = [&]() {
-            ImColor HyperColor = ImGuiWrapper::COL_ORCA;
-            ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(ColorRGB::WARNING()));
-            float parent_width = ImGui::GetContentRegionAvail().x;
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    bool brim_not_painted = (obj_cfg.option("brim_type")) ? (obj_cfg.opt_enum<BrimType>("brim_type") != btPainted) :
+                                                            (glb_cfg.opt_enum<BrimType>("brim_type") != btPainted);
+    bool has_invalid_ears = !m_single_brim.empty();
+
+    if (brim_not_painted || has_invalid_ears) {
+        ImGui::Separator();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::COL_WARNING);
+
+        float parent_width = ImGui::GetContentRegionAvail().x;
+        float font_size    = ImGui::GetFontSize();
+
+        if (brim_not_painted) {
             m_imgui->text_wrapped(_L("Warning: The brim type is not set to \"painted\", the brim ears will not take effect!"), parent_width);
-            ImGui::PopStyleColor();
+
+            ImColor HyperColor = ImGuiWrapper::COL_ORCA;
             ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
-            ImGui::Dummy(ImVec2(font_size * 1.8, font_size * 1.3));
+
+            ImGui::Dummy(ImVec2(font_size * 1.8f, 0.0f)); // Horizontal indent
             ImGui::SameLine();
             m_imgui->bold_text(_u8L("Set the brim type of this object to \"painted\""));
-            ImGui::PopStyleColor();
-            // underline
-            ImVec2 lineEnd = ImGui::GetItemRectMax();
-            lineEnd.y -= 2.0f;
-            ImVec2 lineStart = lineEnd;
-            lineStart.x = ImGui::GetItemRectMin().x;
-            ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
-            if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
+
+            ImVec2 min = ImGui::GetItemRectMin();
+            ImVec2 max = ImGui::GetItemRectMax();
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(min.x, max.y - 2.0f), ImVec2(max.x, max.y - 2.0f), HyperColor);
+
+            if (ImGui::IsMouseHoveringRect(min, max)) {
                 m_link_text_hover = true;
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     DynamicPrintConfig new_conf = obj_cfg;
                     new_conf.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btPainted));
                     mo->config.assign_config(new_conf);
                 }
-            }else {
+            } else {
                 m_link_text_hover = false;
             }
-        };
-
-        if (obj_cfg.option("brim_type")) {
-            if (obj_cfg.opt_enum<BrimType>("brim_type") != btPainted) {
-                link_text();
-            }
-        }else {
-            link_text();
+            ImGui::PopStyleColor(1); // Pop HyperColor
         }
 
-    }
+        if (has_invalid_ears) {
+            wxString out = _L("Warning") + ": " + std::to_string(m_single_brim.size()) + " " + _L("invalid brim ears");
+            m_imgui->text_wrapped(out, parent_width);
+        }
 
-    if (!m_single_brim.empty()) {
-        wxString out = _L("Warning") + ": " + std::to_string(m_single_brim.size()) + _L(" invalid brim ears");
-        m_imgui->warning_text(out);
+        ImGui::PopStyleColor(1); // Pop Warning Color
+    } else {
+        // Reset hover state if no warnings are active
+        m_link_text_hover = false;
     }
 
     GizmoImguiEnd();
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     ImGuiWrapper::pop_toolbar_style();
 }
 
