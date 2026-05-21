@@ -4859,10 +4859,11 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                             return;
                         }
                     }
+
+                    m_last_401_error_time = std::chrono::steady_clock::now();
                 } else {
                     BOOST_LOG_TRIVIAL(warning) << "401 encountered within grace period, suppressing logout";
                 }
-                m_last_401_error_time = std::chrono::steady_clock::now();
             }
         }
         return;
