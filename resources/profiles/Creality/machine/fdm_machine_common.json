@@ -15,8 +15,8 @@
     ],
     "gcode_flavor": "marlin",
     "silent_mode": "0",
-	"support_chamber_temp_control": "0",
-	"support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "support_air_filtration": "0",
     "machine_max_acceleration_e": [
         "5000"
     ],
@@ -113,8 +113,6 @@
         "1"
     ],
     "z_hop_types": "Normal Lift",
-    "support_air_filtration": "0",
-    "support_chamber_temp_control": "0",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "default_print_profile": "0.16mm Optimal @Bambu Lab X1 Carbon 0.4 nozzle",
     "machine_start_gcode": "G0 Z20 F9000\nG92 E0; G1 E-10 F1200\nG28\nM970 Q1 A10 B10 C130 K0\nM970 Q1 A10 B131 C250 K1\nM974 Q1 S1 P0\nM970 Q0 A10 B10 C130 H20 K0\nM970 Q0 A10 B131 C250 K1\nM974 Q0 S1 P0\nM220 S100 ;Reset Feedrate\nM221 S100 ;Reset Flowrate\nG29 ;Home\nG90;\nG92 E0 ;Reset Extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 X10.1 Y20 Z0.28 F5000.0 ;Move to start position\nM109 S205;\nG1 X10.1 Y200.0 Z0.28 F1500.0 E15 ;Draw the first line\nG1 X10.4 Y200.0 Z0.28 F5000.0 ;Move to side a little\nG1 X10.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line\nG92 E0 ;Reset Extruder \nG1 X110 Y110 Z2.0 F3000 ;Move Z Axis up",
