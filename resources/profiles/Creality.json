@@ -2481,6 +2481,10 @@
 			"sub_path": "filament/fdm_filament_pet.json"
 		},
 		{
+			"name": "fdm_filament_petg",
+			"sub_path": "filament/fdm_filament_petg.json"
+		},
+		{
 			"name": "fdm_filament_pla",
 			"sub_path": "filament/fdm_filament_pla.json"
 		},
