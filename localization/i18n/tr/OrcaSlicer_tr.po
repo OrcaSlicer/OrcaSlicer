@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -120,8 +120,8 @@ msgstr "Uygula"
 msgid "On highlighted overhangs only"
 msgstr "Yalnızca vurgulanan çıkıntılarda"
 
-msgid "Erase all painting"
-msgstr "Tüm boyamayı sil"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Çıkıntı alanlarını vurgulayın"
@@ -190,6 +190,9 @@ msgstr "Yüzleri çıkıntı açısına göre vurgulayın."
 
 msgid "No auto support"
 msgstr "Otomatik destek yok"
+
+msgid "Done"
+msgstr "Tamamlandı"
 
 msgid "Support Generated"
 msgstr "Destek Oluşturuldu"
@@ -344,6 +347,12 @@ msgstr "Parça seçimi"
 msgid "Fixed step drag"
 msgstr "Sabit adım sürükleme"
 
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
+
 msgid "Single sided scaling"
 msgstr "Tek taraflı ölçekleme"
 
@@ -492,6 +501,18 @@ msgstr "Kesim konumu"
 msgid "Build Volume"
 msgstr "Birim oluştur"
 
+msgid "Multiple"
+msgstr "Çoklu"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Boşluk"
+
 msgid "Part"
 msgstr "Parça"
 
@@ -599,12 +620,6 @@ msgstr "Bağlayıcıları düzenle"
 msgid "Add connectors"
 msgstr "Bağlayıcı ekle"
 
-msgid "Reset cut"
-msgstr "Kesimi sıfırla"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Kesme düzlemini sıfırlayın ve bağlayıcıları çıkarın"
-
 msgid "Upper part"
 msgstr "Üst parça"
 
@@ -622,6 +637,9 @@ msgstr "Kesildikten sonra"
 
 msgid "Cut to parts"
 msgstr "Parçalara ayır"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Kesme düzlemini sıfırlayın ve bağlayıcıları çıkarın"
 
 msgid "Perform cut"
 msgstr "Kesimi gerçekleştir"
@@ -855,6 +873,9 @@ msgstr "Varsayılan yazı tipi"
 
 msgid "Advanced"
 msgstr "Gelişmiş"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1510,15 +1531,6 @@ msgstr ""
 "Özellik 1 sıfırlandı, \n"
 "özellik 2, özellik 1 oldu"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Uyarı: Lütfen Düzlemin özelliğini seçin."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Uyarı: Lütfen Noktanın veya Çemberin özelliğini seçin."
-
-msgid "Warning: please select two different meshes."
-msgstr "Uyarı: Lütfen iki farklı ağ seçin."
-
 msgid "Copy to clipboard"
 msgstr "Panoya kopyala"
 
@@ -1570,6 +1582,15 @@ msgstr "(Hareketli)"
 
 msgid "Point and point assembly"
 msgstr "Nokta ve nokta montajı"
+
+msgid "Warning: please select two different meshes."
+msgstr "Uyarı: Lütfen iki farklı ağ seçin."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Uyarı: Lütfen Düzlemin özelliğini seçin."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Uyarı: Lütfen Noktanın veya Çemberin özelliğini seçin."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
@@ -1761,6 +1782,18 @@ msgstr "Bu en yeni versiyondur."
 msgid "Info"
 msgstr "Bilgi"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1826,6 +1859,23 @@ msgid ""
 msgstr ""
 "Orca Slicer'ın sürümü çok düşük ve normal şekilde kullanılabilmesi için en "
 "son sürüme güncellenmesi gerekiyor."
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Yazıcı bilgileri alınıyor, lütfen daha sonra tekrar deneyin."
@@ -2382,11 +2432,11 @@ msgstr "Baskı kalitesini artırmak için nesneyi otomatik olarak yönlendirin."
 msgid "Edit"
 msgstr "Düzenle"
 
-msgid "Delete this filament"
-msgstr "Bu filamanı sil"
-
 msgid "Merge with"
 msgstr "Şununla birleştir:"
+
+msgid "Delete this filament"
+msgstr "Bu filamanı sil"
 
 msgid "Select All"
 msgstr "Hepsini seç"
@@ -4719,9 +4769,6 @@ msgstr "Kurumayı Durdur"
 msgid "Proceed"
 msgstr "İlerlemek"
 
-msgid "Done"
-msgstr "Tamamlandı"
-
 msgid "Retry"
 msgstr "Yeniden dene"
 
@@ -4982,33 +5029,6 @@ msgstr "Destek geçişi"
 msgid "Mixed"
 msgstr "Karışık"
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "mm/s²"
-msgstr "mm/s²"
-
-msgid "Flow rate"
-msgstr "Akış hızı"
-
-msgid "mm³/s"
-msgstr "mm³/s"
-
-msgid "Fan speed"
-msgstr "Fan hızı"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Zaman"
-
-msgid "Actual speed profile"
-msgstr "Gerçek hız profili"
-
-msgid "Speed: "
-msgstr "Hız: "
-
 msgid "Height: "
 msgstr "Yükseklik: "
 
@@ -5041,6 +5061,33 @@ msgstr ""
 
 msgid "PA: "
 msgstr "PA:"
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr "mm³/s"
+
+msgid "Flow rate"
+msgstr "Akış hızı"
+
+msgid "Fan speed"
+msgstr "Fan hızı"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Zaman"
+
+msgid "Speed: "
+msgstr "Hız: "
+
+msgid "Actual speed profile"
+msgstr "Gerçek hız profili"
 
 msgid "Statistics of All Plates"
 msgstr "Tüm Plakaların İstatistikleri"
@@ -5381,9 +5428,6 @@ msgstr "Yön"
 msgid "Arrange options"
 msgstr "Hizalama seçenekleri"
 
-msgid "Spacing"
-msgstr "Boşluk"
-
 msgid "0 means auto spacing."
 msgstr "0 otomatik aralık anlamına gelir."
 
@@ -5518,7 +5562,7 @@ msgstr "Hacim:"
 msgid "Size:"
 msgstr "Boyut:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5918,6 +5962,15 @@ msgstr "Geçerli yapılandırmayı dosyalara aktar"
 msgid "Export"
 msgstr "Dışa Aktar"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Çıkış"
 
@@ -6043,6 +6096,9 @@ msgid "View"
 msgstr "Görünüm"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -8653,21 +8709,33 @@ msgstr ""
 "Etkinleştirilirse serbest kamerayı kullanın. Etkin değilse kısıtlı kamerayı "
 "kullanın."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Pan ve döndürme işlevlerini fare düğmeleri arasında değiştir"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Etkinleştirildiğinde, sol ve sağ fare düğmelerinin pan ve döndürme "
-"işlevlerini yer değiştirir."
-
 msgid "Reverse mouse zoom"
 msgstr "Mouse yakınlaştırmasını tersine çevir"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr ""
 "Etkinleştirilirse, mouse tekerleğiyle yakınlaştırmanın yönü tersine çevrilir."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Seçimimi temizle..."
@@ -8692,6 +8760,59 @@ msgid ""
 msgstr ""
 "Dosyayı yükledikten sonra yazıcı ön ayarını senkronize etmek için seçimimi "
 "temizleyin."
+
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Devredışı"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
 
 msgid "Login region"
 msgstr "Giriş bölgesi"
@@ -8850,6 +8971,15 @@ msgstr "Geliştirici Modu"
 
 msgid "Skip AMS blacklist check"
 msgstr "AMS kara liste kontrolünü atla"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr "Anormal Depolamaya İzin Ver"
@@ -9977,8 +10107,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Araç başlığı olmadan timelapse kaydederken, bir \"Timelapse Wipe Tower\" "
 "eklenmesi önerilir.\n"
@@ -10606,6 +10736,32 @@ msgstr "Kaydetme"
 msgid "Discard"
 msgstr "Çıkart"
 
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
+
 msgid "Click the right mouse button to display the full text."
 msgstr "Tam metni görüntülemek için farenin sağ tuşuna tıklayın."
 
@@ -11188,6 +11344,9 @@ msgstr "İndirmek için buraya tıklayın."
 msgid "Login"
 msgstr "Giriş yap"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[İşlem Gerekli]"
 
@@ -11223,6 +11382,18 @@ msgstr "Klavye kısayolları listesini göster"
 
 msgid "Global shortcuts"
 msgstr "Genel kısayollar"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11712,9 +11883,6 @@ msgstr "içine yerleştirilemez"
 msgid "Internal Bridge"
 msgstr "İç Köprü"
 
-msgid "Multiple"
-msgstr "Çoklu"
-
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
 msgstr "%1% çizgi genişliği hesaplanamadı. \"%2%\" değeri alınamıyor "
@@ -11907,8 +12075,8 @@ msgid ""
 "Please select \"By object\" print sequence to print multiple objects in "
 "spiral vase mode."
 msgstr ""
-"Birden fazla nesneyi spiral vazo modunda yazdırmak için lütfen \"Nesneye göre"
-"\" yazdırma sırasını seçin."
+"Birden fazla nesneyi spiral vazo modunda yazdırmak için lütfen \"Nesneye "
+"göre\" yazdırma sırasını seçin."
 
 msgid ""
 "The spiral vase mode does not work when an object contains more than one "
@@ -13541,9 +13709,6 @@ msgstr ""
 "4. Tümüne uygula - hem iç hem de dış köprüler için ikinci köprü katmanları "
 "oluşturur\n"
 
-msgid "Disabled"
-msgstr "Devredışı"
-
 msgid "External bridge only"
 msgstr "Yalnızca dış köprü"
 
@@ -14226,6 +14391,18 @@ msgstr "Yıkama İçin Otomatik"
 msgid "Auto For Match"
 msgstr "Otomatik Maç İçin"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Yıkama sıcaklığı"
 
@@ -14733,6 +14910,17 @@ msgstr ""
 "Dolgu deseni tarafından destekleniyorsa, dolgu deseni için birden fazla "
 "çizgi kullanılması."
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Dolgu deseni"
 
@@ -14908,8 +15096,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² veya %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Seyrek dolgunun hızlandırılması. Değer yüzde olarak ifade edilirse (örn. "
 "%100), varsayılan ivmeye göre hesaplanacaktır."
@@ -15041,16 +15229,17 @@ msgstr "Maksimum fan hızı"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Fan hızı, \"close_fan_the_first_x_layers\" katmanında sıfırdan "
 "\"ful_fan_speed_layer\" katmanında maksimuma doğrusal olarak artırılacaktır. "
 "\"full_fan_speed_layer\", \"close_fan_the_first_x_layers\" değerinden "
-"düşükse göz ardı edilecektir; bu durumda fan, \"close_fan_the_first_x_layers"
-"\" + 1 katmanında izin verilen maksimum hızda çalışacaktır."
+"düşükse göz ardı edilecektir; bu durumda fan, "
+"\"close_fan_the_first_x_layers\" + 1 katmanında izin verilen maksimum hızda "
+"çalışacaktır."
 
 msgid "layer"
 msgstr "katman"
@@ -15554,6 +15743,30 @@ msgstr ""
 "Bu, düşük PWM/gücün fanın durma noktasından dönmeye başlaması veya fanın "
 "daha hızlı hızlanması için yetersiz olabileceği fanlar için kullanışlıdır.\n"
 "Devre dışı bırakmak için 0'a ayarlayın."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Zaman maliyeti"
@@ -17166,8 +17379,8 @@ msgid "Role base wipe speed"
 msgstr "Otomatik temizleme hızı"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17558,6 +17771,19 @@ msgstr "Kalan filamenti Prime Tower'da akıt."
 msgid "Enable filament ramming"
 msgstr "Filament sıkıştırmayı etkinleştir"
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "Seyrek katman yok (beta)"
 
@@ -17908,15 +18134,17 @@ msgid "Threshold angle"
 msgstr "Destek açısı"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
-"Eğim açısı eşik değerinin altında olan çıkıntılar için destek oluşturulacaktır."
-"Bu değer ne kadar küçükse, desteksiz yazdırılabilecek çıkıntı o kadar dik olur.\n"
-"Not: 0 olarak ayarlanırsa, normal destekler bunun yerine Eşik çakışması kullanır, "
-"ağaç destekler ise varsayılan 30 değerine geri döner."
+"Eğim açısı eşik değerinin altında olan çıkıntılar için destek "
+"oluşturulacaktır.Bu değer ne kadar küçükse, desteksiz yazdırılabilecek "
+"çıkıntı o kadar dik olur.\n"
+"Not: 0 olarak ayarlanırsa, normal destekler bunun yerine Eşik çakışması "
+"kullanır, ağaç destekler ise varsayılan 30 değerine geri döner."
 
 msgid "Threshold overlap"
 msgstr "Eşik çakışması"
@@ -18080,8 +18308,8 @@ msgstr "Sıcaklık kontrolünü etkinleştirin"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -19086,8 +19314,8 @@ msgid "Debug level"
 msgstr "Hata ayıklama düzeyi"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
 "Hata ayıklama günlüğü düzeyini ayarlar. 0:önemli, 1:hata, 2:uyarı, 3:bilgi, "
 "4:hata ayıklama, 5:izleme\n"
@@ -20877,8 +21105,8 @@ msgstr ""
 "Yeniden yazmak ister misin?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Ön ayarları şu şekilde yeniden adlandırırdık: \"Satıcı Türü Seçtiğiniz Seri "
@@ -21055,6 +21283,18 @@ msgid ""
 msgstr ""
 "Sistem ön ayarı oluşturmaya izin vermiyor. \n"
 "Lütfen yazıcı modelini veya püskürtme ucu çapını yeniden girin."
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
+msgstr ""
 
 msgid "Printer Created Successfully"
 msgstr "Yazıcı Oluşturma Başarılı"
@@ -21308,36 +21548,6 @@ msgstr ""
 "Püskürtme ucu türü, gerçek yazıcı püskürtme ucu türüyle eşleşmiyor.\n"
 "Lütfen yukarıdaki Senkronizasyon düğmesine tıklayın ve kalibrasyonu yeniden "
 "başlatın."
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr "ön ayardaki meme boyutu: %d"
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr "hafızaya alınan meme boyutu: %d"
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-"Ön ayardaki nozül tipinin boyutu hafızaya alınan nozül ile tutarlı değil. "
-"Son zamanlarda nozulunuzu değiştirdiniz mi?"
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr "püskürtme ucu[%d] ön ayarda: %.1f"
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr "nozul[%d] hafızaya alındı: %.1f"
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-"Ön ayardaki püskürtme ucu tipiniz hafızaya alınan püskürtme ucuyla tutarlı "
-"değil. Son zamanlarda nozulunuzu değiştirdiniz mi?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
@@ -22292,26 +22502,17 @@ msgstr "Maksimum açı"
 msgid "Detection radius"
 msgstr "Algılama yarıçapı"
 
-msgid "Remove selected points"
-msgstr "Seçili noktaları kaldır"
+msgid "Selected"
+msgstr ""
 
-msgid "Remove all"
-msgstr "Hepsini kaldır"
+msgid "Auto-generate"
+msgstr ""
 
-msgid "Auto-generate points"
-msgstr "Noktaları otomatik olarak üret"
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
 
-msgid "Add a brim ear"
-msgstr "Destek kulağı ekle"
-
-msgid "Delete a brim ear"
-msgstr "Destek kulağı sil"
-
-msgid "Adjust head diameter"
-msgstr "Kafa çapını ayarlayın"
-
-msgid "Adjust section view"
-msgstr "Kesit görünümünü ayarla"
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -22323,8 +22524,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Bu nesnenin kenar türünü \"boyalı\" olarak ayarlayın"
 
-msgid " invalid brim ears"
-msgstr " geçersi̇z kenarlı kulaklar"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Kenar  kulakları"
@@ -22604,15 +22805,13 @@ msgstr ""
 "Orca Slicer'ın çok çeşitli klavye kısayolları ve 3D sahne işlemleri "
 "sunduğunu biliyor muydunuz?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Tersine çevir\n"
-"<b>Tersine çevir</b> özelliğinin çıkıntılarınızın yüzey kalitesini önemli "
-"ölçüde artırabileceğini biliyor muydunuz?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22906,6 +23105,85 @@ msgstr ""
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı "
 "sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını "
 "azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Tüm boyamayı sil"
+
+#~ msgid "Reset cut"
+#~ msgstr "Kesimi sıfırla"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Pan ve döndürme işlevlerini fare düğmeleri arasında değiştir"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Etkinleştirildiğinde, sol ve sağ fare düğmelerinin pan ve döndürme "
+#~ "işlevlerini yer değiştirir."
+
+#, c-format, boost-format
+#~ msgid "nozzle size in preset: %d"
+#~ msgstr "ön ayardaki meme boyutu: %d"
+
+#, c-format, boost-format
+#~ msgid "nozzle size memorized: %d"
+#~ msgstr "hafızaya alınan meme boyutu: %d"
+
+#~ msgid ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+#~ msgstr ""
+#~ "Ön ayardaki nozül tipinin boyutu hafızaya alınan nozül ile tutarlı değil. "
+#~ "Son zamanlarda nozulunuzu değiştirdiniz mi?"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] in preset: %.1f"
+#~ msgstr "püskürtme ucu[%d] ön ayarda: %.1f"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] memorized: %.1f"
+#~ msgstr "nozul[%d] hafızaya alındı: %.1f"
+
+#~ msgid ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+#~ msgstr ""
+#~ "Ön ayardaki püskürtme ucu tipiniz hafızaya alınan püskürtme ucuyla "
+#~ "tutarlı değil. Son zamanlarda nozulunuzu değiştirdiniz mi?"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Seçili noktaları kaldır"
+
+#~ msgid "Remove all"
+#~ msgstr "Hepsini kaldır"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Noktaları otomatik olarak üret"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Destek kulağı ekle"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Destek kulağı sil"
+
+#~ msgid "Adjust head diameter"
+#~ msgstr "Kafa çapını ayarlayın"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Kesit görünümünü ayarla"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " geçersi̇z kenarlı kulaklar"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Tersine çevir\n"
+#~ "<b>Tersine çevir</b> özelliğinin çıkıntılarınızın yüzey kalitesini önemli "
+#~ "ölçüde artırabileceğini biliyor muydunuz?"
 
 #~ msgid "Pen size"
 #~ msgstr "Kalem boyutu"

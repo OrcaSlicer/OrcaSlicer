@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -116,8 +116,8 @@ msgstr "Thực hiện"
 msgid "On highlighted overhangs only"
 msgstr "Chỉ trên các overhang được làm nổi bật"
 
-msgid "Erase all painting"
-msgstr "Xóa tất cả vẽ"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Tô sáng vùng overhang"
@@ -185,6 +185,9 @@ msgstr "Tô sáng các mặt theo góc overhang."
 
 msgid "No auto support"
 msgstr "Không tự động support"
+
+msgid "Done"
+msgstr "Hoàn thành"
 
 msgid "Support Generated"
 msgstr "Đã tạo support"
@@ -338,6 +341,12 @@ msgstr "Chọn phần"
 msgid "Fixed step drag"
 msgstr "Kéo bước cố định"
 
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
+
 msgid "Single sided scaling"
 msgstr "Co giãn một mặt"
 
@@ -486,6 +495,18 @@ msgstr "Vị trí cắt"
 msgid "Build Volume"
 msgstr "Thể tích in"
 
+msgid "Multiple"
+msgstr "Nhiều"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Khoảng cách"
+
 msgid "Part"
 msgstr "Phần"
 
@@ -593,12 +614,6 @@ msgstr "Chỉnh sửa connector"
 msgid "Add connectors"
 msgstr "Thêm connector"
 
-msgid "Reset cut"
-msgstr "Đặt lại cắt"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Đặt lại mặt cắt và xóa connector"
-
 msgid "Upper part"
 msgstr "Phần trên"
 
@@ -616,6 +631,9 @@ msgstr "Sau khi cắt"
 
 msgid "Cut to parts"
 msgstr "Cắt thành phần"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Đặt lại mặt cắt và xóa connector"
 
 msgid "Perform cut"
 msgstr "Thực hiện cắt"
@@ -845,6 +863,9 @@ msgstr "Font mặc định"
 
 msgid "Advanced"
 msgstr "Nâng cao"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1490,15 +1511,6 @@ msgstr ""
 "Đặc trưng 1 đã được đặt lại, \n"
 "đặc trưng 2 đã trở thành đặc trưng 1"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Cảnh báo: vui lòng chọn đặc trưng mặt phẳng."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Cảnh báo: vui lòng chọn đặc trưng điểm hoặc đường tròn."
-
-msgid "Warning: please select two different meshes."
-msgstr "Cảnh báo: vui lòng chọn hai mesh khác nhau."
-
 msgid "Copy to clipboard"
 msgstr "Sao chép vào clipboard"
 
@@ -1549,6 +1561,15 @@ msgstr "(Moving)"
 
 msgid "Point and point assembly"
 msgstr "Point and point assembly"
+
+msgid "Warning: please select two different meshes."
+msgstr "Cảnh báo: vui lòng chọn hai mesh khác nhau."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Cảnh báo: vui lòng chọn đặc trưng mặt phẳng."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Cảnh báo: vui lòng chọn đặc trưng điểm hoặc đường tròn."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
@@ -1740,6 +1761,18 @@ msgstr "Đây là phiên bản mới nhất."
 msgid "Info"
 msgstr "Thông tin"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1802,6 +1835,23 @@ msgid ""
 msgstr ""
 "Phiên bản Orca Slicer quá cũ và cần được cập nhật lên phiên bản mới nhất "
 "trước khi có thể sử dụng bình thường."
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Retrieving printer information, please try again later."
@@ -2359,11 +2409,11 @@ msgstr "Tự động định hướng vật thể để cải thiện chất lư
 msgid "Edit"
 msgstr "Chỉnh sửa"
 
-msgid "Delete this filament"
-msgstr "Delete this filament"
-
 msgid "Merge with"
 msgstr "Merge with"
+
+msgid "Delete this filament"
+msgstr "Delete this filament"
 
 msgid "Select All"
 msgstr "Chọn tất cả"
@@ -4666,9 +4716,6 @@ msgstr "Stop Drying"
 msgid "Proceed"
 msgstr "Proceed"
 
-msgid "Done"
-msgstr "Hoàn thành"
-
 msgid "Retry"
 msgstr "Thử lại"
 
@@ -4931,33 +4978,6 @@ msgstr "Chuyển tiếp support"
 msgid "Mixed"
 msgstr "Mixed"
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "mm/s²"
-msgstr "mm/s²"
-
-msgid "Flow rate"
-msgstr "Flow rate"
-
-msgid "mm³/s"
-msgstr "mm³/s"
-
-msgid "Fan speed"
-msgstr "Tốc độ quạt"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Thời gian"
-
-msgid "Actual speed profile"
-msgstr "Actual speed profile"
-
-msgid "Speed: "
-msgstr "Tốc độ: "
-
 msgid "Height: "
 msgstr "Chiều cao: "
 
@@ -4990,6 +5010,33 @@ msgstr ""
 
 msgid "PA: "
 msgstr "PA: "
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr "mm³/s"
+
+msgid "Flow rate"
+msgstr "Flow rate"
+
+msgid "Fan speed"
+msgstr "Tốc độ quạt"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Thời gian"
+
+msgid "Speed: "
+msgstr "Tốc độ: "
+
+msgid "Actual speed profile"
+msgstr "Actual speed profile"
 
 msgid "Statistics of All Plates"
 msgstr "Thống kê tất cả các plate"
@@ -5324,9 +5371,6 @@ msgstr "Định hướng"
 msgid "Arrange options"
 msgstr "Tùy chọn sắp xếp"
 
-msgid "Spacing"
-msgstr "Khoảng cách"
-
 msgid "0 means auto spacing."
 msgstr "0 nghĩa là tự động khoảng cách."
 
@@ -5461,7 +5505,7 @@ msgstr "Thể tích:"
 msgid "Size:"
 msgstr "Kích thước:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5860,6 +5904,15 @@ msgstr "Xuất cấu hình hiện tại ra file"
 msgid "Export"
 msgstr "Xuất"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Thoát"
 
@@ -5985,6 +6038,9 @@ msgid "View"
 msgstr "Xem"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -8563,19 +8619,32 @@ msgstr ""
 "Nếu được bật, sử dụng camera tự do. Nếu không được bật, sử dụng camera bị "
 "ràng buộc."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Hoán đổi nút chuột kéo và xoay"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Nếu được bật, hoán đổi chức năng kéo và xoay của nút chuột trái và phải."
-
 msgid "Reverse mouse zoom"
 msgstr "Đảo ngược thu phóng chuột"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Nếu được bật, đảo ngược hướng thu phóng bằng con lăn chuột."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Clear my choice on..."
@@ -8599,6 +8668,59 @@ msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
 msgstr ""
 "Clear my choice for synchronizing printer preset after loading the file."
+
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Tắt"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
 
 msgid "Login region"
 msgstr "Login region"
@@ -8750,6 +8872,15 @@ msgstr "Chế độ phát triển"
 
 msgid "Skip AMS blacklist check"
 msgstr "Bỏ qua kiểm tra danh sách đen AMS"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr "Allow Abnormal Storage"
@@ -9839,8 +9970,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Khi ghi timelapse không có đầu công cụ, khuyến nghị thêm \"Timelapse Wipe "
 "Tower\" \n"
@@ -10459,6 +10590,32 @@ msgstr "Không lưu"
 msgid "Discard"
 msgstr "Loại bỏ"
 
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
+
 msgid "Click the right mouse button to display the full text."
 msgstr "Nhấp chuột phải để hiển thị toàn bộ văn bản."
 
@@ -11035,6 +11192,9 @@ msgstr "Nhấp vào đây để tải xuống."
 msgid "Login"
 msgstr "Đăng nhập"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Action Required] "
 
@@ -11070,6 +11230,18 @@ msgstr "Hiển thị danh sách phím tắt"
 
 msgid "Global shortcuts"
 msgstr "Phím tắt toàn cục"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11552,9 +11724,6 @@ msgstr " can not be placed in the "
 
 msgid "Internal Bridge"
 msgstr "Cầu bên trong"
-
-msgid "Multiple"
-msgstr "Nhiều"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -12163,8 +12332,8 @@ msgstr ""
 "Orca Slicer có thể tải file G-code lên máy chủ máy in. Trường này nên chứa "
 "tên máy chủ, địa chỉ IP hoặc URL của phiên bản máy chủ máy in. Máy chủ in "
 "đằng sau HAProxy với xác thực cơ bản được bật có thể được truy cập bằng cách "
-"đặt tên người dùng và mật khẩu vào URL theo định dạng sau: https://username:"
-"password@your-octopi-address/"
+"đặt tên người dùng và mật khẩu vào URL theo định dạng sau: https://"
+"username:password@your-octopi-address/"
 
 msgid "Device UI"
 msgstr "Giao diện thiết bị"
@@ -13337,9 +13506,6 @@ msgstr ""
 "4. Áp dụng cho tất cả - tạo lớp cầu thứ hai cho cả cầu bên trong và hướng ra "
 "ngoài\n"
 
-msgid "Disabled"
-msgstr "Tắt"
-
 msgid "External bridge only"
 msgstr "Chỉ cầu bên ngoài"
 
@@ -14007,6 +14173,18 @@ msgstr "Auto For Flush"
 msgid "Auto For Match"
 msgstr "Auto For Match"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Flush temperature"
 
@@ -14501,6 +14679,17 @@ msgid ""
 "Using multiple lines for the infill pattern, if supported by infill pattern."
 msgstr "Sử dụng nhiều đường cho mẫu infill, nếu được hỗ trợ bởi mẫu infill."
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Mẫu infill thưa"
 
@@ -14675,8 +14864,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² hoặc %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Gia tốc của infill thưa. Nếu giá trị được biểu thị dưới dạng phần trăm (ví "
 "dụ 100%), nó sẽ được tính dựa trên gia tốc mặc định."
@@ -14809,14 +14998,14 @@ msgstr "Tốc độ quạt đầy tại lớp"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Tốc độ quạt sẽ được tăng tuyến tính từ không tại lớp "
-"\"close_fan_the_first_x_layers\" đến tối đa tại lớp \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" sẽ bị bỏ qua nếu thấp hơn "
+"\"close_fan_the_first_x_layers\" đến tối đa tại lớp "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" sẽ bị bỏ qua nếu thấp hơn "
 "\"close_fan_the_first_x_layers\", trong trường hợp đó quạt sẽ chạy ở tốc độ "
 "tối đa được phép tại lớp \"close_fan_the_first_x_layers\" + 1."
 
@@ -15313,6 +15502,30 @@ msgstr ""
 "cho quạt bắt đầu quay từ trạng thái dừng, hoặc để làm cho quạt đạt tốc độ "
 "nhanh hơn.\n"
 "Đặt thành 0 để vô hiệu hóa."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Chi phí thời gian"
@@ -16878,8 +17091,8 @@ msgid "Role base wipe speed"
 msgstr "Tốc độ lau dựa trên vai trò"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17266,6 +17479,19 @@ msgstr "Xả filament còn lại vào prime tower."
 msgid "Enable filament ramming"
 msgstr "Bật ramming filament"
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "Không có lớp thưa (beta)"
 
@@ -17604,15 +17830,16 @@ msgid "Threshold angle"
 msgstr "Góc ngưỡng"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
-"Hỗ trợ sẽ được tạo cho các phần nhô có góc dốc thấp hơn ngưỡng."
-"Giá trị này càng nhỏ, phần nhô có thể in không cần hỗ trợ càng dốc.\n"
-"Lưu ý: Nếu đặt thành 0, hỗ trợ thường sẽ dùng Chồng lấp ngưỡng thay thế, "
-"còn hỗ trợ dạng cây sẽ quay về giá trị mặc định là 30."
+"Hỗ trợ sẽ được tạo cho các phần nhô có góc dốc thấp hơn ngưỡng.Giá trị này "
+"càng nhỏ, phần nhô có thể in không cần hỗ trợ càng dốc.\n"
+"Lưu ý: Nếu đặt thành 0, hỗ trợ thường sẽ dùng Chồng lấp ngưỡng thay thế, còn "
+"hỗ trợ dạng cây sẽ quay về giá trị mặc định là 30."
 
 msgid "Threshold overlap"
 msgstr "Chồng lấp ngưỡng"
@@ -17775,8 +18002,8 @@ msgstr "Kích hoạt điều khiển nhiệt độ"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18751,11 +18978,11 @@ msgid "Debug level"
 msgstr "Mức gỡ lỗi"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"Đặt mức ghi log gỡ lỗi. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Đặt mức ghi log gỡ lỗi. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr "Bật timelapse cho in"
@@ -19299,13 +19526,13 @@ msgstr "File được cung cấp không thể đọc được vì nó trống"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Định dạng file không xác định. File đầu vào phải có phần mở rộng .stl, ."
-"obj, .amf(.xml)."
+"Định dạng file không xác định. File đầu vào phải có phần mở "
+"rộng .stl, .obj, .amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Định dạng file không xác định. File đầu vào phải có phần mở rộng .3mf hoặc ."
-"zip.amf."
+"Định dạng file không xác định. File đầu vào phải có phần mở rộng .3mf "
+"hoặc .zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: phân tích thất bại"
@@ -20528,8 +20755,8 @@ msgstr ""
 "Bạn có muốn viết lại nó không?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Chúng tôi sẽ đổi tên cài đặt sẵn thành \"Nhà cung cấp Loại Serial @máy in "
@@ -20706,6 +20933,18 @@ msgid ""
 msgstr ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
+msgstr ""
 
 msgid "Printer Created Successfully"
 msgstr "Máy in đã được tạo thành công"
@@ -20953,36 +21192,6 @@ msgid ""
 msgstr ""
 "The nozzle type does not match the actual printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr "nozzle size in preset: %d"
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr "nozzle size memorized: %d"
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr "nozzle[%d] in preset: %.1f"
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr "nozzle[%d] memorized: %.1f"
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
@@ -21900,26 +22109,17 @@ msgstr "Góc tối đa"
 msgid "Detection radius"
 msgstr "Bán kính phát hiện"
 
-msgid "Remove selected points"
-msgstr "Xóa điểm đã chọn"
+msgid "Selected"
+msgstr ""
 
-msgid "Remove all"
-msgstr "Xóa tất cả"
+msgid "Auto-generate"
+msgstr ""
 
-msgid "Auto-generate points"
-msgstr "Tự động tạo điểm"
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
 
-msgid "Add a brim ear"
-msgstr "Thêm tai vành"
-
-msgid "Delete a brim ear"
-msgstr "Xóa tai vành"
-
-msgid "Adjust head diameter"
-msgstr "Điều chỉnh đường kính đầu"
-
-msgid "Adjust section view"
-msgstr "Điều chỉnh chế độ xem phần"
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -21931,8 +22131,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Đặt loại vành của đối tượng này thành \"được vẽ\""
 
-msgid " invalid brim ears"
-msgstr " tai vành không hợp lệ"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Tai vành"
@@ -22209,15 +22409,13 @@ msgstr ""
 "Bạn có biết rằng Orca Slicer cung cấp nhiều phím tắt và thao tác cảnh 3D "
 "không?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Đảo ngược trên lẻ\n"
-"Bạn có biết rằng tính năng <b>Đảo ngược trên lẻ</b> có thể cải thiện đáng kể "
-"chất lượng bề mặt của phần nhô của bạn không?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22509,6 +22707,84 @@ msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn "
 "nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Xóa tất cả vẽ"
+
+#~ msgid "Reset cut"
+#~ msgstr "Đặt lại cắt"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Hoán đổi nút chuột kéo và xoay"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Nếu được bật, hoán đổi chức năng kéo và xoay của nút chuột trái và phải."
+
+#, c-format, boost-format
+#~ msgid "nozzle size in preset: %d"
+#~ msgstr "nozzle size in preset: %d"
+
+#, c-format, boost-format
+#~ msgid "nozzle size memorized: %d"
+#~ msgstr "nozzle size memorized: %d"
+
+#~ msgid ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+#~ msgstr ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] in preset: %.1f"
+#~ msgstr "nozzle[%d] in preset: %.1f"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] memorized: %.1f"
+#~ msgstr "nozzle[%d] memorized: %.1f"
+
+#~ msgid ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+#~ msgstr ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Xóa điểm đã chọn"
+
+#~ msgid "Remove all"
+#~ msgstr "Xóa tất cả"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Tự động tạo điểm"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Thêm tai vành"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Xóa tai vành"
+
+#~ msgid "Adjust head diameter"
+#~ msgstr "Điều chỉnh đường kính đầu"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Điều chỉnh chế độ xem phần"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " tai vành không hợp lệ"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Đảo ngược trên lẻ\n"
+#~ "Bạn có biết rằng tính năng <b>Đảo ngược trên lẻ</b> có thể cải thiện đáng "
+#~ "kể chất lượng bề mặt của phần nhô của bạn không?"
 
 #~ msgid "Pen size"
 #~ msgstr "Kích thước bút"

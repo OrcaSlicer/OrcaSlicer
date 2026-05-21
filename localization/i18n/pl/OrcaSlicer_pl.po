@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -113,8 +113,8 @@ msgstr "Wykonaj"
 msgid "On highlighted overhangs only"
 msgstr "Tylko na podświetlonych nawisach"
 
-msgid "Erase all painting"
-msgstr "Wymaż wszystko"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Podświetl miejsca nawisu"
@@ -182,6 +182,9 @@ msgstr "Podświetl ściany zgodnie z kątem nawisu."
 
 msgid "No auto support"
 msgstr "Brak automatycznej podpory"
+
+msgid "Done"
+msgstr "Gotowe"
 
 msgid "Support Generated"
 msgstr "Wygenerowana podpora"
@@ -335,6 +338,12 @@ msgstr ""
 msgid "Fixed step drag"
 msgstr ""
 
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
+
 msgid "Single sided scaling"
 msgstr ""
 
@@ -483,6 +492,18 @@ msgstr "Miejsce przcięcia"
 msgid "Build Volume"
 msgstr "Wymiary robocze"
 
+msgid "Multiple"
+msgstr "Wielokrotne"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Rozstaw"
+
 msgid "Part"
 msgstr "Część"
 
@@ -591,12 +612,6 @@ msgstr "Edytuj złączki"
 msgid "Add connectors"
 msgstr "Dodaj łączniki"
 
-msgid "Reset cut"
-msgstr "Resetuj"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Resetuj płaszczyznę przecinania i usuń łączniki"
-
 msgid "Upper part"
 msgstr "Górna część"
 
@@ -614,6 +629,9 @@ msgstr "Po przecięciu"
 
 msgid "Cut to parts"
 msgstr "Podziel na części"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Resetuj płaszczyznę przecinania i usuń łączniki"
 
 msgid "Perform cut"
 msgstr "Wykonaj cięcie"
@@ -849,6 +867,9 @@ msgstr "Domyślna czcionka"
 
 msgid "Advanced"
 msgstr "Zaawansowane"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1503,15 +1524,6 @@ msgstr ""
 "Funkcja 1 została zresetowana,\n"
 "funkcja 2 została funkcją 1"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Uwaga: proszę wybrać funkcję płaszczyzny."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Uwaga: wybierz funkcję Punkt lub Okrąg."
-
-msgid "Warning: please select two different meshes."
-msgstr "Uwaga: proszę wybrać dwie różne siatki."
-
 msgid "Copy to clipboard"
 msgstr "Kopiuj do schowka"
 
@@ -1562,6 +1574,15 @@ msgstr ""
 
 msgid "Point and point assembly"
 msgstr ""
+
+msgid "Warning: please select two different meshes."
+msgstr "Uwaga: proszę wybrać dwie różne siatki."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Uwaga: proszę wybrać funkcję płaszczyzny."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Uwaga: wybierz funkcję Punkt lub Okrąg."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
@@ -1753,6 +1774,18 @@ msgstr "To jest najnowsza wersja."
 msgid "Info"
 msgstr "Informacja"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1819,6 +1852,23 @@ msgid ""
 msgstr ""
 "Wersja Orca Slicer jest przestarzała i musi zostać uaktualniona do "
 "najnowszej wersji, aby działać normalnie"
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr ""
@@ -2362,10 +2412,10 @@ msgstr "Automatyczna orientacja obiektu w celu poprawy jakości druku."
 msgid "Edit"
 msgstr "Edytuj"
 
-msgid "Delete this filament"
+msgid "Merge with"
 msgstr ""
 
-msgid "Merge with"
+msgid "Delete this filament"
 msgstr ""
 
 msgid "Select All"
@@ -4629,9 +4679,6 @@ msgstr ""
 msgid "Proceed"
 msgstr ""
 
-msgid "Done"
-msgstr "Gotowe"
-
 msgid "Retry"
 msgstr "Ponów"
 
@@ -4892,33 +4939,6 @@ msgstr "Przejście podpór"
 msgid "Mixed"
 msgstr ""
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "mm/s²"
-msgstr "mm/s²"
-
-msgid "Flow rate"
-msgstr "Natężenie przepływu"
-
-msgid "mm³/s"
-msgstr ""
-
-msgid "Fan speed"
-msgstr "Prędkość wentylatora"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Czas"
-
-msgid "Actual speed profile"
-msgstr ""
-
-msgid "Speed: "
-msgstr "Prędkość: "
-
 msgid "Height: "
 msgstr "Wysokość: "
 
@@ -4950,6 +4970,33 @@ msgid "Jerk: "
 msgstr ""
 
 msgid "PA: "
+msgstr ""
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr ""
+
+msgid "Flow rate"
+msgstr "Natężenie przepływu"
+
+msgid "Fan speed"
+msgstr "Prędkość wentylatora"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Czas"
+
+msgid "Speed: "
+msgstr "Prędkość: "
+
+msgid "Actual speed profile"
 msgstr ""
 
 msgid "Statistics of All Plates"
@@ -5263,9 +5310,6 @@ msgstr "Orientacja"
 msgid "Arrange options"
 msgstr "Opcje rozmieszczania"
 
-msgid "Spacing"
-msgstr "Rozstaw"
-
 msgid "0 means auto spacing."
 msgstr "Wartość 0 oznacza automatyczny odstęp."
 
@@ -5400,7 +5444,7 @@ msgstr "Objętość:"
 msgid "Size:"
 msgstr "Rozmiar:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5783,6 +5827,15 @@ msgstr "Eksportuj bieżącą konfigurację do plików"
 msgid "Export"
 msgstr "Eksportuj"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Zakończ"
 
@@ -5909,6 +5962,9 @@ msgid "View"
 msgstr "Widok"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -8448,20 +8504,32 @@ msgstr "Używanie wolnego widoku kamery"
 msgid "If enabled, use free camera. If not enabled, use constrained camera."
 msgstr "Przełącza pomiędzy wolnym a ograniczonym widokiem kamery."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Zamień przyciski przesuwania i obracania myszy"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Jeśli włączone, zamienia funkcje przesuwania i obracania lewym i prawym "
-"przyciskiem myszy."
-
 msgid "Reverse mouse zoom"
 msgstr "Odwrócone przybliżanie myszką"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Odwraca kierunek przybliżania kółkiem myszy."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr ""
@@ -8483,6 +8551,59 @@ msgstr ""
 
 msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
+msgstr ""
+
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Wyłączony"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
 msgid "Login region"
@@ -8627,6 +8748,15 @@ msgstr "Tryb deweloperski"
 
 msgid "Skip AMS blacklist check"
 msgstr "Pomijanie sprawdzania czarnej listy AMS"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr ""
@@ -9656,8 +9786,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Podczas nagrywania timelapse bez głowicy drukującej zaleca się dodanie "
 "„Timelapse - Wieża czyszcząca” \n"
@@ -10289,6 +10419,32 @@ msgstr "Nie zapisuj"
 msgid "Discard"
 msgstr "Odrzuć"
 
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
+
 msgid "Click the right mouse button to display the full text."
 msgstr "Kliknij prawym przyciskiem myszy, aby wyświetlić pełny tekst."
 
@@ -10842,6 +10998,9 @@ msgstr "Kliknij tutaj, aby pobrać."
 msgid "Login"
 msgstr "Logowanie"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10878,6 +11037,18 @@ msgstr "Pokaż listę skrótów klawiszowych"
 
 msgid "Global shortcuts"
 msgstr "Globalne skróty"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11360,9 +11531,6 @@ msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Wewnętrzny most"
-
-msgid "Multiple"
-msgstr "Wielokrotne"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -11974,8 +12142,8 @@ msgstr ""
 "Orca Slicer może przesyłać pliki G-code na hosta drukarki. To pole powinno "
 "zawierać nazwę hosta, adres IP lub URL hosta drukarki. Host drukowania za "
 "HAProxy z włączoną autoryzacją podstawową można uzyskać, wpisując nazwę "
-"użytkownika i hasło w URL w następującym formacie: https://username:"
-"password@your-octopi-address/"
+"użytkownika i hasło w URL w następującym formacie: https://"
+"username:password@your-octopi-address/"
 
 msgid "Device UI"
 msgstr "UI urządzenia"
@@ -13145,9 +13313,6 @@ msgstr ""
 "4. Dla wszystkich mostów – dodatkowa warstwa jest generowana zarówno dla "
 "mostów wewnętrznych, jak i zewnętrznych.\n"
 
-msgid "Disabled"
-msgstr "Wyłączony"
-
 msgid "External bridge only"
 msgstr "Tylko zewnętrzne mosty"
 
@@ -13840,6 +14005,18 @@ msgstr ""
 msgid "Auto For Match"
 msgstr ""
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr ""
 
@@ -14316,6 +14493,17 @@ msgid ""
 "Using multiple lines for the infill pattern, if supported by infill pattern."
 msgstr ""
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Wzór wypełnienia"
 
@@ -14497,8 +14685,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² lub %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Przyspieszenie na rzadkim wypełnieniu. Jeśli wartość jest wyrażona w "
 "procentach (np. 100%), będzie obliczana na podstawie domyślnego "
@@ -14636,10 +14824,10 @@ msgstr "Pełna prędkość wentylatora na warstwie"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Prędkość wentylatora będzie stopniowo zwiększana liniowo od zera na warstwie "
 "„close_fan_the_first_x_layers” do maksymalnej na warstwie "
@@ -15116,6 +15304,30 @@ msgstr ""
 "zwiększenia prędkości obrotowej\n"
 "\n"
 "Ustaw 0, aby wyłączyć tę funkcję."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr "%"
 
 msgid "Time cost"
 msgstr "Koszt czasu"
@@ -16693,8 +16905,8 @@ msgid "Role base wipe speed"
 msgstr "Prędkość wycierania dyszy w oparciu o rolę ekstruzji"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17086,6 +17298,19 @@ msgstr "Oczyszczanie pozostałego filamentu do wieży czyszczącej"
 msgid "Enable filament ramming"
 msgstr ""
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "Warstwy bez czyszczenia (beta)"
 
@@ -17424,15 +17649,17 @@ msgid "Threshold angle"
 msgstr "Kąt progowy"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
-"Podpora zostanie wygenerowana dla nawisów, których kąt nachylenia jest poniżej tego progu."
-"Im mniejsza jest ta wartość, tym bardziej stromy nawis można wydrukować bez podpór.\n"
-"Uwaga: Jeśli ustawiono na 0, normalne podpory używają zamiast tego progu nakładania się, "
-"podpory drzewne wracają do domyślnej wartości 30."
+"Podpora zostanie wygenerowana dla nawisów, których kąt nachylenia jest "
+"poniżej tego progu.Im mniejsza jest ta wartość, tym bardziej stromy nawis "
+"można wydrukować bez podpór.\n"
+"Uwaga: Jeśli ustawiono na 0, normalne podpory używają zamiast tego progu "
+"nakładania się, podpory drzewne wracają do domyślnej wartości 30."
 
 msgid "Threshold overlap"
 msgstr "Próg nakładania"
@@ -17591,8 +17818,8 @@ msgstr "Aktywuj kontrolę temperatury"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -18569,11 +18796,11 @@ msgid "Debug level"
 msgstr "Poziom debugowania"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"Ustawia poziom logowania debugowania. 0:fatal, 1:error, 2:warning, 3:info, 4:"
-"debug, 5:trace\n"
+"Ustawia poziom logowania debugowania. 0:fatal, 1:error, 2:warning, 3:info, "
+"4:debug, 5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr "Włącz timelapse dla druku"
@@ -19109,13 +19336,13 @@ msgstr "Dostarczony plik nie mógł być odczytany, ponieważ jest pusty"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Nieznany format pliku. Plik wejściowy musi mieć rozszerzenie .stl, .obj, ."
-"amf(.xml)."
+"Nieznany format pliku. Plik wejściowy musi mieć "
+"rozszerzenie .stl, .obj, .amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Nieznany format pliku. Plik wejściowy musi mieć rozszerzenie .3mf lub .zip."
-"amf."
+"Nieznany format pliku. Plik wejściowy musi mieć rozszerzenie .3mf "
+"lub .zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: nie udało się przetworzyć"
@@ -20302,8 +20529,8 @@ msgstr ""
 "Czy zastąpić go?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Nazwa profilu zostanie zmieniona na „Dostawca Typ Seria @nazwa drukarki, "
@@ -20481,6 +20708,18 @@ msgstr ""
 msgid ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
 msgstr ""
 
 msgid "Printer Created Successfully"
@@ -20730,32 +20969,6 @@ msgstr ""
 msgid ""
 "The nozzle type does not match the actual printer nozzle type.\n"
 "Please click the Sync button above and restart the calibration."
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr ""
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr ""
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr ""
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -21605,26 +21818,17 @@ msgstr "Maksymalny kąt"
 msgid "Detection radius"
 msgstr "Promień wykrywania"
 
-msgid "Remove selected points"
-msgstr "Usuń zaznaczone punkty"
-
-msgid "Remove all"
-msgstr "Usuń wszystkie"
-
-msgid "Auto-generate points"
-msgstr "Generuj punkty automatycznie"
-
-msgid "Add a brim ear"
-msgstr "Dodaj ucho brim"
-
-msgid "Delete a brim ear"
-msgstr "Usuń ucho brim"
-
-msgid "Adjust head diameter"
+msgid "Selected"
 msgstr ""
 
-msgid "Adjust section view"
-msgstr "Widok przekroju"
+msgid "Auto-generate"
+msgstr ""
+
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
+
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -21636,8 +21840,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr ""
 
-msgid " invalid brim ears"
-msgstr " nieprawidłowe uszy brim"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Uszy brim"
@@ -21904,15 +22108,13 @@ msgstr ""
 "Czy wiesz, że Orca Slicer oferuje szeroki zakres skrótów klawiszowych i "
 "operacji na scenie 3D?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Odwróć na nieparzystych\n"
-"Czy wiesz, że funkcja <b>Zmień kierunek na nieparzystych</b> może znacząco "
-"poprawić jakość powierzchni twoich występów?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22205,6 +22407,52 @@ msgstr ""
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, "
 "takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może "
 "zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Wymaż wszystko"
+
+#~ msgid "Reset cut"
+#~ msgstr "Resetuj"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Zamień przyciski przesuwania i obracania myszy"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Jeśli włączone, zamienia funkcje przesuwania i obracania lewym i prawym "
+#~ "przyciskiem myszy."
+
+#~ msgid "Remove selected points"
+#~ msgstr "Usuń zaznaczone punkty"
+
+#~ msgid "Remove all"
+#~ msgstr "Usuń wszystkie"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Generuj punkty automatycznie"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Dodaj ucho brim"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Usuń ucho brim"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Widok przekroju"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " nieprawidłowe uszy brim"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Odwróć na nieparzystych\n"
+#~ "Czy wiesz, że funkcja <b>Zmień kierunek na nieparzystych</b> może "
+#~ "znacząco poprawić jakość powierzchni twoich występów?"
 
 #~ msgid "Pen size"
 #~ msgstr "Rozmiar pióra"
@@ -23195,9 +23443,6 @@ msgstr ""
 #~ msgid "Set Position"
 #~ msgstr "Ustaw pozycję"
 
-#~ msgid "%"
-#~ msgstr "%"
-
 #, boost-format
 #~ msgid "%1%"
 #~ msgstr "%1%"
@@ -23990,8 +24235,8 @@ msgstr ""
 #~ "\n"
 #~ "Jednakże w mocno pochylonych lub zakrzywionych modelach, zwłaszcza przy "
 #~ "niskiej gęstości struktury wypełnienia, może to prowadzić do wywijania "
-#~ "się niewspieranej struktury wypełnienia, co powoduje efekt \"pillowing"
-#~ "\".\n"
+#~ "się niewspieranej struktury wypełnienia, co powoduje efekt "
+#~ "\"pillowing\".\n"
 #~ "\n"
 #~ "Włączenie tej opcji spowoduje drukowanie wewnętrznej warstwy mostka nad "
 #~ "nieco niewspieraną wewnętrzną strukturą wypełnienia. Poniższe opcje "
@@ -25281,8 +25526,8 @@ msgstr ""
 #~ "Elevation is too low for object. Use the \"Pad around object\" feature to "
 #~ "print the object without elevation."
 #~ msgstr ""
-#~ "Podniesienie zbyt małe dla modelu. Użyj funkcji \"Podkładka wokół modelu"
-#~ "\", aby wydrukować model bez podniesienia."
+#~ "Podniesienie zbyt małe dla modelu. Użyj funkcji \"Podkładka wokół "
+#~ "modelu\", aby wydrukować model bez podniesienia."
 
 #~ msgid ""
 #~ "The endings of the support pillars will be deployed on the gap between "
