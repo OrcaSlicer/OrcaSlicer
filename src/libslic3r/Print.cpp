@@ -1482,7 +1482,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         if (! m_config.use_relative_e_distances)
             return { L("The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1).") };
 
-        if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
+        if (m_config.ooze_prevention.value && m_config.single_extruder_multi_material.value && !has_multiple_physical_extruders(m_config))
             return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
             
 #if 0

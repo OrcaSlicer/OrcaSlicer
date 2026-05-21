@@ -56,6 +56,29 @@ static const Slic3r::Vec3f DEFAULT_EXTRUDER_OFFSET = Slic3r::Vec3f::Zero();
 
 namespace Slic3r {
 
+static int physical_extruder_id_for_tool(int tool_number, const std::vector<int> &filament_maps, const std::vector<int> &physical_extruder_map)
+{
+    int extruder_id = tool_number;
+    if (tool_number >= 0 && tool_number < static_cast<int>(filament_maps.size()))
+        extruder_id = filament_maps[tool_number];
+
+    return extruder_id >= 0 && extruder_id < static_cast<int>(physical_extruder_map.size()) ? physical_extruder_map[extruder_id] : extruder_id;
+}
+
+static bool is_bbl_machine_command_tool(int tool_number)
+{
+    // BBL machine G-code uses these T<n> service commands, including T0xFEFF/T0xFFFF sentinels, that are not slicer toolchanges.
+    return tool_number == 255 || tool_number == 1000 || tool_number == 1001 || tool_number == 1100 || tool_number == 65279 ||
+           tool_number == 65535;
+}
+
+static bool is_bbl_machine_command_tool(const std::string_view command, int tool_number)
+{
+    if (command == "Tx" || command == "Tc" || command == "T?")
+        return GCodeProcessor::s_IsBBLPrinter;
+    return is_bbl_machine_command_tool(tool_number);
+}
+
 const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     " FEATURE: ",
     " WIPE_START",
@@ -1347,17 +1370,47 @@ void GCodeProcessor::run_post_process()
     unsigned int current_layer_id = 0;
 
     // add lines M104 to exported gcode
-    auto process_line_T = [this, &export_line, &current_layer_id](const std::string& gcode_line, const size_t g1_lines_counter, const ExportLines::Backtrace& backtrace) {
+    int pending_toolchange_preheat_temp = -1;
+    auto update_pending_toolchange_preheat_temp = [&pending_toolchange_preheat_temp](const std::string &gcode_line) {
+        if (!GCodeReader::GCodeLine::cmd_is(gcode_line, "M620.10"))
+            return;
+
+        GCodeReader::GCodeLine gline;
+        GCodeReader reader;
+        reader.parse_line(gcode_line, [&gline](GCodeReader&, const GCodeReader::GCodeLine& l) { gline = l; });
+
+        float action = 0.f;
+        if (!gline.has_value('A', action) || static_cast<int>(std::round(action)) != 1) {
+            pending_toolchange_preheat_temp = -1;
+            return;
+        }
+
+        // A1 describes the incoming filament loaded by the following T command.
+        // Bambu filament-change G-code may emit service T commands before the real toolchange; keep this pending until
+        // a real T consumes it.
+        pending_toolchange_preheat_temp = -1;
+        float load_temp = 0.f;
+        if (gline.has_value('T', load_temp) && load_temp > 0.f)
+            pending_toolchange_preheat_temp = static_cast<int>(std::round(load_temp));
+    };
+
+    auto process_line_T = [this, &export_line, &current_layer_id](const std::string &gcode_line,
+                                                                  const size_t g1_lines_counter,
+                                                                  const ExportLines::Backtrace &backtrace,
+                                                                  int preheat_temp_override) -> bool {
         const std::string cmd = GCodeReader::GCodeLine::extract_cmd(gcode_line);
 
         int tool_number = -1;
         if (!parse_number(std::string_view(cmd).substr(1), tool_number)){
             // invalid T<n> command, such as the "TIMELAPSE_TAKE_FRAME" gcode, just ignore
-            return;
+            return false;
         }
         if (cmd.size() >= 2) {
             if (tool_number != -1) {
                 if (tool_number < 0 || (int)m_filament_nozzle_temp.size() <= tool_number) {
+                    if ((m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware) && is_bbl_machine_command_tool(cmd, tool_number))
+                        return false;
+
                     // found an invalid value, clamp it to a valid one
                     tool_number = std::clamp<int>(0, m_filament_nozzle_temp.size() - 1, tool_number);
                     // emit warning
@@ -1373,14 +1426,16 @@ void GCodeProcessor::run_post_process()
                 export_line.insert_lines(
                     backtrace, cmd,
                     // line inserter
-                    [tool_number, this, &current_layer_id](unsigned int id, const std::vector<float>& time_diffs) {
+                    [tool_number, preheat_temp_override, this, &current_layer_id](unsigned int id, const std::vector<float>& time_diffs) {
                         // Orca: use the locally-tracked layer index (current_layer_id) rather than
                         // the stale m_layer_id from the analysis pass. current_layer_id == 0 means
                         // we haven't reached the first ;LAYER_CHANGE marker yet (e.g. tool change
                         // inside start gcode); == 1 means we are inside the first printed layer.
                         // Both cases should use the first-layer nozzle temperature.
-                        const int temperature = int(current_layer_id > 1 ? m_filament_nozzle_temp[tool_number] :
-                                                                         m_filament_nozzle_temp_first_layer[tool_number]);
+                        const int temperature = preheat_temp_override > 0 ?
+                            preheat_temp_override :
+                            int(current_layer_id > 1 ? m_filament_nozzle_temp[tool_number] :
+                                                       m_filament_nozzle_temp_first_layer[tool_number]);
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
                         /**
@@ -1403,7 +1458,7 @@ void GCodeProcessor::run_post_process()
                             out += " S" + std::to_string(temperature) + "\n";
                             return out;
                         } else {
-                            const int real_tool = tool_number < m_physical_extruder_map.size() ? m_physical_extruder_map[tool_number] : tool_number;
+                            const int real_tool = physical_extruder_id_for_tool(tool_number, m_filament_maps, m_physical_extruder_map);
                             std::string comment = "preheat T" + std::to_string(real_tool) +
                                                 " time: " + std::to_string((int) std::round(time_diffs[0])) + "s";
                             return GCodeWriter::set_temperature(temperature, this->m_flavor, false, real_tool, comment);
@@ -1418,15 +1473,17 @@ void GCodeProcessor::run_post_process()
 
                             float val;
                             if (gline.has_value('T', val) && gline.raw().find("cooldown") != std::string::npos) {
-                                if (static_cast<int>(val) == (tool_number < m_physical_extruder_map.size() ? m_physical_extruder_map[tool_number] : tool_number))
+                                if (static_cast<int>(val) == physical_extruder_id_for_tool(tool_number, m_filament_maps, m_physical_extruder_map))
                                     return std::string("; removed M104\n");
                             }
                         }
                         return line;
                     }
                 );
+                return true;
             }
         }
+        return false;
     };
 
     m_result.lines_ends.clear();
@@ -1669,6 +1726,7 @@ void GCodeProcessor::run_post_process()
                     if (!gcode_line.empty())
                         process_inline_placeholders(gcode_line);
                     if (!processed && !is_temporary_decoration(gcode_line)) {
+                        update_pending_toolchange_preheat_temp(gcode_line);
                         if (GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1")) {
                             export_line.append_line(gcode_line);
                             // add lines M73 where needed
@@ -1687,7 +1745,9 @@ void GCodeProcessor::run_post_process()
                         }
                         else if (m_result.backtrace_enabled && GCodeReader::GCodeLine::cmd_starts_with(gcode_line, "T")) {
                             // add lines M104 where needed
-                            process_line_T(gcode_line, g1_lines_counter, backtrace_T);
+                            const bool preheated = process_line_T(gcode_line, g1_lines_counter, backtrace_T, pending_toolchange_preheat_temp);
+                            if (preheated)
+                                pending_toolchange_preheat_temp = -1;
                             max_backtrace_time = std::max(max_backtrace_time, backtrace_T.time);
                         }
                     }
@@ -2922,14 +2982,15 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     // sanity check
     if(m_preheat_steps < 1)
         m_preheat_steps = 1;
-    m_result.backtrace_enabled = config.ooze_prevention && m_preheat_time > 0 && (m_is_XL_printer || (!m_single_extruder_multi_material && filament_count > 1));
+    m_physical_extruder_map = config.physical_extruder_map.values;
+    m_result.backtrace_enabled = config.ooze_prevention.value && m_preheat_time > 0 &&
+        (m_is_XL_printer || ((!m_single_extruder_multi_material || has_multiple_physical_extruders(m_physical_extruder_map)) && filament_count > 1));
 
     assert(config.nozzle_volume.size() == config.nozzle_diameter.size());
     m_nozzle_volume.resize(config.nozzle_volume.size());
     for (size_t idx = 0; idx < config.nozzle_volume.size(); ++idx)
         m_nozzle_volume[idx] = config.nozzle_volume.values[idx];
 
-    m_physical_extruder_map = config.physical_extruder_map.values;
     // Multi-nozzle context state, consumed by the multi-nozzle time model and pre-heat injector.
     m_extruder_max_nozzle_count = config.extruder_max_nozzle_count.values;
 
@@ -2952,7 +3013,6 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
         m_result.extruder_types[idx] = static_cast<ExtruderType>(config.extruder_type.values[idx]);
     m_result.printer_extruder_variant = config.printer_extruder_variant.values;
     m_result.printer_extruder_id      = config.printer_extruder_id.values;
-
     m_extruder_offsets.resize(filament_count);
     m_extruder_colors.resize(filament_count);
     m_result.filament_diameters.resize(filament_count);
@@ -6571,12 +6631,8 @@ void GCodeProcessor::process_T(const std::string_view command, int nozzle_id)
     //TODO: multi switch
     if (command.length() > 1) {
         if (eid < 0 || eid > 254) {
-            //BBS: T255, T1000 and T1100 is used as special command for BBL machine and does not cost time. return directly
-            // Orca: T1001 (hotend-type detection) and T65535/T65279 (AMS unload virtual-tool selects, paired with
-            // M620/M621 S65535/S65279) are firmware opcodes emitted verbatim by BBL machine start/end g-code, not
-            // real tool changes - whitelist them so the time estimator stops flagging these valid lines.
-            if ((m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware) && (command == "Tx" || command == "Tc" || command == "T?" ||
-                 eid == 1000 || eid == 1100 || eid == 255 || eid == 1001 || eid == 65279 || eid == 65535))
+            //BBS: some T<n> values are special commands for BBL machines and do not cost time. return directly
+            if ((m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware) && is_bbl_machine_command_tool(command, static_cast<int>(eid)))
                 return;
 
             // T-1 is a valid gcode line for RepRap Firmwares (used to deselects all tools)

@@ -1905,6 +1905,10 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE0(
     (PrintObjectConfig, PrintRegionConfig, PrintConfig)
 )
 
+bool has_multiple_physical_extruders(const std::vector<int>& physical_extruder_map);
+bool has_multiple_physical_extruders(const PrintConfig& config);
+bool has_multiple_physical_extruders(const DynamicPrintConfig& config);
+
 // Validate the FullPrintConfig. Returns an empty string on success, otherwise an error message is returned.
 std::map<std::string, std::string> validate(const FullPrintConfig &config, bool under_cli = false);
 
@@ -2394,6 +2398,8 @@ static void set_flush_volumes_matrix(std::vector<T> &out_matrix, const std::vect
     }
 }
 
+// Return the zero-based logical extruder backing a filament. If filament_map is missing or invalid for the filament,
+// fall back to the filament id to preserve one-to-one filament/extruder semantics.
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 } // namespace Slic3r

@@ -821,6 +821,56 @@ SCENARIO("Shipped dual-nozzle change_filament_gcode resolves during a real slice
     }
 }
 
+SCENARIO("X2D ooze prevention addresses the reversed physical hotend map", "[GCodeWriter][X2D][OozePrevention]")
+{
+    GIVEN("a filament that moves from X2D logical extruder 0 to logical extruder 1 above z=6")
+    {
+        DynamicPrintConfig config = dual_extruder_toolchange_config();
+        config.set_key_value("printer_model", new ConfigOptionString("Bambu Lab X2D"));
+        config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(true));
+        config.set_key_value("physical_extruder_map", new ConfigOptionInts({1, 0}));
+        config.set_key_value("ooze_prevention", new ConfigOptionBool(true));
+        config.set_key_value("idle_temperature", new ConfigOptionInts({140, 150}));
+        config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+        config.set_key_value("enable_pre_heating", new ConfigOptionBool(true));
+        config.set_key_value("preheat_time", new ConfigOptionFloat(30.));
+        config.set_key_value("preheat_steps", new ConfigOptionInt(1));
+        config.set_key_value("hotend_cooling_rate", new ConfigOptionFloatsNullable({2.0, 2.0}));
+        config.set_key_value("hotend_heating_rate", new ConfigOptionFloatsNullable({2.0, 2.0}));
+        config.set_key_value("change_filament_gcode", new ConfigOptionString("M620.10 A1 T260 P230\nT[next_filament_id]\n"));
+
+        Model model;
+        auto* obj = model.add_object();
+        obj->add_volume(cube(10));
+        obj->add_instance();
+        DynamicPrintConfig range_config;
+        range_config.set_key_value("extruder", new ConfigOptionInt(2));
+        range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+        obj->layer_config_ranges[{6.0, 10.0}].assign_config(std::move(range_config));
+
+        Print print;
+        print.is_BBL_printer() = true;
+        arrange_objects_on_test_bed(model, config);
+        obj->ensure_on_bed();
+        print.auto_assign_extruders(obj);
+        print.apply(model, config);
+        print.validate();
+        print.set_status_silent();
+        print.process();
+
+        WHEN("the print is exported")
+        {
+            const std::string gcode = Slic3r::Test::gcode(print);
+            THEN("temperature commands use physical hotend 0 for logical extruder 1 and retire physical hotend 1")
+            {
+                REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("M104 S150 T0 ; cooldown before first use"));
+                REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("M104 S230 T0 ; preheat T0 time:"));
+                REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("M104 S0 T1 ; turn off unused hotend"));
+            }
+        }
+    }
+}
+
 TEST_CASE("Custom G-code motion limits are restored before generated moves", "[GCodeWriter]")
 {
     const std::string gcode = Slic3r::Test::slice({ cube(20) }, {

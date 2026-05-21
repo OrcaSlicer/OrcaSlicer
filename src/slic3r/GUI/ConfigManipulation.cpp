@@ -967,13 +967,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     toggle_field("single_extruder_multi_material", !is_BBL_Printer);
 
-    const auto &printer_config = preset_bundle->printers.get_edited_preset().config;
-    const bool bSEMM = printer_config.opt_bool("single_extruder_multi_material");
-    const std::string printer_model = printer_config.opt_string("printer_model");
-    const bool is_h2d_printer = printer_model == "Bambu Lab H2D" || printer_model == "Bambu Lab H2D Pro";
+    const auto& printer_config       = preset_bundle->printers.get_edited_preset().config;
+    const bool bSEMM                 = printer_config.opt_bool("single_extruder_multi_material");
     const bool supports_wipe_tower_2 = !is_BBL_Printer && printer_config.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type2;
 
-    toggle_field("ooze_prevention", !bSEMM || is_h2d_printer);
+    toggle_field("ooze_prevention", !bSEMM || has_multiple_physical_extruders(printer_config));
     bool have_ooze_prevention = config->opt_bool("ooze_prevention");
     toggle_line("standby_temperature_delta", have_ooze_prevention);
     toggle_line("preheat_time", have_ooze_prevention);
