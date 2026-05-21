@@ -279,9 +279,12 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         });
         m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
         m_mode_view = new ModeSwitchButton(m_top_panel);
-        m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
-        if (wxGetApp().get_mode() == comDevelop)
+        if (wxGetApp().get_mode() == comDevelop) {
+            m_mode_view->SetSelection(mode_to_selection(comExpert));
             m_mode_view->Enable(false);
+        } else {
+            m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
+        }
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -648,12 +651,13 @@ void ParamsPanel::update_mode()
         if (mode_view == nullptr)
             return;
 
-        mode_view->SetSelection(mode_to_selection(Slic3r::GUI::wxGetApp().get_saved_mode()));
         if (app_mode == comDevelop) {
+            mode_view->SetSelection(mode_to_selection(comExpert));
             mode_view->Enable(false);
             return;
         }
 
+        mode_view->SetSelection(mode_to_selection(Slic3r::GUI::wxGetApp().get_saved_mode()));
         if (!mode_view->IsEnabled())
             mode_view->Enable();
     };
