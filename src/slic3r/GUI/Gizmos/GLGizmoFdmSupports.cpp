@@ -82,7 +82,7 @@ bool GLGizmoFdmSupports::on_init()
 
     m_desc["perform"]            = _L("Perform");
     m_desc["on_overhangs_only"]  = _L("On highlighted overhangs only");
-    m_desc["remove_all"]         = _L("Erase all painting");
+    m_desc["remove_all"]         = _L("Erase all");
     m_desc["highlight_by_angle"] = _L("Highlight overhang areas");
     m_desc["tool_type"]          = _L("Tool type");
     m_desc["gap_fill"]           = _L("Gap fill");
@@ -215,6 +215,9 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     //BBS
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
@@ -225,11 +228,10 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     const float highlight_slider_left   = m_imgui->calc_text_size(m_desc.at("highlight_by_angle")).x + m_imgui->scaled(1.5f);
     const float reset_button_slider_left = m_imgui->calc_text_size(m_desc.at("reset_direction")).x + m_imgui->scaled(1.5f) + ImGui::GetStyle().FramePadding.x * 2;
     const float on_overhangs_only_width  = m_imgui->calc_text_size(m_desc["on_overhangs_only"]).x + m_imgui->scaled(1.5f);
-    const float remove_btn_width        = m_imgui->calc_text_size(m_desc.at("remove_all")).x + m_imgui->scaled(1.5f);
     const float filter_btn_width        = m_imgui->calc_text_size(m_desc.at("perform")).x + m_imgui->scaled(1.5f);
     const float gap_area_txt_width = m_imgui->calc_text_size(m_desc.at("gap_area")).x + m_imgui->scaled(1.5f);
     const float smart_fill_angle_txt_width = m_imgui->calc_text_size(m_desc.at("smart_fill_angle")).x + m_imgui->scaled(1.5f);
-    const float buttons_width           = remove_btn_width + filter_btn_width + m_imgui->scaled(1.5f);
+    const float buttons_width           = filter_btn_width + m_imgui->scaled(1.5f);
     const float empty_button_width      = m_imgui->calc_button_size("").x;
 
     const float tips_width           = m_imgui->calc_text_size(_L("Auto support threshold angle: ") + " 90 ").x + m_imgui->scaled(1.5f);
@@ -358,12 +360,27 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        // Apply gap fill button
+        if (m_imgui->button(m_desc.at("perform"))) {
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
+
+            for (int i = 0; i < m_triangle_selectors.size(); i++) {
+                TriangleSelectorPatch* ts_mm = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
+                ts_mm->update_selector_triangles();
+                ts_mm->request_update_render_data(true);
+            }
+            update_model_object();
+            m_parent.set_as_dirty();
+        }
     }
 
-     m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(format_wxstr(_L("Allows painting only on facets selected by: \"%1%\""), m_desc["highlight_by_angle"]),
-                         max_tooltip_width);
+    if (m_current_tool != ImGui::GapFillIcon) {
+        m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
+        if (ImGui::IsItemHovered())
+            m_imgui->tooltip(format_wxstr(_L("Allows painting only on facets selected by: \"%1%\""), m_desc["highlight_by_angle"]),
+                             max_tooltip_width);
+    }
 
 
     ImGui::Separator();
@@ -427,33 +444,12 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     if (b_bbl_slider_float || b_drag_input) m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
     
-
     ImGui::Separator();
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
+
     render_tooltip_button(x, y);
 
-    float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
-
     ImGui::SameLine();
-
-    // Perform button is for gap fill
-    if (m_current_tool == ImGui::GapFillIcon) {
-        if (m_imgui->button(m_desc.at("perform"))) {
-            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
-
-            for (int i = 0; i < m_triangle_selectors.size(); i++) {
-                TriangleSelectorPatch* ts_mm = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
-                ts_mm->update_selector_triangles();
-                ts_mm->request_update_render_data(true);
-            }
-            update_model_object();
-            m_parent.set_as_dirty();
-        }
-    }
-
-    ImGui::SameLine();
-
+    m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_fdm_support_painted() == false);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject *        mo  = m_c->selection_info()->model_object();
@@ -468,11 +464,18 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         update_model_object();
         m_parent.set_as_dirty();
     }
-    ImGui::PopStyleVar(2);
+    m_imgui->disabled_end();
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
 
     GizmoImguiEnd();
 
     // BBS
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     ImGuiWrapper::pop_toolbar_style();
 }
 

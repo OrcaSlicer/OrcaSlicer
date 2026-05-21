@@ -103,7 +103,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["edge_detection"]   = _L("Edge detection");
     m_desc["gap_area"]         = _L("Gap area");
     m_desc["perform"]          = _L("Perform");
-    m_desc["remove_all"]       = _L("Erase all painting");
+    m_desc["remove_all"]       = _L("Erase all");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");
     m_desc["pointer"]          = _L("Triangles");
@@ -362,6 +362,9 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     // BBS
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
     // First calculate width of all the texts that are could possibly be shown. We will decide set the dialog width based on that:
@@ -374,10 +377,9 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     const float gap_area_slider_left = m_imgui->calc_text_size(m_desc.at("gap_area")).x + m_imgui->scaled(1.5f) + space_size;
     const float height_range_slider_left = m_imgui->calc_text_size(m_desc.at("height_range")).x + m_imgui->scaled(2.f);
 
-    const float remove_btn_width = m_imgui->calc_text_size(m_desc.at("remove_all")).x + m_imgui->scaled(1.f);
     const float filter_btn_width = m_imgui->calc_text_size(m_desc.at("perform")).x + m_imgui->scaled(1.f);
     const float remap_btn_width = m_imgui->calc_text_size(m_desc.at("perform_remap")).x + m_imgui->scaled(1.f);
-    const float buttons_width = remove_btn_width + filter_btn_width + remap_btn_width + m_imgui->scaled(2.f);
+    const float buttons_width = filter_btn_width + remap_btn_width + m_imgui->scaled(2.f);
     const float minimal_slider_width = m_imgui->scaled(4.f);
     const float color_button_width = m_imgui->calc_text_size(std::string_view{""}).x + m_imgui->scaled(1.75f);
 
@@ -566,8 +568,6 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::BUCKET_FILL;
 
-        m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
-
         if (m_detect_geometry_edge) {
             ImGui::AlignTextToFramePadding();
             m_imgui->text(m_desc["smart_fill_angle"]);
@@ -587,6 +587,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             // set to negative value to disable edge detection
             m_smart_fill_angle = -1.f;
         }
+                
+        m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
     } 
     else if (m_current_tool == ImGui::HeightRangeIcon) {
         m_tool_type   = ToolType::BRUSH;
@@ -613,6 +615,19 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        // Apply Gap fill button
+        if (m_imgui->button(m_desc.at("perform"))) {
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Gap fill", UndoRedo::SnapshotType::GizmoAction);
+
+            for (int i = 0; i < m_triangle_selectors.size(); i++) {
+                TriangleSelectorPatch* ts_mm = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
+                ts_mm->update_selector_triangles();
+                ts_mm->request_update_render_data(true);
+            }
+            update_model_object();
+            m_parent.set_as_dirty();
+        }
     }
 
     ImGui::Separator();
@@ -639,30 +654,10 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     ImGui::Separator();
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
     render_tooltip_button(x, y);
 
-    float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
-
     ImGui::SameLine();
-
-    if (m_current_tool == ImGui::GapFillIcon) {
-        if (m_imgui->button(m_desc.at("perform"))) {
-            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Gap fill", UndoRedo::SnapshotType::GizmoAction);
-
-            for (int i = 0; i < m_triangle_selectors.size(); i++) {
-                TriangleSelectorPatch* ts_mm = dynamic_cast<TriangleSelectorPatch*>(m_triangle_selectors[i].get());
-                ts_mm->update_selector_triangles();
-                ts_mm->request_update_render_data(true);
-            }
-            update_model_object();
-            m_parent.set_as_dirty();
-        }
-
-        ImGui::SameLine();
-    }
-
+    m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_mm_painted() == false);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject *        mo  = m_c->selection_info()->model_object();
@@ -677,7 +672,15 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         update_model_object();
         m_parent.set_as_dirty();
     }
-    ImGui::PopStyleVar(2);
+    m_imgui->disabled_end();
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     GizmoImguiEnd();
 
     // BBS

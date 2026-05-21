@@ -1,7 +1,7 @@
 {
 	"name": "Z-Bolt",
 	"url": "",
-	"version": "02.03.02.70",
+	"version": "02.03.02.71",
 	"force_update": "0",
 	"description": "Z-Bolt configurations",
 	"machine_model_list": [
@@ -210,8 +210,8 @@
 	],
 	"filament_list": [
 		{
-			"name": "Generic ABS @Z-Bolt",
-			"sub_path": "filament/Generic ABS @Z-Bolt.json"
+			"name": "Generic ABS @Z-Bolt Base",
+			"sub_path": "filament/Generic ABS @Z-Bolt Base.json"
 		},
 		{
 			"name": "Generic ABS @Z-Bolt 0.4 nozzle",
@@ -226,8 +226,8 @@
 			"sub_path": "filament/Generic ABS @Z-Bolt 0.8 nozzle.json"
 		},
 		{
-			"name": "Generic PA @Z-Bolt",
-			"sub_path": "filament/Generic PA @Z-Bolt.json"
+			"name": "Generic PA @Z-Bolt Base",
+			"sub_path": "filament/Generic PA @Z-Bolt Base.json"
 		},
 		{
 			"name": "Generic PA @Z-Bolt 0.4 nozzle",
@@ -242,8 +242,8 @@
 			"sub_path": "filament/Generic PA @Z-Bolt 0.8 nozzle.json"
 		},
 		{
-			"name": "Generic PETG @Z-Bolt",
-			"sub_path": "filament/Generic PETG @Z-Bolt.json"
+			"name": "Generic PETG @Z-Bolt Base",
+			"sub_path": "filament/Generic PETG @Z-Bolt Base.json"
 		},
 		{
 			"name": "Generic PETG @Z-Bolt 0.4 nozzle",
@@ -258,8 +258,8 @@
 			"sub_path": "filament/Generic PETG @Z-Bolt 0.8 nozzle.json"
 		},
 		{
-			"name": "Generic PLA @Z-Bolt",
-			"sub_path": "filament/Generic PLA @Z-Bolt.json"
+			"name": "Generic PLA @Z-Bolt Base",
+			"sub_path": "filament/Generic PLA @Z-Bolt Base.json"
 		},
 		{
 			"name": "Generic PLA @Z-Bolt 0.4 nozzle",
@@ -274,8 +274,8 @@
 			"sub_path": "filament/Generic PLA @Z-Bolt 0.8 nozzle.json"
 		},
 		{
-			"name": "Generic ABS HT @Z-Bolt",
-			"sub_path": "filament/Generic ABS HT @Z-Bolt.json"
+			"name": "Generic ABS HT @Z-Bolt Base",
+			"sub_path": "filament/Generic ABS HT @Z-Bolt Base.json"
 		},
 		{
 			"name": "Generic ABS HT @Z-Bolt 0.4 nozzle",

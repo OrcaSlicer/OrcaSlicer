@@ -16,16 +16,13 @@ namespace igl
   {
     namespace cgal
     {
-      // Convert a mesh (V,F) to a list of CGAL triangles
-      //
-      // Templates:
-      //   Kernal  CGAL computation and construction kernel (e.g.
-      //     CGAL::Exact_predicates_exact_constructions_kernel)
-      // Inputs:
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices
-      // Outputs:
-      //   T  #F list of CGAL triangles
+      /// Convert a mesh (V,F) to a list of CGAL triangles
+      ///
+      /// @2tparam Kernal  CGAL computation and construction kernel (e.g.
+      ///     CGAL::Exact_predicates_exact_constructions_kernel)
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices
+      /// @param[out] T  #F list of CGAL triangles
       template <
         typename DerivedV,
         typename DerivedF,
