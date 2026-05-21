@@ -5849,17 +5849,20 @@ void GUI_App::reload_settings()
         load_pending_vendors();
         preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
         preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        if (is_main_thread_active()) {
+        // Orca: settings changed, refresh ui to reflect the new preset values
+        auto refresh_synced_ui = [this] {
             mainframe->update_side_preset_ui();
+            for (auto tab : tabs_list) {
+                tab->reload_config();
+                tab->update_changed_ui();
+            }
             if (plater_)
                 plater_->sidebar().update_all_preset_comboboxes();
-        } else {
-            CallAfter([this] {
-                mainframe->update_side_preset_ui();
-                if (plater_)
-                    plater_->sidebar().update_all_preset_comboboxes();
-            });
-        }
+        };
+        if (is_main_thread_active())
+            refresh_synced_ui();
+        else
+            CallAfter(refresh_synced_ui);
     }
 }
 
