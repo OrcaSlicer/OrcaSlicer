@@ -27,6 +27,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <cereal/access.hpp>
+#include <cereal/cereal.hpp>
 #include <cereal/types/base_class.hpp>
 // The serialize() members below archive ConfigOption hierarchies through
 // cereal::base_class, whose registration machinery lives in polymorphic.hpp.
@@ -1539,13 +1540,34 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoints(*this); }
     ConfigOptionPoints&     operator= (const ConfigOption *opt) { this->set(opt); return *this; }
-    bool                    operator==(const ConfigOptionPoints &rhs) const throw() { return this->values == rhs.values; }
+    bool                    operator==(const ConfigOptionPoints &rhs) const throw() { return this->values == rhs.values && m_serialized_override == rhs.m_serialized_override; }
+    bool                    operator==(const ConfigOption &rhs) const override
+    {
+        if (rhs.type() != this->type())
+            throw ConfigurationError("ConfigOptionPoints: Comparing incompatible types");
+        assert(dynamic_cast<const ConfigOptionPoints*>(&rhs));
+        const ConfigOptionPoints *other = static_cast<const ConfigOptionPoints*>(&rhs);
+        return this->values == other->values && m_serialized_override == other->m_serialized_override;
+    }
     bool                    operator< (const ConfigOptionPoints &rhs) const throw()
         { return std::lexicographical_compare(this->values.begin(), this->values.end(), rhs.values.begin(), rhs.values.end(), [](const auto &l, const auto &r){ return l < r; }); }
     bool					is_nil(size_t) const override { return false; }
 
+    void set(const ConfigOption *rhs) override
+    {
+        if (rhs->type() != this->type())
+            throw ConfigurationError("ConfigOptionPoints: Assigning an incompatible type");
+        assert(dynamic_cast<const ConfigOptionPoints*>(rhs));
+        const ConfigOptionPoints *other = static_cast<const ConfigOptionPoints*>(rhs);
+        this->values = other->values;
+        m_serialized_override = other->m_serialized_override;
+    }
+
     std::string serialize() const override
     {
+        if (! m_serialized_override.empty())
+            return m_serialized_override;
+
         std::ostringstream ss;
         for (Pointfs::const_iterator it = this->values.begin(); it != this->values.end(); ++it) {
             if (it - this->values.begin() != 0) ss << ",";
@@ -1558,6 +1580,9 @@ public:
 
     std::vector<std::string> vserialize() const override
     {
+        if (! m_serialized_override.empty())
+            return { m_serialized_override };
+
         std::vector<std::string> vv;
         for (Pointfs::const_iterator it = this->values.begin(); it != this->values.end(); ++it) {
             std::ostringstream ss;
@@ -1573,9 +1598,32 @@ public:
 
     bool deserialize(const std::string &str, bool append = false) override
     {
-        if (! append)
+        if (! append) {
             this->values.clear();
-        std::istringstream is(str);
+            m_serialized_override.clear();
+        }
+
+        const bool has_z_volume_syntax = str.find("..") != std::string::npos && str.find(';') != std::string::npos;
+        if (has_z_volume_syntax && ! append)
+            m_serialized_override = str;
+
+        std::string points_str = str;
+        if (has_z_volume_syntax) {
+            std::ostringstream points;
+            std::istringstream regions(str);
+            std::string region;
+            while (std::getline(regions, region, '|')) {
+                const size_t sep = region.find(';');
+                if (sep == std::string::npos)
+                    continue;
+                if (points.tellp() > 0)
+                    points << ",";
+                points << region.substr(sep + 1);
+            }
+            points_str = points.str();
+        }
+
+        std::istringstream is(points_str);
         std::string point_str;
         while (std::getline(is, point_str, ',')) {
             Vec2d point(Vec2d::Zero());
@@ -1592,20 +1640,44 @@ public:
         return true;
     }
 
+    size_t hash() const throw() override
+    {
+        size_t seed = 0;
+        std::hash<Vec2d> point_hasher;
+        std::hash<std::string> string_hasher;
+        for (const Vec2d &point : this->values)
+            boost::hash_combine(seed, point_hasher(point));
+        boost::hash_combine(seed, string_hasher(m_serialized_override));
+        return seed;
+    }
+
 private:
-	friend class cereal::access;
-	template<class Archive> void save(Archive& archive) const {
-		size_t cnt = this->values.size();
-		archive(cnt);
-		archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
-	template<class Archive> void load(Archive& archive) {
-		size_t cnt;
-		archive(cnt);
-		this->values.assign(cnt, Vec2d());
-		archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
+    std::string m_serialized_override;
+
+    friend class cereal::access;
+    template<class Archive> void save(Archive& archive, const std::uint32_t /* version */) const {
+        size_t cnt = this->values.size();
+        archive(cnt);
+        archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
+        archive(m_serialized_override);
+    }
+    template<class Archive> void load(Archive& archive, const std::uint32_t version) {
+        size_t cnt;
+        archive(cnt);
+        this->values.assign(cnt, Vec2d());
+        archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
+        if (version >= 1)
+            archive(m_serialized_override);
+        else
+            m_serialized_override.clear();
+    }
 };
+
+} // namespace Slic3r
+
+CEREAL_CLASS_VERSION(Slic3r::ConfigOptionPoints, 1);
+
+namespace Slic3r {
 
 class ConfigOptionPoint3 : public ConfigOptionSingle<Vec3d>
 {

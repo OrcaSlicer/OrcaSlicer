@@ -4336,6 +4336,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // It should be detection of volume change
         // Not only detection of some modifiers !!!
         if (evt.Dragging()) {
+            if (PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+                plate->clear_exclusion_volume_intersections();
             GLGizmosManager::EType c = m_gizmos.get_current_type();
             if (current_printer_technology() == ptFFF &&
                 (fff_print()->config().print_sequence == PrintSequence::ByObject)) {
@@ -4536,6 +4538,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
             if (!m_mouse.drag.move_requires_threshold) {
                 m_mouse.dragging = true;
+                if (PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+                    plate->clear_exclusion_volume_intersections();
                 Vec3d cur_pos = m_mouse.drag.start_position_3D;
                 // we do not want to translate objects if the user just clicked on an object while pressing shift to remove it from the selection and then drag
                 if (m_selection.contains_volume(get_first_hover_volume_idx())) {

@@ -1366,6 +1366,7 @@ public:
     double get_auto_brim_width() const;
     // BBS
     Polygon convex_hull_2d();
+    bool intersects_bed_exclude_region(const BedExcludeRegion &region, indexed_triangle_set *intersection_mesh = nullptr) const;
     void invalidate_convex_hull_2d();
 
     // Getting the input polygon for arrange

@@ -8,7 +8,10 @@
 #include "format.hpp"
 
 #include "GCode/Thumbnails.hpp"
+#include <algorithm>
 #include <set>
+#include <optional>
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -875,10 +878,20 @@ void PrintConfigDef::init_common_params()
     def = this->add("bed_exclude_area", coPoints);
     def->label = L("Excluded bed area");
     def->tooltip = L("Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. "
-        "The area is expressed as polygon by points in following format: \"XxY, XxY, ...\"");
+        "The area is expressed as polygon by points in following format: \"XxY, XxY, ...\". "
+        "Use \"ZMIN..ZMAX;XxY, XxY, ...\" for a 3D Z-limited exclusion volume. "
+        "Separate multiple areas or volumes with \"|\". ");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0) });
+
+    def = this->add("bed_exclude_area_3d", coString);
+    def->label = L("Bed exclusion volume");
+    def->tooltip = L("Z-limited unprintable volumes. Use: \"ZMIN..ZMAX;XxY,XxY,...\". Separate multiple regions with \"|\". "
+        "Missing Z bounds default to the bed surface or printable height.");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionString());
 
     def = this->add("bed_custom_texture", coString);
     def->label = L("Bed custom texture");
@@ -12862,8 +12875,212 @@ Points get_bed_shape(const PrintConfig &cfg, bool use_share)
 
 Points get_bed_shape(const SLAPrinterConfig &cfg) { return to_points(make_counter_clockwise(cfg.printable_area.values)); }
 
+namespace {
+
+static bool is_bed_exclusion_volume_syntax(const std::string &value)
+{
+    return value.find("..") != std::string::npos && value.find(';') != std::string::npos;
+}
+
+static bool parse_double_token(const std::string &text, double &out)
+{
+    std::string token = text;
+    boost::trim(token);
+    if (token.empty())
+        return false;
+
+    try {
+        size_t parsed = 0;
+        out = std::stod(token, &parsed);
+        return parsed == token.size();
+    } catch (...) {
+        return false;
+    }
+}
+
+static bool parse_z_range_token(
+    const std::string &token_in,
+    const double printable_height,
+    double &z_min,
+    double &z_max,
+    bool &has_z)
+{
+    std::string token = token_in;
+    boost::trim(token);
+    if (token.empty())
+        return false;
+
+    size_t range_pos = token.find("..");
+    if (range_pos == std::string::npos)
+        return false;
+
+    std::string min_token = token.substr(0, range_pos);
+    std::string max_token = token.substr(range_pos + 2);
+    boost::trim(min_token);
+    boost::trim(max_token);
+
+    double parsed_min = 0.0;
+    double parsed_max = printable_height;
+    if (! min_token.empty() && ! parse_double_token(min_token, parsed_min))
+        return false;
+    if (! max_token.empty() && ! parse_double_token(max_token, parsed_max))
+        return false;
+
+    z_min = std::clamp(parsed_min, 0.0, printable_height);
+    z_max = std::clamp(parsed_max, 0.0, printable_height);
+    has_z = true;
+    return z_min <= z_max;
+}
+
+static std::optional<Polygon> parse_exclude_polygon_points(const std::string &points_str)
+{
+    ConfigOptionPoints points;
+    if (! points.deserialize(points_str) || points.values.size() < 3)
+        return std::nullopt;
+
+    Polygon polygon;
+    polygon.points.reserve(points.values.size());
+    for (const Vec2d &pt : points.values)
+        polygon.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
+    polygon.make_counter_clockwise();
+    return polygon;
+}
+
+static void append_legacy_bed_exclude_regions(
+    std::vector<BedExcludeRegion> &out,
+    const Pointfs &legacy_points,
+    const double printable_height)
+{
+    if (legacy_points.size() < 3)
+        return;
+
+    Polygon polygon;
+    polygon.points.reserve(legacy_points.size());
+    for (const Vec2d &pt : legacy_points)
+        polygon.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
+    polygon.make_counter_clockwise();
+
+    out.push_back({ std::move(polygon), 0.0, printable_height, false, false });
+}
+
+static void append_bed_exclusion_volume_regions(
+    std::vector<BedExcludeRegion> &out,
+    const std::string &region_specs_raw,
+    const double printable_height)
+{
+    std::vector<std::string> region_specs;
+    boost::split(region_specs, region_specs_raw, boost::is_any_of("|\n"));
+
+    for (const std::string &spec_raw : region_specs) {
+        std::string spec = spec_raw;
+        boost::trim(spec);
+        if (spec.empty())
+            continue;
+
+        std::vector<std::string> fields;
+        boost::split(fields, spec, boost::is_any_of(";"));
+
+        double z_min = 0.0;
+        double z_max = printable_height;
+        bool has_z_range = false;
+        std::string points_field;
+        bool invalid_z = false;
+
+        for (std::string field : fields) {
+            boost::trim(field);
+            if (field.empty())
+                continue;
+
+            bool parsed_z_range = parse_z_range_token(field, printable_height, z_min, z_max, has_z_range);
+            if (parsed_z_range)
+                continue;
+
+            if (field.find("..") != std::string::npos && field.find('x') == std::string::npos) {
+                invalid_z = true;
+                break;
+            }
+
+            if (boost::algorithm::istarts_with(field, "points="))
+                field = field.substr(std::string("points=").size());
+            else if (boost::algorithm::istarts_with(field, "polygon="))
+                field = field.substr(std::string("polygon=").size());
+
+            points_field = field;
+        }
+
+        if (invalid_z)
+            continue;
+
+        if (! has_z_range) {
+            z_min = 0.0;
+            z_max = printable_height;
+        }
+
+        if (z_min > z_max)
+            continue;
+
+        std::optional<Polygon> polygon = parse_exclude_polygon_points(points_field);
+        if (! polygon)
+            continue;
+
+        out.push_back({ std::move(*polygon), z_min, z_max, true, has_z_range });
+    }
+}
+
+static std::vector<BedExcludeRegion> get_bed_excluded_regions_impl(
+    const Pointfs &legacy_points,
+    const std::string &region_specs,
+    const double printable_height)
+{
+    std::vector<BedExcludeRegion> regions;
+    const double height = std::max(0.0, printable_height);
+    append_legacy_bed_exclude_regions(regions, legacy_points, height);
+    append_bed_exclusion_volume_regions(regions, region_specs, height);
+    return regions;
+}
+
+} // namespace
+
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig& cfg)
+{
+    const ConfigOptionPoints *legacy = cfg.opt<ConfigOptionPoints>("bed_exclude_area");
+    const ConfigOptionString *regions = cfg.opt<ConfigOptionString>("bed_exclude_area_3d");
+    const ConfigOptionFloat *height = cfg.opt<ConfigOptionFloat>("printable_height");
+    const std::string bed_exclude_area = legacy != nullptr ? legacy->serialize() : std::string{};
+    const bool volume_syntax = is_bed_exclusion_volume_syntax(bed_exclude_area);
+
+    return get_bed_excluded_regions_impl(
+        volume_syntax || legacy == nullptr ? Pointfs{} : legacy->values,
+        volume_syntax ? bed_exclude_area : (regions != nullptr ? regions->value : std::string{}),
+        height != nullptr ? height->value : 0.0);
+}
+
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig& cfg)
+{
+    const std::string bed_exclude_area = cfg.bed_exclude_area.serialize();
+    const bool volume_syntax = is_bed_exclusion_volume_syntax(bed_exclude_area);
+
+    return get_bed_excluded_regions_impl(
+        volume_syntax ? Pointfs{} : cfg.bed_exclude_area.values,
+        volume_syntax ? bed_exclude_area : cfg.bed_exclude_area_3d.value,
+        cfg.printable_height.value);
+}
+
+bool has_bed_exclusion_volume_syntax(const ConfigOptionPoints& bed_exclude_area)
+{
+    return is_bed_exclusion_volume_syntax(bed_exclude_area.serialize());
+}
+
 Polygons get_bed_excluded_area(const PrintConfig& cfg)
 {
+    if (is_bed_exclusion_volume_syntax(cfg.bed_exclude_area.serialize()))
+        return {};
+    const std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(cfg);
+    if (std::any_of(regions.begin(), regions.end(), [](const BedExcludeRegion &region) {
+        return region.from_3d_config && region.has_z_range;
+    }))
+        return {};
+
     const Pointfs exclude_area_points = cfg.bed_exclude_area.values;
 
     Polygon exclude_poly;

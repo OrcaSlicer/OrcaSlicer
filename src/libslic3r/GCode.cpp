@@ -246,6 +246,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     Vec2d end_point    = points[1];
 
     // the cutter area size(18, 28)
+    if (has_bed_exclusion_volume_syntax(print.config().bed_exclude_area))
+        return out_points;
+
     Pointfs excluse_area = print.config().bed_exclude_area.values;
     if (excluse_area.size() != 4)
         return out_points;
