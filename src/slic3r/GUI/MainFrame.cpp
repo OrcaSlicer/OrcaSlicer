@@ -2788,9 +2788,6 @@ void MainFrame::init_menubar_as_editor()
                     info_dlg.ShowModal();
                     return;
                 }
-                if (m_plater)
-                    m_plater->get_notification_manager()->push_notification(
-                        into_u8(_L("Syncing presets from cloud\u2026")));
                 wxGetApp().restart_sync_user_preset();
             }, "", nullptr,
             [this]() {

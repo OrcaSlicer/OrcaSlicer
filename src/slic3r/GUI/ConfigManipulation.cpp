@@ -605,6 +605,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
                                                   pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
+    // gyroid_optimized only applies when the sparse infill pattern is gyroid;
+    // hide the whole line otherwise.
+    toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid);
+
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
         toggle_field("fill_multiline", have_multiline_infill_pattern);
