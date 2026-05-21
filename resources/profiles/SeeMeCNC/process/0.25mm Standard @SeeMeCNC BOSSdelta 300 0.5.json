@@ -51,11 +51,11 @@
 	"sparse_infill_speed": "120",
 	"internal_solid_infill_speed": "120",
 	"gap_infill_speed": "40",
-	"small_perimeter_speed": "25%",
+	"small_perimeter_speed": "40%",
 	"inner_wall_acceleration": "1000",
 	"support_speed": "80",
 	"seam_position": "nearest",
-	"small_perimeter_threshold": "10",
+	"small_perimeter_threshold": "50",
 	"description": "SeeMeCNC configurations",
 	"outer_wall_flow_ratio": "0.97",
 	"elefant_foot_compensation": "0.15",
@@ -71,5 +71,6 @@
 	"internal_solid_infill_line_width": "0.5",
 	"sparse_infill_line_width": "0.625",
 	"support_line_width": "0.5",
-	"initial_layer_line_width": "0.55"
+	"initial_layer_line_width": "0.55",
+	"tree_support_wall_count": "2"
 }

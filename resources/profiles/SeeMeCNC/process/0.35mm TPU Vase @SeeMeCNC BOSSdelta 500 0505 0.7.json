@@ -30,8 +30,8 @@
 	"precise_z_height": "0",
 	"skirt_distance": "1",
 	"skirt_loops": "2",
-	"small_perimeter_speed": "25%",
-	"small_perimeter_threshold": "10",
+	"small_perimeter_speed": "40%",
+	"small_perimeter_threshold": "50",
 	"sparse_infill_density": "15%",
 	"sparse_infill_speed": "120",
 	"spiral_mode": "1",
@@ -77,5 +77,6 @@
 	"internal_solid_infill_line_width": "0.7",
 	"sparse_infill_line_width": "0.875",
 	"support_line_width": "0.7",
-	"initial_layer_line_width": "0.77"
+	"initial_layer_line_width": "0.77",
+	"tree_support_wall_count": "2"
 }

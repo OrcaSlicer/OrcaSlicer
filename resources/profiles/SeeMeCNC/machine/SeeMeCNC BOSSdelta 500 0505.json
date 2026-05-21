@@ -11,5 +11,6 @@
 	"thumbnail": "SeeMeCNC BOSSdelta 500 0505_cover.png",
 	"machine_load_filament_time": "4",
 	"machine_unload_filament_time": "4",
-	"model_id": "SEEMECNC_BOSSDELTA_500_0505"
+	"model_id": "SEEMECNC_BOSSDELTA_500_0505",
+	"description": "SeeMeCNC configurations"
 }
