@@ -5849,10 +5849,17 @@ void GUI_App::reload_settings()
         load_pending_vendors();
         preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
         preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        if (is_main_thread_active())
+        if (is_main_thread_active()) {
             mainframe->update_side_preset_ui();
-        else
-            CallAfter([this] { mainframe->update_side_preset_ui(); });
+            if (plater_)
+                plater_->sidebar().update_all_preset_comboboxes();
+        } else {
+            CallAfter([this] {
+                mainframe->update_side_preset_ui();
+                if (plater_)
+                    plater_->sidebar().update_all_preset_comboboxes();
+            });
+        }
     }
 }
 
@@ -6577,8 +6584,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 dlg->Update(percent, _L("Loading user preset"));
             });
         };
-        cancelFn = [this, dlg]() {
-            return is_closing() || dlg->WasCanceled();
+        cancelFn = [this, dlg, t = std::weak_ptr<int>(m_user_sync_token)]() {
+            return is_closing() || dlg->WasCanceled() || t.expired();
         };
         finishFn = [this, dlg](bool) {
             CallAfter([=]{ dlg->Destroy(); });
@@ -6586,8 +6593,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
     }
     else {
         finishFn = [](bool) {}; // reload_settings() is now triggered from the background thread
-        cancelFn = [this]() {
-            return is_closing();
+        cancelFn = [this, t = std::weak_ptr<int>(m_user_sync_token)]() {
+            return is_closing() || t.expired();
         };
     }
 
@@ -6817,6 +6824,37 @@ void GUI_App::stop_sync_user_preset()
         else
             m_sync_update_thread.detach();
     }
+}
+
+void GUI_App::restart_sync_user_preset()
+{
+    if (!m_user_sync_token) {
+        // No sync running. If a restart helper is already in flight it will
+        // start the new sync once the old thread is joined — don't race it.
+        if (!m_restart_sync_pending)
+            start_sync_user_preset(true);
+        return;
+    }
+
+    // Resetting the token signals the old thread to stop (cancelFn checks
+    // t.expired(), so it exits after its current HTTP request completes).
+    // A helper thread joins the old thread off the UI thread — no freeze —
+    // then starts the new sync via CallAfter once the old one is fully done.
+    m_user_sync_token.reset();
+    m_restart_sync_pending = true;
+
+    auto old_thread = std::move(m_sync_update_thread);
+
+    std::thread([this, old_thread = std::move(old_thread)]() mutable {
+        if (old_thread.joinable())
+            old_thread.join();
+        m_restart_sync_pending = false;
+        if (!is_closing())
+            CallAfter([this]() {
+                if (!is_closing())
+                    start_sync_user_preset(true);
+            });
+    }).detach();
 }
 
 void GUI_App::on_stealth_mode_enter()

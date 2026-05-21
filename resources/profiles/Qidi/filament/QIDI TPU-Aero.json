@@ -33,12 +33,6 @@
 	"nozzle_temperature_range_high": [
 		"270"
 	],
-	"hot_plate_temp": [
-		"35"
-	],
-	"hot_plate_temp_initial_layer": [
-		"35"
-	],
 	"filament_density": [
 		"1.15"
 	],

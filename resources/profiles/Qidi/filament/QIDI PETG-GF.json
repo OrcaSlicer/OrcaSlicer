@@ -42,12 +42,6 @@
 	"pressure_advance": [
 		"0.056"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
-	"hot_plate_temp": [
-		"80"
-	],
 	"slow_down_layer_time": [
 		"8"
 	],

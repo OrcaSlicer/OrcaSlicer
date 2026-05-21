@@ -173,6 +173,7 @@ function GotoMenu( strMenu )
 function SetOrcaLoginInfo( strAvatar, strName )
 {
 	$("#OrcaLogin1").hide();
+	$("#OrcaStatusText").hide();
 
 	$("#UserName").text(strName);
 
@@ -196,6 +197,7 @@ function SetOrcaUserOffline()
 
 	$("#OrcaLogin1").show();
 	$("#OrcaLogin1").css("display","flex");
+	$("#OrcaStatusText").show();
 }
 
 function SetMallUrl( strUrl )
@@ -437,6 +439,8 @@ function SetBambuLoginInfo(strAvatar, strName) {
   $("#BambuLogin2").show();
   $("#BambuLogin2").css("display", "flex");
   $(".bambu-status-dot").addClass("online");
+  $("#BambuStatusText").text("Connected");
+  $("#BambuStatusText").attr("tid", "orca11");
 }
 
 function SetBambuUserOffline() {
@@ -448,6 +452,8 @@ function SetBambuUserOffline() {
     $("#BambuLogin1").css("display", "flex");
   }
   $(".bambu-status-dot").removeClass("online");
+  $("#BambuStatusText").text("Not connected");
+  $("#BambuStatusText").attr("tid", "orca10");
 }
 
 function OnBambuLoginOrRegister() { SendSimpleCommand("homepage_bambu_login_or_register"); }

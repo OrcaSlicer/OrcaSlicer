@@ -184,7 +184,7 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
                 && m_last_user_play + wxTimeSpan::Seconds(3) < wxDateTime::Now()) {
             // resend ttcode to printer
             if (auto agent = wxGetApp().getAgent())
-                agent->get_camera_url(machine, [](auto) {});
+                agent->get_camera_url(machine, [](auto) {}, wxGetApp().get_printer_cloud_provider());
             m_last_user_play = wxDateTime::Now();
         }
         return;
@@ -252,7 +252,7 @@ void refresh_agora_url(char const* device, char const* dev_ver, char const* chan
     device2 += channel;
     wxGetApp().getAgent()->get_camera_url(device2, [context, callback](std::string url) {
         callback(context, url.c_str());
-    });
+    }, wxGetApp().get_printer_cloud_provider());
 }
 
 void MediaPlayCtrl::Play()
@@ -378,7 +378,7 @@ void MediaPlayCtrl::Play()
                     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for state: " << m_last_state;
                 }
             });
-        });
+        }, wxGetApp().get_printer_cloud_provider());
     }
 }
 
@@ -580,7 +580,7 @@ void MediaPlayCtrl::ToggleStream()
             file.close();
             m_streaming = true;
         });
-    });
+    }, wxGetApp().get_printer_cloud_provider());
 }
 
 void MediaPlayCtrl::msw_rescale() { 

@@ -48,12 +48,6 @@
 	"pressure_advance": [
 		"0.04"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
-	"hot_plate_temp": [
-		"80"
-	],
 	"filament_density": [
 		"1.24"
 	],

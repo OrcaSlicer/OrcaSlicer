@@ -30,12 +30,6 @@
 	"fan_min_speed": [
 		"10"
 	],
-	"hot_plate_temp_initial_layer": [
-		"100"
-	],
-	"hot_plate_temp": [
-		"100"
-	],
 	"slow_down_layer_time": [
 		"4"
 	],

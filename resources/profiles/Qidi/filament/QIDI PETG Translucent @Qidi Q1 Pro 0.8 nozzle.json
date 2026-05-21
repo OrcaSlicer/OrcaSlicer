@@ -9,9 +9,6 @@
 	"filament_settings_id": [
 		"QIDI PETG Translucent @Qidi Q1 Pro 0.8 nozzle"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
 	"pressure_advance": [
 		"0.024"
 	],

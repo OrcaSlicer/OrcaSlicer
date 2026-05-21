@@ -63,5 +63,23 @@
 	"hot_plate_temp": [
 		"55"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"eng_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
+	]
 }

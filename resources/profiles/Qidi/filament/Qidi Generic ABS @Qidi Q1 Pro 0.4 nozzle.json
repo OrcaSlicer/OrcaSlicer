@@ -15,12 +15,6 @@
 	"filament_settings_id": [
 		"Qidi Generic ABS @Qidi Q1 Pro 0.4 nozzle"
 	],
-	"hot_plate_temp": [
-		"90"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
-	],
 	"nozzle_temperature": [
 		"250"
 	],

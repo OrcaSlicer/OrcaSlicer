@@ -79,6 +79,9 @@ struct FillParams
     // Layer height for Concentric infill with Arachne.
     coordf_t    layer_height    { 0.f };
 
+    // For Gyroid: when true, use the parameterized "optimized" variant.
+    bool        gyroid_optimized { false };
+
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
     coordf_t    lateral_lattice_angle_2    { 0.f };

@@ -18,9 +18,6 @@
 	"filament_settings_id": [
 		"Bambu PETG @Qidi X-Plus 4 0.6 nozzle"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
 	"overhang_fan_speed": [
 		"90"
 	],
