@@ -7,7 +7,7 @@
 	"instantiation": "true",
 	"host_type": "elegoolink",
 	"printer_model": "Elegoo OrangeStorm Giga",
-	"default_print_profile": "0.20mm Standard @EOS Giga 0.4 nozzle",
+	"default_print_profile": "0.20mm Standard @Elegoo Giga 0.4 nozzle",
 	"nozzle_diameter": [
 		"0.4"
 	],
@@ -25,7 +25,7 @@
 	"auxiliary_fan": "0",
 	"bed_exclude_area": [],
 	"default_filament_profile": [
-		"Elegoo PLA @EOS Giga"
+		"Elegoo PLA @Elegoo Giga"
 	],
 	"head_wrap_detect_zone": [],
 	"machine_load_filament_time": "25",

@@ -17,5 +17,6 @@
 	"nozzle_temperature_initial_layer": [
 		"270"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"renamed_from": "Elegoo ASA"
 }

@@ -995,84 +995,84 @@
 			"sub_path": "process/EN2SERIES/0.32mm Optimal @Elegoo Neptune 0.8 nozzle.json"
 		},
 		{
-			"name": "0.20mm Standard @EOS Giga 0.4 nozzle",
-			"sub_path": "process/EOSGIGA/0.20mm Standard @EOS Giga 0.4 nozzle.json"
+			"name": "0.20mm Standard @Elegoo Giga 0.4 nozzle",
+			"sub_path": "process/EOSGIGA/0.20mm Standard @Elegoo Giga 0.4 nozzle.json"
 		},
 		{
-			"name": "0.30mm Standard @EOS Giga 0.6 nozzle",
-			"sub_path": "process/EOSGIGA/0.30mm Standard @EOS Giga 0.6 nozzle.json"
+			"name": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
+			"sub_path": "process/EOSGIGA/0.30mm Standard @Elegoo Giga 0.6 nozzle.json"
 		},
 		{
-			"name": "0.40mm Standard @EOS Giga 0.8 nozzle",
-			"sub_path": "process/EOSGIGA/0.40mm Standard @EOS Giga 0.8 nozzle.json"
+			"name": "0.40mm Standard @Elegoo Giga 0.8 nozzle",
+			"sub_path": "process/EOSGIGA/0.40mm Standard @Elegoo Giga 0.8 nozzle.json"
 		},
 		{
-			"name": "0.50mm Standard @EOS Giga 1.0 nozzle",
-			"sub_path": "process/EOSGIGA/0.50mm Standard @EOS Giga 1.0 nozzle.json"
+			"name": "0.50mm Standard @Elegoo Giga 1.0 nozzle",
+			"sub_path": "process/EOSGIGA/0.50mm Standard @Elegoo Giga 1.0 nozzle.json"
 		},
 		{
-			"name": "0.20mm Strength @EOS Giga 0.4 nozzle",
-			"sub_path": "process/EOSGIGA/0.20mm Strength @EOS Giga 0.4 nozzle.json"
+			"name": "0.20mm Strength @Elegoo Giga 0.4 nozzle",
+			"sub_path": "process/EOSGIGA/0.20mm Strength @Elegoo Giga 0.4 nozzle.json"
 		},
 		{
-			"name": "0.16mm Optimal @EOS Giga 0.4 nozzle",
-			"sub_path": "process/EOSGIGA/0.16mm Optimal @EOS Giga 0.4 nozzle.json"
+			"name": "0.16mm Optimal @Elegoo Giga 0.4 nozzle",
+			"sub_path": "process/EOSGIGA/0.16mm Optimal @Elegoo Giga 0.4 nozzle.json"
 		},
 		{
-			"name": "0.24mm Draft @EOS Giga 0.4 nozzle",
-			"sub_path": "process/EOSGIGA/0.24mm Draft @EOS Giga 0.4 nozzle.json"
+			"name": "0.24mm Draft @Elegoo Giga 0.4 nozzle",
+			"sub_path": "process/EOSGIGA/0.24mm Draft @Elegoo Giga 0.4 nozzle.json"
 		},
 		{
-			"name": "0.28mm Extra Draft @EOS Giga 0.4 nozzle",
-			"sub_path": "process/EOSGIGA/0.28mm Extra Draft @EOS Giga 0.4 nozzle.json"
+			"name": "0.28mm Extra Draft @Elegoo Giga 0.4 nozzle",
+			"sub_path": "process/EOSGIGA/0.28mm Extra Draft @Elegoo Giga 0.4 nozzle.json"
 		},
 		{
-			"name": "0.30mm Strength @EOS Giga 0.6 nozzle",
-			"sub_path": "process/EOSGIGA/0.30mm Strength @EOS Giga 0.6 nozzle.json"
+			"name": "0.30mm Strength @Elegoo Giga 0.6 nozzle",
+			"sub_path": "process/EOSGIGA/0.30mm Strength @Elegoo Giga 0.6 nozzle.json"
 		},
 		{
-			"name": "0.18mm Fine @EOS Giga 0.6 nozzle",
-			"sub_path": "process/EOSGIGA/0.18mm Fine @EOS Giga 0.6 nozzle.json"
+			"name": "0.18mm Fine @Elegoo Giga 0.6 nozzle",
+			"sub_path": "process/EOSGIGA/0.18mm Fine @Elegoo Giga 0.6 nozzle.json"
 		},
 		{
-			"name": "0.24mm Optimal @EOS Giga 0.6 nozzle",
-			"sub_path": "process/EOSGIGA/0.24mm Optimal @EOS Giga 0.6 nozzle.json"
+			"name": "0.24mm Optimal @Elegoo Giga 0.6 nozzle",
+			"sub_path": "process/EOSGIGA/0.24mm Optimal @Elegoo Giga 0.6 nozzle.json"
 		},
 		{
-			"name": "0.36mm Draft @EOS Giga 0.6 nozzle",
-			"sub_path": "process/EOSGIGA/0.36mm Draft @EOS Giga 0.6 nozzle.json"
+			"name": "0.36mm Draft @Elegoo Giga 0.6 nozzle",
+			"sub_path": "process/EOSGIGA/0.36mm Draft @Elegoo Giga 0.6 nozzle.json"
 		},
 		{
-			"name": "0.42mm Extra Draft @EOS Giga 0.6 nozzle",
-			"sub_path": "process/EOSGIGA/0.42mm Extra Draft @EOS Giga 0.6 nozzle.json"
+			"name": "0.42mm Extra Draft @Elegoo Giga 0.6 nozzle",
+			"sub_path": "process/EOSGIGA/0.42mm Extra Draft @Elegoo Giga 0.6 nozzle.json"
 		},
 		{
-			"name": "0.24mm Fine @EOS Giga 0.8 nozzle",
-			"sub_path": "process/EOSGIGA/0.24mm Fine @EOS Giga 0.8 nozzle.json"
+			"name": "0.24mm Fine @Elegoo Giga 0.8 nozzle",
+			"sub_path": "process/EOSGIGA/0.24mm Fine @Elegoo Giga 0.8 nozzle.json"
 		},
 		{
-			"name": "0.32mm Optimal @EOS Giga 0.8 nozzle",
-			"sub_path": "process/EOSGIGA/0.32mm Optimal @EOS Giga 0.8 nozzle.json"
+			"name": "0.32mm Optimal @Elegoo Giga 0.8 nozzle",
+			"sub_path": "process/EOSGIGA/0.32mm Optimal @Elegoo Giga 0.8 nozzle.json"
 		},
 		{
-			"name": "0.48mm Draft @EOS Giga 0.8 nozzle",
-			"sub_path": "process/EOSGIGA/0.48mm Draft @EOS Giga 0.8 nozzle.json"
+			"name": "0.48mm Draft @Elegoo Giga 0.8 nozzle",
+			"sub_path": "process/EOSGIGA/0.48mm Draft @Elegoo Giga 0.8 nozzle.json"
 		},
 		{
-			"name": "0.56mm Extra Draft @EOS Giga 0.8 nozzle",
-			"sub_path": "process/EOSGIGA/0.56mm Extra Draft @EOS Giga 0.8 nozzle.json"
+			"name": "0.56mm Extra Draft @Elegoo Giga 0.8 nozzle",
+			"sub_path": "process/EOSGIGA/0.56mm Extra Draft @Elegoo Giga 0.8 nozzle.json"
 		},
 		{
-			"name": "0.60mm Draft @EOS Giga 1.0 nozzle",
-			"sub_path": "process/EOSGIGA/0.60mm Draft @EOS Giga 1.0 nozzle.json"
+			"name": "0.60mm Draft @Elegoo Giga 1.0 nozzle",
+			"sub_path": "process/EOSGIGA/0.60mm Draft @Elegoo Giga 1.0 nozzle.json"
 		},
 		{
-			"name": "0.40mm Optimal @EOS Giga 1.0 nozzle",
-			"sub_path": "process/EOSGIGA/0.40mm Optimal @EOS Giga 1.0 nozzle.json"
+			"name": "0.40mm Optimal @Elegoo Giga 1.0 nozzle",
+			"sub_path": "process/EOSGIGA/0.40mm Optimal @Elegoo Giga 1.0 nozzle.json"
 		},
 		{
-			"name": "0.30mm Fine @EOS Giga 1.0 nozzle",
-			"sub_path": "process/EOSGIGA/0.30mm Fine @EOS Giga 1.0 nozzle.json"
+			"name": "0.30mm Fine @Elegoo Giga 1.0 nozzle",
+			"sub_path": "process/EOSGIGA/0.30mm Fine @Elegoo Giga 1.0 nozzle.json"
 		}
 	],
 	"filament_list": [
@@ -1805,68 +1805,68 @@
 			"sub_path": "filament/EN2SERIES/Elegoo Rapid TPU 95A @EN2 Series.json"
 		},
 		{
-			"name": "Elegoo ASA @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo ASA @EOS Giga.json"
+			"name": "Elegoo ASA @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo ASA @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PETG @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PETG @EOS Giga.json"
+			"name": "Elegoo PETG @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PETG @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PETG PRO @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PETG PRO @EOS Giga.json"
+			"name": "Elegoo PETG PRO @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PETG PRO @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA @EOS Giga.json"
+			"name": "Elegoo PLA @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA Matte @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA Matte @EOS Giga.json"
+			"name": "Elegoo PLA Matte @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA Matte @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo Rapid PETG @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo Rapid PETG @EOS Giga.json"
+			"name": "Elegoo Rapid PETG @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo Rapid PETG @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo Rapid PLA+ @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo Rapid PLA+ @EOS Giga.json"
+			"name": "Elegoo Rapid PLA+ @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo Rapid PLA+ @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA Galaxy @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA Galaxy @EOS Giga.json"
+			"name": "Elegoo PLA Galaxy @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA Galaxy @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA Basic @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA Basic @EOS Giga.json"
+			"name": "Elegoo PLA Basic @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA Basic @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA Marble @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA Marble @EOS Giga.json"
+			"name": "Elegoo PLA Marble @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA Marble @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA Sparkle @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA Sparkle @EOS Giga.json"
+			"name": "Elegoo PLA Sparkle @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA Sparkle @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PLA Wood @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PLA Wood @EOS Giga.json"
+			"name": "Elegoo PLA Wood @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PLA Wood @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PETG-CF @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PETG-CF @EOS Giga.json"
+			"name": "Elegoo PETG-CF @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PETG-CF @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PETG-GF @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PETG-GF @EOS Giga.json"
+			"name": "Elegoo PETG-GF @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PETG-GF @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo PETG Translucent @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo PETG Translucent @EOS Giga.json"
+			"name": "Elegoo PETG Translucent @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo PETG Translucent @Elegoo Giga.json"
 		},
 		{
-			"name": "Elegoo Rapid TPU 95A @EOS Giga",
-			"sub_path": "filament/EOSGIGA/Elegoo Rapid TPU 95A @EOS Giga.json"
+			"name": "Elegoo Rapid TPU 95A @Elegoo Giga",
+			"sub_path": "filament/EOSGIGA/Elegoo Rapid TPU 95A @Elegoo Giga.json"
 		},
 		{
 			"name": "Generic ABS @Elegoo Centauri",

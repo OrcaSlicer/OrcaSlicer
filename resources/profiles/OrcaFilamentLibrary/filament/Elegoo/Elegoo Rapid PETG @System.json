@@ -32,5 +32,6 @@
 	"nozzle_temperature_initial_layer": [
 		"250"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"renamed_from": "Elegoo Rapid PETG;Elegoo Rapid PETG+"
 }

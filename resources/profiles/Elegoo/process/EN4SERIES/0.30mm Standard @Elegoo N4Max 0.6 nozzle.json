@@ -11,5 +11,6 @@
 	],
 	"default_acceleration": "3000",
 	"min_width_top_surface": "50%",
-	"outer_wall_acceleration": "1500"
+	"outer_wall_acceleration": "1500",
+	"renamed_from": "0.20mm Standard @Elegoo Neptune4Max (0.6 nozzle)"
 }

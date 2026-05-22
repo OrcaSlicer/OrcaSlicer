@@ -114,5 +114,6 @@
 		"160x160/COLPIC/#30394F",
 		"160x160/PNG"
 	],
-	"thumbnails_format": "COLPIC"
+	"thumbnails_format": "COLPIC",
+	"renamed_from": "Elegoo Neptune 4 (0.4 nozzle)"
 }

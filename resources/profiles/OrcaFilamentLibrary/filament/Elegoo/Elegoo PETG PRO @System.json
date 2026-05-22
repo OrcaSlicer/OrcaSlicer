@@ -17,5 +17,6 @@
 	"filament_max_volumetric_speed": [
 		"5"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"renamed_from": "Elegoo PETG PRO"
 }

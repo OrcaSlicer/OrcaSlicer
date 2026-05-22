@@ -4,6 +4,5 @@
 	"inherits": "0.10mm Standard @Elegoo N3Pro 0.2 nozzle",
 	"layer_height": "0.08",
 	"settings_id": "PEN3Pro02008",
-	"instantiation": "true",
-	"renamed_from": "0.08mm Extra Fine @Elegoo Neptune3Pro"
+	"instantiation": "true"
 }

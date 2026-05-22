@@ -35,5 +35,6 @@
 	"before_layer_change_gcode": ";[layer_z]\nG92 E0\n{if (first_layer_print_min[0]) > 57.5 && (first_layer_print_min[1]) > 57.5 &&(first_layer_print_max[0]) < 177.5 && (first_layer_print_max[1]) < 177.5 && layer_num < 4 && bed_temperature_initial_layer_single < 71}\nM141 S0\n{endif}",
 	"default_filament_profile": [
 		"Elegoo PLA @EN4 Series"
-	]
+	],
+	"renamed_from": "Elegoo Neptune 4 Pro (0.4 nozzle)"
 }

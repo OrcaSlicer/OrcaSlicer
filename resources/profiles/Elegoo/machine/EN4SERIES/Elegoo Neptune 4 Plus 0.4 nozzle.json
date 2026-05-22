@@ -80,5 +80,6 @@
 	"nozzle_volume": "110",
 	"default_filament_profile": [
 		"Elegoo PLA @EN4 Series"
-	]
+	],
+	"renamed_from": "Elegoo Neptune 4 Plus (0.4 nozzle)"
 }

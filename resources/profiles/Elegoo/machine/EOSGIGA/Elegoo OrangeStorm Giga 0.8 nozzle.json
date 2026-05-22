@@ -11,9 +11,9 @@
 	"printer_model": "Elegoo OrangeStorm Giga",
 	"printer_variant": "0.8",
 	"default_filament_profile": [
-		"Elegoo PLA @EOS Giga"
+		"Elegoo PLA @Elegoo Giga"
 	],
-	"default_print_profile": "0.40mm Standard @EOS Giga 0.8 nozzle",
+	"default_print_profile": "0.40mm Standard @Elegoo Giga 0.8 nozzle",
 	"retraction_minimum_travel": [
 		"1.6"
 	],
