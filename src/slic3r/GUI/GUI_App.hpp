@@ -326,6 +326,7 @@ private:
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
     bool             m_show_http_error_msgdlg{false};
+    std::chrono::steady_clock::time_point m_last_401_error_time;
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     HttpServer       m_http_server;
@@ -493,7 +494,7 @@ public:
     void            request_open_project(std::string project_id);
     void            request_remove_project(std::string project_id);
 
-    void            handle_http_error(unsigned int status, std::string body, const std::string& provider = ORCA_CLOUD_PROVIDER);
+    void            handle_http_error(unsigned int status, std::string body, const std::string& provider = "");
     void            on_http_error(wxCommandEvent &evt);
     void            on_update_machine_list(wxCommandEvent& evt);
     void            on_user_login(wxCommandEvent &evt);
