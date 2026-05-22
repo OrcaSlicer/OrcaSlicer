@@ -22,7 +22,7 @@ ARCH="$(uname -m)"
 NO_DEBUG_INFO=false
 FORCE_PULL=false
 FORCE_CLEAN=true
-CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-49"
+CONTAINER_IMAGE="ghcr.io/flathub-infra/flatpak-github-actions:gnome-50"
 
 normalize_arch() {
     case "$1" in
@@ -175,8 +175,8 @@ git config --global --add safe.directory '/src/.flatpak-builder/git/*'
 
 # Install required SDK extensions (not pre-installed in the container image)
 flatpak install -y --noninteractive --arch="$BUILD_ARCH" flathub \
-    org.gnome.Platform//49 \
-    org.gnome.Sdk//49 \
+    org.gnome.Platform//50 \
+    org.gnome.Sdk//50 \
     org.freedesktop.Sdk.Extension.llvm21//25.08 || true
 
 install_end=$(date +%s)
