@@ -326,7 +326,7 @@ void RemovableDriveManager::eject_drive()
             // The wait call can fail
             // It can happen even in cases where the eject is sucessful, but better report it as failed.
             // We did not find a way to reliably retrieve the exit code of the process.
-			BOOST_LOG_TRIVIAL(error) << "boost::process::child::wait() failed during Ejection. State of Ejection is unknown. Error code: " << ec.value();
+			BOOST_LOG_TRIVIAL(error) << "boost::process::v1::child::wait() failed during Ejection. State of Ejection is unknown. Error code: " << ec.value();
 		} else {
 			int err = child.exit_code();
 	    	if (err) {

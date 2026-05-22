@@ -780,11 +780,11 @@ bool MediaPlayCtrl::start_stream_service(bool *need_install)
             if (!boost::filesystem::exists(file_dll) || boost::filesystem::last_write_time(file_dll) != boost::filesystem::last_write_time(file_dll2))
                 boost::filesystem::copy_file(file_dll2, file_dll, boost::filesystem::copy_options::overwrite_existing);
         }
-        boost::process::v1::child process_source(file_source, file_url2.ToStdWstring(), boost::process::start_dir(tools_dir),
-                                             boost::process::windows::create_no_window, 
-                                             boost::process::std_out > intermediate, boost::process::limit_handles);
-        boost::process::v1::child process_ffmpeg(file_ffmpeg, configss, boost::process::windows::create_no_window,
-                                             boost::process::std_in < intermediate, boost::process::limit_handles);
+        boost::process::v1::child process_source(file_source, file_url2.ToStdWstring(), boost::process::v1::start_dir(tools_dir),
+                                             boost::process::v1:::windows::create_no_window, 
+                                             boost::process::v1::std_out > intermediate, boost::process::v1::limit_handles);
+        boost::process::v1::child process_ffmpeg(file_ffmpeg, configss, boost::process::v1:::windows::create_no_window,
+                                             boost::process::v1::std_in < intermediate, boost::process::v1::limit_handles);
 #else
         boost::filesystem::permissions(file_source, boost::filesystem::owner_exe | boost::filesystem::add_perms);
         boost::filesystem::permissions(file_ffmpeg, boost::filesystem::owner_exe | boost::filesystem::add_perms);
