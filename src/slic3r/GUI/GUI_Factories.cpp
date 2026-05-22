@@ -581,9 +581,10 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                 bool                                 is_stringhell = false;
                 std::vector<std::string>             file_names;
                 bool                                 arrange_after_import = false;
-                if (item == L("Orca Cube"))
-                    file_names = { "OrcaCube_v2.3mf" };
-                else if (item == L("Colourful Orca"))
+                if (item == L("Orca Cube")){
+                    file_names = { "OrcaCube_v2.drc", "OrcaPlug_v2.drc"};
+                    arrange_after_import = true;
+                }
                 {
                     file_names = { "Colourful_Orca.3mf", "OrcaCube_v2.3mf" };
                     arrange_after_import = true;
