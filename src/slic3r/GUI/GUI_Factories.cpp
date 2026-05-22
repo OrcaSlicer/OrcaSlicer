@@ -572,7 +572,7 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    for (auto &item : {L("Orca Cube"), L("Colourful Orca"), L("Orca Tolerance Test"), L("3DBenchy"), L("Cali Cat"), L("Autodesk FDM Test"),
+    for (auto &item : {L("Orca Cube"), L("OrcaSliced Combo"), L("Orca Tolerance Test"), L("3DBenchy"), L("Cali Cat"), L("Autodesk FDM Test"),
                        L("Voron Cube"), L("Stanford Bunny"), L("Orca String Hell") }) {
         append_menu_item(
             sub_menu, wxID_ANY, _(item), "",
@@ -585,8 +585,9 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                     file_names = { "OrcaCube_v2.drc", "OrcaPlug_v2.drc"};
                     arrange_after_import = true;
                 }
+                else if (item == L("OrcaSliced Combo"))
                 {
-                    file_names = { "Colourful_Orca.3mf", "OrcaCube_v2.3mf" };
+                    file_names = { "OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc" };
                     arrange_after_import = true;
                 }
                 else if (item == L("Orca Tolerance Test"))
