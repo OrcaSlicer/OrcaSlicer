@@ -180,10 +180,10 @@
 		"65"
 	],
 	"fan_max_speed": [
-		"45"
+		"60"
 	],
 	"fan_min_speed": [
-		"20"
+		"35"
 	],
 	"filament_cost": [
 		"30"
@@ -269,8 +269,5 @@
 	],
 	"keep_fan_always_on": [
 		"1"
-	],
-	"filament_flow_ratio": [
-		"0.98"
 	]
 }
