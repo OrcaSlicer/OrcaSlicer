@@ -146,7 +146,6 @@ protected:
 
 	//BBS: GUI refactor
 	wxPanel*			m_top_panel;
-	ScalableButton* m_mode_icon; // ORCA m_static_title replacement
 	wxBoxSizer* m_main_sizer;
 	wxBoxSizer* m_top_sizer;
 	wxBoxSizer* m_top_left_sizer;
@@ -307,6 +306,7 @@ public:
     int                 m_update_cnt = 0;
 
 	ModeSwitchButton *m_mode_view = nullptr;
+	ScalableButton* m_mode_icon = nullptr; // ORCA m_static_title replacement
     SwitchButton *m_extruder_switch = nullptr;
     MultiSwitchButton *m_variant_combo = nullptr;
 

@@ -664,6 +664,14 @@ void ParamsPanel::update_mode()
 
     sync_mode_view(m_mode_view);
     sync_mode_view(m_current_tab ? dynamic_cast<Tab*>(m_current_tab)->m_mode_view : nullptr);
+
+    auto sync_mode_icon = [&](ScalableButton* mode_icon) {
+        if (mode_icon == nullptr)
+            return;
+        mode_icon->Show(app_mode != comDevelop);
+    };
+    sync_mode_icon(m_mode_icon);
+    sync_mode_icon(m_current_tab ? dynamic_cast<Tab*>(m_current_tab)->m_mode_icon : nullptr);
 }
 
 void ParamsPanel::msw_rescale()
