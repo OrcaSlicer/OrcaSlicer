@@ -864,10 +864,10 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
         // Determine number of segments based on Resolution
         // --------------------------------------------------------------------
         const double ref_resolution = 0.01; // reference resolution in mm
-        const double ref_segments  = 16.0;  // reference number of segments at reference resolution
+        const double ref_segments  = 8.0;  // reference number of segments at reference resolution
         
-        // number of linear segments to use for approximating the arc, clamp between 4 and 24
-        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 24);
+        // number of linear segments to use for approximating the arc, clamp between 4 and 16
+        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 16);
         // --------------------------------------------------------------------
 
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
