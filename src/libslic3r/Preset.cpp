@@ -581,14 +581,6 @@ void Preset::load_info(const std::string& file)
     catch (...) {
         return;
     }
-
-    //TODO: workaround for current info file convert, will remove it later
-    if (this->updated_time == 0) {
-        this->updated_time = (long long)Slic3r::Utils::get_current_time_utc();
-        //this->sync_info = "update";
-        BOOST_LOG_TRIVIAL(info) << boost::format("old info file, updated time to %1%") % this->updated_time;
-        save_info();
-    }
 }
 
 void Preset::save_info(std::string file)
