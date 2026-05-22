@@ -5,7 +5,6 @@
 	"from": "system",
 	"setting_id": "OERPETGS00",
 	"instantiation": "true",
-	"renamed_from": "Elegoo RAPID PETG @ECC2",
 	"pressure_advance": [
 		"0.052"
 	],

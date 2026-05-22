@@ -24,5 +24,6 @@
 	"print_flow_ratio": "1.0",
 	"compatible_printers": [
 		"Elegoo OrangeStorm Giga 0.8 nozzle"
-	]
+	],
+	"renamed_from": "0.40mm Standard @Elegoo Giga 0.8 nozzle"
 }

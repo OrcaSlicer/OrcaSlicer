@@ -26,5 +26,6 @@
 	"travel_speed": "150",
 	"compatible_printers": [
 		"Elegoo Neptune 3 Max 0.4 nozzle"
-	]
+	],
+	"renamed_from": "0.20mm Standard @Elegoo Neptune3Max"
 }

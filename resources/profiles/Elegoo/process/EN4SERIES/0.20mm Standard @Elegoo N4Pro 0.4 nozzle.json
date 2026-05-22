@@ -12,5 +12,6 @@
 	"min_width_top_surface": "50%",
 	"compatible_printers": [
 		"Elegoo Neptune 4 Pro 0.4 nozzle"
-	]
+	],
+	"renamed_from": "0.20mm Standard @Elegoo Neptune4Pro (0.4 nozzle)"
 }

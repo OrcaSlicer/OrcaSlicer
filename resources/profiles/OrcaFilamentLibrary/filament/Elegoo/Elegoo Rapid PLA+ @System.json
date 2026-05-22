@@ -5,7 +5,6 @@
 	"from": "system",
 	"setting_id": "OERPLAPLUSS00",
 	"instantiation": "true",
-	"renamed_from": "Elegoo RAPID PLA+ @ECC2",
 	"fan_cooling_layer_time": [
 		"80"
 	],
