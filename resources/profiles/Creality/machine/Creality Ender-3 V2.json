@@ -1,14 +1,13 @@
-﻿{
-    "type": "machine_model",
-    "name": "Creality Ender-3 V2",
-    "nozzle_diameter": "0.4",
-    "bed_model": "creality_ender3v2_buildplate_model.stl",
-    "default_bed_type": "Cool Plate",
-    "bed_texture": "creality_ender3v2_buildplate_texture.svg",
-    "family": "Creality",
-    "hotend_model": "",
-    "machine_tech": "FFF",
-    "model_id": "Creality_Ender_3_V2",
-    "default_materials": "CR-TPU;CR-PETG;CR-PLA;Generic ABS",
-    "from": "system"
+{
+	"type": "machine_model",
+	"name": "Creality Ender-3 V2",
+	"nozzle_diameter": "0.4",
+	"bed_model": "creality_ender3v2_buildplate_model.stl",
+	"default_bed_type": "Cool Plate",
+	"bed_texture": "creality_ender3v2_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Ender_3_V2",
+	"default_materials": "CR-TPU;CR-PETG;CR-PLA;Generic ABS"
 }

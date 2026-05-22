@@ -1,14 +1,13 @@
-﻿{
-    "type": "machine_model",
-    "name": "Creality Hi",
-    "nozzle_diameter": "0.8;0.6;0.4;0.2",
-    "bed_model": "creality_hi_buildplate_model.stl",
-    "default_bed_type": "Epoxy Resin Plate",
-    "bed_texture": "creality_hi_buildplate_texture.svg",
-    "family": "Creality",
-    "hotend_model": "",
-    "machine_tech": "FFF",
-    "model_id": "Creality_Hi",
-    "default_materials": "ENDER FAST PLA;Soleyin Ultra PLA;Hyper PETG;CR-Silk;CR-PLA;Hyper PLA-CF;Hyper PLA;Hyper ABS;HP-TPU;Generic PLA;Generic PETG;Generic ABS;Ender-PLA;CR-PETG;CR-ABS;Generic PLA-Silk",
-    "from": "system"
+{
+	"type": "machine_model",
+	"name": "Creality Hi",
+	"nozzle_diameter": "0.8;0.6;0.4;0.2",
+	"bed_model": "creality_hi_buildplate_model.stl",
+	"default_bed_type": "Epoxy Resin Plate",
+	"bed_texture": "creality_hi_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Hi",
+	"default_materials": "ENDER FAST PLA;Soleyin Ultra PLA;Hyper PETG;CR-Silk;CR-PLA;Hyper PLA-CF;Hyper PLA;Hyper ABS;HP-TPU;Generic PLA;Generic PETG;Generic ABS;Ender-PLA;CR-PETG;CR-ABS;Generic PLA-Silk"
 }
