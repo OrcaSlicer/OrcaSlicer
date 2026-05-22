@@ -748,20 +748,21 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 ij_offset = { -ij_offset(1), ij_offset(0) };
                 bool can_spiral_lift = true;
                 if (m_has_printable_area_bounds) {
-                    const double safety_margin = 1.0;
-                    const double center_x_min = m_printable_x_min + radius + safety_margin;
-                    const double center_x_max = m_printable_x_max - radius - safety_margin;
-                    const double center_y_min = m_printable_y_min + radius + safety_margin;
-                    const double center_y_max = m_printable_y_max - radius - safety_margin;
+                    const double center_x_min = m_printable_x_min + radius;
+                    const double center_x_max = m_printable_x_max - radius;
+                    const double center_y_min = m_printable_y_min + radius;
+                    const double center_y_max = m_printable_y_max - radius;
 
                     if (center_x_min > center_x_max || center_y_min > center_y_max)
                         can_spiral_lift = false;
                     else {
                         double cx = source.x() + ij_offset.x();
                         double cy = source.y() + ij_offset.y();
-                        cx = std::clamp(cx, center_x_min, center_x_max);
-                        cy = std::clamp(cy, center_y_min, center_y_max);
-                        ij_offset = { cx - source.x(), cy - source.y() };
+                        cx        = std::clamp(cx, center_x_min, center_x_max);
+                        cy        = std::clamp(cy, center_y_min, center_y_max);
+                        ij_offset = {cx - source.x(), cy - source.y()};
+                        if (ij_offset.squaredNorm() > radius * radius * (1.0 + 1e-9))
+                            can_spiral_lift = false;
                     }
                 }
 
