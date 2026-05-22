@@ -2186,13 +2186,20 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         }
     }
 
-    // base_id
-    if (preset_values.find(BBL_JSON_KEY_BASE_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
-        unlock();
-        return false;
+    // base_id is only required for presets inheriting from a parent. Root presets
+    // with an empty "inherits" field intentionally have no base_id.
+    std::string cloud_base_id;
+    auto base_id_iter = preset_values.find(BBL_JSON_KEY_BASE_ID);
+    if (base_id_iter != preset_values.end()) {
+        cloud_base_id = base_id_iter->second;
+    } else {
+        auto inherits_iter = preset_values.find(BBL_JSON_KEY_INHERITS);
+        if (inherits_iter != preset_values.end() && !inherits_iter->second.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
+            unlock();
+            return false;
+        }
     }
-    std::string cloud_base_id = preset_values[BBL_JSON_KEY_BASE_ID];
 
     //filament_id
     std::string cloud_filament_id;
@@ -3651,19 +3658,19 @@ void PresetCollection::set_custom_preset_alias(Preset &preset)
     // For printers, there is nothing to remove
     // For prints AKA processes, the postfix should be kept
     // Alias should be set here, as the preset name may be augmented further later (i.e., prefixing relative path for bundles)
-    std::string alias_name;
     std::string preset_name = get_preset_bare_name(preset.name);
-    if (m_type == Preset::Type::TYPE_FILAMENT && preset.config.has(BBL_JSON_KEY_INHERITS) && preset.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value.empty()) {
-        if (alias_name.empty()) {
-            size_t end_pos = preset_name.find_first_of("@");
-            if (end_pos != std::string::npos) {
-                alias_name = preset_name.substr(0, end_pos);
-                boost::trim_right(alias_name);
-            }
+    std::string alias_name = preset_name;
+
+    if (m_type == Preset::Type::TYPE_FILAMENT &&
+        preset.config.has(BBL_JSON_KEY_INHERITS) &&
+        preset.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value.empty()) {
+        size_t end_pos = preset_name.find_first_of("@");
+        if (end_pos != std::string::npos) {
+            alias_name = preset_name.substr(0, end_pos);
+            boost::trim_right(alias_name);
+            if (alias_name.empty())
+                alias_name = preset_name;
         }
-    }
-    else {
-        alias_name = preset_name;
     }
 
     preset.alias = std::move(alias_name);
