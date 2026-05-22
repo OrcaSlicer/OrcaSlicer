@@ -142,6 +142,16 @@ fi
 
 DOCKER_RUN_ARGS=(run --rm -i --privileged)
 
+# When building from a git worktree, $PROJECT_ROOT/.git is a file pointing to the
+# main repo's git dir (outside $PROJECT_ROOT). The git commands and flatpak-builder
+# inside the container need that path to resolve, so bind-mount the common git dir
+# read-only at its original absolute path. No-op for a normal clone.
+GIT_COMMON_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [ -n "$GIT_COMMON_DIR" ] && [ "$GIT_COMMON_DIR" != "$PROJECT_ROOT/.git" ]; then
+    echo "  Git worktree detected; mounting common git dir read-only: $GIT_COMMON_DIR"
+    DOCKER_RUN_ARGS+=(-v "$GIT_COMMON_DIR":"$GIT_COMMON_DIR":ro)
+fi
+
 # Pass build parameters as env vars so the inner script doesn't need
 # variable expansion from the outer shell (avoids quoting issues).
 echo "=== Starting Flatpak build inside container ==="
