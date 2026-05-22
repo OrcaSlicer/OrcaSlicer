@@ -12,20 +12,18 @@
 
 namespace igl
 {
-  // Super fast 3x3 SVD according to
-  // http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html This is AVX
-  // version of svd3x3 (see svd3x3.h) which works on 8 matrices at a time These
-  // eight matrices are simply stacked in columns, the rest is the same as for
-  // svd3x3
-  //
-  // Inputs:
-  //   A  12 by 3 stack of 3x3 matrices
-  // Outputs:
-  //   U  12x3 left singular vectors stacked
-  //   S  12x1 singular values stacked
-  //   V  12x3 right singular vectors stacked
-  //
-  // Known bugs: this will not work correctly for double precision.
+  /// Super fast 3x3 SVD according to
+  /// http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html This is AVX
+  /// version of svd3x3 (see svd3x3.h) which works on 8 matrices at a time These
+  /// eight matrices are simply stacked in columns, the rest is the same as for
+  /// svd3x3
+  ///
+  /// @param[in] A  12 by 3 stack of 3x3 matrices
+  /// @param[out] U  12x3 left singular vectors stacked
+  /// @param[out] S  12x1 singular values stacked
+  /// @param[out] V  12x3 right singular vectors stacked
+  ///
+  /// \bug this will not work correctly for double precision.
   template<typename T>
   IGL_INLINE void svd3x3_avx(
     const Eigen::Matrix<T, 3*8, 3>& A, 

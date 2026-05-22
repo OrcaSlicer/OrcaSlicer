@@ -185,6 +185,7 @@ const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG        = { 250 / 255.f, 250 / 255.f, 2
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG_DARK   = { 57  / 255.f, 60  / 255.f, 66  / 255.f, 1.f }; // ORCA color matches with toolbar_background_dark.png
 const ImVec4 ImGuiWrapper::COL_ORCA              = to_ImVec4(ColorRGBA::ORCA());
 const ImVec4 ImGuiWrapper::COL_MODIFIED          = { 253.f / 255.f, 111.f / 255.f, 40.f / 255.f, 1}; // ORCA same color with m_color_label_modified
+const ImVec4 ImGuiWrapper::COL_WARNING           = to_ImVec4(ColorRGB::WARNING());
 
 int ImGuiWrapper::TOOLBAR_WINDOW_FLAGS = ImGuiWindowFlags_AlwaysAutoResize
                                  | ImGuiWindowFlags_NoMove
@@ -871,8 +872,8 @@ bool ImGuiWrapper::button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::Button(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -884,8 +885,8 @@ bool ImGuiWrapper::bbl_button(const wxString &label, const wxString& tooltip)
     const bool ret = ImGui::BBLButton(label_utf8.c_str());
 
     if (!tooltip.IsEmpty() && ImGui::IsItemHovered()) {
-        auto tooltip_utf8 = into_u8(tooltip);
-        ImGui::SetTooltip(tooltip_utf8.c_str(), nullptr);
+        const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
+        this->tooltip(tooltip, max_tooltip_width);
     }
 
     return ret;
@@ -906,6 +907,54 @@ bool ImGuiWrapper::button(const wxString& label, const ImVec2 &size, bool enable
 
     disabled_end();
     return (enable) ? res : false;
+}
+
+// ORCA Glyph based button for correctly rendering icon size based Glyph
+// excludes spacings after Glyph and centers icon properly
+// compared to image_button this supports styling
+bool ImGuiWrapper::glyph_button(wchar_t icon_char, ImVec2 icon_size)
+{
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImFont*     font      = ImGui::GetFont();
+    ImGuiStyle& style     = ImGui::GetStyle();
+    ImVec2      padding   = style.FramePadding;
+    float       border_w  = style.FrameBorderSize;
+    float       rounding  = style.FrameRounding;
+    std::string icon_str  = into_u8(icon_char);
+    const char* icon      = icon_str.c_str();
+    
+    float  width  = icon_size.x + (padding.x + border_w) * 2.f;
+    float  height = icon_size.y + (padding.y + border_w) * 2.f;
+    ImVec2 rc_min = ImGui::GetCursorScreenPos();
+    ImVec2 rc_max = ImVec2(rc_min.x + width, rc_min.y + height);
+
+    ImGui::Dummy(ImVec2(width, height));
+
+    ImGuiCol bg_color     = ImGuiCol_Button;
+    ImGuiCol border_color = ImGuiCol_Border;
+    bool     clicked      = false;
+
+    if (ImGui::IsMouseHoveringRect(rc_min, rc_max)) {
+        bg_color = ImGuiCol_ButtonHovered;
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            bg_color     = ImGuiCol_ButtonActive;
+            border_color = ImGuiCol_BorderShadow;
+            clicked      = true;
+        }
+    }
+
+    draw_list->AddRectFilled(rc_min, rc_max, ImGui::GetColorU32(bg_color), rounding);
+
+    if (border_w > 0.f)
+        draw_list->AddRect(rc_min, rc_max, ImGui::GetColorU32(border_color), rounding, 0, border_w);
+
+    ImVec2 text_pos = ImVec2(
+        rc_min.x + (width  - font->FontSize) * .5f,
+        rc_min.y + (height - font->FontSize) * .5f
+    );
+    draw_list->AddText(font, font->FontSize, text_pos, ImGui::GetColorU32(ImGuiCol_Text), icon);
+
+    return clicked;
 }
 
 bool ImGuiWrapper::radio_button(const wxString &label, bool active)
@@ -1007,7 +1056,7 @@ void ImGuiWrapper::text(const wxString &label)
 
 void ImGuiWrapper::warning_text(const char *label)
 {
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(ColorRGB::WARNING()));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::COL_WARNING);
     this->text(label);
     ImGui::PopStyleColor();
 }

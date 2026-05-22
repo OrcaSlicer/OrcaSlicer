@@ -224,17 +224,28 @@ using CurledLines = std::vector<CurledLine>;
 class Line3
 {
 public:
-    Line3() : a(Vec3crd::Zero()), b(Vec3crd::Zero()) {}
-    Line3(const Vec3crd& _a, const Vec3crd& _b) : a(_a), b(_b) {}
+    Line3() : a(Point3()), b(Point3()) {}
+    Line3(const Point3& _a, const Point3& _b) : a(_a), b(_b) {}
+    // Backward compatibility with Vec3crd
+    Line3(const Vec3crd& _a, const Vec3crd& _b) : a(Point3(_a)), b(Point3(_b)) {}
 
     double  length() const { return (this->a - this->b).cast<double>().norm(); }
-    Vec3crd vector() const { return this->b - this->a; }
+    Point3 vector() const { Vec3crd v = this->b - this->a; return Point3(v.x(), v.y(), v.z()); }
+    Point3 midpoint() const { return Point3((this->a.x() + this->b.x()) / 2, (this->a.y() + this->b.y()) / 2, (this->a.z() + this->b.z()) / 2); }
 
-    Vec3crd a;
-    Vec3crd b;
+    // Convert to 2D line by dropping Z coordinate
+    Line to_line() const { return Line(this->a.to_point(), this->b.to_point()); }
+
+    static inline double distance_to_squared(const Point3& point, const Point3& a, const Point3& b)
+    {
+        return line_alg::distance_to_squared(Line3{a, b}, Vec<3, coord_t>{point});
+    }
+
+    Point3 a;
+    Point3 b;
 
     static const constexpr int Dim = 3;
-    using Scalar = Vec3crd::Scalar;
+    using Scalar = coord_t;
 };
 
 class Linef
@@ -242,6 +253,10 @@ class Linef
 public:
     Linef() : a(Vec2d::Zero()), b(Vec2d::Zero()) {}
     Linef(const Vec2d& _a, const Vec2d& _b) : a(_a), b(_b) {}
+
+    Vec2d   vector() const { return this->b - this->a; }
+    Vec2d   unit_vector() const { return (length() == 0.0) ? Vec2d::Zero() : vector().normalized(); }
+    double  length() const { return vector().norm(); }
 
     Vec2d a;
     Vec2d b;
@@ -256,6 +271,7 @@ class Linef3
 public:
     Linef3() : a(Vec3d::Zero()), b(Vec3d::Zero()) {}
     Linef3(const Vec3d& _a, const Vec3d& _b) : a(_a), b(_b) {}
+    Linef3(const Vec2d& _a, const Vec2d& _b, double z) : a(Vec3d(_a.x(), _a.y(), z)), b(Vec3d(_b.x(), _b.y(), z)) {}
 
     Vec3d   intersect_plane(double z) const;
     void    scale(double factor) { this->a *= factor; this->b *= factor; }
@@ -263,12 +279,40 @@ public:
     Vec3d   unit_vector() const { return (length() == 0.0) ? Vec3d::Zero() : vector().normalized(); }
     double  length() const { return vector().norm(); }
 
+    double distance_to_infinite_squared(const Vec3d &point, Vec3d *closest_point) const {
+        const Vec3d v  = this->b - this->a;
+        const Vec3d va = point - this->a;
+        const double l2 = v.squaredNorm();
+        if (l2 == 0.) {
+            // a == b case
+            *closest_point = this->a;
+            return va.squaredNorm();
+        }
+        // Consider the line extending the segment, parameterized as a + t (b - a).
+        // Find parameter value t of the projection of point onto the line.
+        const double t = va.dot(v) / l2;
+        *closest_point = this->a + t * v;
+        return (point - *closest_point).squaredNorm();
+    }
+
+    double distance_to_infinite_squared(const Vec3d &point) const {
+        Vec3d nearest_point;
+        return distance_to_infinite_squared(point, &nearest_point);
+    }
+
+    static inline double distance_to_infinite_squared(const Vec3d &point, const Vec3d &a, const Vec3d &b) {
+        Linef3 line{a, b};
+        return line.distance_to_infinite_squared(point);
+    }
+
     Vec3d a;
     Vec3d b;
 
     static const constexpr int Dim = 3;
     using Scalar = Vec3d::Scalar;
 };
+
+using Linesf3 = std::vector<Linef3>;
 
 BoundingBox get_extents(const Lines &lines);
 

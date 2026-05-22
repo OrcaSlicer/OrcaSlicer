@@ -1,12 +1,12 @@
 {
-    "type": "machine_model",
-    "name": "re3D Terabot 4",
-    "model_id": "TB4",
-    "nozzle_diameter": "0.4;0.8",
-    "machine_tech": "FFF",
-    "family": "re3D",
-    "bed_model": "",
-    "bed_texture": "Gigabot 4_buildplate_texture.png",
-    "hotend_model": "GB-HOTEND.stl",
-    "default_materials": "re3D PLA;re3D PETG;re3D PC;"
+	"type": "machine_model",
+	"name": "re3D Terabot 4",
+	"model_id": "TB4",
+	"nozzle_diameter": "0.4;0.8",
+	"machine_tech": "FFF",
+	"family": "re3D",
+	"bed_model": "",
+	"bed_texture": "re3D Terabot 4_buildplate_texture.svg",
+	"hotend_model": "GB-HOTEND.stl",
+	"default_materials": "re3D PLA;re3D PETG;re3D PC;"
 }

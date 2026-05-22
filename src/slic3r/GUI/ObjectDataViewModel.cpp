@@ -205,8 +205,8 @@ void ObjectDataViewModelNode::set_printable_icon(PrintIndicator printable)
     if (m_printable == printable)
         return;
     m_printable = printable;
-    m_printable_icon = m_printable == piUndef ? m_empty_bmp :
-                       create_scaled_bitmap(m_printable == piPrintable ? "check_on" : "check_off_focused");
+    m_printable_icon = m_printable == piUndef ? 
+        m_empty_bmp : create_scaled_bitmap(m_printable == piPrintable ? "check_on" : "check_off_focused");
 }
 
 void ObjectDataViewModelNode::set_variable_height_icon(VaryHeightIndicator vari_height) {
@@ -332,12 +332,16 @@ bool ObjectDataViewModelNode::SetValue(const wxVariant& variant, unsigned col)
         m_variable_height_icon << variant;
         return true;
     case colName: {
+        if (variant.GetType() != wxT("DataViewBitmapText"))
+            return false;
         DataViewBitmapText data;
         data << variant;
         m_bmp = data.GetBitmap();
         m_name = data.GetText();
         return true; }
     case colFilament: {
+        if (variant.GetType() != wxT("DataViewBitmapText"))
+            return false;
         DataViewBitmapText data;
         data << variant;
         m_extruder_bmp = data.GetBitmap();

@@ -117,10 +117,10 @@ else()
     set(SLIC3R_STATIC_INITIAL 1)
 endif()
 
-option(SLIC3R_STATIC 			"Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
-option(SLIC3R_GUI    			"Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
+option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
+option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
-option(SLIC3R_PROFILE 			"Compile OrcaSlicer with an invasive Shiny profiler" 0)
+option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
 option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
@@ -323,43 +323,44 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # WIN10SDK_PATH is used to point CMake to the WIN10 SDK installation directory.
 # We pick it from environment if it is not defined in another way
-if(WIN32)
-    if(NOT DEFINED WIN10SDK_PATH)
-        if(DEFINED ENV{WIN10SDK_PATH})
-                set(WIN10SDK_PATH "$ENV{WIN10SDK_PATH}")
-        endif()
-    endif()
-    if(DEFINED WIN10SDK_PATH)
-        #BBS: modify win10sdk_path
-        if (EXISTS "${WIN10SDK_PATH}/winrt/windows.graphics.printing3d.h")
-            set(WIN10SDK_INCLUDE_PATH "${WIN10SDK_PATH}")
-        else()
-            message("WIN10SDK_PATH is invalid: ${WIN10SDK_PATH}")
-            message("${WIN10SDK_PATH}/winrt/windows.graphics.printing3d.h was not found")
-            message("STL fixing by the Netfabb service will not be compiled")
-            unset(WIN10SDK_PATH)
-        endif()
-    else()
-        # Try to use the default Windows 10 SDK path.
-        if (DEFINED ENV{WindowsSdkDir} AND DEFINED ENV{WindowsSDKVersion})
-            set(WIN10SDK_INCLUDE_PATH "$ENV{WindowsSdkDir}/Include/$ENV{WindowsSDKVersion}")
-        else ()
-            set(WIN10SDK_INCLUDE_PATH "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0")
-        endif ()
-        if (NOT EXISTS "${WIN10SDK_INCLUDE_PATH}/winrt/windows.graphics.printing3d.h")
-            message("${WIN10SDK_INCLUDE_PATH}/winrt/windows.graphics.printing3d.h was not found")
-            message("STL fixing by the Netfabb service will not be compiled")
-            unset(WIN10SDK_INCLUDE_PATH)
-        endif()
-    endif()
-    if(WIN10SDK_INCLUDE_PATH)
-        message("Building with Win10 Netfabb STL fixing service support")
-        add_definitions(-DHAS_WIN10SDK)
-        include_directories(SYSTEM "${WIN10SDK_INCLUDE_PATH}")
-    else()
-        message("Building without Win10 Netfabb STL fixing service support")
-    endif()
-endif()
+# ORCA: Removed Netfabb STL fixing service support in favor of CGAL.
+# if(WIN32)
+#     if(NOT DEFINED WIN10SDK_PATH)
+#         if(DEFINED ENV{WIN10SDK_PATH})
+#                 set(WIN10SDK_PATH "$ENV{WIN10SDK_PATH}")
+#         endif()
+#     endif()
+#     if(DEFINED WIN10SDK_PATH)
+#         #BBS: modify win10sdk_path
+#         if (EXISTS "${WIN10SDK_PATH}/winrt/windows.graphics.printing3d.h")
+#             set(WIN10SDK_INCLUDE_PATH "${WIN10SDK_PATH}")
+#         else()
+#             message("WIN10SDK_PATH is invalid: ${WIN10SDK_PATH}")
+#             message("${WIN10SDK_PATH}/winrt/windows.graphics.printing3d.h was not found")
+#             message("STL fixing by the Netfabb service will not be compiled")
+#             unset(WIN10SDK_PATH)
+#         endif()
+#     else()
+#         # Try to use the default Windows 10 SDK path.
+#         if (DEFINED ENV{WindowsSdkDir} AND DEFINED ENV{WindowsSDKVersion})
+#             set(WIN10SDK_INCLUDE_PATH "$ENV{WindowsSdkDir}/Include/$ENV{WindowsSDKVersion}")
+#         else ()
+#             set(WIN10SDK_INCLUDE_PATH "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0")
+#         endif ()
+#         if (NOT EXISTS "${WIN10SDK_INCLUDE_PATH}/winrt/windows.graphics.printing3d.h")
+#             message("${WIN10SDK_INCLUDE_PATH}/winrt/windows.graphics.printing3d.h was not found")
+#             message("STL fixing by the Netfabb service will not be compiled")
+#             unset(WIN10SDK_INCLUDE_PATH)
+#         endif()
+#     endif()
+#     if(WIN10SDK_INCLUDE_PATH)
+#         message("Building with Win10 Netfabb STL fixing service support")
+#         add_definitions(-DHAS_WIN10SDK)
+#         include_directories(SYSTEM "${WIN10SDK_INCLUDE_PATH}")
+#     else()
+#         message("Building without Win10 Netfabb STL fixing service support")
+#     endif()
+# endif()
 
 if (APPLE)
     message("OS X SDK Path: ${CMAKE_OSX_SYSROOT}")
@@ -575,6 +576,9 @@ endif()
 set(Boost_NO_SYSTEM_PATHS TRUE)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
 
+# Find and configure Eigen3
+find_package(Eigen3 5.0.1 REQUIRED)
+
 add_library(boost_libs INTERFACE)
 add_library(boost_headeronly INTERFACE)
 
@@ -659,16 +663,6 @@ endif()
 
 ## OPTIONAL packages
 
-# Find eigen3 or use bundled version
-if (NOT SLIC3R_STATIC)
-    find_package(Eigen3 3.3)
-endif ()
-if (NOT EIGEN3_FOUND)
-    set(EIGEN3_FOUND 1)
-    set(EIGEN3_INCLUDE_DIR ${LIBDIR}/eigen/)
-endif ()
-include_directories(BEFORE SYSTEM ${EIGEN3_INCLUDE_DIR})
-
 # Find expat or use bundled version
 # Always use the system libexpat on Linux.
 
@@ -712,7 +706,7 @@ add_custom_target(gettext_make_pot
     COMMAND xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost
         -f "${BBL_L18N_DIR}/list.txt"
         -o "${BBL_L18N_DIR}/OrcaSlicer.pot"
-	COMMAND hintsToPot ${SLIC3R_RESOURCES_DIR} ${BBL_L18N_DIR}
+    COMMAND hintsToPot ${SLIC3R_RESOURCES_DIR} ${BBL_L18N_DIR}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Generate pot file from strings in the source tree"
 )
@@ -784,8 +778,10 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
         set(_arch "x64")
     elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "X86")
         set(_arch "x86")
+    elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ARM64")
+        set(_arch "arm64")
     else ()
-        message(FATAL_ERROR "Unable to detect architecture")
+        message(FATAL_ERROR "Unable to detect architecture: ${CMAKE_SYSTEM_PROCESSOR}")
     endif ()
 
     get_property(_is_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-20 23:26+0800\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -39,8 +39,9 @@ msgid ""
 "Please cold pull before printing TPU to avoid clogging. You may use cold "
 "pull maintenance on the printer."
 msgstr ""
-"Effettuare un cold pull prima di stampare TPU per evitare intasamenti. È "
-"possibile utilizzare la manutenzione cold pull sulla stampante."
+"Effettuare un'estrazione a freddo prima di stampare con il TPU per evitare "
+"intasamenti. È possibile utilizzare la funzione estrazione a freddo (o cold "
+"pull) della stampante."
 
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
@@ -70,13 +71,13 @@ msgstr ""
 
 msgid "PPS-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr ""
-"Il PPS-CF è fragile e potrebbe rompersi nel tubo PTFE piegato sopra la testa "
-"di stampa."
+"Il PPS-CF è fragile e potrebbe rompersi nel tubo in PTFE inserito sopra il "
+"gruppo testina."
 
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr ""
-"Il PPA-CF è fragile e potrebbe rompersi nel tubo PTFE piegato sopra la testa "
-"di stampa."
+"Il PPA-CF è fragile e potrebbe rompersi nel tubo in PTFE inserito sopra il "
+"gruppo testina."
 
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
@@ -115,26 +116,38 @@ msgstr "Ultima versione"
 msgid "Support Painting"
 msgstr "Dipingi supporti"
 
-msgid "Ctrl+"
-msgstr "Ctrl+"
+msgid "Perform"
+msgstr "Esegui"
 
-msgid "Alt+"
-msgstr "Alt+"
+msgid "On highlighted overhangs only"
+msgstr "Solo sulle sporgenze evidenziate"
 
-msgid "Shift+"
-msgstr "Maiusc+"
+msgid "Erase all"
+msgstr ""
 
-msgid "Mouse wheel"
-msgstr "Rotellina del mouse"
+msgid "Highlight overhang areas"
+msgstr "Evidenziare le sporgenze"
 
-msgid "Section view"
-msgstr "Vista in sezione"
+msgid "Tool type"
+msgstr "Tipo di strumento"
+
+msgid "Gap fill"
+msgstr "Riempi spazio vuoto"
 
 msgid "Reset direction"
 msgstr "Ripristina direzione"
 
-msgid "Pen size"
-msgstr "Dimensione penna"
+msgid "Section view"
+msgstr "Vista in sezione"
+
+msgid "Brush size"
+msgstr "Misura del pennello"
+
+msgid "Smart fill angle"
+msgstr "Angolo di riempimento intelligente"
+
+msgid "Gap area"
+msgstr "Area spazio vuoto"
 
 msgid "Left mouse button"
 msgstr "Tasto sinistro mouse"
@@ -151,29 +164,8 @@ msgstr "Blocca supporti"
 msgid "Erase"
 msgstr "Elimina"
 
-msgid "Erase all painting"
-msgstr "Cancella tutto"
-
-msgid "Highlight overhang areas"
-msgstr "Evidenziare le sporgenze"
-
-msgid "Gap fill"
-msgstr "Riempi spazio vuoto"
-
-msgid "Perform"
-msgstr "Esegui"
-
-msgid "Gap area"
-msgstr "Area spazio vuoto"
-
-msgid "Tool type"
-msgstr "Tipo di strumento"
-
-msgid "Smart fill angle"
-msgstr "Angolo di riempimento intelligente"
-
-msgid "On overhangs only"
-msgstr "Solo sulle sporgenze"
+msgid "Mouse wheel"
+msgstr "Rotellina del mouse"
 
 msgid "Auto support threshold angle: "
 msgstr "Angolo di soglia per supporto automatico: "
@@ -200,6 +192,9 @@ msgstr "Evidenziare le facce in base all'angolo di sporgenza."
 msgid "No auto support"
 msgstr "Nessun supporto automatico"
 
+msgid "Done"
+msgstr "Fatto"
+
 msgid "Support Generated"
 msgstr "Supporto generato"
 
@@ -221,14 +216,11 @@ msgstr ""
 msgid "Color Painting"
 msgstr "Pittura a colori"
 
-msgid "Pen shape"
-msgstr "Forma penna"
+msgid "Brush shape"
+msgstr "Forma del pennello"
 
 msgid "Paint"
 msgstr "Pittura"
-
-msgid "Key 1~9"
-msgstr "Tasto 1~9"
 
 msgid "Choose filament"
 msgstr "Scegli filamento"
@@ -254,9 +246,6 @@ msgstr "Riempimento colore"
 msgid "Height range"
 msgstr "Intervallo altezza"
 
-msgid "Enter"
-msgstr "Invio"
-
 msgid "Toggle Wireframe"
 msgstr "Attiva/disattiva modello reticolato"
 
@@ -266,8 +255,11 @@ msgstr "Rimappa filamenti"
 msgid "Remap"
 msgstr "Rimappa"
 
-msgid "Cancel"
-msgstr "Annulla"
+msgid "Reset"
+msgstr "Reimposta"
+
+msgid "Enter"
+msgstr "Invio"
 
 msgid "Shortcut Key "
 msgstr "Tasto di scelta rapida "
@@ -295,19 +287,13 @@ msgid "To:"
 msgstr "A:"
 
 msgid "Paint-on fuzzy skin"
-msgstr "Pelle fuzzy dipinta"
-
-msgid "Brush size"
-msgstr "Misura del pennello"
-
-msgid "Brush shape"
-msgstr "Forma del pennello"
+msgstr "Dipingi superficie ruvida"
 
 msgid "Add fuzzy skin"
-msgstr "Aggiungi pelle fuzzy"
+msgstr "Aggiungi superficie ruvida"
 
 msgid "Remove fuzzy skin"
-msgstr "Rimuovi pelle fuzzy"
+msgstr "Rimuovi superficie ruvida"
 
 msgid "Reset selection"
 msgstr "Reimposta selezione"
@@ -315,11 +301,11 @@ msgstr "Reimposta selezione"
 msgid ""
 "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
 msgstr ""
-"Attenzione: la pelle fuzzy è disabilitata, la pelle fuzzy dipinta non avrà "
-"effetto!"
+"Attenzione: la superficie ruvida è disabilitata, e qualsiasi modifica non "
+"avrà effetto!"
 
 msgid "Enable painted fuzzy skin for this object"
-msgstr "Abilita la pelle fuzzy dipinta per questo oggetto"
+msgstr "Abilita la superficie ruvida dipinta per questo oggetto"
 
 msgid "Move"
 msgstr "Sposta"
@@ -362,6 +348,12 @@ msgstr "Selezione parte"
 
 msgid "Fixed step drag"
 msgstr "Trascinamento a passo fisso"
+
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
 
 msgid "Single sided scaling"
 msgstr "Ridimensionamento su un solo lato"
@@ -425,7 +417,7 @@ msgid "Size"
 msgstr "Dimensioni"
 
 msgid "Uniform scale"
-msgstr "scala uniforme"
+msgstr "Scala uniforme"
 
 msgid "Planar"
 msgstr "Planare"
@@ -511,6 +503,18 @@ msgstr "Posizione taglio"
 msgid "Build Volume"
 msgstr "Volume di stampa"
 
+msgid "Multiple"
+msgstr "Multiplo"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Spaziatura"
+
 msgid "Part"
 msgstr "Parte"
 
@@ -549,17 +553,14 @@ msgstr "Tolleranza"
 msgid "Drag"
 msgstr "Trascina"
 
+msgid "Move cut line"
+msgstr "Sposta linea di taglio"
+
 msgid "Draw cut line"
 msgstr "Disegna linea di taglio"
 
-msgid "Left click"
-msgstr "Clic sinistro"
-
 msgid "Add connector"
 msgstr "Aggiungi connettore"
-
-msgid "Right click"
-msgstr "Clic destro"
 
 msgid "Remove connector"
 msgstr "Rimuovi connettore"
@@ -600,14 +601,14 @@ msgstr "Proporzione di spazio in relazione al raggio"
 msgid "Confirm connectors"
 msgstr "Conferma connettori"
 
+msgid "Cancel"
+msgstr "Annulla"
+
 msgid "Flip cut plane"
 msgstr "Capovolgi piano di taglio"
 
 msgid "Groove change"
 msgstr "Cambio di scanalatura"
-
-msgid "Reset"
-msgstr "Reimposta"
 
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
 msgid "Edited"
@@ -621,12 +622,6 @@ msgstr "Modifica connettori"
 
 msgid "Add connectors"
 msgstr "Aggiungi connettori"
-
-msgid "Reset cut"
-msgstr "Ripristina taglio"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Ripristina il piano di taglio e rimuovi i connettori"
 
 msgid "Upper part"
 msgstr "Parte superiore"
@@ -645,6 +640,9 @@ msgstr "Dopo il taglio"
 
 msgid "Cut to parts"
 msgstr "Taglia in parti"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Ripristina il piano di taglio e rimuovi i connettori"
 
 msgid "Perform cut"
 msgstr "Effettua taglio"
@@ -687,7 +685,7 @@ msgstr "Taglio per piano"
 
 msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
-"lo strumento Taglia ha generato geometrie con spessore zero, vuoi risolvere "
+"Lo strumento Taglia ha generato geometrie con spessore zero, vuoi risolvere "
 "il problema ora?"
 
 msgid "Repairing model object"
@@ -815,6 +813,9 @@ msgstr "Superficie"
 msgid "Horizontal text"
 msgstr "Testo orizzontale"
 
+msgid "Shift+"
+msgstr "Maiusc+"
+
 msgid "Mouse move up or down"
 msgstr "Movimento del mouse su o giù"
 
@@ -847,6 +848,9 @@ msgstr "Chiudi lo strumento rilievo"
 msgid "Embossing actions"
 msgstr "Azioni di rilievo"
 
+msgid "Position on surface"
+msgstr "Posizione sulla superficie"
+
 msgid "Emboss"
 msgstr "Rilievo"
 
@@ -873,6 +877,9 @@ msgstr "Carattere predefinito"
 
 msgid "Advanced"
 msgstr "Avanzate"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1341,9 +1348,8 @@ msgstr "Ricarica il file SVG dal disco."
 msgid "Change file"
 msgstr "Cambia file"
 
-#, fuzzy
 msgid "Change to another SVG file."
-msgstr "Passa a un altro file .svg"
+msgstr "Passa a un altro file SVG."
 
 msgid "Forget the file path"
 msgstr "Dimentica il percorso del file"
@@ -1370,7 +1376,7 @@ msgid "Save SVG file"
 msgstr "Salva file SVG"
 
 msgid "Save as SVG file."
-msgstr "Salva come file '.svg"
+msgstr "Salva come file SVG."
 
 msgid "Size in emboss direction."
 msgstr "Dimensioni in direzione del rilievo."
@@ -1468,8 +1474,8 @@ msgstr "Centro del bordo"
 msgid "Center of circle"
 msgstr "Centro della circonferenza"
 
-msgid "Select feature"
-msgstr "Seleziona elemento"
+msgid "Select"
+msgstr "Seleziona"
 
 msgid "Select point"
 msgstr "Seleziona punto"
@@ -1547,15 +1553,6 @@ msgstr ""
 "L'elemento 1 è stato ripristinato, \n"
 "l'elemento 2 è stato l'elemento 1"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Attenzione: selezionare l'elemento del Piano."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Attenzione: selezionare l'elemento del Punto o del Cerchio."
-
-msgid "Warning: please select two different meshes."
-msgstr "Attenzione: selezionare due maglie poligonali diverse."
-
 msgid "Copy to clipboard"
 msgstr "Copia negli appunti"
 
@@ -1608,6 +1605,15 @@ msgstr "(In movimento)"
 msgid "Point and point assembly"
 msgstr "Assemblaggio punto a punto"
 
+msgid "Warning: please select two different meshes."
+msgstr "Attenzione: selezionare due maglie poligonali diverse."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Attenzione: selezionare l'elemento del Piano."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Attenzione: selezionare l'elemento del Punto o del Cerchio."
+
 msgid ""
 "It is recommended to assemble the objects first,\n"
 "because the objects is restriced to bed \n"
@@ -1619,6 +1625,12 @@ msgstr ""
 
 msgid "Face and face assembly"
 msgstr "Assemblaggio faccia a faccia"
+
+msgid "Ctrl+"
+msgstr "Ctrl+"
+
+msgid "Alt+"
+msgstr "Alt+"
 
 msgid "Notice"
 msgstr "Avvertenza"
@@ -1659,8 +1671,8 @@ msgstr ""
 "Il file di configurazione \"%1%\" è stato caricato, ma alcuni valori non "
 "sono stati riconosciuti."
 
-msgid "Based on PrusaSlicer and BambuStudio"
-msgstr "Basato su PrusaSlicer e BambuStudio"
+msgid "Loading configuration"
+msgstr "Caricamento configurazione"
 
 msgid "STEP files"
 msgstr "File STEP"
@@ -1738,13 +1750,13 @@ msgid "Untitled"
 msgstr "Senza titolo"
 
 msgid "Reloading network plug-in..."
-msgstr "Ricaricamento plug-in di rete..."
+msgstr "Ricaricamento modulo di rete..."
 
 msgid "Downloading Network Plug-in"
-msgstr "Scaricamento plug-in di rete"
+msgstr "Scaricamento modulo di rete"
 
 msgid "Downloading Bambu Network Plug-in"
-msgstr "Scaricamento del modulo Bambu Network"
+msgstr "Scaricamento del modulo di rete Bambu"
 
 msgid "Login information expired. Please login again."
 msgstr ""
@@ -1784,14 +1796,11 @@ msgstr ""
 msgid "Remember my choice"
 msgstr "Ricorda la mia scelta"
 
-msgid "Loading configuration"
-msgstr "Caricamento configurazione"
-
 #, c-format, boost-format
 msgid "Click to download new version in default browser: %s"
 msgstr "Fai clic per scaricare la nuova versione nel browser predefinito: %s"
 
-msgid "The Orca Slicer needs an upgrade"
+msgid "OrcaSlicer needs an update"
 msgstr "OrcaSlicer necessita di aggiornamento"
 
 msgid "This is the newest version."
@@ -1799,6 +1808,18 @@ msgstr "Hai la versione più recente."
 
 msgid "Info"
 msgstr "Informazioni"
+
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
 
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
@@ -1858,7 +1879,7 @@ msgstr ""
 "elaborazione!"
 
 msgid "Open Project"
-msgstr "Apri Progetto"
+msgstr "Apri progetto"
 
 msgid ""
 "The version of Orca Slicer is too low and needs to be updated to the latest "
@@ -1866,6 +1887,23 @@ msgid ""
 msgstr ""
 "La versione di OrcaSlicer è obsoleta. Devi aggiornarla all'ultima versione "
 "prima di poter utilizzare normalmente il programma."
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Recupero delle informazioni della stampante, riprovare più tardi."
@@ -1916,10 +1954,42 @@ msgstr ""
 "funzionalità con OrcaSlicer."
 
 msgid "Network Plug-in Restriction"
-msgstr "Restrizione plug-in di rete"
+msgstr "Restrizione modulo di rete"
 
 msgid "Privacy Policy Update"
 msgstr "Aggiornamento dell'informativa sulla riservatezza"
+
+#, c-format, boost-format
+msgid "your Bambu Cloud profile (user ID: \"%s\")"
+msgstr "il tuo profilo Bambu Cloud (ID utente: \"%s\")"
+
+msgid "your default profile"
+msgstr "il tuo profilo predefinito"
+
+#, c-format, boost-format
+msgid "a user profile (folder: \"%s\")"
+msgstr "profilo utente (cartella: \"%s\")"
+
+#, c-format, boost-format
+msgid ""
+"Existing user presets were found in %s.\n"
+"Do you want to migrate them to your OrcaCloud profile?\n"
+"This will copy your presets so they are available under your new account."
+msgstr ""
+"Sono stati trovati dei profili utente in %s.\n"
+"Desideri migrarli al tuo profilo OrcaCloud?\n"
+"In questo modo verranno copiati e resi disponibili nel tuo nuovo profilo."
+
+msgid "Migrate User Presets"
+msgstr "Migra profili utente"
+
+#, c-format, boost-format
+msgid ""
+"Failed to migrate user presets:\n"
+"%s"
+msgstr ""
+"Impossibile migrare i profili utente:\n"
+"%s"
 
 msgid ""
 "The number of user presets cached in the cloud has exceeded the upper limit, "
@@ -1931,8 +2001,38 @@ msgstr ""
 msgid "Sync user presets"
 msgstr "Sincronizza profili utente"
 
+msgid ""
+"The preset content is too large to sync to the cloud (exceeds 1MB). Please "
+"reduce the preset size by removing custom configurations or use it locally "
+"only."
+msgstr ""
+"Il contenuto del profilo è troppo grande per essere sincronizzato con il "
+"cloud (supera 1 MB). Si prega di ridurre le dimensioni del profilo "
+"rimuovendo le configurazioni personalizzate oppure utilizzarlo solo in "
+"locale."
+
+#, c-format, boost-format
+msgid "%s updated from %s to %s"
+msgstr "%s aggiornato da %s a %s"
+
+#, c-format, boost-format
+msgid "%s has been downloaded."
+msgstr "%s è stato scaricato."
+
+#, c-format, boost-format
+msgid "Bundle %s is no longer available."
+msgstr "Il pacchetto %s non è più disponibile."
+
+#, c-format, boost-format
+msgid "Bundle %s access is unauthorized."
+msgstr "L'accesso al pacchetto %s non è autorizzato."
+
 msgid "Loading user preset"
 msgstr "Caricamento profili utente"
+
+#, c-format, boost-format
+msgid "%s has been removed."
+msgstr "%s è stato rimosso."
 
 msgid "Switching application language"
 msgstr "Cambio lingua applicazione"
@@ -2100,7 +2200,7 @@ msgid "Backspace"
 msgstr "Backspace"
 
 msgid "Load..."
-msgstr "Caricamento..."
+msgstr "Carica..."
 
 msgid "Cube"
 msgstr "Cubo"
@@ -2149,9 +2249,9 @@ msgid ""
 "No  - Do not change these settings for me"
 msgstr ""
 "Questo modello presenta una goffratura del testo sulla superficie superiore. "
-"Per ottenere risultati ottimali, si consiglia di impostare la 'Soglia di una "
-"parete(min_width_top_surface)' su 0 affinché la 'Soglia di una sola parete "
-"sulle superfici superiori' funzioni al meglio.\n"
+"Per ottenere risultati ottimali, si consiglia di impostare 'Soglia singola "
+"parete (min_width_top_surface)' su 0 affinché l'opzione 'Solo una parete su "
+"superfici superiori' funzioni al meglio.\n"
 "Sì - Modificare automaticamente queste impostazioni\n"
 "No - Non modificare queste impostazioni per me"
 
@@ -2170,6 +2270,18 @@ msgstr "Aggiungi impostazioni"
 msgid "Change type"
 msgstr "Cambia tipo"
 
+msgid "Negative Part"
+msgstr "Parte negativa"
+
+msgid "Support Blocker"
+msgstr "Blocco Supporto"
+
+msgid "Support Enforcer"
+msgstr "Supporto di rinforzo"
+
+msgid "Change part type"
+msgstr "Modifica tipo di parte"
+
 msgid "Set as an individual object"
 msgstr "Imposta come singolo oggetto"
 
@@ -2184,6 +2296,12 @@ msgstr "Riempi l'area rimanente del piano con copie dell'oggetto selezionato"
 
 msgid "Printable"
 msgstr "Stampabile"
+
+msgid "Auto Drop"
+msgstr "Rilascio automatico"
+
+msgid "Automatically drops the selected object to the build plate"
+msgstr "Rilascia automaticamente l'oggetto selezionato sul piano di stampa"
 
 msgid "Fix model"
 msgstr "Correggi il modello"
@@ -2267,10 +2385,10 @@ msgstr "Converti da metri"
 msgid "Restore to meters"
 msgstr "Ripristina in metri"
 
-msgid "Assemble the selected objects to an object with multiple parts"
-msgstr "Assembla gli oggetti selezionati in un oggetto con più parti"
+msgid "Assemble the selected objects into an object with multiple parts"
+msgstr "Assembla gli oggetti selezionati in un oggetto composto da più parti"
 
-msgid "Assemble the selected objects to an object with single part"
+msgid "Assemble the selected objects into an object with single part"
 msgstr "Assembla gli oggetti selezionati in un oggetto con una singola parte"
 
 msgid "Mesh boolean"
@@ -2326,7 +2444,7 @@ msgid "Add Models"
 msgstr "Aggiungi modelli"
 
 msgid "Show Labels"
-msgstr "Mostra Etichette"
+msgstr "Mostra etichette"
 
 msgid "To objects"
 msgstr "In oggetti"
@@ -2350,52 +2468,52 @@ msgid "Auto orientation"
 msgstr "Orientamento automatico"
 
 msgid "Auto orient the object to improve print quality"
-msgstr "Orienta automaticamente l'oggetto per migliorare la qualità di stampa."
+msgstr "Orienta automaticamente l'oggetto per migliorare la qualità di stampa"
 
 msgid "Edit"
 msgstr "Modifica"
 
-msgid "Delete this filament"
-msgstr "Elimina questo filamento"
-
 msgid "Merge with"
 msgstr "Unisci con"
+
+msgid "Delete this filament"
+msgstr "Elimina questo filamento"
 
 msgid "Select All"
 msgstr "Seleziona tutto"
 
 msgid "Select all objects on the current plate"
-msgstr "seleziona tutti gli oggetti sul piatto corrente"
+msgstr "Seleziona tutti gli oggetti sul piatto corrente"
 
 msgid "Select All Plates"
-msgstr "Seleziona tutte le piastre"
+msgstr "Seleziona tutti i piatti"
 
 msgid "Select all objects on all plates"
-msgstr "Seleziona tutti gli oggetti su tutte le piastre"
+msgstr "Seleziona tutti gli oggetti su tutti i piatti"
 
 msgid "Delete All"
 msgstr "Elimina tutto"
 
 msgid "Delete all objects on the current plate"
-msgstr "elimina tutti gli oggetti sul piatto corrente"
+msgstr "Elimina tutti gli oggetti sul piatto corrente"
 
 msgid "Arrange"
 msgstr "Disponi"
 
 msgid "Arrange current plate"
-msgstr "disponi sul piatto corrente"
+msgstr "Disponi sul piatto corrente"
 
 msgid "Reload All"
 msgstr "Ricarica tutto"
 
 msgid "Reload all from disk"
-msgstr "ricarica tutto dal disco"
+msgstr "Ricarica tutto dal disco"
 
 msgid "Auto Rotate"
 msgstr "Rotazione automatica"
 
 msgid "Auto rotate current plate"
-msgstr "rotazione automatica piatto corrente"
+msgstr "Rotazione automatica del piatto corrente"
 
 msgid "Delete Plate"
 msgstr "Elimina piatto"
@@ -2434,7 +2552,7 @@ msgid "Simplify Model"
 msgstr "Semplifica Modello"
 
 msgid "Subdivision mesh"
-msgstr "Suddivisione mesh"
+msgstr "Suddivisione maglia"
 
 msgid "(Lost color)"
 msgstr "(Colore perso)"
@@ -2446,7 +2564,7 @@ msgid "Drop"
 msgstr "Lascia"
 
 msgid "Edit Process Settings"
-msgstr "Modifica le impostazioni del processo"
+msgstr "Modifica impostazioni di processo"
 
 msgid "Copy Process Settings"
 msgstr "Copia impostazioni di processo"
@@ -2462,6 +2580,9 @@ msgstr "Cambia filamento"
 
 msgid "Set Filament for selected items"
 msgstr "Imposta filamento per gli elementi selezionati"
+
+msgid "Automatically snaps the selected object to the build plate"
+msgstr "Aggancia automaticamente l'oggetto selezionato sul piano di stampa"
 
 msgid "Unlock"
 msgstr "Sblocca"
@@ -2557,7 +2678,7 @@ msgstr ""
 "di processo degli oggetti selezionati."
 
 msgid "Remove paint-on fuzzy skin"
-msgstr "Rimuovi pelle fuzzy dipinta"
+msgstr "Rimuovi superficie ruvida dipinta"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Elimina il connettore dall'oggetto che fa parte del taglio"
@@ -2654,15 +2775,6 @@ msgid "The type of the last solid object part is not to be changed."
 msgstr ""
 "Il tipo dell'ultima parte dell'oggetto solido non può essere modificato."
 
-msgid "Negative Part"
-msgstr "Parte negativa"
-
-msgid "Support Blocker"
-msgstr "Blocco Supporto"
-
-msgid "Support Enforcer"
-msgstr "Supporto di rinforzo"
-
 msgid "Type:"
 msgstr "Tipo:"
 
@@ -2718,10 +2830,9 @@ msgstr "Aggiungi intervallo di altezza"
 msgid "Invalid numeric."
 msgstr "Numero non valido."
 
-#, fuzzy
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
-"una cella può essere copiata solo in una o più celle della stessa colonna"
+"È possibile copiare una cella solo in una o più celle della stessa colonna."
 
 msgid "Copying multiple cells is not supported."
 msgstr "Copia di celle multiple non supportata."
@@ -2768,8 +2879,8 @@ msgstr "Piatto"
 msgid "Brim"
 msgstr "Tesa"
 
-msgid "Object/Part Setting"
-msgstr "Impostazione oggetto/parte"
+msgid "Object/Part Settings"
+msgstr "Impostazioni oggetto/parte"
 
 msgid "Reset parameter"
 msgstr "Ripristina parametro"
@@ -2987,7 +3098,7 @@ msgstr "Ciclo interno"
 
 #. TRN To be shown in the main menu View->Top
 msgid "Top"
-msgstr "Dall'alto"
+msgstr "Superiore"
 
 msgid ""
 "The fan controls the temperature during printing to improve print quality. "
@@ -3475,21 +3586,43 @@ msgstr ""
 msgid "About %s"
 msgstr "Informazioni su %s"
 
-msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
-msgstr "OrcaSlicer è basato su BambuStudio, PrusaSlicer e SuperSlicer."
-
-msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
-msgstr "BambuStudio è originariamente basato su PrusaSlicer di PrusaResearch."
-
-msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
-msgstr "PrusaSlicer originariamente basato su Slic3r di Alessandro Ranellucci."
+msgid ""
+"Open-source slicing stands on a tradition of collaboration and attribution. "
+"Slic3r, created by Alessandro Ranellucci and the RepRap community, laid the "
+"foundation. PrusaSlicer by Prusa Research built on that work, Bambu Studio "
+"forked from PrusaSlicer, and SuperSlicer extended it with community-driven "
+"enhancements. Each project carried the work of its predecessors forward, "
+"crediting those who came before."
+msgstr ""
+"I programmi di sezionamento a sorgente aperta per l'elaborazione del modelli "
+"per la stampa 3D, si fondano su una tradizione di collaborazione e "
+"riconoscimento del merito. Slic3r, creato da Alessandro Ranellucci e dalla "
+"comunità RepRap, ha gettato le basi. PrusaSlicer di Prusa Research ha "
+"sviluppato ulteriormente questo lavoro; Bambu Studio è derivato da "
+"PrusaSlicer e SuperSlicer lo ha ampliato con miglioramenti apportati dalla "
+"comunità. Ogni progetto ha portato avanti il ​​lavoro dei suoi predecessori, "
+"riconoscendo il contributo di chi li ha preceduti."
 
 msgid ""
-"Slic3r was created by Alessandro Ranellucci with the help of many other "
-"contributors."
+"OrcaSlicer began in that same spirit, drawing from PrusaSlicer, BambuStudio, "
+"SuperSlicer, and CuraSlicer. But it has since grown far beyond its origins — "
+"introducing advanced calibration tools, precise wall and seam control and "
+"hundreds of other features."
 msgstr ""
-"Slic3r è stato creato da Alessandro Ranellucci con l'aiuto di molti altri "
-"collaboratori."
+"OrcaSlicer è nato con lo stesso spirito, traendo ispirazione da PrusaSlicer, "
+"BambuStudio, SuperSlicer e CuraSlicer. Ma da allora si è evoluto ben oltre "
+"le sue origini, introducendo strumenti di calibrazione avanzati, controllo "
+"preciso su pareti e cuciture e centinaia di altre funzionalità."
+
+msgid ""
+"Today, OrcaSlicer is the most widely used and actively developed open-source "
+"slicer in the 3D printing community. Many of its innovations have been "
+"adopted by other slicers, making it a driving force for the entire industry."
+msgstr ""
+"Oggi, OrcaSlicer è il programma di sezionamento a sorgente aperta più "
+"utilizzato e attivamente sviluppato nella comunità della stampa 3D. Molte "
+"delle sue innovazioni sono state adottate da altri programmi di stampa, "
+"rendendolo un punto di riferimento per l'intero settore."
 
 msgid "Version"
 msgstr "Versione"
@@ -3654,7 +3787,7 @@ msgid "Dynamic flow Calibration"
 msgstr "Calibrazione dinamica del flusso"
 
 msgid "Step"
-msgstr "Passo"
+msgstr "Incremento"
 
 msgid "Unmapped"
 msgstr "Non mappato"
@@ -3960,26 +4093,26 @@ msgid ""
 "Failed to download the plug-in. Please check your firewall settings and VPN "
 "software and retry."
 msgstr ""
-"Impossibile scaricare il modulo. Controlla le impostazioni del firewall e "
-"VPN poi riprova."
+"Impossibile scaricare il modulo. Controllare le impostazioni del firewall e "
+"della VPN e riprovare."
 
 msgid ""
 "Failed to install the plug-in. The plug-in file may be in use. Please "
 "restart OrcaSlicer and try again. Also check whether it is blocked or "
 "deleted by anti-virus software."
 msgstr ""
-"Impossibile installare il plug-in. Il file del plug-in potrebbe essere in "
-"uso. Riavviare OrcaSlicer e riprovare. Verificare anche che non sia bloccato "
-"o eliminato da un software antivirus."
+"Impossibile installare il modulo. Il modulo potrebbe essere in uso. "
+"Riavviare OrcaSlicer e riprovare. Verificare inoltre che non sia stato "
+"bloccato o eliminato da un software antivirus."
 
 msgid "Click here to see more info"
-msgstr "clicca per ulteriori informazioni"
+msgstr "Per ulteriori informazioni clicca qui"
 
 msgid ""
 "The network plug-in was installed but could not be loaded. Please restart "
 "the application."
 msgstr ""
-"Il plug-in di rete è stato installato ma non è stato possibile caricarlo. "
+"Il modulo di rete è stato installato ma non è stato possibile caricarlo. "
 "Riavviare l'applicazione."
 
 msgid "Restart Required"
@@ -4232,7 +4365,7 @@ msgid ""
 "Reset to 0.5."
 msgstr ""
 "Velocità volumetrica massima troppo bassa.\n"
-"Il valore è stato ripristinato a 0,5"
+"Il valore è stato ripristinato a 0,5."
 
 #, c-format, boost-format
 msgid ""
@@ -4248,15 +4381,15 @@ msgid ""
 "Too small layer height.\n"
 "Reset to 0.2."
 msgstr ""
-"Altezza delo strato troppo piccola.\n"
-"È stata ripristinata a 0,2"
+"Altezza dello strato troppo piccola.\n"
+"Il valore è stato ripristinato a 0,2."
 
 msgid ""
 "Too small ironing spacing.\n"
 "Reset to 0.1."
 msgstr ""
 "Spaziatura di stiratura troppo piccola.\n"
-"È stata ripristinata a 0,1"
+"Il valore è stato ripristinato a 0,1."
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -4359,20 +4492,21 @@ msgstr ""
 "seam_slope_start_height deve essere inferiore a layer_height.\n"
 "È stato ripristinato a 0."
 
-#, fuzzy, c-format, boost-format
+#, fuzzy, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
 msgstr ""
-"La profondità di blocco deve essere inferiore alla profondità della pelle.\n"
-"Reimpostata al 50% della profondità della pelle."
+"La profondità di intersezione deve essere inferiore alla profondità della "
+"pelle.\n"
+"Ripristino al 50% della profondità della pelle."
 
 msgid ""
 "Both [Extrusion] and [Combined] modes of Fuzzy Skin require the Arachne Wall "
 "Generator to be enabled."
 msgstr ""
-"Entrambe le modalità [Estrusione] e [Combinata] della pelle fuzzy richiedono "
-"l'abilitazione del generatore di pareti Arachne."
+"Entrambe le modalità [Estrusione] e [Combinata] della Superficie ruvida "
+"richiedono l'abilitazione del generatore di pareti Arachne."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -4383,7 +4517,7 @@ msgstr ""
 "Modificare automaticamente queste impostazioni?\n"
 "Sì - Abilita generatore di pareti Arachne\n"
 "No - Disabilita generatore di pareti Arachne e imposta la modalità "
-"[Spostamento] della pelle fuzzy"
+"[Spostamento] della Superficie ruvida"
 
 msgid ""
 "Spiral mode only works when wall loops is 1, support is disabled, clumping "
@@ -4442,13 +4576,13 @@ msgid "Inspecting first layer"
 msgstr "Ispezione del primo strato"
 
 msgid "Identifying build plate type"
-msgstr "Identificazione tipo piatto di stampa"
+msgstr "Identificazione tipo piano di stampa"
 
 msgid "Calibrating Micro Lidar"
 msgstr "Calibrazione Micro Lidar"
 
 msgid "Homing toolhead"
-msgstr "Riposizionamento gruppo testina"
+msgstr "Riposizionamento testina"
 
 msgid "Cleaning nozzle tip"
 msgstr "Pulizia ugello"
@@ -4743,9 +4877,6 @@ msgstr "Interrompi asciugatura"
 msgid "Proceed"
 msgstr "Procedi"
 
-msgid "Done"
-msgstr "Fatto"
-
 msgid "Retry"
 msgstr "Riprova"
 
@@ -4907,6 +5038,12 @@ msgstr "Larghezza linea"
 msgid "Actual Speed"
 msgstr "Velocità effettiva"
 
+msgid "Acceleration"
+msgstr "Accelerazione"
+
+msgid "Jerk"
+msgstr "Scatto"
+
 msgid "Fan Speed"
 msgstr "Velocità ventola"
 
@@ -5003,30 +5140,6 @@ msgstr "Transizione di supporto"
 msgid "Mixed"
 msgstr "Misto"
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "Flow rate"
-msgstr "Flusso di stampa"
-
-msgid "mm³/s"
-msgstr "mm³/s"
-
-msgid "Fan speed"
-msgstr "Velocità ventola"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Tempo"
-
-msgid "Actual speed profile"
-msgstr "Profilo di velocità effettivo"
-
-msgid "Speed: "
-msgstr "Velocità: "
-
 msgid "Height: "
 msgstr "Altezza: "
 
@@ -5046,16 +5159,46 @@ msgid "Layer Time: "
 msgstr "Durata strato: "
 
 msgid "Tool: "
-msgstr "Utensile: "
+msgstr "Testina: "
 
 msgid "Color: "
 msgstr "Colore: "
 
-msgid "Actual Speed: "
-msgstr "Velocità effettiva: "
+msgid "Acceleration: "
+msgstr "Accelerazione: "
+
+msgid "Jerk: "
+msgstr "Scatto: "
 
 msgid "PA: "
 msgstr "PA: "
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr "mm³/s"
+
+msgid "Flow rate"
+msgstr "Flusso di stampa"
+
+msgid "Fan speed"
+msgstr "Velocità ventola"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Tempo"
+
+msgid "Speed: "
+msgstr "Velocità: "
+
+msgid "Actual speed profile"
+msgstr "Profilo di velocità effettivo"
 
 msgid "Statistics of All Plates"
 msgstr "Statistiche di tutti i piatti"
@@ -5085,8 +5228,9 @@ msgid ""
 "Automatically re-slice according to the optimal filament grouping, and the "
 "grouping results will be displayed after slicing."
 msgstr ""
-"Ri-slicing automatico secondo il raggruppamento filamenti ottimale; i "
-"risultati del raggruppamento verranno visualizzati dopo lo slicing."
+"Rielabora automaticamente in base al raggruppamento ottimale dei filamenti; "
+"i risultati del raggruppamento verranno visualizzati al termine "
+"dell'elaborazione."
 
 msgid "Filament Grouping"
 msgstr "Raggruppamento filamenti"
@@ -5159,8 +5303,8 @@ msgstr "Imposta al valore ottimale"
 msgid "Regroup filament"
 msgstr "Raggruppa nuovamente i filamenti"
 
-msgid "Tips"
-msgstr "Suggerimenti"
+msgid "Wiki Guide"
+msgstr "Guida Wiki"
 
 msgid "up to"
 msgstr "fino a"
@@ -5185,6 +5329,12 @@ msgstr "Velocità (mm/s)"
 
 msgid "Actual Speed (mm/s)"
 msgstr "Velocità effettiva (mm/s)"
+
+msgid "Acceleration (mm/s²)"
+msgstr "Accelerazione (mm/s²)"
+
+msgid "Jerk (mm/s)"
+msgstr "Scatto (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Velocità ventola (%)"
@@ -5215,6 +5365,9 @@ msgstr "Costo"
 
 msgid "Filament change times"
 msgstr "Tempi cambio filamento"
+
+msgid "Tool changes"
+msgstr "Cambi testina"
 
 msgid "Color change"
 msgstr "Cambio colore"
@@ -5300,17 +5453,17 @@ msgstr "Ripristina alla base"
 msgid "Smoothing"
 msgstr "Levigatura"
 
-msgid "Mouse wheel:"
-msgstr "Rotellina del mouse:"
-
 msgid "Increase/decrease edit area"
 msgstr "Aumenta/diminuisci l'area di modifica"
 
 msgid "Sequence"
 msgstr "Sequenza"
 
-msgid "Object selection"
+msgid "Object Selection"
 msgstr "Selezione oggetto"
+
+msgid "Part Selection"
+msgstr "Selezione parte"
 
 msgid "number keys"
 msgstr "tasti numerici"
@@ -5390,9 +5543,6 @@ msgstr "Orienta"
 
 msgid "Arrange options"
 msgstr "Opzioni di disposizione"
-
-msgid "Spacing"
-msgstr "Spaziatura"
 
 msgid "0 means auto spacing."
 msgstr "0 significa spaziatura automatica."
@@ -5501,6 +5651,9 @@ msgstr "Etichette"
 msgid "Paint Toolbar"
 msgstr "Barra strumenti di pittura"
 
+msgid "part selection"
+msgstr "selezione parte"
+
 msgid "Explosion Ratio"
 msgstr "Rapporto di esplosione"
 
@@ -5547,7 +5700,7 @@ msgstr "La stampa con 2 o più filamenti TPU non è supportata."
 
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr "Utensile %d"
+msgstr "Testina %d"
 
 #, c-format, boost-format
 msgid ""
@@ -5779,7 +5932,7 @@ msgstr "Invia a più dispositivi"
 msgid "Keyboard Shortcuts"
 msgstr "Scorciatoie da tastiera"
 
-msgid "Show the list of the keyboard shortcuts"
+msgid "Show the list of keyboard shortcuts"
 msgstr "Mostra l'elenco delle scorciatoie da tastiera"
 
 msgid "Setup Wizard"
@@ -5815,22 +5968,22 @@ msgstr "Vista dall'alto"
 
 #. TRN To be shown in the main menu View->Bottom
 msgid "Bottom"
-msgstr "Dal basso"
+msgstr "Inferiore"
 
 msgid "Bottom View"
 msgstr "Vista dal basso"
 
 msgid "Front"
-msgstr "Di fronte"
+msgstr "Frontale"
 
 msgid "Front View"
-msgstr "Vista di fronte"
+msgstr "Vista frontale"
 
 msgid "Rear"
-msgstr "Da dietro"
+msgstr "Posteriore"
 
 msgid "Rear View"
-msgstr "Vista da dietro"
+msgstr "Vista posteriore"
 
 msgid "Left View"
 msgstr "Vista da sinistra"
@@ -5854,16 +6007,16 @@ msgid "Recent files"
 msgstr "File recenti"
 
 msgid "Save Project"
-msgstr "Salva Progetto"
+msgstr "Salva progetto"
 
 msgid "Save current project to file"
 msgstr "Salva progetto corrente su file"
 
 msgid "Save Project as"
-msgstr "Salva Progetto come"
+msgstr "Salva progetto con nome"
 
 msgid "Save current project as"
-msgstr "Salva Progetto corrente come"
+msgstr "Salva progetto corrente con nome"
 
 msgid "Import 3MF/STL/STEP/SVG/OBJ/AMF"
 msgstr "Importa 3MF/STL/STEP/SVG/OBJ/AMF"
@@ -5902,7 +6055,7 @@ msgid "Export Generic 3MF"
 msgstr "Esporta 3MF generico"
 
 msgid "Export 3MF file without using some 3mf-extensions"
-msgstr "Esporta file 3MF senza usare le estensioni."
+msgstr "Esporta file 3MF senza usare le estensioni"
 
 msgid "Export current sliced file"
 msgstr "Esporta il file elaborato corrente"
@@ -5927,6 +6080,15 @@ msgstr "Esporta la configurazione corrente in un file"
 
 msgid "Export"
 msgstr "Esporta"
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
 
 msgid "Quit"
 msgstr "Esci"
@@ -6035,7 +6197,7 @@ msgid "Show object labels in 3D scene."
 msgstr "Mostra etichette oggetti nella scena 3D."
 
 msgid "Show &Overhang"
-msgstr "Mostra Sporgenze"
+msgstr "Mostra sporgenze"
 
 msgid "Show object overhang highlight in 3D scene."
 msgstr "Mostra la sporgenza dell'oggetto evidenziata nella scena 3D."
@@ -6052,6 +6214,12 @@ msgstr "Preferenze"
 msgid "View"
 msgstr "Vista"
 
+msgid "Preset Bundle"
+msgstr "Pacchetto profili"
+
+msgid "Syncing presets from cloud…"
+msgstr ""
+
 msgid "Help"
 msgstr "Aiuto"
 
@@ -6064,35 +6232,14 @@ msgstr "Portata massima"
 msgid "Pressure advance"
 msgstr "Anticipo di pressione"
 
-msgid "Pass 1"
-msgstr "Passaggio 1"
-
-msgid "Flow ratio test - Pass 1"
-msgstr "Test flusso di stampa - Passaggio 1"
-
-msgid "Pass 2"
-msgstr "Passaggio 2"
-
-msgid "Flow ratio test - Pass 2"
-msgstr "Test flusso di stampa - Passaggio 2"
-
-msgid "YOLO (Recommended)"
-msgstr "YOLO (Consigliato)"
-
-msgid "Orca YOLO flowratio calibration, 0.01 step"
-msgstr "Calibrazione del flusso di stampa Orca YOLO, incrementi di 0,01"
-
-msgid "YOLO (perfectionist version)"
-msgstr "YOLO (versione per perfezionisti)"
-
-msgid "Orca YOLO flowratio calibration, 0.005 step"
-msgstr "Calibrazione del flusso di stampa Orca YOLO, incrementi di 0,005"
-
 msgid "Flow ratio"
 msgstr "Flusso di stampa"
 
-msgid "Retraction test"
-msgstr "Test di retrazione"
+msgid "Flow Rate Calibration"
+msgstr "Calibrazione della portata"
+
+msgid "Retraction"
+msgstr "Retrazione"
 
 msgid "Cornering"
 msgstr "Gestione angoli"
@@ -6101,22 +6248,19 @@ msgid "Cornering calibration"
 msgstr "Calibrazione gestione angoli"
 
 msgid "Input Shaping Frequency"
-msgstr "Frequenza Input Shaping"
+msgstr "Frequenza compensazione risonanza"
 
 msgid "Input Shaping Damping/zeta factor"
-msgstr "Fattore di smorzamento/zeta Input Shaping"
+msgstr "Fattore di smorzamento/zeta compensazione risonanza"
 
 msgid "Input Shaping"
-msgstr "Input Shaping"
+msgstr "Compensazione risonanza"
 
 msgid "VFA"
 msgstr "VFA"
 
-msgid "Tutorial"
-msgstr "Tutorial"
-
-msgid "Calibration help"
-msgstr "Aiuto per la calibrazione"
+msgid "Calibration Guide"
+msgstr "Guida alla calibrazione"
 
 msgid "&Open G-code"
 msgstr "Apri G-code"
@@ -6225,17 +6369,17 @@ msgid "Filament Settings"
 msgstr "Impostazioni Filamento"
 
 msgid ""
-"Do you want to synchronize your personal data from Bambu Cloud?\n"
+"Do you want to synchronize your personal data from Orca Cloud?\n"
 "It contains the following information:\n"
 "1. The Process presets\n"
 "2. The Filament presets\n"
 "3. The Printer presets"
 msgstr ""
-"Vuoi sincronizzare i tuoi dati personali da Bambu Cloud?\n"
+"Desideri sincronizzare i tuoi dati personali da Orca Cloud?\n"
 "Contiene le seguenti informazioni:\n"
-"1. I profili del processo\n"
-"2. I profili del filamento\n"
-"3. I profili della stampante"
+"1. Profili di processo\n"
+"2. Profili di filamento\n"
+"3. Profili della stampante"
 
 msgid "Synchronization"
 msgstr "Sincronizzazione"
@@ -6252,6 +6396,13 @@ msgstr ""
 msgid "The player is not loaded, please click \"play\" button to retry."
 msgstr ""
 "Lettore non caricato; fai clic sul pulsante \"Riproduci\" per riprovare."
+
+msgid ""
+"The player is not loaded because the GStreamer GTK video sink is missing or "
+"failed to initialize."
+msgstr ""
+"Il lettore non è stato caricato perché il ricevitore video GTK di GStreamer "
+"è mancante o non è stato inizializzato correttamente."
 
 msgid "Please confirm if the printer is connected."
 msgstr "Verifica che la stampante sia collegata."
@@ -6375,9 +6526,6 @@ msgstr "Scarica"
 
 msgid "Download selected files from printer."
 msgstr "Scarica i file selezionati dalla stampante."
-
-msgid "Select"
-msgstr "Seleziona"
 
 msgid "Batch manage files."
 msgstr "Gestione file in gruppi."
@@ -6900,7 +7048,7 @@ msgid "Upload failed\n"
 msgstr "Caricamento non riuscito\n"
 
 msgid "Obtaining instance_id failed\n"
-msgstr "ottenimento di instance_id non riuscito\n"
+msgstr "Ottenimento di instance_id non riuscito\n"
 
 msgid ""
 "Your comment result cannot be uploaded due to the following reasons:\n"
@@ -6957,11 +7105,11 @@ msgstr "Assistente (HMS)"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s"
-msgstr "Plug-in di rete v%s"
+msgstr "Modulo di rete v%s"
 
 #, c-format, boost-format
 msgid "Network plug-in v%s (%s)"
-msgstr "Plug-in di rete v%s (%s)"
+msgstr "Modulo di rete v%s (%s)"
 
 msgid "Don't show again"
 msgstr "Non mostrare più"
@@ -7087,9 +7235,6 @@ msgstr "Dettagli"
 msgid "New printer config available."
 msgstr "È disponibile una nuova configurazione della stampante."
 
-msgid "Wiki Guide"
-msgstr "Guida Wiki"
-
 msgid "Undo integration failed."
 msgstr "Annullamento integrazione non riuscito."
 
@@ -7129,8 +7274,8 @@ msgstr[1] "%1$d oggetti sono stati caricati come parti di un oggetto tagliato."
 #, c-format, boost-format
 msgid "%1$d object was loaded with fuzzy skin painting."
 msgid_plural "%1$d objects were loaded with fuzzy skin painting."
-msgstr[0] "%1$d oggetto è stato caricato con la pittura pelle fuzzy."
-msgstr[1] "%1$d oggetti sono stati caricati con la pittura pelle fuzzy."
+msgstr[0] "%1$d oggetto è stato caricato con la superficie ruvida dipinta."
+msgstr[1] "%1$d oggetti sono stati caricati con la superficie ruvida dipinta."
 
 msgid "ERROR"
 msgstr "ERRORE"
@@ -7158,6 +7303,12 @@ msgstr "Esportazione riuscita"
 
 msgid "Model file downloaded."
 msgstr "File del modello scaricato."
+
+msgid "Shared profiles may be available for this printer."
+msgstr "Per questa stampante potrebbero essere disponibili profili condivisi."
+
+msgid "Browse shared profiles"
+msgstr "Esplora i profili condivisi"
 
 msgid "Serious warning:"
 msgstr "Avviso serio:"
@@ -7370,8 +7521,8 @@ msgstr "Globale"
 msgid "Objects"
 msgstr "Oggetti"
 
-msgid "Show/Hide advanced parameters"
-msgstr "Mostra/Nascondi parametri avanzati"
+msgid "Cycle settings visibility"
+msgstr "Visibilità impostazioni"
 
 msgid "Compare presets"
 msgstr "Confronta i profili"
@@ -7489,14 +7640,6 @@ msgstr ""
 
 msgid "Switch diameter"
 msgstr "Cambia diametro"
-
-#, c-format, boost-format
-msgid "Left nozzle: %smm"
-msgstr "Ugello sinistro: %smm"
-
-#, c-format, boost-format
-msgid "Right nozzle: %smm"
-msgstr "Ugello destro: %smm"
 
 msgid "Configuration incompatible"
 msgstr "Configurazione incompatibile"
@@ -7660,14 +7803,34 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Caricamento file: %s"
 
-#, fuzzy
-msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
-msgstr ""
-"Il 3MF non è supportato da OrcaSlicer. Saranno caricati solo i dati "
-"geometrici."
-
 msgid "Load 3MF"
 msgstr "Carica 3MF"
+
+msgid "BambuStudio Project"
+msgstr "Progetto BambuStudio"
+
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
+msgstr ""
+"Il formato 3MF non è supportato da OrcaSlicer. Saranno caricati solo i dati "
+"geometrici."
+
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
+msgstr ""
+"Il file 3MF è stato generato da una vecchia versione di OrcaSlicer. Saranno "
+"caricati solo i dati geometrici."
+
+msgid ""
+"The 3MF file was generated by an older version, loading geometry data only."
+msgstr ""
+"Il file 3MF è stato generato da una versione precedente. Saranno caricati "
+"solo i dati geometrici."
+
+msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
+msgstr ""
+"Il file 3MF è stato generato da BambuStudio. Saranno caricati solo i dati "
+"geometrici."
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -7705,13 +7868,29 @@ msgstr ""
 "Il 3MF versione %s è più recente di %s versione %s. Si consiglia di "
 "aggiornare il software."
 
-#, fuzzy
+#, c-format, boost-format
 msgid ""
-"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
-"data only."
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Found unrecognized settings:"
 msgstr ""
-"Il 3MF è stato generato da una vecchia versione di OrcaSlicer, caricando "
-"solo i dati geometrici."
+"Il file 3MF è stato creato da BambuStudio (versione %s), che è più recente "
+"della versione compatibile %s. Sono state trovate impostazioni non "
+"riconosciute:"
+
+#, c-format, boost-format
+msgid ""
+"The 3MF was created by BambuStudio (version %s), which is newer than the "
+"compatible version %s. Some settings may not be fully compatible."
+msgstr ""
+"Il file 3MF è stato creato da BambuStudio (versione %s), che è più recente "
+"della versione compatibile %s. Alcune impostazioni potrebbero non essere "
+"pienamente compatibili."
+
+msgid ""
+"The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
+msgstr ""
+"Il file 3MF è stato generato da una vecchia versione di OrcaSlicer. Saranno "
+"caricati solo i dati geometrici."
 
 msgid "Invalid values found in the 3MF:"
 msgstr "Valori non validi trovati nell'3MF:"
@@ -7722,7 +7901,7 @@ msgstr "Si prega di correggerli nella scheda dei parametri"
 msgid ""
 "The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
-"Il 3MF ha i seguenti G-code modificati nei profili del filamento o della "
+"Il 3MF ha i seguenti G-code modificati nei profili di filamento o della "
 "stampante:"
 
 msgid ""
@@ -7800,6 +7979,9 @@ msgstr "Caricare questi file come un singolo oggetto con più parti?\n"
 msgid "Object with multiple parts was detected"
 msgstr "È stato rilevato un oggetto con più parti"
 
+msgid "Auto-Drop"
+msgstr "Rilascio automatico"
+
 #, c-format, boost-format
 msgid ""
 "Connected printer is %s. It must match the project preset for printing.\n"
@@ -7813,6 +7995,9 @@ msgid ""
 msgstr ""
 "Vuoi sincronizzare le informazioni della stampante e cambiare "
 "automaticamente il profilo?"
+
+msgid "Tips"
+msgstr "Suggerimenti"
 
 msgid "The file does not contain any geometry data."
 msgstr "Il file non contiene dati geometrici."
@@ -7867,6 +8052,14 @@ msgstr ""
 
 msgid "The selected object couldn't be split."
 msgstr "L'oggetto selezionato non può essere diviso."
+
+msgid "Disable Auto-Drop to preserve z positioning?\n"
+msgstr ""
+"Disabilitare la funzione di Rilascio automatico per preservare il "
+"posizionamento sull'asse Z?\n"
+
+msgid "Object with floating parts was detected"
+msgstr "È stato rilevato un oggetto con parti fluttuanti"
 
 msgid "Another export job is running."
 msgstr "È in esecuzione un altro processo di esportazione."
@@ -8006,15 +8199,14 @@ msgstr "Salva progetto"
 msgid "Importing Model"
 msgstr "Importazione del modello"
 
-#, fuzzy
 msgid "Preparing 3MF file..."
-msgstr "preparazione file 3MF..."
+msgstr "Preparazione del file 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Scaricamento non riuscito; formato file sconosciuto."
 
 msgid "Downloading project..."
-msgstr "scaricamento progetto..."
+msgstr "Scaricamento progetto..."
 
 msgid "Download failed, File size exception."
 msgstr "Scaricamento non riuscito; errore dimensione file."
@@ -8038,9 +8230,6 @@ msgid ""
 msgstr ""
 "Nessun valore di accelerazione fornito per la calibrazione. Verrà utilizzato "
 "il valore di accelerazione predefinito "
-
-msgid "mm/s²"
-msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr ""
@@ -8289,12 +8478,8 @@ msgstr "Volume: %1% mm³\n"
 msgid "Triangles: %1%\n"
 msgstr "Triangoli: %1%\n"
 
-msgid ""
-"\"Fix Model\" feature is currently only on Windows. Please repair the model "
-"on Orca Slicer(windows) or CAD softwares."
-msgstr ""
-"La funzione \"Correggi modello\" è attualmente disponibile solo su Windows. "
-"Si prega di riparare il modello su OrcaSlicer (Windows) o software CAD."
+msgid "Use \"Fix Model\" to repair the mesh."
+msgstr "Utilizza \"Correggi modello\" per riparare la maglia poligonale."
 
 #, c-format, boost-format
 msgid ""
@@ -8467,6 +8652,22 @@ msgstr "Mostra schermata iniziale"
 msgid "Show the splash screen during startup."
 msgstr "Mostra la schermata iniziale durante l'avvio."
 
+msgid "Show shared profiles notification"
+msgstr "Mostra notifica profili condivisi"
+
+msgid ""
+"Show a notification with a link to browse shared profiles when the selected "
+"printer is changed."
+msgstr ""
+"Quando si cambia la stampante selezionata, viene visualizzata una notifica "
+"con un collegamento per esplorare i profili condivisi."
+
+msgid "Use window buttons on left side"
+msgstr "Utilizza i pulsanti della finestra sul lato sinistro"
+
+msgid "(Requires restart)"
+msgstr "(Richiede riavvio)"
+
 msgid "Downloads folder"
 msgstr "Cartella download"
 
@@ -8538,10 +8739,10 @@ msgstr ""
 "del filamento/processo per ciascuna stampante."
 
 msgid "Group user filament presets"
-msgstr "Raggruppa profili filamento utente"
+msgstr "Raggruppa profili di filamento utente"
 
 msgid "Group user filament presets based on selection"
-msgstr "Raggruppa profili filamento utente in base alla selezione"
+msgstr "Raggruppa i profili di filamento utente in base alla selezione"
 
 msgid "All"
 msgstr "Tutto"
@@ -8575,9 +8776,6 @@ msgid ""
 msgstr ""
 "Abilitando questa opzione, puoi inviare un'attività a più dispositivi "
 "contemporaneamente e gestire più dispositivi."
-
-msgid "(Requires restart)"
-msgstr "(Richiede riavvio)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Popup per selezionare la modalità di raggruppamento filamenti"
@@ -8619,7 +8817,7 @@ msgid "Auto arrange plate after cloning"
 msgstr "Disposizione automatica del piatto dopo la clonazione"
 
 msgid "Auto slice after changes"
-msgstr "Slicing automatico dopo le modifiche"
+msgstr "Elaborazione automatica dopo le modifiche"
 
 msgid ""
 "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
@@ -8686,15 +8884,6 @@ msgid "If enabled, use free camera. If not enabled, use constrained camera."
 msgstr ""
 "Se abilitato, usa la visuale libera. Altrimenti, usa la visuale vincolata."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Scambia i pulsanti del mouse per ruotare e spostare"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Se abilitato, inverte le funzioni di panoramica e rotazione dei pulsanti "
-"sinistro e destro del mouse."
-
 msgid "Reverse mouse zoom"
 msgstr "Inverti zoom del mouse"
 
@@ -8702,6 +8891,27 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr ""
 "Se abilitato, inverte la direzione dell'ingrandimento con la rotellina del "
 "mouse."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Cancella la mia scelta su..."
@@ -8727,6 +8937,59 @@ msgstr ""
 "Cancella la mia scelta per la sincronizzazione del profilo stampante dopo il "
 "caricamento del file."
 
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Disabilitato"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
+
 msgid "Login region"
 msgstr "Regione di accesso"
 
@@ -8734,18 +8997,34 @@ msgid "Stealth mode"
 msgstr "Modalità invisibile"
 
 msgid ""
-"This stops the transmission of data to Bambu's cloud services. Users who "
-"don't use BBL machines or use LAN mode only can safely turn on this function."
+"This disables all cloud services e.g. Orca Cloud and Bambu Cloud. This stops "
+"the transmission of data to Bambu's cloud services too. Users who don't use "
+"BBL machines or use LAN mode only can safely turn on this function."
 msgstr ""
-"Questo interrompe la trasmissione dei dati ai servizi cloud di Bambu. Gli "
-"utenti che non utilizzano macchine BBL o che utilizzano la modalità Solo LAN "
-"possono attivare questa funzione in tutta sicurezza."
+"Questa opzione disabilita tutti i servizi cloud, ad esempio Orca Cloud e "
+"Bambu Cloud. Interrompe anche la trasmissione dei dati ai servizi cloud di "
+"Bambu. Gli utenti che non utilizzano macchine BBL o che utilizzano solo la "
+"modalità LAN, possono attivare questa opzione in tutta sicurezza."
 
 msgid "Network test"
 msgstr "Test di rete"
 
 msgid "Test"
 msgstr "Prova"
+
+msgid "Cloud Providers"
+msgstr "Fornitori di servizi cloud"
+
+msgid "Enable Bambu Cloud"
+msgstr "Abilita Bambu Cloud"
+
+msgid ""
+"Allow logging into Bambu Cloud alongside Orca Cloud. When enabled, a Bambu "
+"login section appears on the homepage."
+msgstr ""
+"Consente l'accesso sia a Bambu Cloud che a Orca Cloud. Quando questa opzione "
+"è abilitata, nella pagina iniziale viene visualizzata una sezione per "
+"l'accesso a Bambu."
 
 msgid "Update & sync"
 msgstr "Aggiorna e sincronizza"
@@ -8789,28 +9068,28 @@ msgid "Color only"
 msgstr "Solo colore"
 
 msgid "Network plug-in"
-msgstr "Plug-in di rete"
+msgstr "Modulo di rete"
 
 msgid "Enable network plug-in"
 msgstr "Abilita modulo di rete"
 
 msgid "Network plug-in version"
-msgstr "Versione plug-in di rete"
+msgstr "Versione modulo di rete"
 
 msgid "Select the network plug-in version to use"
-msgstr "Seleziona la versione del plug-in di rete da utilizzare"
+msgstr "Seleziona la versione del modulo di rete da utilizzare"
 
 msgid "(Latest)"
 msgstr "(Ultima)"
 
 msgid "Network plug-in switched successfully."
-msgstr "Plug-in di rete cambiato con successo."
+msgstr "Modulo di rete cambiato con successo."
 
 msgid "Success"
 msgstr "Successo"
 
 msgid "Failed to load network plug-in. Please restart the application."
-msgstr "Impossibile caricare il plug-in di rete. Riavviare l'applicazione."
+msgstr "Impossibile caricare il modulo di rete. Riavviare l'applicazione."
 
 #, c-format, boost-format
 msgid ""
@@ -8820,7 +9099,7 @@ msgid ""
 "\n"
 "Note: The application may need to restart after installation."
 msgstr ""
-"Hai selezionato la versione %s del plug-in di rete.\n"
+"Hai selezionato la versione %s del modulo di rete.\n"
 "\n"
 "Vuoi scaricare e installare questa versione ora?\n"
 "\n"
@@ -8828,7 +9107,7 @@ msgstr ""
 "l'installazione."
 
 msgid "Download Network Plug-in"
-msgstr "Scarica plug-in di rete"
+msgstr "Scarica modulo di rete"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Associa i file ad OrcaSlicer"
@@ -8871,11 +9150,20 @@ msgstr "Associa i collegamenti web ad OrcaSlicer"
 msgid "Developer"
 msgstr "Sviluppatore"
 
-msgid "Develop mode"
+msgid "Developer mode"
 msgstr "Modalità sviluppatore"
 
 msgid "Skip AMS blacklist check"
 msgstr "Salta il controllo della lista nera dell'AMS"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr "Consenti memoria anomala"
@@ -8910,13 +9198,13 @@ msgid "Reload"
 msgstr "Ricarica"
 
 msgid "Reload the network plug-in without restarting the application"
-msgstr "Ricarica il plug-in di rete senza riavviare l'applicazione"
+msgstr "Ricarica il modulo di rete senza riavviare l'applicazione"
 
 msgid "Network plug-in reloaded successfully."
-msgstr "Plug-in di rete ricaricato con successo."
+msgstr "Modulo di rete ricaricato con successo."
 
 msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "Impossibile ricaricare il plug-in di rete. Riavviare l'applicazione."
+msgstr "Impossibile ricaricare il modulo di rete. Riavviare l'applicazione."
 
 msgid "Reload Failed"
 msgstr "Ricaricamento fallito"
@@ -8979,10 +9267,10 @@ msgid "Product host"
 msgstr "Host del prodotto"
 
 msgid "Debug save button"
-msgstr "pulsante salvataggio debug"
+msgstr "Pulsante salvataggio debug"
 
 msgid "Save debug settings"
-msgstr "salva impostazioni debug"
+msgstr "Salva impostazioni debug"
 
 msgid "DEBUG settings have been saved successfully!"
 msgstr "Le impostazioni di debug sono state salvate correttamente!"
@@ -9025,6 +9313,9 @@ msgstr "Non specificato"
 
 msgid "Project-inside presets"
 msgstr "Profilo interno al progetto"
+
+msgid "Bundle presets"
+msgstr "Pacchetto profili"
 
 msgid "System"
 msgstr "Sistema"
@@ -9293,7 +9584,7 @@ msgstr ""
 "non necessario."
 
 msgid "Send complete"
-msgstr "invio completato"
+msgstr "Invio completato"
 
 msgid "Error code"
 msgstr "Codice di errore"
@@ -9498,8 +9789,8 @@ msgstr ""
 
 msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr ""
-"Installare la ventola di raffreddamento potenziata della testa di stampa per "
-"prevenire il rammollimento del filamento."
+"Installare la ventola di raffreddamento potenziata della testina di stampa "
+"per evitare l'ammorbidimento del filamento."
 
 msgid "Smooth Cool Plate"
 msgstr "Piatto liscio a bassa temperatura"
@@ -9525,10 +9816,10 @@ msgstr ""
 "modalità LAN."
 
 msgid "Connecting to server..."
-msgstr "Connessione in corso al server"
+msgstr "Connessione al server in corso..."
 
 msgid "Synchronizing device information..."
-msgstr "Sincronizzazione informazioni dispositivo"
+msgstr "Sincronizzazione informazioni dispositivo..."
 
 msgid "Synchronizing device information timed out."
 msgstr "La sincronizzazione delle informazioni del dispositivo è scaduta."
@@ -9585,7 +9876,7 @@ msgstr ""
 "deve essere aggiornato."
 
 msgid "Cannot send a print job for an empty plate."
-msgstr "Impossibile inviare l'attività di stampa se il piatto è vuoto"
+msgstr "Impossibile inviare l'attività di stampa se il piatto è vuoto."
 
 msgid "Storage needs to be inserted to record timelapse."
 msgstr "È necessario inserire una memoria per registrare il timelapse."
@@ -9623,6 +9914,15 @@ msgstr ""
 "ridurre il numero di materiali a 16 o meno nella pagina di preparazione, "
 "oppure provare ad aggiornare il firmware. Se la limitazione persiste dopo "
 "l'aggiornamento, attendere il supporto firmware successivo."
+
+msgid ""
+"The type of external filament is unknown or does not match with the filament "
+"type in the slicing file. Please make sure you have installed the correct "
+"filament in the external spool."
+msgstr ""
+"Il tipo di filamento esterno è sconosciuto o non corrisponde al tipo di "
+"filamento specificato nel file di sezionamento. Assicurati di aver "
+"installato il filamento corretto nella bobina esterna."
 
 msgid "Please refer to Wiki before use->"
 msgstr "Fare riferimento alla Wiki prima dell'uso ->"
@@ -9902,7 +10202,6 @@ msgstr ""
 "supporto.\n"
 "Sei sicuro di volerli utilizzare per la base del supporto?\n"
 
-#, fuzzy
 msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
@@ -9911,8 +10210,9 @@ msgid ""
 msgstr ""
 "Quando si utilizza il materiale di supporto per l'interfaccia di supporto, "
 "si consigliano le seguenti impostazioni:\n"
-"0 distanza Z superiore, 0 spaziatura interfaccia, motivo Rettilineo "
-"Interlacciato e disabilita altezza strato di supporto indipendente."
+"distanza Z superiore con valore 0, spaziatura interfaccia con valore 0, "
+"motivo Rettilineo Interlacciato e Altezza strato supporto indipendente "
+"disabilitato."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -10017,7 +10317,7 @@ msgid ""
 "by right-click the empty position of build plate and choose \"Add "
 "Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
-"Quando si registra un timelapse senza il gruppo testina, si consiglia di "
+"Quando si registra un timelapse senza la testina di stampa, si consiglia di "
 "aggiungere un \"Timelapse Torre di spurgo\"\n"
 "facendo clic con il pulsante destro del mouse su una posizione vuota del "
 "piatto e scegliendo \"Aggiungi primitiva\" ->\"Timelapse Torre di spurgo\"."
@@ -10145,9 +10445,6 @@ msgstr "Imposta la velocità per ponti esterni e interni"
 msgid "Travel speed"
 msgstr "Velocità di spostamento"
 
-msgid "Acceleration"
-msgstr "Accelerazione"
-
 msgid "Jerk(XY)"
 msgstr "Scatto(XY)"
 
@@ -10177,6 +10474,9 @@ msgstr "Modalità speciale"
 
 msgid "G-code output"
 msgstr "Uscita G-code"
+
+msgid "Change extrusion role G-code"
+msgstr "G-code cambio ruolo di estrusione"
 
 msgid "Post-processing Scripts"
 msgstr "Script di post-elaborazione"
@@ -10210,9 +10510,6 @@ msgstr "Parole chiave riservate trovate"
 
 msgid "Setting Overrides"
 msgstr "Sovrascrivi impostazioni"
-
-msgid "Retraction"
-msgstr "Retrazione"
 
 msgid "Basic information"
 msgstr "Informazioni di base"
@@ -10388,7 +10685,7 @@ msgid "Cooling Fan"
 msgstr "Velocità minima ventola di raffreddamento"
 
 msgid "Fan speed-up time"
-msgstr "Tempo di accelerazione della ventola"
+msgstr "Tempo accelerazione ventola"
 
 msgid "Extruder Clearance"
 msgstr "Spazio libero estrusore"
@@ -10429,9 +10726,6 @@ msgstr "G-code rilevamento ammassi"
 msgid "Change filament G-code"
 msgstr "G-code cambio filamento"
 
-msgid "Change extrusion role G-code"
-msgstr "G-code cambio ruolo di estrusione"
-
 msgid "Pause G-code"
 msgstr "G-code pausa"
 
@@ -10444,11 +10738,28 @@ msgstr "Capacità di movimento"
 msgid "Normal"
 msgstr "Normale"
 
-msgid "Resonance Avoidance"
-msgstr "Evita risonanza"
+msgid "Resonance Compensation"
+msgstr "Compensazione risonanza"
 
 msgid "Resonance Avoidance Speed"
-msgstr "Velocità evita risonanza"
+msgstr "Velocità prevenzione risonanza"
+
+msgid "Frequency"
+msgstr "Frequenza"
+
+msgid ""
+"The frequency of the anti-vibration signal will correspond to the natural "
+"frequency of the frame."
+msgstr ""
+"La frequenza del segnale antivibrazione corrisponderà alla frequenza "
+"naturale del telaio."
+
+msgid "Damping"
+msgstr "Smorzamento"
+
+msgid "Damping ratio for the input shaping filter."
+msgstr ""
+"Rapporto di smorzamento per il filtro della compensazione della risonanza."
 
 msgid "Speed limitation"
 msgstr "Limitazione velocità"
@@ -10568,6 +10879,58 @@ msgid "Are you sure to %1% the selected preset?"
 msgstr "Sei sicuro di voler %1% il preset selezionato?"
 
 #, c-format, boost-format
+msgid ""
+" - %s:\n"
+"    %s first layer %d %s, other layers %d %s\n"
+"    %s max delta %d %s, current delta %d %s\n"
+msgstr ""
+" - %s:\n"
+"    %s primo strato %d %s, altri strati %d %s\n"
+"    %s delta massimo %d %s, delta attuale %d %s\n"
+
+msgid ""
+"Some first-layer and other-layer temperature pairs exceed safety limits.\n"
+msgstr ""
+"Alcune coppie di temperature del primo strato e di altri strati superano i "
+"limiti di sicurezza.\n"
+
+msgid ""
+"\n"
+"Invalid pairs:\n"
+msgstr ""
+"\n"
+"Coppie non valide:\n"
+
+msgid ""
+"\n"
+"You can go back to edit values, or continue if this is intentional."
+msgstr ""
+"\n"
+"È possibile tornare indietro per modificare i valori, oppure continuare se "
+"questa scelta è intenzionale."
+
+msgid ""
+"\n"
+"\n"
+"Continue anyway?"
+msgstr ""
+"\n"
+"\n"
+"Continuare comunque?"
+
+msgid "Temperature Safety Check"
+msgstr "Controllo di sicurezza della temperatura"
+
+msgid "Continue"
+msgstr "Continua"
+
+msgid "Back"
+msgstr "Posteriore"
+
+msgid "Don't warn again for this preset"
+msgstr "Non inviare più avvisi per questo profilo"
+
+#, c-format, boost-format
 msgid "Left: %s"
 msgstr "Sinistra: %s"
 
@@ -10610,6 +10973,32 @@ msgstr "Non salvare"
 
 msgid "Discard"
 msgstr "Scarta"
+
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
 
 msgid "Click the right mouse button to display the full text."
 msgstr ""
@@ -10884,7 +11273,7 @@ msgid ""
 "presets.\n"
 "Are you sure you want to continue?"
 msgstr ""
-"La sincronizzazione dei filamenti AMS scarterà i profili filamento "
+"La sincronizzazione dei filamenti AMS scarterà i profili di filamento "
 "modificati ma non salvati.\n"
 "Sei sicuro di voler continuare?"
 
@@ -10986,7 +11375,7 @@ msgid ""
 "replaced with the mapped filament types and colors. This action cannot be "
 "undone."
 msgstr ""
-"Dopo la sincronizzazione, i profili filamento e i colori del progetto "
+"Dopo la sincronizzazione, i profili di filamento e i colori del progetto "
 "saranno sostituiti con i tipi e i colori dei filamenti mappati. Questa "
 "azione non può essere annullata."
 
@@ -11079,15 +11468,15 @@ msgid ""
 "This is an expert-level setting, incorrect adjustment will likely lead to "
 "jams, extruder wheel grinding into filament etc."
 msgstr ""
-"Per modellazione del filamento (o Ramming) si intende l'operazione di "
-"estrusione effettuata appena prima di un cambio di filamento in una "
-"stampante MM con estrusore singolo. Il suo scopo è quello di dare una forma "
-"corretta all'estremità del filamento scaricato, in modo che non impedisca "
-"l'inserimento del nuovo filamento e possa essere reinserito successivamente. "
-"Questa fase è importante e i diversi materiali possono richiedere velocità "
-"di estrusione diverse per ottenere una buona forma. Per questo motivo, le "
-"velocità di estrusione nella fase di modellazione del filamento sono "
-"regolabili.\n"
+"Per Spinta del filamento (o Ramming) si intende l'operazione di estrusione "
+"effettuata appena prima di un cambio di filamento in una stampante "
+"multimateriale con estrusore singolo. Il suo scopo è quello di dare una "
+"forma corretta all'estremità del filamento scaricato, in modo che non "
+"impedisca l'inserimento del nuovo filamento e possa essere reinserito "
+"successivamente. Questa fase è importante e i diversi materiali possono "
+"richiedere velocità di estrusione diverse per ottenere una buona forma. Per "
+"questo motivo, le velocità di estrusione nella fase di modellazione del "
+"filamento sono regolabili.\n"
 "\n"
 "Si tratta di un'impostazione per esperti: una regolazione errata potrebbe "
 "causare inceppamenti, la macinazione del filamento da parte dell'ingranaggio "
@@ -11149,6 +11538,21 @@ msgid "Please choose the filament colour"
 msgstr "Scegliere il colore del filamento"
 
 msgid ""
+"Native Wayland liveview requires the GStreamer GTK video sink. Please "
+"install the gtksink plugin for GStreamer, then restart OrcaSlicer."
+msgstr ""
+"La funzione di visualizzazione in tempo reale nativa di Wayland richiede il "
+"ricevitore video GTK di GStreamer. Installare il modulo gtksink per "
+"GStreamer e riavviare OrcaSlicer."
+
+msgid ""
+"Failed to initialize the native Wayland GStreamer video sink. Please check "
+"your GStreamer GTK plugin installation."
+msgstr ""
+"Impossibile inizializzare il ricevitore video nativo di Wayland GStreamer. "
+"Verificare l'installazione del modulo GTK di GStreamer."
+
+msgid ""
 "Windows Media Player is required for this task! Do you want to enable "
 "'Windows Media Player' for your operation system?"
 msgstr ""
@@ -11187,6 +11591,11 @@ msgstr ""
 "riprodurre i video. (Provare a installare i pacchetti gstreamer1.0-plugins-"
 "bad o gstreamer1.0-libav e riavviare OrcaSlicer?)"
 
+msgid "Cloud agent is not available. Please restart OrcaSlicer and try again."
+msgstr ""
+"Il fornitore di servizi cloud non è disponibile. Riavviare OrcaSlicer e "
+"riprovare."
+
 msgid "Bambu Network plug-in not detected."
 msgstr "Modulo di rete Bambu non rilevato."
 
@@ -11195,6 +11604,9 @@ msgstr "Clicca qui per scaricarlo."
 
 msgid "Login"
 msgstr "Accedi"
+
+msgid "Login failed. Please try again."
+msgstr ""
 
 msgid "[Action Required] "
 msgstr "[Azione necessaria] "
@@ -11235,6 +11647,18 @@ msgstr "Mostra elenco scorciatoie da tastiera"
 
 msgid "Global shortcuts"
 msgstr "Scorciatoie globali"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11294,7 +11718,7 @@ msgid "Movement step set to 1 mm"
 msgstr "Passo movimento impostato a 1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
-msgstr "tastiera 1-9: imposta il filamento per l'oggetto/parte"
+msgstr "Tastiera 1-9: imposta il filamento per l'oggetto/parte"
 
 msgid "Camera view - Default"
 msgstr "Vista telecamera - Predefinito"
@@ -11339,7 +11763,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Gizmo maglia booleana"
 
 msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Strumento FDM per pelle fuzzy dipinta"
+msgstr "Strumento FDM per superficie ruvida dipinta"
 
 msgid "Gizmo SLA support points"
 msgstr "Strumento Punti di supporto SLA"
@@ -11364,6 +11788,9 @@ msgstr "Ingrandisci"
 
 msgid "Zoom out"
 msgstr "Rimpicciolisci"
+
+msgid "Toggle printable for object/part"
+msgstr "Attiva/disattiva stampa per oggetto/parte"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Passa tra Prepara e Anteprima"
@@ -11451,10 +11878,13 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
-msgstr "Disponibile nuovo modulo di rete (%s). Vuoi installarlo?"
+msgstr "È disponibile un nuovo modulo di rete (%s). Vuoi installarlo?"
 
 msgid "New version of Orca Slicer"
 msgstr "Nuova versione di OrcaSlicer"
+
+msgid "Check on Github"
+msgstr "Visualizza su GitHub"
 
 msgid "Skip this Version"
 msgstr "Salta questa versione"
@@ -11622,50 +12052,15 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Scheda di estensione"
 
-msgid "Saving objects into the 3MF failed."
-msgstr "Salvataggio degli oggetti nel file 3MF non riuscito."
-
-msgid "Only Windows 10 is supported."
-msgstr "È supportato solo Windows 10."
-
-msgid "Failed to initialize the WinRT library."
-msgstr "Impossibile inizializzare la libreria WinRT."
-
-msgid "Exporting objects"
-msgstr "Esportazione oggetti"
-
-msgid "Failed loading objects."
-msgstr "Caricamento oggetti fallito."
-
-msgid "Repairing object by Windows service"
-msgstr "Riparazione oggetto da parte del servizio Windows"
-
-msgid "Repair failed."
-msgstr "Riparazione non riuscita."
-
-msgid "Loading repaired objects"
-msgstr "Caricamento oggetti riparati"
-
-msgid "Exporting 3MF file failed"
-msgstr "Esportazione del file 3MF non riuscita"
-
-msgid "Import 3MF file failed"
-msgstr "Importazione del file 3MF non riuscita"
-
-msgid "Repaired 3MF file does not contain any object"
-msgstr "Il file 3MF riparato non contiene alcun oggetto"
-
-msgid "Repaired 3MF file contains more than one object"
-msgstr "Il file 3MF riparato contiene più di un oggetto"
-
-msgid "Repaired 3MF file does not contain any volume"
-msgstr "Il file 3MF riparato non contiene alcun volume"
-
-msgid "Repaired 3MF file contains more than one volume"
-msgstr "Il file 3MF riparato contiene più di un volume"
+#, boost-format
+msgid "Split into %1% parts"
+msgstr "Dividere in %1% parti"
 
 msgid "Repair finished"
 msgstr "Riparazione completata"
+
+msgid "Repair failed"
+msgstr "Riparazione fallita"
 
 msgid "Repair canceled"
 msgstr "Riparazione annullata"
@@ -11711,6 +12106,12 @@ msgstr ""
 "Le parti dell'oggetto a queste altezze potrebbero essere troppo sottili o "
 "l'oggetto potrebbe avere una maglia poligonale difettosa"
 
+msgid "Process change extrusion role G-code"
+msgstr "G-code cambio ruolo estrusione processo"
+
+msgid "Filament change extrusion role G-code"
+msgstr "G-code cambio ruolo estrusione filamento"
+
 msgid "No object can be printed. Maybe too small"
 msgstr "Non è possibile stampare alcun oggetto. Potrebbe essere troppo piccolo"
 
@@ -11742,6 +12143,21 @@ msgid "Flush volumes matrix do not match to the correct size!"
 msgstr ""
 "La matrice dei volumi di spurgo non corrisponde alla dimensione corretta!"
 
+msgid "set_accel_and_jerk() is only supported by Klipper"
+msgstr "set_accel_and_jerk() è supportato solo da Klipper"
+
+msgid ""
+"Input shaping is not supported by Marlin < 2.1.2.\n"
+"Check your firmware version and update your G-code flavor to ´Marlin 2´"
+msgstr ""
+"La compensazione della risonanza non è supportata da Marlin < 2.1.2.\n"
+"Verifica la versione del firmware e aggiorna il G-code a ´Marlin 2´"
+
+msgid "Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2"
+msgstr ""
+"La compensazione della risonanza è supportata solo da Klipper, "
+"RepRapFirmware e Marlin 2"
+
 msgid "Grouping error: "
 msgstr "Errore di raggruppamento: "
 
@@ -11750,9 +12166,6 @@ msgstr " non può essere posizionato nel "
 
 msgid "Internal Bridge"
 msgstr "Ponte interno"
-
-msgid "Multiple"
-msgstr "Multiplo"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -11904,41 +12317,28 @@ msgstr ""
 "collisioni.\n"
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
+"Selected nozzle temperatures are incompatible. Each filament's nozzle "
+"temperature must fall within the recommended nozzle temperature range of the "
+"other filaments. Otherwise, nozzle clogging or printer damage may occur."
 msgstr ""
-"La stampa di filamenti ad alta e bassa temperatura insieme potrebbe causare "
-"intasamento dell'ugello o danni alla stampante."
+"Le temperature degli ugelli selezionate sono incompatibili. La temperatura "
+"dell'ugello per ciascun filamento deve rientrare nell'intervallo di "
+"temperatura consigliato per gli altri filamenti. In caso contrario, "
+"potrebbero verificarsi ostruzioni degli ugelli o danni alla stampante."
 
 msgid ""
-"Printing high-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage. If you still want to print, you can enable the option in "
-"Preferences."
+"Invalid recommended nozzle temperature range. The lower bound must be lower "
+"than the upper bound."
 msgstr ""
-"La stampa di filamenti ad alta e bassa temperatura insieme potrebbe causare "
-"intasamento dell'ugello o danni alla stampante. Se si desidera comunque "
-"stampare, abilitare l'opzione nelle Preferenze."
+"Intervallo di temperatura dell'ugello consigliato non valido. Il limite "
+"inferiore deve essere minore del limite superiore."
 
 msgid ""
-"Printing different-temp filaments together may cause nozzle clogging or "
-"printer damage."
+"If you still want to print, you can enable the option in Preferences / "
+"Control / Slicing / Remove mixed temperature restriction."
 msgstr ""
-"La stampa di filamenti a temperature diverse insieme potrebbe causare "
-"intasamento dell'ugello o danni alla stampante."
-
-msgid ""
-"Printing high-temp and mid-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-"La stampa di filamenti ad alta e media temperatura insieme potrebbe causare "
-"intasamento dell'ugello o danni alla stampante."
-
-msgid ""
-"Printing mid-temp and low-temp filaments together may cause nozzle clogging "
-"or printer damage."
-msgstr ""
-"La stampa di filamenti a media e bassa temperatura insieme potrebbe causare "
-"intasamento dell'ugello o danni alla stampante."
+"Se desideri comunque stampare, puoi abilitare l'opzione in Preferenze / "
+"Controllo / Elaborazione / Rimuovi restrizione temperature miste."
 
 msgid "No extrusions under current settings."
 msgstr "Nessuna estrusione con le impostazioni attuali."
@@ -12179,7 +12579,7 @@ msgid ""
 "each layer to prevent loss of floating point accuracy. Add \"G92 E0\" to "
 "layer_gcode."
 msgstr ""
-"L'indirizzamento relativo dell'estrusore richiede la reimpostazione della "
+"L'indirizzamento relativo dell'estrusore richiede il ripristino della "
 "posizione dell'estrusore ad ogni strato per evitare la perdita di precisione "
 "in virgola mobile. Aggiungi \"G92 E0\" a layer_gcode."
 
@@ -12333,7 +12733,7 @@ msgstr ""
 "compensare l'effetto zampa d'elefante."
 
 msgid "Elephant foot compensation layers"
-msgstr "Strato di compensazione zampa d'elefante"
+msgstr "Strati compensazione zampa d'elefante"
 
 msgid ""
 "The number of layers on which the elephant foot compensation will be active. "
@@ -12341,10 +12741,25 @@ msgid ""
 "the next layers will be linearly shrunk less, up to the layer indicated by "
 "this value."
 msgstr ""
-"Il numero di strati su cui sarà attiva la compensazione della zampa "
-"d'elefante. Il primo strato verrà ridotto in base al valore della "
-"compensazione della zampa d'elefante, mentre gli strati successivi saranno "
-"ridotti in modo lineare, fino allo strato indicato da questo parametro."
+"Numero di strati su cui sarà attiva la compensazione della zampa d'elefante. "
+"Il primo strato verrà ridotto in base al valore della compensazione della "
+"zampa d'elefante, mentre gli strati successivi saranno ridotti in modo "
+"lineare, fino allo strato indicato da questo parametro."
+
+msgid "Elephant foot layers density"
+msgstr "Densità strati zampa d'elefante"
+
+msgid ""
+"Density of internal solid infill for Elephant foot layers compensation.\n"
+"The initial value for the second layer is set.\n"
+"Subsequent layers become linearly denser by the height specified in "
+"elefant_foot_compensation_layers."
+msgstr ""
+"Densità del riempimento solido interno per gli strati di compensazione "
+"dell'effetto zampa d'elefante.\n"
+"Il valore iniziale è impostato per il secondo strato.\n"
+"Gli strati successivi aumentano di densità in modo lineare in base "
+"all'altezza specificata in elefant_foot_compensation_layers."
 
 msgid ""
 "Slicing height for each layer. Smaller layer height means more accurate and "
@@ -12891,7 +13306,7 @@ msgstr ""
 "Diminuisci leggermente questo valore (ad esempio 0,9) per ridurre la "
 "quantità di filamento estruso per i ponti e tendere il materiale.\n"
 "\n"
-"Il flusso effettivo utilizzato nei ponti viene calcolato moltiplicando "
+"Il flusso di stampa effettivo per i ponti viene calcolato moltiplicando "
 "questo valore con il flusso di stampa del filamento e, se impostato, con il "
 "flusso di stampa dell'oggetto."
 
@@ -12910,9 +13325,10 @@ msgstr ""
 "Questo valore regola lo spessore dello strato dei ponti interni. È il primo "
 "strato sopra il riempimento sparso. Ridurre leggermente questo valore (ad "
 "esempio 0,9) per migliorare la qualità della superficie sopra i riempimenti "
-"radi.\n"
-"Il flusso effettivo utilizzato nei ponti interni viene calcolato "
-"moltiplicando questo valore con il flusso di stampa dei ponti, flusso di "
+"sparsi.\n"
+"\n"
+"Il flusso di stampa effettivo utilizzato per i ponti interni viene calcolato "
+"moltiplicando questo valore con il flusso di stampa dei ponti, il flusso di "
 "stampa del filamento e, se impostato, con il flusso di stampa dell'oggetto."
 
 msgid "Top surface flow ratio"
@@ -12925,13 +13341,13 @@ msgid ""
 "The actual top surface flow used is calculated by multiplying this value "
 "with the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo valore influenza la quantità di materiale utilizzata per il "
+"Questo fattore influenza la quantità di materiale utilizzata per il "
 "riempimento solido della superficie superiore. Puoi diminuirlo leggermente "
 "per avere una finitura liscia sulla superficie.\n"
 "\n"
-"Il flusso di stampa effettivo utilizzato nelle superfici superiori viene "
-"calcolato moltiplicando questo valore con il flusso di stampa del filamento "
-"e, se impostato, con il flusso di stampa dell'oggetto."
+"Il flusso di stampa effettivo per le superfici superiori viene calcolato "
+"moltiplicando questo valore con il flusso di stampa del filamento e, se "
+"impostato, con il flusso di stampa dell'oggetto."
 
 msgid "Bottom surface flow ratio"
 msgstr "Flusso di stampa superficie inferiore"
@@ -12942,12 +13358,12 @@ msgid ""
 "The actual bottom solid infill flow used is calculated by multiplying this "
 "value with the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo valore influenza la quantità di materiale utilizzata per il "
+"Questo fattore influenza la quantità di materiale utilizzata per il "
 "riempimento solido della superficie inferiore.\n"
 "\n"
-"Il flusso di stampa effettivo utilizzato nelle superfici inferiori viene "
-"calcolato moltiplicando questo valore con il flusso di stampa del filamento "
-"e, se impostato, con il flusso di stampa dell'oggetto."
+"Il flusso di stampa effettivo per le superfici inferiori viene calcolato "
+"moltiplicando questo valore con il flusso di stampa del filamento e, se "
+"impostato, con il flusso di stampa dell'oggetto."
 
 msgid "Set other flow ratios"
 msgstr "Imposta altri rapporti di flusso"
@@ -12957,7 +13373,7 @@ msgstr ""
 "Modifica i rapporti di flusso per altri tipi di percorso di estrusione."
 
 msgid "First layer flow ratio"
-msgstr "Rapporto di flusso primo strato"
+msgstr "Flusso di stampa primo strato"
 
 msgid ""
 "This factor affects the amount of material on the first layer for the "
@@ -12966,14 +13382,15 @@ msgid ""
 "For the first layer, the actual flow ratio for each path role (does not "
 "affect brims and skirts) will be multiplied by this value."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale sul primo strato per i "
-"ruoli del percorso di estrusione elencati in questa sezione.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata sul primo "
+"strato per i ruoli del percorso di estrusione elencati in questa sezione.\n"
 "\n"
-"Per il primo strato, il rapporto di flusso effettivo per ogni ruolo del "
-"percorso (non influisce su tese e gonne) sarà moltiplicato per questo valore."
+"Per il primo strato, il flusso di stampa effettivo per ogni ruolo del "
+"percorso di estrusione (non influisce su tese e gonne) sarà moltiplicato per "
+"questo valore."
 
 msgid "Outer wall flow ratio"
-msgstr "Rapporto di flusso parete esterna"
+msgstr "Flusso di stampa pareti esterne"
 
 msgid ""
 "This factor affects the amount of material for outer walls.\n"
@@ -12981,14 +13398,15 @@ msgid ""
 "The actual outer wall flow used is calculated by multiplying this value by "
 "the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per le pareti esterne.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per le "
+"pareti esterne.\n"
 "\n"
-"Il flusso effettivo della parete esterna viene calcolato moltiplicando "
-"questo valore per il rapporto di flusso del filamento e, se impostato, per "
-"il rapporto di flusso dell'oggetto."
+"Il flusso di stampa effettivo per le pareti esterne viene calcolato "
+"moltiplicando questo valore per il flusso di stampa del filamento e, se "
+"impostato, per il flusso di stampa dell'oggetto."
 
 msgid "Inner wall flow ratio"
-msgstr "Rapporto di flusso parete interna"
+msgstr "Flusso di stampa pareti interne"
 
 msgid ""
 "This factor affects the amount of material for inner walls.\n"
@@ -12996,14 +13414,15 @@ msgid ""
 "The actual inner wall flow used is calculated by multiplying this value by "
 "the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per le pareti interne.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per le "
+"pareti interne.\n"
 "\n"
-"Il flusso effettivo della parete interna viene calcolato moltiplicando "
-"questo valore per il rapporto di flusso del filamento e, se impostato, per "
-"il rapporto di flusso dell'oggetto."
+"Il flusso di stampa effettivo per le pareti interne viene calcolato "
+"moltiplicando questo valore per il flusso di stampa del filamento e, se "
+"impostato, per il flusso di stampa dell'oggetto."
 
 msgid "Overhang flow ratio"
-msgstr "Rapporto di flusso per sbalzi"
+msgstr "Flusso di stampa sporgenze"
 
 msgid ""
 "This factor affects the amount of material for overhangs.\n"
@@ -13011,14 +13430,15 @@ msgid ""
 "The actual overhang flow used is calculated by multiplying this value by the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per gli sbalzi.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per le "
+"sporgenze.\n"
 "\n"
-"Il flusso effettivo degli sbalzi viene calcolato moltiplicando questo valore "
-"per il rapporto di flusso del filamento e, se impostato, per il rapporto di "
-"flusso dell'oggetto."
+"Il flusso di stampa effettivo per le sporgenze viene calcolato moltiplicando "
+"questo valore per il flusso di stampa del filamento e, se impostato, per il "
+"flusso di stampa dell'oggetto."
 
 msgid "Sparse infill flow ratio"
-msgstr "Rapporto di flusso riempimento sparso"
+msgstr "Flusso di stampa riempimento sparso"
 
 msgid ""
 "This factor affects the amount of material for sparse infill.\n"
@@ -13026,15 +13446,15 @@ msgid ""
 "The actual sparse infill flow used is calculated by multiplying this value "
 "by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per il riempimento "
-"sparso.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per il "
+"riempimento sparso.\n"
 "\n"
-"Il flusso effettivo del riempimento sparso viene calcolato moltiplicando "
-"questo valore per il rapporto di flusso del filamento e, se impostato, per "
-"il rapporto di flusso dell'oggetto."
+"Il flusso di stampa effettivo per il riempimento sparso viene calcolato "
+"moltiplicando questo valore per il flusso di stampa del filamento e, se "
+"impostato, per il flusso di stampa dell'oggetto."
 
 msgid "Internal solid infill flow ratio"
-msgstr "Rapporto di flusso riempimento solido interno"
+msgstr "Flusso di stampa riempimento solido interno"
 
 msgid ""
 "This factor affects the amount of material for internal solid infill.\n"
@@ -13042,15 +13462,15 @@ msgid ""
 "The actual internal solid infill flow used is calculated by multiplying this "
 "value by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per il riempimento "
-"solido interno.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per il "
+"riempimento solido interno.\n"
 "\n"
-"Il flusso effettivo del riempimento solido interno viene calcolato "
-"moltiplicando questo valore per il rapporto di flusso del filamento e, se "
-"impostato, per il rapporto di flusso dell'oggetto."
+"Il flusso di stampa effettivo per il riempimento solido interno viene "
+"calcolato moltiplicando questo valore per il flusso di stampa del filamento "
+"e, se impostato, per il flusso di stampa dell'oggetto."
 
 msgid "Gap fill flow ratio"
-msgstr "Rapporto di flusso riempimento spazi"
+msgstr "Flusso di stampa riempimento spazi"
 
 msgid ""
 "This factor affects the amount of material for filling the gaps.\n"
@@ -13058,15 +13478,15 @@ msgid ""
 "The actual gap filling flow used is calculated by multiplying this value by "
 "the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per il riempimento "
-"degli spazi.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per il "
+"riempimento degli spazi vuoti.\n"
 "\n"
-"Il flusso effettivo del riempimento spazi viene calcolato moltiplicando "
-"questo valore per il rapporto di flusso del filamento e, se impostato, per "
-"il rapporto di flusso dell'oggetto."
+"Il flusso di stampa effettivo per il riempimento degli spazi vuoti viene "
+"calcolato moltiplicando questo valore per il flusso di stampa del filamento "
+"e, se impostato, per il flusso di stampa dell'oggetto."
 
 msgid "Support flow ratio"
-msgstr "Rapporto di flusso supporto"
+msgstr "Flusso di stampa supporti"
 
 msgid ""
 "This factor affects the amount of material for support.\n"
@@ -13074,14 +13494,15 @@ msgid ""
 "The actual support flow used is calculated by multiplying this value by the "
 "filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per il supporto.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per i "
+"supporti.\n"
 "\n"
-"Il flusso effettivo del supporto viene calcolato moltiplicando questo valore "
-"per il rapporto di flusso del filamento e, se impostato, per il rapporto di "
-"flusso dell'oggetto."
+"Il flusso di stampa effettivo per i supporti viene calcolato moltiplicando "
+"questo valore per il flusso di stampa del filamento e, se impostato, per il "
+"flusso di stampa dell'oggetto."
 
 msgid "Support interface flow ratio"
-msgstr "Rapporto di flusso interfaccia supporto"
+msgstr "Flusso di stampa interfaccie supporti"
 
 msgid ""
 "This factor affects the amount of material for the support interface.\n"
@@ -13089,12 +13510,12 @@ msgid ""
 "The actual support interface flow used is calculated by multiplying this "
 "value by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Questo fattore influisce sulla quantità di materiale per l'interfaccia di "
-"supporto.\n"
+"Questo fattore influisce sulla quantità di materiale utilizzata per le "
+"interfacce dei supporti.\n"
 "\n"
-"Il flusso effettivo dell'interfaccia di supporto viene calcolato "
-"moltiplicando questo valore per il rapporto di flusso del filamento e, se "
-"impostato, per il rapporto di flusso dell'oggetto."
+"Il flusso di stampa effettivo per le interfacce dei supporti viene calcolato "
+"moltiplicando questo valore per il flusso di stampa del filamento e, se "
+"impostato, per il flusso di stampa dell'oggetto."
 
 msgid "Precise wall"
 msgstr "Parete precisa"
@@ -13239,7 +13660,7 @@ msgid "Sacrificial layer"
 msgstr "Strato sacrificale"
 
 msgid "Reverse threshold"
-msgstr "Soglia inversa"
+msgstr "Soglia di inversione"
 
 msgid "Overhang reversal threshold"
 msgstr "Soglia di inversione sporgenze"
@@ -13365,8 +13786,28 @@ msgstr ""
 "Crea uno spazio tra la linea più interna della tesa e l'oggetto per rendere "
 "più facile la rimozione della tesa."
 
+msgid "Brim flow ratio"
+msgstr "Flusso di stampa tese"
+
+msgid ""
+"This factor affects the amount of material for brims.\n"
+"\n"
+"The actual brim flow used is calculated by multiplying this value by the "
+"filament flow ratio, and if set, the object's flow ratio.\n"
+"\n"
+"Note: The resulting value will not be affected by the first-layer flow ratio."
+msgstr ""
+"Questo valore influisce sulla quantità di materiale utilizzata per le tese.\n"
+"\n"
+"Il flusso di stampa effettivo per le tese viene calcolato moltiplicando "
+"questo valore per il flusso di stampa del filamento e, se impostato, per il "
+"flusso di stampa dell'oggetto.\n"
+"\n"
+"Nota: il valore risultante non sarà influenzato dal flusso di stampa del "
+"primo strato."
+
 msgid "Brim follows compensated outline"
-msgstr "Tesa segue il contorno compensato"
+msgstr "Tesa su contorno con compensazione"
 
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry "
@@ -13377,13 +13818,24 @@ msgid ""
 "If your current setup already works well, enabling it may be unnecessary and "
 "can cause the brim to fuse with upper layers."
 msgstr ""
-"Quando abilitato, tesa è allineato con la geometria perimetrale del primo "
-"strato dopo l'applicazione della compensazione del piede di elefante.\n"
-"Questa opzione è prevista per i casi in cui è prevista la compensazione del "
-"piede di elefante altera significativamente l'impronta del primo strato.\n"
+"Se abilitata, la tesa viene allineata con il perimetro del primo strato dopo "
+"l'applicazione della Compensazione della zampa d'elefante.\n"
+"Questa opzione è pensata per i casi in cui la compensazione della zampa di "
+"elefante altera significativamente le dimensioni del primo strato.\n"
 "\n"
-"Se la tua configurazione attuale funziona già bene, abilitarla potrebbe non "
-"essere necessaria e può causare la fusione del tesa con gli strati superiori."
+"Se la tua configurazione attuale funziona in modo ottimale, non è necessario "
+"abilitare questa opzione, in quanto potrebbe causare la fusione della tesa "
+"con gli strati superiori."
+
+msgid "Combine brims"
+msgstr "Unisci tese"
+
+msgid ""
+"Combine multiple brims into one when they are close to each other. This can "
+"improve brim adhesion."
+msgstr ""
+"Unisce più tese in una quando sono vicine tra loro. Questo può migliorare "
+"l'adesione delle tese."
 
 msgid "Brim ears"
 msgstr "Tesa ad orecchio"
@@ -13514,6 +13966,22 @@ msgstr ""
 "S(0-255)"
 
 msgid ""
+"Enable this to override the fan speed set in custom G-code during print."
+msgstr ""
+"Abilita questa opzione per sovrascrivere la velocità della ventola impostata "
+"nel G-code personalizzato durante la stampa."
+
+msgid "On completion"
+msgstr "Al completamento"
+
+msgid ""
+"Enable this to override the fan speed set in custom G-code after print "
+"completion."
+msgstr ""
+"Abilita questa opzione per sovrascrivere la velocità della ventola impostata "
+"nel G-code personalizzato una volta terminata la stampa."
+
+msgid ""
 "Speed of exhaust fan during printing. This speed will override the speed in "
 "filament custom G-code."
 msgstr ""
@@ -13637,9 +14105,6 @@ msgstr ""
 "come riferimento angolare.\n"
 "4. Applica a tutti: genera secondi strati di ponti sia per i ponti interni "
 "che esterni\n"
-
-msgid "Disabled"
-msgstr "Disabilitato"
 
 msgid "External bridge only"
 msgstr "Solo ponti esterni"
@@ -13938,25 +14403,21 @@ msgid "Wall loop direction"
 msgstr "Direzione perimetri di stampa"
 
 msgid ""
-"The direction which the wall loops are extruded when looking down from the "
-"top.\n"
-"\n"
-"By default all walls are extruded in counter-clockwise, unless Reverse on "
-"even is enabled. Set this to any option other than Auto will force the wall "
-"direction regardless of the Reverse on even.\n"
+"The direction which the contour wall loops are extruded when looking down "
+"from the top.\n"
+"Holes are printed in the opposite direction to the contour to maintain "
+"alignment with layers whose contour polygons are incomplete and change "
+"direction, also partially forming the contour of a hole.\n"
 "\n"
 "This option will be disabled if spiral vase mode is enabled."
 msgstr ""
-"Direzione in cui vengono estrusi i perimetri di stampa quando si guarda "
-"dall'alto verso il basso.\n"
+"Direzione in cui vengono estrusi i perimetri di stampa, guardando dall'alto "
+"verso il basso.\n"
+"I fori vengono stampati nella direzione opposta ai perimetri, per mantenere "
+"l'allineamento con gli strati i cui contorni sono incompleti e cambiano "
+"direzione, formando parzialmente contorni di fori.\n"
 "\n"
-"Per impostazione predefinita, tutte le pareti vengono estruse in senso "
-"antiorario, a meno che non sia abilitata l'opzione 'Inverti su strati pari'. "
-"Impostandolo su un'opzione diversa da Auto, la direzione di stampa dei "
-"perimetri verrà forzata indipendentemente dall'opzione 'Inverti su strati "
-"pari'.\n"
-"\n"
-"Questa opzione verrà disabilitata se è abilitata la modalità vaso a spirale."
+"Questa opzione verrà disabilitata se la modalità vaso a spirale è attiva."
 
 msgid "Counter clockwise"
 msgstr "Senso antiorario"
@@ -14364,6 +14825,18 @@ msgstr "Automatico per spurgo"
 msgid "Auto For Match"
 msgstr "Automatico per abbinamento"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Temperatura di spurgo"
 
@@ -14633,6 +15106,13 @@ msgstr ""
 "torre di spurgo al fine di ottenere una successiva estrusione affidabile su "
 "oggetti sacrificali o riempimenti."
 
+msgid "Wipe tower cooling"
+msgstr "Raffreddamento torre di spurgo"
+
+msgid "Temperature drop before entering filament tower"
+msgstr ""
+"Calo di temperatura prima dell'ingresso nella torre di spurgo del filamento"
+
 msgid "Interface layer pre-extrusion distance"
 msgstr "Distanza di pre-estrusione dello strato di interfaccia"
 
@@ -14701,7 +15181,7 @@ msgid ""
 "This string is edited by RammingDialog and contains ramming specific "
 "parameters."
 msgstr ""
-"Questa stringa è stata modifcata da RammingDialog e contiene parametri "
+"Questa stringa è stata modificata da RammingDialog e contiene parametri "
 "specifici per l'operazione di modellazione della punta del filamento."
 
 msgid "Enable ramming for multi-tool setups"
@@ -14879,6 +15359,17 @@ msgid ""
 msgstr ""
 "Utilizzo di linee multiple per il pattern di riempimento, se supportato dal "
 "pattern di riempimento."
+
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
 
 msgid "Sparse infill pattern"
 msgstr "Motivo riempimento sparso"
@@ -15084,6 +15575,16 @@ msgstr ""
 "Accelerazione di stampa per il primo strato. Utilizzando un valore "
 "inferiore, è possibile migliorare l'adesione sul piano di stampa."
 
+msgid "First layer travel"
+msgstr "Spostamento primo strato"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"Accelerazione dello spostamento nel primo strato.\n"
+"Il valore percentuale è relativo all'accelerazione dello spostamento."
+
 msgid "Enable accel_to_decel"
 msgstr "Abilita accel_to_decel"
 
@@ -15133,6 +15634,13 @@ msgid "Jerk for travel."
 msgstr "Scatto per spostamento."
 
 msgid ""
+"Travel jerk of first layer.\n"
+"The percentage value is relative to Travel Jerk."
+msgstr ""
+"Scatto dello spostamento nel primo strato.\n"
+"Il valore percentuale è relativo allo scatto dello spostamento."
+
+msgid ""
 "Line width of the first layer. If expressed as a %, it will be computed over "
 "the nozzle diameter."
 msgstr ""
@@ -15142,7 +15650,6 @@ msgstr ""
 msgid "First layer height"
 msgstr "Altezza primo strato"
 
-#, fuzzy
 msgid ""
 "Height of the first layer. Making the first layer height thicker can improve "
 "build plate adhesion."
@@ -15188,7 +15695,7 @@ msgstr ""
 "Temperatura dell'ugello per la stampa del primo strato con questo filamento."
 
 msgid "Full fan speed at layer"
-msgstr "Velocità massima della ventola su strato"
+msgstr "Velocità massima ventola su strato"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
@@ -15319,6 +15826,9 @@ msgstr "Solo verniciato"
 msgid "Contour"
 msgstr "Contorno"
 
+msgid "Hole"
+msgstr "Foro"
+
 msgid "Contour and hole"
 msgstr "Contorno e foro"
 
@@ -15376,27 +15886,28 @@ msgid ""
 "displayed, and the model will not be sliced. You can choose this number "
 "until this error is repeated."
 msgstr ""
-"Modalità di generazione della pelle fuzzy. Funziona solo con Arachne!\n"
-"Spostamento: modalità classica in cui il pattern è formato dallo spostamento "
-"laterale dell'ugello dal percorso originale.\n"
-"Estrusione: modalità in cui il pattern è formato dalla quantità di plastica "
-"estrusa. Questo è l'algoritmo veloce e diretto senza scosse inutili "
-"dell'ugello che produce un pattern uniforme. Ma è più utile per formare "
-"pareti lasse nell'intero array.\n"
+"Modalità di generazione della superficie ruvida. Funziona solo con Arachne!\n"
+"Spostamento: modalità classica, nella quale il motivo viene formato "
+"spostando l'ugello lateralmente rispetto al percorso originale.\n"
+"Estrusione: modalità nella quale il motivo è formato in base alla quantità "
+"di materiale estruso. Si tratta di un algoritmo veloce e diretto, in grado "
+"di produrre un motivo uniforme, senza vibrazioni superflue dell'ugello. "
+"Tuttavia, risulta più utile per la formazione di pareti irregolari su tutta "
+"la matrice.\n"
 "Combinata: modalità congiunta [Spostamento] + [Estrusione]. L'aspetto delle "
 "pareti è simile alla modalità [Spostamento], ma non lascia pori tra i "
 "perimetri.\n"
 "\n"
-"Attenzione! Le modalità [Estrusione] e [Combinata] funzionano solo con il "
-"parametro fuzzy_skin_thickness non superiore allo spessore del loop "
-"stampato. Allo stesso tempo, la larghezza dell'estrusione per uno strato "
-"particolare non deve essere inferiore a un certo livello. Di solito è pari "
-"al 15-25%% dell'altezza dello strato. Pertanto, lo spessore massimo della "
-"pelle fuzzy con una larghezza del perimetro di 0.4 mm e un'altezza dello "
-"strato di 0.2 mm sarà 0.4-(0.2*0.25)=±0.35mm! Se si inserisce un parametro "
-"superiore, verrà visualizzato l'errore Flow::spacing() e il modello non "
-"verrà slicizzato. È possibile scegliere questo numero finché non si ripete "
-"l'errore."
+"Attenzione! Le modalità [Estrusione] e [Combinata] funzionano solo se il "
+"parametro fuzzy_skin_thickness non supera lo spessore del perimetro "
+"stampato. Allo stesso tempo, la larghezza dell'estrusione per un dato strato "
+"non deve essere inferiore ad una certa soglia. Di solito è pari al 15-25%% "
+"dell'altezza dello strato. Pertanto, lo spessore massimo della superficie "
+"ruvida con una larghezza del perimetro di 0,4 mm e un'altezza dello strato "
+"di 0,2 mm sarà 0,4-(0,2*0,25)=±0,35mm! Se si inserisce un valore superiore, "
+"verrà visualizzato l'errore Flow::spacing() e il modello non verrà "
+"elaborato. È possibile regolare questo valore fino a quando l'errore non si "
+"verifica più."
 
 msgid "Displacement"
 msgstr "Spostamento"
@@ -15418,16 +15929,21 @@ msgid ""
 "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
 "marble-like textures.\n"
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a "
-"random amount. Creates a patchwork texture."
+"random amount. Creates a patchwork texture.\n"
+"Ripple: Uniform ripple pattern that ripples left and right of the original "
+"path. Repeating pattern, woven appearance."
 msgstr ""
-"Tipo di rumore da utilizzare per la generazione della superficie ruvida.\n"
+"Tipo di rumore da utilizzare per la generazione della superficie ruvida:\n"
 "Classico: rumore casuale uniforme classico.\n"
 "Perlin: rumore Perlin, che conferisce una trama più uniforme.\n"
 "Ondulato: Simile al rumore Perlin, ma più granuloso.\n"
-"Multifrattale increspato: rumore increspato con superfici nette e "
-"frastagliate. Crea trame simili al marmo.\n"
+"Multifrattale ruvido: rumore con superfici nette e frastagliate. Crea trame "
+"simili al marmo.\n"
 "Voronoi: divide la superficie in tassellazioni di Voronoi e ne sposta "
-"ciascuna di una quantità casuale. Crea una trama a mosaico."
+"ciascuna di una quantità casuale. Crea una trama a mosaico.\n"
+"Increspature: Motivo con onde uniformi che si propagano a sinistra e a "
+"destra del percorso originale. Motivo ripetuto, aspetto in stile tessuto "
+"intrecciato."
 
 msgid "Classic"
 msgstr "Classico"
@@ -15439,10 +15955,13 @@ msgid "Billow"
 msgstr "Ondulato"
 
 msgid "Ridged Multifractal"
-msgstr "Multifrattale increspato"
+msgstr "Multifrattale ruvido"
 
 msgid "Voronoi"
 msgstr "Voronoi"
+
+msgid "Ripple"
+msgstr "Increspature"
 
 msgid "Fuzzy skin feature size"
 msgstr "Dimensione struttura superficie ruvida"
@@ -15473,6 +15992,65 @@ msgid ""
 msgstr ""
 "Tasso di decadimento per le ottave più alte del rumore. Valori più bassi "
 "daranno luogo a un rumore più uniforme."
+
+msgid "Number of ripples per layer"
+msgstr "Numero increspature per strato"
+
+msgid "Controls how many full cycles of ripples will be added per layer."
+msgstr ""
+"Controlla quanti cicli completi di increspature verranno aggiunti per ogni "
+"strato."
+
+msgid "Ripple offset"
+msgstr "Deviazione increspature"
+
+msgid ""
+"Shifts the ripple phase forward along the print path by the specified "
+"percentage of a wavelength each layer period.\n"
+"- 0% keeps every layer identical.\n"
+"- 50% shifts the pattern by half a wavelength, effectively inverting the "
+"phase.\n"
+"- 100% shifts the pattern by a full wavelength, returning to the original "
+"phase.\n"
+"\n"
+"The shift is applied once every number of layers set by Layers between "
+"ripple offset, so layers within the same group are printed identically."
+msgstr ""
+"Sposta in avanti la fase dell'increspatura, lungo il percorso di stampa, "
+"della percentuale specificata di lunghezza d'onda.\n"
+"- 0% mantieni ogni strato identico.\n"
+"- 50% sposta il motivo di mezza lunghezza d'onda, invertendo di fatto la "
+"fase.\n"
+"- 100% sposta il motivo di un'intera lunghezza d'onda, tornando alla fase "
+"originale.\n"
+"\n"
+"Lo spostamento viene applicato una volta ogni numero di strati impostato "
+"nell'opzione \"Strati deviazione increspature\", in modo che gli strati "
+"all'interno dello stesso gruppo vengano stampati in modo identico."
+
+msgid "Layers between ripple offset"
+msgstr "Strati deviazione increspature"
+
+msgid ""
+"Specifies how many consecutive layers share the same ripple phase before the "
+"offset is applied.\n"
+"For example:\n"
+"- 1 = Layer 1 is printed with the base ripple pattern, then layer 2 is "
+"shifted by the configured offset, then layer 3 returns to the base pattern, "
+"and so on.\n"
+"- 3 = Layers 1 to 3 are printed with the base ripple pattern, then layers 4 "
+"to 6 are shifted by the configured offset, then layers 7 to 9 return to the "
+"base pattern, etc."
+msgstr ""
+"Specifica quanti strati consecutivi condividono la stessa fase di "
+"increspatura prima che venga applicata la deviazione.\n"
+"Per esempio:\n"
+"- 1 = lo strato 1 viene stampato con il motivo di increspatura di base, lo "
+"strato 2 viene spostato in base alla deviazione configurata, lo strato 3 "
+"ritorna al motivo di base e così via.\n"
+"- 3 = Gli strati da 1 a 3 vengono stampati con il motivo di increspatura di "
+"base, gli strati da 4 a 6 vengono spostati in base alla deviazione "
+"configurata, gli strati da 7 a 9 ritornano al motivo di base e così via."
 
 msgid "Filter out tiny gaps"
 msgstr "Filtra piccoli spazi vuoti"
@@ -15666,7 +16244,7 @@ msgid "Will only take into account the delay for the cooling of overhangs."
 msgstr "Terrà conto solo del ritardo per il raffreddamento delle sporgenze."
 
 msgid "Fan kick-start time"
-msgstr "Tempo di avvio della ventola"
+msgstr "Tempo avvio ventola"
 
 msgid ""
 "Emit a max fan speed command for this amount of seconds before reducing to "
@@ -15682,6 +16260,30 @@ msgstr ""
 "potrebbe non essere sufficiente per far ripartire la ventola da ferma, o per "
 "fargli raggiungere la velocità necessaria più rapidamente.\n"
 "Impostare su 0 per disattivare."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr "%"
 
 msgid "Time cost"
 msgstr "Costo orario"
@@ -15831,7 +16433,7 @@ msgstr ""
 "tutti i pattern di riempimento solido supportano la rotazione."
 
 msgid "Skeleton infill density"
-msgstr "Densità del riempimento scheletrico"
+msgstr "Densità riempimento scheletro"
 
 msgid ""
 "The remaining part of the model contour after removing a certain depth from "
@@ -15841,7 +16443,7 @@ msgid ""
 "overlapping sections. Default is as same as infill density."
 msgstr ""
 "La parte rimanente del contorno del modello dopo aver rimosso una certa "
-"profondità dalla superficie è chiamata scheletro. Questo parametro è "
+"quantità dalla superficie è chiamata scheletro. Questo parametro è "
 "utilizzato per regolare la densità di questa sezione. Quando due regioni "
 "hanno le stesse impostazioni di riempimento sparso ma densità di scheletro "
 "diverse, le loro aree di scheletro svilupperanno sezioni sovrapposte. Il "
@@ -15871,7 +16473,7 @@ msgid "The parameter sets the depth of skin."
 msgstr "Il parametro imposta la profondità della pelle."
 
 msgid "Infill lock depth"
-msgstr "Profondità di blocco del riempimento"
+msgstr "Profondità intersezione riempimento"
 
 msgid "The parameter sets the overlapping depth between the interior and skin."
 msgstr ""
@@ -15882,7 +16484,7 @@ msgid "Skin line width"
 msgstr "Larghezza linea pelle"
 
 msgid "Adjust the line width of the selected skin paths."
-msgstr "Regola la larghezza della linea dei percorsi di pelle selezionati."
+msgstr "Regola la larghezza della linea dei percorsi della pelle selezionati."
 
 msgid "Skeleton line width"
 msgstr "Larghezza linea scheletro"
@@ -16141,7 +16743,7 @@ msgid "Print speed of ironing lines."
 msgstr "Indica la velocità di stampa per le linee di stiratura."
 
 msgid "Ironing angle offset"
-msgstr "Offset angolo di stiratura"
+msgstr "Angolo di stiratura"
 
 msgid "The angle of ironing lines offset from the top surface."
 msgstr "L'angolo delle linee di stiratura rispetto alla superficie superiore."
@@ -16151,6 +16753,55 @@ msgstr "Angolo di stiratura fisso"
 
 msgid "Use a fixed absolute angle for ironing."
 msgstr "Usa un angolo assoluto fisso per la stiratura."
+
+msgid "Ironing expansion"
+msgstr "Espansione stiratura"
+
+msgid "Expand or contract the ironing area."
+msgstr "Espande o riduce l'area di stiratura."
+
+msgid "Z contouring enabled"
+msgstr "Contornatura Z abilitata"
+
+msgid "Enable Z-layer contouring (aka Z-layer anti-aliasing)."
+msgstr ""
+"Abilita la contornatura degli strati sull'asse Z (noto anche come anti-"
+"aliasing dell'asse Z)."
+
+msgid "Minimize wall height angle"
+msgstr "Riduci altezza su pareti inclinate"
+
+msgid ""
+"Reduce the height of top-surface perimeters to match the model edge height.\n"
+"Affects perimeters with a slope less than this angle (degrees).\n"
+"A reasonable value is 35. Set to 0 to disable."
+msgstr ""
+"Riduce l'altezza dei perimetri della superficie superiore in modo che si "
+"adattino meglio al bordo del modello\n"
+"Influisce sui perimetri con una pendenza inferiore a questo angolo (in "
+"gradi).\n"
+"Il valore consigliato è 35. Impostare a 0 per disabilitare questa funzione."
+
+msgid "°"
+msgstr "°"
+
+msgid "Don't alternate fill direction"
+msgstr "Non alternare direzione riempimento"
+
+msgid "Disable alternating fill direction when using Z contouring."
+msgstr ""
+"Disabilita il riempimento a direzione alternata quando si utilizza l'opzione "
+"\"Contornatura Z\"."
+
+msgid "Minimum z height"
+msgstr "Altezza Z minima"
+
+msgid ""
+"Minimum Z-layer height.\n"
+"Also controls the slicing plane."
+msgstr ""
+"Altezza minima dello strato sull'asse Z.\n"
+"Controlla anche il piano per l'elaborazione."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
@@ -16332,16 +16983,17 @@ msgstr ""
 "Marlin 2."
 
 msgid "Resonance avoidance"
-msgstr "Evitamento della risonanza"
+msgstr "Prevenzione risonanza"
 
 msgid ""
 "By reducing the speed of the outer wall to avoid the resonance zone of the "
 "printer, ringing on the surface of the model are avoided.\n"
 "Please turn this option off when testing ringing."
 msgstr ""
-"Riducendo la velocità della parete esterna per evitare la zona di risonanza "
-"della stampante, si evitano le ondulazioni sulla superficie del modello.\n"
-"Disattivare questa opzione quando si testa il ringing."
+"Riducendo la velocità nelle pareti esterne per evitare la zona di risonanza "
+"della stampante, si evitano le ondulazioni o ronzii (ringing) sulla "
+"superficie del modello.\n"
+"Disattivare questa opzione quando si testa il ronzio ."
 
 msgid "Min"
 msgstr "Minimo"
@@ -16354,6 +17006,114 @@ msgstr "Massimo"
 
 msgid "Maximum speed of resonance avoidance."
 msgstr "Velocità massima per l'evitamento della risonanza."
+
+msgid "Emit input shaping"
+msgstr "Sovrascrivi compensazione risonanza"
+
+msgid ""
+"Override firmware input shaping settings.\n"
+"If disabled, firmware settings are used."
+msgstr ""
+"Sovrascrivi le impostazioni di compensazione della risonanza del firmware.\n"
+"Se disabilitato, verranno utilizzate le impostazioni del firmware."
+
+msgid "Input shaper type"
+msgstr "Tipo di compensazione della risonanza"
+
+msgid ""
+"Choose the input shaper algorithm.\n"
+"Default uses the firmware default settings.\n"
+"Disable turns off input shaping in the firmware."
+msgstr ""
+"Seleziona l'algoritmo di compensazione della risonanza.\n"
+"L'opzione \"Default\" utilizza le impostazioni predefinite del firmware."
+
+msgid "MZV"
+msgstr "MZV"
+
+msgid "ZV"
+msgstr "ZV"
+
+msgid "ZVD"
+msgstr "ZVD"
+
+msgid "ZVDD"
+msgstr "ZVDD"
+
+msgid "ZVDDD"
+msgstr "ZVDDD"
+
+msgid "EI"
+msgstr "EI"
+
+msgid "EI2"
+msgstr "EI2"
+
+msgid "2HUMP_EI"
+msgstr "2HUMP_EI"
+
+msgid "EI3"
+msgstr "EI3"
+
+msgid "3HUMP_EI"
+msgstr "3HUMP_EI"
+
+msgid "DAA"
+msgstr "DAA"
+
+msgid "X"
+msgstr "X"
+
+msgid ""
+"Resonant frequency for the X axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+"Frequenza di risonanza per la compensazione sull'asse X.\n"
+"Se impostato a zero, verranno utilizzate le impostazioni di frequenza del "
+"firmware.\n"
+"Per disabilitare la compensazione della risonanza, selezionare il tipo "
+"\"Disabilita\".\n"
+"RRF: i valori X e Y sono uguali."
+
+msgid "Y"
+msgstr "Y"
+
+msgid ""
+"Resonant frequency for the Y axis input shaper.\n"
+"Zero will use the firmware frequency.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+"Frequenza di risonanza per la compensazione sull'asse Y.\n"
+"Se impostato a zero, verranno utilizzate le impostazioni di frequenza del "
+"firmware.\n"
+"Per disabilitare la compensazione della risonanza, selezionare il tipo "
+"\"Disabilita\"."
+
+msgid ""
+"Damping ratio for the X axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type.\n"
+"RRF: X and Y values are equal."
+msgstr ""
+"Rapporto di smorzamento per la compensazione della risonanza sull'asse X.\n"
+"Se impostato a zero, verranno utilizzate le impostazioni di rapporto di "
+"smorzamento del firmware.\n"
+"Per disabilitare la compensazione della risonanza, selezionare il tipo "
+"\"Disabilita\".\n"
+"RRF: i valori X e Y sono uguali."
+
+msgid ""
+"Damping ratio for the Y axis input shaper.\n"
+"Zero will use the firmware damping ratio.\n"
+"To disable input shaping, use the Disable type."
+msgstr ""
+"Rapporto di smorzamento per la compensazione della risonanza sull'asse Y.\n"
+"Se impostato a zero, verranno utilizzate le impostazioni di rapporto di "
+"smorzamento del firmware.\n"
+"Per disabilitare la compensazione della risonanza, selezionare il tipo "
+"\"Disabilita\"."
 
 msgid ""
 "Part cooling fan speed may be increased when auto cooling is enabled. This "
@@ -16490,6 +17250,34 @@ msgstr ""
 "Si prega di abilitare auxiliary_fan nelle impostazioni della stampante per "
 "utilizzare questa funzione. Comando G-code: M106 P2 S(0-255)"
 
+msgid "For the first"
+msgstr "Per il primo"
+
+msgid "Set special auxiliary cooling fan for the first certain layers."
+msgstr ""
+"Imposta la ventola di raffreddamento ausiliaria per i primi strati "
+"specificati."
+
+msgid ""
+"Auxiliary fan speed will be ramped up linearly from layer \"For the first\" "
+"to maximum at layer \"Full fan speed at layer\".\n"
+"\"Full fan speed at layer\" will be ignored if lower than \"For the first\", "
+"in which case the fan will run at maximum allowed speed at layer \"For the "
+"first\" + 1."
+msgstr ""
+"La velocità della ventola ausiliaria aumenterà linearmente da \"Per il "
+"primo\" fino al valore massimo impostato su \"Velocità massima ventola su "
+"strato\".\n"
+"Il valore \"Velocità massima ventola su strato\" verrà ignorato se inferiore "
+"a \"Per il primo\"; in tal caso, la ventola funzionerà alla velocità massima "
+"consentita con il valore \"Per il primo\" + 1."
+
+msgid ""
+"Special auxiliary cooling fan speed, effective only for the first x layers."
+msgstr ""
+"Velocità della ventola di raffreddamento ausiliaria, operativa solo per i "
+"primi x strati."
+
 msgid ""
 "The lowest printable layer height for the extruder. Used to limit the "
 "minimum layer height when enable adaptive layer height."
@@ -16511,7 +17299,7 @@ msgstr ""
 "l'opzione 'Rallenta stampa per miglior raffreddamento degli strati'."
 
 msgid "The diameter of nozzle."
-msgstr "Diametro ugello"
+msgstr "Diametro dell'ugello."
 
 msgid "Configuration notes"
 msgstr "Note di configurazione"
@@ -16661,9 +17449,8 @@ msgstr ""
 "una forma conica. Un valore pari a 0 riempirà tutti i fori nella base del "
 "modello."
 
-#, fuzzy
 msgid "Detect overhang walls"
-msgstr "Rileva parete sporgente"
+msgstr "Rileva pareti sporgenti"
 
 #, c-format, boost-format
 msgid ""
@@ -16675,7 +17462,7 @@ msgstr ""
 "viene utilizzata la velocità dei ponti."
 
 msgid "Filament to print walls."
-msgstr "Filamento per stampa pareti"
+msgstr "Filamento per stampa pareti."
 
 msgid ""
 "Line width of inner wall. If expressed as a %, it will be computed over the "
@@ -16727,11 +17514,22 @@ msgstr ""
 "argomento, e potranno accedere alle impostazioni di configurazione di "
 "OrcaSlicer leggendo le variabili di ambiente."
 
+msgid "Change extrusion role G-code (process)"
+msgstr "Modifica G-code ruolo di estrusione (processo)"
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed. It runs after "
+"the machine and filament extrusion role G-code."
+msgstr ""
+"Questo G-code viene inserito quando si effettua il cambio del ruolo di "
+"estrusione. Viene eseguito dopo il G-code della macchina e del ruolo di "
+"estrusione del filamento."
+
 msgid "Printer type"
 msgstr "Tipo stampante"
 
 msgid "Type of the printer."
-msgstr "Tipo di stampante"
+msgstr "Tipo di stampante."
 
 msgid "Printer notes"
 msgstr "Note stampante"
@@ -16745,10 +17543,13 @@ msgstr "Variante stampante"
 msgid "Raft contact Z distance"
 msgstr "Distanza Z di contatto zattera"
 
-msgid "Z gap between object and raft. Ignored for soluble interface."
+msgid ""
+"Z gap between raft and object. If Support Top Z Distance is 0, this value is "
+"ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr ""
-"Indica lo spazio Z tra oggetto e zattera. Viene ignorato per le interfacce "
-"di supporto solubili."
+"Spazio Z tra zattera e oggetto. Se la distanza Z superiore del supporto è 0, "
+"questo valore viene ignorato e l'oggetto viene stampato a contatto diretto "
+"con la zattera (senza spazio)."
 
 msgid "Raft expansion"
 msgstr "Espansione della zattera"
@@ -17032,9 +17833,6 @@ msgstr "Allineato"
 msgid "Aligned back"
 msgstr "Allineato dietro"
 
-msgid "Back"
-msgstr "Indietro"
-
 msgid "Random"
 msgstr "Casuale"
 
@@ -17078,9 +17876,10 @@ msgid ""
 "Apply scarf joints only to smooth perimeters where traditional seams do not "
 "conceal the seams at sharp corners effectively."
 msgstr ""
-"Applica le cuciture a sciarpa solo sui perimetri lisci, dove le cuciture "
-"tradizionali non riescono a nascondere efficacemente quelle in "
-"corrispondenza degli angoli vivi."
+"Applica le cuciture a sciarpa solo sui perimetri lisci e curvi, dove le "
+"cuciture tradizionali risulterebbero molto evidenti. Gli angoli netti "
+"continueranno a utilizzare le cuciture normali per mantenere la precisione "
+"dimensionale."
 
 msgid "Conditional angle threshold"
 msgstr "Soglia angolo condizionale"
@@ -17148,45 +17947,48 @@ msgstr ""
 "cucitura a sciarpa."
 
 msgid "Scarf start height"
-msgstr "Altezza iniziale sciarpa"
+msgstr "Altezza iniziale cucitura a sciarpa"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the "
 "current layer height. The default value for this parameter is 0."
 msgstr ""
-"Altezza iniziale della sciarpa.\n"
-"Questa quantità può essere specificata in millimetri o come percentuale "
+"Altezza iniziale della cucitura a sciarpa.\n"
+"Questo valore può essere specificato in millimetri o come percentuale "
 "dell'altezza dello strato corrente. Il valore predefinito per questo "
 "parametro è 0."
 
 msgid "Scarf around entire wall"
-msgstr "Sciarpa attorno all'intera parete"
+msgstr "Cucitura a sciarpa su intera parete"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "La sciarpa si estende per tutta la lunghezza della parete."
+msgstr ""
+"La cucitura a sciarpa si estende lungo tutto il perimetro della parete."
 
 msgid "Scarf length"
-msgstr "Lunghezza sciarpa"
+msgstr "Lunghezza cucitura a sciarpa"
 
 msgid ""
 "Length of the scarf. Setting this parameter to zero effectively disables the "
 "scarf."
 msgstr ""
-"Lunghezza della sciarpa. Impostando questo parametro su zero, la sciarpa "
-"viene effettivamente disabilitata."
+"Lunghezza della cucitura a sciarpa. Impostando questo parametro su zero, la "
+"cucitura a sciarpa viene disabilitata."
 
 msgid "Scarf steps"
-msgstr "Incrementi sciarpa"
+msgstr "Incrementi cucitura a sciarpa"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "Numero minimo di segmenti di ogni sciarpa."
+msgstr ""
+"Numero minimo di segmenti utilizzati per la creazione della sfumatura della "
+"cucitura a sciarpa."
 
 msgid "Scarf joint for inner walls"
 msgstr "Cucitura a sciarpa per pareti interne"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Utilizzare la cucitura a sciarpa anche per le pareti interne."
+msgstr "Utilizza la cucitura a sciarpa anche per le pareti interne."
 
 msgid "Role base wipe speed"
 msgstr "Velocità di spurgo basata su ruolo"
@@ -17256,7 +18058,7 @@ msgid "Skirt distance"
 msgstr "Distanza gonna"
 
 msgid "The distance from the skirt to the brim or the object."
-msgstr "Distanza dalla gonna alla tesa o all'oggetto"
+msgstr "Distanza dalla gonna alla tesa o all'oggetto."
 
 msgid "Skirt start point"
 msgstr "Punto di inizio gonna"
@@ -17282,9 +18084,9 @@ msgid ""
 "is useful, on occasion, to conserve filament but may cause the draft shield/"
 "skirt to warp / crack."
 msgstr ""
-"Limita i giri della gonna/schermo protettivo a una parete dopo il primo "
+"Limita i perimetri di gonna/scudo protettivo a una parete dopo il primo "
 "strato. Questo è utile in alcune occasioni per risparmiare filamento, ma "
-"potrebbe causare deformazione o rottura dello schermo/gonna."
+"potrebbe causare deformazione o rottura dello scudo protettivo/gonna."
 
 msgid "Draft shield"
 msgstr "Scudo protettivo"
@@ -17376,19 +18178,18 @@ msgstr ""
 msgid "Minimum sparse infill threshold"
 msgstr "Soglia minima riempimento sparso"
 
-#, fuzzy
 msgid ""
 "Sparse infill areas smaller than this threshold value are replaced by "
 "internal solid infill."
 msgstr ""
-"L'area del riempimento sparso che è inferiore al valore di soglia, viene "
-"sostituita da un riempimento solido interno."
+"Le aree di riempimento sparso di dimensioni inferiori a questa soglia "
+"vengono sostituite con il riempimento solido interno."
 
 msgid "Solid infill"
 msgstr "Riempimento solido"
 
 msgid "Filament to print solid infill."
-msgstr "Filamento utilizzato per stampare il riempimento solido"
+msgstr "Filamento utilizzato per stampare il riempimento solido."
 
 msgid ""
 "Line width of internal solid infill. If expressed as a %, it will be "
@@ -17571,7 +18372,7 @@ msgstr ""
 "l'azione di cambio filamento manuale."
 
 msgid "Wipe tower type"
-msgstr "Tipo di torre di pulizia"
+msgstr "Tipo di torre di spurgo"
 
 msgid ""
 "Choose the wipe tower implementation for multi-material prints. Type 1 is "
@@ -17579,10 +18380,10 @@ msgid ""
 "offers better compatibility with multi-tool and MMU printers and provide "
 "overall better compatibility."
 msgstr ""
-"Scegli l'implementazione della torre di pulizia per stampe multi-materiale. "
-"Il Tipo 1 è consigliato per stampanti Bambu e Qidi con taglierino filamento. "
-"Il Tipo 2 offre una migliore compatibilità con stampanti multi-utensile e "
-"MMU e una compatibilità complessiva migliore."
+"Scegli l'implementazione della torre di spurgo per stampe multimateriale. Il "
+"Tipo 1 è consigliato per stampanti Bambu e Qidi dotate di taglierina per "
+"filamento. Il Tipo 2 offre una migliore compatibilità con stampanti "
+"multitestina e MMU e garantisce una compatibilità complessiva superiore."
 
 msgid "Type 1"
 msgstr "Tipo 1"
@@ -17598,6 +18399,19 @@ msgstr "Spurga il filamento rimanente nella torre di spurgo."
 
 msgid "Enable filament ramming"
 msgstr "Abilita spinta del filamento"
+
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
 
 msgid "No sparse layers (beta)"
 msgstr "Nessuno strato sparso (beta)"
@@ -17734,24 +18548,30 @@ msgstr ""
 "sbalzi, ecc."
 
 msgid "Ignore small overhangs"
-msgstr "Ignora sbalzi piccoli"
+msgstr "Ignora piccole sporgenze"
 
 msgid "Ignore small overhangs that possibly don't require support."
-msgstr "Ignora i piccoli sbalzi che potrebbero non richiedere supporto."
+msgstr ""
+"Ignora le piccole sporgenze che potrebbero non necessitare dei supporti."
 
 msgid "Top Z distance"
 msgstr "Distanza Z superiore"
 
-msgid "The Z gap between the top support interface and object."
-msgstr ""
-"Determina lo spazio Z tra l'interfaccia di supporto superiore e l'oggetto."
+msgid "Z gap between the support's top and object."
+msgstr "Spazio Z tra la parte superiore del supporto e l'oggetto."
 
 msgid "Bottom Z distance"
 msgstr "Distanza Z inferiore"
 
-msgid "The Z gap between the bottom support interface and object."
+msgid ""
+"Z gap between the object and the support bottom. If Support Top Z Distance "
+"is 0 and the bottom has interface layers, this value is ignored and the "
+"support is printed in direct contact with the object (no gap)."
 msgstr ""
-"Determina lo spazio Z tra l'interfaccia di supporto inferiore e l'oggetto."
+"Spazio Z tra l'oggetto e la base del supporto. Se la distanza Z superiore "
+"del supporto è 0 e la base ha strati di interfaccia, questo valore viene "
+"ignorato e il supporto viene stampato a contatto diretto con l'oggetto "
+"(senza spazio)."
 
 msgid "Support/raft base"
 msgstr "Base supporto/zattera"
@@ -17953,10 +18773,17 @@ msgstr "Angolo di soglia"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the "
-"threshold."
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
 "I supporti verranno generati per le sporgenze il cui angolo di inclinazione "
-"è inferiore a questa soglia."
+"è inferiore a questa soglia. Più piccolo è questo valore, più ripide saranno "
+"le sporgenze stampabili senza supporti.\n"
+"Nota: se impostato a 0, i supporti normali useranno il valore specificato in "
+"\"Soglia sovrapposizione\", mentre i supporti ad albero torneranno al valore "
+"predefinito di 30."
 
 msgid "Threshold overlap"
 msgstr "Soglia sovrapposizione"
@@ -17968,8 +18795,8 @@ msgid ""
 msgstr ""
 "Se l'angolo di soglia è zero, i supporti verranno generati per le sporgenze "
 "la cui sovrapposizione è al di sotto della soglia. Quanto più piccolo è "
-"questo valore, tanto più ripida sarà la sporgenza che può essere stampata "
-"senza supporto."
+"questo valore, tanto più ripide saranno le sporgenze stampabili senza "
+"supporti."
 
 msgid "Tree support branch angle"
 msgstr "Angolo rami supporti ad albero"
@@ -18196,14 +19023,13 @@ msgstr "Temperatura dell'ugello per gli strati successivi a quello iniziale."
 msgid "Detect thin walls"
 msgstr "Rileva pareti sottili"
 
-#, fuzzy
 msgid ""
 "Detect thin walls which can't contain two line widths, and use single line "
 "to print. Maybe not printed very well, because it's not a closed loop."
 msgstr ""
-"Rileva le pareti sottili che non possono contenere due linee di larghezza, "
-"utilizzandone quindi una sola per la stampa. Potrebbe non essere stampato "
-"bene poiché non è un perimetro chiuso."
+"Rileva le pareti sottili che non possono essere stampate con una larghezza "
+"di due linee, utilizzandone quindi una sola. La stampa potrebbe non essere "
+"perfetta, poiché non è un perimetro chiuso."
 
 msgid ""
 "This G-code is inserted when filament is changed, including T commands to "
@@ -18215,6 +19041,16 @@ msgstr ""
 msgid "This G-code is inserted when the extrusion role is changed."
 msgstr ""
 "Questo gcode viene inserito quando viene modificato il ruolo di estrusione."
+
+msgid "Change extrusion role G-code (filament)"
+msgstr "Modifica G-code ruolo di estrusione (filamento)"
+
+msgid ""
+"This G-code is inserted when the extrusion role is changed for the active "
+"filament."
+msgstr ""
+"Questo G-code viene inserito quando si effettua il cambio del ruolo di "
+"estrusione per il filamento attivo."
 
 msgid ""
 "Line width for top surfaces. If expressed as a %, it will be computed over "
@@ -18827,6 +19663,33 @@ msgstr ""
 "valore predefinito di 0,5 o se sono abilitate superfici superiori a parete "
 "singola."
 
+msgid "Maximum wall resolution"
+msgstr "Risoluzione massima parete"
+
+msgid ""
+"This value determines the smallest wall line segment length in mm. The "
+"smaller you set this value, the more accurate and precise the walls will be."
+msgstr ""
+"Questo valore determina la lunghezza minima del segmento di linea della "
+"parete, in mm. Più piccolo è il valore impostato, più accurate e precise "
+"saranno le pareti."
+
+msgid "Maximum wall deviation"
+msgstr "Deviazione massima parete"
+
+msgid ""
+"The maximum deviation allowed when reducing the resolution for the 'Maximum "
+"wall resolution' setting. If you increase this, the print will be less "
+"accurate, but the G-Code will be smaller. 'Maximum wall deviation' limits "
+"'Maximum wall resolution', so if the two conflict, 'Maximum wall deviation' "
+"takes precedence."
+msgstr ""
+"Deviazione massima consentita quando si riduce la risoluzione tramite "
+"l'impostazione \"Risoluzione massima parete\". Se si aumenta questo valore, "
+"la stampa sarà meno precisa, ma il G-Code sarà più contenuto. \"Deviazione "
+"massima parete\" limita \"Risoluzione massima parete\", quindi in caso di "
+"conflitto tra i due valori, \"Deviazione massima parete\" ha la precedenza."
+
 msgid "First layer minimum wall width"
 msgstr "Larghezza minima parete del primo strato"
 
@@ -18854,9 +19717,8 @@ msgstr ""
 "spessa quanto l'elemento stesso. Questo valore è espresso come percentuale "
 "rispetto al diametro dell'ugello."
 
-#, fuzzy
 msgid "Detect narrow internal solid infills"
-msgstr "Rileva riempimento solido interno stretto"
+msgstr "Rileva riempimento solido interno su piccole aree"
 
 msgid ""
 "This option will auto-detect narrow internal solid infill areas. If enabled, "
@@ -19613,7 +20475,10 @@ msgid "Generating infill regions"
 msgstr "Generazione regioni di riempimento"
 
 msgid "Generating infill toolpath"
-msgstr "Generazione percorso utensile di riempimento"
+msgstr "Generazione percorso testina per riempimento"
+
+msgid "Z contouring"
+msgstr "Contornatura Z"
 
 msgid "Detect overhangs for auto-lift"
 msgstr "Rilevamento sporgenze per il sollevamento automatico"
@@ -19642,7 +20507,7 @@ msgid "Generating support"
 msgstr "Generazione supporti"
 
 msgid "Optimizing toolpath"
-msgstr "Ottimizzazione del percorso utensile"
+msgstr "Ottimizzazione percorso testina"
 
 msgid "Slicing mesh"
 msgstr "Elaborazione maglia"
@@ -19670,9 +20535,9 @@ msgid ""
 "XY Size compensation cannot be combined with fuzzy skin painting."
 msgstr ""
 "Un oggetto ha la compensazione dimensionale XY abilitata che non verrà "
-"utilizzata perché ha anche la pelle fuzzy dipinta.\n"
-"La compensazione dimensionale XY non può essere combinata con la pittura "
-"pelle fuzzy."
+"utilizzata perché ha anche la superficie ruvida dipinta.\n"
+"La compensazione dimensionale XY non può essere combinata con la superficie "
+"ruvida."
 
 msgid "Object name"
 msgstr "Nome oggetto"
@@ -19719,9 +20584,6 @@ msgstr "Il file contiene un indice dei vertici non valido."
 
 msgid "This OBJ file couldn't be read because it's empty."
 msgstr "Impossibile leggere il file OBJ perché è vuoto."
-
-msgid "Flow Rate Calibration"
-msgstr "Calibrazione della portata"
 
 msgid "Max Volumetric Speed Calibration"
 msgstr "Calibrazione della velocità volumetrica massima"
@@ -19781,9 +20643,6 @@ msgstr "Ulteriori informazioni"
 
 msgid "Flow Dynamics"
 msgstr "Dinamica del flusso"
-
-msgid "Flow Rate"
-msgstr "Flusso di stampa"
 
 msgid "Max Volumetric Speed"
 msgstr "Massima velocità volumetrica"
@@ -20114,7 +20973,7 @@ msgstr "Il nome non può superare i 40 caratteri."
 msgid "Please find the best line on your plate"
 msgstr "Trova la linea migliore nel tuo piatto"
 
-msgid "Please find the corner with perfect degree of extrusion"
+msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Individua l'angolo con il grado di estrusione ideale"
 
 msgid "Input Value"
@@ -20219,7 +21078,7 @@ msgid "Plate Type"
 msgstr "Tipo di piatto"
 
 msgid "Filament position"
-msgstr "posizione del filamento"
+msgstr "Posizione del filamento"
 
 msgid "Filament For Calibration"
 msgstr "Calibrazione per filamento"
@@ -20251,13 +21110,16 @@ msgstr ""
 "flusso."
 
 msgid ""
-"Cannot print multiple filaments which have large difference of temperature "
-"together. Otherwise, the extruder and nozzle may be blocked or damaged "
-"during printing"
+"Selected nozzle temperatures are incompatible. For multi-material printing, "
+"each filament's nozzle temperature must be within the recommended nozzle "
+"temperature range of the other filaments. Otherwise, nozzle clogging or "
+"printer damage may occur."
 msgstr ""
-"Non è possibile stampare insieme più filamenti con grandi differenze di "
-"temperatura. In caso contrario, l'estrusore e l'ugello potrebbero bloccarsi "
-"o danneggiarsi durante la stampa"
+"Le temperature degli ugelli selezionate sono incompatibili. Per la stampa "
+"multimateriale, la temperatura dell'ugello per ciascun filamento deve "
+"rientrare nell'intervallo di temperatura consigliato per gli altri "
+"filamenti. In caso contrario, potrebbero verificarsi ostruzioni degli ugelli "
+"o danni alla stampante."
 
 msgid "Sync AMS and nozzle information"
 msgstr "Sincronizza informazioni AMS e ugello"
@@ -20528,7 +21390,7 @@ msgid "End retraction length: "
 msgstr "Lunghezza di retrazione finale: "
 
 msgid "Input shaping Frequency test"
-msgstr "Test frequenza Input Shaping"
+msgstr "Test frequenza compensazione risonanza"
 
 msgid "Test model"
 msgstr "Modello di test"
@@ -20538,9 +21400,6 @@ msgstr "Torre Ringing"
 
 msgid "Fast Tower"
 msgstr "Torre veloce"
-
-msgid "Input shaper type"
-msgstr "Tipo di input shaper"
 
 msgid ""
 "Please ensure the selected type is compatible with your firmware version."
@@ -20605,16 +21464,13 @@ msgstr ""
 "<= 1)"
 
 msgid "Input shaping Damp test"
-msgstr "Test smorzamento Input Shaping"
+msgstr "Test smorzamento compensazione risonanza"
 
 msgid "Check firmware compatibility."
 msgstr "Verifica compatibilità firmware."
 
 msgid "Frequency: "
 msgstr "Frequenza: "
-
-msgid "Frequency"
-msgstr "Frequenza"
 
 msgid "Damp"
 msgstr "Smorzamento"
@@ -20692,6 +21548,27 @@ msgstr ""
 #, c-format, boost-format
 msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr "NOTA: valori elevati possono causare spostamento degli strati (>%s)"
+
+msgid "Flow Ratio Calibration"
+msgstr "Calibrazione flusso di stampa"
+
+msgid "Calibration Test Type"
+msgstr "Tipo test calibrazione"
+
+msgid "Pass 1 (Coarse)"
+msgstr "Passaggio 1 (Impreciso)"
+
+msgid "Pass 2 (Fine)"
+msgstr "Passaggio 2 (Fine)"
+
+msgid "YOLO (Recommended)"
+msgstr "YOLO (Consigliato)"
+
+msgid "YOLO (Perfectionist)"
+msgstr "YOLO (Perfezionista)"
+
+msgid "Top Surface Pattern"
+msgstr "Motivo superficie superiore"
 
 msgid "Send G-code to printer host"
 msgstr "Invia G-code all'host di stampa"
@@ -20899,10 +21776,8 @@ msgstr ""
 "Il produttore non è stato selezionato, si prega di selezionare nuovamente il "
 "produttore."
 
-msgid "Custom vendor is not input, please input custom vendor."
-msgstr ""
-"Il produttore personalizzato non è stato inserito, si prega di inserire il "
-"fornitore personalizzato."
+msgid "Custom vendor is missing, please input custom vendor."
+msgstr "Il fornitore personalizzato non è presente, si prega di inserirlo."
 
 msgid ""
 "\"Bambu\" or \"Generic\" cannot be used as a Vendor for custom filaments."
@@ -20943,12 +21818,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
-"If you continue creating, the preset created will be displayed with its full "
-"name. Do you want to continue?"
+"If you continue, the preset created will be displayed with its full name. Do "
+"you want to continue?"
 msgstr ""
 "Il nome del filamento %s che hai creato esiste già.\n"
-"Se continui nella creazione, il profilo creato verrà visualizzato con il suo "
-"nome completo. Vuoi continuare?"
+"Se si continua, il profilo creato verrà visualizzato con il suo nome "
+"completo. Vuoi continuare?"
 
 msgid "Some existing presets have failed to be created, as follows:\n"
 msgstr ""
@@ -21090,7 +21965,7 @@ msgstr ""
 "Il nome del profilo della stampante che hai creato esiste già. Vuoi "
 "sovrascriverlo?\n"
 "\tSì: Sovrascrivi il profilo della stampante con lo stesso nome, e i profili "
-"del filamento e del processo con lo stesso nome saranno ricreati,\n"
+"di filamento e di processo con lo stesso nome saranno ricreati,\n"
 "mentre gli altri saranno conservati.\n"
 "\tAnnulla: Non creare un profilo, torna alla pagina di creazione."
 
@@ -21156,6 +22031,18 @@ msgstr ""
 "Il profilo di sistema non consente la creazione.\n"
 "Reinserire il modello della stampante o il diametro dell'ugello."
 
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
+msgstr ""
+
 msgid "Printer Created Successfully"
 msgstr "Creazione stampante riuscita"
 
@@ -21211,7 +22098,7 @@ msgid "Printer presets(.zip)"
 msgstr "Profili stampante (.zip)"
 
 msgid "Filament presets(.zip)"
-msgstr "Profili filamento (.zip)"
+msgstr "Profili di filamento (.zip)"
 
 msgid "Process presets(.zip)"
 msgstr "Profili di processo (.zip)"
@@ -21406,36 +22293,6 @@ msgstr ""
 "Il tipo di ugello non corrisponde al tipo effettivo dell'ugello della "
 "stampante.\n"
 "Fare clic sul pulsante Sincronizza sopra e riavviare la calibrazione."
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr "dimensione ugello nel profilo: %d"
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr "dimensione ugello memorizzata: %d"
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-"La dimensione del tipo di ugello nel profilo non è coerente con l'ugello "
-"memorizzato. Hai cambiato l'ugello di recente?"
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr "ugello[%d] nel profilo: %.1f"
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr "ugello[%d] memorizzato: %.1f"
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-"Il tipo di ugello nel profilo non è coerente con l'ugello memorizzato. Hai "
-"cambiato l'ugello di recente?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
@@ -22249,7 +23106,7 @@ msgid "Upgrading"
 msgstr "Aggiornamento"
 
 msgid "Syncing"
-msgstr "sincronizzazione"
+msgstr "Sincronizzazione"
 
 msgid "Printing Finish"
 msgstr "Stampa completata"
@@ -22322,6 +23179,9 @@ msgstr "Assegna manualmente il filamento all'ugello sinistro o destro"
 msgid "Global settings"
 msgstr "Impostazioni globali"
 
+msgid "Video tutorial"
+msgstr "Video tutorial"
+
 msgid "(Sync with printer)"
 msgstr "(Sincronizza con stampante)"
 
@@ -22393,26 +23253,17 @@ msgstr "Angolo massimo"
 msgid "Detection radius"
 msgstr "Raggio di rilevamento"
 
-msgid "Remove selected points"
-msgstr "Rimuovi punti selezionati"
+msgid "Selected"
+msgstr ""
 
-msgid "Remove all"
-msgstr "Rimuovi tutto"
+msgid "Auto-generate"
+msgstr ""
 
-msgid "Auto-generate points"
-msgstr "Genera punti automaticamente"
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
 
-msgid "Add a brim ear"
-msgstr "Aggiungi tesa ad orecchio"
-
-msgid "Delete a brim ear"
-msgstr "Rimuovi tesa ad orecchio"
-
-msgid "Adjust head diameter"
-msgstr "Regola diametro testa"
-
-msgid "Adjust section view"
-msgstr "Regola la vista della sezione"
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -22424,8 +23275,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Imposta il tipo di tesa di questo oggetto su \"dipinta\""
 
-msgid " invalid brim ears"
-msgstr " tese ad orecchio non valide"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Tese ad orecchio"
@@ -22471,9 +23322,6 @@ msgstr "Questa azione non può essere annullata. Continuare?"
 msgid "Skipping objects."
 msgstr "Salto degli oggetti."
 
-msgid "Continue"
-msgstr "Continua"
-
 msgid "Select Filament"
 msgstr "Seleziona filamento"
 
@@ -22490,21 +23338,23 @@ msgid "More Colors"
 msgstr "Più colori"
 
 msgid "Network Plug-in Update Available"
-msgstr "Aggiornamento plug-in di rete disponibile"
+msgstr "Aggiornamento modulo di rete disponibile"
 
 msgid "Bambu Network Plug-in Required"
-msgstr "Plug-in di rete Bambu richiesto"
+msgstr "Modulo di rete Bambu richiesto"
 
 msgid ""
 "The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it."
-msgstr "Il plug-in di rete Bambu è corrotto o incompatibile. Reinstallarlo."
+msgstr ""
+"Il modulo di rete Bambu è corrotto o incompatibile. Si prega di "
+"reinstallarlo."
 
 msgid ""
 "The Bambu Network Plug-in is required for cloud features, printer discovery, "
 "and remote printing."
 msgstr ""
-"Il plug-in di rete Bambu è necessario per le funzionalità cloud, il "
-"rilevamento delle stampanti e la stampa remota."
+"Il modulo di rete Bambu è necessario per le funzionalità cloud, il "
+"rilevamento delle stampanti e la stampa in remoto."
 
 #, c-format, boost-format
 msgid "Error: %s"
@@ -22523,7 +23373,7 @@ msgid "Skip for Now"
 msgstr "Salta per ora"
 
 msgid "A new version of the Bambu Network Plug-in is available."
-msgstr "È disponibile una nuova versione del plug-in di rete Bambu."
+msgstr "È disponibile una nuova versione del modulo di rete Bambu."
 
 #, c-format, boost-format
 msgid "Current version: %s"
@@ -22545,12 +23395,12 @@ msgid "Don't Ask Again"
 msgstr "Non chiedere più"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
-msgstr "Il plug-in di rete Bambu è stato installato con successo."
+msgstr "Il modulo di rete Bambu è stato installato con successo."
 
 msgid ""
 "A restart is required to load the new plug-in. Would you like to restart now?"
 msgstr ""
-"È necessario un riavvio per caricare il nuovo plug-in. Vuoi riavviare ora?"
+"È necessario un riavvio per caricare il nuovo modulo. Vuoi riavviare ora?"
 
 msgid "Restart Now"
 msgstr "Riavvia ora"
@@ -22600,7 +23450,7 @@ msgid ""
 "Generic filament presets will be used."
 msgstr ""
 "Il filamento potrebbe non essere compatibile con le impostazioni correnti "
-"della macchina. Verranno utilizzati i profili filamento generici."
+"della macchina. Verranno utilizzati i profili di filamento generici."
 
 msgid ""
 "The filament model is unknown. Still using the previous filament preset."
@@ -22610,7 +23460,7 @@ msgstr ""
 
 msgid "The filament model is unknown. Generic filament presets will be used."
 msgstr ""
-"Il modello di filamento è sconosciuto. Verranno utilizzati i profili "
+"Il modello di filamento è sconosciuto. Verranno utilizzati i profili di "
 "filamento generici."
 
 msgid ""
@@ -22712,15 +23562,13 @@ msgstr ""
 "Sapevi che OrcaSlicer offre un'ampia gamma di scorciatoie da tastiera e "
 "operazioni di scena 3D?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Inverti su strati dispari\n"
-"Sapevi che la funzione <b>Inverti su strati dispari</b> può migliorare "
-"significativamente la qualità delle superfici delle tue sporgenze?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -22971,7 +23819,7 @@ msgstr ""
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
-"Did you know that you can save wasted filament by flushing it into support/"
+"Did you know that you can reduce wasted filament by flushing it into support/"
 "objects/infill during filament change?"
 msgstr ""
 "Spurga nei supporti/oggetti/riempimenti\n"
@@ -23014,6 +23862,342 @@ msgstr ""
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, "
 "aumentare in modo appropriato la temperatura del piano riscaldato può "
 "ridurre la probabilità di deformazione?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Cancella tutto"
+
+#~ msgid "Reset cut"
+#~ msgstr "Ripristina taglio"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Scambia i pulsanti del mouse per ruotare e spostare"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Se abilitato, inverte le funzioni di panoramica e rotazione dei pulsanti "
+#~ "sinistro e destro del mouse."
+
+#, c-format, boost-format
+#~ msgid "nozzle size in preset: %d"
+#~ msgstr "dimensione ugello nel profilo: %d"
+
+#, c-format, boost-format
+#~ msgid "nozzle size memorized: %d"
+#~ msgstr "dimensione ugello memorizzata: %d"
+
+#~ msgid ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+#~ msgstr ""
+#~ "La dimensione del tipo di ugello nel profilo non è coerente con l'ugello "
+#~ "memorizzato. Hai cambiato l'ugello di recente?"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] in preset: %.1f"
+#~ msgstr "ugello[%d] nel profilo: %.1f"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] memorized: %.1f"
+#~ msgstr "ugello[%d] memorizzato: %.1f"
+
+#~ msgid ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+#~ msgstr ""
+#~ "Il tipo di ugello nel profilo non è coerente con l'ugello memorizzato. "
+#~ "Hai cambiato l'ugello di recente?"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Rimuovi punti selezionati"
+
+#~ msgid "Remove all"
+#~ msgstr "Rimuovi tutto"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Genera punti automaticamente"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Aggiungi tesa ad orecchio"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Rimuovi tesa ad orecchio"
+
+#~ msgid "Adjust head diameter"
+#~ msgstr "Regola diametro testa"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Regola la vista della sezione"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " tese ad orecchio non valide"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Inverti su strati dispari\n"
+#~ "Sapevi che la funzione <b>Inverti su strati dispari</b> può migliorare "
+#~ "significativamente la qualità delle superfici delle tue sporgenze?"
+
+#~ msgid "Pen size"
+#~ msgstr "Dimensione penna"
+
+#~ msgid "Pen shape"
+#~ msgstr "Forma penna"
+
+#~ msgid "Key 1~9"
+#~ msgstr "Tasto 1~9"
+
+#~ msgid "Left click"
+#~ msgstr "Clic sinistro"
+
+#~ msgid "Right click"
+#~ msgstr "Clic destro"
+
+#~ msgid "Select feature"
+#~ msgstr "Seleziona elemento"
+
+#~ msgid "Based on PrusaSlicer and BambuStudio"
+#~ msgstr "Basato su PrusaSlicer e BambuStudio"
+
+#~ msgid "Object/Part Setting"
+#~ msgstr "Impostazione oggetto/parte"
+
+#~ msgid "OrcaSlicer is based on BambuStudio, PrusaSlicer, and SuperSlicer."
+#~ msgstr "OrcaSlicer è basato su BambuStudio, PrusaSlicer e SuperSlicer."
+
+#~ msgid "BambuStudio is originally based on PrusaSlicer by PrusaResearch."
+#~ msgstr ""
+#~ "BambuStudio è originariamente basato su PrusaSlicer di PrusaResearch."
+
+#~ msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
+#~ msgstr ""
+#~ "PrusaSlicer originariamente basato su Slic3r di Alessandro Ranellucci."
+
+#~ msgid ""
+#~ "Slic3r was created by Alessandro Ranellucci with the help of many other "
+#~ "contributors."
+#~ msgstr ""
+#~ "Slic3r è stato creato da Alessandro Ranellucci con l'aiuto di molti altri "
+#~ "collaboratori."
+
+#~ msgid "Actual Speed: "
+#~ msgstr "Velocità effettiva: "
+
+#~ msgid "Mouse wheel:"
+#~ msgstr "Rotellina del mouse:"
+
+#~ msgid "Object selection"
+#~ msgstr "Selezione oggetto"
+
+#~ msgid "Pass 1"
+#~ msgstr "Passaggio 1"
+
+#~ msgid "Flow ratio test - Pass 1"
+#~ msgstr "Test flusso di stampa - Passaggio 1"
+
+#~ msgid "Pass 2"
+#~ msgstr "Passaggio 2"
+
+#~ msgid "Flow ratio test - Pass 2"
+#~ msgstr "Test flusso di stampa - Passaggio 2"
+
+#~ msgid "Orca YOLO flowratio calibration, 0.01 step"
+#~ msgstr "Calibrazione del flusso di stampa Orca YOLO, incrementi di 0,01"
+
+#~ msgid "YOLO (perfectionist version)"
+#~ msgstr "YOLO (versione per perfezionisti)"
+
+#~ msgid "Orca YOLO flowratio calibration, 0.005 step"
+#~ msgstr "Calibrazione del flusso di stampa Orca YOLO, incrementi di 0,005"
+
+#~ msgid "Retraction test"
+#~ msgstr "Test di retrazione"
+
+#~ msgid "Tutorial"
+#~ msgstr "Tutorial"
+
+#~ msgid "Calibration help"
+#~ msgstr "Aiuto per la calibrazione"
+
+#~ msgid ""
+#~ "Do you want to synchronize your personal data from Bambu Cloud?\n"
+#~ "It contains the following information:\n"
+#~ "1. The Process presets\n"
+#~ "2. The Filament presets\n"
+#~ "3. The Printer presets"
+#~ msgstr ""
+#~ "Vuoi sincronizzare i tuoi dati personali da Bambu Cloud?\n"
+#~ "Contiene le seguenti informazioni:\n"
+#~ "1. I profili del processo\n"
+#~ "2. I profili del filamento\n"
+#~ "3. I profili della stampante"
+
+#~ msgid "Show/Hide advanced parameters"
+#~ msgstr "Mostra/Nascondi parametri avanzati"
+
+#, c-format, boost-format
+#~ msgid "Left nozzle: %smm"
+#~ msgstr "Ugello sinistro: %smm"
+
+#, c-format, boost-format
+#~ msgid "Right nozzle: %smm"
+#~ msgstr "Ugello destro: %smm"
+
+#~ msgid ""
+#~ "\"Fix Model\" feature is currently only on Windows. Please repair the "
+#~ "model on Orca Slicer(windows) or CAD softwares."
+#~ msgstr ""
+#~ "La funzione \"Correggi modello\" è attualmente disponibile solo su "
+#~ "Windows. Si prega di riparare il modello su OrcaSlicer (Windows) o "
+#~ "software CAD."
+
+#~ msgid ""
+#~ "This stops the transmission of data to Bambu's cloud services. Users who "
+#~ "don't use BBL machines or use LAN mode only can safely turn on this "
+#~ "function."
+#~ msgstr ""
+#~ "Questo interrompe la trasmissione dei dati ai servizi cloud di Bambu. Gli "
+#~ "utenti che non utilizzano macchine BBL o che utilizzano la modalità Solo "
+#~ "LAN possono attivare questa funzione in tutta sicurezza."
+
+#~ msgid "Resonance Avoidance"
+#~ msgstr "Evita risonanza"
+
+#~ msgid "Saving objects into the 3MF failed."
+#~ msgstr "Salvataggio degli oggetti nel file 3MF non riuscito."
+
+#~ msgid "Only Windows 10 is supported."
+#~ msgstr "È supportato solo Windows 10."
+
+#~ msgid "Failed to initialize the WinRT library."
+#~ msgstr "Impossibile inizializzare la libreria WinRT."
+
+#~ msgid "Exporting objects"
+#~ msgstr "Esportazione oggetti"
+
+#~ msgid "Failed loading objects."
+#~ msgstr "Caricamento oggetti fallito."
+
+#~ msgid "Repairing object by Windows service"
+#~ msgstr "Riparazione oggetto da parte del servizio Windows"
+
+#~ msgid "Repair failed."
+#~ msgstr "Riparazione non riuscita."
+
+#~ msgid "Loading repaired objects"
+#~ msgstr "Caricamento oggetti riparati"
+
+#~ msgid "Exporting 3MF file failed"
+#~ msgstr "Esportazione del file 3MF non riuscita"
+
+#~ msgid "Import 3MF file failed"
+#~ msgstr "Importazione del file 3MF non riuscita"
+
+#~ msgid "Repaired 3MF file does not contain any object"
+#~ msgstr "Il file 3MF riparato non contiene alcun oggetto"
+
+#~ msgid "Repaired 3MF file contains more than one object"
+#~ msgstr "Il file 3MF riparato contiene più di un oggetto"
+
+#~ msgid "Repaired 3MF file does not contain any volume"
+#~ msgstr "Il file 3MF riparato non contiene alcun volume"
+
+#~ msgid "Repaired 3MF file contains more than one volume"
+#~ msgstr "Il file 3MF riparato contiene più di un volume"
+
+#~ msgid ""
+#~ "Printing high-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+#~ msgstr ""
+#~ "La stampa di filamenti ad alta e bassa temperatura insieme potrebbe "
+#~ "causare intasamento dell'ugello o danni alla stampante."
+
+#~ msgid ""
+#~ "Printing high-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage. If you still want to print, you can enable "
+#~ "the option in Preferences."
+#~ msgstr ""
+#~ "La stampa di filamenti ad alta e bassa temperatura insieme potrebbe "
+#~ "causare intasamento dell'ugello o danni alla stampante. Se si desidera "
+#~ "comunque stampare, abilitare l'opzione nelle Preferenze."
+
+#~ msgid ""
+#~ "Printing different-temp filaments together may cause nozzle clogging or "
+#~ "printer damage."
+#~ msgstr ""
+#~ "La stampa di filamenti a temperature diverse insieme potrebbe causare "
+#~ "intasamento dell'ugello o danni alla stampante."
+
+#~ msgid ""
+#~ "Printing high-temp and mid-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+#~ msgstr ""
+#~ "La stampa di filamenti ad alta e media temperatura insieme potrebbe "
+#~ "causare intasamento dell'ugello o danni alla stampante."
+
+#~ msgid ""
+#~ "Printing mid-temp and low-temp filaments together may cause nozzle "
+#~ "clogging or printer damage."
+#~ msgstr ""
+#~ "La stampa di filamenti a media e bassa temperatura insieme potrebbe "
+#~ "causare intasamento dell'ugello o danni alla stampante."
+
+#~ msgid ""
+#~ "The direction which the wall loops are extruded when looking down from "
+#~ "the top.\n"
+#~ "\n"
+#~ "By default all walls are extruded in counter-clockwise, unless Reverse on "
+#~ "even is enabled. Set this to any option other than Auto will force the "
+#~ "wall direction regardless of the Reverse on even.\n"
+#~ "\n"
+#~ "This option will be disabled if spiral vase mode is enabled."
+#~ msgstr ""
+#~ "Direzione in cui vengono estrusi i perimetri di stampa quando si guarda "
+#~ "dall'alto verso il basso.\n"
+#~ "\n"
+#~ "Per impostazione predefinita, tutte le pareti vengono estruse in senso "
+#~ "antiorario, a meno che non sia abilitata l'opzione 'Inverti su strati "
+#~ "pari'. Impostandolo su un'opzione diversa da Auto, la direzione di stampa "
+#~ "dei perimetri verrà forzata indipendentemente dall'opzione 'Inverti su "
+#~ "strati pari'.\n"
+#~ "\n"
+#~ "Questa opzione verrà disabilitata se è abilitata la modalità vaso a "
+#~ "spirale."
+
+#~ msgid ""
+#~ "Noise type to use for fuzzy skin generation:\n"
+#~ "Classic: Classic uniform random noise.\n"
+#~ "Perlin: Perlin noise, which gives a more consistent texture.\n"
+#~ "Billow: Similar to perlin noise, but clumpier.\n"
+#~ "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates "
+#~ "marble-like textures.\n"
+#~ "Voronoi: Divides the surface into voronoi cells, and displaces each one "
+#~ "by a random amount. Creates a patchwork texture."
+#~ msgstr ""
+#~ "Tipo di rumore da utilizzare per la generazione della superficie ruvida.\n"
+#~ "Classico: rumore casuale uniforme classico.\n"
+#~ "Perlin: rumore Perlin, che conferisce una trama più uniforme.\n"
+#~ "Ondulato: Simile al rumore Perlin, ma più granuloso.\n"
+#~ "Multifrattale increspato: rumore increspato con superfici nette e "
+#~ "frastagliate. Crea trame simili al marmo.\n"
+#~ "Voronoi: divide la superficie in tassellazioni di Voronoi e ne sposta "
+#~ "ciascuna di una quantità casuale. Crea una trama a mosaico."
+
+#~ msgid "Flow Rate"
+#~ msgstr "Flusso di stampa"
+
+#~ msgid ""
+#~ "Cannot print multiple filaments which have large difference of "
+#~ "temperature together. Otherwise, the extruder and nozzle may be blocked "
+#~ "or damaged during printing"
+#~ msgstr ""
+#~ "Non è possibile stampare insieme più filamenti con grandi differenze di "
+#~ "temperatura. In caso contrario, l'estrusore e l'ugello potrebbero "
+#~ "bloccarsi o danneggiarsi durante la stampa"
 
 #~ msgid ""
 #~ "Zero first layer height is invalid.\n"
@@ -23113,9 +24297,6 @@ msgstr ""
 
 #~ msgid "Acceleration of outer walls."
 #~ msgstr "Accelerazione delle pareti esterne."
-
-#~ msgid "°"
-#~ msgstr "°"
 
 #~ msgid "downward machines check"
 #~ msgstr "verifica macchine"
@@ -23832,9 +25013,6 @@ msgstr ""
 
 #~ msgid "Set Position"
 #~ msgstr "Imposta posizione"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #, boost-format
 #~ msgid "%1%"

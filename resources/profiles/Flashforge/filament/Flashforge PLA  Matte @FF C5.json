@@ -1,0 +1,82 @@
+{
+	"additional_cooling_fan_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Flashforge Creator 5 0.4 nozzle",
+		"Flashforge Creator 5 0.6 nozzle",
+		"Flashforge Creator 5 0.8 nozzle"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"40"
+	],
+	"cool_plate_temp": [
+		"40"
+	],
+	"cool_plate_temp_initial_layer": [
+		"40"
+	],
+	"during_print_exhaust_fan_speed": [
+		"40"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"65"
+	],
+	"eng_plate_temp_initial_layer": [
+		"65"
+	],
+	"fan_max_speed": [
+		"70"
+	],
+	"fan_min_speed": [
+		"70"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"filament_settings_id": [
+		"Flashforge PLA  Matte @FF C5"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode"
+	],
+	"from": "system",
+	"hot_plate_temp": [
+		"65"
+	],
+	"hot_plate_temp_initial_layer": [
+		"65"
+	],
+	"inherits": "Generic PLA @System",
+	"instantiation": "true",
+	"is_custom_defined": "0",
+	"name": "Flashforge PLA  Matte @FF C5",
+	"nozzle_temperature": [
+		"210"
+	],
+	"pressure_advance": [
+		"0.025"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"40"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"40"
+	],
+	"textured_plate_temp": [
+		"65"
+	],
+	"textured_plate_temp_initial_layer": [
+		"65"
+	],
+	"version": "2.3.0.3"
+}

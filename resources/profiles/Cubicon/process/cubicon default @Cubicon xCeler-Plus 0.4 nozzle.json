@@ -1,10 +1,10 @@
 {
-    "type": "process",
-    "name": "cubicon default @Cubicon xCeler-Plus 0.4 nozzle",
-    "inherits": "cubicon common @base",
-    "instantiation": "true",
-    "print_settings_id": "cubicon default @Cubicon xCeler-Plus 0.4 nozzle",
-    "compatible_printers": [
-        "Cubicon xCeler-Plus 0.4 nozzle"
-    ]
+	"type": "process",
+	"name": "cubicon default @Cubicon xCeler-Plus 0.4 nozzle",
+	"inherits": "cubicon common @base",
+	"instantiation": "true",
+	"print_settings_id": "cubicon default @Cubicon xCeler-Plus 0.4 nozzle",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus 0.4 nozzle"
+	]
 }
