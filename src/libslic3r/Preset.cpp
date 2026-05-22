@@ -2193,9 +2193,9 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
     if (base_id != preset_values.end()) {
         based_id = base_id->second;
     } else {
-        const auto cloud_inherits_iter               = preset_values.find(BBL_JSON_KEY_INHERITS);
-        const bool cloud_preset_inherits_from_parent = cloud_inherits_iter != preset_values.end() && !cloud_inherits_iter->second.empty();
-        if (cloud_preset_inherits_from_parent) {
+        const auto inherits_iter               = preset_values.find(BBL_JSON_KEY_INHERITS);
+        const bool preset_inherits_from_parent = inherits_iter != preset_values.end() && !inherits_iter->second.empty();
+        if (preset_inherits_from_parent) {
             // This indicates that there is inherits exists but there is no base_id
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
                                        << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
