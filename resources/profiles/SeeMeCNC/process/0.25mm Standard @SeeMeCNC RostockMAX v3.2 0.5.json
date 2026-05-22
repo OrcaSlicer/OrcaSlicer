@@ -26,7 +26,6 @@
 	"top_shell_layers": "4",
 	"top_surface_pattern": "monotonicline",
 	"wall_loops": "3",
-	"seam_position": "nearest",
 	"line_width": "0.5",
 	"outer_wall_line_width": "0.5",
 	"inner_wall_line_width": "0.53",

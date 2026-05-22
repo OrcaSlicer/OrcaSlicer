@@ -28,7 +28,6 @@
 	"wall_loops": "3",
 	"sparse_infill_acceleration": "2000",
 	"internal_solid_infill_acceleration": "2000",
-	"seam_position": "nearest",
 	"line_width": "1.0",
 	"outer_wall_line_width": "1.0",
 	"inner_wall_line_width": "1.05",
