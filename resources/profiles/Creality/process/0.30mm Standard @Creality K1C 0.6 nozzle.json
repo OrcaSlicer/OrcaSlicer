@@ -1,7 +1,7 @@
 {
     "type": "process",
     "setting_id": "GP004",
-    "name": "0.30mm Standard @Creality K1C 0.6 nozzle",
+    "name": "0.30mm Standard @Creality K1C",
     "from": "system",
     "instantiation": "true",
     "inherits": "fdm_process_creality_common",
