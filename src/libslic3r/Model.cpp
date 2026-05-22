@@ -3563,20 +3563,12 @@ static void append_clipped_polygon(indexed_triangle_set &out, const std::vector<
     if (polygon.size() < 3)
         return;
 
-    // Preview meshes may contain many clipped fragments, so grow geometrically
-    // instead of reserving the exact next size for every appended polygon.
-    auto reserve_geometric = [](auto &container, size_t wanted) {
-        if (wanted <= container.capacity())
-            return;
-        container.reserve(std::max(wanted, std::max<size_t>(16, container.capacity() * 2)));
-    };
-
+    // Do not reserve exact capacity here. This helper may be called for many
+    // clipped fragments, so let std::vector grow amortized through emplace_back.
     const int base = int(out.vertices.size());
-    reserve_geometric(out.vertices, out.vertices.size() + polygon.size());
     for (const Vec3d &point : polygon)
         out.vertices.emplace_back(point.cast<float>());
 
-    reserve_geometric(out.indices, out.indices.size() + polygon.size() - 2);
     for (size_t i = 1; i + 1 < polygon.size(); ++i) {
         stl_triangle_vertex_indices tri;
         tri << base, base + int(i), base + int(i + 1);
