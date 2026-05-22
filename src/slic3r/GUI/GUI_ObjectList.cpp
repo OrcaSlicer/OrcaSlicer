@@ -481,6 +481,20 @@ void ObjectList::create_objects_ctrl()
             // Trigger the editor opening manually
             this->EditItem(event.GetItem(), GetColumn(colFilament));
 #endif
+            return;
+        }
+
+        // Double-clicking an object/part/instance row frames it in the 3D view,
+        // matching the "Fit camera to scene or selected object" canvas button.
+        // The preceding single click has already synced the canvas selection via
+        // wxEVT_DATAVIEW_SELECTION_CHANGED, so we just trigger the zoom here.
+        const wxDataViewItem item = event.GetItem();
+        if (!item.IsOk())
+            return;
+        const ItemType type = m_objects_model->GetItemType(item);
+        if (type & (itObject | itVolume | itInstance)) {
+            if (GLCanvas3D* canvas = wxGetApp().plater()->get_current_canvas3D(true /* exclude preview */))
+                canvas->zoom_to_selection();
         }
     });
 
