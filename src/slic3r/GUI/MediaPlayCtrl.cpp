@@ -781,9 +781,9 @@ bool MediaPlayCtrl::start_stream_service(bool *need_install)
                 boost::filesystem::copy_file(file_dll2, file_dll, boost::filesystem::copy_options::overwrite_existing);
         }
         boost::process::v1::child process_source(file_source, file_url2.ToStdWstring(), boost::process::v1::start_dir(tools_dir),
-                                             boost::process::v1:::windows::create_no_window, 
+                                             boost::process::v1::windows::create_no_window, 
                                              boost::process::v1::std_out > intermediate, boost::process::v1::limit_handles);
-        boost::process::v1::child process_ffmpeg(file_ffmpeg, configss, boost::process::v1:::windows::create_no_window,
+        boost::process::v1::child process_ffmpeg(file_ffmpeg, configss, boost::process::v1::windows::create_no_window,
                                              boost::process::v1::std_in < intermediate, boost::process::v1::limit_handles);
 #else
         boost::filesystem::permissions(file_source, boost::filesystem::owner_exe | boost::filesystem::add_perms);
