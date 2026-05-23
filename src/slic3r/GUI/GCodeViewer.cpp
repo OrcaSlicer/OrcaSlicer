@@ -43,6 +43,7 @@
 
 #include <array>
 #include <algorithm>
+#include <cmath>
 #include <chrono>
 
 
@@ -94,7 +95,7 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Filament");
     else if (view_type == libvgcode::EViewType::LayerTimeLinear)
         return _u8L("Layer Time");
-else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
+    else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
         return _u8L("Layer Time (log)");
 // ORCA: Add Pressure Advance visualization support
     else if (view_type == libvgcode::EViewType::PressureAdvance)
@@ -122,6 +123,29 @@ static int find_close_layer_idx(const std::vector<double> &zs, double &z, double
         if (std::min(dist_l, dist_h) < eps) { return (dist_l < dist_h) ? int(it_l - zs.begin()) : int(it_h - zs.begin()); }
     }
     return -1;
+}
+
+static std::string format_compact_weight(double value_in_grams, bool imperial_units)
+{
+    char buffer[64];
+    if (imperial_units) {
+        ::sprintf(buffer, "%.2f oz", value_in_grams / GizmoObjectManipulation::oz_to_g);
+        return buffer;
+    }
+
+    const double abs_value = value_in_grams < 0.0 ? -value_in_grams : value_in_grams;
+    const char* unit = "g";
+    double scaled_value = abs_value;
+    if (scaled_value >= 1000000.0) {
+        scaled_value /= 1000000.0;
+        unit = "t";
+    } else if (scaled_value >= 1000.0) {
+        scaled_value /= 1000.0;
+        unit = "kg";
+    }
+
+    ::sprintf(buffer, "%s%.2f%s", value_in_grams < 0.0 ? "-" : "", scaled_value, unit);
+    return buffer;
 }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
@@ -1287,6 +1311,25 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     //BBS: move the id to the end of reset
     m_last_result_id = gcode_result.id;
     m_gcode_result = &gcode_result;
+    m_move_type_counts.fill(0);
+    for (auto& move_type_times : m_move_type_times)
+        move_type_times.fill(0.0f);
+    m_move_type_distances.fill(0.0f);
+    for (const GCodeProcessorResult::MoveVertex& move : gcode_result.moves) {
+        if (move.internal_only)
+            continue;
+
+        const size_t move_type = static_cast<size_t>(move.type);
+        if (move_type < m_move_type_counts.size()) {
+            ++m_move_type_counts[move_type];
+            for (size_t mode = 0; mode < move.time.size(); ++mode)
+                m_move_type_times[move_type][mode] += move.time[mode];
+            if (move.type == EMoveType::Retract || move.type == EMoveType::Unretract)
+                m_move_type_distances[move_type] += std::fabs(move.delta_extruder);
+            else
+                m_move_type_distances[move_type] += move.travel_dist;
+        }
+    }
     m_only_gcode_in_preview = only_gcode;
 
     m_sequential_view.gcode_window.load_gcode(gcode_result.filename, gcode_result.lines_ends);
@@ -1449,6 +1492,29 @@ void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
 {
     m_loaded_as_preview = true;
 
+    m_move_type_counts.fill(0);
+    for (auto& move_type_times : m_move_type_times)
+        move_type_times.fill(0.0f);
+    m_move_type_distances.fill(0.0f);
+    const size_t normal_time_mode_idx = static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal);
+    for (size_t i = 0; i < data.vertices.size(); ++i) {
+        const libvgcode::PathVertex& vertex = data.vertices[i];
+        const size_t move_type = static_cast<size_t>(vertex.type);
+        if (move_type < m_move_type_counts.size()) {
+            ++m_move_type_counts[move_type];
+            for (size_t mode = 0; mode < vertex.times.size(); ++mode)
+                m_move_type_times[move_type][mode] += vertex.times[mode];
+            if (vertex.type == libvgcode::EMoveType::Retract || vertex.type == libvgcode::EMoveType::Unretract) {
+                m_move_type_distances[move_type] += std::fabs(vertex.feedrate) * vertex.times[normal_time_mode_idx];
+            } else if (i > 0) {
+                const float dx = vertex.position[0] - data.vertices[i - 1].position[0];
+                const float dy = vertex.position[1] - data.vertices[i - 1].position[1];
+                const float dz = vertex.position[2] - data.vertices[i - 1].position[2];
+                m_move_type_distances[move_type] += std::sqrt(dx * dx + dy * dy + dz * dz);
+            }
+        }
+    }
+
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::Skirt,                    { 127, 255, 127 });
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::ExternalPerimeter,        { 255, 255, 0 });
     m_viewer.set_extrusion_role_color(libvgcode::EGCodeExtrusionRole::SupportMaterial,          { 127, 255, 127 });
@@ -1496,6 +1562,10 @@ void GCodeViewer::reset()
     m_extruders_count = 0;
     m_filament_diameters = std::vector<float>();
     m_filament_densities = std::vector<float>();
+    m_move_type_counts.fill(0);
+    for (auto& move_type_times : m_move_type_times)
+        move_type_times.fill(0.0f);
+    m_move_type_distances.fill(0.0f);
     m_print_statistics.reset();
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
     m_left_extruder_filament.clear();
@@ -2676,39 +2746,42 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
                 columns_offsets.push_back({ std::to_string(it->first + 1), offsets[_u8L("Filament")]});
 
                 char buf[64];
-                double unit_conver = imperial_units ? GizmoObjectManipulation::oz_to_g : 1.0;
-
                 float column_sum_m = 0.0f;
                 float column_sum_g = 0.0f;
                 if (displayed_columns & ColumnData::Model) {
+                    const std::string weight_text = format_compact_weight(model_used_filaments_g_all_plates[i], imperial_units);
                     if ((displayed_columns & ~ColumnData::Model) > 0)
-                        ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", model_used_filaments_m_all_plates[i], weight_text.c_str());
                     else
-                        ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m_all_plates[i], model_used_filaments_g_all_plates[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Model")] });
                     column_sum_m += model_used_filaments_m_all_plates[i];
                     column_sum_g += model_used_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::Support) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m_all_plates[i], support_used_filaments_g_all_plates[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(support_used_filaments_g_all_plates[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", support_used_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Support")] });
                     column_sum_m += support_used_filaments_m_all_plates[i];
                     column_sum_g += support_used_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::Flushed) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m_all_plates[i], flushed_filaments_g_all_plates[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(flushed_filaments_g_all_plates[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", flushed_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Flushed")] });
                     column_sum_m += flushed_filaments_m_all_plates[i];
                     column_sum_g += flushed_filaments_g_all_plates[i];
                 }
                 if (displayed_columns & ColumnData::WipeTower) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m_all_plates[i], wipe_tower_used_filaments_g_all_plates[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(wipe_tower_used_filaments_g_all_plates[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", wipe_tower_used_filaments_m_all_plates[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Tower")] });
                     column_sum_m += wipe_tower_used_filaments_m_all_plates[i];
                     column_sum_g += wipe_tower_used_filaments_g_all_plates[i];
                 }
                 if ((displayed_columns & ~ColumnData::Model) > 0) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
+                    const std::string weight_text = format_compact_weight(column_sum_g, imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", column_sum_m, weight_text.c_str());
                     columns_offsets.push_back({ buf, offsets[_u8L("Total")] });
                 }
 
@@ -3072,7 +3145,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     const PrintEstimatedStatistics::Mode& time_mode = m_print_statistics.modes[static_cast<size_t>(m_viewer.get_time_mode())];
     const libvgcode::EViewType curr_view_type = m_viewer.get_view_type();
     const int curr_view_type_i = static_cast<int>(curr_view_type);
-    bool show_estimated_time = time_mode.time > 0.0f && (curr_view_type == libvgcode::EViewType::FeatureType ||
+    const size_t current_time_mode = static_cast<size_t>(m_viewer.get_time_mode());
+    const float total_estimated_time = time_mode.time > 0.0f ? time_mode.time : m_viewer.get_estimated_time();
+    bool show_estimated_time = total_estimated_time > 0.0f && (curr_view_type == libvgcode::EViewType::FeatureType ||
         curr_view_type == libvgcode::EViewType::LayerTimeLinear || curr_view_type == libvgcode::EViewType::LayerTimeLogarithmic ||
         (curr_view_type == libvgcode::EViewType::ColorPrint && !time_mode.custom_gcode_times.empty()));
 
@@ -3085,6 +3160,39 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     ImVec2 pos_rect = ImGui::GetCursorScreenPos();
     float window_padding = 4.0f * m_scale;
+
+    auto format_compact_count = [](unsigned long long value) {
+        static constexpr const char* suffixes[] = { "", "K", "M", "B", "T", "P", "E" };
+        constexpr size_t suffix_count = sizeof(suffixes) / sizeof(suffixes[0]);
+
+        if (value < 1000)
+            return std::to_string(value);
+
+        size_t suffix_index = 0;
+        unsigned long long divisor = 1;
+        while (suffix_index + 1 < suffix_count && value / divisor >= 1000) {
+            divisor *= 1000;
+            ++suffix_index;
+        }
+
+        const unsigned long long whole = value / divisor;
+        const unsigned long long tenths = (value % divisor) * 10 / divisor;
+
+        std::string ret = std::to_string(whole);
+        if (tenths != 0)
+            ret += "." + std::to_string(tenths);
+        ret += suffixes[suffix_index];
+        return ret;
+    };
+
+    auto format_percent = [](float percent) {
+        if (percent == 0.0f)
+            return std::string("0");
+
+        char buffer[64];
+        percent > 0.001f ? ::sprintf(buffer, "%.1f", percent * 100.0f) : ::sprintf(buffer, "<0.1");
+        return std::string(buffer);
+    };
 
     // ORCA dont use background on top bar to give modern look
     //draw_list->AddRectFilled(ImVec2(pos_rect.x,pos_rect.y - ImGui::GetStyle().WindowPadding.y),
@@ -3122,9 +3230,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         case EItemType::Line: {
             draw_list->AddLine({ pos.x + 1, pos.y + icon_size + 2 }, { pos.x + icon_size - 1, pos.y + 4 }, ImGuiWrapper::to_ImU32(color), 3.0f);
             break;
+        }
         case EItemType::None:
             break;
-        }
         }
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.0 * m_scale, 6.0 * m_scale));
@@ -3297,14 +3405,26 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + _u8L("mm");
     };
 
-    auto role_time_and_percent = [this, time_mode](libvgcode::EGCodeExtrusionRole role) {
+    auto role_time_and_percent = [this, total_estimated_time](libvgcode::EGCodeExtrusionRole role) {
         const float time = m_viewer.get_extrusion_role_estimated_time(role);
-        return std::make_pair(time, time / time_mode.time);
+        return std::make_pair(time, total_estimated_time > 0.0f ? time / total_estimated_time : 0.0f);
     };
 
-    auto travel_time_and_percent = [this, time_mode]() {
+    auto travel_time_and_percent = [this, total_estimated_time]() {
         const float time = m_viewer.get_travels_estimated_time();
-        return std::make_pair(time, time / time_mode.time);
+        return std::make_pair(time, total_estimated_time > 0.0f ? time / total_estimated_time : 0.0f);
+    };
+
+    auto format_distance = [imperial_units](float distance_mm) {
+        char buffer[64];
+        if (imperial_units) {
+            ::sprintf(buffer, "%.2fin", distance_mm / GizmoObjectManipulation::in_to_mm);
+        } else if (std::fabs(distance_mm) < 1000.0f) {
+            ::sprintf(buffer, "%.0fmm", distance_mm);
+        } else {
+            ::sprintf(buffer, "%.2fm", distance_mm / 1000.0f);
+        }
+        return std::string(buffer);
     };
 
     auto used_filament_per_role = [this, imperial_units](ExtrusionRole role) {
@@ -3409,6 +3529,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::vector<std::string> used_filaments_length;
     std::vector<std::string> used_filaments_weight;
     std::string travel_percent;
+    std::string travel_distance;
+    std::string travel_moves;
     std::vector<double> model_used_filaments_m;
     std::vector<double> model_used_filaments_g;
     double total_model_used_filament_m = 0, total_model_used_filament_g = 0;
@@ -3528,8 +3650,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 auto [model_used_filament_m, model_used_filament_g] = used_filament_per_role(convert(role));
                 ::sprintf(buffer, imperial_units ? "%.2fin" : "%.2fm", model_used_filament_m); // ORCA dont use spacing between value and unit
                 used_filaments_length.push_back(buffer);
-                ::sprintf(buffer, imperial_units ? "%.2foz" : "%.2fg", model_used_filament_g); // ORCA dont use spacing between value and unit
-                used_filaments_weight.push_back(buffer);
+                used_filaments_weight.push_back(format_compact_weight(model_used_filament_g, imperial_units));
             }
         }
 
@@ -3542,10 +3663,19 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             else
                 percent > 0.001 ? ::sprintf(buffer, "%.1f", percent * 100) : ::sprintf(buffer, "<0.1");
             travel_percent = buffer;
+            percents.push_back(travel_percent);
+
+            // Set travel distance and moves for the Travel row Usage columns
+            travel_distance = format_distance(m_print_statistics.total_travel_distance);
+            used_filaments_length.push_back(travel_distance);
+
+            travel_moves = format_compact_count(m_print_statistics.total_travel_moves);
+            used_filaments_weight.push_back(travel_moves);
         }
 
         // ORCA use % symbol for percentage and use "Usage" for "Used filaments"
         offsets = calculate_offsets({ {_u8L("Line Type"), labels}, {_u8L("Time"), times}, {"%", percents}, {"", used_filaments_length}, {"", used_filaments_weight}, {_u8L("Display"), {""}}}, icon_size);
+        percents.pop_back();
         append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}});
         break;
     }
@@ -3609,7 +3739,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     {
         std::vector<std::string> total_filaments;
         char buffer[64];
-        ::sprintf(buffer, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", ps.total_used_filament / /*1000*/koef, ps.total_weight / unit_conver);
+        const std::string total_weight_text = format_compact_weight(ps.total_weight, imperial_units);
+        ::sprintf(buffer, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", ps.total_used_filament / /*1000*/koef, total_weight_text.c_str());
         total_filaments.push_back(buffer);
 
 
@@ -3644,9 +3775,54 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     default: { break; }
     }
 
-    auto append_option_item = [this, append_item](libvgcode::EOptionType type, std::vector<float> offsets) {
-        auto append_option_item_with_type = [this, offsets, append_item](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible) {
-            append_item(EItemType::Rect, color, {{ label , offsets[0] }}, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
+    auto append_option_item = [this, append_item, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance](libvgcode::EOptionType type, std::vector<float> offsets) {
+        const bool full_layout = offsets.size() > 4;
+        auto option_stats = [this, current_time_mode, total_estimated_time, &format_compact_count, &format_percent, &format_distance, full_layout](libvgcode::EOptionType option_type) -> std::array<std::string, 4> {
+            libvgcode::EMoveType move_type;
+            bool has_move_type = true;
+            switch (option_type) {
+            case libvgcode::EOptionType::Wipes:         { move_type = libvgcode::EMoveType::Wipe; break; }
+            case libvgcode::EOptionType::Retractions:   { move_type = libvgcode::EMoveType::Retract; break; }
+            case libvgcode::EOptionType::Unretractions: { move_type = libvgcode::EMoveType::Unretract; break; }
+            case libvgcode::EOptionType::Seams:         { move_type = libvgcode::EMoveType::Seam; break; }
+            case libvgcode::EOptionType::ToolChanges:   { move_type = libvgcode::EMoveType::ToolChange; break; }
+            default:                                    { has_move_type = false; break; }
+            }
+
+            if (!has_move_type)
+                return { "", "", "", "" };
+
+            const size_t move_type_idx = static_cast<size_t>(move_type);
+            float time = m_move_type_times[move_type_idx][current_time_mode];
+            if (option_type == libvgcode::EOptionType::ToolChanges) {
+                // Toolchange delays are injected via synchronize() and are not attributed to ToolChange move vertices.
+                time = m_print_statistics.total_filament_load_time + m_print_statistics.total_filament_unload_time + m_print_statistics.total_tool_change_time;
+            }
+            const std::string time_text = full_layout && time > 0.0f ? short_time(get_time_dhms(time)) : "";
+            const std::string percent_text = full_layout && total_estimated_time > 0.0f ? format_percent(time / total_estimated_time) : "";
+            const float seam_distance = m_print_statistics.total_seam_gap_distance + m_print_statistics.total_seam_scarf_distance;
+            const float distance = (option_type == libvgcode::EOptionType::Seams && seam_distance > 0.0f) ? seam_distance : m_move_type_distances[move_type_idx];
+            const std::string distance_text = full_layout && (option_type == libvgcode::EOptionType::Wipes || option_type == libvgcode::EOptionType::Retractions || option_type == libvgcode::EOptionType::Unretractions || option_type == libvgcode::EOptionType::Seams)
+                ? format_distance(distance)
+                : "";
+            const std::string count_text = full_layout ? format_compact_count(m_move_type_counts[move_type_idx]) : "";
+
+            return { time_text, percent_text, distance_text, count_text };
+        };
+
+        auto append_option_item_with_type = [this, offsets, append_item, full_layout](libvgcode::EOptionType type, const ColorRGBA& color, const std::string& label, bool visible,
+            const std::string& time_text, const std::string& percent_text, const std::string& distance_text, const std::string& count_text) {
+            std::vector<std::pair<std::string, float>> columns_offsets;
+            columns_offsets.push_back({ label , offsets[0] });
+            if (full_layout && !time_text.empty())
+                columns_offsets.push_back({ time_text, offsets[1] });
+            if (full_layout && !percent_text.empty())
+                columns_offsets.push_back({ percent_text, offsets[2] });
+            if (full_layout && !distance_text.empty())
+                columns_offsets.push_back({ distance_text, offsets[3] });
+            if (full_layout && !count_text.empty())
+                columns_offsets.push_back({ count_text, distance_text.empty() ? offsets[3] : offsets[4] });
+            append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
                 });
@@ -3654,18 +3830,33 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         const bool visible = m_viewer.is_option_visible(type);
         if (type == libvgcode::EOptionType::Travels) {
             //BBS: only display travel time in FeatureType view
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), _u8L("Travel"), visible);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), _u8L("Travel"), visible, "", "", "", "");
         }
-        else if (type == libvgcode::EOptionType::Seams)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Seams)), _u8L("Seams"), visible);
-        else if (type == libvgcode::EOptionType::Retractions)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Retractions)), _u8L("Retract"), visible);
-        else if (type == libvgcode::EOptionType::Unretractions)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Unretractions)), _u8L("Unretract"), visible);
-        else if (type == libvgcode::EOptionType::ToolChanges)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament Changes"), visible);
-        else if (type == libvgcode::EOptionType::Wipes)
-            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible);
+        else if (type == libvgcode::EOptionType::Seams) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Seams)), _u8L("Seams"), visible,
+                option_values[0], option_values[1], option_values[2], option_values[3]);
+        }
+        else if (type == libvgcode::EOptionType::Retractions) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Retractions)), _u8L("Retract"), visible,
+                option_values[0], option_values[1], option_values[2], option_values[3]);
+        }
+        else if (type == libvgcode::EOptionType::Unretractions) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Unretractions)), _u8L("Unretract"), visible,
+                option_values[0], option_values[1], option_values[2], option_values[3]);
+        }
+        else if (type == libvgcode::EOptionType::ToolChanges) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::ToolChanges)), _u8L("Filament Changes"), visible,
+                option_values[0], option_values[1], option_values[2], option_values[3]);
+        }
+        else if (type == libvgcode::EOptionType::Wipes) {
+            const auto option_values = option_stats(type);
+            append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible,
+                option_values[0], option_values[1], option_values[2], option_values[3]);
+        }
     };
 
     const libvgcode::EViewType new_view_type = curr_view_type;
@@ -3705,6 +3896,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ _u8L("Travel"), offsets[0] });
                 columns_offsets.push_back({ travel_time, offsets[1] });
                 columns_offsets.push_back({ travel_percent, offsets[2] });
+                columns_offsets.push_back({ travel_distance, offsets[3] }); // Usage column
+                columns_offsets.push_back({ travel_moves, offsets[4] });    // Usage column
                 append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item, visible]() {
                         m_viewer.toggle_option_visibility(item);
                         update_moves_slider();
@@ -3796,7 +3989,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         size_t i = 0;
         const std::vector<uint8_t>& used_extruders_ids = m_viewer.get_used_extruders_ids();
         for (uint8_t extruder_id : used_extruders_ids) {
-            ::sprintf(buf, imperial_units ? "%.2f in    %.2f g" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i]);
+            const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
+            ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
@@ -3809,7 +4003,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         char buf[64];
         imgui.text(_u8L("Total") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "%.2f in / %.2f oz" : "%.2f m / %.2f g", ps.total_used_filament / koef, ps.total_weight / unit_conver);
+        const std::string total_weight_text = format_compact_weight(ps.total_weight, imperial_units);
+        ::sprintf(buf, imperial_units ? "%.2f in / %s" : "%.2f m / %s", ps.total_used_filament / koef, total_weight_text.c_str());
         imgui.text(buf);
 
         ImGui::Dummy({window_padding, window_padding});
@@ -3855,34 +4050,39 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 float column_sum_m = 0.0f;
                 float column_sum_g = 0.0f;
                 if (displayed_columns & ColumnData::Model) {
+                    const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
                     if ((displayed_columns & ~ColumnData::Model) > 0)
-                        ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", model_used_filaments_m[i], weight_text.c_str());
                     else
-                        ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", model_used_filaments_m[i], model_used_filaments_g[i] / unit_conver);
+                        ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Model")] });
                     column_sum_m += model_used_filaments_m[i];
                     column_sum_g += model_used_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::Support) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", support_used_filaments_m[i], support_used_filaments_g[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(support_used_filaments_g[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", support_used_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Support")] });
                     column_sum_m += support_used_filaments_m[i];
                     column_sum_g += support_used_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::Flushed) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", flushed_filaments_m[i], flushed_filaments_g[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(flushed_filaments_g[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", flushed_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Flushed")]});
                     column_sum_m += flushed_filaments_m[i];
                     column_sum_g += flushed_filaments_g[i];
                 }
                 if (displayed_columns & ColumnData::WipeTower) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", wipe_tower_used_filaments_m[i], wipe_tower_used_filaments_g[i] / unit_conver);
+                    const std::string weight_text = format_compact_weight(wipe_tower_used_filaments_g[i], imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", wipe_tower_used_filaments_m[i], weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Tower")] });
                     column_sum_m += wipe_tower_used_filaments_m[i];
                     column_sum_g += wipe_tower_used_filaments_g[i];
                 }
                 if ((displayed_columns & ~ColumnData::Model) > 0) {
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", column_sum_m, column_sum_g / unit_conver);
+                    const std::string weight_text = format_compact_weight(column_sum_g, imperial_units);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", column_sum_m, weight_text.c_str());
                     columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
                 }
 
@@ -3908,27 +4108,32 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             std::vector<std::pair<std::string, float>> columns_offsets;
             columns_offsets.push_back({ _u8L("Total"), color_print_offsets[_u8L("Filament")]});
             if (displayed_columns & ColumnData::Model) {
+                const std::string weight_text = format_compact_weight(total_model_used_filament_g, imperial_units);
                 if ((displayed_columns & ~ColumnData::Model) > 0)
-                    ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
+                    ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_model_used_filament_m, weight_text.c_str());
                 else
-                    ::sprintf(buf, imperial_units ? "%.2f in    %.2f oz" : "%.2f m    %.2f g", total_model_used_filament_m, total_model_used_filament_g / unit_conver);
+                    ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", total_model_used_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Model")] });
             }
             if (displayed_columns & ColumnData::Support) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_support_used_filament_m, total_support_used_filament_g / unit_conver);
+                const std::string weight_text = format_compact_weight(total_support_used_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_support_used_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Support")] });
             }
             if (displayed_columns & ColumnData::Flushed) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_flushed_filament_m, total_flushed_filament_g / unit_conver);
+                const std::string weight_text = format_compact_weight(total_flushed_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_flushed_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Flushed")] });
             }
             if (displayed_columns & ColumnData::WipeTower) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_wipe_tower_used_filament_m, total_wipe_tower_used_filament_g / unit_conver);
+                const std::string weight_text = format_compact_weight(total_wipe_tower_used_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_wipe_tower_used_filament_m, weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Tower")] });
             }
             if ((displayed_columns & ~ColumnData::Model) > 0) {
-                ::sprintf(buf, imperial_units ? "%.2f in\n%.2f oz" : "%.2f m\n%.2f g", total_model_used_filament_m + total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m,
-                    (total_model_used_filament_g + total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g) / unit_conver);
+                const std::string weight_text = format_compact_weight(total_model_used_filament_g + total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g, imperial_units);
+                ::sprintf(buf, imperial_units ? "%.2f in\n%s" : "%.2f m\n%s", total_model_used_filament_m + total_support_used_filament_m + total_flushed_filament_m + total_wipe_tower_used_filament_m,
+                    weight_text.c_str());
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
             }
             append_item(EItemType::None, libvgcode::convert(tool_colors[0]), columns_offsets);
@@ -3939,16 +4144,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         imgui.text(_u8L("Filament change times") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%d", m_print_statistics.total_filament_changes);
-        imgui.text(buf);
+        imgui.text(format_compact_count(m_print_statistics.total_filament_changes));
 
         //display tool change times
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
         imgui.text(_u8L("Tool changes") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%d", m_print_statistics.total_extruder_changes);
-        imgui.text(buf);
+        imgui.text(format_compact_count(m_print_statistics.total_extruder_changes));
 
         //BBS display cost
         ImGui::Dummy({ window_padding, window_padding });
@@ -4075,8 +4278,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 imgui.text(buffer);
 
                 ImGui::SameLine(offsets[3]);
-                ::sprintf(buffer, "%.2f g", used_filament.second);
-                imgui.text(buffer);
+                imgui.text(format_compact_weight(used_filament.second, imperial_units));
             }
         };
 
@@ -4401,8 +4603,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "  %.2f oz" : "  %.2f g", ps.total_weight / unit_conver);
-        imgui.text(buf);
+        imgui.text("  " + format_compact_weight(ps.total_weight, imperial_units));
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
         imgui.text(model_filament_str + ":");
@@ -4412,8 +4613,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / koef - exlude_m);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, imperial_units ? "  %.2f oz" : "  %.2f g", (ps.total_weight - exlude_g) / unit_conver);
-        imgui.text(buf);
+        imgui.text("  " + format_compact_weight(ps.total_weight - exlude_g, imperial_units));
         //BBS: display cost of filaments
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();

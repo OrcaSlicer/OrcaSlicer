@@ -18,9 +18,6 @@
 	"filament_settings_id": [
 		"HATCHBOX PETG @Qidi Q1 Pro 0.8 nozzle"
 	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
 	"overhang_fan_speed": [
 		"90"
 	],

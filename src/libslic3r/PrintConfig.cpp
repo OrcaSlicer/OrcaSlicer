@@ -2912,6 +2912,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
+    // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
+    // (vertical) axis at low infill density to shorten the effective column length under
+    // Z-axis compression. Filament use at the same `sparse_infill_density` setting is
+    // preserved. No effect above ~30% density (formula clamps to no-op).
+    def             = this->add("gyroid_optimized", coBool);
+    def->label      = L("Z-buckling bias optimization (experimental)");
+    def->category   = L("Strength");
+    def->tooltip    = L("Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+                        "to shorten the effective vertical column length and improve Z-axis compression "
+                        "buckling resistance. Filament use is preserved. No effect at ~30% sparse infill "
+                        "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
@@ -4259,7 +4272,7 @@ void PrintConfigDef::init_fff_params()
     def->min      = 0;
     def->max      = 90;
     def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(35));
 
     def = this->add("zaa_dont_alternate_fill_direction", coBool);
     def->label    = L("Don't alternate fill direction");
@@ -6757,7 +6770,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back(L("Cone"));
     def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
+    def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRib));
 
     def           = this->add("wipe_tower_extra_rib_length", coFloat);
     def->label    = L("Extra rib length");
