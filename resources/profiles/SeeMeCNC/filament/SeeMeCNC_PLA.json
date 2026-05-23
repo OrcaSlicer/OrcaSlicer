@@ -348,13 +348,13 @@
 		"55"
 	],
 	"fan_cooling_layer_time": [
-		"45"
+		"100"
 	],
 	"fan_max_speed": [
 		"100"
 	],
 	"fan_min_speed": [
-		"55"
+		"100"
 	],
 	"filament_cost": [
 		"30"
@@ -396,7 +396,7 @@
 		"195"
 	],
 	"overhang_fan_threshold": [
-		"95%"
+		"50%"
 	],
 	"pressure_advance": [
 		"0.4"
@@ -408,7 +408,7 @@
 		"1"
 	],
 	"slow_down_layer_time": [
-		"25"
+		"20"
 	],
 	"slow_down_min_speed": [
 		"20"
@@ -444,5 +444,8 @@
 	"description": "SeeMeCNC configurations",
 	"filament_flow_ratio": [
 		"0.95"
+	],
+	"dont_slow_down_outer_wall": [
+		"0"
 	]
 }
