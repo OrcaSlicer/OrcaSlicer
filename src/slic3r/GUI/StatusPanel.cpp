@@ -704,6 +704,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     bSizer_text->Add(m_staticText_progress_left, 0, wxALIGN_CENTER_VERTICAL | wxALL, 0);
 
     m_printing_stage_panel = new wxPanel(penel_finish_time);
+    m_printing_stage_panel->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *printingstage_vertical_sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *printingstage_horizontal_sizer = new wxBoxSizer(wxHORIZONTAL);
 
