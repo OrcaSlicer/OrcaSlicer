@@ -134,10 +134,10 @@ set(SLIC3R_GTK "3" CACHE STRING "GTK version to use with wxWidgets on Linux")
 
 set(IS_CROSS_COMPILE FALSE)
 
-option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'opencv;openvdb;wxwidgets;boost;tbb;eigen;cgal')" ${SYS_LIBS})
+option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'opencv;openvdb;wxwidgets;boost;tbb;cgal')" ${SYS_LIBS})
 
 if (SYS_LIBS)
-    set(SYS_LIBS_ALL "opencv;openvdb;wxwidgets;boost;tbb;eigen;cgal")
+    set(SYS_LIBS_ALL "opencv;openvdb;wxwidgets;boost;tbb;cgal")
     if (SYS_LIBS MATCHES "all")
         set(SYS_LIBS ${SYS_LIBS_ALL})
     endif()
