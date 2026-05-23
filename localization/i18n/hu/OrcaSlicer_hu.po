@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 09:31-0300\n"
+"POT-Creation-Date: 2026-05-22 02:24+0800\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -118,8 +118,8 @@ msgstr "Alkalmaz"
 msgid "On highlighted overhangs only"
 msgstr "Csak a kiemelt túlnyúlásokon"
 
-msgid "Erase all painting"
-msgstr "Minden festés törlése"
+msgid "Erase all"
+msgstr ""
 
 msgid "Highlight overhang areas"
 msgstr "Túlnyúló területek kiemelése"
@@ -187,6 +187,9 @@ msgstr "Felületek kiemelése a túlnyúlási szögnek megfelelően."
 
 msgid "No auto support"
 msgstr "Nincs automatikus támasz"
+
+msgid "Done"
+msgstr "Kész"
 
 msgid "Support Generated"
 msgstr "Támasz legenerálva"
@@ -341,6 +344,12 @@ msgstr "Rész kijelölése"
 msgid "Fixed step drag"
 msgstr "Rögzített lépésközű húzás"
 
+msgid "Context Menu"
+msgstr ""
+
+msgid "Toggle Auto-Drop"
+msgstr ""
+
 msgid "Single sided scaling"
 msgstr "Egyoldalas méretezés"
 
@@ -491,6 +500,18 @@ msgstr "Vágási pozíció"
 msgid "Build Volume"
 msgstr "Nyomtatási térfogat"
 
+msgid "Multiple"
+msgstr "Többszörös"
+
+msgid "Count"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Spacing"
+msgstr "Térköz"
+
 msgid "Part"
 msgstr "Tárgy"
 
@@ -598,12 +619,6 @@ msgstr "Csatlakozók szerkesztése"
 msgid "Add connectors"
 msgstr "Csatlakozók hozzáadása"
 
-msgid "Reset cut"
-msgstr "Vágás visszaállítása"
-
-msgid "Reset cutting plane and remove connectors"
-msgstr "Vágósík visszaállítása és connectorok eltávolítása"
-
 msgid "Upper part"
 msgstr "Felső rész"
 
@@ -621,6 +636,9 @@ msgstr "Vágás után"
 
 msgid "Cut to parts"
 msgstr "Részekre darabolás"
+
+msgid "Reset cutting plane and remove connectors"
+msgstr "Vágósík visszaállítása és connectorok eltávolítása"
 
 msgid "Perform cut"
 msgstr "Vágás"
@@ -854,6 +872,9 @@ msgstr "Az alapértelmezett nyomtató"
 
 msgid "Advanced"
 msgstr "Haladó"
+
+msgid "Reset all options except the text and operation"
+msgstr ""
 
 msgid ""
 "The text cannot be written using the selected font. Please try choosing a "
@@ -1509,15 +1530,6 @@ msgstr ""
 "Az 1. jellemző vissza lett állítva, \n"
 "a 2. jellemző lett az 1. jellemző"
 
-msgid "Warning: please select Plane's feature."
-msgstr "Figyelmeztetés: válaszd a sík jellemzőt."
-
-msgid "Warning: please select Point's or Circle's feature."
-msgstr "Figyelmeztetés: válaszd a pont vagy kör jellemzőt."
-
-msgid "Warning: please select two different meshes."
-msgstr "Figyelmeztetés: válassz ki két különböző hálót."
-
 msgid "Copy to clipboard"
 msgstr "Másolás a vágólapra"
 
@@ -1570,6 +1582,15 @@ msgstr "(Mozgatás)"
 
 msgid "Point and point assembly"
 msgstr "Pont-pont összeállítás"
+
+msgid "Warning: please select two different meshes."
+msgstr "Figyelmeztetés: válassz ki két különböző hálót."
+
+msgid "Warning: please select Plane's feature."
+msgstr "Figyelmeztetés: válaszd a sík jellemzőt."
+
+msgid "Warning: please select Point's or Circle's feature."
+msgstr "Figyelmeztetés: válaszd a pont vagy kör jellemzőt."
 
 msgid ""
 "It is recommended to assemble the objects first,\n"
@@ -1764,6 +1785,18 @@ msgstr "Ez a legújabb verzió."
 msgid "Info"
 msgstr "Infó"
 
+msgid "Loading printer & filament profiles"
+msgstr ""
+
+msgid "Creating main window"
+msgstr ""
+
+msgid "Loading current preset"
+msgstr ""
+
+msgid "Showing main window"
+msgstr ""
+
 msgid ""
 "The OrcaSlicer configuration file may be corrupted and cannot be parsed.\n"
 "OrcaSlicer has attempted to recreate the configuration file.\n"
@@ -1829,6 +1862,23 @@ msgid ""
 msgstr ""
 "A Orca Slicer ezen verziója túl régi és a legfrissebb verzióra kell "
 "frissíteni, mielőtt rendesen használható lenne"
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u): %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to connect to OrcaCloud.\n"
+"Please check your network connectivity\n"
+"(HTTP %u)"
+msgstr ""
+
+msgid "Cloud Error"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Nyomtatóinformációk lekérése folyamatban, próbáld újra később."
@@ -2392,11 +2442,11 @@ msgstr ""
 msgid "Edit"
 msgstr "Szerkesztés"
 
-msgid "Delete this filament"
-msgstr "Filament törlése"
-
 msgid "Merge with"
 msgstr "Egyesítés ezzel"
+
+msgid "Delete this filament"
+msgstr "Filament törlése"
 
 msgid "Select All"
 msgstr "Összes kijelölése"
@@ -4751,9 +4801,6 @@ msgstr "Szárítás leállítása"
 msgid "Proceed"
 msgstr "Folytatás"
 
-msgid "Done"
-msgstr "Kész"
-
 msgid "Retry"
 msgstr "Újra"
 
@@ -5016,33 +5063,6 @@ msgstr "Támasz átmenet"
 msgid "Mixed"
 msgstr "Vegyes"
 
-msgid "mm/s"
-msgstr "mm/s"
-
-msgid "mm/s²"
-msgstr "mm/s²"
-
-msgid "Flow rate"
-msgstr "Anyagáramlás"
-
-msgid "mm³/s"
-msgstr "mm³/s"
-
-msgid "Fan speed"
-msgstr "Ventilátor fordulatszám"
-
-msgid "°C"
-msgstr "°C"
-
-msgid "Time"
-msgstr "Idő"
-
-msgid "Actual speed profile"
-msgstr "Tényleges sebességprofil"
-
-msgid "Speed: "
-msgstr "Sebesség:"
-
 msgid "Height: "
 msgstr "Magasság:"
 
@@ -5075,6 +5095,33 @@ msgstr ""
 
 msgid "PA: "
 msgstr "PA: "
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "mm/s²"
+msgstr "mm/s²"
+
+msgid "mm³/s"
+msgstr "mm³/s"
+
+msgid "Flow rate"
+msgstr "Anyagáramlás"
+
+msgid "Fan speed"
+msgstr "Ventilátor fordulatszám"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Idő"
+
+msgid "Speed: "
+msgstr "Sebesség:"
+
+msgid "Actual speed profile"
+msgstr "Tényleges sebességprofil"
 
 msgid "Statistics of All Plates"
 msgstr "Összes tálca statisztikája"
@@ -5418,9 +5465,6 @@ msgstr "Orientáció"
 msgid "Arrange options"
 msgstr "Elrendezési lehetőségek"
 
-msgid "Spacing"
-msgstr "Térköz"
-
 msgid "0 means auto spacing."
 msgstr "A 0 automatikus térközt jelent."
 
@@ -5555,7 +5599,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5957,6 +6001,15 @@ msgstr "Aktuális konfiguráció exportálása fájlokba"
 msgid "Export"
 msgstr "Exportálás"
 
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
+
 msgid "Quit"
 msgstr "Kilépés"
 
@@ -6082,6 +6135,9 @@ msgid "View"
 msgstr "Nézet"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Syncing presets from cloud…"
 msgstr ""
 
 msgid "Help"
@@ -8700,20 +8756,32 @@ msgstr ""
 "Ha engedélyezve van, szabad kamerát használ. Ha nincs engedélyezve, akkor "
 "kötött kamerát használ."
 
-msgid "Swap pan and rotate mouse buttons"
-msgstr "Felcserélt pásztázás és forgatás egérgombok"
-
-msgid ""
-"If enabled, swaps the left and right mouse buttons pan and rotate functions."
-msgstr ""
-"Ha engedélyezve van, felcseréli a bal és jobb egérgomb pásztázási és "
-"forgatási funkcióit."
-
 msgid "Reverse mouse zoom"
 msgstr "Fordított egér-nagyítás"
 
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Ha engedélyezve van, megfordítja az egérgörgős nagyítás irányát."
+
+msgid "Pan"
+msgstr ""
+
+msgid "Left Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the left mouse button should perform."
+msgstr ""
+
+msgid "Middle Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the middle mouse button should perform."
+msgstr ""
+
+msgid "Right Mouse Drag"
+msgstr ""
+
+msgid "Set the action that dragging the right mouse button should perform."
+msgstr ""
 
 msgid "Clear my choice on..."
 msgstr "Választásom törlése ennél..."
@@ -8737,6 +8805,59 @@ msgid ""
 "Clear my choice for synchronizing printer preset after loading the file."
 msgstr ""
 "Választásom törlése a nyomtatóbeállítás szinkronizálásához fájlbetöltés után."
+
+msgid "Graphics"
+msgstr ""
+
+msgid "Anti-aliasing"
+msgstr ""
+
+msgid "MSAA Multiplier"
+msgstr ""
+
+msgid ""
+"Set the Multi-Sample Anti-Aliasing level.\n"
+"Higher values result in smoother edges, but the impact on performance is "
+"exponential.\n"
+"Lower values improve performance, at the cost of jagged edges.\n"
+"If disabled, its recommended to enable FXAA to reduce jagged edges with "
+"minimal performance impact.\n"
+"\n"
+"Requires application restart."
+msgstr ""
+
+msgid "Disabled"
+msgstr "Letiltva"
+
+msgid "FXAA post-processing"
+msgstr ""
+
+msgid ""
+"Applies Fast Approximate Anti-Aliasing as a screen-space pass.\n"
+"Useful for disabling or reducing the MSAA setting to improve performance.\n"
+"\n"
+"Takes effect immediately."
+msgstr ""
+
+msgid "FPS"
+msgstr ""
+
+msgid "FPS cap"
+msgstr ""
+
+msgid "(0 = unlimited)"
+msgstr ""
+
+msgid ""
+"Limits viewport frame rate to reduce GPU load and power usage.\n"
+"Set to 0 for unlimited frame rate."
+msgstr ""
+
+msgid "Show FPS overlay"
+msgstr ""
+
+msgid "Displays current viewport FPS in the top-right corner."
+msgstr ""
 
 msgid "Login region"
 msgstr "Régió"
@@ -8903,6 +9024,15 @@ msgstr "Fejlesztői mód"
 
 msgid "Skip AMS blacklist check"
 msgstr "AMS tiltólista ellenőrzés kihagyása"
+
+msgid "(Experimental) Keep painted feature after mesh change"
+msgstr ""
+
+msgid ""
+"Attempt to keep painted features (color/seam/support/fuzzy etc.) after "
+"changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
+"Highly experimental! Slow and may create artifact."
+msgstr ""
 
 msgid "Allow Abnormal Storage"
 msgstr "Rendellenes tároló engedélyezése"
@@ -10035,8 +10165,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Ha a nyomtatófej nélküli időfelvétel engedélyezve van, javasoljuk, hogy "
 "helyezz el a tálcán egy \"Időfelvétel törlőtornyot\". Ehhez kattints jobb "
@@ -10671,6 +10801,32 @@ msgstr "Ne mentsd"
 msgid "Discard"
 msgstr "Elvetés"
 
+msgid "the new profile"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Switch to\n"
+"\"%1%\"\n"
+"discarding any changes made in\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings modified in\n"
+"\"%1%\"\n"
+"will be transferred to\n"
+"\"%2%\"."
+msgstr ""
+
+#, boost-format
+msgid ""
+"All \"New Value\" settings are saved in\n"
+"\"%1%\"\n"
+"and \"%2%\" will open without any changes."
+msgstr ""
+
 msgid "Click the right mouse button to display the full text."
 msgstr "Kattints a jobb egérgombbal a teljes szöveg megjelenítéséhez."
 
@@ -11258,6 +11414,9 @@ msgstr "Kattints ide a letöltéshez."
 msgid "Login"
 msgstr "Bejelentkezés"
 
+msgid "Login failed. Please try again."
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Művelet szükséges] "
 
@@ -11293,6 +11452,18 @@ msgstr "Gyorsgombok listájának megjelenítése"
 
 msgid "Global shortcuts"
 msgstr "Globális gyorsbillentyűk"
+
+msgid "Pan View"
+msgstr ""
+
+msgid "Rotate View"
+msgstr ""
+
+msgid "Middle mouse button"
+msgstr ""
+
+msgid "Zoom View"
+msgstr ""
 
 msgid ""
 "Auto orients selected objects or all objects. If there are selected objects, "
@@ -11789,9 +11960,6 @@ msgstr " nem helyezhető ide: "
 
 msgid "Internal Bridge"
 msgstr "Belső híd"
-
-msgid "Multiple"
-msgstr "Többszörös"
 
 #, boost-format
 msgid "Failed to calculate line width of %1%. Cannot get value of \"%2%\" "
@@ -13660,9 +13828,6 @@ msgstr ""
 "4. Alkalmazás mindenre - második hídréteget hoz létre mind a belső, mind a "
 "kifelé néző hidakhoz\n"
 
-msgid "Disabled"
-msgstr "Letiltva"
-
 msgid "External bridge only"
 msgstr "Csak külső híd"
 
@@ -14352,6 +14517,18 @@ msgstr "Automatikus öblítéshez"
 msgid "Auto For Match"
 msgstr "Automatikus egyeztetéshez"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Öblítési hőmérséklet"
 
@@ -14861,6 +15038,17 @@ msgstr ""
 "Több vonal használata a kitöltési mintához, ha azt a kitöltési minta "
 "támogatja."
 
+msgid "Z-buckling bias optimization (experimental)"
+msgstr ""
+
+msgid ""
+"Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+"to shorten the effective vertical column length and improve Z-axis "
+"compression buckling resistance. Filament use is preserved. No effect at "
+"~30% sparse infill density and above. Only applies when Sparse infill "
+"pattern is set to Gyroid."
+msgstr ""
+
 msgid "Sparse infill pattern"
 msgstr "Kitöltési mintázat"
 
@@ -15042,8 +15230,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² vagy %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Gyorsulás a ritkás kitöltéseknél. Ha az érték százalékban van megadva (pl. "
 "100%), akkor az alapértelmezett gyorsulás alapján kerül kiszámításra."
@@ -15179,10 +15367,10 @@ msgstr "Teljes ventilátor fordulatszám ennél a rétegnél"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "A ventilátor fordulatszáma lineárisan nő nulláról a "
 "\"close_fan_the_first_x_layers\" rétegtől a maximális értékig a "
@@ -15696,6 +15884,30 @@ msgstr ""
 "elegendő a ventilátor álló helyzetből való elindításához, vagy a gyorsabb "
 "felpörgetéshez.\n"
 "A kikapcsoláshoz állítsd 0-ra."
+
+msgid "Minimum non-zero part cooling fan speed"
+msgstr ""
+
+msgid ""
+"Some part-cooling fans cannot start spinning when commanded below a certain "
+"PWM duty cycle. When set above 0, any non-zero part-cooling fan command will "
+"be raised to at least this percentage so the fan reliably starts. A fan "
+"command of 0 (fan off) is always honoured exactly. This clamp is applied "
+"after every other fan calculation (first-layer ramp, layer-time "
+"interpolation, overhang/bridge/support-interface/ironing overrides), so "
+"scaling still operates within the range [this value, 100%].\n"
+"If your firmware already disables the fan below a threshold (for example "
+"Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded "
+"duty cycle is below 10%), this option and the firmware threshold should "
+"ideally be set to the same value. Matching them (e.g. off_below: 0.10 in "
+"Klipper and 10% here) guarantees the slicer never emits a non-zero value "
+"that the firmware would silently drop, and the fan never receives a value "
+"below the one you know it can actually spool at.\n"
+"Set to 0 to deactivate."
+msgstr ""
+
+msgid "%"
+msgstr ""
 
 msgid "Time cost"
 msgstr "Időköltség"
@@ -17318,8 +17530,8 @@ msgid "Role base wipe speed"
 msgstr "Szerepalapú törlési sebesség"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -17725,6 +17937,19 @@ msgstr "A megmaradt filament kiürítése a törlőtoronyba."
 msgid "Enable filament ramming"
 msgstr "Filament tömörítés engedélyezése"
 
+msgid "Tool change on wipe tower"
+msgstr ""
+
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool "
+"change command (Tx). Only relevant for multi-extruder (multi-toolhead) "
+"printers using a Type 2 wipe tower. By default Orca skips the travel on "
+"multi-toolhead machines because the firmware handles the head swap, which "
+"can result in the Tx command being issued above the printed part. Enable "
+"this option if you want the tool change to always be issued above the wipe "
+"tower instead."
+msgstr ""
+
 msgid "No sparse layers (beta)"
 msgstr "Nincsenek ritka rétegek (béta)"
 
@@ -17928,8 +18153,9 @@ msgid ""
 "Filament to print support interface. \"Default\" means no specific filament "
 "for support interface and current filament is used."
 msgstr ""
-"Filament a támasz érintkező felületének nyomtatásához. Az \"Alapértelmezett"
-"\" beállítás választásakor a jelenleg használt filament kerül felhasználásra."
+"Filament a támasz érintkező felületének nyomtatásához. Az "
+"\"Alapértelmezett\" beállítás választásakor a jelenleg használt filament "
+"kerül felhasználásra."
 
 msgid "Top interface layers"
 msgstr "Felső érintkező rétegek"
@@ -18080,15 +18306,18 @@ msgid "Threshold angle"
 msgstr "Dőlésszög küszöbértéke"
 
 msgid ""
-"Support will be generated for overhangs whose slope angle is below the threshold. "
-"The smaller this value is, the steeper the overhang that can be printed without support.\n"
-"Note: If set to 0, normal supports use the Threshold overlap instead, "
-"while tree supports fall back to a default value of 30."
+"Support will be generated for overhangs whose slope angle is below the "
+"threshold. The smaller this value is, the steeper the overhang that can be "
+"printed without support.\n"
+"Note: If set to 0, normal supports use the Threshold overlap instead, while "
+"tree supports fall back to a default value of 30."
 msgstr ""
-"Az olyan túlnyúlásoknál, amelynek dőlésszöge ez alatt az érték alatt van, támasz fog generálódni."
-"Minél kisebb ez az érték, annál meredekebb a túlnyúlás, amely alátámasztás nélkül nyomtatható.\n"
-"Megjegyzés: Ha 0-ra van állítva, a normál támaszok a Küszöbátfedést használják, "
-"míg a fa típusú támaszok az alapértelmezett 30-as értékre térnek vissza."
+"Az olyan túlnyúlásoknál, amelynek dőlésszöge ez alatt az érték alatt van, "
+"támasz fog generálódni.Minél kisebb ez az érték, annál meredekebb a "
+"túlnyúlás, amely alátámasztás nélkül nyomtatható.\n"
+"Megjegyzés: Ha 0-ra van állítva, a normál támaszok a Küszöbátfedést "
+"használják, míg a fa típusú támaszok az alapértelmezett 30-as értékre térnek "
+"vissza."
 
 msgid "Threshold overlap"
 msgstr "Átfedési küszöbérték"
@@ -18254,8 +18483,8 @@ msgstr "Hőmérséklet-szabályozás aktiválása"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -19272,11 +19501,11 @@ msgid "Debug level"
 msgstr "Hibakeresés szintje"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"A hibakeresési naplózási szint beállítása. 0:fatal, 1:error, 2:warning, 3:"
-"info, 4:debug, 5:trace\n"
+"A hibakeresési naplózási szint beállítása. 0:fatal, 1:error, 2:warning, "
+"3:info, 4:debug, 5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr "Időfelvétel engedélyezése a nyomtatáshoz"
@@ -21071,8 +21300,8 @@ msgstr ""
 "Szeretnéd felülírni?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "A beállításokat a következő formára nevezzük át: \"Gyártó Típus Sorozat @a "
@@ -21252,6 +21481,18 @@ msgid ""
 msgstr ""
 "A rendszerbeállítás nem teszi lehetővé a létrehozást. \n"
 "Add meg újra a nyomtatómodellt vagy a fúvókaátmérőt."
+
+msgid ""
+"\n"
+"\n"
+"Available nozzle profiles for this printer:"
+msgstr ""
+
+msgid ""
+"\n"
+"\n"
+"Choose YES to switch existing preset:"
+msgstr ""
 
 msgid "Printer Created Successfully"
 msgstr "Nyomtató sikeresen létrehozva"
@@ -21502,36 +21743,6 @@ msgid ""
 msgstr ""
 "A fúvóka típusa nem egyezik a nyomtató tényleges fúvókatípusával.\n"
 "Kattints a fenti Szinkronizálás gombra, majd indítsd újra a kalibrálást."
-
-#, c-format, boost-format
-msgid "nozzle size in preset: %d"
-msgstr "fúvókaméret a beállításban: %d"
-
-#, c-format, boost-format
-msgid "nozzle size memorized: %d"
-msgstr "megjegyzett fúvókaméret: %d"
-
-msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle. "
-"Did you change your nozzle lately?"
-msgstr ""
-"A beállításban szereplő fúvókaméret nem egyezik a megjegyzett fúvókával. "
-"Mostanában cseréltél fúvókát?"
-
-#, c-format, boost-format
-msgid "nozzle[%d] in preset: %.1f"
-msgstr "fúvóka[%d] a beállításban: %.1f"
-
-#, c-format, boost-format
-msgid "nozzle[%d] memorized: %.1f"
-msgstr "fúvóka[%d] megjegyezve: %.1f"
-
-msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
-"change your nozzle lately?"
-msgstr ""
-"A beállításban szereplő fúvókatípus nem egyezik a megjegyzett fúvókával. "
-"Mostanában cseréltél fúvókát?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
@@ -22480,26 +22691,17 @@ msgstr "Maximális szög"
 msgid "Detection radius"
 msgstr "Érzékelési sugár"
 
-msgid "Remove selected points"
-msgstr "Kijelölt pontok eltávolítása"
+msgid "Selected"
+msgstr ""
 
-msgid "Remove all"
-msgstr "Összes eltávolítása"
+msgid "Auto-generate"
+msgstr ""
 
-msgid "Auto-generate points"
-msgstr "Pontok automatikus generálása"
+msgid "Generate brim ears using Max angle and Detection radius"
+msgstr ""
 
-msgid "Add a brim ear"
-msgstr "Karimafül hozzáadása"
-
-msgid "Delete a brim ear"
-msgstr "Karimafül törlése"
-
-msgid "Adjust head diameter"
-msgstr "Fejátmérő módosítása"
-
-msgid "Adjust section view"
-msgstr "Metszeti nézet módosítása"
+msgid "Add or Select"
+msgstr ""
 
 msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
@@ -22511,8 +22713,8 @@ msgstr ""
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Ennek az objektumnak a karimatípusát állítsd \"festett\" értékre"
 
-msgid " invalid brim ears"
-msgstr " érvénytelen karimás fülek"
+msgid "invalid brim ears"
+msgstr ""
 
 msgid "Brim Ears"
 msgstr "Karimás Fülek"
@@ -22795,15 +22997,13 @@ msgstr ""
 "Tudtad, hogy az Orca Slicer számos billentyűparancsot és 3D jelenetműveletet "
 "kínál?"
 
-#: resources/data/hints.ini: [hint:Reverse on odd]
+#: resources/data/hints.ini: [hint:Reverse on even]
 msgid ""
-"Reverse on odd\n"
-"Did you know that <b>Reverse on odd</b> feature can significantly improve "
-"the surface quality of your overhangs?"
+"Reverse on even\n"
+"Did you know that <b>Reverse on even</b> feature can significantly improve "
+"the surface quality of your overhangs? However, it can cause wall "
+"inconsistencies so use carefully!"
 msgstr ""
-"Fordítás páratlan rétegeken\n"
-"Tudtad, hogy a <b>Fordítás páratlan rétegeken</b> funkció jelentősen "
-"javíthatja a túlnyúlások felületi minőségét?"
 
 #: resources/data/hints.ini: [hint:Cut Tool]
 msgid ""
@@ -23096,6 +23296,85 @@ msgstr ""
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a "
 "tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás "
 "valószínűségét?"
+
+#~ msgid "Erase all painting"
+#~ msgstr "Minden festés törlése"
+
+#~ msgid "Reset cut"
+#~ msgstr "Vágás visszaállítása"
+
+#~ msgid "Swap pan and rotate mouse buttons"
+#~ msgstr "Felcserélt pásztázás és forgatás egérgombok"
+
+#~ msgid ""
+#~ "If enabled, swaps the left and right mouse buttons pan and rotate "
+#~ "functions."
+#~ msgstr ""
+#~ "Ha engedélyezve van, felcseréli a bal és jobb egérgomb pásztázási és "
+#~ "forgatási funkcióit."
+
+#, c-format, boost-format
+#~ msgid "nozzle size in preset: %d"
+#~ msgstr "fúvókaméret a beállításban: %d"
+
+#, c-format, boost-format
+#~ msgid "nozzle size memorized: %d"
+#~ msgstr "megjegyzett fúvókaméret: %d"
+
+#~ msgid ""
+#~ "The size of nozzle type in preset is not consistent with memorized "
+#~ "nozzle. Did you change your nozzle lately?"
+#~ msgstr ""
+#~ "A beállításban szereplő fúvókaméret nem egyezik a megjegyzett fúvókával. "
+#~ "Mostanában cseréltél fúvókát?"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] in preset: %.1f"
+#~ msgstr "fúvóka[%d] a beállításban: %.1f"
+
+#, c-format, boost-format
+#~ msgid "nozzle[%d] memorized: %.1f"
+#~ msgstr "fúvóka[%d] megjegyezve: %.1f"
+
+#~ msgid ""
+#~ "Your nozzle type in preset is not consistent with memorized nozzle. Did "
+#~ "you change your nozzle lately?"
+#~ msgstr ""
+#~ "A beállításban szereplő fúvókatípus nem egyezik a megjegyzett fúvókával. "
+#~ "Mostanában cseréltél fúvókát?"
+
+#~ msgid "Remove selected points"
+#~ msgstr "Kijelölt pontok eltávolítása"
+
+#~ msgid "Remove all"
+#~ msgstr "Összes eltávolítása"
+
+#~ msgid "Auto-generate points"
+#~ msgstr "Pontok automatikus generálása"
+
+#~ msgid "Add a brim ear"
+#~ msgstr "Karimafül hozzáadása"
+
+#~ msgid "Delete a brim ear"
+#~ msgstr "Karimafül törlése"
+
+#~ msgid "Adjust head diameter"
+#~ msgstr "Fejátmérő módosítása"
+
+#~ msgid "Adjust section view"
+#~ msgstr "Metszeti nézet módosítása"
+
+#~ msgid " invalid brim ears"
+#~ msgstr " érvénytelen karimás fülek"
+
+#~ msgid ""
+#~ "Reverse on odd\n"
+#~ "Did you know that <b>Reverse on odd</b> feature can significantly improve "
+#~ "the surface quality of your overhangs?"
+#~ msgstr ""
+#~ "Fordítás páratlan rétegeken\n"
+#~ "Tudtad, hogy a <b>Fordítás páratlan rétegeken</b> funkció jelentősen "
+#~ "javíthatja a túlnyúlások felületi minőségét?"
 
 #~ msgid "Pen size"
 #~ msgstr "Tollméret"
