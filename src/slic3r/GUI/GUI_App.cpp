@@ -5851,16 +5851,20 @@ void GUI_App::reload_settings()
             return;
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " cloud user preset number is: " << user_presets.size();
-        // Check the user presets for any system vendors that need to be installed
-        for (auto data : user_presets) {
-            if (!check_preset_parent_available(data))
-                add_pending_vendor_preset(data);
-        }
-        load_pending_vendors();
-        preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
-        preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        // Orca: settings changed, refresh ui to reflect the new preset values
-        auto refresh_synced_ui = [this] {
+        auto refresh_synced_ui = [this, user_presets = std::move(user_presets)]() mutable {
+            if (is_closing() || !preset_bundle || !app_config || !mainframe)
+                return;
+
+            // Check the user presets for any system vendors that need to be installed
+            for (auto data : user_presets) {
+                if (!check_preset_parent_available(data))
+                    add_pending_vendor_preset(data);
+            }
+            load_pending_vendors();
+            preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
+            preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
+
+            // Orca: settings changed, refresh ui to reflect the new preset values
             mainframe->update_side_preset_ui();
             for (auto tab : tabs_list) {
                 tab->reload_config();
