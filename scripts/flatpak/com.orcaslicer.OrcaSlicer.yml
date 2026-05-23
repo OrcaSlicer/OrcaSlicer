@@ -24,6 +24,11 @@ finish-args:
   - --filesystem=xdg-run/gvfs
   - --filesystem=/run/media
   - --filesystem=/media
+  # Network shares (CIFS/NFS) are commonly mounted under /mnt, which the default
+  # finish-args don't grant; without it, opening a model from such a share fails
+  # with "The file does not contain any geometry data."
+  # https://github.com/flathub/com.orcaslicer.OrcaSlicer/issues/2
+  - --filesystem=/mnt
   - --filesystem=/run/spnav.sock:ro
   # Allow read-only access to OrcaSlicer's legacy config and cache directories (if they exist) for migration purposes.
   - --filesystem=~/.var/app/io.github.orcaslicer.OrcaSlicer:ro
