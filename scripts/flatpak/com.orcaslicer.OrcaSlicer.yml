@@ -115,7 +115,10 @@ modules:
       - -DwxUSE_ZLIB=sys
       - -DwxUSE_LIBJPEG=sys
       - -DwxUSE_LIBTIFF=OFF
-      - -DwxUSE_LIBWEBP=builtin
+      # sys, not builtin (unlike the static deps build): wxWidgets installs the
+      # builtin libwxwebp*.so only for static builds, so a shared build leaves
+      # them missing at runtime. The GNOME runtime provides libwebp.
+      - -DwxUSE_LIBWEBP=sys
       - -DwxUSE_EXPAT=sys
       - -DwxUSE_NANOSVG=OFF
       - -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld

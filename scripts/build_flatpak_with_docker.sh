@@ -177,11 +177,11 @@ format_duration() {
 overall_start=$(date +%s)
 install_start=$overall_start
 
-# The workspace and .flatpak-builder cache are bind-mounted from the host.
-# Git inside the container may reject cached source repos as unsafe due to
-# ownership mismatch, which breaks flatpak-builder when it reuses git sources.
-git config --global --add safe.directory /src
-git config --global --add safe.directory '/src/.flatpak-builder/git/*'
+# This container runs as root, but the bind-mounted workspace and .flatpak-builder
+# cache are host-user-owned, so git's dubious-ownership check rejects them and
+# breaks flatpak-builder's git checkouts (e.g. wxWidgets). Trust every repo: safe
+# in this ephemeral build container, and covers the workspace, mirrors and builds.
+git config --global --add safe.directory '*'
 
 # Install required SDK extensions (not pre-installed in the container image)
 flatpak install -y --noninteractive --arch="$BUILD_ARCH" flathub \
