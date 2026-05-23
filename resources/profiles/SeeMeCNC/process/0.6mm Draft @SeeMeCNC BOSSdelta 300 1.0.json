@@ -25,13 +25,5 @@
 	"spiral_mode": "0",
 	"top_shell_layers": "4",
 	"top_surface_pattern": "monotonicline",
-	"wall_loops": "3",
-	"line_width": "1.0",
-	"outer_wall_line_width": "1.0",
-	"inner_wall_line_width": "1.05",
-	"top_surface_line_width": "1.0",
-	"internal_solid_infill_line_width": "1.0",
-	"sparse_infill_line_width": "1.25",
-	"support_line_width": "1.0",
-	"initial_layer_line_width": "1.1"
+	"wall_loops": "3"
 }

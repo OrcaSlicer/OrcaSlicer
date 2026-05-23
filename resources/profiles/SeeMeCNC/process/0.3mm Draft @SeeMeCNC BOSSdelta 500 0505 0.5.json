@@ -27,13 +27,5 @@
 	"top_surface_pattern": "monotonicline",
 	"wall_loops": "3",
 	"sparse_infill_acceleration": "2000",
-	"internal_solid_infill_acceleration": "2000",
-	"line_width": "0.5",
-	"outer_wall_line_width": "0.5",
-	"inner_wall_line_width": "0.53",
-	"top_surface_line_width": "0.5",
-	"internal_solid_infill_line_width": "0.5",
-	"sparse_infill_line_width": "0.625",
-	"support_line_width": "0.5",
-	"initial_layer_line_width": "0.55"
+	"internal_solid_infill_acceleration": "2000"
 }
