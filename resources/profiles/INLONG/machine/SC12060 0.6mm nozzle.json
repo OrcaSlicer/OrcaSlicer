@@ -1,0 +1,29 @@
+{
+    "type":  "machine",
+    "from":  "system",
+    "instantiation":  "true",
+    "setting_id":  "SC12060_NOZZLE",
+    "default_print_profile":  "SC Layer: 0.25mm",
+    "printer_model":  "SC12060",
+    "inherits":  "SC12060_common",
+    "name":  "SC12060 0.6mm nozzle",
+    "nozzle_diameter":  [
+                            "0.6"
+                        ],
+    "printer_variant":  "0.6",
+    "min_layer_height":  [
+                             "0.15"
+                         ],
+    "max_layer_height":  [
+                             "0.4"
+                         ],
+    "printable_area":  [
+                           "0x0",
+                           "1200x0",
+                           "1200x600",
+                           "0x600"
+                       ],
+    "default_filament_profile":  [
+                                     "INLONG PET-CFGF"
+                                 ]
+}

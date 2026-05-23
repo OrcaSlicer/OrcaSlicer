@@ -1,0 +1,17 @@
+{
+    "type": "process",
+    "setting_id": "X1process",
+    "name": "X1_Layer: 0.12mm",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "X1_common",
+    "layer_height": "0.12",
+    "initial_layer_print_height": "0.15",
+    "top_shell_layers": "6",
+    "bottom_shell_layers": "4",
+    "brim_object_gap": "0.05",
+    "min_skirt_length": "5",
+    "skirt_distance": "0",
+    "support_top_z_distance": "0.1",
+    "support_bottom_z_distance": "0.1"
+}

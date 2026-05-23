@@ -1,0 +1,150 @@
+{
+    "name":  "INLONG",
+    "version":  "01.05.01.09",
+    "force_update":  "1",
+    "description":  "My configurations",
+    "machine_model_list":  [
+                               {
+                                   "name":  "Vulcan600",
+                                   "sub_path":  "machine/Vulcan600.json"
+                               },
+                               {
+                                   "name":  "SC12060",
+                                   "sub_path":  "machine/SC12060.json"
+                               }
+                           ],
+    "process_list":  [
+                         {
+                             "name":  "sc_process_common",
+                             "sub_path":  "process/sc_process_common.json"
+                         },
+                         {
+                             "name":  "SC Layer: 0.25mm",
+                             "sub_path":  "process/sc_Layer_0.25mm.json"
+                         },
+                         {
+                             "name":  "SC Layer: 0.30mm",
+                             "sub_path":  "process/sc_Layer_0.30mm.json"
+                         },
+                         {
+                             "name":  "process_common",
+                             "sub_path":  "process/process_common.json"
+                         },
+                         {
+                             "name":  "Layer: 0.15mm",
+                             "sub_path":  "process/Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "Layer: 0.20mm",
+                             "sub_path":  "process/Layer_0.20mm.json"
+                         },
+                         {
+                             "name":  "Layer: 0.25mm",
+                             "sub_path":  "process/Layer_0.25mm.json"
+                         },
+                         {
+                             "name":  "Layer: 0.30mm",
+                             "sub_path":  "process/Layer_0.30mm.json"
+                         },
+                         {
+                             "name":  "Layer: 0.35mm",
+                             "sub_path":  "process/Layer_0.35mm.json"
+                         }
+                     ],
+    "machine_list":  [
+                         {
+                             "name":  "Vulcan600_common",
+                             "sub_path":  "machine/Vulcan600_common.json"
+                         },
+                         {
+                             "name":  "Vulcan600 0.6mm nozzle",
+                             "sub_path":  "machine/Vulcan600 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Vulcan600 0.4mm nozzle",
+                             "sub_path":  "machine/Vulcan600 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Vulcan600 0.5mm nozzle",
+                             "sub_path":  "machine/Vulcan600 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Vulcan600 0.8mm nozzle",
+                             "sub_path":  "machine/Vulcan600 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "SC12060_common",
+                             "sub_path":  "machine/SC12060_common.json"
+                         },
+                         {
+                             "name":  "SC12060 0.6mm nozzle",
+                             "sub_path":  "machine/SC12060 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "SC12060 0.8mm nozzle",
+                             "sub_path":  "machine/SC12060 0.8mm nozzle.json"
+                         }
+                     ],
+    "filament_list":  [
+                          {
+                              "name":  "fdm_filament_common",
+                              "sub_path":  "filament/fdm_filament_common.json"
+                          },
+                          {
+                              "name":  "INLONG PET-CFGF",
+                              "sub_path":  "filament/INLONG PET-CFGF.json"
+                          },
+                          {
+                              "name":  "INLONG PLA",
+                              "sub_path":  "filament/INLONG PLA.json"
+                          },
+                          {
+                              "name":  "INLONG PETG-CFGF",
+                              "sub_path":  "filament/INLONG PETG-CFGF.json"
+                          },
+                          {
+                              "name":  "INLONG ABS",
+                              "sub_path":  "filament/INLONG ABS.json"
+                          },
+                          {
+                              "name":  "INLONG TPU",
+                              "sub_path":  "filament/INLONG TPU.json"
+                          },
+                          {
+                              "name":  "INLONG PC",
+                              "sub_path":  "filament/INLONG PC.json"
+                          },
+                          {
+                              "name":  "INLONG PA6",
+                              "sub_path":  "filament/INLONG PA6.json"
+                          },
+                          {
+                              "name":  "INLONG PATH-CFGF",
+                              "sub_path":  "filament/INLONG PATH-CFGF.json"
+                          },
+                          {
+                              "name":  "INLONG PPA-CFGF",
+                              "sub_path":  "filament/INLONG PPA-CFGF.json"
+                          },
+                          {
+                              "name":  "INLONG PPS-CFGF",
+                              "sub_path":  "filament/INLONG PPS-CFGF.json"
+                          },
+                          {
+                              "name":  "INLONG PAEK",
+                              "sub_path":  "filament/INLONG PAEK.json"
+                          },
+                          {
+                              "name":  "INLONG PEEK",
+                              "sub_path":  "filament/INLONG PEEK.json"
+                          },
+                          {
+                              "name":  "INLONG HIPS",
+                              "sub_path":  "filament/INLONG HIPS.json"
+                          },
+                          {
+                              "name":  "INLONG VXL",
+                              "sub_path":  "filament/INLONG VXL.json"
+                          }
+                      ]
+}

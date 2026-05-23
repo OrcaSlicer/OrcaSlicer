@@ -1,0 +1,25 @@
+﻿{
+    "type":  "machine",
+    "from":  "system",
+    "instantiation":  "true",
+    "setting_id":  "X3_NOZZLE_05",
+    "default_print_profile":  "X3_Layer: 0.20mm",
+    "printer_model":  "Infinity3DP X3",
+    "inherits":  "Infinity3DP X3 common",
+    "name":  "Infinity3DP X3 0.5mm nozzle",
+    "nozzle_diameter":  [
+                            "0.5",
+                            "0.5"
+                        ],
+    "printer_variant":  "0.5",
+    "min_layer_height":  [
+                             "0.15"
+                         ],
+    "max_layer_height":  [
+                             "0.3"
+                         ],
+    "default_filament_profile":  [
+                                     "Infinity3DP PLA",
+                                     "Infinity3DP PLA"
+                                 ]
+}

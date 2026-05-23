@@ -1,0 +1,25 @@
+﻿{
+    "type":  "machine",
+    "from":  "system",
+    "instantiation":  "true",
+    "setting_id":  "X2_NOZZLE_DUO_02",
+    "default_print_profile":  "X2_DUO_Layer: 0.12mm",
+    "printer_model":  "Infinity3DP X2 DUO",
+    "inherits":  "Infinity3DP X2 DUO common",
+    "name":  "Infinity3DP X2 DUO 0.2mm nozzle",
+    "nozzle_diameter":  [
+                            "0.2",
+                            "0.2"
+                        ],
+    "printer_variant":  "0.2",
+    "min_layer_height":  [
+                             "0.05"
+                         ],
+    "max_layer_height":  [
+                             "0.15"
+                         ],
+    "default_filament_profile":  [
+                                     "Infinity3DP PLA",
+                                     "Infinity3DP PLA"
+                                 ]
+}

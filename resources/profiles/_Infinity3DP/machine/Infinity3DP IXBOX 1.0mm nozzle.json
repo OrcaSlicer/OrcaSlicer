@@ -1,0 +1,23 @@
+﻿{
+    "type":  "machine",
+    "from":  "system",
+    "instantiation":  "true",
+    "setting_id":  "IXBOX_NOZZLE_10",
+    "default_print_profile":  "IXBOX_Layer: 0.20mm",
+    "printer_model":  "Infinity3DP IXBOX",
+    "inherits":  "Infinity3DP IXBOX common",
+    "name":  "Infinity3DP IXBOX 1.0mm nozzle",
+    "nozzle_diameter":  [
+                            "1.0"
+                        ],
+    "printer_variant":  "1.0",
+    "min_layer_height":  [
+                             "0.3"
+                         ],
+    "max_layer_height":  [
+                             "0.6"
+                         ],
+    "default_filament_profile":  [
+                                     "Infinity3DP PLA"
+                                 ]
+}

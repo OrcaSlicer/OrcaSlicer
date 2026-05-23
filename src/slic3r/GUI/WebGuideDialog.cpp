@@ -43,6 +43,15 @@ namespace Slic3r { namespace GUI {
 
 json m_ProfileJson;
 
+static std::string first_nozzle_from_list(std::string nozzle_diameters)
+{
+    boost::trim(nozzle_diameters);
+    const auto pos = nozzle_diameters.find(';');
+    std::string nozzle = pos == std::string::npos ? nozzle_diameters : nozzle_diameters.substr(0, pos);
+    boost::trim(nozzle);
+    return nozzle;
+}
+
 static wxString update_custom_filaments()
 {
     json m_Res                                                                     = json::object();
@@ -753,6 +762,16 @@ static std::string get_first_added_preset(const std::map<std::string, std::strin
 
 bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes)
 {
+    for (const auto& vendor_profile : preset_bundle->vendors) {
+        if (const auto vendor_it = m_appconfig_new.vendors().find(vendor_profile.first); vendor_it != m_appconfig_new.vendors().end()) {
+            for (const auto& model : vendor_profile.second.models) {
+                if (vendor_it->second.find(model.id) != vendor_it->second.end() && !model.variants.empty()) {
+                    m_appconfig_new.set_variant(vendor_profile.first, model.id, model.variants.front().name, true);
+                    break;
+                }
+            }
+        }
+    }
     const auto enabled_vendors = m_appconfig_new.vendors();
     const auto old_enabled_vendors = app_config->vendors();
 
@@ -763,10 +782,12 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     std::vector<std::string> install_bundles;
     std::vector<std::string> remove_bundles;
     const auto vendor_dir = (boost::filesystem::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
+    const auto rsrc_vendor_dir = (boost::filesystem::path(resources_dir()) / "profiles").make_preferred();
     for (const auto &it : enabled_vendors) {
         if (it.second.size() > 0) {
             auto vendor_file = vendor_dir/(it.first + ".json");
-            if (!fs::exists(vendor_file)) {
+            auto rsrc_vendor_file = rsrc_vendor_dir/(it.first + ".json");
+            if (fs::exists(rsrc_vendor_file) || !fs::exists(vendor_file)) {
                 install_bundles.emplace_back(it.first);
             }
         }
@@ -784,7 +805,7 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
         }
     }
 
-    check_unsaved_preset_changes = (enabled_vendors != old_enabled_vendors) || (enabled_filaments != old_enabled_filaments);
+    check_unsaved_preset_changes = (enabled_vendors != old_enabled_vendors) || (enabled_filaments != old_enabled_filaments) || !install_bundles.empty();
     wxString header = _L("The configuration package is changed in previous Config Guide");
     wxString caption = _L("Configuration package changed");
     int act_btns = ActionButtons::KEEP|ActionButtons::SAVE;
@@ -819,6 +840,13 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     std::string preferred_variant;
     PrinterTechnology preferred_pt = ptFFF;
     auto get_preferred_printer_model = [preset_bundle, enabled_vendors, old_enabled_vendors, preferred_pt](const std::string& bundle_name, std::string& variant) {
+        auto preferred_variant_from_model = [](const VendorProfile::PrinterModel& model, const std::set<std::string>& variants) {
+            for (const auto& model_variant : model.variants)
+                if (variants.find(model_variant.name) != variants.end())
+                    return model_variant.name;
+            return variants.empty() ? std::string() : *variants.begin();
+        };
+
         const auto config = enabled_vendors.find(bundle_name);
         if (config == enabled_vendors.end())
             return std::string();
@@ -833,9 +861,7 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
                     if (printer_profile.models.size() > 0) {
                         const VendorProfile::PrinterModel& printer_model = *std::find_if(printer_profile.models.begin(), printer_profile.models.end(),
                             [id = model_it.first](auto& m) { return m.id == id; });
-                        for (auto& vt : printer_model.variants) {
-                            if (std::find(model_it.second.begin(), model_it.second.end(), vt.name) != model_it.second.end()) { variant = vt.name; break; }
-                        }
+                        variant = preferred_variant_from_model(printer_model, model_it.second);
                     }
                     else if (variant != PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT){
                         if (std::find(model_it.second.begin(), model_it.second.end(), PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT) != model_it.second.end())
@@ -850,6 +876,19 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
                 if (model_it_old == config_old->second.end())
                     return model_it.first;
                 else if (model_it_old->second != model_it.second) {
+                    if (printer_profile.models.size() > 0) {
+                        const auto printer_model_it = std::find_if(printer_profile.models.begin(), printer_profile.models.end(),
+                            [id = model_it.first](const auto& m) { return m.id == id; });
+                        if (printer_model_it != printer_profile.models.end()) {
+                            for (const auto& model_variant : printer_model_it->variants) {
+                                if (model_it.second.find(model_variant.name) != model_it.second.end() &&
+                                    model_it_old->second.find(model_variant.name) == model_it_old->second.end()) {
+                                    variant = model_variant.name;
+                                    return model_it.first;
+                                }
+                            }
+                        }
+                    }
                     for (const auto& var : model_it.second)
                         if (model_it_old->second.find(var) == model_it_old->second.end()) {
                             variant = var;
@@ -871,6 +910,51 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
             if (preferred_model = get_preferred_printer_model(bundle.first, preferred_variant);
                 !preferred_model.empty())
                     break;
+        }
+    }
+
+    if (preferred_model.empty()) {
+        const Preset& current_printer = preset_bundle->printers.get_selected_preset();
+        const std::string current_model = current_printer.config.opt_string("printer_model");
+        const std::string current_variant = current_printer.config.opt_string("printer_variant");
+        for (const auto& vendor_it : enabled_vendors) {
+            const auto profile_it = preset_bundle->vendors.find(vendor_it.first);
+            if (profile_it == preset_bundle->vendors.end())
+                continue;
+
+            for (const auto& model : profile_it->second.models) {
+                const auto model_it = vendor_it.second.find(model.id);
+                if (model.id != current_model || model_it == vendor_it.second.end() || model_it->second.empty() || preferred_pt != model.technology)
+                    continue;
+
+                for (const auto& model_variant : model.variants) {
+                    if (model_it->second.find(model_variant.name) != model_it->second.end()) {
+                        if (model_variant.name != current_variant) {
+                            preferred_model = model.id;
+                            preferred_variant = model_variant.name;
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+
+            if (!preferred_model.empty())
+                break;
+        }
+    }
+
+    for (const auto& model : m_ProfileJson["model"]) {
+        if (!model.is_object() || !model.contains("model") || !model.contains("nozzle_selected") || !model.contains("nozzle_diameter"))
+            continue;
+        const std::string nozzle_selected = model["nozzle_selected"];
+        if (nozzle_selected.empty())
+            continue;
+        const std::string default_variant = first_nozzle_from_list(model["nozzle_diameter"]);
+        if (!default_variant.empty()) {
+            preferred_model = model["model"];
+            preferred_variant = default_variant;
+            break;
         }
     }
 
@@ -1169,16 +1253,15 @@ int GuideFrame::LoadProfileData()
         }
         loaded_vendors.insert(PresetBundle::ORCA_FILAMENT_LIBRARY);
 
-        //load custom bundle from user data path
-        boost::filesystem::directory_iterator endIter;
-        for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
+        boost::filesystem::directory_iterator rsrc_endIter;
+        for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != rsrc_endIter; iter++) {
             if (!boost::filesystem::is_directory(*iter)) {
                 wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
                 strVendor          = strVendor.AfterLast('\\');
                 strVendor          = strVendor.AfterLast('/');
 
                 wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                if(strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
                     continue;
 
                 LoadProfileFamily(w2s(strVendor), iter->path().string());
@@ -1188,14 +1271,17 @@ int GuideFrame::LoadProfileData()
                 return 0;
         }
 
-        boost::filesystem::directory_iterator others_endIter;
-        for (boost::filesystem::directory_iterator iter(rsrc_vendor_dir); iter != others_endIter; iter++) {
+        // Load custom bundles from user data after bundled resources. This prevents stale
+        // installed system profiles from overriding newer bundled defaults in the guide.
+        boost::filesystem::directory_iterator endIter;
+        for (boost::filesystem::directory_iterator iter(vendor_dir); iter != endIter; iter++) {
             if (!boost::filesystem::is_directory(*iter)) {
                 wxString strVendor = from_u8(iter->path().string()).BeforeLast('.');
                 strVendor          = strVendor.AfterLast('\\');
                 strVendor          = strVendor.AfterLast('/');
+
                 wxString strExtension = from_u8(iter->path().string()).AfterLast('.').Lower();
-                if (strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
+                if(strExtension.CmpNoCase("json") != 0 || loaded_vendors.find(w2s(strVendor)) != loaded_vendors.end())
                     continue;
 
                 LoadProfileFamily(w2s(strVendor), iter->path().string());

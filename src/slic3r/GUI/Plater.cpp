@@ -449,6 +449,7 @@ struct ExtruderGroup : StaticGroup
     void SetTitle(const wxString& title);
 
     void sync_ams(MachineObject const *obj, std::vector<DevAms *> const &ams4, std::vector<DevAms *> const &ams1);
+    void show_ams_controls(bool show);
 
     void Rescale()
     {
@@ -644,6 +645,8 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     panel_printer_bed->Show(preset_bundle.is_bbl_vendor() || cfg.opt_bool("support_multi_bed_types"));
 
     extruder_dual_sizer->Show(isDual);
+    left_extruder->show_ams_controls(isBBL);
+    right_extruder->show_ams_controls(isBBL);
 
     // NEEDFIX requires AMS check or any type of ???
     // Single nozzle & non ams
@@ -1246,6 +1249,32 @@ void ExtruderGroup::update_ams()
     sizer->Layout();
 }
 
+void ExtruderGroup::show_ams_controls(bool show)
+{
+    if (sizer && hsizer_ams)
+        sizer->Show(hsizer_ams, show, true);
+
+    if (!show) {
+        if (btn_edit)
+            btn_edit->Hide();
+        if (ams_not_installed_msg)
+            ams_not_installed_msg->Hide();
+        if (btn_up)
+            btn_up->Hide();
+        if (btn_down)
+            btn_down->Hide();
+        for (auto *ams_preview : ams)
+            if (ams_preview)
+                ams_preview->Close();
+    } else {
+        update_ams();
+    }
+
+    if (sizer)
+        sizer->Layout();
+    Layout();
+}
+
 void ExtruderGroup::sync_ams(MachineObject const *obj, std::vector<DevAms *> const &ams4, std::vector<DevAms *> const &ams1)
 {
     if (ams_4.empty() && ams4.empty()
@@ -1279,6 +1308,17 @@ void ExtruderGroup::SetTitle(const wxString& title)
 
 bool Sidebar::priv::switch_diameter(bool single)
 {
+    auto refresh_side_preset_ui = []() {
+        if (wxGetApp().mainframe)
+            wxGetApp().mainframe->update_side_preset_ui();
+
+        if (auto plater = wxGetApp().plater()) {
+            plater->sidebar().update_presets(Preset::TYPE_PRINTER);
+            plater->sidebar().update_presets(Preset::TYPE_FILAMENT);
+            plater->sidebar().update_dynamic_filament_list();
+        }
+    };
+
     wxString diameter;
     if (single) {
         diameter = single_extruder->combo_diameter->GetValue();
@@ -1328,7 +1368,47 @@ bool Sidebar::priv::switch_diameter(bool single)
         return false;
     }
     preset->is_visible = true; // force visible
-    return wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(preset->name);
+    if (!wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(preset->name))
+        return false;
+
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    const size_t extruder_count = preset_bundle->get_printer_extruder_count();
+    const bool single_extruder_multi_material =
+        preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
+    const std::vector<std::string> &default_filament_profiles =
+        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionStrings>("default_filament_profile")->values;
+
+    if (!single_extruder_multi_material && extruder_count != preset_bundle->filament_presets.size()) {
+        const size_t old_filament_count = preset_bundle->filament_presets.size();
+        std::vector<std::string> new_colors;
+        for (size_t i = old_filament_count; i < extruder_count; ++i) {
+            wxColour new_col = Plater::get_next_color_for_filament();
+            new_colors.push_back(new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
+        }
+        preset_bundle->set_num_filaments(static_cast<unsigned int>(extruder_count), new_colors);
+        wxGetApp().plater()->on_filament_count_change(extruder_count);
+        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    }
+
+    if (!single_extruder_multi_material && !default_filament_profiles.empty()) {
+        if (preset_bundle->filament_presets.size() != extruder_count)
+            preset_bundle->set_num_filaments(static_cast<unsigned int>(extruder_count));
+
+        for (size_t i = 0; i < preset_bundle->filament_presets.size(); ++i) {
+            const std::string &profile = default_filament_profiles[std::min(i, default_filament_profiles.size() - 1)];
+            if (preset_bundle->filaments.find_preset(profile, false))
+                preset_bundle->filament_presets[i] = profile;
+        }
+
+        preset_bundle->filaments.select_preset_by_name(preset_bundle->filament_presets.front(), false);
+        preset_bundle->update_multi_material_filament_presets();
+    }
+
+    this->plater->on_config_change(preset_bundle->full_config());
+    refresh_side_preset_ui();
+    wxGetApp().CallAfter(refresh_side_preset_ui);
+    preset_bundle->export_selections(*wxGetApp().app_config);
+    return true;
 }
 
 bool Sidebar::priv::sync_extruder_list(bool &only_external_material)
@@ -2403,6 +2483,12 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     edit_btn->SetToolTip(_L("Click to edit preset"));
 
     PlaterPresetComboBox* combobox = (*combo);
+    combobox->Bind(wxEVT_COMBOBOX_DROPDOWN, [combobox](wxCommandEvent &evt) {
+        combobox->update();
+        combobox->GetDropDown().Invalidate(true);
+        evt.Skip();
+    });
+
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
         bool single_or_bbl     = should_show_SEMM_buttons();
         bool is_multi_material = p->combos_filament.size() > 1;
@@ -2660,7 +2746,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
 
         bool is_dual_extruder = nozzle_diameter->size() == 2;
-        p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
+        p->layout_printer(preset_bundle.use_bbl_network(), is_dual_extruder);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
@@ -3110,12 +3196,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
     {
         PlaterPresetComboBox* choice/*{ nullptr }*/;
         init_filament_combo(&choice, i);
-        int last_selection = choices.back()->GetSelection();
         choices.push_back(choice);
 
-        // initialize selection
+        // Initialize from preset_bundle->filament_presets[i]. Copying a raw
+        // combo-box index from another filament may point at a separator/group.
         choice->update();
-        choice->SetSelection(last_selection);
         ++i;
     }
 

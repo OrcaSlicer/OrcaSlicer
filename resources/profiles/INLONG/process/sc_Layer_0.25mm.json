@@ -1,0 +1,17 @@
+{
+    "type": "process",
+    "setting_id": "process01",
+    "name": "SC Layer: 0.25mm",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "sc_process_common",   
+    "layer_height": "0.25",
+    "initial_layer_print_height": "0.25",
+    "top_shell_layers": "4",
+    "bottom_shell_layers": "3",
+    "brim_object_gap": "0.1",
+    "min_skirt_length": "5",
+    "skirt_distance": "0",
+    "support_top_z_distance": "0.1",
+    "support_bottom_z_distance": "0.1"
+}

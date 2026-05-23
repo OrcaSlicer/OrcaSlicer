@@ -1,0 +1,434 @@
+{
+    "name":  "Infinity3DP",
+    "version":  "01.28.15.04",
+    "force_update":  "1",
+    "description":  "My configurations",
+    "machine_model_list":  [
+                               {
+                                   "name":  "Infinity3DP IXBOX",
+                                   "sub_path":  "machine/Infinity3DP IXBOX.json"
+                               },
+                               {
+                                   "name":  "Infinity3DP IXBOX DUO",
+                                   "sub_path":  "machine/Infinity3DP IXBOX DUO.json"
+                               },
+                               {
+                                   "name":  "Infinity3DP X1",
+                                   "sub_path":  "machine/Infinity3DP X1.json"
+                               },
+                               {
+                                   "name":  "Infinity3DP X2",
+                                   "sub_path":  "machine/Infinity3DP X2.json"
+                               },
+                               {
+                                   "name":  "Infinity3DP X2 DUO",
+                                   "sub_path":  "machine/Infinity3DP X2 DUO.json"
+                               },
+                               {
+                                   "name":  "Infinity3DP X3",
+                                   "sub_path":  "machine/Infinity3DP X3.json"
+                               }
+                           ],
+    "process_list":  [
+                         {
+                             "name":  "IXBOX_common",
+                             "sub_path":  "process/IXBOX_common.json"
+                         },
+                         {
+                             "name":  "IXBOX_Layer: 0.08mm",
+                             "sub_path":  "process/IXBOX_Layer_0.08mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_Layer: 0.12mm",
+                             "sub_path":  "process/IXBOX_Layer_0.12mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_Layer: 0.15mm",
+                             "sub_path":  "process/IXBOX_Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_Layer: 0.20mm",
+                             "sub_path":  "process/IXBOX_Layer_0.20mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_DUO_common",
+                             "sub_path":  "process/IXBOX_DUO_common.json"
+                         },
+                         {
+                             "name":  "IXBOX_DUO_Layer: 0.08mm",
+                             "sub_path":  "process/IXBOX_DUO_Layer_0.08mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_DUO_Layer: 0.12mm",
+                             "sub_path":  "process/IXBOX_DUO_Layer_0.12mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_DUO_Layer: 0.15mm",
+                             "sub_path":  "process/IXBOX_DUO_Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "IXBOX_DUO_Layer: 0.20mm",
+                             "sub_path":  "process/IXBOX_DUO_Layer_0.20mm.json"
+                         },
+                         {
+                             "name":  "X1_common",
+                             "sub_path":  "process/X1_common.json"
+                         },
+                         {
+                             "name":  "X1_Layer: 0.08mm",
+                             "sub_path":  "process/X1_Layer_0.08mm.json"
+                         },
+                         {
+                             "name":  "X1_Layer: 0.12mm",
+                             "sub_path":  "process/X1_Layer_0.12mm.json"
+                         },
+                         {
+                             "name":  "X1_Layer: 0.15mm",
+                             "sub_path":  "process/X1_Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "X1_Layer: 0.20mm",
+                             "sub_path":  "process/X1_Layer_0.20mm.json"
+                         },
+                         {
+                             "name":  "X2_common",
+                             "sub_path":  "process/X2_common.json"
+                         },
+                         {
+                             "name":  "X2_Layer: 0.08mm",
+                             "sub_path":  "process/X2_Layer_0.08mm.json"
+                         },
+                         {
+                             "name":  "X2_Layer: 0.12mm",
+                             "sub_path":  "process/X2_Layer_0.12mm.json"
+                         },
+                         {
+                             "name":  "X2_Layer: 0.15mm",
+                             "sub_path":  "process/X2_Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "X2_Layer: 0.20mm",
+                             "sub_path":  "process/X2_Layer_0.20mm.json"
+                         },
+                         {
+                             "name":  "X2_DUO_common",
+                             "sub_path":  "process/X2_DUO_common.json"
+                         },
+                         {
+                             "name":  "X2_DUO_Layer: 0.08mm",
+                             "sub_path":  "process/X2_DUO_Layer_0.08mm.json"
+                         },
+                         {
+                             "name":  "X2_DUO_Layer: 0.12mm",
+                             "sub_path":  "process/X2_DUO_Layer_0.12mm.json"
+                         },
+                         {
+                             "name":  "X2_DUO_Layer: 0.15mm",
+                             "sub_path":  "process/X2_DUO_Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "X2_DUOs_Layer: 0.20mm",
+                             "sub_path":  "process/X2_DUO_Layer_0.20mm.json"
+                         },
+                         {
+                             "name":  "X3_common",
+                             "sub_path":  "process/X3_common.json"
+                         },
+                         {
+                             "name":  "X3_Layer: 0.08mm",
+                             "sub_path":  "process/X3_Layer_0.08mm.json"
+                         },
+                         {
+                             "name":  "X3_Layer: 0.12mm",
+                             "sub_path":  "process/X3_Layer_0.12mm.json"
+                         },
+                         {
+                             "name":  "X3_Layer: 0.15mm",
+                             "sub_path":  "process/X3_Layer_0.15mm.json"
+                         },
+                         {
+                             "name":  "X3_Layer: 0.20mm",
+                             "sub_path":  "process/X3_Layer_0.20mm.json"
+                         }
+                     ],
+    "machine_list":  [
+                         {
+                             "name":  "Infinity3DP IXBOX common",
+                             "sub_path":  "machine/Infinity3DP IXBOX common.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 0.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 0.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 0.3mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 0.3mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 0.4mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 0.5mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 0.6mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 0.8mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 1.0mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 1.0mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX 1.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX 1.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO common",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO common.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 0.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 0.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 0.3mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 0.3mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 0.4mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 0.5mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 0.6mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 0.8mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 1.0mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 1.0mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP IXBOX DUO 1.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP IXBOX DUO 1.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 common",
+                             "sub_path":  "machine/Infinity3DP X1 common.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 0.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 0.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 0.3mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 0.3mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 0.4mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 0.5mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 0.6mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 0.8mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 1.0mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 1.0mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X1 1.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X1 1.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 common",
+                             "sub_path":  "machine/Infinity3DP X2 common.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 0.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 0.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 0.3mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 0.3mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 0.4mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 0.5mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 0.6mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 0.8mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 1.0mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 1.0mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 1.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 1.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO common",
+                             "sub_path":  "machine/Infinity3DP X2 DUO common.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 0.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 0.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 0.3mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 0.3mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 0.4mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 0.5mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 0.6mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 0.8mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 1.0mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 1.0mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X2 DUO 1.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X2 DUO 1.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 common",
+                             "sub_path":  "machine/Infinity3DP X3 common.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 0.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 0.2mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 0.3mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 0.3mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 0.4mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 0.4mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 0.5mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 0.5mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 0.6mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 0.6mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 0.8mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 0.8mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 1.0mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 1.0mm nozzle.json"
+                         },
+                         {
+                             "name":  "Infinity3DP X3 1.2mm nozzle",
+                             "sub_path":  "machine/Infinity3DP X3 1.2mm nozzle.json"
+                         }
+                     ],
+    "filament_list":  [
+                          {
+                              "name":  "fdm_filament_common",
+                              "sub_path":  "filament/fdm_filament_common.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PLA",
+                              "sub_path":  "filament/Infinity3DP PLA.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PETG-CFGF",
+                              "sub_path":  "filament/Infinity3DP PETG-CFGF.json"
+                          },
+                          {
+                              "name":  "Infinity3DP ABS",
+                              "sub_path":  "filament/Infinity3DP ABS.json"
+                          },
+                          {
+                              "name":  "Infinity3DP TPU",
+                              "sub_path":  "filament/Infinity3DP TPU.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PC",
+                              "sub_path":  "filament/Infinity3DP PC.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PA6",
+                              "sub_path":  "filament/Infinity3DP PA6.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PET-CFGF",
+                              "sub_path":  "filament/Infinity3DP PET-CFGF.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PATH-CFGF",
+                              "sub_path":  "filament/Infinity3DP PATH-CFGF.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PPA-CFGF",
+                              "sub_path":  "filament/Infinity3DP PPA-CFGF.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PPS-CFGF",
+                              "sub_path":  "filament/Infinity3DP PPS-CFGF.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PAEK",
+                              "sub_path":  "filament/Infinity3DP PAEK.json"
+                          },
+                          {
+                              "name":  "Infinity3DP PEEK",
+                              "sub_path":  "filament/Infinity3DP PEEK.json"
+                          },
+                          {
+                              "name":  "Infinity3DP HIPS",
+                              "sub_path":  "filament/Infinity3DP HIPS.json"
+                          },
+                          {
+                              "name":  "Infinity3DP VXL",
+                              "sub_path":  "filament/Infinity3DP VXL.json"
+                          }
+                      ]
+}

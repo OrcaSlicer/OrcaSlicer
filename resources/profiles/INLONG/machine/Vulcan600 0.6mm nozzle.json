@@ -1,0 +1,33 @@
+{
+    "type":  "machine",
+    "from":  "system",
+    "instantiation":  "true",
+    "setting_id":  "Vulcan600_NOZZLE",
+    "default_print_profile":  "Layer: 0.30mm",
+    "printer_model":  "Vulcan600",
+    "inherits":  "Vulcan600_common",
+    "name":  "Vulcan600 0.6mm nozzle",
+    "nozzle_diameter":  [
+                            "0.6",
+                            "0.6"
+                        ],
+    "printer_variant":  "0.6",
+    "min_layer_height":  [
+                             "0.15",
+                             "0.15"
+                         ],
+    "max_layer_height":  [
+                             "0.4",
+                             "0.4"
+                         ],
+    "printable_area":  [
+                           "0x0",
+                           "600x0",
+                           "600x500",
+                           "0x500"
+                       ],
+    "default_filament_profile":  [
+                                     "INLONG PET-CFGF",
+                                     "INLONG PET-CFGF"
+                                 ]
+}

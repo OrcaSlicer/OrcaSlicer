@@ -2357,6 +2357,16 @@ static std::string get_first_added_preset(const std::map<std::string, std::strin
 bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes)
 {
     wxString header, caption = _L("Configuration is edited in ConfigWizard");
+    for (const auto& bundle : bundles) {
+        if (const auto vendor_it = appconfig_new.vendors().find(bundle.first); vendor_it != appconfig_new.vendors().end()) {
+            for (const auto& model : bundle.second.vendor_profile->models) {
+                if (vendor_it->second.find(model.id) != vendor_it->second.end() && !model.variants.empty()) {
+                    appconfig_new.set_variant(bundle.first, model.id, model.variants.front().name, true);
+                    break;
+                }
+            }
+        }
+    }
     const auto enabled_vendors = appconfig_new.vendors();
 
     bool suppress_sla_printer = model_has_multi_part_objects(wxGetApp().model());
@@ -2475,6 +2485,13 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
     std::string preferred_variant;
     const auto enabled_vendors_old = app_config->vendors();
     auto get_preferred_printer_model = [enabled_vendors, enabled_vendors_old, preferred_pt](const std::string& bundle_name, const Bundle& bundle, std::string& variant) {
+        auto preferred_variant_from_model = [](const VendorProfile::PrinterModel& model, const std::set<std::string>& variants) {
+            for (const auto& model_variant : model.variants)
+                if (variants.find(model_variant.name) != variants.end())
+                    return model_variant.name;
+            return variants.empty() ? std::string() : *variants.begin();
+        };
+
         const auto config = enabled_vendors.find(bundle_name);
         if (config == enabled_vendors.end())
             return std::string();
@@ -2482,7 +2499,7 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
             if (const auto model_it = config->second.find(model.id);
                 model_it != config->second.end() && model_it->second.size() > 0 &&
                 preferred_pt == model.technology) {
-                variant = *model_it->second.begin();
+                variant = preferred_variant_from_model(model, model_it->second);
                 const auto config_old = enabled_vendors_old.find(bundle_name);
                 if (config_old == enabled_vendors_old.end())
                     return model.id;
@@ -2490,6 +2507,12 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
                 if (model_it_old == config_old->second.end())
                     return model.id;
                 else if (model_it_old->second != model_it->second) {
+                    for (const auto& model_variant : model.variants)
+                        if (model_it->second.find(model_variant.name) != model_it->second.end() &&
+                            model_it_old->second.find(model_variant.name) == model_it_old->second.end()) {
+                            variant = model_variant.name;
+                            return model.id;
+                        }
                     for (const auto& var : model_it->second)
                         if (model_it_old->second.find(var) == model_it_old->second.end()) {
                             variant = var;
@@ -2510,6 +2533,37 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
             if (preferred_model = get_preferred_printer_model(bundle.first, bundle.second, preferred_variant);
                 !preferred_model.empty())
                     break;
+        }
+    }
+
+    if (preferred_model.empty()) {
+        const Preset& current_printer = preset_bundle->printers.get_selected_preset();
+        const std::string current_model = current_printer.config.opt_string("printer_model");
+        const std::string current_variant = current_printer.config.opt_string("printer_variant");
+        for (const auto& bundle : bundles) {
+            const auto config = enabled_vendors.find(bundle.first);
+            if (config == enabled_vendors.end())
+                continue;
+
+            for (const auto& model : bundle.second.vendor_profile->models) {
+                const auto model_it = config->second.find(model.id);
+                if (model.id != current_model || model_it == config->second.end() || model_it->second.empty() || preferred_pt != model.technology)
+                    continue;
+
+                for (const auto& model_variant : model.variants) {
+                    if (model_it->second.find(model_variant.name) != model_it->second.end()) {
+                        if (model_variant.name != current_variant) {
+                            preferred_model = model.id;
+                            preferred_variant = model_variant.name;
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+
+            if (!preferred_model.empty())
+                break;
         }
     }
 
@@ -2577,6 +2631,28 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
     if (check_unsaved_preset_changes)
         preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem, 
                                     {preferred_model, preferred_variant, first_added_filament, first_added_sla_material});
+
+    if (!preferred_model.empty() && !preferred_variant.empty()) {
+        if (const Preset *preferred_printer = preset_bundle->printers.find_system_preset_by_model_and_variant(preferred_model, preferred_variant)) {
+            preset_bundle->printers.select_preset_by_name(preferred_printer->name, true);
+            const std::string &default_print_profile = preferred_printer->config.opt_string("default_print_profile");
+            if (!default_print_profile.empty())
+                preset_bundle->prints.select_preset_by_name(default_print_profile, true);
+
+            const auto &default_filament_profiles = preferred_printer->config.option<ConfigOptionStrings>("default_filament_profile")->values;
+            if (!default_filament_profiles.empty()) {
+                preset_bundle->set_num_filaments(static_cast<unsigned int>(default_filament_profiles.size()));
+                for (size_t i = 0; i < preset_bundle->filament_presets.size(); ++i)
+                    preset_bundle->filament_presets[i] = default_filament_profiles[std::min(i, default_filament_profiles.size() - 1)];
+                preset_bundle->filaments.select_preset_by_name(preset_bundle->filament_presets.front(), false);
+            }
+            preset_bundle->update_compatible(PresetSelectCompatibleType::Always);
+            preset_bundle->update_multi_material_filament_presets();
+            wxGetApp().plater()->sidebar().update_presets(Slic3r::Preset::Type::TYPE_PRINTER);
+            wxGetApp().plater()->sidebar().update_presets(Slic3r::Preset::Type::TYPE_FILAMENT);
+            wxGetApp().plater()->sidebar().update_presets(Slic3r::Preset::Type::TYPE_PRINT);
+        }
+    }
 
     if (!only_sla_mode && page_custom->custom_wanted()) {
         // if unsaved changes was not cheched till this moment

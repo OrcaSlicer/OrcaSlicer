@@ -1154,11 +1154,14 @@ bool PresetBundle::apply_vendor_config(
     // Find vendors that need installation
     const auto vendor_dir = (fs::path(Slic3r::data_dir()) / PRESET_SYSTEM_DIR).make_preferred();
 
+    const auto rsrc_vendor_dir = (fs::path(resources_dir()) / "profiles").make_preferred();
+
     std::vector<std::string> install_bundles;
     for (const auto &it : new_vendors) {
         if (it.second.size() > 0) {
             auto vendor_file = vendor_dir / (it.first + ".json");
-            if (!fs::exists(vendor_file)) {
+            auto rsrc_vendor_file = rsrc_vendor_dir / (it.first + ".json");
+            if (fs::exists(rsrc_vendor_file) || !fs::exists(vendor_file)) {
                 install_bundles.emplace_back(it.first);
             }
         }
@@ -1265,11 +1268,53 @@ bool PresetBundle::apply_vendor_config(
     this->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable,
         {preferred_printer_model, preferred_printer_variant, preferred_filament, std::string()});
 
+    const Preset *preferred_printer = this->printers.find_system_preset_by_model_and_variant(preferred_printer_model, preferred_printer_variant);
+    if (preferred_printer != nullptr) {
+        this->printers.select_preset_by_name(preferred_printer->name, true);
+
+        const std::string &default_print_profile = preferred_printer->config.opt_string("default_print_profile");
+        if (!default_print_profile.empty())
+            this->prints.select_preset_by_name(default_print_profile, true);
+
+        const ConfigOptionStrings *default_filaments = preferred_printer->config.has("default_filament_profile") ?
+            preferred_printer->config.option<ConfigOptionStrings>("default_filament_profile") : nullptr;
+        if (default_filaments != nullptr && !default_filaments->values.empty()) {
+            this->set_num_filaments(static_cast<unsigned int>(default_filaments->values.size()));
+            for (size_t i = 0; i < this->filament_presets.size(); ++i)
+                this->filament_presets[i] = default_filaments->values[std::min(i, default_filaments->values.size() - 1)];
+            this->filaments.select_preset_by_name(this->filament_presets.front(), false);
+        }
+
+        this->update_compatible(PresetSelectCompatibleType::Always);
+        this->update_multi_material_filament_presets();
+    }
+
+    const ConfigOptionStrings *default_filaments = preferred_printer != nullptr && preferred_printer->config.has("default_filament_profile") ?
+        preferred_printer->config.option<ConfigOptionStrings>("default_filament_profile") : nullptr;
+    std::vector<std::string> default_filament_presets;
+    if (default_filaments != nullptr) {
+        for (const std::string &filament_name : default_filaments->values) {
+            if (!supplemented_filaments.empty() && supplemented_filaments.count(filament_name) == 0)
+                break;
+            const Preset *preset = this->filaments.find_preset(filament_name);
+            if (preset == nullptr || !preset->is_visible || !preset->is_compatible)
+                break;
+            default_filament_presets.emplace_back(filament_name);
+        }
+    }
+
+    const bool applied_default_filament_presets = !default_filament_presets.empty();
+    if (applied_default_filament_presets) {
+        this->filaments.select_preset_by_name(default_filament_presets.front(), true);
+        this->filament_presets = std::move(default_filament_presets);
+        this->update_multi_material_filament_presets();
+    }
+
     // Ensure active filament compatibility
     // If the active filament is not in the wizard-selected filaments, switch to the first
     // compatible wizard-selected filament. This handles the first-run case where load_presets
     // falls back to "Generic PLA" even though the user selected a different filament.
-    if (!supplemented_filaments.empty()) {
+    if (!applied_default_filament_presets && !supplemented_filaments.empty()) {
         bool active_filament_selected = supplemented_filaments.count(this->filament_presets.front()) > 0;
         if (!active_filament_selected) {
             for (const auto& [filament_name, _] : supplemented_filaments) {
@@ -2605,8 +2650,8 @@ void PresetBundle::update_selections(AppConfig &config)
 {
     std::string initial_printer_profile_name    = printers.get_selected_preset_name();
     // Orca: load from orca_presets
-    std::string initial_print_profile_name        = config.get_printer_setting(initial_printer_profile_name, PRESET_PRINT_NAME);
-    std::string initial_filament_profile_name     = config.get_printer_setting(initial_printer_profile_name, PRESET_FILAMENT_NAME);
+    std::string initial_print_profile_name      = config.get_printer_setting(initial_printer_profile_name, PRESET_PRINT_NAME);
+    std::string initial_filament_profile_name   = config.get_printer_setting(initial_printer_profile_name, PRESET_FILAMENT_NAME);
 
     // Selects the profiles, which were selected at the last application close.
     prints.select_preset_by_name_strict(initial_print_profile_name);
@@ -2728,18 +2773,19 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
 
     // Orca: load from orca_presets
     // const auto os_presets = config.get_machine_settings(initial_printer_profile_name);
-    std::string initial_print_profile_name        = config.get_printer_setting(initial_printer_profile_name, PRESET_PRINT_NAME);
-    std::string initial_filament_profile_name     = config.get_printer_setting(initial_printer_profile_name, PRESET_FILAMENT_NAME);
+    const std::string selected_printer_profile_name = preferred_printer ? preferred_printer->name : initial_printer_profile_name;
+    std::string initial_print_profile_name          = config.get_printer_setting(selected_printer_profile_name, PRESET_PRINT_NAME);
+    std::string initial_filament_profile_name       = config.get_printer_setting(selected_printer_profile_name, PRESET_FILAMENT_NAME);
 
     //BBS: set default print/filament profiles to BBL's default setting
     if (preferred_printer)
     {
         const std::string& prefered_print_profile = preferred_printer->config.opt_string("default_print_profile");
-        if ((!initial_print_profile_name.compare("Default Setting")) && (prefered_print_profile.size() > 0))
+        if ((initial_print_profile_name.empty() || !initial_print_profile_name.compare("Default Setting")) && (prefered_print_profile.size() > 0))
             initial_print_profile_name = prefered_print_profile;
 
         const std::vector<std::string>& prefered_filament_profiles = preferred_printer->config.option<ConfigOptionStrings>("default_filament_profile")->values;
-        if ((!initial_filament_profile_name.compare(ORCA_DEFAULT_FILAMENT_PLACEHOLDER)) && (prefered_filament_profiles.size() > 0)) {
+        if ((initial_filament_profile_name.empty() || !initial_filament_profile_name.compare(ORCA_DEFAULT_FILAMENT_PLACEHOLDER)) && (prefered_filament_profiles.size() > 0)) {
             // Check if preferred filament is visible
             const Preset* preferred_preset = this->filaments.find_preset(prefered_filament_profiles[0], false);
             if (preferred_preset && preferred_preset->is_visible) {

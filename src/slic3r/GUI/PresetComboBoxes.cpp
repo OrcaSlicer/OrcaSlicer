@@ -191,6 +191,7 @@ void PresetComboBox::update_selection()
         m_last_selected = 1;
 
     SetSelection(m_last_selected);
+    SetValue(GetString(m_last_selected));
 #ifdef __WXMSW__
     // From the Windows 2004 the tooltip for preset combobox doesn't work after next call of SetTooltip()
     // (There was an issue, when tooltip doesn't appears after changing of the preset selection)
@@ -1108,8 +1109,6 @@ void PlaterPresetComboBox::update()
         std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
         if (m_filament_idx < bitmaps.size()) {
             clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
-        } else {
-            return;
         }
 #ifdef __WXOSX__
         clr_picker->SetLabel(clr_picker->GetLabel()); // Let setBezelStyle: be called

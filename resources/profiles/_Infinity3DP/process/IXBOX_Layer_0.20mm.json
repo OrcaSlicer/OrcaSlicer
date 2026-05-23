@@ -1,0 +1,17 @@
+{
+    "type": "process",
+    "setting_id": "IXBOXprocess",
+    "name": "IXBOX_Layer: 0.20mm",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "IXBOX_common",
+    "layer_height": "0.2",
+    "initial_layer_print_height": "0.2", 
+    "top_shell_layers": "4",
+    "bottom_shell_layers": "3",
+    "brim_object_gap": "0.15",
+    "min_skirt_length": "5",
+    "skirt_distance": "0",
+    "support_top_z_distance": "0.1",
+    "support_bottom_z_distance": "0.1"
+}

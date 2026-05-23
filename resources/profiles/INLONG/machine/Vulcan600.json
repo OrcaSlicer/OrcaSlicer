@@ -1,0 +1,12 @@
+{
+    "type":  "machine_model",
+    "name":  "Vulcan600",
+    "model_id":  "Vulcan600model",
+    "nozzle_diameter":  "0.6;0.4;0.5;0.8",
+    "machine_tech":  "FFF",
+    "family":  "INLONG",
+    "bed_model":  "",
+    "bed_texture":  "",
+    "hotend_model":  "",
+    "default_materials":  "INLONG PET-CFGF;INLONG PLA;INLONG PETG-CFGF;INLONG ABS;INLONG PA6;INLONG PC;INLONG TPU;INLONG PATH-CFGF;INLONG PPA-CFGF;INLONG PPS-CFGF;INLONG PAEK;INLONG PEEK;INLONG HIPS;INLONG VXL;"
+}
