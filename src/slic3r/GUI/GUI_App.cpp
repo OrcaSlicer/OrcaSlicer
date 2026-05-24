@@ -4803,7 +4803,7 @@ void GUI_App::handle_http_error(unsigned int status, std::string body, const std
 void GUI_App::on_http_error(wxCommandEvent &evt)
 {
     int status = evt.GetInt();
-    std::string provider = ORCA_CLOUD_PROVIDER;
+    std::string provider = "";
     std::string body_str;
 
     // Extract provider and body from event data
@@ -4845,18 +4845,24 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
     // request login
     if (status == 401) {
         if (m_agent) {
-            if (m_agent->is_user_login(provider)) {
-                BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
-                this->request_user_logout(provider);
+            if (!provider.empty() && m_agent->is_user_login(provider)) {
+                if (std::chrono::steady_clock::now() - m_last_401_error_time > 30s) {
+                    BOOST_LOG_TRIVIAL(warning) << "logout: http error 401.";
+                    this->request_user_logout(provider);
 
-                if (!m_show_http_error_msgdlg) {
-                    MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
-                    m_show_http_error_msgdlg = true;
-                    auto modal_result = msg_dlg.ShowModal();
-                    if (modal_result == wxOK || modal_result == wxCLOSE) {
-                        m_show_http_error_msgdlg = false;
-                        return;
+                    if (!m_show_http_error_msgdlg) {
+                        MessageDialog msg_dlg(nullptr, _L("Login information expired. Please login again."), "", wxAPPLY | wxOK);
+                        m_show_http_error_msgdlg = true;
+                        auto modal_result        = msg_dlg.ShowModal();
+                        if (modal_result == wxOK || modal_result == wxCLOSE) {
+                            m_show_http_error_msgdlg = false;
+                            return;
+                        }
                     }
+
+                    m_last_401_error_time = std::chrono::steady_clock::now();
+                } else {
+                    BOOST_LOG_TRIVIAL(warning) << "401 encountered within grace period, suppressing logout";
                 }
             }
         }
@@ -4930,6 +4936,10 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
     int online_login = evt.GetInt();
     std::string provider = evt.GetString().ToStdString();
     if (provider.empty()) provider = ORCA_CLOUD_PROVIDER;
+
+    // Reset 401 grace period so transient token-propagation 401s
+    // during login warmup don't trigger immediate logout.
+    m_last_401_error_time = std::chrono::steady_clock::now();
 
     m_agent->connect_server();
     // get machine list
@@ -5841,16 +5851,20 @@ void GUI_App::reload_settings()
             return;
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " cloud user preset number is: " << user_presets.size();
-        // Check the user presets for any system vendors that need to be installed
-        for (auto data : user_presets) {
-            if (!check_preset_parent_available(data))
-                add_pending_vendor_preset(data);
-        }
-        load_pending_vendors();
-        preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
-        preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        // Orca: settings changed, refresh ui to reflect the new preset values
-        auto refresh_synced_ui = [this] {
+        auto refresh_synced_ui = [this, user_presets = std::move(user_presets)]() mutable {
+            if (is_closing() || !preset_bundle || !app_config || !mainframe)
+                return;
+
+            // Check the user presets for any system vendors that need to be installed
+            for (auto data : user_presets) {
+                if (!check_preset_parent_available(data))
+                    add_pending_vendor_preset(data);
+            }
+            load_pending_vendors();
+            preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
+            preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
+
+            // Orca: settings changed, refresh ui to reflect the new preset values
             mainframe->update_side_preset_ui();
             for (auto tab : tabs_list) {
                 tab->reload_config();
