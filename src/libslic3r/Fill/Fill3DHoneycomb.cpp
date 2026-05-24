@@ -294,7 +294,7 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
   if(completeTops && (printVert != printVertLast)){
     coordf_t layerHeight = (z - zLast) / (multiline_count * layer_count);
     size_t top_distance = 0;
-    for(coordf_t zCheck = z; zCheck >= (zLast + EPSILON); zCheck -= layerHeight, top_distance++){
+    for(coordf_t zCheck = z; zCheck >= (zLast + EPSILON); zCheck -= layerHeight * layer_count, top_distance++){
       coordf_t zCheckCycle = fmod(zCheck + gridSize/2, gridSize * 2.) / (gridSize * 2.);
       if(printVert != (zCheckCycle < 0.5)){
         break;
