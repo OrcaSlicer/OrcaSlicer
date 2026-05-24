@@ -2,6 +2,7 @@
 #include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
 #include "NotificationManager.hpp"
+#include "Widgets/StateColor.hpp"
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -29,7 +30,6 @@ static const ImU32 BACKGROUND_COLOR_LIGHT = IM_COL32(255, 255, 255, 255);
 static const ImU32 GROOVE_COLOR_DARK      = IM_COL32(45, 45, 49, 255);
 static const ImU32 GROOVE_COLOR_LIGHT     = IM_COL32(206, 206, 206, 255);
 static const ImU32 BRAND_COLOR            = IM_COL32(0, 150, 136, 255);
-
 
 static int m_tick_value = -1;
 static ImVec4 m_tick_rect;
@@ -453,7 +453,7 @@ bool IMSlider::switch_one_layer_mode()
 
     m_is_one_layer = !m_is_one_layer;
     if (!m_is_one_layer) {                       // DEACTIVATE
-        m_one_layer_value = GetHigherValue();       // ORCA Backup value on deactivate
+        m_one_layer_value = GetHigherValue();    // ORCA Backup value on deactivate
         SetLowerValue(m_min_value);
         SetHigherValue(m_max_value);             // Higher value resets on toggling off one layer mode to show whole model
     }else{                                       // ACTIVATE
@@ -463,7 +463,7 @@ bool IMSlider::switch_one_layer_mode()
             SetHigherValue(m_one_layer_value);  
         }
         else if(GetHigherValue() == m_max_value) // ORCA Prefer backup value if higher value reseted
-            SetHigherValue(m_one_layer_value);      // ORCA Restore value
+            SetHigherValue(m_one_layer_value);   // ORCA Restore value
         else                                     // ORCA Prefer higher value if user changed higher value. so it will show section on same view
             SetHigherValue(GetHigherValue());    // ORCA use same position with higher value if user changed its position. visible section stays same when switching one layer mode with this
     }
@@ -500,15 +500,23 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
 
     const float  handle_radius       = 12.0f * m_scale;
     const float  handle_border       = 2.0f * m_scale;
-
-    const float  text_frame_rounding = 2.0f * scale * m_scale;
     const float  text_start_offset   = 8.0f * m_scale;
     const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
-    const float  triangle_offsets[3] = {-3.5f * m_scale, 3.5f * m_scale, -6.06f * m_scale};
 
-    const ImU32 white_bg = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
     const ImU32 handle_clr = BRAND_COLOR;
     const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
+    const wxColour label_bg = StateColor::darkModeColorFor(wxGetApp().get_window_default_clr());
+    const wxColour label_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
+    const wxColour rail_inner_bg = m_is_dark ? StateColor::darkModeColorFor(wxColour("#CECECE")) : wxGetApp().get_highlight_default_clr();
+    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : wxColour("#CECECE");
+    const ImU32 label_bg_clr = IM_COL32(label_bg.Red(), label_bg.Green(), label_bg.Blue(), 238);
+    const ImU32 label_border_clr = IM_COL32(label_border.Red(), label_border.Green(), label_border.Blue(), 255);
+    const ImU32 label_shadow_clr = m_is_dark ? IM_COL32(0, 0, 0, 84) : IM_COL32(0, 0, 0, 38);
+    ImVec4 range_fill = ImGui::ColorConvertU32ToFloat4(BRAND_COLOR);
+    range_fill.w = (m_is_dark ? 210.0f : 190.0f) / 255.0f;
+    const ImU32 range_fill_clr = ImGui::GetColorU32(range_fill);
+    const ImU32 rail_inner_clr = IM_COL32(rail_inner_bg.Red(), rail_inner_bg.Green(), rail_inner_bg.Blue(), 255);
+    const ImU32 rail_border_clr = IM_COL32(rail_border.Red(), rail_border.Green(), rail_border.Blue(), 190);
 
     // calculate groove size
     const ImVec2 groove_start = ImVec2(pos.x + handle_dummy_width, pos.y + size.y - ONE_LAYER_MARGIN.y * m_scale - (ONE_LAYER_BUTTON_SIZE.y / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f);
@@ -527,6 +535,9 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
 
     // draw background
     draw_background_and_groove(bg_rect, groove);
+    window->DrawList->AddRect(groove.Min, groove.Max, rail_border_clr, 0.5f * groove.GetHeight(), 0, 1.0f * m_scale);
+    const ImRect rail_inner(groove.Min + ImVec2(2.0f, 2.0f) * m_scale, groove.Max - ImVec2(2.0f, 2.0f) * m_scale);
+    window->DrawList->AddRectFilled(rail_inner.Min, rail_inner.Max, rail_inner_clr, 0.5f * rail_inner.GetHeight());
 
     // set scrollable region
     const ImRect slideable_region = ImRect(bg_rect.Min + ImVec2(handle_radius, 0.0f), bg_rect.Max - ImVec2(handle_radius, 0.0f));
@@ -540,25 +551,29 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     ImVec2 handle_center = handle.GetCenter();
 
     // draw scroll line
-    ImRect scroll_line = ImRect(groove.Min, ImVec2(handle_center.x, groove.Max.y));
-    window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, handle_clr, 0.5f * GROOVE_WIDTH * m_scale);
+    ImRect scroll_line = ImRect(ImVec2(groove.Min.x, groove.Min.y - 2.0f * m_scale),
+        ImVec2(handle_center.x, groove.Max.y + 2.0f * m_scale));
+    window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, range_fill_clr, 0.5f * scroll_line.GetHeight());
 
     // draw handle
+    window->DrawList->AddCircleFilled(handle_center, handle_radius + 2.0f * m_scale, handle_border_clr);
     window->DrawList->AddCircleFilled(handle_center, handle_radius, handle_border_clr);
     window->DrawList->AddCircleFilled(handle_center, handle_radius - handle_border, handle_clr);
+    window->DrawList->AddCircle(handle_center, handle_radius + 3.0f * m_scale, handle_clr, 0, 2.0f * m_scale);
 
     // draw label
-    auto text_utf8 = into_u8(std::to_string(*value));
-    ImVec2 text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
+    const std::string value_label = std::to_string(*value);
+    const ImVec2 text_content_size = ImGui::CalcTextSize(value_label.c_str());
     ImVec2 text_size = text_content_size + text_padding * 2;
     ImVec2 text_start = ImVec2(handle_center.x + handle_radius + text_start_offset, handle_center.y - 0.5 * text_size.y);
     ImRect text_rect(text_start, text_start + text_size);
-    ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-    ImVec2 pos_1 = ImVec2(text_rect.Min.x, text_rect.GetCenter().y + triangle_offsets[0]);
-    ImVec2 pos_2 = ImVec2(text_rect.Min.x, text_rect.GetCenter().y + triangle_offsets[1]);
-    ImVec2 pos_3 = ImVec2(text_rect.Min.x + triangle_offsets[2], text_rect.GetCenter().y);
-    window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
-    ImGui::RenderText(text_start + text_padding, std::to_string(*value).c_str());
+    const float label_rounding = 5.0f * m_scale;
+    const ImVec2 shadow_offset = ImVec2(2.0f, 2.0f) * m_scale;
+    window->DrawList->AddRectFilled(text_rect.Min + shadow_offset, text_rect.Max + shadow_offset, label_shadow_clr, label_rounding);
+    ImGui::RenderFrame(text_rect.Min, text_rect.Max, label_bg_clr, false, label_rounding);
+    window->DrawList->AddRect(text_rect.Min, text_rect.Max, label_border_clr, label_rounding, 0, 1.0f * m_scale);
+    ImGui::RenderText(text_rect.Min + ImVec2((text_size.x - text_content_size.x) * 0.5f,
+        (text_size.y - text_content_size.y) * 0.5f), value_label.c_str());
 
     return value_changed;
 }
@@ -878,18 +893,27 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const float  handle_border       = 2.0f * m_scale;
     const float  line_width          = 1.0f * m_scale;
     const float  line_length         = 12.0f * m_scale;
-    const float  one_handle_offset   = 26.0f * m_scale;
-    const float  bar_width           = 28.0f * m_scale;
 
-    const float  text_frame_rounding = 2.0f * scale * m_scale;
     const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
-    const ImVec2 triangle_offsets[3] = {ImVec2(2.0f, 0.0f) * m_scale, ImVec2(0.0f, 8.0f) * m_scale, ImVec2(9.0f, 0.0f) * m_scale};
-    ImVec2 text_content_size;
     ImVec2 text_size;
 
     const ImU32 white_bg = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
     const ImU32 handle_clr = BRAND_COLOR;
     const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
+    const wxColour label_bg = StateColor::darkModeColorFor(wxGetApp().get_window_default_clr());
+    const wxColour label_bg_active = StateColor::darkModeColorFor(wxColour("#E5F0EE"));
+    const wxColour label_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
+    const wxColour rail_inner_bg = m_is_dark ? StateColor::darkModeColorFor(wxColour("#CECECE")) : wxGetApp().get_highlight_default_clr();
+    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : wxColour("#CECECE");
+    const ImU32 label_bg_clr = IM_COL32(label_bg.Red(), label_bg.Green(), label_bg.Blue(), 238);
+    const ImU32 label_bg_active_clr = IM_COL32(label_bg_active.Red(), label_bg_active.Green(), label_bg_active.Blue(), 246);
+    const ImU32 label_border_clr = IM_COL32(label_border.Red(), label_border.Green(), label_border.Blue(), 255);
+    const ImU32 label_shadow_clr = m_is_dark ? IM_COL32(0, 0, 0, 84) : IM_COL32(0, 0, 0, 38);
+    ImVec4 range_fill = ImGui::ColorConvertU32ToFloat4(BRAND_COLOR);
+    range_fill.w = (m_is_dark ? 210.0f : 190.0f) / 255.0f;
+    const ImU32 range_fill_clr = ImGui::GetColorU32(range_fill);
+    const ImU32 rail_inner_clr = IM_COL32(rail_inner_bg.Red(), rail_inner_bg.Green(), rail_inner_bg.Blue(), 255);
+    const ImU32 rail_border_clr = IM_COL32(rail_border.Red(), rail_border.Green(), rail_border.Blue(), 190);
     // calculate slider groove size
     const ImVec2 groove_start = ImVec2(pos.x + size.x - ONE_LAYER_MARGIN.x * m_scale - (ONE_LAYER_BUTTON_SIZE.x / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f, pos.y + text_dummy_height);
     const ImVec2 groove_size = ImVec2(GROOVE_WIDTH * m_scale, size.y - 2 * text_dummy_height);
@@ -897,10 +921,9 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
     const float mid_x = groove.GetCenter().x;
     // ORCA: tune label box width to fit the slider window without overlapping the groove.
-    const float label_extra_padding = 10.0f * m_scale;
-    const float one_layer_extra_padding = 6.0f * m_scale;
+    const float label_width_margin = 10.0f * m_scale;
     const float max_label_width = std::max(0.0f,
-        groove.Min.x - draw_region.Min.x - triangle_offsets[2].x - text_padding.x * 2.0f - label_extra_padding);
+        groove.Min.x - draw_region.Min.x - label_width_margin * 2.0f - text_padding.x * 2.0f);
 
     // Processing interacting
     // set scrollable region
@@ -916,8 +939,16 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     float  lower_handle_pos = get_pos_from_value(v_min, v_max, *lower_value, lower_slideable_region);
     ImRect lower_handle = ImRect(mid_x - handle_radius, lower_handle_pos - handle_radius, mid_x + handle_radius, lower_handle_pos + handle_radius);
 
-    ImRect one_handle = ImRect(higher_handle.Min - ImVec2(one_handle_offset, 0), higher_handle.Max - ImVec2(one_handle_offset, 0));
+    auto one_layer_handle = [&](int value) {
+        const float handle_pos = get_pos_from_value(v_min, v_max, value, one_slideable_region);
+        return ImRect(mid_x - handle_radius, handle_pos - handle_radius,
+            mid_x + handle_radius, handle_pos + handle_radius);
+    };
+    ImRect one_handle;
+    if (one_layer_flag)
+        one_handle = one_layer_handle(*higher_value);
 
+    // Label hit testing enables delta-based label drag without jumping to the mouse position.
     SelectedSlider hovered_label = ssUndef;
     const bool menu_open = ImGui::IsPopupOpen("slider_add_menu_popup") || ImGui::IsPopupOpen("slider_edit_menu_popup");
     const ImVec2 higher_text_content_size = ImGui::CalcTextSize(into_u8(higher_label).c_str());
@@ -929,15 +960,37 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     };
     auto range_label_rect = [&](const ImRect& handle, const ImVec2& content_size, bool top_label) {
         const ImVec2 text_size = ImVec2(max_label_width, content_size.y) + text_padding * 2.0f;
-        const ImVec2 text_start = ImVec2(handle.Min.x - text_size.x - triangle_offsets[2].x,
+        const ImVec2 text_start = ImVec2(handle.Min.x - text_size.x - label_width_margin,
             top_label ? handle.GetCenter().y - text_size.y : handle.GetCenter().y);
-        return ImRect(text_start, text_start + text_size + ImVec2(triangle_offsets[2].x, 0.0f));
+        return ImRect(text_start, text_start + text_size + ImVec2(label_width_margin, 0.0f));
     };
     auto one_layer_label_rect = [&](const ImRect& handle) {
-        const ImVec2 text_size = ImVec2(std::max(0.0f, max_label_width - label_extra_padding - one_layer_extra_padding),
-            higher_text_content_size.y) + text_padding * 2.0f;
-        const ImVec2 text_start = ImVec2(handle.Min.x - text_size.x, handle.GetCenter().y - 0.5f * text_size.y);
+        const ImVec2 text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2.0f;
+        const ImVec2 text_start = ImVec2(handle.Min.x - text_size.x - label_width_margin,
+            handle.GetCenter().y - 0.5f * text_size.y);
         return ImRect(text_start, text_start + text_size);
+    };
+    auto draw_label = [&](const ImRect& rect, const ImVec2& content_size, const std::string& label, bool hovered, bool active) {
+        const float rounding = 5.0f * m_scale;
+        const ImU32 bg_clr = active ? label_bg_active_clr : label_bg_clr;
+        const ImVec2 shadow_offset = ImVec2(2.0f, 2.0f) * m_scale;
+        window->DrawList->AddRectFilled(rect.Min + shadow_offset, rect.Max + shadow_offset, label_shadow_clr, rounding);
+        ImGui::RenderFrame(rect.Min, rect.Max, bg_clr, false, rounding);
+        window->DrawList->AddRect(rect.Min, rect.Max, hovered ? handle_clr : label_border_clr, rounding, 0, hovered ? 1.5f * m_scale : 1.0f * m_scale);
+        const ImVec2 rect_size = rect.GetSize();
+        ImGui::RenderText(rect.Min + ImVec2((rect_size.x - content_size.x) * 0.5f,
+            (rect_size.y - content_size.y) * 0.5f), label.c_str());
+    };
+    auto draw_handle = [&](const ImVec2& center) {
+        window->DrawList->AddCircleFilled(center, handle_radius, handle_border_clr);
+        window->DrawList->AddCircleFilled(center, handle_radius - handle_border, handle_clr);
+    };
+    auto draw_active_handle = [&](const ImVec2& center) {
+        window->DrawList->AddCircleFilled(center, handle_radius + 2.0f * m_scale, handle_border_clr);
+        draw_handle(center);
+        window->DrawList->AddCircle(center, handle_radius + 3.0f * m_scale, handle_clr, 0, 2.0f * m_scale);
+        window->DrawList->AddLine(center + ImVec2(-0.5f * line_length, 0.0f), center + ImVec2(0.5f * line_length, 0.0f), white_bg, line_width);
+        window->DrawList->AddLine(center + ImVec2(0.0f, -0.5f * line_length), center + ImVec2(0.0f, 0.5f * line_length), white_bg, line_width);
     };
 
     // Prevent interaction with labels if slider add/edit menu is open
@@ -951,8 +1004,9 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         }
     }
 
-    const ImRect active_region = ImRect(ImVec2(draw_region.Min.x + 35.0f * m_scale, draw_region.Min.y), draw_region.Max);
-    bool slider_hovered = !menu_open && ImGui::ItemHoverable(active_region, id) && !ImGui::ItemHoverable(m_tick_rect, id) && hovered_label == ssUndef;
+    // set mouse active region
+    const ImRect slider_active_region = ImRect(ImVec2(draw_region.Min.x + 35.0f * m_scale, draw_region.Min.y), draw_region.Max);
+    bool slider_hovered = !menu_open && ImGui::ItemHoverable(slider_active_region, id) && !ImGui::ItemHoverable(m_tick_rect, id) && hovered_label == ssUndef;
     struct LabelDragState
     {
         ImGuiID        id = 0;
@@ -981,16 +1035,21 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
 
     // draw background
     draw_background_and_groove(bg_rect, groove);
+    window->DrawList->AddRect(groove.Min, groove.Max, rail_border_clr, 0.5f * groove.GetWidth(), 0, 1.0f * m_scale);
+    const ImRect rail_inner(groove.Min + ImVec2(2.0f, 2.0f) * m_scale, groove.Max - ImVec2(2.0f, 2.0f) * m_scale);
+    window->DrawList->AddRectFilled(rail_inner.Min, rail_inner.Max, rail_inner_clr, 0.5f * rail_inner.GetWidth());
 
     bool value_changed = false;
     if (!one_layer_flag)
     {
         const SelectedSlider dragged_label = label_drag.id == id && context.IO.MouseDown[0] ? label_drag.selection : ssUndef;
         if (dragged_label == ssUndef && !menu_open) {
-            if (ImGui::ItemHoverable(higher_handle, id) && context.IO.MouseClicked[0])
+            if (ImGui::ItemHoverable(higher_handle, id) && context.IO.MouseClicked[0]) {
                 selection = ssHigher;
-            if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0])
+            }
+            if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0]) {
                 selection = ssLower;
+            }
         }
         bool h_selected = selection != ssLower;
 
@@ -1031,6 +1090,11 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
                     m_tick_value, m_tick_rect);
             }
         }
+        SelectedSlider active_label = ssUndef;
+        if (dragged_label != ssUndef)
+            active_label = dragged_label;
+        else if (context.ActiveId == id && context.IO.MouseDown[0])
+            active_label = h_selected ? ssHigher : ssLower;
 
         ImVec2 higher_handle_center = higher_handle.GetCenter();
         ImVec2 lower_handle_center = lower_handle.GetCenter();
@@ -1063,53 +1127,31 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
 
         if (!m_ticks.has_tick_with_code(ToolChange)) {
             // draw scroll line
-            ImRect scroll_line = ImRect(ImVec2(groove.Min.x, higher_handle_center.y), ImVec2(groove.Max.x, lower_handle_center.y));
-            window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, handle_clr);
+            ImRect scroll_line = ImRect(ImVec2(groove.Min.x - 2.0f * m_scale, higher_handle_center.y),
+                ImVec2(groove.Max.x + 2.0f * m_scale, lower_handle_center.y));
+            window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, range_fill_clr, 0.5f * scroll_line.GetWidth());
         }
 
         // draw handles
-        window->DrawList->AddCircleFilled(higher_handle_center, handle_radius, handle_border_clr);
-        window->DrawList->AddCircleFilled(higher_handle_center, handle_radius - handle_border, handle_clr);
-        window->DrawList->AddCircleFilled(lower_handle_center, handle_radius, handle_border_clr);
-        window->DrawList->AddCircleFilled(lower_handle_center, handle_radius - handle_border, handle_clr);
-        if (h_selected) {
-            window->DrawList->AddCircleFilled(higher_handle_center, handle_radius, handle_border_clr);
-            window->DrawList->AddCircleFilled(higher_handle_center, handle_radius - handle_border, handle_clr);
-            window->DrawList->AddLine(higher_handle_center + ImVec2(-0.5f * line_length, 0.0f), higher_handle_center + ImVec2(0.5f * line_length, 0.0f), white_bg, line_width);
-            window->DrawList->AddLine(higher_handle_center + ImVec2(0.0f, -0.5f * line_length), higher_handle_center + ImVec2(0.0f, 0.5f * line_length), white_bg, line_width);
-        }
-        if (!h_selected) {
-            window->DrawList->AddLine(lower_handle_center + ImVec2(-0.5f * line_length, 0.0f), lower_handle_center + ImVec2(0.5f * line_length, 0.0f), white_bg, line_width);
-            window->DrawList->AddLine(lower_handle_center + ImVec2(0.0f, -0.5f * line_length), lower_handle_center + ImVec2(0.0f, 0.5f * line_length), white_bg, line_width);
-        }
+        draw_handle(higher_handle_center);
+        draw_handle(lower_handle_center);
+        draw_active_handle(h_selected ? higher_handle_center : lower_handle_center);
 
-    // ORCA: render fixed-width label boxes
-    // draw higher label
-    auto text_utf8 = into_u8(higher_label);
-    text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
-    text_size = ImVec2(max_label_width, text_content_size.y) + text_padding * 2;
-    ImVec2 text_start = ImVec2(higher_handle.Min.x - text_size.x - triangle_offsets[2].x, higher_handle_center.y - text_size.y);
-    ImRect text_rect(text_start, text_start + text_size);
-    ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-    ImVec2 pos_1 = text_rect.Max - triangle_offsets[0];
-    ImVec2 pos_2 = pos_1 - triangle_offsets[1];
-    ImVec2 pos_3 = pos_1 + triangle_offsets[2];
-    window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
-    ImGui::RenderText(text_start + ImVec2((text_size.x - text_content_size.x) * 0.5f,
-        (text_size.y - text_content_size.y) * 0.5f), higher_label.c_str());
-    // draw lower label
-    text_utf8 = into_u8(lower_label);
-    text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
-    text_size = ImVec2(max_label_width, text_content_size.y) + text_padding * 2;
-    text_start        = ImVec2(lower_handle.Min.x - text_size.x - triangle_offsets[2].x, lower_handle_center.y);
-    text_rect = ImRect(text_start, text_start + text_size);
-    ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-    pos_1 = ImVec2(text_rect.Max.x, text_rect.Min.y) - triangle_offsets[0];
-    pos_2 = pos_1 + triangle_offsets[1];
-    pos_3 = pos_1 + triangle_offsets[2];
-    window->DrawList->AddTriangleFilled(pos_1, pos_2, pos_3, white_bg);
-    ImGui::RenderText(text_start + ImVec2((text_size.x - text_content_size.x) * 0.5f,
-        (text_size.y - text_content_size.y) * 0.5f), lower_label.c_str());
+        // ORCA: render fixed-width label boxes
+        // draw higher label
+        text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2;
+        ImVec2 text_start = ImVec2(higher_handle.Min.x - text_size.x - label_width_margin, higher_handle_center.y - text_size.y);
+        ImRect text_rect(text_start, text_start + text_size);
+        const bool higher_label_active = active_label == ssHigher;
+        draw_label(text_rect, higher_text_content_size, higher_label,
+            hovered_label == ssHigher || higher_label_active, higher_label_active);
+        // draw lower label
+        text_size = ImVec2(max_label_width, lower_text_content_size.y) + text_padding * 2;
+        text_start        = ImVec2(lower_handle.Min.x - text_size.x - label_width_margin, lower_handle_center.y);
+        text_rect = ImRect(text_start, text_start + text_size);
+        const bool lower_label_active = active_label == ssLower;
+        draw_label(text_rect, lower_text_content_size, lower_label,
+            hovered_label == ssLower || lower_label_active, lower_label_active);
         
         // draw mouse position
         if (slider_hovered && !context.IO.MouseDown[0]) {
@@ -1129,9 +1171,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
                 value_changed = *higher_value != new_value;
                 *higher_value = new_value;
             }
-            const float handle_pos = get_pos_from_value(v_min, v_max, *higher_value, one_slideable_region);
-            one_handle = ImRect(mid_x - handle_radius - one_handle_offset, handle_pos - handle_radius,
-                mid_x + handle_radius - one_handle_offset, handle_pos + handle_radius);
+            one_handle = one_layer_handle(*higher_value);
         } else {
             value_changed = slider_behavior(id, one_slideable_region, v_min, v_max,
                 higher_value, &one_handle, ImGuiSliderFlags_Vertical,
@@ -1147,31 +1187,20 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
             context.IO.MouseClicked[0]))
             m_show_menu = false;
 
-        ImVec2 bar_center = higher_handle.GetCenter();
-
         // draw ticks
         draw_ticks(one_slideable_region);
         // draw colored band
         draw_colored_band(groove, one_slideable_region);
 
         // draw handle
-        window->DrawList->AddLine(ImVec2(mid_x - 0.5 * bar_width, handle_center.y), ImVec2(mid_x + 0.5 * bar_width, handle_center.y), handle_clr, 2 * line_width);
-        window->DrawList->AddCircleFilled(handle_center, handle_radius, handle_border_clr);
-        window->DrawList->AddCircleFilled(handle_center, handle_radius - handle_border, handle_clr);
-        window->DrawList->AddLine(handle_center + ImVec2(-0.5f * line_length, 0.0f), handle_center + ImVec2(0.5f * line_length, 0.0f), white_bg, line_width);
-        window->DrawList->AddLine(handle_center + ImVec2(0.0f, -0.5f * line_length), handle_center + ImVec2(0.0f, 0.5f * line_length), white_bg, line_width);
+        draw_active_handle(handle_center);
 
         // draw label
-        auto text_utf8 = into_u8(higher_label);
-        text_content_size = ImGui::CalcTextSize(text_utf8.c_str());
-        // ORCA: slightly narrower label box in one-layer mode to avoid left shift.
-        text_size = ImVec2(std::max(0.0f, max_label_width - label_extra_padding - one_layer_extra_padding),
-            text_content_size.y) + text_padding * 2;
-        ImVec2 text_start = ImVec2(one_handle.Min.x - text_size.x, handle_center.y - 0.5 * text_size.y);
+        text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2;
+        ImVec2 text_start = ImVec2(one_handle.Min.x - text_size.x - label_width_margin, handle_center.y - 0.5 * text_size.y);
         ImRect text_rect = ImRect(text_start, text_start + text_size);
-        ImGui::RenderFrame(text_rect.Min, text_rect.Max, white_bg, false, text_frame_rounding);
-        ImGui::RenderText(text_start + ImVec2((text_size.x - text_content_size.x) * 0.5f,
-            (text_size.y - text_content_size.y) * 0.5f), higher_label.c_str());
+        const bool label_active = context.ActiveId == id && context.IO.MouseDown[0];
+        draw_label(text_rect, higher_text_content_size, higher_label, hovered_label == ssHigher || label_active, label_active);
         
         // draw mouse position
         if (slider_hovered && !context.IO.MouseDown[0]) {
