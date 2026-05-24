@@ -8,9 +8,6 @@
 		"SeeMeCNC PA-CF"
 	],
 	"filament_id": "2c7b4cde-2679-54e6-8f8a-5351e1c32722",
-	"filament_vendor": [
-		"SeeMeCNC"
-	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",
@@ -263,7 +260,6 @@
 	"textured_plate_temp_initial_layer": [
 		"90"
 	],
-	"description": "SeeMeCNC configurations",
 	"overhang_fan_speed": [
 		"50"
 	],

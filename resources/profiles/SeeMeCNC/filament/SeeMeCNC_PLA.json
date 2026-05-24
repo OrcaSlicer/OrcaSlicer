@@ -443,7 +443,7 @@
 	],
 	"description": "SeeMeCNC configurations",
 	"filament_flow_ratio": [
-		"0.95"
+		"0.96"
 	],
 	"dont_slow_down_outer_wall": [
 		"0"

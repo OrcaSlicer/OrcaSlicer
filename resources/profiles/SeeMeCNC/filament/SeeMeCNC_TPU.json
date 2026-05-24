@@ -8,9 +8,6 @@
 		"SeeMeCNC TPU"
 	],
 	"filament_id": "1a05187c-5b07-5e62-a618-8fbc86a83ba5",
-	"filament_vendor": [
-		"SeeMeCNC"
-	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.7 nozzle",
 		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
@@ -180,7 +177,6 @@
 	"filament_retract_lift_enforce": [
 		"All Surfaces"
 	],
-	"description": "SeeMeCNC configurations",
 	"overhang_fan_speed": [
 		"30"
 	],

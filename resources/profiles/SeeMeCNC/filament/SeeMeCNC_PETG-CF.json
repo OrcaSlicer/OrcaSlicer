@@ -8,9 +8,6 @@
 		"SeeMeCNC PETG-CF"
 	],
 	"filament_id": "13dbcfdd-d3e6-5468-897e-1bab77e07258",
-	"filament_vendor": [
-		"SeeMeCNC"
-	],
 	"compatible_printers": [
 		"SeeMeCNC Artemis 0.4 nozzle",
 		"SeeMeCNC Artemis 0.5 nozzle",
@@ -262,10 +259,6 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"70"
-	],
-	"description": "SeeMeCNC configurations",
-	"overhang_fan_speed": [
-		"100"
 	],
 	"keep_fan_always_on": [
 		"0"
