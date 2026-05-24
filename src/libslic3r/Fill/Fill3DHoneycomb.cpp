@@ -3,7 +3,6 @@
 #include "../Surface.hpp"
 #include "FillBase.hpp"
 #include "Fill3DHoneycomb.hpp"
-#include <unistd.h>
 
 namespace Slic3r {
 
