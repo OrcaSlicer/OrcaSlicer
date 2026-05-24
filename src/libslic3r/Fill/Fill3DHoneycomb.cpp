@@ -3,6 +3,7 @@
 #include "../Surface.hpp"
 #include "FillBase.hpp"
 #include "Fill3DHoneycomb.hpp"
+#include <unistd.h>
 
 namespace Slic3r {
 
@@ -277,7 +278,7 @@ static Polyline patternPoints(const coordf_t Zpos, coordf_t gridSize, std::vecto
 //       a rotation angle of 180 degrees or greater can be used.
 static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
                           coordf_t lengthX, coordf_t lengthY,
-                          bool completeTops, coordf_t spacing, size_t multiline_count)
+                          bool completeTops, coordf_t spacing, size_t multiline_count, size_t layer_count)
 {
   coordf_t zCycle = fmod(z + gridSize/2, gridSize * 2.) / (gridSize * 2.);
   bool printVert = zCycle < 0.5;
@@ -292,7 +293,7 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
   result.insert(result.end(), endPoints.begin(), endPoints.end());
   // add tops for the first <multiline_count> layers in each cycle
   if(completeTops && (printVert != printVertLast)){
-    coordf_t layerHeight = (z - zLast) / multiline_count;
+    coordf_t layerHeight = (z - zLast) / (multiline_count * layer_count);
     size_t top_distance = 0;
     for(coordf_t zCheck = z; zCheck >= (zLast + EPSILON); zCheck -= layerHeight, top_distance++){
       coordf_t zCheckCycle = fmod(zCheck + gridSize/2, gridSize * 2.) / (gridSize * 2.);
@@ -312,6 +313,8 @@ static Polylines makeGrid(coordf_t z, coordf_t zLast, coordf_t gridSize,
 // dont_adjust       [avoid filling space evenly]
 // monotonic         [fill strictly left to right]
 // complete          [complete each loop]
+// multiline         [number of lines to draw for each pattern line]
+// complete_top      [should the top surfaces of the pattern be filled]
 
 void Fill3DHoneycomb::_fill_surface_single(
     const FillParams                &params,
@@ -328,6 +331,12 @@ void Fill3DHoneycomb::_fill_surface_single(
     // Increase the bounding box outwards to avoid edge clipping artefacts
     coord_t expandSize = 5. * scale_(this->spacing);
     bb.offset(expandSize);
+
+    // Adjustment for combining infill setting
+    size_t layersPerSlice = 1;
+    if(thickness_layers > 0){
+      layersPerSlice = thickness_layers;
+    }
 
     // Note: with equally-scaled X/Y/Z, the pattern will create a vertically-stretched
     // truncated octahedron; so Z is pre-adjusted first by scaling by sqrt(2)
@@ -364,11 +373,12 @@ void Fill3DHoneycomb::_fill_surface_single(
     Polylines polylines =
       makeGrid(
 	       scale_(this->z) * zScale + startOffset,
-	       scale_(this->z - (params.layer_height * params.multiline)) * zScale + startOffset,
+	       scale_(this->z - (params.layer_height * params.multiline * layersPerSlice)) * zScale + startOffset,
 	       gridSize, bb.size()(0), bb.size()(1),
 	       params.infill_complete_top,
                scale_(this->spacing),
-               params.multiline);
+               params.multiline,
+               layersPerSlice);
 
     // move pattern in place
     for (Polyline &pl : polylines){
