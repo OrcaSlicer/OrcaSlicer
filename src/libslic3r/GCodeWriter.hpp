@@ -98,7 +98,9 @@ public:
     void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
     Vec2f get_xy_offset() { return Vec2f{m_x_offset, m_y_offset}; };
     // To be called by the CoolingBuffer from another thread.
-    static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed);
+    // ORCA: `part_cooling_fan_min_pwm` (0-100, default 0) is a floor applied only when `speed` is non-zero, used to overcome
+    // PWM start-up thresholds on fans that won't spool below a certain duty cycle. A `speed` of 0 is always honoured.
+    static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed, unsigned int part_cooling_fan_min_pwm = 0);
     // To be called by the main thread. It always emits the G-code, it does not remember the previous state.
     // Keeping the state is left to the CoolingBuffer, which runs asynchronously on another thread.
     std::string set_fan(unsigned int speed) const;

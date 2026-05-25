@@ -175,7 +175,7 @@ void DeviceErrorDialog::init_button_list()
     init_button(PROBLEM_SOLVED_RESUME, _L("Problem Solved and Resume"));
     init_button(TURN_OFF_FIRE_ALARM, _L("Got it, Turn off the Fire Alarm."));
     init_button(RETRY_PROBLEM_SOLVED, _L("Retry (problem solved)"));
-    init_button(CANCLE, _L("Cancel"));
+    init_button(CANCEL, _L("Cancel"));
     init_button(STOP_DRYING, _L("Stop Drying"));
     init_button(PROCEED, _L("Proceed"));
     init_button(DBL_CHECK_CANCEL, _L("Cancel"));
@@ -445,7 +445,7 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
         m_obj->command_ams_control("resume");
         break;
     }
-    case DeviceErrorDialog::CANCLE: {
+    case DeviceErrorDialog::CANCEL: {
         break;
     }
     case DeviceErrorDialog::STOP_DRYING: {

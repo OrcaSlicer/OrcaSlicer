@@ -1917,18 +1917,6 @@ void GLGizmoMeasure::show_selection_ui()
     if (m_show_reset_first_tip) {
         m_imgui->text(_L("Feature 1 has been reset, \nfeature 2 has been feature 1"));
     }
-    if (m_selected_wrong_feature_waring_tip) {
-        if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
-            if (m_assembly_mode == AssemblyMode::FACE_FACE) {
-                m_imgui->warning_text(_L("Warning: please select Plane's feature."));
-            } else if (m_assembly_mode == AssemblyMode::POINT_POINT) {
-                m_imgui->warning_text(_L("Warning: please select Point's or Circle's feature."));
-            }
-        }
-    }
-    if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && m_hit_different_volumes.size() == 1) {
-        m_imgui->warning_text(_L("Warning: please select two different meshes."));
-    }
 }
 
 void GLGizmoMeasure::show_distance_xyz_ui()
@@ -2175,9 +2163,20 @@ void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit
 
     ImGui::Separator();
     show_distance_xyz_ui();
+
     ImGui::Separator();
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 
     if (last_feature != m_curr_feature || last_mode != m_mode || last_selected_features != m_selected_features) {
         // the dialog may have changed its size, ask for an extra frame to render it properly

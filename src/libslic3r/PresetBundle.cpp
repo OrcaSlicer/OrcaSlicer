@@ -614,13 +614,24 @@ VendorType PresetBundle::get_current_vendor_type()
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;
+    const auto* printer_model = config->opt<ConfigOptionString>("printer_model");
+    if (printer_model == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": printer_model is "
+                                   << (config->has("printer_model") ? "not a string" : "missing")
+                                   << ", vendor type is Unknown";
+        return t;
+    }
+
     std::string vendor_name;
-    for (auto vendor_profile : vendors) {
-        for (auto vendor_model : vendor_profile.second.models)
-            if (vendor_model.name == config->opt_string("printer_model")) {
+    for (const auto& vendor_profile : vendors) {
+        for (const auto& vendor_model : vendor_profile.second.models) {
+            if (vendor_model.name == printer_model->value) {
                 vendor_name = vendor_profile.first;
                 break;
             }
+        }
+        if (!vendor_name.empty())
+            break;
     }
     if (!vendor_name.empty())
     {
@@ -2622,6 +2633,9 @@ void PresetBundle::update_selections(AppConfig &config)
             break;
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
+
+    update_filament_count();
+
     std::vector<std::string> filament_colors;
     auto f_colors = config.get_printer_setting(initial_printer_profile_name, "filament_colors");
     if (!f_colors.empty()) {
@@ -2762,6 +2776,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
             break;
         this->filament_presets.emplace_back(remove_ini_suffix(f_name));
     }
+
+    update_filament_count();
 
     // Load data from AppConfig to ProjectConfig when Studio is initialized.
     std::vector<std::string> filament_colors;
@@ -3782,9 +3798,31 @@ int PresetBundle::get_printer_extruder_count() const
 {
     const Preset& printer_preset = this->printers.get_edited_preset();
 
-    int count = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto* nozzle_diameter = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_diameter == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_diameter is missing, using 1 extruder";
+        return 1;
+    }
+    if (nozzle_diameter->values.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_diameter is empty, using 1 extruder";
+        return 1;
+    }
+
+    int count = int(nozzle_diameter->values.size());
 
     return count;
+}
+
+void PresetBundle::update_filament_count()
+{
+    if (printers.get_edited_preset().printer_technology() != ptFFF)
+        return;
+    const size_t num_extruders = static_cast<size_t>(get_printer_extruder_count());
+    if (filament_presets.size() >= num_extruders)
+        return;
+    filament_presets.resize(num_extruders, filament_presets.empty()
+        ? filaments.first_visible().name
+        : filament_presets.back());
 }
 
 bool PresetBundle::support_different_extruders()

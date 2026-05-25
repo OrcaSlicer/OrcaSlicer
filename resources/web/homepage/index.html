@@ -24,11 +24,17 @@
 	<div id="LoginArea">
 
 	<!-- Orca Login Section -->
-	<div id="OrcaLoginSection">
-		<div id="OrcaLogin1">
-			<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
-			<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
-		</div>
+	<div id="OrcaSectionLabel" class="AccountSectionLabel">
+		<img class="AccountSectionIcon" src="../../images/OrcaSlicer_gradient_circle.svg" alt="" />
+		<span class="trans OrcaAccountText" tid="orca7">Orca Cloud</span>
+	</div>
+
+		<div id="OrcaLoginSection">
+			<div id="OrcaLogin1">
+				<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
+				<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
+				<div id="OrcaStatusText" class="AccountStatusText trans" tid="orca8">Not signed in</div>
+			</div>
 
 		<div id="OrcaLogin2">
 			<div>
@@ -249,7 +255,6 @@
 
 </script>
 </html>
-
 
 
 
