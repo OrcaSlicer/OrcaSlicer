@@ -162,9 +162,13 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const &)> con
         opts.erase(std::remove_if(opts.begin(), opts.end(), [&comp](Option &o) { return comp(o.opt.opt_key); }), opts.end());
         l.undo_to_sys = true;
     }
+    int it = m_options_mode.size() - 1; //ORCA: add check for separators
     for (int i = m_lines.size() - 1; i >= 0; --i) {
-        if (m_lines[i].get_options().empty())
-            m_options_mode.erase(m_options_mode.begin() + i);
+        if (!m_lines[i].is_separator()) {
+            if (m_lines[i].get_options().empty())
+                m_options_mode.erase(m_options_mode.begin() + it);
+            it--;
+        }
     }
     m_lines.erase(std::remove_if(m_lines.begin(), m_lines.end(), [](auto &l) { return l.get_options().empty(); }), m_lines.end());
     // TODO: remove items from g->m_options;
@@ -257,6 +261,15 @@ Line* OptionsGroup::get_line(const std::string& opt_key)
 void OptionsGroup::append_separator()
 {
     m_lines.emplace_back(Line());
+}
+
+// ORCA: Implementation for labeled separators
+void OptionsGroup::append_separator(const wxString& label, const wxString& tooltip)
+{
+    Line line(label, tooltip, true);
+    line.toggle_visible = true;
+    line.get_options();
+    append_line(line);
 }
 
 void OptionsGroup::activate_line(Line& line)
