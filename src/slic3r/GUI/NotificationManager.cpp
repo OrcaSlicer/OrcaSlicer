@@ -239,6 +239,8 @@ void NotificationManager::PopNotification::use_bbl_theme()
 	m_WindowBkgColor = m_is_dark ? ImVec4(45 / 255.f, 45 / 255.f, 49 / 255.f, 1.f) : ImVec4(1, 1, 1, 1);
 	m_TextColor = m_is_dark ? ImVec4(224 / 255.f, 224 / 255.f, 224 / 255.f, 1.f) : ImVec4(.2f, .2f, .2f, 1.0f);
 	m_HyperTextColor = m_is_dark ? ImVec4(0, 0.588, 0.533, 1) : ImVec4(0, 0.588, 0.533, 1);
+	m_HyperTextColorHover = m_is_dark ? ImVec4(38.f / 255.f, 166.f / 255.f, 154.f / 255.f, 1) : ImVec4(0.f, 129.f / 255.f, 114.f / 255.f, 1); //#26A69A / #008172;
+
 	m_is_dark ? push_style_color(ImGuiCol_Border, {62 / 255.f, 62 / 255.f, 69 / 255.f, 1.f}, true, m_current_fade_opacity) : push_style_color(ImGuiCol_Border, m_CurrentColor, true, m_current_fade_opacity);
     push_style_color(ImGuiCol_WindowBg, m_WindowBkgColor, true, m_current_fade_opacity);
     push_style_color(ImGuiCol_Text, m_TextColor, true, m_current_fade_opacity);
@@ -759,11 +761,17 @@ void NotificationManager::PopNotification::render_hypertext(ImGuiWrapper& imgui,
 		HyperColor = ImVec4(135.f / 255.f, 43 / 255.f, 43 / 255.f, 1); 
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly)) 
 	{ 
-		HyperColor.y += 0.1f; 
-		if (m_data.level == NotificationLevel::SeriousWarningNotificationLevel || m_data.level == NotificationLevel::SeriousWarningNotificationLevel) 
-			HyperColor.x += 0.2f; 
+		if (m_data.level == NotificationLevel::SeriousWarningNotificationLevel){
+			HyperColor.y += 0.1f;
+			HyperColor.x += 0.2f;
+		}
+		else if(m_data.level == NotificationLevel::ErrorNotificationLevel){
+			HyperColor.y += 0.1f;
+		}
+		else {
+			HyperColor = m_HyperTextColorHover;
+		}
 	}
-		
 
 	//text
     push_style_color(ImGuiCol_Text, HyperColor, m_state == EState::FadingOut, m_current_fade_opacity);
@@ -2255,8 +2263,9 @@ void NotificationManager::push_import_finished_notification(const std::string& p
 void NotificationManager::SharedProfilesNotification::init()
 {
 	PopNotification::init();
-	// Add one extra line for the hyperlink row ("Browse shared profiles" + "Don't show again")
-	m_lines_count++;
+	// Add two extra lines for the hyperlink row ("Browse shared profiles" + "Don't show again")
+	// and 1 more additional line for adding spacing between them to make it easier to click
+	m_lines_count = m_lines_count + 2; // ORCA
 }
 
 void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& imgui,
@@ -2283,18 +2292,18 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 	}
 
 	// Render "Browse shared profiles" hyperlink on the next line
-	float hyper_y = starting_y + m_endlines.size() * shift_y;
+	float hyper_y = starting_y + m_endlines.size() * shift_y - m_line_height / 2.f;
 	render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
 
 	// Render "Don't show again" hyperlink after the browse link
 	{
-		float dont_show_x = x_offset + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).x;
+		float dont_show_y = hyper_y + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height / 2.f;
 		std::string dont_show_text = _u8L("Don't show again");
 		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
 
 		// Invisible button
-		ImGui::SetCursorPosX(dont_show_x - 4);
-		ImGui::SetCursorPosY(hyper_y - 5);
+		ImGui::SetCursorPosX(x_offset); // ORCA render on new line to prevent long translations from being cut off
+		ImGui::SetCursorPosY(dont_show_y);
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
@@ -2308,12 +2317,12 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		// Hover color
 		ImVec4 color = m_HyperTextColor;
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
-			color.y += 0.1f;
+			color = m_HyperTextColorHover;
 
 		// Text
 		push_style_color(ImGuiCol_Text, color, m_state == EState::FadingOut, m_current_fade_opacity);
-		ImGui::SetCursorPosX(dont_show_x);
-		ImGui::SetCursorPosY(hyper_y);
+		ImGui::SetCursorPosX(x_offset);
+		ImGui::SetCursorPosY(dont_show_y);
 		imgui.text(dont_show_text.c_str());
 		ImGui::PopStyleColor();
 
@@ -2354,7 +2363,7 @@ void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrap
 	// Hover color
 	ImVec4 HyperColor = m_HyperTextColor;
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
-		HyperColor.y += 0.1f;
+		HyperColor = m_HyperTextColorHover;
 
 	// Text
 	push_style_color(ImGuiCol_Text, HyperColor, m_state == EState::FadingOut, m_current_fade_opacity);

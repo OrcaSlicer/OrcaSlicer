@@ -278,7 +278,11 @@ class SplashScreen : public wxSplashScreen
 {
 public:
     SplashScreen(wxPoint pos = wxDefaultPosition)
-        : wxSplashScreen(wxBitmap(FromDIP(wxSize(480,480),nullptr)), wxSPLASH_CENTRE_ON_SCREEN | wxSPLASH_TIMEOUT, 1500, nullptr, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+        // No wxSPLASH_TIMEOUT — the splash is closed explicitly once MainFrame
+        // is shown. The previous 1500 ms auto-timeout closed the splash long
+        // before init finished, leaving the user staring at a frozen blank
+        // screen during the slow load_presets / new MainFrame phases.
+        : wxSplashScreen(wxBitmap(FromDIP(wxSize(480,480),nullptr)), wxSPLASH_CENTRE_ON_SCREEN, 0, nullptr, wxID_ANY, wxDefaultPosition, wxDefaultSize,
 #ifdef __APPLE__
             wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxSTAY_ON_TOP
 #else
@@ -2758,7 +2762,7 @@ bool GUI_App::on_init_inner()
         //BBS use BBL splashScreen
         scrn = new SplashScreen(splashscreen_pos);
         wxYield();
-        //scrn->SetText(_L("Loading configuration")+ dots);
+        scrn->SetText(_L("Loading configuration") + dots);
     }
 
     BOOST_LOG_TRIVIAL(info) << "loading systen presets...";
@@ -2933,6 +2937,7 @@ bool GUI_App::on_init_inner()
             // Enable all substitutions (in both user and system profiles), but log the substitutions in user profiles only.
             // If there are substitutions in system profiles, then a "reconfigure" event shall be triggered, which will force
             // installation of a compatible system preset, thus nullifying the system preset substitutions.
+            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots); wxYield(); }
             init_params->preset_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
         }
         catch (const std::exception& ex) {
@@ -2961,6 +2966,7 @@ bool GUI_App::on_init_inner()
     }
 #endif
 
+    if (scrn) { scrn->SetText(_L("Creating main window") + dots); wxYield(); }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
     mainframe = new MainFrame();
     // hide settings tabs after first Layout
@@ -2985,8 +2991,10 @@ bool GUI_App::on_init_inner()
             // ensure the selected technology is ptFFF
             plater_->set_printer_technology(ptFFF);
     }
-    else
+    else {
+        if (scrn) { scrn->SetText(_L("Loading current preset") + dots); wxYield(); }
         load_current_presets();
+    }
 
     if (plater_ != nullptr) {
         plater_->reset_project_dirty_initial_presets();
@@ -2998,7 +3006,10 @@ bool GUI_App::on_init_inner()
 #ifdef __WINDOWS__
     mainframe->topbar()->SaveNormalRect();
 #endif
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots); wxYield(); }
     mainframe->Show(true);
+    // Close the splash now that the main UI is visible.
+    if (scrn) { scrn->Destroy(); scrn = nullptr; }
     BOOST_LOG_TRIVIAL(info) << "main frame firstly shown";
 
 //#if BBL_HAS_FIRST_PAGE
@@ -5782,7 +5793,10 @@ void GUI_App::reload_settings()
         load_pending_vendors();
         preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
         preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
-        mainframe->update_side_preset_ui();
+        if (is_main_thread_active())
+            mainframe->update_side_preset_ui();
+        else
+            CallAfter([this] { mainframe->update_side_preset_ui(); });
     }
 }
 
@@ -6023,8 +6037,10 @@ void GUI_App::load_pending_vendors()
         return;
 
     preset_bundle->apply_vendor_config(need_add_vendors, need_add_filaments, app_config, false);
-    app_config->save();
-
+    if (is_main_thread_active())
+        app_config->save();
+    else
+        CallAfter([this] { app_config->save(); });
     need_add_vendors.clear();
     need_add_filaments.clear();
 }
@@ -6508,36 +6524,29 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
         cancelFn = [this, dlg]() {
             return is_closing() || dlg->WasCanceled();
         };
-        finishFn = [this, userid = m_agent->get_user_id(), dlg, t = std::weak_ptr<int>(m_user_sync_token)](bool ok) {
-            CallAfter([=]{
-                dlg->Destroy();
-                if (ok && m_agent && t.lock() == m_user_sync_token && userid == m_agent->get_user_id()) reload_settings();
-            });
+        finishFn = [this, dlg](bool) {
+            CallAfter([=]{ dlg->Destroy(); });
         };
     }
     else {
-        finishFn = [this, userid = m_agent->get_user_id(), t = std::weak_ptr<int>(m_user_sync_token)](bool ok) {
-            CallAfter([=] {
-                if (ok && m_agent && t.lock() == m_user_sync_token && userid == m_agent->get_user_id()) reload_settings();
-            });
-        };
+        finishFn = [](bool) {}; // reload_settings() is now triggered from the background thread
         cancelFn = [this]() {
             return is_closing();
         };
     }
 
-    // Do a one-time scan for files that may be pending deletion (e.g., was deleted while not connected to internet)
-    // Scan for orphaned .info files on startup and add them to deletion queue
-    scan_orphaned_info_files();
-    process_delete_presets();
-
     Bind(EVT_UPDATE_PRESET_BUNDLE,&GUI_App::update_single_bundle,this);
 
     m_sync_update_thread = Slic3r::create_thread(
         [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
+            if (!m_agent) return;
+
+            // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
+            scan_orphaned_info_files();
+            process_delete_presets();
+
             // get setting list, update setting list
             std::string version = preset_bundle->get_vendor_profile_version(PresetBundle::ORCA_DEFAULT_BUNDLE).to_string();
-            if(!m_agent) return;
 
             // run check_and_fix_user_presets_syncinfo once before syncing to make sure all presets have correct sync_info
             // So that we can sync presets that are migrated from old version or users manually put preset files in preset folder
@@ -6562,8 +6571,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 }
             }, progressFn, cancelFn);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " get_setting_list2 ret = " << ret << " m_is_closing = " << m_is_closing;
-            
+
             finishFn(ret == 0);
+
+            if (ret == 0 && m_agent && !t.expired())
+                reload_settings();
 
             // For orca specific syncing
             auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());

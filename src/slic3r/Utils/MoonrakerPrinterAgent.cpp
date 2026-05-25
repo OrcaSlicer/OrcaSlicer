@@ -579,6 +579,27 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
                                 << (max_lane_index + 1) << " lanes";
         int ams_count = (max_lane_index + 4) / 4;
         build_ams_payload(ams_count, max_lane_index, trays);
+
+        // If every tray reported extruder_index, auto-populate physical_extruder_map
+        // so IMEX PA and temperature emission use the correct physical extruder qualifier.
+        // AFC publishes extruder_index=0 for all AFC lanes (they share one carriage) and
+        // extruder_index=N for independent direct-drive tools on separate carriages.
+        bool all_have_extruder_index = std::all_of(trays.begin(), trays.end(),
+            [](const AmsTrayData& t) { return t.extruder_index >= 0; });
+        if (all_have_extruder_index) {
+            std::vector<int> pem(max_lane_index + 1, 0);
+            for (const auto& tray : trays)
+                if (tray.slot_index >= 0 && tray.slot_index <= max_lane_index)
+                    pem[tray.slot_index] = tray.extruder_index;
+            wxTheApp->CallAfter([pem]() {
+                auto* bundle = GUI::wxGetApp().preset_bundle;
+                if (!bundle) return;
+                auto& config = bundle->printers.get_edited_preset().config;
+                config.set_key_value("physical_extruder_map", new ConfigOptionInts(pem));
+                BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: auto-populated physical_extruder_map from AFC extruder_index";
+            });
+        }
+
         return true;
     }
 
@@ -803,6 +824,10 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.tray_type = safe_json_string(lane_obj, "material");
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
+        // extruder_index: 0 is a valid value (AFC lanes on E0), so check contains()
+        // rather than relying on safe_json_int's 0-for-missing fallback.
+        if (lane_obj.contains("extruder_index") && lane_obj["extruder_index"].is_number())
+            tray.extruder_index = lane_obj["extruder_index"].get<int>();
         tray.has_filament = !tray.tray_type.empty();
         auto* bundle = GUI::wxGetApp().preset_bundle;
         tray.tray_info_idx = bundle

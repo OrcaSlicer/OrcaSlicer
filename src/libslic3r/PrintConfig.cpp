@@ -2446,6 +2446,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<FilamentMapMode>(fmmAutoForFlush));
 
+    def = this->add("enable_filament_dynamic_map", coBool);
+    def->label = L("Enable filament dynamic map");
+    def->tooltip = L("Enable dynamic filament mapping during print.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("has_filament_switcher", coBool);
+    def->label = L("Has filament switcher");
+    def->tooltip = L("Printer has a filament switcher hardware (e.g., AMS).");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("filament_flush_temp", coInts);
     def->label = L("Flush temperature");
     def->tooltip = L("Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range.");
@@ -4650,7 +4662,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("additional_fan_full_speed_layer", coInts);
     def->label = L("Full fan speed at layer");
-    def->tooltip = L("Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\". "
+    def->tooltip = L("Auxiliary fan speed will be ramped up linearly from layer \"For the first\" to maximum at layer \"Full fan speed at layer\".\n"
                      "\"Full fan speed at layer\" will be ignored if lower than \"For the first\", in which case the fan will run at maximum allowed speed at layer \"For the first\" + 1.");
     def->min = 0;
     def->max = 1000;
@@ -6330,7 +6342,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_threshold_angle", coInt);
     def->label = L("Threshold angle");
     def->category = L("Support");
-    def->tooltip = L("Support will be generated for overhangs whose slope angle is below the threshold.");
+    def->tooltip = L("Support will be generated for overhangs whose slope angle is below the threshold. "
+                     "The smaller this value is, the steeper the overhang that can be printed without support.\n"
+                     "Note: If set to 0, normal supports use the Threshold overlap instead, "
+                     "while tree supports fall back to a default value of 30.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 90;

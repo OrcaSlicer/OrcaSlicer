@@ -366,7 +366,7 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
 WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxDialog(parent, wxID_ANY, _(L("Flushing volumes for filament change")),
     wxDefaultPosition, wxDefaultSize,
-    wxDEFAULT_DIALOG_STYLE ),
+    wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER ),
     m_max_flush_volume(max_flush_volume)
 {
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
