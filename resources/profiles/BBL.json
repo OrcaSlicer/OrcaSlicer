@@ -1066,10 +1066,6 @@
 			"sub_path": "filament/COEX/COEX PLA @BBL X1C.json"
 		},
 		{
-			"name": "Fiberon PETG-rCF08 @base",
-			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @base.json"
-		},
-		{
 			"name": "fdm_filament_common",
 			"sub_path": "filament/fdm_filament_common.json"
 		},
@@ -1108,10 +1104,6 @@
 		{
 			"name": "COEX PLA @BBL X1C 0.2 nozzle",
 			"sub_path": "filament/COEX/COEX PLA @BBL X1C 0.2 nozzle.json"
-		},
-		{
-			"name": "Fiberon PETG-rCF08 @BBL X1",
-			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @BBL X1.json"
 		},
 		{
 			"name": "FusRock ABS-GF @base",
@@ -1452,6 +1444,10 @@
 		{
 			"name": "Fiberon PETG-rCF @base",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @base.json"
+		},
+		{
+			"name": "Fiberon PETG-rCF08 @base",
+			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @base.json"
 		},
 		{
 			"name": "Generic PETG @base",
@@ -4108,6 +4104,10 @@
 		{
 			"name": "Fiberon PETG-rCF @BBL X1C",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @BBL X1C.json"
+		},
+		{
+			"name": "Fiberon PETG-rCF08 @BBL X1",
+			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @BBL X1.json"
 		},
 		{
 			"name": "Generic PETG",
