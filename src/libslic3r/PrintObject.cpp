@@ -1704,7 +1704,12 @@ void PrintObject::detect_surfaces_type()
         if( (this->config().enable_extra_bridge_layer.value == eblApplyToAll) || (this->config().enable_extra_bridge_layer.value == eblExternalBridgeOnly)){
             const size_t last = (m_layers.empty() ? 0 : m_layers.size() - 1);
 
-            // ORCA: Two-phase to eliminate a data races
+            // ORCA: Two-phase split (collect-then-apply) to eliminate a data race in the
+            // original single-phase parallel_for, where iteration `i` rewrote
+            // m_layers[i+1]->slices.surfaces via std::move while iteration `i+1` (running
+            // on an adjacent TBB block on another worker thread) was iterating that same
+            // Surfaces vector as its bot_surfs. Splitting into a read-only collect pass
+            // followed by a write-only apply pass removes the cross-iteration aliasing.
             //
             // Phase 1: read-only pass — collect each layer's stBottomBridge polygons into a
             // per-layer cache. No surfaces are mutated, so concurrent reads are safe.
@@ -1751,7 +1756,38 @@ void PrintObject::detect_surfaces_type()
                     // This would also skip generation of very short dual bridge layers (that are shorter than N perimeters), but these are unecessary as the bridge distance is
                     // We could reduce this slightly to account for innacurcies in the clipping operation.
                     // TODO: Monitor GitHub issues to check whether second bridge layers are ommited where they should be generated. If yes, reduce the filtering distance
-                    
+
+                    // ORCA: Same-layer-top guard.
+                    //
+                    // Collect every stTop polygon present at layer i+1 (this region) and
+                    // expand it by `offset_distance`. Any candidate second-bridge area that
+                    // falls under this expanded mask will be subtracted out below.
+                    //
+                    // Why this exists: detect_surfaces_type() classifies a layer's "top"
+                    // surfaces as the geometry that is not covered by the layer above. Those
+                    // stTop regions often have small stInternal islands embedded in them. 
+                    // The pre-existing perimeter-width filter
+                    // (shrink_ex/offset_ex by offset_distance) is supposed to throw those
+                    // tiny islands away, but its result is sensitive to Clipper's
+                    // floating-point order of operations: on macOS ARM the filter eats them,
+                    // on Windows/Intel it doesn't. Visible bridges then show up scattered
+                    // across the printed top surface.
+                    //
+                    // Expanding stTop by offset_distance and subtracting it from the overlap
+                    // makes the decision platform-independent: an island fully surrounded by
+                    // stTop disappears regardless of which Clipper happens to be doing the
+                    // math, while large stInternal regions away from the top survive intact
+                    Polygons same_layer_top_expanded;
+                    {
+                        Polygons same_layer_top;
+                        for (const Surface &s : top_surfs) {
+                            if (s.surface_type == stTop)
+                                polygons_append(same_layer_top, to_polygons(s));
+                        }
+                        if (! same_layer_top.empty())
+                            same_layer_top_expanded = expand(same_layer_top, offset_distance);
+                    }
+
                     // For each surface in the layer above
                     for (Surface &s_up : top_surfs) {
                         // Only reclassify stInternal polygons (i.e. what will become later solid and sparse infill)
@@ -1766,7 +1802,13 @@ void PrintObject::detect_surfaces_type()
                         // Filter out the resulting candidate bridges based on size. First perform a shrink operation...
                         // ...followed by an expand operation to bring them back to the original size (positive offset)
                         overlap = offset_ex(shrink_ex(overlap, offset_distance), offset_distance);
-                        
+
+                        // ORCA: subtract the expanded same-layer stTop mask (see comment above
+                        // the mask construction). Drops stInternal islands fully surrounded by
+                        // stTop at i+1 without affecting bridges that lie away from the top.
+                        if (! same_layer_top_expanded.empty() && ! overlap.empty())
+                            overlap = diff_ex(overlap, same_layer_top_expanded, ApplySafetyOffset::Yes);
+
                         // Now subtract the filtered new bridge layer from the remaining internal surfaces to create the new internal surface
                         ExPolygons remainder = diff_ex(p_up, overlap, ApplySafetyOffset::Yes);
                         
