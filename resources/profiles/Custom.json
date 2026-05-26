@@ -39,14 +39,13 @@
 			"sub_path": "process/fdm_process_marlin_common.json"
 		},
 		{
-			"name": "fdm_process_rrf_common",
-			"sub_path": "process/fdm_process_rrf_common.json"
-		},
-		{
 			"name": "fdm_process_repetier_common",
 			"sub_path": "process/fdm_process_repetier_common.json"
 		},
-		
+		{
+			"name": "fdm_process_rrf_common",
+			"sub_path": "process/fdm_process_rrf_common.json"
+		},
 		{
 			"name": "0.08mm Extra Fine @MyKlipper",
 			"sub_path": "process/0.08mm Extra Fine @MyKlipper.json"
@@ -116,6 +115,10 @@
 			"sub_path": "process/0.28mm Extra Draft @MyMarlin.json"
 		},
 		{
+			"name": "0.20mm Standard @MyRepetier",
+			"sub_path": "process/0.20mm Standard @MyRepetier.json"
+		},
+		{
 			"name": "0.08mm Extra Fine @MyRRF",
 			"sub_path": "process/0.08mm Extra Fine @MyRRF.json"
 		},
@@ -138,10 +141,6 @@
 		{
 			"name": "0.28mm Extra Draft @MyRRF",
 			"sub_path": "process/0.28mm Extra Draft @MyRRF.json"
-		},
-		{
-			"name": "0.20mm Standard @MyRepetier",
-			"sub_path": "process/0.20mm Standard @MyRepetier.json"
 		},
 		{
 			"name": "0.08mm Extra Fine @MyToolChanger",
@@ -240,12 +239,12 @@
 			"sub_path": "machine/fdm_klipper_common.json"
 		},
 		{
-			"name": "fdm_rrf_common",
-			"sub_path": "machine/fdm_rrf_common.json"
-		},
-		{
 			"name": "fdm_repetier_common",
 			"sub_path": "machine/fdm_repetier_common.json"
+		},
+		{
+			"name": "fdm_rrf_common",
+			"sub_path": "machine/fdm_rrf_common.json"
 		},
 		{
 			"name": "MyKlipper 0.2 nozzle",
@@ -268,12 +267,12 @@
 			"sub_path": "machine/fdm_toolchanger_common.json"
 		},
 		{
-			"name": "MyRRF 0.4 nozzle",
-			"sub_path": "machine/MyRRF 0.4 nozzle.json"
-		},
-		{
 			"name": "MyRepetier 0.4 nozzle",
 			"sub_path": "machine/MyRepetier 0.4 nozzle.json"
+		},
+		{
+			"name": "MyRRF 0.4 nozzle",
+			"sub_path": "machine/MyRRF 0.4 nozzle.json"
 		},
 		{
 			"name": "MyToolChanger 0.2 nozzle",

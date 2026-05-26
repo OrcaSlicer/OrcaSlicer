@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA Galaxy @BBL A1",
+	"inherits": "PolyLite PLA Galaxy @base",
+	"from": "system",
+	"setting_id": "GFSPM025_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab A1 0.4 nozzle",
+		"Bambu Lab A1 0.6 nozzle",
+		"Bambu Lab A1 0.8 nozzle"
+	],
+	"slow_down_layer_time": [
+		"2"
+	]
+}

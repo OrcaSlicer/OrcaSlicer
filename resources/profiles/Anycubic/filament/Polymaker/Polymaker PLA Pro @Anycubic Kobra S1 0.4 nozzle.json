@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA Pro @Anycubic Kobra S1 0.4 nozzle",
+	"inherits": "Polymaker PLA Pro @base",
+	"from": "system",
+	"setting_id": "GFSPM037_07",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anycubic Kobra S1 0.4 nozzle"
+	]
+}

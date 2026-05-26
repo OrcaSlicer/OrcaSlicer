@@ -1,0 +1,113 @@
+{
+	"type": "filament",
+	"name": "Fiberon PPS-GF @Snapmaker U1 base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "GFPM022",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"filament_type": [
+		"ABS"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"nozzle_temperature_range_high": [
+		"330"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"nozzle_temperature": [
+		"300"
+	],
+	"filament_cost": [
+		"30"
+	],
+	"fan_max_speed": [
+		"10"
+	],
+	"cool_plate_temp": [
+		"105"
+	],
+	"nozzle_temperature_range_low": [
+		"300"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"eng_plate_temp_initial_layer": [
+		"105"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"hot_plate_temp": [
+		"105"
+	],
+	"cool_plate_temp_initial_layer": [
+		"105"
+	],
+	"nozzle_temperature_initial_layer": [
+		"300"
+	],
+	"fan_cooling_layer_time": [
+		"12"
+	],
+	"textured_plate_temp": [
+		"105"
+	],
+	"overhang_fan_speed": [
+		"40"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"temperature_vitrification": [
+		"110"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"textured_plate_temp_initial_layer": [
+		"105"
+	],
+	"slow_down_min_speed": [
+		"30"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": [
+		"105"
+	],
+	"filament_density": [
+		"1.24"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"filament_flow_ratio": [
+		"1.03"
+	],
+	"eng_plate_temp": [
+		"105"
+	],
+	"filament_soluble": [
+		"0"
+	]
+}

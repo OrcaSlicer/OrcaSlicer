@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA Pro Metallic @Snapmaker U1",
+	"inherits": "Polymaker PLA Pro Metallic @Snapmaker U1 base",
+	"from": "system",
+	"setting_id": "GFSPM038_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	]
+}

@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA @Snapmaker U1",
+	"inherits": "Polymaker PLA @Snapmaker U1 base",
+	"from": "system",
+	"setting_id": "GFSPM036_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"pressure_advance": [
+		"0.05"
+	]
+}

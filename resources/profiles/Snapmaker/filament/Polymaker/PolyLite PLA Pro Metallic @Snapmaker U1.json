@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA Pro Metallic @Snapmaker U1",
+	"inherits": "PolyLite PLA Pro Metallic @Snapmaker U1 base",
+	"from": "system",
+	"setting_id": "GFSPM029_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"description": " ",
+	"enable_overhang_bridge_fan": [
+		"1",
+		"0",
+		"0",
+		"0"
+	],
+	"enable_pressure_advance": [
+		"0",
+		"0",
+		"0",
+		"0"
+	]
+}

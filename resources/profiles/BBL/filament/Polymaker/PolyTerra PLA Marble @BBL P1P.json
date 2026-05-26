@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "PolyTerra PLA Marble @BBL P1P",
+	"inherits": "PolyTerra PLA Marble @base",
+	"from": "system",
+	"setting_id": "GFSPM032_03",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab P1P 0.4 nozzle",
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle"
+	],
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_min_speed": [
+		"50"
+	]
+}

@@ -241,6 +241,10 @@
 			"sub_path": "filament/COEX/COEX NYLEX UNFILLED @base.json"
 		},
 		{
+			"name": "FILL3D PA @base",
+			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @base.json"
 		},
@@ -365,6 +369,14 @@
 			"sub_path": "filament/FDplast/FDplast PETG @base.json"
 		},
 		{
+			"name": "FILL3D PETG @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
+		},
+		{
+			"name": "FILL3D PETG CF @base",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
+		},
+		{
 			"name": "Fiberon PET-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @base.json"
 		},
@@ -387,6 +399,10 @@
 		{
 			"name": "Generic PETG-CF @System",
 			"sub_path": "filament/Generic PETG-CF @System.json"
+		},
+		{
+			"name": "GreenGate3D PETG @base",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
 		},
 		{
 			"name": "NIT PETG @base",
@@ -559,6 +575,10 @@
 		{
 			"name": "FDplast PLA @base",
 			"sub_path": "filament/FDplast/FDplast PLA @base.json"
+		},
+		{
+			"name": "FILL3D PLA Basic @base",
+			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
 		},
 		{
 			"name": "FILL3D PLA Turbo @base",
@@ -769,6 +789,14 @@
 			"sub_path": "filament/base/fdm_filament_pla_silk.json"
 		},
 		{
+			"name": "FILL3D PP @base",
+			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
+		},
+		{
+			"name": "FILL3D PPCF @base",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
+		},
+		{
 			"name": "Generic PP @System",
 			"sub_path": "filament/Generic PP @System.json"
 		},
@@ -977,6 +1005,10 @@
 			"sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
 		},
 		{
+			"name": "FILL3D PA @System",
+			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+		},
+		{
 			"name": "Fiberon PA12-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @System.json"
 		},
@@ -1061,6 +1093,14 @@
 			"sub_path": "filament/FDplast/FDplast PETG @System.json"
 		},
 		{
+			"name": "FILL3D PETG @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
+		},
+		{
+			"name": "FILL3D PETG CF @System",
+			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
+		},
+		{
 			"name": "Fiberon PET-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @System.json"
 		},
@@ -1071,6 +1111,10 @@
 		{
 			"name": "Fiberon PETG-rCF @System",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
+		},
+		{
+			"name": "GreenGate3D PETG @System",
+			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		},
 		{
 			"name": "NIT PETG @System",
@@ -1193,56 +1237,12 @@
 			"sub_path": "filament/FDplast/FDplast PLA @System.json"
 		},
 		{
-			"name": "FILL3D PLA Turbo @System",
-			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
-		},
-		{
-			"name": "FILL3D PLA Basic @base",
-			"sub_path": "filament/FILL3D/FILL3D PLA Basic @base.json"
-		},
-		{
 			"name": "FILL3D PLA Basic @System",
 			"sub_path": "filament/FILL3D/FILL3D PLA Basic @System.json"
 		},
 		{
-			"name": "FILL3D PETG @base",
-			"sub_path": "filament/FILL3D/FILL3D PETG @base.json"
-		},
-		{
-			"name": "FILL3D PETG @System",
-			"sub_path": "filament/FILL3D/FILL3D PETG @System.json"
-		},
-		{
-			"name": "FILL3D PETG CF @base",
-			"sub_path": "filament/FILL3D/FILL3D PETG CF @base.json"
-		},
-		{
-			"name": "FILL3D PETG CF @System",
-			"sub_path": "filament/FILL3D/FILL3D PETG CF @System.json"
-		},
-		{
-			"name": "FILL3D PP @base",
-			"sub_path": "filament/FILL3D/FILL3D PP @base.json"
-		},
-		{
-			"name": "FILL3D PP @System",
-			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
-		},
-		{
-			"name": "FILL3D PPCF @base",
-			"sub_path": "filament/FILL3D/FILL3D PPCF @base.json"
-		},
-		{
-			"name": "FILL3D PPCF @System",
-			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
-		},
-		{
-			"name": "FILL3D PA @base",
-			"sub_path": "filament/FILL3D/FILL3D PA @base.json"
-		},
-		{
-			"name": "FILL3D PA @System",
-			"sub_path": "filament/FILL3D/FILL3D PA @System.json"
+			"name": "FILL3D PLA Turbo @System",
+			"sub_path": "filament/FILL3D/FILL3D PLA Turbo @System.json"
 		},
 		{
 			"name": "NIT PLA @System",
@@ -1441,6 +1441,14 @@
 			"sub_path": "filament/Generic PLA Silk @System.json"
 		},
 		{
+			"name": "FILL3D PP @System",
+			"sub_path": "filament/FILL3D/FILL3D PP @System.json"
+		},
+		{
+			"name": "FILL3D PPCF @System",
+			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
+		},
+		{
 			"name": "Bambu PPA-CF @System",
 			"sub_path": "filament/Bambu/Bambu PPA-CF @System.json"
 		},
@@ -1499,14 +1507,6 @@
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
-		},
-		{
-			"name": "GreenGate3D PETG @base",
-			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
-		},
-		{
-			"name": "GreenGate3D PETG @System",
-			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		}
 	],
 	"process_list": [],

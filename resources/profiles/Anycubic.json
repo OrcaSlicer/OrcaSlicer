@@ -589,6 +589,14 @@
 			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra X 0.4 nozzle.json"
 		},
 		{
+			"name": "Polymaker PLA Pro @base",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @base.json"
+		},
+		{
+			"name": "Polymaker PLA Pro Metallic @base",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro Metallic @base.json"
+		},
+		{
 			"name": "Anycubic Generic PVA",
 			"sub_path": "filament/Anycubic Generic PVA.json"
 		},
@@ -701,8 +709,24 @@
 			"sub_path": "filament/Anycubic PLA+ @Anycubic Kobra 3 0.4 nozzle.json"
 		},
 		{
+			"name": "Polymaker PLA Pro @Anycubic Kobra S1 0.4 nozzle",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
+			"name": "Polymaker PLA Pro Metallic @Anycubic Kobra S1 0.4 nozzle",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro Metallic @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
 			"name": "Generic TPU @Anycubic Kobra 3 0.4 nozzle",
 			"sub_path": "filament/Generic TPU @Anycubic Kobra 3 0.4 nozzle.json"
+		},
+		{
+			"name": "Fiberon PA6-CF @Anycubic Kobra S1 0.4 nozzle",
+			"sub_path": "filament/Polymaker/Fiberon PA6-CF @Anycubic Kobra S1 0.4 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA @Anycubic Kobra S1 0.4 nozzle",
+			"sub_path": "filament/Polymaker/Panchroma PLA @Anycubic Kobra S1 0.4 nozzle.json"
 		}
 	],
 	"machine_list": [

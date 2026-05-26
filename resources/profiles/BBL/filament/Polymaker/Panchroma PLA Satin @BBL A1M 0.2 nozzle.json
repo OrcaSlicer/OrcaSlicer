@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"name": "Panchroma PLA Satin @BBL A1M 0.2 nozzle",
-	"renamed_from": "Panchroma PLA Stain @BBL A1M 0.2 nozzle",
 	"inherits": "Panchroma PLA Satin @base",
 	"from": "system",
 	"setting_id": "GFSPM005_03",
