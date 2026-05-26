@@ -121,6 +121,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"bottom_shell_thickness", L("Bottom Minimum Shell Thickness"), 1},
        {"bottom_surface_density", L("Bottom Surface Density"), 1},
        {"sparse_infill_density", "", 1},
+       {"fill_multiline", "", 1},
        {"sparse_infill_pattern", "", 1},
        {"lateral_lattice_angle_1", "", 1},
        {"lateral_lattice_angle_2", "", 1},
