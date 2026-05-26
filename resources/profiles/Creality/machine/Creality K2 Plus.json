@@ -1,13 +1,13 @@
 {
-    "type": "machine_model",
-    "name": "Creality K2 Plus",
-    "nozzle_diameter": "0.8;0.6;0.4;0.2",
-    "bed_model": "creality_k2plus_buildplate_model.stl",
-    "default_bed_type": "Textured PEI Plate",
-    "bed_texture": "creality_k2plus_buildplate_texture.svg",
-    "family": "Creality",
-    "hotend_model": "",
-    "machine_tech": "FFF",
-    "model_id": "Creality_K2_Plus",
-    "default_materials": "Hyper PLA-CF;Hyper PLA;Hyper PETG;Hyper ABS;Generic TPU;Generic PLA-Silk;Generic PLA-CF;Generic PLA;Generic PETG;Generic PC;Generic ASA;Generic ABS;CR-Silk;CR-PLA;CR-PETG;CR-ABS;ENDER FAST PLA"
+	"type": "machine_model",
+	"name": "Creality K2 Plus",
+	"nozzle_diameter": "0.8;0.6;0.4;0.2",
+	"bed_model": "creality_k2plus_buildplate_model.stl",
+	"default_bed_type": "Textured PEI Plate",
+	"bed_texture": "creality_k2plus_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_K2_Plus",
+	"default_materials": "Hyper PLA-CF;Hyper PLA;Hyper PETG;Hyper ABS;Generic TPU;Generic PLA-Silk;Generic PLA-CF;Generic PLA;Generic PETG;Generic PC;Generic ASA;Generic ABS;CR-Silk;CR-PLA;CR-PETG;CR-ABS;ENDER FAST PLA"
 }

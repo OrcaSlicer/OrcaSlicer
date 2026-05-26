@@ -1,13 +1,13 @@
 {
-    "type": "machine_model",
-    "name": "Creality Ender-3 V3",
-    "nozzle_diameter": "0.8;0.6;0.4",
-    "bed_model": "creality_ender3v3_buildplate_model.stl",
-    "default_bed_type": "High Temp Plate",
-    "bed_texture": "creality_ender3v3_buildplate_texture.svg",
-    "family": "Creality",
-    "hotend_model": "",
-    "machine_tech": "FFF",
-    "model_id": "Creality_Ender_3_V3",
-    "default_materials": "CR-ABS;Soleyin Ultra PLA;Hyper PETG;Hyper PLA-CF;Hyper PLA;Generic TPU;Generic PLA-Silk;Generic PLA-CF;Generic PLA;Generic PETG;CR-Silk;CR-PLA;CR-PETG"
+	"type": "machine_model",
+	"name": "Creality Ender-3 V3",
+	"nozzle_diameter": "0.8;0.6;0.4",
+	"bed_model": "creality_ender3v3_buildplate_model.stl",
+	"default_bed_type": "High Temp Plate",
+	"bed_texture": "creality_ender3v3_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_Ender_3_V3",
+	"default_materials": "CR-ABS;Soleyin Ultra PLA;Hyper PETG;Hyper PLA-CF;Hyper PLA;Generic TPU;Generic PLA-Silk;Generic PLA-CF;Generic PLA;Generic PETG;CR-Silk;CR-PLA;CR-PETG"
 }
