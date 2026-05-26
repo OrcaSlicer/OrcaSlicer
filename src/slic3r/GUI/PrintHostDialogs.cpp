@@ -1964,6 +1964,11 @@ void CrealityPrintHostSendDialog::init()
         }
     }
 
+    // Determine which filaments are actually used in the print
+    std::vector<int> used_filaments;
+    if (auto* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate())
+        used_filaments = plate->get_used_filaments();
+
     if (gcode_filament_count > 0 && !m_printer_slots.empty()) {
         auto* label = new wxStaticText(this, wxID_ANY, _L("Filament Mapping:"));
         label->SetFont(::Label::Body_13);
@@ -1972,6 +1977,10 @@ void CrealityPrintHostSendDialog::init()
         group_sizer->AddSpacer(4);
 
         for (int i = 0; i < gcode_filament_count; i++) {
+            if (!used_filaments.empty() &&
+                std::find(used_filaments.begin(), used_filaments.end(), i + 1) == used_filaments.end())
+                continue;
+
             auto* row_sizer = new wxBoxSizer(wxHORIZONTAL);
 
             // Left side: gcode filament color swatch + type
@@ -2039,6 +2048,7 @@ void CrealityPrintHostSendDialog::init()
             group_sizer->Add(row_sizer);
             group_sizer->AddSpacer(4);
             m_slot_combos.push_back(combo);
+            m_combo_filament_idx.push_back(i);
         }
 
         int ext_slot_idx = -1;
@@ -2096,7 +2106,8 @@ std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() c
             auto& slot = m_printer_slots[sel];
             // id = gcode tool index (T1A for first filament, T1B for second, ...),
             // not the destination CFS slot — firmware matches by gcode tool.
-            std::string gcode_tool = "T1" + std::string(1, 'A' + i);
+            int fi = m_combo_filament_idx[i];
+            std::string gcode_tool = "T1" + std::string(1, 'A' + fi);
             info["colorMatch_" + std::to_string(i)] =
                 gcode_tool + "\t" + slot.type + "\t" + slot.color + "\t" +
                 std::to_string(slot.box_id) + "\t" + std::to_string(slot.material_id);

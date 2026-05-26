@@ -217,6 +217,7 @@ private:
     };
     std::vector<SlotInfo>   m_printer_slots;
     std::vector<BitmapComboBox*> m_slot_combos; // one per gcode filament
+    std::vector<int>        m_combo_filament_idx; // original gcode filament index for each combo
 };
 
 class FlashforgePrintHostSendDialog : public PrintHostSendDialog
