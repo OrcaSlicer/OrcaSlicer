@@ -3028,7 +3028,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(60));
 
     def           = this->add("lightning_overhang_angle", coFloat);
-    def->label    = L("Overhang angle");
+    def->label    = L("Lightning overhang angle");
     def->category = L("Strength");
     def->tooltip  = L("Maximum overhang angle for Lightning infill support propagation.");
     def->sidetext = u8"°";
@@ -3040,7 +3040,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("lightning_prune_angle", coFloat);
     def->label    = L("Prune angle");
     def->category = L("Strength");
-    def->tooltip  = L("Maximum overhang angle of Lightning branches.");
+    def->tooltip  = L("Controls how aggressively short or unsupported Lightning branches are pruned. This angle is converted internally to a per-layer distance.");
     def->sidetext = u8"°";
     def->min      = 5;
     def->max      = 85;
