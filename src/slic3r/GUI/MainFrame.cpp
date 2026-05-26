@@ -23,6 +23,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/AppConfig.hpp"
 
 #include "Tab.hpp"
 #include "ProgressStatusBar.hpp"
@@ -2168,7 +2169,8 @@ wxBoxSizer* MainFrame::create_side_tools()
                 }
                 p->append_button(export_sliced_file_btn);
                 p->append_button(export_all_sliced_file_btn);
-                p->append_button(bambu_connect_export_btn);
+                if (wxGetApp().app_config->get_bool("show_bambu_connect_export"))
+                    p->append_button(bambu_connect_export_btn);
                 SideButton* export_gcode_btn = new SideButton(p, _L("Export G-code file"), "");
                 export_gcode_btn->SetCornerRadius(0);
                 export_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
@@ -2790,9 +2792,12 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE)); }, "menu_export_sliced_file", nullptr,
             [this]() {return can_export_all_gcode(); }, this);
 
-        append_menu_item(export_menu, wxID_ANY, _L("Bambu Connect: Export"), _L("Export current plate sliced file and open it in Bambu Connect"),
+        wxMenuItem* bambu_connect_export_menu = append_menu_item(export_menu, wxID_ANY, _L("Bambu Connect: Export"), _L("Export current plate sliced file and open it in Bambu Connect"),
             [this](wxCommandEvent&) { if (m_plater) wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_BAMBU_CONNECT_EXPORT)); }, "menu_export_sliced_file", nullptr,
             [this]() { return can_export_to_bambu_connect(); }, this);
+        this->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& evt) {
+            evt.Show(wxGetApp().app_config->get_bool("show_bambu_connect_export"));
+        }, bambu_connect_export_menu->GetId());
 
         append_menu_item(export_menu, wxID_ANY, _L("Export G-code") + dots/* + "\t" + ctrl + "G"*/, _L("Export current plate as G-code"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_gcode(false); }, "menu_export_gcode", nullptr,
