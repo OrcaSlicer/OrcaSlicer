@@ -488,7 +488,7 @@ public:
     GLVolume* new_toolpath_volume(const ColorRGBA& rgba);
     GLVolume* new_nontoolpath_volume(const ColorRGBA& rgba);
 
-    int get_selection_support_threshold_angle(bool&) const;
+    float get_selection_support_normal_z() const;
     // Render the volumes by OpenGL.
     //BBS: add outline drawing logic
     void render(ERenderType                           type,
