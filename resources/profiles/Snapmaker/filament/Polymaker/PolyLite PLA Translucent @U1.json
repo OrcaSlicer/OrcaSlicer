@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA Translucent @U1",
+	"inherits": "PolyLite PLA Translucent @U1 base",
+	"from": "system",
+	"setting_id": "GFSPM031_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	]
+}

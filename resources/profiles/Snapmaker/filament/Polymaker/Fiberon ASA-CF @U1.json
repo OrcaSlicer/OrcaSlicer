@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Fiberon ASA-CF @U1",
+	"inherits": "Fiberon ASA-CF @U1 base",
+	"from": "system",
+	"setting_id": "GFSPM020_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"pressure_advance": [
+		"0.05"
+	]
+}

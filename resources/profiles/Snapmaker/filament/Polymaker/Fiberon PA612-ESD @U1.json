@@ -1,0 +1,21 @@
+{
+	"type": "filament",
+	"name": "Fiberon PA612-ESD @U1",
+	"inherits": "Fiberon PA612-ESD @U1 base",
+	"from": "system",
+	"setting_id": "GFSPM021_00",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_retraction_length": [
+		"1.0"
+	],
+	"filament_z_hop": [
+		"0.0"
+	],
+	"description": " ",
+	"enable_pressure_advance": [
+		"1"
+	]
+}

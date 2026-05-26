@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "PolyLite PETG @U1",
+	"inherits": "PolyLite PETG @U1 base",
+	"from": "system",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"supertack_plate_temp": [
+		"70"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"70"
+	],
+	"pressure_advance": [
+		"0.05"
+	]
+}

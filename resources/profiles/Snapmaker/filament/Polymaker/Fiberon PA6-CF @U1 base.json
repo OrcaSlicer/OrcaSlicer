@@ -1,0 +1,110 @@
+{
+	"type": "filament",
+	"name": "Fiberon PA6-CF @U1 base",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"filament_id": "GFL50",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"filament_type": [
+		"PA6-CF"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"fan_min_speed": [
+		"0"
+	],
+	"nozzle_temperature_range_high": [
+		"300"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"nozzle_temperature": [
+		"290"
+	],
+	"filament_cost": [
+		"20"
+	],
+	"fan_max_speed": [
+		"10"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"nozzle_temperature_range_low": [
+		"280"
+	],
+	"bed_type": [
+		"Cool Plate"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"eng_plate_temp_initial_layer": [
+		"100"
+	],
+	"close_fan_the_first_x_layers": [
+		"3"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"nozzle_temperature_initial_layer": [
+		"290"
+	],
+	"fan_cooling_layer_time": [
+		"31"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"overhang_fan_speed": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"temperature_vitrification": [
+		"74.2"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"overhang_fan_threshold": [
+		"95%"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"filament_density": [
+		"1.17"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"eng_plate_temp": [
+		"100"
+	],
+	"filament_soluble": [
+		"0"
+	]
+}
