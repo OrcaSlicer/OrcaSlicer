@@ -2047,10 +2047,20 @@ void CrealityPrintHostSendDialog::init()
             combo->SetSelection(default_sel);
             row_sizer->Add(combo, 0, wxALIGN_CENTER_VERTICAL);
 
+            auto* warn_label = new wxStaticText(this, wxID_ANY, _L("type mismatch"));
+            warn_label->SetFont(::Label::Body_12);
+            warn_label->SetForegroundColour(wxColour(255, 111, 0));
+            row_sizer->Add(warn_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8));
+            bool type_match = default_sel >= 0 && default_sel < (int)m_printer_slots.size() &&
+                              m_printer_slots[default_sel].type == gc_type;
+            warn_label->Show(!type_match);
+
             group_sizer->Add(row_sizer);
             group_sizer->AddSpacer(4);
             m_slot_combos.push_back(combo);
             m_combo_filament_idx.push_back(i);
+            m_warn_labels.push_back(warn_label);
+            m_gcode_types.push_back(gc_type);
         }
 
         int ext_slot_idx = -1;
@@ -2073,8 +2083,8 @@ void CrealityPrintHostSendDialog::init()
                 }
             }
 
-            for (auto* c : m_slot_combos) {
-                c->Bind(wxEVT_COMBOBOX, [this, ext_slot_idx](wxCommandEvent& e) {
+            for (int ci = 0; ci < (int)m_slot_combos.size(); ci++) {
+                m_slot_combos[ci]->Bind(wxEVT_COMBOBOX, [this, ci, ext_slot_idx](wxCommandEvent& e) {
                     int sel = e.GetSelection();
                     if (sel >= 0 && sel < (int)m_printer_slots.size() &&
                         m_printer_slots[sel].box_id == 0) {
@@ -2086,6 +2096,10 @@ void CrealityPrintHostSendDialog::init()
                         for (auto* c2 : m_slot_combos)
                             c2->Enable(true);
                     }
+                    bool match = sel >= 0 && sel < (int)m_printer_slots.size() &&
+                                 m_printer_slots[sel].type == m_gcode_types[ci];
+                    m_warn_labels[ci]->Show(!match);
+                    this->Layout();
                     e.Skip();
                 });
             }
