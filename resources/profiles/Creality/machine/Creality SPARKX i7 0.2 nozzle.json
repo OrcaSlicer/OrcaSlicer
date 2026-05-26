@@ -19,7 +19,7 @@
 	"cooling_tube_retraction": "0",
 	"creality_flush_time": "0",
 	"default_flush_multiplier": "0.8",
-	"default_print_profile": "0.10mm Standard @SPARKX i7 0.2 nozzle",
+	"default_print_profile": "0.10mm Standard @Creality SPARKX i7 0.2 nozzle",
 	"disable_m73": "0",
 	"emit_machine_limits_to_gcode": "1",
 	"enable_filament_ramming": "0",
@@ -94,7 +94,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Hyper PLA SPARKX i7 0.2 nozzle"
+		"Hyper PLA Creality SPARKX i7 0.2 nozzle"
 	],
 	"deretraction_speed": "30",
 	"extruder_colour": "#FCE94F",
@@ -122,6 +122,6 @@
 	"wipe_distance": "2",
 	"z_hop": "0.4",
 	"z_hop_types": "Slope Lift",
-	"name": "SPARKX i7 0.2 nozzle",
+	"name": "Creality SPARKX i7 0.2 nozzle",
 	"setting_id": "24422"
 }

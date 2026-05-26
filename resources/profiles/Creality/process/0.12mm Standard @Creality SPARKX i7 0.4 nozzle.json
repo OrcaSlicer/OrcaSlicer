@@ -1,7 +1,7 @@
 {
 	"type": "process",
 	"setting_id": "GP004",
-	"name": "0.12mm Standard @SPARKX i7 0.4 nozzle",
+	"name": "0.12mm Standard @Creality SPARKX i7 0.4 nozzle",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_process_creality_common",
@@ -27,7 +27,7 @@
 	"brim_type": "auto_brim",
 	"brim_width": "3",
 	"compatible_printers": [
-		"SPARKX i7 0.4 nozzle"
+		"Creality SPARKX i7 0.4 nozzle"
 	],
 	"counterbore_hole_bridging": "none",
 	"default_acceleration": "4000",
