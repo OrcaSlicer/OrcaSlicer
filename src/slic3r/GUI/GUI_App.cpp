@@ -4374,12 +4374,12 @@ void GUI_App::get_login_info(const std::string& provider/* = ORCA_CLOUD_PROVIDER
     if (m_agent) {
         if (m_agent->is_user_login(provider)) {
             std::string login_cmd = m_agent->build_login_cmd(provider);
-            wxString strJS = wxString::Format("window.postMessage(%s)", login_cmd);
+            wxString strJS = wxString::Format("window.postMessage(%s)", from_u8(login_cmd));
             GUI::wxGetApp().run_script(strJS);
         } else {
             m_agent->user_logout(false, provider);
             std::string logout_cmd = m_agent->build_logout_cmd(provider);
-            wxString    strJS      = wxString::Format("window.postMessage(%s)", logout_cmd);
+            wxString    strJS      = wxString::Format("window.postMessage(%s)", from_u8(logout_cmd));
             GUI::wxGetApp().run_script(strJS);
         }
         mainframe->m_webview->SetLoginPanelVisibility(true);
