@@ -3040,7 +3040,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("lightning_prune_angle", coFloat);
     def->label    = L("Prune angle");
     def->category = L("Strength");
-    def->tooltip  = L("Maximum unsupported angle used to prune Lightning branches.");
+    def->tooltip  = L("Maximum overhang angle of Lightning branches.");
     def->sidetext = u8"°";
     def->min      = 5;
     def->max      = 85;
