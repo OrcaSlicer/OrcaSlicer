@@ -338,7 +338,21 @@ void FilamentGroupPopup::OnRadioBtn(int idx)
     }
 }
 
-void FilamentGroupPopup::OnTimer(wxTimerEvent &event) { Dismiss(); }
+void FilamentGroupPopup::OnTimer(wxTimerEvent &event)
+{
+#if __APPLE__
+    // On macOS, when moving cursor from slice button to this popup window,
+    // the popup window entering event is triggered first, then the slice button
+    // leaving event got triggered. So the timer is stopped first, then started
+    // again, causing the popup being dismissed immediately.
+    // To fix this, we check if cursor is still inside the popup window before
+    // dismissing.
+    wxPoint pos = this->ScreenToClient(wxGetMousePosition());
+    if (this->GetClientRect().Contains(pos)) return;
+#endif
+
+    Dismiss();
+}
 
 void FilamentGroupPopup::Dismiss() {
     m_active = false;
