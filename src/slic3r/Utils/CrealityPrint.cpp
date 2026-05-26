@@ -106,6 +106,7 @@ bool CrealityPrint::test(wxString& msg) const
                 }
             } catch (const json::exception& e) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse /info response: %2%") % name % e.what();
+                m_model_query_failed = true;
             }
         })
 #ifdef WIN32

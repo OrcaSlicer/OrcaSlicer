@@ -1884,8 +1884,17 @@ void CrealityPrintHostSendDialog::init()
         if (multi_color)
             printer_name = creality_host->model_name();
     }
-    if (!multi_color)
+    if (!multi_color) {
+        if (creality_host->model_query_failed()) {
+            auto* warn = new wxStaticText(this, wxID_ANY,
+                _L("Warning: could not detect printer model. Try reopening this dialog."));
+            warn->SetForegroundColour(wxColour(255, 111, 0));
+            content_sizer->Add(warn, 0, wxEXPAND | wxALL, FromDIP(5));
+            this->Layout();
+            this->Fit();
+        }
         return;
+    }
 
     auto* group_box = new wxStaticBox(this, wxID_ANY,
         wxString::Format(_L("Printer: %s"), printer_name));
