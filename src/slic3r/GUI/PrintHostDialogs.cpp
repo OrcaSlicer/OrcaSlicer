@@ -1942,6 +1942,8 @@ void CrealityPrintHostSendDialog::init()
                         if (box_type == 0 && box.value("state", 0) != 1)
                             continue;
                         for (auto& mat : box["materials"]) {
+                            if (mat.value("type", "").empty())
+                                continue;
                             int slot_id = mat["id"].get<int>();
                             std::string tool_id = "T" + std::to_string(box_id) + std::string(1, 'A' + slot_id);
                             // Creality uses "#0RRGGBB" (7 hex digits), normalize to "#RRGGBB"
