@@ -1,4 +1,9 @@
 {
+	"type": "filament",
+	"name": "Flashforge PLA Silk @FF C5P",
+	"inherits": "Generic PLA Silk @System",
+	"from": "system",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -52,11 +57,6 @@
 	"filament_type": [
 		"SILK"
 	],
-	"from": "system",
-	"inherits": "Generic PLA Silk @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PLA Silk @FF C5P",
 	"nozzle_temperature": [
 		"230"
 	],
@@ -71,6 +71,5 @@
 	],
 	"supertack_plate_temp_initial_layer": [
 		"40"
-	],
-	"version": "2.3.0.3"
+	]
 }
