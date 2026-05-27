@@ -358,6 +358,21 @@ namespace Slic3r {
 
     }
 
+    std::string ElegooLink::lookup_cc2_serial(DynamicPrintConfig* config)
+    {
+        if (config == nullptr)
+            return {};
+        if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
+            return {};
+
+        const std::string host_ip = get_host_from_url(config->opt_string("print_host"));
+        const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
+        std::string       sn      = lookup_sn(host_ip, token);
+        if (sn.empty())
+            sn = load_sn_from_config(host_ip);
+        return sn;
+    }
+
     std::string ElegooLink::get_print_host_webui(DynamicPrintConfig* config)
     {
         if (config == nullptr)
@@ -389,12 +404,7 @@ namespace Slic3r {
         const std::string host_ip = get_host_from_url(host);
 
         // Pass sn= so the panel can subscribe to the correct MQTT topics.
-        // Order: in-memory cache, AppConfig dev_sn (keyed by print_host), then LAN HTTP.
-        std::string sn = lookup_sn(host_ip, token);
-        if (sn.empty())
-            sn = load_sn_from_config(host_ip);
-        if (!sn.empty())
-            cache_sn(host_ip, token, sn);
+        std::string sn = lookup_cc2_serial(config);
         if (sn.empty()) {
             std::string error_msg;
             auto http = Http::get("http://" + host_ip + "/system/info?X-Token=" + escape_string(token));
@@ -451,42 +461,16 @@ namespace Slic3r {
 
     std::string ElegooLink::get_sn() const
     {
+        // Panel IPC calls this on every load with a 10s timeout. Never block on HTTP
+        // here — URL sn= and dev_sn must be enough; HTTP is only for get_print_host_webui.
         if (classify_printer_model(m_printerModel) != ElegooPrinterType::CC2)
             return "";
 
-        const char*           name     = get_name();
-        std::string           sn;
-        const auto            token    = cc2_token();
-        const std::string     host_ip  = get_host_from_url(m_host);
-        sn = lookup_sn(host_ip, token);
+        const std::string host_ip = get_host_from_url(m_host);
+        const std::string token   = cc2_token();
+        std::string       sn      = lookup_sn(host_ip, token);
         if (sn.empty())
             sn = load_sn_from_config(host_ip);
-        if (!sn.empty())
-            return sn;
-
-        auto             http  = Http::get(make_cc2_info_url());
-        http.timeout_connect(10)
-            .timeout_max(15);
-        http.header("X-Token", token);
-        http.header("Accept", "application/json");
-        http.on_error([&](std::string body, std::string error, unsigned status) {
-                BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error getting CC2 device info for SN: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
-            })
-            .on_complete([&](std::string body, unsigned status) {
-                std::string error_message;
-                if (!parse_cc2_response(body, error_message, &sn)) {
-                    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse CC2 SN response, HTTP %2%, reason: %3%") % name % status % error_message;
-                    sn.clear();
-                }
-            })
-#ifdef WIN32
-            .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
-#endif // WIN32
-            .perform_sync();
-
-        if (!sn.empty())
-            persist_sn(host_ip, token, sn);
-
         return sn;
     }
 

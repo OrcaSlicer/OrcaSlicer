@@ -5,6 +5,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
+#include "slic3r/Utils/ElegooLink.hpp"
 #include "libslic3r/Preset.hpp"
 
 #include <nlohmann/json.hpp>
@@ -98,8 +99,6 @@ public:
         stop_upload = true;
         if (upload_thread.joinable())
             upload_thread.join();
-        if (sn_thread.joinable())
-            sn_thread.join();
     }
 
     void on_script_message(wxWebViewEvent &evt) override
@@ -287,35 +286,16 @@ private:
 
     void handle_get_sn_request(const std::string& request_id, const std::string& method)
     {
-        if (sn_request_in_progress.exchange(true)) {
-            send_ipc_message("response", request_id, method, 1, "SN request already in progress");
-            return;
-        }
-
-        if (sn_thread.joinable())
-            sn_thread.join();
-
-        sn_thread = std::thread([this, request_id, method]() {
-            std::string sn;
-
-            DynamicPrintConfig* config = get_active_printer_config();
-            std::unique_ptr<PrintHost> print_host(config == nullptr ? nullptr : PrintHost::get_print_host(config));
-            if (print_host != nullptr)
-                sn = print_host->get_sn();
-
-            sn_request_in_progress = false;
-            json data = {
-                {"sn", sn}
-            };
-            send_ipc_message("response", request_id, method, 0, "success", dump_json(data));
-        });
+        // Panel always calls get_sn with a 10s IPC timeout. Answer immediately from
+        // dev_sn / cache — do not spawn a thread or perform HTTP (panel uses URL sn on miss).
+        const std::string sn = ElegooLink::lookup_cc2_serial(get_active_printer_config());
+        json              data = { { "sn", sn } };
+        send_ipc_message("response", request_id, method, 0, "success", dump_json(data));
     }
 
     std::atomic<bool> upload_in_progress { false };
-    std::atomic<bool> sn_request_in_progress { false };
     std::atomic<bool> stop_upload { false };
     std::thread       upload_thread;
-    std::thread       sn_thread;
 };
 
 } // namespace
