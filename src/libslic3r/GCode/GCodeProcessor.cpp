@@ -1230,8 +1230,15 @@ void GCodeProcessor::run_post_process()
         }
     };
 
+    // Orca: track the current layer during the post-processing pass so that preheat M104s emitted
+    // for tool changes on the first layer use the correct first-layer temperature. The member
+    // m_layer_id is populated during the analysis pass and ends at the total layer count, so it
+    // cannot be used here — it would always select the "other layers" temperature for multi-layer
+    // prints.
+    unsigned int current_layer_id = 0;
+
     // add lines M104 to exported gcode
-    auto process_line_T = [this, &export_line](const std::string& gcode_line, const size_t g1_lines_counter, const ExportLines::Backtrace& backtrace) {
+    auto process_line_T = [this, &export_line, &current_layer_id](const std::string& gcode_line, const size_t g1_lines_counter, const ExportLines::Backtrace& backtrace) {
         const std::string cmd = GCodeReader::GCodeLine::extract_cmd(gcode_line);
 
         int tool_number = -1;
@@ -1257,8 +1264,13 @@ void GCodeProcessor::run_post_process()
                 export_line.insert_lines(
                     backtrace, cmd,
                     // line inserter
-                    [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
-                        const int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
+                    [tool_number, this, &current_layer_id](unsigned int id, const std::vector<float>& time_diffs) {
+                        // Orca: use the locally-tracked layer index (current_layer_id) rather than
+                        // the stale m_layer_id from the analysis pass. current_layer_id == 0 means
+                        // we haven't reached the first ;LAYER_CHANGE marker yet (e.g. tool change
+                        // inside start gcode); == 1 means we are inside the first printed layer.
+                        // Both cases should use the first-layer nozzle temperature.
+                        const int temperature = int(current_layer_id > 1 ? m_filament_nozzle_temp[tool_number] :
                                                                          m_filament_nozzle_temp_first_layer[tool_number]);
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
@@ -1351,6 +1363,19 @@ void GCodeProcessor::run_post_process()
                 if (eol) {
                     ++line_id;
                     const unsigned int internal_g1_lines_counter = export_line.update(gcode_line, line_id, g1_lines_counter);
+                    // Orca: track the current layer for preheat temperature selection.
+                    // The line is ";" + reserved_tag(Layer_Change) + EOL; match it independent of
+                    // BBL vs. compatible flavor (which differ in the tag text).
+                    if (gcode_line.size() > 1 && gcode_line.front() == ';') {
+                        std::string_view tag_line(gcode_line);
+                        // strip trailing CR/LF
+                        while (!tag_line.empty() && (tag_line.back() == '\n' || tag_line.back() == '\r'))
+                            tag_line.remove_suffix(1);
+                        // strip leading ';'
+                        tag_line.remove_prefix(1);
+                        if (tag_line == reserved_tag(ETags::Layer_Change))
+                            ++current_layer_id;
+                    }
                     // replace placeholder lines
                     bool processed = process_placeholders(gcode_line);
                     if (processed)
@@ -3796,9 +3821,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         return;
 
     EMoveType type = move_type(delta_pos);
+    const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
+    m_travel_dist = delta_xyz;
+
     if (type == EMoveType::Extrude) {
-        const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
-        m_travel_dist = delta_xyz;
         float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
         float area_toolpath_cross_section = volume_extruded_filament / delta_xyz;
 
@@ -5420,6 +5446,11 @@ void GCodeProcessor::process_filament_change(int id)
     int next_extruder_id = m_filament_maps[id];
     int next_filament_id = id;
     float extra_time = 0;
+    unsigned int filament_changes_delta = 0;
+    unsigned int extruder_changes_delta = 0;
+    float filament_load_time_delta = 0.0f;
+    float filament_unload_time_delta = 0.0f;
+    float tool_change_time_delta = 0.0f;
 
     if (prev_filament_id == next_filament_id)
         return;
@@ -5432,12 +5463,14 @@ void GCodeProcessor::process_filament_change(int id)
         assert(prev_extruder_id != -1);
         process_filaments(CustomGCode::ToolChange);
         m_filament_id[next_extruder_id] = next_filament_id;
-        m_result.lock();
-        m_result.print_statistics.total_filament_changes += 1;
-        m_result.unlock();
-        extra_time += get_filament_unload_time(static_cast<size_t>(prev_filament_id));
+        filament_changes_delta += 1;
+        const float filament_unload_time = get_filament_unload_time(static_cast<size_t>(prev_filament_id));
+        extra_time += filament_unload_time;
+        filament_unload_time_delta += filament_unload_time;
         m_time_processor.extruder_unloaded = false;
-        extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+        const float filament_load_time = get_filament_load_time(static_cast<size_t>(next_filament_id));
+        extra_time += filament_load_time;
+        filament_load_time_delta += filament_load_time;
     }
     else {
         if (prev_extruder_id == -1) {
@@ -5445,7 +5478,9 @@ void GCodeProcessor::process_filament_change(int id)
             m_extruder_id = next_extruder_id;
             m_filament_id[next_extruder_id] = next_filament_id;
             m_time_processor.extruder_unloaded = false;
-            extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+            const float filament_load_time = get_filament_load_time(static_cast<size_t>(next_filament_id));
+            extra_time += filament_load_time;
+            filament_load_time_delta += filament_load_time;
         }
         else {
             //first process cache generated by last extruder
@@ -5456,24 +5491,39 @@ void GCodeProcessor::process_filament_change(int id)
                 //no filament in current extruder
                 m_filament_id[next_extruder_id] = next_filament_id;
                 m_time_processor.extruder_unloaded = false;
-                extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+                const float filament_load_time = get_filament_load_time(static_cast<size_t>(next_filament_id));
+                extra_time += filament_load_time;
+                filament_load_time_delta += filament_load_time;
             }
             else if (m_last_filament_id[next_extruder_id] != next_filament_id) {
                 //need to change filament
                 m_filament_id[next_extruder_id] = next_filament_id;
-                m_result.lock();
-                m_result.print_statistics.total_filament_changes += 1;
-                m_result.unlock();
-                extra_time += get_filament_unload_time(static_cast<size_t>(prev_filament_id));
+                filament_changes_delta += 1;
+                const float filament_unload_time = get_filament_unload_time(static_cast<size_t>(prev_filament_id));
+                extra_time += filament_unload_time;
+                filament_unload_time_delta += filament_unload_time;
                 m_time_processor.extruder_unloaded = false;
-                extra_time += get_filament_load_time(static_cast<size_t>(next_filament_id));
+                const float filament_load_time = get_filament_load_time(static_cast<size_t>(next_filament_id));
+                extra_time += filament_load_time;
+                filament_load_time_delta += filament_load_time;
             }
-            m_result.lock();
-            m_result.print_statistics.total_extruder_changes++;
-            m_result.unlock();
-            extra_time += get_extruder_change_time(next_extruder_id);
+            extruder_changes_delta += 1;
+            const float tool_change_time = get_extruder_change_time(next_extruder_id);
+            extra_time += tool_change_time;
+            tool_change_time_delta += tool_change_time;
         }
     }
+
+    if (filament_changes_delta > 0 || extruder_changes_delta > 0 || filament_load_time_delta > 0.0f || filament_unload_time_delta > 0.0f || tool_change_time_delta > 0.0f) {
+        m_result.lock();
+        m_result.print_statistics.total_filament_changes += filament_changes_delta;
+        m_result.print_statistics.total_extruder_changes += extruder_changes_delta;
+        m_result.print_statistics.total_filament_load_time += filament_load_time_delta;
+        m_result.print_statistics.total_filament_unload_time += filament_unload_time_delta;
+        m_result.print_statistics.total_tool_change_time += tool_change_time_delta;
+        m_result.unlock();
+    }
+
     m_cp_color.current = m_extruder_colors[next_filament_id];
     simulate_st_synchronize(extra_time);
     // store tool change move
@@ -5517,6 +5567,11 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     m_last_line_id = (type == EMoveType::Color_change || type == EMoveType::Pause_Print || type == EMoveType::Custom_GCode) ?
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
+
+    if (type == EMoveType::Travel) {
+        m_result.print_statistics.total_travel_moves++;
+        m_result.print_statistics.total_travel_distance += m_travel_dist;
+    }
 
     m_result.moves.push_back({
         m_last_line_id,

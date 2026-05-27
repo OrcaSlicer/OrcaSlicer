@@ -372,27 +372,31 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(main_sizer);
     this->SetBackgroundColour(*wxWHITE);
-    auto filament_count= wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
-    wxSize extra_size = { FromDIP(100),FromDIP(235) };
-    if (filament_count <= 2)
-        extra_size.y += FromDIP(16) * 3 + FromDIP(32);
-    else if (filament_count == 3)
-        extra_size.y += FromDIP(16) * 3;
-    else if (4 <= filament_count && filament_count <= 8)
-        extra_size.y += FromDIP(16) * 2;
-    else
-        extra_size.y += FromDIP(16);
+    auto filament_count = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
 
-    wxSize max_scroll_size = { FromDIP(1000),FromDIP(500) };
-    wxSize estimate_size = { (int)(filament_count + 1) * FromDIP(60),(int)(filament_count + 1) * FromDIP(30)+FromDIP(2)};
-    wxSize scroll_size ={ std::min(max_scroll_size.x,estimate_size.x),std::min(max_scroll_size.y,estimate_size.y) };
-    wxSize applied_size = scroll_size + extra_size;
+    // Estimate table scroll area size based on filament count
+    // Each table cell is ~60x25 DIP, plus headers and borders
+    wxSize max_scroll_size = { FromDIP(1000), FromDIP(500) };
+    wxSize table_size = { (int)(filament_count + 1) * FromDIP(60), (int)(filament_count + 1) * FromDIP(25) + FromDIP(2) };
+    wxSize scroll_size = { std::min(max_scroll_size.x, table_size.x), std::min(max_scroll_size.y, table_size.y) };
 
+    // Fixed overhead: padding (~30), tip panel (~70), controls row (~50),
+    // description/multiplier section (~130), button row (~45) = ~325 DIP
+    wxSize fixed_overhead = { FromDIP(100), FromDIP(325) };
+    wxSize applied_size = scroll_size + fixed_overhead;
+
+    // Clamp to screen size (leave some margin for window decorations)
     wxSize scaled_screen_size = wxGetDisplaySize();
     double scale_factor = wxDisplay().GetScaleFactor();
-    scaled_screen_size = { (int)(scaled_screen_size.x / scale_factor),(int)(scaled_screen_size.y / scale_factor) };
+    scaled_screen_size = { (int)(scaled_screen_size.x / scale_factor), (int)(scaled_screen_size.y / scale_factor) };
+    wxSize screen_margin = { FromDIP(40), FromDIP(60) };
+    scaled_screen_size -= screen_margin;
 
-    applied_size = { std::min(applied_size.x,scaled_screen_size.x),std::min(applied_size.y,scaled_screen_size.y) };
+    applied_size = { std::min(applied_size.x, scaled_screen_size.x), std::min(applied_size.y, scaled_screen_size.y) };
+
+    // Ensure a reasonable minimum size so the dialog is usable even when clamped
+    applied_size.x = std::max(applied_size.x, FromDIP(350));
+    applied_size.y = std::max(applied_size.y, FromDIP(450));
     m_webview = wxWebView::New(this, wxID_ANY,
         wxEmptyString,
         wxDefaultPosition,
