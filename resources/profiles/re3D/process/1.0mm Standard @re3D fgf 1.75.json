@@ -2,7 +2,7 @@
 	"type": "process",
 	"setting_id": "fgf_175_10",
 	"name": "1.0 Standard",
-	"rename_from": "1.0mm Standard @re3D fgf 1.75",
+	"renamed_from": "1.0mm Standard @re3D fgf 1.75",
 	"from": "system",
 	"inherits": "fgf_process_re3D_common",
 	"instantiation": "true",
