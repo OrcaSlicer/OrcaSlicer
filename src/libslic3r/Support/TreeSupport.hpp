@@ -459,7 +459,7 @@ private:
      * \param contact_nodes The nodes to draw as support.
      */
     void draw_circles();
-
+  
     /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
      *

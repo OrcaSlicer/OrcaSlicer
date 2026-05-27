@@ -95,7 +95,7 @@ TreeModelVolumes::TreeModelVolumes(
     {
         m_anti_overhang = print_object.slice_support_blockers();
         TreeSupportMeshGroupSettings mesh_settings(print_object);
-        const TreeSupportSettings config{ mesh_settings, print_object.slicing_parameters() };
+        const TreeSupportSettings config{ mesh_settings, print_object.slicing_parameters(), &print_object };
         m_current_min_xy_dist = config.xy_min_distance;
         m_current_min_xy_dist_delta = config.xy_distance - m_current_min_xy_dist;
         assert(m_current_min_xy_dist_delta >= 0);
@@ -162,7 +162,7 @@ void TreeModelVolumes::precalculate(const PrintObject& print_object, const coord
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
     // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex
     // like inital layer diameter are only done in once.
-    TreeSupportSettings config(m_layer_outlines[m_current_outline_idx].first, print_object.slicing_parameters());
+    TreeSupportSettings config(m_layer_outlines[m_current_outline_idx].first, print_object.slicing_parameters(),&print_object);
 
     {
         // calculate which radius each layer in the tip may have.
