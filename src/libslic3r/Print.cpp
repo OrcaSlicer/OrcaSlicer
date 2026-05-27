@@ -537,7 +537,7 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
     const int wipe_tower_filament = config().enable_filament_for_features ? config().wipe_tower_filament : 0;
     if (has_wipe_tower() && wipe_tower_filament != 0 && extruders.size() > 1) {
-        assert(wipe_tower_filament > 0 && wipe_tower_filament < int(config().nozzle_diameter.size()));
+        assert(wipe_tower_filament > 0 && wipe_tower_filament <= int(config().nozzle_diameter.size()));
         extruders.emplace_back(wipe_tower_filament - 1); // config value is 1-based
     }
 
