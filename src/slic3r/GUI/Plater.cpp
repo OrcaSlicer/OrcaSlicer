@@ -883,18 +883,29 @@ struct DynamicFilamentList1Based : DynamicFilamentList
         if (items.empty())
             update(true);
         auto cb = dynamic_cast<ComboBox *>(c->window);
-        auto n  = cb->GetSelection();
+        wxString old_selection = cb->GetStringSelection();
+        int old_index = cb->GetSelection();
         cb->Clear();
+        cb->Append(_L("Default"));
         for (auto i : items) {
-            cb->Append(i.first, *i.second);
+            cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
         }
-        if (n < cb->GetCount())
-            cb->SetSelection(n);
+
+        if (old_index >= 0 && static_cast<unsigned int>(old_index) < cb->GetCount()) {
+            cb->SetSelection(old_index);
+            return;
+        }
+
+        int new_index = cb->FindString(old_selection);
+        if (new_index != wxNOT_FOUND)
+            cb->SetSelection(new_index);
+        else
+            cb->SetSelection(0);
     }
     wxString get_value(int index) override
     {
         wxString str;
-        str << index+1;
+        str << index;
         return str;
     }
     int index_of(wxString value) override
@@ -902,7 +913,6 @@ struct DynamicFilamentList1Based : DynamicFilamentList
         long n = 0;
         if(!value.ToLong(&n))
             return -1;
-        --n;
         return (n >= 0 && n <= items.size()) ? int(n) : -1;
     }
     void update(bool force = false)
