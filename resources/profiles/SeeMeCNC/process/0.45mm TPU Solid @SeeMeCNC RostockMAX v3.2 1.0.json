@@ -1,0 +1,33 @@
+{
+    "type": "process",
+    "name": "0.45mm TPU Solid @SeeMeCNC RostockMAX v3.2 1.0",
+    "from": "System",
+    "instantiation": "true",
+    "version": "2.3.2.60",
+    "print_settings_id": "0.45mm TPU Solid @SeeMeCNC RostockMAX v3.2 1.0",
+    "compatible_printers": [
+        "SeeMeCNC RostockMAX v3.2 1.0 nozzle"
+    ],
+    "compatible_printers_condition": "",
+    "inherits": "SeeMeCNC process base",
+    "alternate_extra_wall": "0",
+    "bottom_surface_pattern": "concentric",
+    "counterbore_hole_bridging": "none",
+    "initial_layer_print_height": "0.35",
+    "layer_height": "0.45",
+    "precise_z_height": "0",
+    "skirt_distance": "1",
+    "skirt_loops": "2",
+    "spiral_mode": "0",
+    "top_shell_layers": "2",
+    "top_surface_pattern": "concentric",
+    "line_width": "1.3",
+    "outer_wall_line_width": "1.3",
+    "top_surface_line_width": "1.3",
+    "internal_solid_infill_line_width": "1.3",
+    "sparse_infill_line_width": "1.3",
+    "initial_layer_line_width": "1.3",
+    "support_line_width": "1.3",
+    "skeleton_infill_line_width": "1.3",
+    "skin_infill_line_width": "1.3"
+}

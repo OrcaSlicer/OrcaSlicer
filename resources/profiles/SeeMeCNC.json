@@ -260,7 +260,7 @@
 		},
 		{
 			"name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC RostockMAX v3 2 0.7.json"
+			"sub_path": "process/0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7.json"
 		},
 		{
 			"name": "0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7",
@@ -344,7 +344,7 @@
 		},
 		{
 			"name": "0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7",
-			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC RostockMAX v3 2 0.7.json"
+			"sub_path": "process/0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7.json"
 		},
 		{
 			"name": "0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7",

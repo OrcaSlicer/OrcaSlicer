@@ -19,11 +19,10 @@
 	"skirt_loops": "0",
 	"spiral_mode": "0",
 	"line_width": "0.5",
-	"outer_wall_line_width": "0.5",
-	"inner_wall_line_width": "0.5",
-	"top_surface_line_width": "0.5",
+	"outer_wall_line_width": "0.52",
+	"top_surface_line_width": "0.52",
 	"internal_solid_infill_line_width": "0.52",
 	"initial_layer_line_width": "0.62",
 	"sparse_infill_line_width": "0.62",
-	"support_line_width": "0.5"
+	"inner_wall_line_width": "0.56"
 }
