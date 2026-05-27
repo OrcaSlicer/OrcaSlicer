@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Elegoo Rapid TPU 95A @System",
+	"inherits": "Elegoo TPU @base",
+	"from": "system",
+	"setting_id": "OERTPU95AS00",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.1"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"230"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"compatible_printers": []
+}

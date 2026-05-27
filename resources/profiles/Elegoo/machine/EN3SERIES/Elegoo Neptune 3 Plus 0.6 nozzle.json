@@ -1,0 +1,32 @@
+{
+	"type": "machine",
+	"name": "Elegoo Neptune 3 Plus 0.6 nozzle",
+	"inherits": "Elegoo Neptune 3 Plus 0.4 nozzle",
+	"from": "system",
+	"setting_id": "EN3Plus06",
+	"instantiation": "true",
+	"nozzle_diameter": [
+		"0.6"
+	],
+	"printer_model": "Elegoo Neptune 3 Plus",
+	"printer_variant": "0.6",
+	"default_filament_profile": [
+		"Elegoo PLA @EN3 Series"
+	],
+	"default_print_profile": "0.30mm Standard @Elegoo N3Plus 0.6 nozzle",
+	"retraction_minimum_travel": [
+		"1.2"
+	],
+	"wipe_distance": [
+		"1.8"
+	],
+	"retraction_length": [
+		"1.5"
+	],
+	"max_layer_height": [
+		"0.42"
+	],
+	"min_layer_height": [
+		"0.12"
+	]
+}
