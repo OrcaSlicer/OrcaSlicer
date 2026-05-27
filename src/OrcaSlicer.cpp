@@ -1192,41 +1192,37 @@ int CLI::run(int argc, char **argv)
     save_main_thread_id();
 
 #ifdef __WXGTK__
-    // Safety fallback: if wxWidgets was not built with EGL support, native
-    // Wayland will crash in wxGLCanvas::IsDisplaySupported() because the GLX
-    // backend cannot access an X11 display. Force X11 mode in that case.
-    // NOTE: Do NOT remove this block even after enabling wxHAS_EGL
-    // in the build — it protects against builds where deps were not rebuilt.
-#if !defined(wxHAS_EGL) || !wxHAS_EGL
-    {
-        const char* wayland_env = ::getenv("WAYLAND_DISPLAY");
-        if (wayland_env && *wayland_env) {
-            BOOST_LOG_TRIVIAL(warning) << "Wayland detected but wxWidgets has no EGL support (wxHAS_EGL is OFF). Forcing X11 backend.";
-            ::setenv("GDK_BACKEND", "x11", true);
-        }
-    }
-#endif
+    // 2.3 behaviour: wxGTK + wxWidgets 3.3 native Wayland has too many open
+    // issues on AMD (wxGLCanvas EGL subsurface race causing the 3D canvas to
+    // briefly cover the top/left toolbars on startup, WebKit2GTK DMABUF
+    // renderer black-flicker + lockup on the Device tab, GTK dark-theme not
+    // picked up via xdg-desktop-portal on some setups). Force X11/XWayland
+    // to restore the known-good 2.3 stack. Power users can still opt back
+    // into native Wayland by editing this line, but the default mirrors 2.3.
+    ::setenv("GDK_BACKEND", "x11", /* replace */ true);
 
-    // WebKit2GTK compositing can fail under XWayland. Only disable it when
-    // both DISPLAY and WAYLAND_DISPLAY are set (i.e., XWayland is in use).
-    // On pure X11 or native Wayland, compositing is left enabled.
-    {
-        const char* display_env_wk = ::getenv("DISPLAY");
-        const char* wayland_env_wk = ::getenv("WAYLAND_DISPLAY");
-        if (display_env_wk && *display_env_wk && wayland_env_wk && *wayland_env_wk) {
-            ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
-        }
+    // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
+    // (Setup Wizard, Device tab) to render blank or freeze. Disabling
+    // compositing forces software rendering, which works reliably on all
+    // backends.
+    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+
+    // On Linux dual-GPU systems, request the high-performance discrete GPU.
+    // DRI_PRIME=1 handles AMD and nouveau (open-source NVIDIA) PRIME setups.
+    ::setenv("DRI_PRIME", "1", /* replace */ false);
+
+    // For NVIDIA proprietary driver PRIME render offload, set additional
+    // variables. Only set if the NVIDIA kernel module is loaded to avoid
+    // breaking systems without NVIDIA.
+    if (::access("/proc/driver/nvidia/version", F_OK) == 0) {
+        ::setenv("__NV_PRIME_RENDER_OFFLOAD", "1", /* replace */ false);
+        ::setenv("__GLX_VENDOR_LIBRARY_NAME", "nvidia", /* replace */ false);
     }
 
-    // XInitThreads is needed before GStreamer may use Xlib. On native
-    // Wayland without DISPLAY, GStreamer uses waylandsink (no Xlib).
+    // Also on Linux, tell Xlib that we will be using threads, lest we crash
+    // when GStreamer fires up.
     #if __has_include(<X11/Xlib.h>)
-    {
-        const char* display_env = ::getenv("DISPLAY");
-        if (display_env && *display_env) {
-            XInitThreads();
-        }
-    }
+    XInitThreads();
     #endif
 #endif
 
