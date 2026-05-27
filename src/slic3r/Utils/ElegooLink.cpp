@@ -241,6 +241,30 @@ namespace Slic3r {
             return out;
         }
 
+        std::string lookup_cc2_serial_impl(const std::string& printer_model,
+                                           const std::string& print_host,
+                                           const std::string& apikey)
+        {
+            if (classify_printer_model(printer_model) != ElegooPrinterType::CC2)
+                return {};
+
+            const std::string host_ip = get_host_from_url(print_host);
+            const std::string token   = get_cc2_token(apikey);
+            std::string       sn      = lookup_sn(host_ip, token);
+            if (sn.empty())
+                sn = load_sn_from_config(host_ip);
+            return sn;
+        }
+
+        std::string lookup_cc2_serial(DynamicPrintConfig* config)
+        {
+            if (config == nullptr)
+                return {};
+            return lookup_cc2_serial_impl(config->opt_string("printer_model"),
+                                          config->opt_string("print_host"),
+                                          config->opt_string("printhost_apikey"));
+        }
+
         #ifdef WIN32
             // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
         std::string substitute_host(const std::string& orig_addr, std::string sub_addr)
@@ -358,21 +382,6 @@ namespace Slic3r {
 
     }
 
-    std::string ElegooLink::lookup_cc2_serial(DynamicPrintConfig* config)
-    {
-        if (config == nullptr)
-            return {};
-        if (classify_printer_model(config->opt_string("printer_model")) != ElegooPrinterType::CC2)
-            return {};
-
-        const std::string host_ip = get_host_from_url(config->opt_string("print_host"));
-        const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
-        std::string       sn      = lookup_sn(host_ip, token);
-        if (sn.empty())
-            sn = load_sn_from_config(host_ip);
-        return sn;
-    }
-
     std::string ElegooLink::get_print_host_webui(DynamicPrintConfig* config)
     {
         if (config == nullptr)
@@ -463,15 +472,7 @@ namespace Slic3r {
     {
         // Panel IPC calls this on every load with a 10s timeout. Never block on HTTP
         // here — URL sn= and dev_sn must be enough; HTTP is only for get_print_host_webui.
-        if (classify_printer_model(m_printerModel) != ElegooPrinterType::CC2)
-            return "";
-
-        const std::string host_ip = get_host_from_url(m_host);
-        const std::string token   = cc2_token();
-        std::string       sn      = lookup_sn(host_ip, token);
-        if (sn.empty())
-            sn = load_sn_from_config(host_ip);
-        return sn;
+        return lookup_cc2_serial_impl(m_printerModel, m_host, m_apikey);
     }
 
     bool ElegooLink::elegoo_test(wxString& msg) const{

@@ -5,11 +5,11 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
-#include "slic3r/Utils/ElegooLink.hpp"
 #include "libslic3r/Preset.hpp"
 
 #include <nlohmann/json.hpp>
 #include <atomic>
+#include <memory>
 #include <boost/filesystem/path.hpp>
 #include <thread>
 #include <wx/filedlg.h>
@@ -288,8 +288,13 @@ private:
     {
         // Panel always calls get_sn with a 10s IPC timeout. Answer immediately from
         // dev_sn / cache — do not spawn a thread or perform HTTP (panel uses URL sn on miss).
-        const std::string sn = ElegooLink::lookup_cc2_serial(get_active_printer_config());
-        json              data = { { "sn", sn } };
+        std::string sn;
+        if (DynamicPrintConfig* config = get_active_printer_config()) {
+            const std::unique_ptr<PrintHost> host(PrintHost::get_print_host(config));
+            if (host)
+                sn = host->get_sn();
+        }
+        json data = { { "sn", sn } };
         send_ipc_message("response", request_id, method, 0, "success", dump_json(data));
     }
 

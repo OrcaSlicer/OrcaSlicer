@@ -21,8 +21,6 @@ public:
     ElegooLink(DynamicPrintConfig *config);
     ~ElegooLink() override = default;
     static std::string get_print_host_webui(DynamicPrintConfig *config);
-    // Resolve CC2 serial from memory cache or AppConfig dev_sn (no network I/O).
-    static std::string lookup_cc2_serial(DynamicPrintConfig *config);
     const char* get_name() const override;
     virtual bool test(wxString &curl_msg) const override;
     wxString get_test_ok_msg() const override;
