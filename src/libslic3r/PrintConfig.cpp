@@ -828,6 +828,13 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("flashforge_serial_number", coString);
+    def->label = L("Serial Number");
+    def->tooltip = L("Flashforge local API requires the printer serial number.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionString());
+
     def = this->add("printhost_port", coString);
     def->label = L("Printer");
     def->tooltip = L("Name of the printer.");
