@@ -606,13 +606,24 @@ VendorType PresetBundle::get_current_vendor_type()
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;
+    const auto* printer_model = config->opt<ConfigOptionString>("printer_model");
+    if (printer_model == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": printer_model is "
+                                   << (config->has("printer_model") ? "not a string" : "missing")
+                                   << ", vendor type is Unknown";
+        return t;
+    }
+
     std::string vendor_name;
-    for (auto vendor_profile : vendors) {
-        for (auto vendor_model : vendor_profile.second.models)
-            if (vendor_model.name == config->opt_string("printer_model")) {
+    for (const auto& vendor_profile : vendors) {
+        for (const auto& vendor_model : vendor_profile.second.models) {
+            if (vendor_model.name == printer_model->value) {
                 vendor_name = vendor_profile.first;
                 break;
             }
+        }
+        if (!vendor_name.empty())
+            break;
     }
     if (!vendor_name.empty())
     {
@@ -3779,7 +3790,17 @@ int PresetBundle::get_printer_extruder_count() const
 {
     const Preset& printer_preset = this->printers.get_edited_preset();
 
-    int count = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    const auto* nozzle_diameter = printer_preset.config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_diameter == nullptr) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_diameter is missing, using 1 extruder";
+        return 1;
+    }
+    if (nozzle_diameter->values.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": nozzle_diameter is empty, using 1 extruder";
+        return 1;
+    }
+
+    int count = int(nozzle_diameter->values.size());
 
     return count;
 }
