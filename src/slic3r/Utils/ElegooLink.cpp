@@ -62,22 +62,51 @@ namespace Slic3r {
     namespace {
 
         constexpr const char* ELEGOO_CC2_DEFAULT_TOKEN = "123456";
+        // AppConfig section for CC2 serial numbers, keyed by normalized print_host (host/IP).
+        constexpr const char* ELEGOO_DEV_SN_SECTION    = "dev_sn";
 
         static std::mutex                         s_sn_cache_mutex;
         static std::map<std::string, std::string> s_sn_cache;
 
-        void cache_sn(const std::string& ip, const std::string& token, const std::string& sn)
+        std::string sn_cache_key(const std::string& host_ip, const std::string& token)
         {
-            if (ip.empty() || token.empty() || sn.empty()) return;
-            std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
-            s_sn_cache[ip + ":" + token] = sn;
+            return host_ip + ":" + token;
         }
 
-        std::string lookup_sn(const std::string& ip, const std::string& token)
+        void cache_sn(const std::string& host_ip, const std::string& token, const std::string& sn)
+        {
+            if (host_ip.empty() || token.empty() || sn.empty())
+                return;
+            std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
+            s_sn_cache[sn_cache_key(host_ip, token)] = sn;
+        }
+
+        std::string lookup_sn(const std::string& host_ip, const std::string& token)
         {
             std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
-            auto it = s_sn_cache.find(ip + ":" + token);
+            auto it = s_sn_cache.find(sn_cache_key(host_ip, token));
             return it != s_sn_cache.end() ? it->second : std::string{};
+        }
+
+        std::string load_sn_from_config(const std::string& host_ip)
+        {
+            if (host_ip.empty())
+                return {};
+            AppConfig* app_cfg = GUI::get_app_config();
+            if (app_cfg == nullptr)
+                return {};
+            return app_cfg->get(ELEGOO_DEV_SN_SECTION, host_ip);
+        }
+
+        void persist_sn(const std::string& host_ip, const std::string& token, const std::string& sn)
+        {
+            if (host_ip.empty() || sn.empty())
+                return;
+            cache_sn(host_ip, token, sn);
+            AppConfig* app_cfg = GUI::get_app_config();
+            if (app_cfg == nullptr)
+                return;
+            app_cfg->set_str(ELEGOO_DEV_SN_SECTION, host_ip, sn);
         }
 
         enum class ElegooPrinterType {
@@ -360,9 +389,12 @@ namespace Slic3r {
         const std::string host_ip = get_host_from_url(host);
 
         // Pass sn= so the panel can subscribe to the correct MQTT topics.
-        // Prefer the cached value from the connection test; fall back to a
-        // short LAN HTTP call on first use.
+        // Order: in-memory cache, AppConfig dev_sn (keyed by print_host), then LAN HTTP.
         std::string sn = lookup_sn(host_ip, token);
+        if (sn.empty())
+            sn = load_sn_from_config(host_ip);
+        if (!sn.empty())
+            cache_sn(host_ip, token, sn);
         if (sn.empty()) {
             std::string error_msg;
             auto http = Http::get("http://" + host_ip + "/system/info?X-Token=" + escape_string(token));
@@ -373,7 +405,7 @@ namespace Slic3r {
                 parse_cc2_response(body, error_msg, &sn);
             }).perform_sync();
             if (!sn.empty())
-                cache_sn(host_ip, token, sn);
+                persist_sn(host_ip, token, sn);
         }
 
         web_path += "?access_code=" + token;
@@ -422,9 +454,16 @@ namespace Slic3r {
         if (classify_printer_model(m_printerModel) != ElegooPrinterType::CC2)
             return "";
 
-        const char*      name  = get_name();
-        std::string      sn;
-        const auto       token = cc2_token();
+        const char*           name     = get_name();
+        std::string           sn;
+        const auto            token    = cc2_token();
+        const std::string     host_ip  = get_host_from_url(m_host);
+        sn = lookup_sn(host_ip, token);
+        if (sn.empty())
+            sn = load_sn_from_config(host_ip);
+        if (!sn.empty())
+            return sn;
+
         auto             http  = Http::get(make_cc2_info_url());
         http.timeout_connect(10)
             .timeout_max(15);
@@ -444,6 +483,9 @@ namespace Slic3r {
             .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
 #endif // WIN32
             .perform_sync();
+
+        if (!sn.empty())
+            persist_sn(host_ip, token, sn);
 
         return sn;
     }
@@ -524,7 +566,7 @@ namespace Slic3r {
                     msg = format_error(body, error_message.empty() ? "CC2 device not detected" : error_message, status);
                     return;
                 }
-                cache_sn(get_host_from_url(m_host), token, serial_number);
+                persist_sn(get_host_from_url(m_host), token, serial_number);
                 res = true;
             })
 #ifdef WIN32
