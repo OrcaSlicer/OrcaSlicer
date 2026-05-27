@@ -7,7 +7,13 @@
 	"setting_id": "ERPETGECC2",
 	"instantiation": "true",
 	"pressure_advance": [
-		"0.024"
+		"0.052"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_flow_ratio": [
+		"0.99"
 	],
 	"fan_max_speed": [
 		"80"
@@ -28,6 +34,7 @@
 		"250"
 	],
 	"compatible_printers": [
+		"Elegoo Centauri Carbon 2 0.2 nozzle",
 		"Elegoo Centauri Carbon 2 0.4 nozzle",
 		"Elegoo Centauri Carbon 2 0.6 nozzle",
 		"Elegoo Centauri Carbon 2 0.8 nozzle"

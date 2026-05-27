@@ -6850,12 +6850,12 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     double              preset_nozzle_diameter = 0.4;
                     const ConfigOption *opt                    = printer_preset.config.option("nozzle_diameter");
                     if (opt) preset_nozzle_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
-                    float machine_nozzle_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
 
                     std::string machine_type = obj->printer_type;
                     if (obj->is_support_upgrade_kit && obj->installed_upgrade_kit) machine_type = "C12";
 
-                    if (printer_preset.get_current_printer_type(preset_bundle) != machine_type || !is_approx((float) preset_nozzle_diameter, machine_nozzle_diameter)) {
+                    bool nozzle_mismatch = !obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(0, (float) preset_nozzle_diameter);
+                    if (printer_preset.get_current_printer_type(preset_bundle) != machine_type || nozzle_mismatch) {
                         Preset *machine_preset = get_printer_preset(obj);
                         if (machine_preset != nullptr) {
                             std::string printer_model = machine_preset->config.option<ConfigOptionString>("printer_model")->value;
@@ -9566,7 +9566,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
 
                         const auto& extruders = obj->GetExtderSystem()->GetExtruders();
                         for (const DevExtder &extruder : extruders) {
-                            if (!is_approx(extruder.GetNozzleDiameter(), float(preset_nozzle_diameter))) {
+                            if (!obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(extruder.GetExtId(), float(preset_nozzle_diameter))) {
                                 same_nozzle_diameter = false;
                             }
                         }
