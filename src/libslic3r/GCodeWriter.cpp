@@ -864,10 +864,10 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
         // Determine number of segments based on Resolution
         // --------------------------------------------------------------------
         const double ref_resolution = 0.01; // reference resolution in mm
-        const double ref_segments  = 16.0;  // reference number of segments at reference resolution
+        const double ref_segments  = 8.0;  // reference number of segments at reference resolution
         
-        // number of linear segments to use for approximating the arc, clamp between 4 and 24
-        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 24);
+        // number of linear segments to use for approximating the arc, clamp between 4 and 16
+        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 16);
         // --------------------------------------------------------------------
 
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
@@ -1092,9 +1092,13 @@ std::string GCodeWriter::unlift()
     return gcode;
 }
 
-std::string GCodeWriter::set_fan(const GCodeFlavor gcode_flavor, unsigned int speed)
+std::string GCodeWriter::set_fan(const GCodeFlavor gcode_flavor, unsigned int speed, unsigned int part_cooling_fan_min_pwm)
 {
     std::ostringstream gcode;
+    // ORCA: clamp non-zero fan commands up to the configured PWM floor so fans that can't spool at low duty
+    // cycles still start reliably. Zero (fan off) is preserved exactly so disable-fan commands are never altered.
+    if (speed > 0 && part_cooling_fan_min_pwm > 0 && speed < part_cooling_fan_min_pwm)
+        speed = part_cooling_fan_min_pwm;
     if (speed == 0) {
         switch (gcode_flavor) {
         case gcfTeacup:
@@ -1129,7 +1133,9 @@ std::string GCodeWriter::set_fan(const GCodeFlavor gcode_flavor, unsigned int sp
 std::string GCodeWriter::set_fan(unsigned int speed) const
 {
     //BBS
-    return GCodeWriter::set_fan(this->config.gcode_flavor, speed);
+    // ORCA: pick up the per-printer PWM floor from the active config.
+    return GCodeWriter::set_fan(this->config.gcode_flavor, speed,
+                                static_cast<unsigned int>(std::max(0, this->config.part_cooling_fan_min_pwm.value)));
 }
 
 //BBS: set additional fan speed for BBS machine only

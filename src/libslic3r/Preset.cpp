@@ -581,14 +581,6 @@ void Preset::load_info(const std::string& file)
     catch (...) {
         return;
     }
-
-    //TODO: workaround for current info file convert, will remove it later
-    if (this->updated_time == 0) {
-        this->updated_time = (long long)Slic3r::Utils::get_current_time_utc();
-        //this->sync_info = "update";
-        BOOST_LOG_TRIVIAL(info) << boost::format("old info file, updated time to %1%") % this->updated_time;
-        save_info();
-    }
 }
 
 void Preset::save_info(std::string file)
@@ -1008,6 +1000,7 @@ static std::vector<std::string> s_Preset_print_options{
     "is_infill_first",
     "sparse_infill_density",
     "fill_multiline",
+    "gyroid_optimized",
     "sparse_infill_pattern",
     "lateral_lattice_angle_1",
     "lateral_lattice_angle_2",
@@ -1326,7 +1319,7 @@ static std::vector<std::string> s_Preset_machine_limits_options {
 static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
     "printable_area", "extruder_printable_area", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "gcode_flavor",
-    "fan_kickstart", "fan_speedup_time", "fan_speedup_overhangs",
+    "fan_kickstart", "part_cooling_fan_min_pwm", "fan_speedup_time", "fan_speedup_overhangs",
     "single_extruder_multi_material", "manual_filament_change", "file_start_gcode", "machine_start_gcode", "machine_end_gcode", "before_layer_change_gcode", "printing_by_object_gcode", "layer_change_gcode", "time_lapse_gcode", "wrapping_detection_gcode", "change_filament_gcode", "change_extrusion_role_gcode",
     "printer_model", "printer_variant", "printer_extruder_id", "printer_extruder_variant", "extruder_variant_list", "default_nozzle_volume_type",
     "printable_height", "extruder_printable_height", "extruder_clearance_radius", "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
@@ -1343,7 +1336,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "use_relative_e_distances", "extruder_type", "use_firmware_retraction", "printer_notes",
     "grab_length", "support_object_skip_flush", "physical_extruder_map",
     "cooling_tube_retraction",
-    "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming",
+    "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower",
     "z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset"
@@ -2185,19 +2178,29 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         }
     }
 
-    // base_id
-    if (preset_values.find(BBL_JSON_KEY_BASE_ID) == preset_values.end()) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
-        unlock();
-        return false;
+    // base_id is only required for presets inheriting from a parent. Root presets
+    // with an empty "inherits" field intentionally have no base_id.
+    std::string based_id;
+    const auto base_id = preset_values.find(BBL_JSON_KEY_BASE_ID);
+    if (base_id != preset_values.end()) {
+        based_id = base_id->second;
+    } else {
+        const auto inherits_iter               = preset_values.find(BBL_JSON_KEY_INHERITS);
+        const bool preset_inherits_from_parent = inherits_iter != preset_values.end() && !inherits_iter->second.empty();
+        if (preset_inherits_from_parent) {
+            // This indicates that there is inherits exists but there is no base_id
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
+                                       << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
+            unlock();
+            return false;
+        }
     }
-    std::string cloud_base_id = preset_values[BBL_JSON_KEY_BASE_ID];
 
     //filament_id
     std::string cloud_filament_id;
     if ((m_type == Preset::TYPE_FILAMENT) && preset_values.find(BBL_JSON_KEY_FILAMENT_ID) != preset_values.end()) {
         cloud_filament_id = preset_values[BBL_JSON_KEY_FILAMENT_ID];
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << canonical_name << " filament_id: " << cloud_filament_id << " base_id: " << cloud_base_id;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << canonical_name << " filament_id: " << cloud_filament_id << " base_id: " << based_id;
     }
 
     DynamicPrintConfig new_config, cloud_config;
@@ -2259,6 +2262,10 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             if (iter->name == m_edited_preset.name && iter->is_dirty) {
                 // Keep modifies when update from remote
                 new_config.apply_only(m_edited_preset.config, m_edited_preset.config.diff(iter->config));
+            } else if (iter->name == m_edited_preset.name) {
+                // Preset is not dirty (no local unsaved changes) — also update the edited preset
+                // to prevent a false "dirty" indication (orange highlight) after a silent cloud sync
+                m_edited_preset.config = new_config;
             }
             iter->config = new_config;
             iter->updated_time = cloud_update_time;
@@ -2266,7 +2273,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             iter->version      = cloud_version.value();
             iter->user_id = cloud_user_id;
             iter->setting_id = cloud_setting_id;
-            iter->base_id = cloud_base_id;
+            iter->base_id = based_id;
             iter->filament_id = cloud_filament_id;
             update_alias(*iter);
             //presets_loaded.emplace_back(*it->second);
@@ -2285,7 +2292,7 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             preset.version      = cloud_version.value();
             preset.user_id = cloud_user_id;
             preset.setting_id = cloud_setting_id;
-            preset.base_id = cloud_base_id;
+            preset.base_id = based_id;
             preset.filament_id = cloud_filament_id;
             update_alias(preset);
 
@@ -3646,19 +3653,21 @@ void PresetCollection::set_custom_preset_alias(Preset &preset)
     // For printers, there is nothing to remove
     // For prints AKA processes, the postfix should be kept
     // Alias should be set here, as the preset name may be augmented further later (i.e., prefixing relative path for bundles)
-    std::string alias_name;
-    std::string preset_name = get_preset_bare_name(preset.name);
-    if (m_type == Preset::Type::TYPE_FILAMENT && preset.config.has(BBL_JSON_KEY_INHERITS) && preset.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value.empty()) {
-        if (alias_name.empty()) {
-            size_t end_pos = preset_name.find_first_of("@");
-            if (end_pos != std::string::npos) {
-                alias_name = preset_name.substr(0, end_pos);
-                boost::trim_right(alias_name);
-            }
+    std::string bare_preset_name = get_preset_bare_name(preset.name);
+    std::string alias_name = bare_preset_name;
+
+    const bool is_root_filament_preset =
+        m_type == Preset::Type::TYPE_FILAMENT &&
+        preset.config.has(BBL_JSON_KEY_INHERITS) &&
+        preset.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value.empty();
+    if (is_root_filament_preset) {
+        const size_t suffix_separator_pos = bare_preset_name.find_first_of("@");
+        if (suffix_separator_pos != std::string::npos) {
+            alias_name = bare_preset_name.substr(0, suffix_separator_pos);
+            boost::trim_right(alias_name);
+            if (alias_name.empty())
+                alias_name = bare_preset_name;
         }
-    }
-    else {
-        alias_name = preset_name;
     }
 
     preset.alias = std::move(alias_name);

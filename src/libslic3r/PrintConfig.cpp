@@ -2912,6 +2912,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
+    // Z-buckling bias optimization (experimental). Tightens the gyroid wave along the Z
+    // (vertical) axis at low infill density to shorten the effective column length under
+    // Z-axis compression. Filament use at the same `sparse_infill_density` setting is
+    // preserved. No effect above ~30% density (formula clamps to no-op).
+    def             = this->add("gyroid_optimized", coBool);
+    def->label      = L("Z-buckling bias optimization (experimental)");
+    def->category   = L("Strength");
+    def->tooltip    = L("Tightens the gyroid wave along the Z (vertical) axis at low infill density "
+                        "to shorten the effective vertical column length and improve Z-axis compression "
+                        "buckling resistance. Filament use is preserved. No effect at ~30% sparse infill "
+                        "density and above. Only applies when Sparse infill pattern is set to Gyroid.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
@@ -3724,6 +3737,28 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    // ORCA: minimum non-zero part cooling fan speed.
+    def = this->add("part_cooling_fan_min_pwm", coInt);
+    def->label = L("Minimum non-zero part cooling fan speed");
+    def->tooltip = L("Some part-cooling fans cannot start spinning when commanded below a certain PWM duty cycle. "
+                     "When set above 0, any non-zero part-cooling fan command will be raised to at least this percentage "
+                     "so the fan reliably starts. A fan command of 0 (fan off) is always honoured exactly. "
+                     "This clamp is applied after every other fan calculation (first-layer ramp, layer-time interpolation, "
+                     "overhang/bridge/support-interface/ironing overrides), so scaling still operates within the range "
+                     "[this value, 100%]."
+                     "\nIf your firmware already disables the fan below a threshold (for example Klipper's "
+                     "[fan] off_below: 0.10 shuts the fan off whenever the commanded duty cycle is below 10%), "
+                     "this option and the firmware threshold should ideally be set to the same value. Matching them "
+                     "(e.g. off_below: 0.10 in Klipper and 10% here) guarantees the slicer never emits a non-zero "
+                     "value that the firmware would silently drop, and the fan never receives a value below the one "
+                     "you know it can actually spool at."
+                     "\nSet to 0 to deactivate.");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
 
     def = this->add("time_cost", coFloat);
     def->label = L("Time cost");
@@ -4237,7 +4272,7 @@ void PrintConfigDef::init_fff_params()
     def->min      = 0;
     def->max      = 90;
     def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(35));
 
     def = this->add("zaa_dont_alternate_fill_direction", coBool);
     def->label    = L("Don't alternate fill direction");
@@ -5806,6 +5841,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("tool_change_on_wipe_tower", coBool);
+    def->label = L("Tool change on wipe tower");
+    def->tooltip = L("Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). "
+                     "Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. "
+                     "By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, "
+                     "which can result in the Tx command being issued above the printed part. "
+                     "Enable this option if you want the tool change to always be issued above the wipe tower instead.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
 
     def = this->add("wipe_tower_no_sparse_layers", coBool);
     def->label = L("No sparse layers (beta)");
@@ -6725,7 +6770,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.emplace_back(L("Cone"));
     def->enum_labels.emplace_back(L("Rib"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRectangle));
+    def->set_default_value(new ConfigOptionEnum<WipeTowerWallType>(wtwRib));
 
     def           = this->add("wipe_tower_extra_rib_length", coFloat);
     def->label    = L("Extra rib length");
@@ -9589,11 +9634,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coStrings:
                 {
                     ConfigOptionStrings * opt = this->option<ConfigOptionStrings>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<std::string> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
@@ -9602,11 +9655,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coInts:
                 {
                     ConfigOptionInts * opt = this->option<ConfigOptionInts>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<int> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
@@ -9615,11 +9676,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coFloats:
                 {
                     ConfigOptionFloats * opt = this->option<ConfigOptionFloats>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<double> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
@@ -9628,11 +9697,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coPercents:
                 {
                     ConfigOptionPercents * opt = this->option<ConfigOptionPercents>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<double> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
@@ -9641,11 +9718,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coFloatsOrPercents:
                 {
                     ConfigOptionFloatsOrPercents * opt = this->option<ConfigOptionFloatsOrPercents>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<FloatOrPercent> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
@@ -9654,11 +9739,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coBools:
                 {
                     ConfigOptionBools * opt = this->option<ConfigOptionBools>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<unsigned char> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
@@ -9667,11 +9760,19 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
                 case coEnums:
                 {
                     ConfigOptionEnumsGeneric * opt = this->option<ConfigOptionEnumsGeneric>(key);
+                    if (!opt) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% not found, skipping")%__LINE__%key;
+                        break;
+                    }
                     std::vector<int> new_values;
 
                     new_values.resize(filament_count);
                     for (int f_index = 0; f_index < filament_count; f_index++)
                     {
+                        if (variant_index[f_index] < 0 || static_cast<size_t>(variant_index[f_index]) >= opt->size()) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: option %2% variant index %3% out of range, skipping")%__LINE__%key%variant_index[f_index];
+                            continue;
+                        }
                         new_values[f_index] = opt->get_at(variant_index[f_index]);
                     }
                     opt->values = new_values;
