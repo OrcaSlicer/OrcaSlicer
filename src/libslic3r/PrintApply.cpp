@@ -724,8 +724,7 @@ PrintObjectRegions::BoundingBox find_modifier_volume_extents(const PrintObjectRe
     return out;
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config,
-                                                  const ModelVolume &volume, const bool enable_filament_for_features, size_t num_extruders);
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders);
 
 void print_region_ref_inc(PrintRegion &r) { ++ r.m_ref_cnt; }
 void print_region_ref_reset(PrintRegion &r) { r.m_ref_cnt = 0; }
@@ -737,7 +736,6 @@ int  print_region_ref_cnt(const PrintRegion &r) { return r.m_ref_cnt; }
 bool verify_update_print_object_regions(
     ModelVolumePtrs                     model_volumes,
     const PrintRegionConfig            &default_region_config,
-    const bool                          enable_filament_for_features,
     size_t                              num_extruders,
     PrintObjectRegions                 &print_object_regions,
     const std::function<void(const PrintRegionConfig&, const PrintRegionConfig&, const t_config_option_keys&)> &callback_invalidate)
@@ -785,8 +783,7 @@ bool verify_update_print_object_regions(
                             } else if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox))
                                 // Such parent region does not exist. If it is needed, then we need to reslice.
                                 // Only create new region for a modifier, which actually modifies config of it's parent.
-                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume,
-                                                                                                enable_filament_for_features, num_extruders);
+                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_extruders);
                                     config != parent_region.region->config())
                                     // This modifier newly overrides a region, which it did not before. We need to reslice.
                                     return false;
@@ -794,9 +791,8 @@ bool verify_update_print_object_regions(
                     }
                 }
                 PrintRegionConfig cfg = region.parent == -1 ?
-                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, enable_filament_for_features, num_extruders) :
-                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume,
-                                                    enable_filament_for_features, num_extruders);
+                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_extruders) :
+                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_extruders);
                 if (cfg != region.region->config()) {
                     // Region configuration changed.
                     if (print_region_ref_cnt(*region.region) == 0) {
@@ -961,7 +957,6 @@ static PrintObjectRegions* generate_print_object_regions(
     const ModelVolumePtrs                       &model_volumes,
     const LayerRanges                           &model_layer_ranges,
     const PrintRegionConfig                     &default_region_config,
-    const bool                                   enable_filament_for_features,
     const Transform3d                           &trafo,
     size_t                                       num_extruders,
     const float                                  xy_contour_compensation,
@@ -1024,8 +1019,7 @@ static PrintObjectRegions* generate_print_object_regions(
                         // Add a model volume, assign an existing region or generate a new one.
                         layer_range.volume_regions.push_back({
                             &volume, -1,
-                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume,
-                                                                             enable_filament_for_features, num_extruders)),
+                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders)),
                             bbox
                         });
                     } else if (volume.is_negative_volume()) {
@@ -1042,8 +1036,7 @@ static PrintObjectRegions* generate_print_object_regions(
                             if (parent_volume.is_model_part() || parent_volume.is_modifier())
                                 if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox)) {
                                     // Only create new region for a modifier, which actually modifies config of it's parent.
-                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume,
-                                                                                                enable_filament_for_features, num_extruders);
+                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_extruders);
                                         config != parent_region.region->config()) {
                                         added = true;
                                         layer_range.volume_regions.push_back({ &volume, parent_region_id, get_create_region(std::move(config)), bbox });
@@ -1709,7 +1702,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 verify_update_print_object_regions(
                     print_object.model_object()->volumes,
                     m_default_region_config,
-                    m_config.enable_filament_for_features,
                     num_extruders,
                     *print_object_regions,
                     [it_print_object, it_print_object_end, &update_apply_status](const PrintRegionConfig &old_config, const PrintRegionConfig &new_config, const t_config_option_keys &diff_keys) {
@@ -1734,7 +1726,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 print_object.model_object()->volumes,
                 LayerRanges(print_object.model_object()->layer_config_ranges),
                 m_default_region_config,
-                m_config.enable_filament_for_features,
                 model_object_status.print_instances.front().trafo,
                 num_extruders ,
                 print_object.is_mm_painted() ? 0.f : float(print_object.config().xy_contour_compensation.value),

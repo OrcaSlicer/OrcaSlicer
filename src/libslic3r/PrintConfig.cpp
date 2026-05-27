@@ -5823,12 +5823,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
-    def = this->add("enable_filament_for_features", coBool);
-    def->label = L("Enable filament for features");
-    def->tooltip = L("Enable custom filament selection for feature-specific roles such as walls, infill, solid infill and wipe tower. When disabled, these roles follow the active object or part filament.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
     def = this->add("manual_filament_change", coBool);
     def->label = L("Manual Filament Change");
     def->tooltip = L("Enable this option to omit the custom Change filament G-code only at the beginning of the print. "
@@ -8421,13 +8415,6 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
         */
     }
-
-    if (this->has("enable_filament_for_features") && !this->opt_bool("enable_filament_for_features")) {
-        for (const std::string &key : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"}) {
-            if (auto *opt = this->option<ConfigOptionInt>(key, false); opt != nullptr)
-                opt->value = 0;
-        }
-    }
 }
 
 //BBS:divide normalize_fdm to 2 steps and call them one by one in Print::Apply
@@ -8477,13 +8464,6 @@ void DynamicPrintConfig::normalize_fdm_1()
     if (auto *opt_gcode_resolution = this->opt<ConfigOptionFloat>("resolution", false); opt_gcode_resolution)
         // Resolution will be above 1um.
         opt_gcode_resolution->value = std::max(opt_gcode_resolution->value, 0.001);
-
-    if (this->has("enable_filament_for_features") && !this->opt_bool("enable_filament_for_features")) {
-        for (const std::string &key : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"}) {
-            if (auto *opt = this->option<ConfigOptionInt>(key, false); opt != nullptr)
-                opt->value = 0;
-        }
-    }
 
     return;
 }

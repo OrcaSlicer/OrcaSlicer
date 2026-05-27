@@ -572,8 +572,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
 
     auto gcflavor = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-    const bool bSEMM = preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
-    const bool enable_filament_for_features = config->opt_bool("enable_filament_for_features");
 
     bool have_volumetric_extrusion_rate_slope = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope")->value > 0;
     float have_volumetric_extrusion_rate_slope_segment_length = config->option<ConfigOptionFloat>("max_volumetric_extrusion_rate_slope_segment_length")->value;
@@ -661,7 +659,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "solid_infill_filament",
         })
         toggle_field(el, have_infill || has_solid_infill);
-    toggle_field("solid_infill_filament", (have_infill || has_solid_infill) && enable_filament_for_features && !bSEMM);
 
     toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell);
     toggle_field("bottom_shell_thickness", ! has_spiral_vase && has_bottom_shell);
@@ -715,7 +712,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("brim_width", have_brim_width);
     toggle_field("brim_flow_ratio", have_brim);
     // wall_filament uses the same logic as in Print::extruders()
-    toggle_field("wall_filament", (have_perimeters || have_brim) && enable_filament_for_features && !bSEMM);
+    toggle_field("wall_filament", have_perimeters || have_brim);
 
     bool have_brim_ear = (config->opt_enum<BrimType>("brim_type") == btEar);
     const auto brim_width = config->opt_float("brim_width");
@@ -822,8 +819,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_field("single_extruder_multi_material", !is_BBL_Printer);
 
+    auto bSEMM = preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
     const bool supports_wipe_tower_2 = !is_BBL_Printer && preset_bundle->printers.get_edited_preset().config.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type2;
-    const bool feature_filament_suboptions_fields_enabled = !bSEMM && enable_filament_for_features;
 
     toggle_field("ooze_prevention", !bSEMM);
     bool have_ooze_prevention = config->opt_bool("ooze_prevention");
@@ -839,13 +836,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && config->opt_bool("enable_tower_interface_features"));
 
-    toggle_line("enable_filament_for_features", !bSEMM);
-
     for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"})
         toggle_line(el, !bSEMM);
-
-    toggle_field("sparse_infill_filament", feature_filament_suboptions_fields_enabled);
-    toggle_field("wipe_tower_filament", feature_filament_suboptions_fields_enabled);
 
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 

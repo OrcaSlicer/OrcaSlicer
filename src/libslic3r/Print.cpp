@@ -357,7 +357,6 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_extra_rib_length"
             || opt_key == "wipe_tower_rib_width"
             || opt_key == "wipe_tower_fillet_wall"
-            || opt_key == "enable_filament_for_features"
             || opt_key == "wipe_tower_filament"
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"
@@ -535,10 +534,9 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
     }
 
     // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
-    const int wipe_tower_filament = config().enable_filament_for_features ? config().wipe_tower_filament : 0;
-    if (has_wipe_tower() && wipe_tower_filament != 0 && extruders.size() > 1) {
-        assert(wipe_tower_filament > 0 && wipe_tower_filament < int(config().nozzle_diameter.size()));
-        extruders.emplace_back(wipe_tower_filament - 1); // config value is 1-based
+    if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
 
     sort_remove_duplicates(extruders);
