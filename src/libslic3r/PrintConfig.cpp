@@ -4021,7 +4021,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Infill");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print internal sparse infill. \"Default\" uses the active object/part filament.");
+    def->tooltip = L("Filament to print internal sparse infill.\n\"Default\" uses the active object/part filament.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
@@ -4901,7 +4901,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Walls");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print walls. \"Default\" uses the active object/part filament.");
+    def->tooltip = L("Filament to print walls.\n\"Default\" uses the active object/part filament.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
@@ -5662,7 +5662,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Solid infill");
     def->category = L("Extruders");
-    def->tooltip = L("Filament to print solid infill. \"Default\" uses the active object/part filament.");
+    def->tooltip = L("Filament to print solid infill.\n\"Default\" uses the active object/part filament.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(0));
@@ -6047,7 +6047,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft base");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support base and raft. \"Default\" means no specific filament for support and current filament is used.");
+    def->tooltip = L("Filament to print support base and raft.\n\"Default\" means no specific filament for support and current filament is used.");
     def->min = 0;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
@@ -6082,7 +6082,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft interface");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support interface. \"Default\" means no specific filament for support interface and current filament is used.");
+    def->tooltip = L("Filament to print support interface.\n\"Default\" means no specific filament for support interface and current filament is used.");
     def->min = 0;
     // BBS
     def->mode = comSimple;
