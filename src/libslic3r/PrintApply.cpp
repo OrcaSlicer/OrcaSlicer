@@ -819,7 +819,8 @@ bool verify_update_print_object_regions(
             cfg.solid_infill_filament.value = region.extruder_id;
             cfg.sparse_infill_filament.value       = region.extruder_id;
             // Painted regions force a single extruder for every feature in the region;
-            // clear top/bottom surface overrides so they fall through to solid_infill_filament.
+            // clear outer/top/bottom overrides so they fall through to wall/solid_infill_filament.
+            cfg.outer_wall_filament.value    = 0;
             cfg.top_surface_filament.value    = 0;
             cfg.bottom_surface_filament.value = 0;
             if (cfg != region.region->config()) {
@@ -1067,6 +1068,7 @@ static PrintObjectRegions* generate_print_object_regions(
                     cfg.wall_filament.value    = painted_extruder_id;
                     cfg.solid_infill_filament.value = painted_extruder_id;
                     cfg.sparse_infill_filament.value       = painted_extruder_id;
+                    cfg.outer_wall_filament.value    = 0;
                     cfg.top_surface_filament.value    = 0;
                     cfg.bottom_surface_filament.value = 0;
                     layer_range.painted_regions.push_back({ painted_extruder_id, parent_region_id, get_create_region(std::move(cfg))});

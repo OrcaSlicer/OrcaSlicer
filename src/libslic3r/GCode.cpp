@@ -4897,24 +4897,47 @@ LayerResult GCode::process_layer(
                             // Split individual perimeter entities by role
                             for (ExtrusionEntity *entity : extrusions->entities) {
                                 bool is_outer = is_external_perimeter(entity->role()) || entity->role() == erOverhangPerimeter;
-                                unsigned int ext_id = is_outer ? outer_wall_ext : inner_wall_ext;
-                                if (! layer_tools.has_extruder(ext_id))
-                                    ext_id = layer_tools.extruders.back();
+                                unsigned int correct_extruder_id = is_outer ? outer_wall_ext : inner_wall_ext;
+                                if (! layer_tools.has_extruder(correct_extruder_id))
+                                    correct_extruder_id = layer_tools.extruders.back();
 
-                                std::vector<ObjectByExtruder::Island> &islands = object_islands_by_extruder(
-                                    by_extruder, ext_id,
-                                    &layer_to_print - layers.data(),
-                                    layers.size(), n_slices+1);
-                                for (size_t i = 0; i <= n_slices; ++ i) {
-                                    bool   last = i == n_slices;
-                                    size_t island_idx = last ? n_slices : slices_test_order[i];
-                                    if (last || point_inside_surface(island_idx, entity->first_point())) {
-                                        if (islands[island_idx].by_region.empty())
-                                            islands[island_idx].by_region.assign(print.num_print_regions(), ObjectByExtruder::Island::Region());
-                                        // Add individual entity directly to the region's perimeters
-                                        islands[island_idx].by_region[region.print_region_id()].perimeters.emplace_back(entity);
-                                        islands[island_idx].by_region[region.print_region_id()].perimeters_overrides.emplace_back(nullptr);
-                                        break;
+                                // Keep per-copy wiping overrides even when splitting perimeters by role.
+                                const WipingExtrusions::ExtruderPerCopy *entity_overrides = nullptr;
+                                printing_extruders.clear();
+                                if (is_anything_overridden) {
+                                    entity_overrides = const_cast<LayerTools&>(layer_tools).wiping_extrusions().get_extruder_overrides(
+                                        entity, layer_to_print.original_object, int(correct_extruder_id), layer_to_print.object()->instances().size());
+                                    if (entity_overrides == nullptr) {
+                                        printing_extruders.emplace_back(correct_extruder_id);
+                                    } else {
+                                        printing_extruders.reserve(entity_overrides->size());
+                                        for (int extruder : *entity_overrides)
+                                            printing_extruders.emplace_back(extruder >= 0 ?
+                                                // at least one copy is overridden to use this extruder
+                                                extruder :
+                                                // at least one copy would normally be printed with this extruder
+                                                static_cast<unsigned int>(- extruder - 1));
+                                        Slic3r::sort_remove_duplicates(printing_extruders);
+                                    }
+                                } else
+                                    printing_extruders.emplace_back(correct_extruder_id);
+
+                                for (unsigned int extruder : printing_extruders) {
+                                    std::vector<ObjectByExtruder::Island> &islands = object_islands_by_extruder(
+                                        by_extruder, extruder,
+                                        &layer_to_print - layers.data(),
+                                        layers.size(), n_slices+1);
+                                    for (size_t i = 0; i <= n_slices; ++ i) {
+                                        bool   last = i == n_slices;
+                                        size_t island_idx = last ? n_slices : slices_test_order[i];
+                                        if (last || point_inside_surface(island_idx, entity->first_point())) {
+                                            if (islands[island_idx].by_region.empty())
+                                                islands[island_idx].by_region.assign(print.num_print_regions(), ObjectByExtruder::Island::Region());
+                                            // Add individual entity directly to the region's perimeters.
+                                            islands[island_idx].by_region[region.print_region_id()].perimeters.emplace_back(entity);
+                                            islands[island_idx].by_region[region.print_region_id()].perimeters_overrides.emplace_back(entity_overrides);
+                                            break;
+                                        }
                                     }
                                 }
                             }

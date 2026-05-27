@@ -364,6 +364,7 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                 for (auto layerm : layer->regions()) {
                     const auto& region = layerm->region();
                     int wall_filament = region.config().wall_filament;
+                    int outer_wall_filament = region.config().outer_wall_filament;
                     int solid_infill_filament = region.config().solid_infill_filament;
                     int top_surface_filament = region.config().top_surface_filament;
                     int bottom_surface_filament = region.config().bottom_surface_filament;
@@ -404,11 +405,16 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
                             }
                         }
 
-                        bool do_wall_filament_detect = wall_filament > 0 && tbb_geometric_unprintables[idx].count(wall_filament - 1) == 0;
+                        bool do_wall_filament_detect =
+                            (wall_filament > 0 && tbb_geometric_unprintables[idx].count(wall_filament - 1) == 0) ||
+                            (outer_wall_filament > 0 && tbb_geometric_unprintables[idx].count(outer_wall_filament - 1) == 0);
                         if (!layerm->perimeters.entities.empty() && do_wall_filament_detect) {
                             // if infill is unprintable, no need to check wall since wall contour surrounds infill contour
                             if (infill_unprintable) {
-                                tbb_geometric_unprintables[idx].insert(wall_filament - 1);
+                                if (wall_filament > 0)
+                                    tbb_geometric_unprintables[idx].insert(wall_filament - 1);
+                                if (outer_wall_filament > 0)
+                                    tbb_geometric_unprintables[idx].insert(outer_wall_filament - 1);
                                 continue;
                             }
 
@@ -423,7 +429,10 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
 
                             if (wall_bbox.overlap(unprintable_area_bbox[idx]) &&
                                 !intersection(*wall_expolys, unprintable_area_in_obj_coord[idx]).empty()) {
-                                tbb_geometric_unprintables[idx].insert(wall_filament - 1);
+                                if (wall_filament > 0)
+                                    tbb_geometric_unprintables[idx].insert(wall_filament - 1);
+                                if (outer_wall_filament > 0)
+                                    tbb_geometric_unprintables[idx].insert(outer_wall_filament - 1);
                             }
                         }
                     }
