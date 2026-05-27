@@ -3541,7 +3541,8 @@ struct FeatureFilamentOverrideMask
     bool wall_filament          = false;
 };
 
-static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides)
+static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides,
+                                         const bool enable_filament_for_features)
 {
     // 1) Explicit feature filament values take precedence over base extruder fallback.
     auto *opt_extruder = in.opt<ConfigOptionInt>(key_extruder);
@@ -3554,7 +3555,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                 if (one_of(it->first, keys_extruders)) {
                     // Ignore "default" extruders.
                     int extruder = static_cast<const ConfigOptionInt*>(it->second.get())->value;
-                    if (extruder > 0) {
+                    if (enable_filament_for_features && extruder > 0) {
                         my_opt->setInt(extruder);
                         if (it->first == "sparse_infill_filament")
                             feature_overrides.sparse_infill_filament = true;
@@ -3578,7 +3579,8 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
     }
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders)
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config,
+                                                  const ModelVolume &volume, const bool enable_filament_for_features, size_t num_extruders)
 {
     PrintRegionConfig config = default_or_parent_region_config;
     FeatureFilamentOverrideMask feature_overrides;
@@ -3593,17 +3595,17 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     if (volume.is_model_part()) {
         // default_or_parent_region_config contains the Print's PrintRegionConfig.
         // Override with ModelObject's PrintRegionConfig values.
-        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides);
+        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides, enable_filament_for_features);
     } else {
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
-    apply_to_print_region_config(config, volume.config.get(), feature_overrides);
+    apply_to_print_region_config(config, volume.config.get(), feature_overrides, enable_filament_for_features);
     if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides);
+        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, enable_filament_for_features);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
-    	apply_to_print_region_config(config, *layer_range_config, feature_overrides);
+    	apply_to_print_region_config(config, *layer_range_config, feature_overrides, enable_filament_for_features);
     }
     // Resolve feature defaults and clamp invalid extruders to index 1.
     clamp_feature_filament_to_valid(config.sparse_infill_filament, num_extruders);
@@ -3658,6 +3660,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 	print_config.apply(full_config, true);
 	object_config.apply(full_config, true);
 	default_region_config.apply(full_config, true);
+    const bool enable_filament_for_features = print_config.enable_filament_for_features;
     // BBS
 	size_t              filament_extruders = print_config.filament_diameter.size();
 	object_config = object_config_from_model_object(object_config, model_object, filament_extruders);
@@ -3667,7 +3670,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 		if (model_volume->is_model_part()) {
 			PrintRegion::collect_object_printing_extruders(
 				print_config,
-				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders),
+                region_config_from_model_volume(default_region_config, nullptr, *model_volume, enable_filament_for_features, filament_extruders),
                 object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 				object_extruders);
 			for (const std::pair<const t_layer_height_range, ModelConfig> &range_and_config : model_object.layer_config_ranges)
@@ -3676,7 +3679,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 					range_and_config.second.has("solid_infill_filament"))
 					PrintRegion::collect_object_printing_extruders(
 						print_config,
-						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders),
+                        region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, enable_filament_for_features, filament_extruders),
                         object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 						object_extruders);
 		}

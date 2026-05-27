@@ -125,7 +125,10 @@ std::string PresetHints::maximum_volumetric_flow_description(const PresetBundle 
 
     // Index of an extruder assigned to a feature. If set to 0, an active extruder will be used for a multi-material print.
     // If different from idx_extruder, it will not be taken into account for this hint.
-    auto feature_extruder_active = [idx_extruder, num_extruders](int i) {
+    const bool enable_filament_for_features = print_config.opt_bool("enable_filament_for_features");
+    auto feature_extruder_active = [idx_extruder, num_extruders, enable_filament_for_features](int i) {
+        if (!enable_filament_for_features)
+            return true;
         return i <= 0 || i > num_extruders || idx_extruder == -1 || idx_extruder == i - 1;
     };
     bool perimeter_extruder_active                  = feature_extruder_active(print_config.opt_int("wall_filament"));
