@@ -1,6 +1,8 @@
 #include "ElegooLink.hpp"
 
 #include <algorithm>
+#include <map>
+#include <mutex>
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -60,6 +62,23 @@ namespace Slic3r {
     namespace {
 
         constexpr const char* ELEGOO_CC2_DEFAULT_TOKEN = "123456";
+
+        static std::mutex                         s_sn_cache_mutex;
+        static std::map<std::string, std::string> s_sn_cache;
+
+        void cache_sn(const std::string& ip, const std::string& token, const std::string& sn)
+        {
+            if (ip.empty() || token.empty() || sn.empty()) return;
+            std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
+            s_sn_cache[ip + ":" + token] = sn;
+        }
+
+        std::string lookup_sn(const std::string& ip, const std::string& token)
+        {
+            std::lock_guard<std::mutex> lock(s_sn_cache_mutex);
+            auto it = s_sn_cache.find(ip + ":" + token);
+            return it != s_sn_cache.end() ? it->second : std::string{};
+        }
 
         enum class ElegooPrinterType {
             Other,
@@ -336,8 +355,32 @@ namespace Slic3r {
         std::string web_path = resources_dir() + "/plugins/elegoolink/web/lan_service_web/index.html";
         std::replace(web_path.begin(), web_path.end(), '\\', '/');
         web_path = "file://" + web_path;
-        web_path += "?access_code=" + get_cc2_token(config->opt_string("printhost_apikey"));
-        web_path += "&ip=" + get_host_from_url(host) + "&id=elegoo_123456";
+
+        const std::string token   = get_cc2_token(config->opt_string("printhost_apikey"));
+        const std::string host_ip = get_host_from_url(host);
+
+        // Pass sn= so the panel can subscribe to the correct MQTT topics.
+        // Prefer the cached value from the connection test; fall back to a
+        // short LAN HTTP call on first use.
+        std::string sn = lookup_sn(host_ip, token);
+        if (sn.empty()) {
+            std::string error_msg;
+            auto http = Http::get("http://" + host_ip + "/system/info?X-Token=" + escape_string(token));
+            http.timeout_connect(3).timeout_max(5);
+            http.header("X-Token", token);
+            http.header("Accept", "application/json");
+            http.on_complete([&](std::string body, unsigned /*status*/) {
+                parse_cc2_response(body, error_msg, &sn);
+            }).perform_sync();
+            if (!sn.empty())
+                cache_sn(host_ip, token, sn);
+        }
+
+        web_path += "?access_code=" + token;
+        web_path += "&ip=" + host_ip;
+        if (!sn.empty())
+            web_path += "&sn=" + sn;
+        web_path += "&id=elegoo_123456";
 
         const std::string lang = GUI::wxGetApp().current_language_code_safe().utf8_string();
         if (!lang.empty())
@@ -481,6 +524,7 @@ namespace Slic3r {
                     msg = format_error(body, error_message.empty() ? "CC2 device not detected" : error_message, status);
                     return;
                 }
+                cache_sn(get_host_from_url(m_host), token, serial_number);
                 res = true;
             })
 #ifdef WIN32
