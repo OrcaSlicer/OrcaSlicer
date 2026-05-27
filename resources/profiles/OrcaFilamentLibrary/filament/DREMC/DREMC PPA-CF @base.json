@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "DREMC PPA-CF @base",
+	"inherits": "fdm_filament_ppa",
+	"from": "system",
+	"filament_id": "DREMC010",
+	"instantiation": "false",
+	"filament_vendor": [
+		"DREMC"
+	]
+}
