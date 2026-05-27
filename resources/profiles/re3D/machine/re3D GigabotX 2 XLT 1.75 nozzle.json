@@ -1,6 +1,7 @@
 {
 	"type": "machine",
 	"name": "re3D GigabotX 2 XLT 1.75 nozzle",
+	"renamed_from": "re3D Gigabot X2 XLT 1.75 nozzle",
 	"inherits": "fgf_re3D_common",
 	"instantiation": "true",
 	"machine_tech": "FGF",

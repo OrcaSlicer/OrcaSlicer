@@ -2,6 +2,7 @@
 	"type": "process",
 	"setting_id": "fdm__04_026",
 	"name": "0.26 Standard",
+	"renamed_from": "0.26mm Standard @re3D fdm 0.4",
 	"from": "system",
 	"instantiation": "true",
 	"inherits": "fdm_process_re3D_common",

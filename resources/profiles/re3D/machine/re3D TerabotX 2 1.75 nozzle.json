@@ -1,6 +1,7 @@
 {
 	"type": "machine",
 	"name": "re3D TerabotX 2 1.75 nozzle",
+	"renamed_from": "re3D Terabot X2 1.75 nozzle",
 	"inherits": "fgf_re3D_common",
 	"instantiation": "true",
 	"machine_tech": "FGF",
