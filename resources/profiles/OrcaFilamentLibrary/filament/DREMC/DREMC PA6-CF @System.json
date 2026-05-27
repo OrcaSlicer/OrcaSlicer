@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "DREMC PA6-CF @System",
+	"inherits": "DREMC PA6-CF @base",
+	"from": "system",
+	"setting_id": "DREMC006",
+	"instantiation": "true",
+	"compatible_printers": []
+}
