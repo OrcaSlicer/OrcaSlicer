@@ -9,7 +9,6 @@
 
 #include <nlohmann/json.hpp>
 #include <atomic>
-#include <memory>
 #include <boost/filesystem/path.hpp>
 #include <thread>
 #include <wx/filedlg.h>
