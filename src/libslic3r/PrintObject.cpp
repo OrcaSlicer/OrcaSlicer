@@ -2194,7 +2194,17 @@ void PrintObject::discover_vertical_shells()
 	                        ++ i) {
                             at_least_one_top_projected = true;
 	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
-                            combine_holes(cache.holes);
+                            // Honor user's choice — when ensure_vertical_shell_thickness is set to
+                            // "none", skip combine_holes which would otherwise add anchor polygons
+                            // under raised features (text/logos), creating ghost-dot artifacts on
+                            // the layer below. The bug surfaces visibly on small raised geometry
+                            // even when the user explicitly asked for "no solid infill anywhere".
+                            // BambuStudio applies the equivalent guard (cf. PrintObject.cpp:1937
+                            // in bambulab/BambuStudio master, using their evtPartial flag).
+                            // Closes #5488.
+                            if (region_config.ensure_vertical_shell_thickness.value != EnsureVerticalShellThickness::evstNone) {
+                                combine_holes(cache.holes);
+                            }
                             combine_shells(cache.top_surfaces);
 	                    }
                         if (!at_least_one_top_projected && i < int(cache_top_botom_regions.size())) {
@@ -2223,7 +2233,12 @@ void PrintObject::discover_vertical_shells()
 	                        -- i) {
                                 at_least_one_bottom_projected = true;
 	                        const DiscoverVerticalShellsCacheEntry &cache = cache_top_botom_regions[i];
-							combine_holes(cache.holes);
+                            // Symmetric guard to the top-loop case above — see comment there.
+                            // BambuStudio applies the equivalent guard on the bottom loop too
+                            // (cf. PrintObject.cpp:1969 in bambulab/BambuStudio master).
+                            if (region_config.ensure_vertical_shell_thickness.value != EnsureVerticalShellThickness::evstNone) {
+                                combine_holes(cache.holes);
+                            }
                             combine_shells(cache.bottom_surfaces);
 	                    }
 
