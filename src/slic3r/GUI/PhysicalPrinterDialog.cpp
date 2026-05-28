@@ -257,7 +257,6 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                 m_optgroup->set_value("print_host", dialog.get_selected(), true);
                 m_optgroup->get_field("print_host")->field_changed();
             }
-            }
         });
 
         return sizer;
