@@ -1,4 +1,7 @@
 #include <nlohmann/json.hpp>
+
+#include <exception>
+
 #include "DevManager.h"
 #include "DevUtil.h"
 
@@ -151,11 +154,15 @@ namespace Slic3r
     {
         keep_alive();
         MachineObject* obj = this->get_selected_machine();
+        if (!obj) {
+            BOOST_LOG_TRIVIAL(warning) << "DeviceManager::check_pushing selected machine not found";
+            return;
+        }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         auto internal = std::chrono::duration_cast<std::chrono::milliseconds>(start - obj->last_update_time);
 
-        if (obj && !obj->is_support_mqtt_alive)
+        if (!obj->is_support_mqtt_alive)
         {
             if (internal.count() > TIMEOUT_FOR_STRAT && internal.count() < 1000 * 60 * 60 * 300)
             {
@@ -916,18 +923,33 @@ namespace Slic3r
         const auto cloud_provider = Slic3r::GUI::wxGetApp().get_printer_cloud_provider();
         if (Slic3r::GUI::wxGetApp().is_user_login(cloud_provider))
         {
-            m_manager->check_pushing();
-            try
-            {
-                agent->refresh_connection(cloud_provider);
+            try {
+                m_manager->check_pushing();
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_pushing exception="
+                                         << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer check_pushing unknown exception";
             }
-            catch (...)
-            {
-                ;
+
+            try {
+                agent->refresh_connection(cloud_provider);
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer refresh_connection exception="
+                                         << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer refresh_connection unknown exception";
             }
         }
 
         // certificate
-        agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+        try {
+            agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert exception="
+                                     << e.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "DeviceManagerRefresher::on_timer install_device_cert unknown exception";
+        }
     }
 }
