@@ -3552,7 +3552,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
         if (it->first != key_extruder)
             if (ConfigOption* my_opt = out.option(it->first, false); my_opt != nullptr) {
                 if (one_of(it->first, keys_extruders)) {
-                    // Ignore "default" extruders.
+                    // "Default" (0) clears explicit override for this scope and lets fallback apply.
                     int extruder = static_cast<const ConfigOptionInt*>(it->second.get())->value;
                     if (extruder > 0) {
                         my_opt->setInt(extruder);
@@ -3562,6 +3562,13 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                             feature_overrides.solid_infill_filament = true;
                         else if (it->first == "wall_filament")
                             feature_overrides.wall_filament = true;
+                    } else {
+                        if (it->first == "sparse_infill_filament")
+                            feature_overrides.sparse_infill_filament = false;
+                        else if (it->first == "solid_infill_filament")
+                            feature_overrides.solid_infill_filament = false;
+                        else if (it->first == "wall_filament")
+                            feature_overrides.wall_filament = false;
                     }
                 } else
                     my_opt->set(it->second.get());
