@@ -3165,7 +3165,7 @@ void PrintObjectSupportMaterial::trim_support_layers_by_object(
                     ? support_layer.bottom_print_z()
                     : support_layer.print_z + gap_extra_above;
                 coordf_t z_threshold = is_bottom_contact
-                    ? support_layer.bottom_print_z()
+                    ? support_layer.bottom_print_z() - EPSILON
                     : (support_layer.bottom_print_z() - gap_extra_below + EPSILON);
                 idx_object_layer_overlapping = Layer::idx_higher_or_equal(
                     object.layers().begin(), object.layers().end(), idx_object_layer_overlapping,
