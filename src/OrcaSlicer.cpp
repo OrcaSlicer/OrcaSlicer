@@ -1270,6 +1270,29 @@ int CLI::run(int argc, char **argv)
 #endif // _WIN32*/
 
     bool translate_old = false, regenerate_thumbnails = false, keep_old_params = false, remove_wrapping_detect = false, filament_color_changed = false, downward_check = false;
+    auto migrate_legacy_feature_filament_defaults = [](auto &cfg) {
+        static const char *feature_filament_keys[] = {
+            "wall_filament",
+            "sparse_infill_filament",
+            "solid_infill_filament",
+            "support_filament",
+            "support_interface_filament"
+        };
+
+        int converted_count = 0;
+        for (const char *key : feature_filament_keys) {
+            if (!cfg.has(key))
+                continue;
+
+            const ConfigOption *opt = cfg.option(key);
+            if (opt != nullptr && opt->getInt() == 1) {
+                cfg.set_key_value(key, new ConfigOptionInt(0));
+                ++converted_count;
+            }
+        }
+
+        return converted_count;
+    };
     int current_printable_width, current_printable_depth, current_printable_height, shrink_to_new_bed = 0;
     int old_printable_height = 0, old_printable_width = 0, old_printable_depth = 0;
     Pointfs old_printable_area, old_exclude_area;
@@ -1591,7 +1614,7 @@ int CLI::run(int argc, char **argv)
                         record_exit_reson(outfile_dir, CLI_FILE_VERSION_NOT_SUPPORTED, 0, cli_errors[CLI_FILE_VERSION_NOT_SUPPORTED], sliced_info);
                         flush_and_exit(CLI_FILE_VERSION_NOT_SUPPORTED);
                     }
-                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0);
+                    Semver old_version(1, 5, 9), old_version2(1, 5, 9), old_version3(2, 0, 0), old_version4(2, 2, 0), old_version5("2.4.0");
                     if ((file_version < old_version) && !config.empty()) {
                         translate_old = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to translate")%file_version.to_string();
@@ -1604,6 +1627,19 @@ int CLI::run(int argc, char **argv)
                     if (file_version < old_version4) {
                         remove_wrapping_detect = true;
                         BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, need to set enable_wrapping_detection to false")%file_version.to_string();
+                    }
+
+                    if ((file_version < old_version5) && !config.empty()) {
+                        int converted_count = migrate_legacy_feature_filament_defaults(config);
+                        for (ModelObject *model_object : model.objects) {
+                            converted_count += migrate_legacy_feature_filament_defaults(model_object->config);
+                            for (ModelVolume *model_volume : model_object->volumes)
+                                converted_count += migrate_legacy_feature_filament_defaults(model_volume->config);
+                        }
+
+                        if (converted_count > 0) {
+                            BOOST_LOG_TRIVIAL(info) << boost::format("old 3mf version %1%, migrated %2% feature filament selections from 1 to 0 (Default)") % file_version.to_string() % converted_count;
+                        }
                     }
 
                     if (normative_check) {
