@@ -28,5 +28,6 @@
 	],
 	"min_layer_height": [
 		"0.12"
-	]
+	],
+	"upward_compatible_machine": []
 }
