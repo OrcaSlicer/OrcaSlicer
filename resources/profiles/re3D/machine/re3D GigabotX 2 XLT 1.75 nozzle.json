@@ -1,0 +1,34 @@
+{
+	"type": "machine",
+	"name": "re3D GigabotX 2 XLT 1.75 nozzle",
+	"renamed_from": "re3D Gigabot X2 XLT 1.75 nozzle",
+	"inherits": "fgf_re3D_common",
+	"instantiation": "true",
+	"machine_tech": "FGF",
+	"model_id": "re3D GBX2 XLT",
+	"printer_model": "re3D GigabotX 2 XLT",
+	"bed_texture": "GigabotX 2 XLT_buildplate_texture.png",
+	"printable_area": [
+		"0x0",
+		"552x0",
+		"552x740",
+		"0x740"
+	],
+	"printable_height": "470",
+	"nozzle_diameter": [
+		"1.75"
+	],
+	"printer_variant": "1.75",
+	"max_layer_height": [
+		"1.3"
+	],
+	"min_layer_height": [
+		"0.6"
+	],
+	"default_filament_profile": [
+		"re3D Greengate rPETG @1.75 nozzle"
+	],
+	"default_print_profile": "1.0 Standard",
+	"printer_settings_id": "re3d_gbx_xlt_175",
+	"setting_id": "re3d_gbx_xlt_175"
+}

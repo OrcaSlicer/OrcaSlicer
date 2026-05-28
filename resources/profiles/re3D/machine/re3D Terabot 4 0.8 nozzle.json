@@ -1,15 +1,13 @@
 {
 	"type": "machine",
-	"setting_id": "GM001",
 	"name": "re3D Terabot 4 0.8 nozzle",
-	"from": "system",
+	"inherits": "fdm_re3D_common",
 	"instantiation": "true",
-	"inherits": "fgf_re3D_common",
+	"machine_tech": "FFF",
+	"model_id": "TB4",
 	"printer_model": "re3D Terabot 4",
-	"nozzle_diameter": [
-		"0.8",
-		"0.8"
-	],
+	"bed_texture": "Gigabot 4_buildplate_texture.png",
+	"default_materials": "re3D PETG;re3D PLA;re3D PC",
 	"printable_area": [
 		"0x0",
 		"915x0",
@@ -17,15 +15,22 @@
 		"0x915"
 	],
 	"printable_height": "1000",
+	"nozzle_diameter": [
+		"0.8",
+		"0.8"
+	],
+	"printer_variant": "0.8",
 	"max_layer_height": [
-		"0.64"
+		"0.6"
 	],
 	"min_layer_height": [
 		"0.2"
 	],
-	"retraction_length": [
-		"1.0"
+	"default_filament_profile": [
+		"re3D PLA @0.8 nozzle",
+		"re3D PETG @0.8 nozzle"
 	],
-	"printer_variant": "0.8",
-	"default_print_profile": "0.2mm Standard @re3D fdm 0.8"
+	"default_print_profile": "0.4 Standard",
+	"printer_settings_id": "re3d_terabot4_08",
+	"setting_id": "re3d_terabot4_08"
 }
