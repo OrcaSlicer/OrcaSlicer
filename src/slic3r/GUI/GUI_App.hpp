@@ -297,6 +297,7 @@ private:
     NetworkAgent* m_agent { nullptr };
     std::map<std::string, std::string> need_delete_presets;   // store setting ids of preset
     std::vector<bool> m_create_preset_blocked { false, false, false, false, false, false }; // excceed limit
+    std::string       m_pending_conflict_setting_id; // setting_id from the most recent 409 conflict
     bool m_networking_compatible { false };
     bool m_networking_need_update { false };
     bool m_networking_cancel_update { false };
@@ -530,6 +531,8 @@ public:
     void            load_pending_vendors();
 
     void            sync_preset(Preset* preset);
+    bool            resolve_orca_sync_conflict(bool force_push);
+    void            force_push_orca_sync_conflict();
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            restart_sync_user_preset();

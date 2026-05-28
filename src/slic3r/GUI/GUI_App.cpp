@@ -13,6 +13,7 @@
 #include <boost/log/detail/native_typeof.hpp>
 #include <libslic3r/Config.hpp>
 #include <wx/event.h>
+#include <wx/toplevel.h>
 
 // Localization headers: include libslic3r version first so everything in this file
 // uses the slic3r/GUI version (the macros will take precedence over the functions).
@@ -4875,6 +4876,38 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         return;
     }
 
+    if (status == 409 && provider == ORCA_CLOUD_PROVIDER) {
+        BOOST_LOG_TRIVIAL(info) << "Http error 409.";
+        // Parse the conflict body to extract the error code and server profile id
+        int conflict_code = 0;
+        try {
+            json conflict_body = json::parse(body_str);
+            if (conflict_body.contains("code"))
+                conflict_code = conflict_body["code"].get<int>();
+            if (conflict_body.contains("server_profile") && conflict_body["server_profile"].contains("id")) {
+                m_pending_conflict_setting_id = conflict_body["server_profile"]["id"].get<std::string>();
+            }
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(warning) << "Failed to parse 409 conflict body.";
+        }
+        auto* plater = wxGetApp().plater();
+        if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
+            std::string text;
+            if (conflict_code == -1) {
+                text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+            } else {
+                text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+                            "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
+            }
+            plater->get_notification_manager()->push_orca_sync_conflict_notification(
+                text,
+                [](wxEvtHandler*) { return wxGetApp().resolve_orca_sync_conflict(false); },
+                [](wxEvtHandler*) { return wxGetApp().resolve_orca_sync_conflict(true); });
+        }
+        return;
+    }
+
     static bool m_is_error_shown = false;
     // Show general error notification for Orca Cloud API failures (not Bambu)
     if (provider == ORCA_CLOUD_PROVIDER && status >= 400 && code != HttpErrorVersionLimited) {
@@ -4892,7 +4925,7 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                 wxGetApp()
                     .plater()
                     ->get_notification_manager()
-                    ->push_notification(NotificationType::PlaterError, NotificationManager::NotificationLevel::WarningNotificationLevel,
+                    ->push_notification(NotificationType::OrcaCloudAPIError, NotificationManager::NotificationLevel::WarningNotificationLevel,
                                         msg.ToUTF8().data());
             }
         }
@@ -6169,6 +6202,134 @@ void GUI_App::load_pending_vendors()
     need_add_filaments.clear();
 }
 
+void GUI_App::force_push_orca_sync_conflict()
+{
+    BOOST_LOG_TRIVIAL(info) << "Force pushing Orca Cloud settings to resolve sync conflict.";
+
+    if (m_pending_conflict_setting_id.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "No pending conflict setting_id for force push.";
+        return;
+    }
+
+    std::string setting_id = m_pending_conflict_setting_id;
+    m_pending_conflict_setting_id.clear();
+
+    auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
+    if (!orca_agent) {
+        BOOST_LOG_TRIVIAL(error) << "Force push: failed to get OrcaCloudServiceAgent.";
+        return;
+    }
+
+    // Find the local preset matching the conflict setting_id
+    Preset* found_preset = nullptr;
+    Preset::Type found_type = Preset::Type::TYPE_INVALID;
+    for (PresetCollection* col : {static_cast<PresetCollection*>(&preset_bundle->prints),
+                                  static_cast<PresetCollection*>(&preset_bundle->filaments),
+                                  static_cast<PresetCollection*>(&preset_bundle->printers)}) {
+        for (size_t i = 0; i < col->size(); ++i) {
+            Preset& preset = col->preset(i, true);
+            if (preset.setting_id == setting_id) {
+                found_preset = &preset;
+                found_type = preset.type;
+                break;
+            }
+        }
+        if (found_preset) break;
+    }
+
+    if (!found_preset) {
+        BOOST_LOG_TRIVIAL(warning) << "Force push: could not find local preset with setting_id=" << setting_id;
+        if (plater_ != nullptr && imgui() != nullptr && imgui()->display_initialized()) {
+            plater_->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::WarningNotificationLevel,
+                _u8L("Force push failed: local preset not found."));
+        }
+        return;
+    }
+
+    std::string name = found_preset->name;
+
+    // Get differed values
+    std::map<std::string, std::string> values_map;
+    if (preset_bundle->get_differed_values_to_update(*found_preset, values_map) != 0) {
+        BOOST_LOG_TRIVIAL(warning) << "Force push: failed to get differed values for preset " << name;
+        return;
+    }
+
+    // Build content and extract original_updated_time (same logic as put_setting)
+    std::string original_updated_time;
+    auto it = values_map.find(IOT_JSON_KEY_UPDATED_TIME);
+    if (it != values_map.end()) {
+        original_updated_time = it->second;
+    }
+
+    nlohmann::json content;
+    content["name"] = name;
+    for (const auto& pair : values_map) {
+        if (pair.first == IOT_JSON_KEY_UPDATED_TIME) continue;
+        content[pair.first] = pair.second;
+    }
+
+    auto result = orca_agent->sync_push(setting_id, name, content, original_updated_time, true);
+
+    if (result.success) {
+        if (found_type == Preset::Type::TYPE_FILAMENT) {
+            preset_bundle->filaments.set_sync_info_and_save(name, setting_id, "", result.new_updated_time);
+        } else if (found_type == Preset::Type::TYPE_PRINT) {
+            preset_bundle->prints.set_sync_info_and_save(name, setting_id, "", result.new_updated_time);
+        } else if (found_type == Preset::Type::TYPE_PRINTER) {
+            preset_bundle->printers.set_sync_info_and_save(name, setting_id, "", result.new_updated_time);
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "Force push succeeded for preset " << name;
+        if (plater_ != nullptr && imgui() != nullptr && imgui()->display_initialized()) {
+            plater_->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::RegularNotificationLevel,
+                _u8L("Force push succeeded."));
+        }
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "Force push failed for preset " << name << ": " << result.error_message;
+        if (plater_ != nullptr && imgui() != nullptr && imgui()->display_initialized()) {
+            plater_->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::WarningNotificationLevel,
+                _u8L("Force push failed."));
+        }
+    }
+}
+
+bool GUI_App::resolve_orca_sync_conflict(bool force_push)
+{
+    if (!m_agent || !preset_bundle)
+        return false;
+
+    if (force_push) {
+        MessageDialog dlg(mainframe,
+                          _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
+                          _L("Resolve cloud sync conflict"),
+                          wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+        if (dlg.ShowModal() != wxID_YES)
+            return false;
+        std::thread([this]() {
+            if (is_closing() || !m_agent || !preset_bundle)
+                return;
+            force_push_orca_sync_conflict();
+        }).detach();
+        return true;
+    }
+
+    std::thread([this]() {
+        if (is_closing() || !m_agent || !preset_bundle)
+            return;
+        BOOST_LOG_TRIVIAL(info) << "Pulling Orca Cloud settings to resolve sync conflict.";
+        reload_settings();
+    }).detach();
+
+    return true;
+}
+
 void GUI_App::sync_preset(Preset* preset)
 {
     int result = -1;
@@ -6176,6 +6337,7 @@ void GUI_App::sync_preset(Preset* preset)
     std::string updated_info;
     long long update_time = 0;
     // only sync user's preset
+    if (!m_agent) return;
     if (!preset->is_user()) return;
 
     auto setting_id = preset->setting_id;
@@ -6248,14 +6410,13 @@ void GUI_App::sync_preset(Preset* preset)
                 }
                 else {
                     result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
+                    auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
+                    if (!update_time_str.empty())
+                        update_time = std::atoll(update_time_str.c_str());
                     if (http_code >= 400) {
                         result = 0;
                         updated_info = "hold";
                         BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
-                    } else {
-                            auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
-                            if (!update_time_str.empty())
-                                update_time = std::atoll(update_time_str.c_str());
                     }
                 }
 

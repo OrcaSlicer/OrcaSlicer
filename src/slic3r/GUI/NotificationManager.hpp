@@ -15,6 +15,8 @@
 #include <wx/time.h>
 
 #include <string>
+#include <functional>
+#include <utility>
 #include <vector>
 #include <deque>
 #include <unordered_set>
@@ -162,6 +164,8 @@ enum class NotificationType
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
     OrcaSharedProfilesAvailable,
+	OrcaCloudAPIError,
+    OrcaSyncConflict,
     NotificationTypeCount
 
 };
@@ -274,6 +278,9 @@ public:
 
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
+	void push_orca_sync_conflict_notification(const std::string& text,
+		std::function<bool(wxEvtHandler*)> pull_callback,
+		std::function<bool(wxEvtHandler*)> force_push_callback);
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -886,6 +893,30 @@ private:
 
 		std::string m_explore_url;
 		bool m_dont_show_clicked{ false };
+	};
+
+	class OrcaSyncConflictNotification : public PopNotification
+	{
+	public:
+		OrcaSyncConflictNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			std::function<bool(wxEvtHandler*)> pull_callback,
+			std::function<bool(wxEvtHandler*)> force_push_callback)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_pull_callback(std::move(pull_callback))
+			, m_force_push_callback(std::move(force_push_callback))
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		void render_action_link(ImGuiWrapper& imgui, float text_x, float text_y, const std::string& text,
+			const char* id, const std::function<bool(wxEvtHandler*)>& callback);
+
+		std::function<bool(wxEvtHandler*)> m_pull_callback;
+		std::function<bool(wxEvtHandler*)> m_force_push_callback;
 	};
 	class SlicingProgressNotification;
 

@@ -56,6 +56,7 @@ constexpr const char* ORCA_DEFAULT_PUB_KEY = "sb_publishable_lvVe_whOi80SU9BPSxM
 constexpr const char* ORCA_HEALTH_PATH = "/api/v1/health";
 constexpr const char* ORCA_SYNC_PULL_PATH = "/api/v1/sync/pull";
 constexpr const char* ORCA_SYNC_PUSH_PATH = "/api/v1/sync/push";
+constexpr const char* ORCA_SYNC_FORCE_PUSH_PATH = "/api/v1/sync/force-push";
 constexpr const char* ORCA_SYNC_DELETE_PATH = "/api/v1/sync/delete";
 constexpr const char* ORCA_PROFILES_PATH = "/api/v1/sync/profiles";
 constexpr const char* ORCA_SUBSCRIPTIONS_PATH = "/api/v1/subscriptions";
@@ -1208,11 +1209,11 @@ int OrcaCloudServiceAgent::sync_pull(
     }
 }
 
-SyncPushResult OrcaCloudServiceAgent::sync_push(
-    const std::string& profile_id,
-    const std::string& name,
-    const nlohmann::json& content,
-    const std::string& original_updated_time)
+SyncPushResult OrcaCloudServiceAgent::sync_push(const std::string& profile_id,
+                                                const std::string& name,
+                                                const nlohmann::json& content,
+                                                const std::string& original_updated_time,
+                                                bool force)
 {
     SyncPushResult result;
     result.success = false;
@@ -1243,7 +1244,7 @@ SyncPushResult OrcaCloudServiceAgent::sync_push(
 
     std::string response;
     unsigned int http_code = 0;
-    int http_result = http_post(ORCA_SYNC_PUSH_PATH, body_str, &response, &http_code);
+    int http_result = http_post(force ? ORCA_SYNC_FORCE_PUSH_PATH : ORCA_SYNC_PUSH_PATH, body_str, &response, &http_code);
 
     result.http_code = http_code;
 
@@ -1888,7 +1889,7 @@ int OrcaCloudServiceAgent::http_post(const std::string& path, const std::string&
                 .on_error([&](std::string resp_body, std::string error, unsigned resp_status) {
                     result.success = false;
                     result.status  = resp_status == 0 ? 404 : resp_status;
-                    result.body    = body;
+                    result.body    = resp_body;
                     BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
                 })
                 .timeout_max(30)
