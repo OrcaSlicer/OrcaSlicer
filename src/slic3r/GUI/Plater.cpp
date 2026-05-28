@@ -876,64 +876,6 @@ struct DynamicFilamentList : DynamicList
     }
 };
 
-struct DynamicFilamentList1Based : DynamicFilamentList
-{
-    void apply_on(Choice *c) override
-    {
-        if (items.empty())
-            update(true);
-        auto cb = dynamic_cast<ComboBox *>(c->window);
-        wxString old_selection = cb->GetStringSelection();
-        int old_index = cb->GetSelection();
-        cb->Clear();
-        cb->Append(_L("Default"));
-        for (auto i : items) {
-            cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
-        }
-
-        if (old_index >= 0 && static_cast<unsigned int>(old_index) < cb->GetCount()) {
-            cb->SetSelection(old_index);
-            return;
-        }
-
-        int new_index = cb->FindString(old_selection);
-        if (new_index != wxNOT_FOUND)
-            cb->SetSelection(new_index);
-        else
-            cb->SetSelection(0);
-    }
-    wxString get_value(int index) override
-    {
-        wxString str;
-        str << index;
-        return str;
-    }
-    int index_of(wxString value) override
-    {
-        long n = 0;
-        if(!value.ToLong(&n))
-            return -1;
-        return (n >= 0 && n <= items.size()) ? int(n) : -1;
-    }
-    void update(bool force = false)
-    {
-        items.clear();
-        if (!force && m_choices.empty())
-            return;
-        auto icons = get_extruder_color_icons(true);
-        auto presets = wxGetApp().preset_bundle->filament_presets;
-        for (int i = 0; i < presets.size(); ++i) {
-            wxString str;
-            std::string type;
-            wxGetApp().preset_bundle->filaments.find_preset(presets[i])->get_filament_type(type);
-            str << type;
-            items.push_back({str, i < icons.size() ? icons[i] : nullptr});
-        }
-        DynamicList::update();
-    }
-
-};
-
 // Check if the machine supports Junction Deviation (Marlin firmware with machine_max_junction_deviation > 0)
 static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 {
@@ -950,7 +892,6 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;
-static DynamicFilamentList1Based dynamic_filament_list_1_based;
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -1657,9 +1598,9 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("wall_filament", &dynamic_filament_list_1_based);
-    Choice::register_dynamic_list("sparse_infill_filament", &dynamic_filament_list_1_based);
-    Choice::register_dynamic_list("solid_infill_filament", &dynamic_filament_list_1_based);
+    Choice::register_dynamic_list("wall_filament", &dynamic_filament_list);
+    Choice::register_dynamic_list("sparse_infill_filament", &dynamic_filament_list);
+    Choice::register_dynamic_list("solid_infill_filament", &dynamic_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -3777,7 +3718,6 @@ void Sidebar::show_SEMM_buttons()
 void Sidebar::update_dynamic_filament_list()
 {
     dynamic_filament_list.update();
-    dynamic_filament_list_1_based.update();
 }
 
 PlaterPresetComboBox* Sidebar::printer_combox()
