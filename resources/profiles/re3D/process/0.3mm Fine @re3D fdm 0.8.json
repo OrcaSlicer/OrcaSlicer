@@ -1,18 +1,18 @@
 {
 	"type": "process",
-	"setting_id": "fdm_08_04",
-	"name": "0.4 Standard",
-	"renamed_from": "0.4mm Draft @re3D fdm 0.8",
+	"setting_id": "fdm_08_03",
+	"name": "0.3 Fine",
+	"renamed_from": "0.2mm Standard @re3D fdm 0.8",
 	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_re3D_common",
+	"instantiation": "true",
 	"compatible_printers": [
 		"re3D Gigabot 4 0.8 nozzle",
 		"re3D Gigabot 4 XLT 0.8 nozzle",
 		"re3D Terabot 4 0.8 nozzle"
 	],
-	"layer_height": "0.4",
-	"initial_layer_print_height": "0.6",
+	"layer_height": "0.3",
+	"initial_layer_print_height": "0.4",
 	"line_width": "1",
 	"outer_wall_line_width": "1",
 	"inner_wall_line_width": "1",
@@ -21,6 +21,6 @@
 	"internal_solid_infill_line_width": "1",
 	"top_surface_line_width": "1",
 	"support_line_width": "1",
-	"support_top_z_distance": "0.42",
-	"support_bottom_z_distance": "0.42"
+	"support_top_z_distance": "0.24",
+	"support_bottom_z_distance": "0.24"
 }

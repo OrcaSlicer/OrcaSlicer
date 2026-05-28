@@ -3349,6 +3349,8 @@ bool GUI_App::on_init_network(bool try_backup)
         std::string country_code = app_config->get_country_code();
         m_agent->set_country_code(country_code);
         m_agent->start();
+        // Orca: disable Bambu telemetry up-front (before any login) so it never starts.
+        check_track_enable();
     }
 
     // When using Orca cloud alongside the BBL network plugin, the BBL DLL agent still
@@ -3365,6 +3367,12 @@ bool GUI_App::on_init_network(bool try_backup)
             bbl.init_log();
             bbl.set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
             bbl.set_country_code(app_config->get_country_code());
+            // Orca: disable Bambu telemetry before start() so the DLL never spins up tracking
+            // workers. This covers the case where the BBL plugin is loaded for LAN discovery
+            // but the user has not registered BBL_CLOUD_PROVIDER (so m_agent->track_enable
+            // would not reach this DLL instance).
+            bbl.track_enable(false);
+            bbl.track_remove_files();
             bbl.start();
         }
     }
@@ -4970,7 +4978,7 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 
 void GUI_App::check_track_enable()
 {
-    // Orca: alaways disable track event
+    // Orca: telemetry only exists on the BBL cloud agent; always disable it.
     if (m_agent) {
         m_agent->track_enable(false);
         m_agent->track_remove_files();
@@ -5855,14 +5863,58 @@ void GUI_App::reload_settings()
             if (is_closing() || !preset_bundle || !app_config || !mainframe)
                 return;
 
+            // Snapshot each collection's edited config BEFORE any mutation.
+            // load_pending_vendors() via apply_vendor_config() can call select_preset(0)
+            // resetting all selections to defaults and overwriting m_edited_preset.
+            // The cloud load_user_presets() can also trigger select_preset() via
+            // remove_users_preset() and overwrite m_edited_preset.config via load_user_preset().
+            struct PresetSnapshot { std::string name; DynamicPrintConfig config; bool dirty; };
+            auto snapshot_collection = [](const PresetCollection& col) -> PresetSnapshot {
+                auto& sel = col.get_selected_preset();
+                auto& ed  = col.get_edited_preset();
+                return {sel.name, ed.config, sel.is_dirty};
+            };
+            PresetSnapshot print_snap    = snapshot_collection(preset_bundle->prints);
+            PresetSnapshot filament_snap = snapshot_collection(preset_bundle->filaments);
+            PresetSnapshot printer_snap  = snapshot_collection(preset_bundle->printers);
+
             // Check the user presets for any system vendors that need to be installed
             for (auto data : user_presets) {
                 if (!check_preset_parent_available(data))
                     add_pending_vendor_preset(data);
             }
             load_pending_vendors();
+
             preset_bundle->load_user_presets(*app_config, user_presets, ForwardCompatibilitySubstitutionRule::Enable);
             preset_bundle->save_user_presets(*app_config, get_delete_cache_presets());
+
+            // Re-apply any edited config that was wiped during vendor loading or sync.
+            auto restore_snapshot = [](PresetCollection& col, const PresetSnapshot& snap, const char* label) {
+                auto& ed = col.get_edited_preset();
+                bool changed = !ed.config.equals(snap.config);
+                BOOST_LOG_TRIVIAL(info) << "reload_settings restore " << label
+                    << ": snap_name=" << snap.name << " snap_dirty=" << snap.dirty
+                    << " current_name=" << ed.name << " changed=" << changed;
+                if (!snap.dirty) return; // nothing to protect, let cloud updates stand
+                Preset* p = col.find_preset(snap.name, false, true);
+                if (p && p->name == snap.name) {
+                    BOOST_LOG_TRIVIAL(info) << "reload_settings RESTORING " << label
+                        << ": name=" << snap.name;
+                    // If the snapshot preset is not currently selected, re-select it first.
+                    if (col.get_selected_preset().name != snap.name)
+                        col.select_preset_by_name(snap.name, true);
+                    ed = col.get_edited_preset();
+                    ed.config = snap.config;
+                    col.get_selected_preset().is_dirty = snap.dirty;
+                    ed.is_dirty = snap.dirty;
+                } else {
+                    BOOST_LOG_TRIVIAL(info) << "reload_settings restore " << label
+                        << ": preset not found name=" << snap.name;
+                }
+            };
+            restore_snapshot(preset_bundle->prints, print_snap, "print");
+            restore_snapshot(preset_bundle->filaments, filament_snap, "filament");
+            restore_snapshot(preset_bundle->printers, printer_snap, "printer");
 
             // Orca: settings changed, refresh ui to reflect the new preset values
             mainframe->update_side_preset_ui();
