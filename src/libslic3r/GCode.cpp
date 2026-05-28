@@ -2549,6 +2549,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         std::string top_gcode_template = print.config().file_start_gcode.value;
         if (!top_gcode_template.empty()) {
             DynamicConfig top_config;
+            // file_start_gcode runs before the parser copy that normally restores these, so set them here.
+            PlaceholderParser::update_timestamp(top_config);
+            PlaceholderParser::update_user_name(top_config);
             top_config.set_key_value("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
             top_config.set_key_value("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
             std::string top_gcode = print.placeholder_parser().process(top_gcode_template, 0, &top_config);
