@@ -2976,9 +2976,7 @@ inline int migrate_legacy_feature_filament_defaults(ConfigLike &cfg)
     static const char *feature_filament_keys[] = {
         "wall_filament",
         "sparse_infill_filament",
-        "solid_infill_filament",
-        "support_filament",
-        "support_interface_filament"
+        "solid_infill_filament"
     };
 
     int converted_count = 0;
