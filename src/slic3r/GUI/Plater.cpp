@@ -1853,6 +1853,14 @@ Sidebar::Sidebar(Plater *parent)
                 e.Skip();
             });
             w->Bind(wxEVT_LEAVE_WINDOW, [this, panel_color](wxMouseEvent &e) {
+                // Orca: if the edit button is already hidden the handler has no
+                // state to change, so skip the expensive wxFindWindowAtPoint tree
+                // walk. Without this guard, when the parent window is on an
+                // inactive Hyprland/Wayland workspace, GTK keeps delivering
+                // synthetic leave events and the Hide()+Layout() below re-enters
+                // the same handler in a feedback loop that pegs a CPU core.
+                // (IsShownOnScreen() can't be used here — see Plater.cpp:9304.)
+                if (!p->btn_edit_printer->IsShown()) { e.Skip(); return; }
                 // Use event-relative coords instead of wxGetMousePosition() which
                 // returns (0,0) on Wayland for global screen coordinates.
                 wxWindow* evtObj = dynamic_cast<wxWindow*>(e.GetEventObject());
